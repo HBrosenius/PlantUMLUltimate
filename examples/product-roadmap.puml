@@ -1,0 +1,21 @@
+@startgantt
+
+Project starts 2026-09-01
+
+[Architecture] lasts 4 days
+
+[Backend] starts at [Architecture]'s end
+[Backend] lasts 8 days
+
+[Frontend] starts at [Architecture]'s end
+[Frontend] lasts 10 days
+
+[Integration] starts at [Backend]'s end
+[Integration] lasts 4 days
+
+[Testing] starts at [Integration]'s end
+[Testing] lasts 5 days
+
+[Release] happens at [Testing]'s end
+
+@endgantt

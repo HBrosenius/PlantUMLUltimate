@@ -1,0 +1,89 @@
+import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
+import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
+
+export interface ResolvedTaskDates {
+  start?: string;
+  end?: string;
+  derived: boolean;
+}
+
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function resolveDateExpression(value: string, projectStart?: string): string | undefined {
+  const normalized = value.replaceAll("/", "-");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return shiftDate(normalized, 0);
+  const relative = value.match(/^(D|today)(?:([+-])(\d+))?$/i);
+  if (!relative) return undefined;
+  const anchor = relative[1]?.toLowerCase() === "today" ? localToday() : projectStart;
+  if (!anchor) return undefined;
+  const amount = Number(relative[3] ?? 0) * (relative[2] === "-" ? -1 : 1);
+  return shiftDate(anchor, amount);
+}
+
+export function resolveTaskDates(
+  tasks: readonly GanttTask[],
+  dependencies: readonly GanttDependency[],
+  projectStart: string | undefined,
+  calendar: GanttCalendar,
+): Map<string, ResolvedTaskDates> {
+  const resolved = new Map<string, ResolvedTaskDates>();
+  const visiting = new Set<string>();
+  const durationDays = (task: GanttTask) =>
+    task.duration
+      ? task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1)
+      : undefined;
+  const workingEnd = (start: string, days: number, pauses: readonly string[]) => {
+    let value = start;
+    let remaining = Math.max(0, days);
+    const paused = new Set(pauses);
+    while (remaining > 0) {
+      if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
+      if (remaining > 0) value = shiftDate(value, 1)!;
+    }
+    return value;
+  };
+  const solve = (task: GanttTask): ResolvedTaskDates => {
+    const cached = resolved.get(task.id);
+    if (cached) return cached;
+    if (visiting.has(task.id)) return { derived: true };
+    visiting.add(task.id);
+    let start = task.start ? resolveDateExpression(task.start.value, projectStart) : undefined;
+    const derived = !start;
+    if (!start) {
+      const dependency = dependencies.find((item) => item.successorTaskId === task.id);
+      if (dependency) {
+        const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
+        const predecessorDates = predecessor ? solve(predecessor) : undefined;
+        const anchor =
+          dependency.relation === "start-after-start" || dependency.relation === "end-after-start"
+            ? predecessorDates?.start
+            : predecessorDates?.end;
+        if (anchor) {
+          const direction = dependency.direction === "before" ? -1 : 1;
+          start = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+        }
+      }
+      start ??= projectStart;
+    }
+    const duration = durationDays(task);
+    const explicitEnd = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
+    const end = explicitEnd
+      ? explicitEnd
+      : start && duration
+        ? workingEnd(
+            start,
+            duration,
+            (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value),
+          )
+        : undefined;
+    const value = { ...(start ? { start } : {}), ...(end ? { end } : {}), derived };
+    resolved.set(task.id, value);
+    visiting.delete(task.id);
+    return value;
+  };
+  tasks.forEach(solve);
+  return resolved;
+}

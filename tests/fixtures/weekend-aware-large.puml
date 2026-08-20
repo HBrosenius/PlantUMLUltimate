@@ -1,0 +1,61 @@
+@startgantt
+title Project Gantt Chart — Weekend-Aware (Business Day) Logic
+Project starts 2026-08-13
+saturday are closed
+sunday are closed
+
+-- Data Fabric Foundation --
+[Orion-DF-Rialto Message Count Confirmation] starts 2026-08-13 and ends 2026-08-19 and is colored in LightGreen
+[Data Fabric Query API ?] starts 2026-08-13 and ends 2026-08-24 and is colored in LightBlue
+
+-- Unified Messaging Search --
+[Unified Messaging Search Back End] starts 2026-08-13 and ends 2026-09-02 and is colored in LightBlue
+[Unified Messaging Search Front End] starts 2026-09-03 and ends 2026-09-23 and is colored in LightBlue
+[Unified Messaging Search Back End Testing] starts 2026-09-03 and ends 2026-09-23 and is colored in LightGreen
+[Unified Messaging Search Front End Testing] starts 2026-09-23 and ends 2026-10-13 and is colored in LightGreen
+
+-- Unified Messaging Analytics --
+[Unified Messaging Analytics Front End] starts 2026-08-13 and ends 2026-09-24 and is colored in LightBlue
+[Unified Messaging Analytics Back End] starts 2026-09-03 and ends 2026-09-23 and is colored in LightBlue
+[Unified Messaging Analytics Back End Testing] starts 2026-09-03 and ends 2026-10-01 and is colored in LightGreen
+[Unified Messaging Analytics Front End Testing] starts 2026-09-24 and ends 2026-10-22 and is colored in LightGreen
+
+-- Rating Data Pipeline --
+[Rating Kafka Feed] starts 2026-08-19 and ends 2026-08-20 and is colored in LightBlue
+[Rating Data DF Ingestion Testing] starts 2026-08-20 and ends 2026-08-31 and is colored in LightGreen
+[Rating Data DF Transformation Testing] starts 2026-08-20 and ends 2026-09-03 and is colored in LightGreen
+[DF Rating Production Data Available] happens 2026-09-03
+[Rating Date DF Query Testing] starts 2026-09-03 and ends 2026-09-14 and is colored in LightGreen
+
+-- UnMasked Data Pipeline --
+[Core UnMasked MSDN Feed] starts 2026-08-13 and ends 2026-08-31 and is colored in LightBlue
+[UnMasked Core DF Ingestion Testing] starts 2026-08-31 and ends 2026-09-09 and is colored in LightGreen
+[UnMasked Core DF Transformation Testing] starts 2026-08-31 and ends 2026-09-09 and is colored in LightGreen
+[DF Unmasked Production Data Available] happens 2026-09-09
+[UnMasked Core DF Query Testing] starts 2026-09-09 and ends 2026-09-18 and is colored in LightGreen
+
+-- Download Report --
+[DF Unified Messaging Download Report Development] starts 2026-08-19 and ends 2026-09-02 and is colored in LightBlue
+[Web Unified Messaging Download Report Development Front End] starts 2026-09-02 and ends 2026-09-07 and is colored in LightBlue
+[Web Unified Messaging Download Report Development Back End] starts 2026-09-02 and lasts 7 days and is colored in Red
+note right
+  Source date was invalid in the original spreadsheet. Start date here is a placeholder.
+end note
+[Unified Rating Messaging Download Report Testing] starts 2026-09-03 and ends 2026-09-17 and is colored in LightGreen
+[Unified UnMasked Messaging Download Report Testing] starts 2026-09-16 and ends 2026-09-30 and is colored in LightGreen
+
+-- End-to-End Testing --
+[Unified End To End Testing] starts 2026-09-30 and ends 2026-10-14 and is colored in LightGreen
+
+-- Open Risks / Unscheduled (duration unknown) --
+[DF Download Report Mismatch with Rialto ONE-1777 ?] happens 2026-08-13
+note right: Days needed = "?" — unscheduled until estimated
+[Orion Rialto Analytics Calculation Fix?] starts 2026-08-13 and ends 2026-09-02 and is colored in LightGreen
+[Automated Rating Data Web Test Plan] starts 2026-08-13 and ends 2026-08-24 and is colored in LightGreen
+[Automated Unmasked Data Web Test Plan ?] happens 2026-08-13
+note right: Days needed = "?" — unscheduled until estimated
+[Automated Rating Data Web Testing] starts 2026-09-14 and ends 2026-09-23 and is colored in LightGreen
+[Automated Unmasked Data Web Testing ?] happens 2026-08-13
+note right: Days needed = "?" — unscheduled until estimated
+
+@endgantt

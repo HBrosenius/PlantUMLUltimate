@@ -1,0 +1,95 @@
+import { useEffect, useRef, useState } from "react";
+
+export function AddMenu({
+  onTask,
+  onMilestone,
+  onDivider,
+}: {
+  onTask(): void;
+  onMilestone(): void;
+  onDivider(): void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+
+  const close = (restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
+  };
+  const run = (action: () => void) => {
+    trigger.current?.focus();
+    close();
+    action();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) close();
+    };
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close(true);
+      }
+    };
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("keydown", keyboard);
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", keyboard);
+    };
+  }, [open]);
+
+  const focusMenuItem = (direction: 1 | -1) => {
+    const items = [...(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+    if (!items.length) return;
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    items[(current + direction + items.length) % items.length]?.focus();
+  };
+
+  return (
+    <div className="application-menu" ref={root}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setOpen(true);
+            requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
+          }
+        }}
+      >
+        Add
+      </button>
+      {open && (
+        <div
+          className="application-menu-panel"
+          role="menu"
+          aria-label="Add"
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              focusMenuItem(event.key === "ArrowDown" ? 1 : -1);
+            }
+          }}
+        >
+          <button role="menuitem" onClick={() => run(onTask)}>
+            Task…
+          </button>
+          <button role="menuitem" onClick={() => run(onMilestone)}>
+            Milestone…
+          </button>
+          <button role="menuitem" onClick={() => run(onDivider)}>
+            Divider…
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
