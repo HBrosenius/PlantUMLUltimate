@@ -11,7 +11,9 @@ describe("buildResourceWorkloads", () => {
     expect(workload.days.map((item) => [item.date, item.allocation])).toEqual([
       ["2026-09-01", 60],
       ["2026-09-02", 110],
-      ["2026-09-03", 50],
+      ["2026-09-03", 110],
+      ["2026-09-04", 110],
+      ["2026-09-05", 50],
     ]);
   });
 
@@ -29,7 +31,7 @@ describe("buildResourceWorkloads", () => {
     const source =
       "@startgantt\n[A] on {Alice:60%} starts 2026-09-01\n[A] lasts 2 days\n[B] on {Alice:50%} starts 2026-09-02\n[B] lasts 2 days\n@endgantt";
     expect(buildResourceOverAllocations(parseGantt(source).document.tasks, { Alice: 100 })).toMatchObject([
-      { name: "Alice", capacity: 100, peak: 110, days: 1, tasks: [{ label: "A" }, { label: "B" }] },
+      { name: "Alice", capacity: 100, peak: 110, days: 3, tasks: [{ label: "A" }, { label: "B" }] },
     ]);
     expect(buildResourceOverAllocations(parseGantt(source).document.tasks, { Alice: 120 })).toEqual([]);
   });

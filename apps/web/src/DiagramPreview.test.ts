@@ -68,7 +68,7 @@ describe("taskHoverDetails", () => {
       [build, testTask],
     );
     expect(details).toMatchObject({
-      dates: "2026-09-03 → 2026-09-06",
+      dates: "2026-09-03 → 2026-09-10",
       resources: "Alice 50%",
       successors: [{ id: "test", label: "Test" }],
     });

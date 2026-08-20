@@ -7,6 +7,21 @@ export interface ResolvedTaskDates {
   derived: boolean;
 }
 
+export function taskWorkloadDays(task: GanttTask): number | undefined {
+  if (!task.duration) return undefined;
+  return task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1);
+}
+
+export function taskElapsedDays(task: GanttTask): number | undefined {
+  const workload = taskWorkloadDays(task);
+  if (!workload) return undefined;
+  const allocation = Math.min(
+    ...(task.resources ?? []).map((resource) => Math.max(1, resource.allocation ?? 100)),
+    100,
+  );
+  return Math.ceil((workload * 100) / allocation);
+}
+
 function localToday(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -31,10 +46,6 @@ export function resolveTaskDates(
 ): Map<string, ResolvedTaskDates> {
   const resolved = new Map<string, ResolvedTaskDates>();
   const visiting = new Set<string>();
-  const durationDays = (task: GanttTask) =>
-    task.duration
-      ? task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1)
-      : undefined;
   const workingEnd = (start: string, days: number, pauses: readonly string[]) => {
     let value = start;
     let remaining = Math.max(0, days);
@@ -68,7 +79,7 @@ export function resolveTaskDates(
       }
       start ??= projectStart;
     }
-    const duration = durationDays(task);
+    const duration = taskElapsedDays(task);
     const explicitEnd = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
     const end = explicitEnd
       ? explicitEnd

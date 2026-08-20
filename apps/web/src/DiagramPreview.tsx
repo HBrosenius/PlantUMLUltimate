@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, parseGanttCalendar } from "./gantt-calendar";
-import { resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
+import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
 import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
 
@@ -742,9 +742,7 @@ export function taskHoverDetails(
   resolved?: ResolvedTaskDates,
 ) {
   if (!task) return undefined;
-  const durationDays = task.duration
-    ? task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1)
-    : undefined;
+  const durationDays = taskElapsedDays(task);
   const end =
     resolved?.end ??
     task.end?.value ??

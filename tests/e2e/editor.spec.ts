@@ -506,6 +506,15 @@ test("keeps duplicate displayed task names distinct through aliases", async ({ p
   await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue("Testing");
 });
 
+test("shows allocation-adjusted dates in the task hover card", async ({ page }) => {
+  await setSource(page, source("[More tasks] on {Kalle:75%} starts 2026-09-01\n[More tasks] lasts 20 days"));
+  await page.locator('[data-task-id="more tasks"] .bar').hover();
+  const card = page.getByLabel("Task details for More tasks");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("2026-09-01 → 2026-09-27");
+  await expect(card).toContainText("Kalle 75%");
+});
+
 test("renders task and dependency notes at the same time", async ({ page }) => {
   await setSource(
     page,
