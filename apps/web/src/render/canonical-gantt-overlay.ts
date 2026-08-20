@@ -1,4 +1,5 @@
 import type { GanttDependency, GanttDivider, GanttTask } from "@plantuml-studio/diagram-gantt";
+import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -83,6 +84,8 @@ export function addCanonicalGanttOverlay(
   dividers: readonly GanttDivider[] = [],
   resourceFilter = "",
   scheduleGhost?: { taskIds: readonly string[]; days: number },
+  projectStart?: string,
+  calendar?: GanttCalendar,
 ): string {
   if (typeof DOMParser === "undefined" || !tasks?.length) return svg;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
@@ -117,6 +120,102 @@ export function addCanonicalGanttOverlay(
   const geometry = new Map<string, Geometry>();
   const canonicalDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
+
+  const numberedDates = texts.flatMap((text) => {
+    const day = Number(text.textContent?.trim());
+    const x = numberAttribute(text, "x");
+    const y = numberAttribute(text, "y");
+    return Number.isInteger(day) && day >= 1 && day <= 31 && x !== undefined && y !== undefined
+      ? [{ text, day, x, y }]
+      : [];
+  });
+  const topDateY = numberedDates.length ? Math.min(...numberedDates.map((item) => item.y)) : undefined;
+  const topDates = numberedDates
+    .filter((item) => topDateY !== undefined && Math.abs(item.y - topDateY) < 1)
+    .sort((a, b) => a.x - b.x);
+  const monthNames = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+  ];
+  const firstMonth = texts
+    .flatMap((text) => {
+      const match = text.textContent?.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
+      const month = match?.[1] ? monthNames.indexOf(match[1].toLowerCase()) : -1;
+      const x = numberAttribute(text, "x");
+      return month >= 0 && match?.[2] && x !== undefined ? [{ month, year: Number(match[2]), x }] : [];
+    })
+    .sort((a, b) => a.x - b.x)[0];
+  const projectDate = projectStart ? new Date(`${projectStart}T00:00:00Z`) : undefined;
+  let timelineYear = firstMonth?.year ?? projectDate?.getUTCFullYear();
+  let timelineMonth = firstMonth?.month ?? projectDate?.getUTCMonth();
+  let previousDay: number | undefined;
+  if (timelineYear !== undefined && timelineMonth !== undefined)
+    for (const item of topDates) {
+      if (previousDay !== undefined && item.day < previousDay) {
+        timelineMonth += 1;
+        if (timelineMonth > 11) {
+          timelineMonth = 0;
+          timelineYear += 1;
+        }
+      }
+      const date = `${timelineYear}-${String(timelineMonth + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
+      item.text.setAttribute("data-timeline-date", date);
+      item.text.setAttribute("role", "button");
+      item.text.setAttribute("tabindex", "0");
+      item.text.setAttribute("aria-label", `Highlight ${date}`);
+      if (calendar && !isWorkingDate(date, calendar)) item.text.setAttribute("data-closed-date", "true");
+      previousDay = item.day;
+    }
+
+  const closedDates = topDates.filter((item) => item.text.getAttribute("data-closed-date") === "true");
+  if (closedDates.length && canonicalDayWidth) {
+    const definitions = document.createElementNS(SVG_NS, "defs");
+    const pattern = document.createElementNS(SVG_NS, "pattern");
+    pattern.setAttribute("id", "closed-day-hatch");
+    pattern.setAttribute("width", "7");
+    pattern.setAttribute("height", "7");
+    pattern.setAttribute("patternUnits", "userSpaceOnUse");
+    pattern.setAttribute("patternTransform", "rotate(45)");
+    const hatch = document.createElementNS(SVG_NS, "line");
+    hatch.setAttribute("x1", "0");
+    hatch.setAttribute("y1", "0");
+    hatch.setAttribute("x2", "0");
+    hatch.setAttribute("y2", "7");
+    hatch.setAttribute("stroke", "#64748b");
+    hatch.setAttribute("stroke-width", "1.5");
+    hatch.setAttribute("opacity", "0.42");
+    pattern.append(hatch);
+    definitions.append(pattern);
+    root.prepend(definitions);
+
+    const viewBox = root.getAttribute("viewBox")?.split(/\s+/).map(Number);
+    const diagramBottom = viewBox?.length === 4 ? viewBox[1]! + viewBox[3]! : (numberAttribute(root, "height") ?? 0);
+    const timelineTop = (topDateY ?? 0) + 5;
+    const group = document.createElementNS(SVG_NS, "g");
+    group.setAttribute("class", "closed-day-hatching");
+    group.setAttribute("aria-hidden", "true");
+    group.setAttribute("pointer-events", "none");
+    for (const item of closedDates) {
+      const rect = document.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("x", String(item.x - canonicalDayWidth / 2));
+      rect.setAttribute("y", String(timelineTop));
+      rect.setAttribute("width", String(canonicalDayWidth));
+      rect.setAttribute("height", String(Math.max(0, diagramBottom - timelineTop)));
+      rect.setAttribute("fill", "url(#closed-day-hatch)");
+      group.append(rect);
+    }
+    root.append(group);
+  }
 
   for (const task of tasks) {
     const label = texts.find((text) => {

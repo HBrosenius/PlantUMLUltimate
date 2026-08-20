@@ -12,6 +12,7 @@ import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
+import { HighlightDateDialog } from "./HighlightDateDialog";
 import { FileMenu } from "./FileMenu";
 import { AddMenu } from "./AddMenu";
 import { resolveTaskDates } from "./gantt-schedule";
@@ -70,6 +71,7 @@ export function App() {
   const [addDividerOpen, setAddDividerOpen] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
+  const [highlightDate, setHighlightDate] = useState<string>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
   const [resourceFilter, setResourceFilter] = useState("");
@@ -242,6 +244,14 @@ export function App() {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(true);
+  }, []);
+
+  const openProjectInspectorForDate = useCallback((date: string) => {
+    setSelectedTaskId(undefined);
+    setSelectedDependencyIndex(undefined);
+    setProjectInspectorOpen(false);
+    setResourcePanelOpen(false);
+    setHighlightDate(date);
   }, []);
 
   const openResourcePanel = useCallback(() => {
@@ -490,6 +500,50 @@ export function App() {
     },
     [commitSource, workspace.source],
   );
+
+  const applyTimelineDateHighlight = useCallback(
+    (color: string) => {
+      if (!highlightDate) return;
+      const settings = parseProjectSettings(workspace.source);
+      const existing = settings.dateRules.find(
+        (rule) => rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate,
+      );
+      settings.dateRules = existing
+        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, color } : rule))
+        : [
+            ...settings.dateRules,
+            {
+              id: `highlight-${highlightDate}`,
+              from: highlightDate,
+              to: highlightDate,
+              state: "colored",
+              color,
+            },
+          ];
+      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Highlight ${highlightDate}`))
+        return;
+      setHighlightDate(undefined);
+      setInteractionMessage(`Highlighted ${highlightDate}`);
+    },
+    [commitGeneratedSource, highlightDate, workspace.source],
+  );
+
+  const clearTimelineDateHighlight = useCallback(() => {
+    if (!highlightDate) return;
+    const settings = parseProjectSettings(workspace.source);
+    const remaining = settings.dateRules.filter(
+      (rule) => !(rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate),
+    );
+    if (remaining.length === settings.dateRules.length) {
+      setHighlightDate(undefined);
+      return;
+    }
+    settings.dateRules = remaining;
+    if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear highlight ${highlightDate}`))
+      return;
+    setHighlightDate(undefined);
+    setInteractionMessage(`Cleared highlight for ${highlightDate}`);
+  }, [commitGeneratedSource, highlightDate, workspace.source]);
 
   const undo = useCallback(() => {
     const source = activeHistory.undo(workspace.source);
@@ -864,7 +918,15 @@ export function App() {
         return;
       }
       if (value.dateRules.some((rule) => !rule.from || !rule.to || rule.to < rule.from)) {
-        setInteractionMessage("Date exceptions need a valid start and end date");
+        setInteractionMessage("Calendar dates need a valid start and end date");
+        return;
+      }
+      if (
+        value.dateRules.some(
+          (rule) => rule.state === "colored" && (!rule.color?.trim() || /\s/.test(rule.color.trim())),
+        )
+      ) {
+        setInteractionMessage("Highlighted dates need a PlantUML color name or hex value");
         return;
       }
       if (!commitGeneratedSource(updateProjectSettings(workspace.source, value), "Update project calendar")) return;
@@ -1032,6 +1094,7 @@ export function App() {
             onSaveAs={() => void saveDocumentAs()}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
+            onExportSource={exportSource}
             onExportSvg={exportSvg}
             onExportPng={() => void exportPng()}
           />
@@ -1042,7 +1105,6 @@ export function App() {
           />
           <button onClick={openProjectInspector}>Project</button>
           <button onClick={openResourcePanel}>Resources</button>
-          <button onClick={exportSource}>Source</button>
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
           </button>
@@ -1227,6 +1289,7 @@ export function App() {
             openSourceBytes={openSourceBytes}
             resourceOverAllocations={resourceOverAllocations}
             onOpenResourceWorkload={openResourcePanel}
+            onDateHighlightRequest={openProjectInspectorForDate}
           />
         )}
       </main>
@@ -1294,6 +1357,22 @@ export function App() {
           settings={parseProjectSettings(workspace.source)}
           onApply={applyProjectSettings}
           onClose={() => setProjectInspectorOpen(false)}
+        />
+      )}
+      {highlightDate && (
+        <HighlightDateDialog
+          date={highlightDate}
+          initialColor={
+            parseProjectSettings(workspace.source).dateRules.find(
+              (rule) => rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate,
+            )?.color
+          }
+          canClear={parseProjectSettings(workspace.source).dateRules.some(
+            (rule) => rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate,
+          )}
+          onApply={applyTimelineDateHighlight}
+          onClear={clearTimelineDateHighlight}
+          onClose={() => setHighlightDate(undefined)}
         />
       )}
       {selectedTask?.milestone && (

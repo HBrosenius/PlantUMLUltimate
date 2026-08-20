@@ -36,6 +36,7 @@ interface Props {
   openSourceBytes: number;
   resourceOverAllocations: readonly ResourceOverAllocation[];
   onOpenResourceWorkload(): void;
+  onDateHighlightRequest(date: string): void;
 }
 
 export function DiagramPreview({
@@ -68,6 +69,7 @@ export function DiagramPreview({
   openSourceBytes,
   resourceOverAllocations,
   onOpenResourceWorkload,
+  onDateHighlightRequest,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -77,15 +79,24 @@ export function DiagramPreview({
   const [connection, setConnection] = useState<{ x1: number; y1: number; x2: number; y2: number }>();
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
   const [scrollPercent, setScrollPercent] = useState(0);
+  const calendar = useMemo(() => parseGanttCalendar(source), [source]);
   const overlayResult = useMemo(() => {
     const started = performance.now();
     const value = svg
-      ? addCanonicalGanttOverlay(svg, tasks, dependencies, dividers, resourceFilter, scheduleGhost)
+      ? addCanonicalGanttOverlay(
+          svg,
+          tasks,
+          dependencies,
+          dividers,
+          resourceFilter,
+          scheduleGhost,
+          projectStart,
+          calendar,
+        )
       : svg;
     return { value, durationMs: performance.now() - started };
-  }, [svg, tasks, dependencies, dividers, resourceFilter, scheduleGhost]);
+  }, [svg, tasks, dependencies, dividers, resourceFilter, scheduleGhost, projectStart, calendar]);
   const interactiveSvg = overlayResult.value;
-  const calendar = useMemo(() => parseGanttCalendar(source), [source]);
   const resolvedDates = useMemo(
     () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
     [tasks, dependencies, projectStart, calendar],
@@ -183,6 +194,11 @@ export function DiagramPreview({
 
   const selectFromEvent = (event: React.SyntheticEvent<HTMLDivElement>) => {
     const target = event.target as Element;
+    const timelineDate = target.closest("[data-timeline-date]")?.getAttribute("data-timeline-date");
+    if (timelineDate) {
+      onDateHighlightRequest(timelineDate);
+      return;
+    }
     const dependency = target.closest("[data-dependency-index]");
     if (dependency) {
       const index = Number(dependency.getAttribute("data-dependency-index"));
@@ -572,6 +588,14 @@ export function DiagramPreview({
               if (from && from !== to) setHoveredTask(undefined);
             }}
             onKeyDown={(event) => {
+              const date = (event.target as Element)
+                .closest("[data-timeline-date]")
+                ?.getAttribute("data-timeline-date");
+              if (date && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onDateHighlightRequest(date);
+                return;
+              }
               if (event.key === "Enter" || event.key === " ") {
                 selectFromEvent(event);
                 return;
@@ -616,6 +640,14 @@ export function DiagramPreview({
           </div>
         )}
       </div>
+      <aside className="calendar-legend" aria-label="Calendar legend">
+        <span>
+          <i className="closed-day-swatch" aria-hidden="true" /> Closed workday
+        </span>
+        <span>
+          <i className="highlighted-date-swatch" aria-hidden="true" /> Highlighted date
+        </span>
+      </aside>
       {renderStatus === "rendering" && (
         <div className="render-notice rendering" role="status" aria-live="polite">
           <strong>Rendering updated preview…</strong>

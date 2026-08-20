@@ -40,7 +40,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   ]);
   await menu.getByRole("menuitem", { name: "Export" }).hover();
   const exportMenu = page.getByRole("menu", { name: "Export" });
-  await expect(exportMenu.getByRole("menuitem")).toHaveText(["SVG", "PNG"]);
+  await expect(exportMenu.getByRole("menuitem")).toHaveText(["Source", "SVG", "PNG"]);
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(file).toBeFocused();
@@ -155,6 +155,33 @@ test("edits the diagram title from project settings", async ({ page }) => {
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("title Release roadmap — 2026");
   await expect(page.locator(".diagram svg")).toContainText("Release roadmap — 2026", { timeout: 20_000 });
+});
+
+test("adds a colored critical date from project settings", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 2 days"));
+  await page.getByRole("button", { name: "Project" }).click();
+  const highlights = page.getByRole("group", { name: "Highlighted dates" });
+  await highlights.getByRole("button", { name: "Add highlighted date" }).click();
+  await highlights.getByLabel("Highlight date").fill("2026-09-18");
+  await highlights.getByLabel("Highlight through date").fill("2026-09-18");
+  await highlights.getByLabel("Highlight color").fill("#ef4444");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("2026-09-18 is colored in #ef4444");
+});
+
+test("starts a highlighted date by clicking the timeline header", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 25 days"));
+  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  const dialog = page.getByRole("dialog", { name: "Highlight 2026-09-18" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Color").fill("#ffd700");
+  await dialog.getByRole("button", { name: "Highlight" }).click();
+  await expect(page.locator(".cm-content")).toContainText("2026-09-18 is colored in #ffd700");
+
+  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  const clearDialog = page.getByRole("dialog", { name: "Highlight 2026-09-18" });
+  await clearDialog.getByRole("button", { name: "Clear highlight" }).click();
+  await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is colored in");
 });
 
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {

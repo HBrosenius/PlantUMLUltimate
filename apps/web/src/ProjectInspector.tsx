@@ -118,77 +118,63 @@ export function ProjectInspector({
         </fieldset>
         <fieldset>
           <legend>Date exceptions</legend>
-          {value.dateRules.map((rule) => (
-            <div className="date-rule" key={rule.id}>
-              <input
-                aria-label="From date"
-                type="date"
-                value={rule.from}
-                onChange={(event) =>
-                  update(
-                    "dateRules",
-                    value.dateRules.map((item) => (item.id === rule.id ? { ...item, from: event.target.value } : item)),
-                  )
-                }
-              />
-              <input
-                aria-label="To date"
-                type="date"
-                value={rule.to}
-                onChange={(event) =>
-                  update(
-                    "dateRules",
-                    value.dateRules.map((item) => (item.id === rule.id ? { ...item, to: event.target.value } : item)),
-                  )
-                }
-              />
-              <select
-                aria-label="Date state"
-                value={rule.state}
-                onChange={(event) =>
-                  update(
-                    "dateRules",
-                    value.dateRules.map((item) =>
-                      item.id === rule.id
-                        ? { ...item, state: event.target.value as "closed" | "opened" | "colored" }
-                        : item,
-                    ),
-                  )
-                }
-              >
-                <option value="closed">closed</option>
-                <option value="opened">opened</option>
-                <option value="colored">colored</option>
-              </select>
-              {rule.state === "colored" && (
+          {value.dateRules
+            .filter((rule) => rule.state !== "colored")
+            .map((rule) => (
+              <div className="date-rule" key={rule.id}>
                 <input
-                  aria-label="Date color"
-                  placeholder="LightGray or #ddd"
-                  value={rule.color ?? ""}
+                  aria-label="From date"
+                  type="date"
+                  value={rule.from}
                   onChange={(event) =>
                     update(
                       "dateRules",
                       value.dateRules.map((item) =>
-                        item.id === rule.id ? { ...item, color: event.target.value } : item,
+                        item.id === rule.id ? { ...item, from: event.target.value } : item,
                       ),
                     )
                   }
                 />
-              )}
-              <button
-                type="button"
-                aria-label="Remove date rule"
-                onClick={() =>
-                  update(
-                    "dateRules",
-                    value.dateRules.filter((item) => item.id !== rule.id),
-                  )
-                }
-              >
-                ×
-              </button>
-            </div>
-          ))}
+                <input
+                  aria-label="To date"
+                  type="date"
+                  value={rule.to}
+                  onChange={(event) =>
+                    update(
+                      "dateRules",
+                      value.dateRules.map((item) => (item.id === rule.id ? { ...item, to: event.target.value } : item)),
+                    )
+                  }
+                />
+                <select
+                  aria-label="Date state"
+                  value={rule.state}
+                  onChange={(event) =>
+                    update(
+                      "dateRules",
+                      value.dateRules.map((item) =>
+                        item.id === rule.id ? { ...item, state: event.target.value as "closed" | "opened" } : item,
+                      ),
+                    )
+                  }
+                >
+                  <option value="closed">closed</option>
+                  <option value="opened">opened</option>
+                </select>
+                <button
+                  type="button"
+                  aria-label="Remove date rule"
+                  onClick={() =>
+                    update(
+                      "dateRules",
+                      value.dateRules.filter((item) => item.id !== rule.id),
+                    )
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           <button
             type="button"
             onClick={() =>
@@ -199,6 +185,85 @@ export function ProjectInspector({
             }
           >
             + Add exception
+          </button>
+        </fieldset>
+        <fieldset>
+          <legend>Highlighted dates</legend>
+          <p className="fieldset-help">Mark deadlines, releases, or other critical dates with a timeline color.</p>
+          {value.dateRules
+            .filter((rule) => rule.state === "colored")
+            .map((rule) => (
+              <div className="date-rule date-highlight-rule" key={rule.id}>
+                <input
+                  aria-label="Highlight date"
+                  type="date"
+                  value={rule.from}
+                  onChange={(event) =>
+                    update(
+                      "dateRules",
+                      value.dateRules.map((item) =>
+                        item.id === rule.id
+                          ? { ...item, from: event.target.value, to: item.to || event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+                <input
+                  aria-label="Highlight through date"
+                  type="date"
+                  title="Use the same date for a single highlighted day"
+                  value={rule.to}
+                  onChange={(event) =>
+                    update(
+                      "dateRules",
+                      value.dateRules.map((item) => (item.id === rule.id ? { ...item, to: event.target.value } : item)),
+                    )
+                  }
+                />
+                <input
+                  aria-label="Highlight color"
+                  placeholder="#ef4444 or Salmon"
+                  value={rule.color ?? ""}
+                  onChange={(event) =>
+                    update(
+                      "dateRules",
+                      value.dateRules.map((item) =>
+                        item.id === rule.id ? { ...item, color: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  aria-label="Remove highlighted date"
+                  onClick={() =>
+                    update(
+                      "dateRules",
+                      value.dateRules.filter((item) => item.id !== rule.id),
+                    )
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          <button
+            type="button"
+            onClick={() =>
+              update("dateRules", [
+                ...value.dateRules,
+                {
+                  id: `highlight-${Date.now()}`,
+                  from: value.startDate,
+                  to: value.startDate,
+                  state: "colored",
+                  color: "#ef4444",
+                },
+              ])
+            }
+          >
+            + Add highlighted date
           </button>
         </fieldset>
         <fieldset>

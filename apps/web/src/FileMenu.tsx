@@ -8,6 +8,7 @@ export function FileMenu({
   onSaveAs,
   onBackup,
   onRestore,
+  onExportSource,
   onExportSvg,
   onExportPng,
 }: {
@@ -18,6 +19,7 @@ export function FileMenu({
   onSaveAs(): void;
   onBackup(): void;
   onRestore(): void;
+  onExportSource(): void;
   onExportSvg(): void;
   onExportPng(): void;
 }) {
@@ -124,7 +126,6 @@ export function FileMenu({
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={exportOpen}
-              disabled={!canExport}
               onClick={() => setExportOpen((value) => !value)}
               onFocus={() => setExportOpen(true)}
               onKeyDown={(event) => {
@@ -144,10 +145,13 @@ export function FileMenu({
             </button>
             {exportOpen && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Export">
-                <button role="menuitem" onClick={() => run(onExportSvg)}>
+                <button role="menuitem" onClick={() => run(onExportSource)}>
+                  Source
+                </button>
+                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportSvg)}>
                   SVG
                 </button>
-                <button role="menuitem" onClick={() => run(onExportPng)}>
+                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportPng)}>
                   PNG
                 </button>
               </div>
