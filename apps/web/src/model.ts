@@ -17,6 +17,8 @@ export interface RenderResult {
 export const DEFAULT_SOURCE = `@startgantt
 
 Project starts 2026-09-01
+saturday are closed
+sunday are closed
 
 [Architecture] starts 2026-09-01
 [Architecture] lasts 4 days

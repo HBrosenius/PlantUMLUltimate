@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import {
   activeWorkspace,
+  DEFAULT_SESSION,
   DEFAULT_WORKSPACE,
   documentDisplayNames,
   loadWorkspace,
@@ -10,8 +11,14 @@ import {
   saveWorkspace,
   type WorkspaceSession,
 } from "./workspace-storage";
+import { DEFAULT_SOURCE } from "./model";
 
 beforeEach(() => Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() }));
+
+it("closes Saturday and Sunday in new diagrams by default", () => {
+  expect(DEFAULT_SOURCE).toContain("saturday are closed\nsunday are closed");
+  expect(DEFAULT_SESSION.documents[0]?.source).toBe(DEFAULT_SOURCE);
+});
 
 describe("normalizeWorkspace", () => {
   it("fills fields added after an older snapshot", () => {
