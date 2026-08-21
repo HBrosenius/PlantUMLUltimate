@@ -47,14 +47,60 @@ test("groups document commands in an accessible File and Export menu", async ({ 
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {
+  const modifier = await page.evaluate(() => (/Mac|iPhone|iPad|iPod/i.test(navigator.platform) ? "⌥" : "Alt+"));
   const add = page.getByRole("button", { name: "Add", exact: true });
   await add.click();
   const menu = page.getByRole("menu", { name: "Add" });
-  await expect(menu.getByRole("menuitem")).toHaveText(["Task…", "Milestone…", "Divider…"]);
+  await expect(menu.getByRole("menuitem")).toHaveText([
+    `Task…${modifier}T`,
+    `Milestone…${modifier}M`,
+    `Divider…${modifier}D`,
+  ]);
   await menu.getByRole("menuitem", { name: "Milestone…" }).click();
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeHidden();
+});
+
+test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
+  await page.getByRole("button", { name: "Add", exact: true }).focus();
+  await page.keyboard.press("Alt+t");
+  await expect(page.getByRole("dialog", { name: "Add task" })).toBeVisible();
+  await page.keyboard.press("Alt+m");
+  await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeHidden();
+  await page.keyboard.press("Escape");
+
+  await page.keyboard.press("Alt+m");
+  await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.keyboard.press("Alt+d");
+  await expect(page.getByRole("dialog", { name: "Add divider" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.locator(".cm-content").click();
+  await page.keyboard.press("Alt+t");
+  await expect(page.getByRole("dialog", { name: "Add task" })).toBeVisible();
+});
+
+test("creates standalone tasks with a movable project-start date", async ({ page }) => {
+  await setSource(page, source("[Existing] starts 2026-09-01 and lasts 2 days"));
+  await openAddDialog(page, "Task…");
+  const dialog = page.getByRole("dialog", { name: "Add task" });
+  await dialog.getByLabel("Name").fill("New task");
+  await expect(dialog.getByLabel("Start date")).toHaveValue("2026-09-01");
+  await dialog.getByRole("button", { name: "Add task" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[New task] starts 2026-09-01");
+
+  const task = page.locator('[data-task-id="new task"]');
+  await expect(task).toHaveAttribute("data-draggable", "true");
+  const bar = await task.locator(".bar").boundingBox();
+  expect(bar).not.toBeNull();
+  await page.mouse.move(bar!.x + bar!.width / 2, bar!.y + bar!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bar!.x + bar!.width / 2 + 80, bar!.y + bar!.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).not.toContainText("[New task] starts 2026-09-01");
 });
 
 test("suggests inline task continuations after a fixed start date", async ({ page }) => {
@@ -422,7 +468,8 @@ test("unloads the heavy renderer in code-only view and reloads it for preview", 
 test("grows during resize and undo restores the duration", async ({ page }) => {
   await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days"));
   await page.locator("[data-task-id=a] .bar").click();
-  await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector).toBeVisible();
   const handle = page.locator("[data-task-id=a] [data-resize-handle]");
   const box = await handle.boundingBox();
   expect(box).not.toBeNull();
@@ -435,6 +482,7 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
     .toBeGreaterThan(initialWidth);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).not.toContainText("[A] lasts 3 days");
+  await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).not.toHaveValue("3");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
 });
@@ -585,4 +633,17 @@ test("converts task end dates and durations in both directions", async ({ page }
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] ends 2026-09-08");
   await expect(page.locator(".cm-content")).not.toContainText("lasts 3 days");
+});
+
+test("suggests PlantUML color names in the task inspector", async ({ page }) => {
+  await setSource(page, source("[A] starts 2026-09-01 and lasts 3 days"));
+  await page.locator("[data-task-id=a] .bar").click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  const color = inspector.getByRole("combobox", { name: "Color" });
+  const listId = await color.getAttribute("list");
+  expect(listId).toBeTruthy();
+  for (const name of ["AliceBlue", "DarkOrange", "LightGreen", "OrangeRed", "YellowGreen"])
+    await expect(inspector.locator(`datalist[id="${listId}"] option[value="${name}"]`)).toHaveCount(1);
+  await color.fill("Ora");
+  await expect(color).toHaveValue("Ora");
 });

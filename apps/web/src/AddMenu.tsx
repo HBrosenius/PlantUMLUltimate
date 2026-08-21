@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { optionShortcut } from "./platform-shortcuts";
 
 export function AddMenu({
   onTask,
@@ -9,6 +10,9 @@ export function AddMenu({
   onMilestone(): void;
   onDivider(): void;
 }) {
+  const taskShortcut = optionShortcut("T");
+  const milestoneShortcut = optionShortcut("M");
+  const dividerShortcut = optionShortcut("D");
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -80,13 +84,16 @@ export function AddMenu({
           }}
         >
           <button role="menuitem" onClick={() => run(onTask)}>
-            Task…
+            <span>Task…</span>
+            <kbd>{taskShortcut}</kbd>
           </button>
           <button role="menuitem" onClick={() => run(onMilestone)}>
-            Milestone…
+            <span>Milestone…</span>
+            <kbd>{milestoneShortcut}</kbd>
           </button>
           <button role="menuitem" onClick={() => run(onDivider)}>
-            Divider…
+            <span>Divider…</span>
+            <kbd>{dividerShortcut}</kbd>
           </button>
         </div>
       )}

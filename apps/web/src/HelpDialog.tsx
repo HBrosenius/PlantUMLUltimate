@@ -1,11 +1,15 @@
 import { useRef } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
+import { optionShortcut } from "./platform-shortcuts";
 
-const shortcuts = [
+const shortcuts = () => [
   ["⌘/Ctrl + N", "New document"],
   ["⌘/Ctrl + O", "Open document"],
   ["⌘/Ctrl + S", "Save"],
   ["⌘/Ctrl + W", "Close active tab"],
+  [optionShortcut("T"), "Add task"],
+  [optionShortcut("M"), "Add milestone"],
+  [optionShortcut("D"), "Add divider"],
   ["⌘/Ctrl + Z", "Undo"],
   ["⇧ + ⌘/Ctrl + Z", "Redo"],
   ["⌘/Ctrl + 1", "Code view"],
@@ -61,7 +65,7 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
           <section>
             <h3>Keyboard shortcuts</h3>
             <div className="shortcut-grid">
-              {shortcuts.map(([keys, action]) => (
+              {shortcuts().map(([keys, action]) => (
                 <div key={keys}>
                   <kbd>{keys}</kbd>
                   <span>{action}</span>

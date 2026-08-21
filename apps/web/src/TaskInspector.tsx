@@ -1,6 +1,7 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
+import { PLANTUML_COLOR_NAMES } from "./gantt-language";
 
 export interface TaskInspectorValue {
   label: string;
@@ -42,6 +43,7 @@ export function TaskInspector({
   onClose(): void;
 }) {
   const resourceListId = useId();
+  const colorListId = useId();
   const initial = (): TaskInspectorValue => ({
     label: task.label,
     startDate: task.start?.value ?? effectiveStart,
@@ -62,6 +64,19 @@ export function TaskInspector({
     notePosition: task.notes?.[0]?.position ?? "bottom",
   });
   const [value, setValue] = useState(initial);
+  const parsedStartDate = task.start?.value ?? effectiveStart;
+  const parsedEndDate = task.end?.value ?? "";
+  const parsedDuration = task.duration ? String(task.duration.value) : "";
+  const parsedDurationUnit = task.duration?.unit ?? "day";
+  useEffect(() => {
+    setValue((current) => ({
+      ...current,
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
+      duration: parsedDuration,
+      durationUnit: parsedDurationUnit,
+    }));
+  }, [parsedDuration, parsedDurationUnit, parsedEndDate, parsedStartDate]);
   const update = <K extends keyof TaskInspectorValue>(key: K, next: TaskInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   const conversionStart = value.startDate || effectiveStart;
@@ -172,10 +187,18 @@ export function TaskInspector({
         <label>
           Color
           <input
+            aria-label="Color"
+            list={colorListId}
+            autoComplete="off"
             placeholder="Orange or #f97316"
             value={value.color}
             onChange={(event) => update("color", event.target.value)}
           />
+          <datalist id={colorListId}>
+            {PLANTUML_COLOR_NAMES.map((color) => (
+              <option key={color} value={color} />
+            ))}
+          </datalist>
         </label>
         <label>
           Paused dates

@@ -10,16 +10,18 @@ export interface AddTaskValue {
 
 export function AddTaskDialog({
   taskLabels,
+  defaultStartDate,
   onAdd,
   onClose,
 }: {
   taskLabels: string[];
+  defaultStartDate?: string | undefined;
   onAdd(value: AddTaskValue): void;
   onClose(): void;
 }) {
   const [label, setLabel] = useState("");
   const [duration, setDuration] = useState("1");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(defaultStartDate ?? "");
   const [predecessor, setPredecessor] = useState("");
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
@@ -72,12 +74,15 @@ export function AddTaskDialog({
           Start date
           <input
             type="date"
+            required={!predecessor}
             disabled={Boolean(predecessor)}
             value={startDate}
             onChange={(event) => setStartDate(event.target.value)}
           />
         </label>
-        <p className="dialog-hint">A dependency takes precedence over an explicit start date.</p>
+        <p className="dialog-hint">
+          Standalone tasks need a start date so they can be moved. A dependency takes precedence over it.
+        </p>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

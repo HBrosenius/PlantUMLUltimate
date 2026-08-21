@@ -16,6 +16,7 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { FileMenu } from "./FileMenu";
 import { AddMenu } from "./AddMenu";
 import { resolveTaskDates } from "./gantt-schedule";
+import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { parseProjectSettings, updateProjectSettings } from "./project-settings";
 import type { Theme, ViewMode } from "./model";
@@ -944,9 +945,27 @@ export function App() {
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
       { id: "file.backup", label: "Back up workspace", category: "File", run: backupWorkspace },
       { id: "file.restore", label: "Restore workspace…", category: "File", run: () => void restoreWorkspace() },
-      { id: "edit.add-task", label: "Add task…", category: "Edit", run: () => setAddTaskOpen(true) },
-      { id: "edit.add-milestone", label: "Add milestone…", category: "Edit", run: () => setAddMilestoneOpen(true) },
-      { id: "edit.add-divider", label: "Add divider…", category: "Edit", run: () => setAddDividerOpen(true) },
+      {
+        id: "edit.add-task",
+        label: "Add task…",
+        category: "Edit",
+        shortcut: optionShortcut("T"),
+        run: () => setAddTaskOpen(true),
+      },
+      {
+        id: "edit.add-milestone",
+        label: "Add milestone…",
+        category: "Edit",
+        shortcut: optionShortcut("M"),
+        run: () => setAddMilestoneOpen(true),
+      },
+      {
+        id: "edit.add-divider",
+        label: "Add divider…",
+        category: "Edit",
+        shortcut: optionShortcut("D"),
+        run: () => setAddDividerOpen(true),
+      },
       { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
       { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
       {
@@ -1004,20 +1023,38 @@ export function App() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (
-        event.key === "?" &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey &&
-        !(
-          event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLTextAreaElement ||
-          (event.target as HTMLElement | null)?.isContentEditable
-        )
-      ) {
+      const target = event.target as HTMLElement | null;
+      const editing =
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement ||
+        target?.isContentEditable;
+      const editingOutsideCodeEditor =
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement ||
+        (target?.isContentEditable && !target.closest(".cm-editor"));
+      if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !editing) {
         event.preventDefault();
         setHelpOpen(true);
         return;
+      }
+      if (
+        event.altKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !editingOutsideCodeEditor &&
+        !event.repeat
+      ) {
+        const creation = event.code === "KeyT" ? "t" : event.code === "KeyM" ? "m" : event.code === "KeyD" ? "d" : "";
+        if (creation === "t" || creation === "m" || creation === "d") {
+          event.preventDefault();
+          if (creation === "t") setAddTaskOpen(true);
+          else if (creation === "m") setAddMilestoneOpen(true);
+          else setAddDividerOpen(true);
+          return;
+        }
       }
       if (!(event.ctrlKey || event.metaKey)) return;
       if (event.shiftKey && event.key.toLowerCase() === "p") {
@@ -1334,6 +1371,9 @@ export function App() {
       {addTaskOpen && (
         <AddTaskDialog
           taskLabels={parseResult.document.tasks.map((task) => task.label)}
+          defaultStartDate={
+            parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
+          }
           onAdd={addTask}
           onClose={() => setAddTaskOpen(false)}
         />
