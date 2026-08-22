@@ -58,6 +58,13 @@ export function SequenceDiagramPreview({
           fixedX: number;
           fixedY: number;
         };
+        movePreview?: {
+          svg: SVGSVGElement;
+          line: SVGLineElement;
+          head: SVGPolygonElement;
+          x1: number;
+          x2: number;
+        };
       }
     | undefined
   >(undefined);
@@ -148,6 +155,9 @@ export function SequenceDiagramPreview({
       endpointHandle instanceof SVGCircleElement && endpoint && endpointMessageId
         ? createReconnectPreview(endpointHandle, endpoint, endpointMessageId)
         : undefined;
+    const movePreview = !endpointMessageId && messageId
+      ? createMessageMovePreview(diagramRef.current, messageId, participants, messages)
+      : undefined;
     dragRef.current = {
       kind: endpointMessageId ? "message-endpoint" : participantId ? "participant" : "message",
       id: endpointMessageId ?? participantId ?? messageId!,
@@ -160,6 +170,7 @@ export function SequenceDiagramPreview({
         ? `${endpoint === "from" ? "Sender" : "Receiver"} endpoint`
         : element.textContent?.trim() || (participantId ? "Participant" : "Message"),
       ...(reconnectPreview ? { reconnectPreview } : {}),
+      ...(movePreview ? { movePreview } : {}),
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -173,6 +184,7 @@ export function SequenceDiagramPreview({
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
     if (drag.reconnectPreview) updateReconnectPreview(drag.reconnectPreview, event.clientX, event.clientY);
+    if (drag.movePreview) updateMessageMovePreview(drag.movePreview, event.clientX, event.clientY);
     drag.element.classList.add("sequence-dragging");
     if (dragGhostRef.current) {
       dragGhostRef.current.textContent = drag.label;
@@ -203,6 +215,8 @@ export function SequenceDiagramPreview({
     drag.element.classList.remove("sequence-dragging");
     drag.reconnectPreview?.line.remove();
     drag.reconnectPreview?.head.remove();
+    drag.movePreview?.line.remove();
+    drag.movePreview?.head.remove();
     if (dragGhostRef.current) {
       dragGhostRef.current.textContent = "";
       dragGhostRef.current.hidden = true;
@@ -494,6 +508,70 @@ function updateReconnectPreview(
     "points",
     `${end.x},${end.y} ${backX + perpendicularX},${backY + perpendicularY} ${backX - perpendicularX},${backY - perpendicularY}`,
   );
+}
+
+function createMessageMovePreview(
+  root: HTMLDivElement | null,
+  messageId: string,
+  participants: readonly SequenceParticipant[],
+  messages: readonly SequenceMessage[],
+) {
+  const message = messages.find((item) => item.id === messageId);
+  const messageText = root?.querySelector<SVGTextElement>(
+    `text[data-sequence-message-id="${CSS.escape(messageId)}"]`,
+  );
+  const svg = messageText?.ownerSVGElement;
+  if (!message || !messageText || !svg) return undefined;
+  const viewBox = svg.viewBox.baseVal;
+  const participantX = (reference: string, edge: "from" | "to") => {
+    const participant = participants.find((item) => (item.alias ?? item.label) === reference);
+    const text = participant
+      ? root?.querySelector<SVGTextElement>(
+          `text[data-sequence-participant-id="${CSS.escape(participant.id)}"]`,
+        )
+      : undefined;
+    if (text) {
+      const box = text.getBBox();
+      return box.x + box.width / 2;
+    }
+    return edge === "from" ? viewBox.x + 8 : viewBox.x + viewBox.width - 8;
+  };
+  const x1 = participantX(message.from, "from");
+  const x2 = participantX(message.to, "to");
+  const box = messageText.getBBox();
+  const y = box.y + box.height + 6;
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", String(x1));
+  line.setAttribute("x2", String(x2));
+  line.setAttribute("y1", String(y));
+  line.setAttribute("y2", String(y));
+  line.setAttribute("class", "sequence-message-move-preview");
+  if (message.arrow.includes("--")) line.setAttribute("stroke-dasharray", "7 4");
+  const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  head.setAttribute("class", "sequence-message-move-preview-head");
+  svg.append(line, head);
+  updateMessageMoveArrowhead(head, x1, x2, y);
+  return { svg, line, head, x1, x2 };
+}
+
+function updateMessageMovePreview(
+  preview: { svg: SVGSVGElement; line: SVGLineElement; head: SVGPolygonElement; x1: number; x2: number },
+  clientX: number,
+  clientY: number,
+) {
+  const matrix = preview.svg.getScreenCTM();
+  if (!matrix) return;
+  const point = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
+  preview.line.setAttribute("y1", String(point.y));
+  preview.line.setAttribute("y2", String(point.y));
+  updateMessageMoveArrowhead(preview.head, preview.x1, preview.x2, point.y);
+}
+
+function updateMessageMoveArrowhead(head: SVGPolygonElement, x1: number, x2: number, y: number) {
+  const direction = x2 >= x1 ? 1 : -1;
+  const tip = x2;
+  const back = tip - direction * 11;
+  head.setAttribute("points", `${tip},${y} ${back},${y - 6} ${back},${y + 6}`);
 }
 
 function OrderList({

@@ -143,12 +143,16 @@ export function VisualChoiceSelect({
   choices,
   onChange,
   renderPreview,
+  allowCustom = true,
+  showSyntax = true,
 }: {
   ariaLabel: string;
   value: string;
   choices: readonly { value: string; label: string }[];
   onChange(value: string): void;
   renderPreview(value: string): React.ReactNode;
+  allowCustom?: boolean | undefined;
+  showSyntax?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -175,7 +179,7 @@ export function VisualChoiceSelect({
     };
   }, [open]);
   return (
-    <div className="visual-choice-select" ref={root}>
+    <div className={`visual-choice-select${showSyntax ? "" : " visual-choice-without-syntax"}`} ref={root}>
       <button
         type="button"
         className="visual-choice-trigger"
@@ -186,7 +190,7 @@ export function VisualChoiceSelect({
       >
         {renderPreview(selected.value)}
         <span>{selected.label}</span>
-        <code>{selected.value || "none"}</code>
+        {showSyntax && <code>{selected.value || "none"}</code>}
         <span aria-hidden="true">⌄</span>
       </button>
       {open && (
@@ -206,15 +210,15 @@ export function VisualChoiceSelect({
             >
               {renderPreview(choice.value)}
               <span>{choice.label}</span>
-              <code>{choice.value || "none"}</code>
+              {showSyntax && <code>{choice.value || "none"}</code>}
             </button>
           ))}
-          <button type="button" role="option" aria-selected={!known} onClick={(event) => { event.preventDefault(); setCustomEditing(true); setOpen(false); }}>
+          {allowCustom && <button type="button" role="option" aria-selected={!known} onClick={(event) => { event.preventDefault(); setCustomEditing(true); setOpen(false); }}>
             <span className="visual-custom-icon">{`{…}`}</span><span>Custom PlantUML syntax</span><code>edit below</code>
-          </button>
+          </button>}
         </div>
       )}
-      {(customEditing || !known) && (
+      {allowCustom && (customEditing || !known) && (
         <input aria-label={`Custom ${ariaLabel}`} required={ariaLabel === "Arrow type"} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </div>

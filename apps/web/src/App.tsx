@@ -334,21 +334,43 @@ export function App() {
       !selectedTaskId &&
       selectedDependencyIndex === undefined &&
       selectedDividerIndex === undefined &&
-      selectedVerticalSeparatorIndex === undefined
+      selectedVerticalSeparatorIndex === undefined &&
+      !selectedSequenceParticipantId &&
+      !selectedSequenceMessageId &&
+      !selectedSequenceStructureId
     )
       return;
     const dismissInspector = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
+      if (target instanceof Element && target.closest(".cm-editor")) return;
+      if (
+        target instanceof Element &&
+        target.closest(
+          "[data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
+        )
+      )
+        return;
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       setSelectedDividerIndex(undefined);
       setSelectedVerticalSeparatorIndex(undefined);
+      setSelectedSequenceParticipantId(undefined);
+      setSelectedSequenceMessageId(undefined);
+      setSelectedSequenceStructureId(undefined);
       setFocusNoteTaskId(undefined);
     };
-    document.addEventListener("click", dismissInspector);
-    return () => document.removeEventListener("click", dismissInspector);
-  }, [selectedDependencyIndex, selectedDividerIndex, selectedTaskId, selectedVerticalSeparatorIndex]);
+    document.addEventListener("pointerdown", dismissInspector);
+    return () => document.removeEventListener("pointerdown", dismissInspector);
+  }, [
+    selectedDependencyIndex,
+    selectedDividerIndex,
+    selectedSequenceMessageId,
+    selectedSequenceParticipantId,
+    selectedSequenceStructureId,
+    selectedTaskId,
+    selectedVerticalSeparatorIndex,
+  ]);
 
   const selectTask = (taskId: string) => {
     const task = parseResult.document.symbols.tasks.get(taskId);

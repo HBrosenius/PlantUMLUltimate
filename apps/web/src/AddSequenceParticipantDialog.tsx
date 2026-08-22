@@ -2,6 +2,7 @@ import { useId, useRef, useState } from "react";
 import type { SequenceParticipantKind } from "@plantuml-studio/diagram-sequence";
 import { useDialogFocus } from "./use-dialog-focus";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { SequenceParticipantKindSelect } from "./SequenceParticipantKindSelect";
 
 export interface AddSequenceParticipantValue {
   kind: SequenceParticipantKind;
@@ -49,15 +50,7 @@ export function AddSequenceParticipantDialog({
         <h2>Add participant</h2>
         <label>
           Shape
-          <select autoFocus value={kind} onChange={(event) => setKind(event.target.value as SequenceParticipantKind)}>
-            {(
-              ["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"] as const
-            ).map((value) => (
-              <option key={value} value={value}>
-                {value[0]!.toUpperCase() + value.slice(1)}
-              </option>
-            ))}
-          </select>
+          <SequenceParticipantKindSelect value={kind} onChange={setKind} />
         </label>
         <label>
           Name

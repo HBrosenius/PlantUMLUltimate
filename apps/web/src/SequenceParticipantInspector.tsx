@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import type { SequenceParticipant, SequenceParticipantKind } from "@plantuml-studio/diagram-sequence";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { SequenceParticipantKindSelect } from "./SequenceParticipantKindSelect";
 
 export interface SequenceParticipantInspectorValue {
   kind: SequenceParticipantKind;
@@ -60,16 +61,7 @@ export function SequenceParticipantInspector({
       >
         <label>
           Shape
-          <select
-            value={value.kind}
-            onChange={(event) => update("kind", event.target.value as SequenceParticipantKind)}
-          >
-            {(
-              ["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"] as const
-            ).map((kind) => (
-              <option key={kind}>{kind}</option>
-            ))}
-          </select>
+          <SequenceParticipantKindSelect value={value.kind} onChange={(kind) => update("kind", kind)} />
         </label>
         <label>
           Name

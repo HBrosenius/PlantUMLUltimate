@@ -98,7 +98,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect(participant.locator('datalist option[value="#LightBlue"]')).toHaveCount(1);
   await expect(participant.getByLabel("Color", { exact: true })).toHaveAttribute("list", /.+/);
   await expect(participant.getByLabel("Spot color")).toHaveAttribute("list", /.+/);
-  await participant.getByLabel("Shape").selectOption("database");
+  await participant.getByRole("combobox", { name: "Participant kind" }).click();
+  await participant.getByRole("option", { name: /Database/ }).click();
   await participant.getByLabel("Name").fill("Orders");
   await participant.getByLabel("Stereotype").fill("Store");
   await participant.getByLabel("Spot character").fill("D");
@@ -111,10 +112,16 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await page.locator('[data-sequence-drag-hit][aria-label="Drag participant Orders"]').first().click();
   const participantInspector = page.getByRole("complementary", { name: "Participant inspector" });
   await expect(participantInspector).toBeVisible();
+  await expect(participantInspector.getByRole("combobox", { name: "Participant kind" })).toContainText("Database");
+  await participantInspector.getByRole("combobox", { name: "Participant kind" }).click();
+  await expect(participantInspector.getByRole("option", { name: /Actor/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   await participantInspector.getByLabel("Name").fill("Order store");
   await participantInspector.getByLabel("Alias").fill("Orders");
   await participantInspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText('database "Order store" as Orders <<(D,#FDE68A) Store>> order 30');
+  await page.getByRole("button", { name: "Copy PlantUML source" }).click();
+  await expect(participantInspector).toBeHidden();
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Message…" }).click();
@@ -209,7 +216,10 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
     firstMessageBox!.y + firstMessageBox!.height / 2,
     { steps: 6 },
   );
+  await expect(page.locator(".sequence-message-move-preview")).toHaveCount(1);
+  await expect(page.locator(".sequence-message-move-preview-head")).toBeVisible();
   await page.mouse.up();
+  await expect(page.locator(".sequence-message-move-preview")).toHaveCount(0);
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();

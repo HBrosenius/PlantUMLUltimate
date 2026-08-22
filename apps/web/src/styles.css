@@ -705,6 +705,16 @@ input {
   fill: var(--accent);
   pointer-events: none;
 }
+.sequence-diagram .sequence-message-move-preview {
+  stroke: var(--accent);
+  stroke-width: 2.5px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+}
+.sequence-diagram .sequence-message-move-preview-head {
+  fill: var(--accent);
+  pointer-events: none;
+}
 .sequence-diagram .sequence-dragging {
   cursor: grabbing;
   opacity: 0.45;
@@ -855,6 +865,15 @@ input {
   border-bottom: 1px solid var(--line);
   border-radius: 0;
 }
+.visual-choice-without-syntax .visual-choice-trigger {
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+}
+.visual-choice-without-syntax .visual-choice-options button {
+  grid-template-columns: 76px minmax(0, 1fr);
+}
+.visual-choice-without-syntax .participant-kind-preview {
+  width: 68px;
+}
 .visual-choice-options button:hover,
 .visual-choice-options button[aria-selected="true"] {
   background: color-mix(in srgb, var(--accent) 13%, var(--panel));
@@ -866,6 +885,16 @@ input {
   fill: var(--panel);
   stroke: currentColor;
   stroke-width: 1.8px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.participant-kind-preview {
+  width: 94px;
+  height: 30px;
+  overflow: visible;
+  fill: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  stroke: currentColor;
+  stroke-width: 1.7px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
