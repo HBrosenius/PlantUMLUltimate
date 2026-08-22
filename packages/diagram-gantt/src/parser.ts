@@ -51,6 +51,7 @@ function recognizedDate(value: string): boolean {
     /^\d{4}\/\d{2}\/\d{2}$/.test(value) ||
     /^D[+-]\d+$/i.test(value) ||
     /^today(?:[+-]\d+)?$/i.test(value) ||
+    /^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(value) ||
     /^the\s+.+$/i.test(value) ||
     /^\$[A-Za-z_]\w*$/.test(value) ||
     /^%date\(.+\)$/i.test(value)
@@ -110,9 +111,19 @@ export function parseGantt(source: string): ParseResult {
   const dependencies: GanttDependency[] = [];
   const unknown: UnknownSyntaxNode[] = [];
   const dividers: GanttDivider[] = [];
+  const verticalSeparators: import("./model").GanttVerticalSeparator[] = [];
   const noteBlocks: GanttNote[] = [];
   const skippedNoteLines = new Set<number>();
   const sourceLines = linesOf(source);
+  const skippedLegendLines = new Set<number>();
+  for (let index = 0; index < sourceLines.length; index += 1) {
+    if (!/^\s*legend\s*$/i.test(sourceLines[index]!.text)) continue;
+    let end = index + 1;
+    while (end < sourceLines.length && !/^\s*endlegend\s*$/i.test(sourceLines[end]!.text)) end += 1;
+    if (end >= sourceLines.length) continue;
+    for (let cursor = index; cursor <= end; cursor += 1) skippedLegendLines.add(sourceLines[cursor]!.from);
+    index = end;
+  }
   for (let index = 0; index < sourceLines.length; index += 1) {
     const line = sourceLines[index]!;
     const inlineNote = line.text.match(/^\s*note\s+(bottom|top|left|right)\s*:\s*(.+?)\s*$/i);
@@ -155,7 +166,7 @@ export function parseGantt(source: string): ParseResult {
   let previousTaskId: string | undefined;
 
   for (const line of sourceLines) {
-    if (skippedNoteLines.has(line.from)) continue;
+    if (skippedNoteLines.has(line.from) || skippedLegendLines.has(line.from)) continue;
     const lineRange = { from: line.from, to: line.to };
     const trimmed = line.text.trim();
     if (!trimmed || trimmed.startsWith("'")) continue;
@@ -171,6 +182,20 @@ export function parseGantt(source: string): ParseResult {
     const dividerMatch = line.text.match(/^\s*--\s*(.*?)\s*--\s*$/);
     if (dividerMatch?.[1] !== undefined) {
       dividers.push({ label: dividerMatch[1], sourceRange: lineRange });
+      continue;
+    }
+
+    const verticalSeparatorMatch = line.text.match(
+      /^\s*Separator\s+just\s+(?:(\d+)\s+days?\s+(after|before)\s+|at\s+)\[([^\]]+)]'s\s+(start|end)\s*$/i,
+    );
+    if (verticalSeparatorMatch?.[3] && verticalSeparatorMatch[4]) {
+      verticalSeparators.push({
+        taskLabel: verticalSeparatorMatch[3],
+        anchor: verticalSeparatorMatch[4].toLowerCase() as "start" | "end",
+        offset: Number(verticalSeparatorMatch[1] ?? 0),
+        direction: (verticalSeparatorMatch[2]?.toLowerCase() as "after" | "before" | undefined) ?? "after",
+        sourceRange: lineRange,
+      });
       continue;
     }
 
@@ -406,7 +431,7 @@ export function parseGantt(source: string): ParseResult {
       }
 
       const pause = simpleStatement.match(
-        /^pauses\s+on\s+(\d{4}[-/]\d{2}[-/]\d{2}|D[+-]\d+|today(?:[+-]\d+)?|\$[A-Za-z_]\w*|%date\(.+\)|the\s+.+?)\s*$/i,
+        /^pauses\s+on\s+(\d{4}[-/]\d{2}[-/]\d{2}|sunday|monday|tuesday|wednesday|thursday|friday|saturday|D[+-]\d+|today(?:[+-]\d+)?|\$[A-Za-z_]\w*|%date\(.+\)|the\s+.+?)\s*$/i,
       );
       if (pause?.[1]) {
         const value = pause[1];
@@ -554,9 +579,15 @@ export function parseGantt(source: string): ParseResult {
       }
 
       const validModifier =
-        /^(?:pauses\s+on\s+.+|links\s+to\s+\[\[.+]]|displays\s+on\s+same\s+row\s+as\s+\[[^\]]+]|is\s+deleted)\s*$/i.test(
+        /^(?:pauses\s+on\s+.+|displays\s+on\s+same\s+row\s+as\s+\[[^\]]+]|is\s+deleted)\s*$/i.test(
           statement,
         );
+      const link = statement.match(/^links\s+to\s+\[\[(\S+?)(?:\s+(.+?))?]]\s*$/i);
+      if (link?.[1]) {
+        task.links = [...(task.links ?? []), { url: link[1], ...(link[2] ? { label: link[2] } : {}), sourceRange: lineRange }];
+        declaration(task, "link", lineRange);
+        continue;
+      }
       const validCompound =
         /\s+and\s+/i.test(statement) && /\b(?:starts|ends|requires|lasts|is\s+colou?red)\b/i.test(statement);
       if (validModifier || validCompound) {
@@ -661,6 +692,7 @@ export function parseGantt(source: string): ParseResult {
     tasks: [...taskMap.values()],
     dependencies,
     dividers,
+    verticalSeparators,
     unknown,
     symbols: { tasks: taskMap, references: taskReferences },
     ...(projectStart ? { projectStart } : {}),

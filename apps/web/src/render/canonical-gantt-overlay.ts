@@ -1,4 +1,4 @@
-import type { GanttDependency, GanttDivider, GanttTask } from "@plantuml-studio/diagram-gantt";
+import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -44,6 +44,35 @@ function timelineDayWidth(document: Document): number | undefined {
   return gaps[Math.floor(gaps.length / 2)];
 }
 
+export function timelineColumnWidth(centers: readonly number[], fallback?: number): number | undefined {
+  const gaps = centers.slice(1).map((value, index) => value - centers[index]!).filter((gap) => gap > 0.5).sort((a, b) => a - b);
+  return gaps.length ? gaps[Math.floor(gaps.length / 2)] : fallback;
+}
+
+export function dayColumnBounds(center: number, width: number): { left: number; right: number } {
+  return { left: center - width / 2, right: center + width / 2 };
+}
+
+export function alignClosedDayHatching(svg: SVGSVGElement): void {
+  const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")]
+    .map((text) => {
+      const box = text.getBBox();
+      return { text, center: box.x + box.width / 2 };
+    })
+    .sort((a, b) => a.center - b.center);
+  const width = timelineColumnWidth(labels.map((item) => item.center));
+  if (!width) return;
+  const closed = labels.filter((item) => item.text.getAttribute("data-closed-date") === "true");
+  const overlays = [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")];
+  closed.forEach((item, index) => {
+    const overlay = overlays[index];
+    if (!overlay) return;
+    const bounds = dayColumnBounds(item.center, width);
+    overlay.setAttribute("x", String(bounds.left));
+    overlay.setAttribute("width", String(width));
+  });
+}
+
 interface Geometry {
   x: number;
   y: number;
@@ -86,6 +115,7 @@ export function addCanonicalGanttOverlay(
   scheduleGhost?: { taskIds: readonly string[]; days: number },
   projectStart?: string,
   calendar?: GanttCalendar,
+  verticalSeparators: readonly GanttVerticalSeparator[] = [],
 ): string {
   if (typeof DOMParser === "undefined" || !tasks?.length) return svg;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
@@ -118,12 +148,14 @@ export function addCanonicalGanttOverlay(
     );
   });
   const geometry = new Map<string, Geometry>();
-  const canonicalDayWidth = timelineDayWidth(document);
+  const gridDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
 
   const numberedDates = texts.flatMap((text) => {
     const day = Number(text.textContent?.trim());
-    const x = numberAttribute(text, "x");
+    const textX = numberAttribute(text, "x");
+    const textWidth = numberAttribute(text, "textLength") ?? 0;
+    const x = textX === undefined ? undefined : textX + textWidth / 2;
     const y = numberAttribute(text, "y");
     return Number.isInteger(day) && day >= 1 && day <= 31 && x !== undefined && y !== undefined
       ? [{ text, day, x, y }]
@@ -133,6 +165,10 @@ export function addCanonicalGanttOverlay(
   const topDates = numberedDates
     .filter((item) => topDateY !== undefined && Math.abs(item.y - topDateY) < 1)
     .sort((a, b) => a.x - b.x);
+  // Date-label spacing is the authoritative day column geometry. The SVG also contains
+  // vertical task/resource borders; including those in the width calculation can select
+  // a half-column gap and make weekend hatching spill into the preceding working day.
+  const canonicalDayWidth = timelineColumnWidth(topDates.map((item) => item.x), gridDayWidth);
   const monthNames = [
     "january",
     "february",
@@ -206,8 +242,9 @@ export function addCanonicalGanttOverlay(
     group.setAttribute("aria-hidden", "true");
     group.setAttribute("pointer-events", "none");
     for (const item of closedDates) {
+      const bounds = dayColumnBounds(item.x, canonicalDayWidth);
       const rect = document.createElementNS(SVG_NS, "rect");
-      rect.setAttribute("x", String(item.x - canonicalDayWidth / 2));
+      rect.setAttribute("x", String(bounds.left));
       rect.setAttribute("y", String(timelineTop));
       rect.setAttribute("width", String(canonicalDayWidth));
       rect.setAttribute("height", String(Math.max(0, diagramBottom - timelineTop)));
@@ -396,6 +433,37 @@ export function addCanonicalGanttOverlay(
     hit.setAttribute("y", String(y - 14));
     hit.setAttribute("width", String(viewBoxWidth));
     hit.setAttribute("height", "20");
+    group.append(hit);
+    root.append(group);
+  });
+
+  verticalSeparators.forEach((separator, index) => {
+    const reference = tasks.find((task) =>
+      [task.label, task.alias?.value].some((value) => value?.trim().toLowerCase() === separator.taskLabel.trim().toLowerCase()),
+    );
+    const bounds = reference ? geometry.get(reference.id) : undefined;
+    if (!bounds || !canonicalDayWidth) return;
+    const signedOffset = (separator.direction === "before" ? -1 : 1) * separator.offset;
+    const x = (separator.anchor === "start" ? bounds.x : bounds.x + bounds.width) + signedOffset * canonicalDayWidth;
+    const viewBox = root.getAttribute("viewBox")?.split(/\s+/).map(Number);
+    const top = viewBox?.[1] ?? 0;
+    const height = viewBox?.[3] ?? numberAttribute(root, "height") ?? 0;
+    const group = document.createElementNS(SVG_NS, "g");
+    group.setAttribute("class", "vertical-separator interaction-vertical-separator");
+    group.setAttribute("data-vertical-separator-index", String(index));
+    group.setAttribute("data-day-width", String(canonicalDayWidth));
+    group.setAttribute("role", "button");
+    group.setAttribute("tabindex", "0");
+    group.setAttribute("aria-label", `Move vertical separator at ${separator.taskLabel}'s ${separator.anchor}`);
+    const visible = document.createElementNS(SVG_NS, "line");
+    visible.setAttribute("class", "vertical-separator-guide");
+    visible.setAttribute("x1", String(x)); visible.setAttribute("x2", String(x));
+    visible.setAttribute("y1", String(top)); visible.setAttribute("y2", String(top + height));
+    group.append(visible);
+    const hit = document.createElementNS(SVG_NS, "line");
+    hit.setAttribute("class", "vertical-separator-hit interaction-hit");
+    hit.setAttribute("x1", String(x)); hit.setAttribute("x2", String(x));
+    hit.setAttribute("y1", String(top)); hit.setAttribute("y2", String(top + height));
     group.append(hit);
     root.append(group);
   });

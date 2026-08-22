@@ -75,7 +75,7 @@ test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
   await page.keyboard.press("Escape");
 
   await page.keyboard.press("Alt+d");
-  await expect(page.getByRole("dialog", { name: "Add divider" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Add separator" })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.locator(".cm-content").click();
@@ -249,6 +249,76 @@ test("marks and clears a closed day by clicking the timeline header", async ({ p
   await expect(reopenedMenu.getByRole("button", { name: "Already a closed day" })).toBeDisabled();
   await reopenedMenu.getByRole("button", { name: "Clear date setting" }).click();
   await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is closed");
+});
+
+test("closed-day hatching aligns with real timeline grid boundaries across resize, zoom, and scroll", async ({ page }) => {
+  await setSource(page, source("saturday are closed\nsunday are closed\n[Build] starts 2026-09-01 and lasts 45 days"));
+  const measure = async () => page.locator(".diagram svg").evaluate((svg) => {
+    const number = (element: Element, name: string) => Number(element.getAttribute(name));
+    const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")].map((text) => {
+      const box = text.getBBox();
+      return { closed: text.getAttribute("data-closed-date") === "true", center: box.x + box.width / 2 };
+    });
+    const gaps = labels.slice(1).map((label, index) => label.center - labels[index]!.center).filter((gap) => gap > 0.5).sort((a, b) => a - b);
+    const width = gaps[Math.floor(gaps.length / 2)]!;
+    const closedLabels = labels.filter((label) => label.closed);
+    return [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")].map((rect, index) => {
+      const left = number(rect, "x");
+      const right = left + number(rect, "width");
+      const center = closedLabels[index]!.center;
+      return {
+        left,
+        right,
+        expectedLeft: center - width / 2,
+        expectedRight: center + width / 2,
+      };
+    });
+  });
+  const assertAligned = (items: Awaited<ReturnType<typeof measure>>) => {
+    expect(items.length).toBeGreaterThan(4);
+    for (const item of items) {
+      expect(Math.abs(item.left - item.expectedLeft), JSON.stringify(item)).toBeLessThan(0.05);
+      expect(Math.abs(item.right - item.expectedRight), JSON.stringify(item)).toBeLessThan(0.05);
+    }
+  };
+  assertAligned(await measure());
+  await page.setViewportSize({ width: 820, height: 720 });
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.locator(".preview-viewport").evaluate((element) => { element.scrollLeft = 300; });
+  assertAligned(await measure());
+});
+
+test("edits pauses and links with structured inspector rows", async ({ page }) => {
+  await setSource(page, source("[Build] starts 2026-09-01 and lasts 5 days\n[Build] pauses on monday\n[Build] links to [[https://example.com Existing]]"));
+  await page.locator('[data-task-id="build"]').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Pause date or weekday")).toHaveValue("monday");
+  await inspector.getByRole("button", { name: "Add pause" }).click();
+  await inspector.getByLabel("Pause date or weekday").nth(1).fill("2026-09-04");
+  await expect(inspector.getByLabel("Link URL")).toHaveValue("https://example.com");
+  await inspector.getByRole("button", { name: "Add link" }).click();
+  await inspector.getByLabel("Link URL").nth(1).fill("https://plantuml.com/gantt-diagram");
+  await inspector.getByLabel("Link label").nth(1).fill("PlantUML reference");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Build] pauses on 2026-09-04");
+  await expect(page.locator(".cm-content")).toContainText("[[https://plantuml.com/gantt-diagram PlantUML reference]]");
+});
+
+test("drags a vertical separator and closes its inspector on an outside click", async ({ page }) => {
+  await setSource(page, source("[Build] starts 2026-09-01 and lasts 8 days\nSeparator just at [Build]'s end"));
+  const separator = page.locator('[data-vertical-separator-index="0"]');
+  const box = await separator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + 34, box!.y + box!.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("Separator just 1 day after [Build]'s end");
+  await separator.dispatchEvent("click");
+  await expect(page.getByRole("complementary", { name: "Vertical separator inspector" })).toBeVisible();
+  await page.getByRole("button", { name: "File" }).click();
+  await expect(page.getByRole("complementary", { name: "Vertical separator inspector" })).toBeHidden();
 });
 
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {

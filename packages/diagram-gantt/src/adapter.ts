@@ -51,6 +51,12 @@ export const ganttAdapter: DiagramAdapter<GanttDocument, GanttVisualOperation> =
       label: divider.label,
       sourceRange: divider.sourceRange,
     })),
+    ...model.verticalSeparators.map((separator, index) => ({
+      id: `vertical-separator-${index}`,
+      kind: "divider",
+      label: `Vertical separator at ${separator.taskLabel}'s ${separator.anchor}`,
+      sourceRange: separator.sourceRange,
+    })),
   ],
   applyVisualOperation: (operation, model, source) => {
     if (operation.kind === "move-task") {

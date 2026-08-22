@@ -4,6 +4,15 @@ import { applySourceEdits } from "./source-edits";
 import { findTaskAt } from "./model";
 
 describe("parseGantt", () => {
+  it("parses horizontal and vertical separators as different model objects", () => {
+    const source = "@startgantt\n[A] lasts 2 days\n-- Phase --\nSeparator just at [A]'s start\nSeparator just 3 days before [A]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    expect(document.dividers).toHaveLength(1);
+    expect(document.verticalSeparators).toEqual([
+      expect.objectContaining({ taskLabel: "A", anchor: "start", offset: 0 }),
+      expect.objectContaining({ taskLabel: "A", anchor: "end", offset: 3, direction: "before" }),
+    ]);
+  });
   it("turns simplified then succession into editable dependencies", () => {
     const result = parseGantt(`@startgantt
 [Design] requires 3 days

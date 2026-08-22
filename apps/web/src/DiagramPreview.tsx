@@ -1,24 +1,31 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import type { GanttDependency, GanttDivider, GanttTask } from "@plantuml-studio/diagram-gantt";
-import { addCanonicalGanttOverlay } from "./render/canonical-gantt-overlay";
+import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
+import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, parseGanttCalendar } from "./gantt-calendar";
 import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
 import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
+import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
 
 interface Props {
   svg: string | undefined;
   tasks: readonly GanttTask[];
   dependencies: readonly GanttDependency[];
   dividers: readonly GanttDivider[];
+  verticalSeparators: readonly GanttVerticalSeparator[];
   source: string;
   zoom: number;
   onZoomChange(zoom: number): void;
   selectedTaskId?: string | undefined;
   onTaskSelect(taskId: string): void;
+  onNoteSelect(taskId: string): void;
+  onBackgroundSelect(): void;
   onTaskMove(taskId: string, days: number): void;
   onTaskReorder(taskId: string, beforeTaskId?: string): void;
   onDividerReorder(dividerIndex: number, beforeTaskId?: string): void;
+  onVerticalSeparatorMove(separatorIndex: number, days: number): void;
+  onVerticalSeparatorSelect(separatorIndex: number): void;
+  onDividerSelect(dividerIndex: number): void;
   onTaskResize(taskId: string, durationDays: number, calendarDays: number): void;
   onDependencyCreate(predecessorTaskId: string, successorTaskId: string): void;
   selectedDependencyIndex?: number | undefined;
@@ -37,6 +44,7 @@ interface Props {
   resourceOverAllocations: readonly ResourceOverAllocation[];
   onOpenResourceWorkload(): void;
   onDateHighlightRequest(date: string): void;
+  onLegendEditRequest(color: string): void;
 }
 
 export function DiagramPreview({
@@ -44,14 +52,20 @@ export function DiagramPreview({
   tasks,
   dependencies,
   dividers,
+  verticalSeparators,
   source,
   zoom,
   onZoomChange,
   selectedTaskId,
   onTaskSelect,
+  onNoteSelect,
+  onBackgroundSelect,
   onTaskMove,
   onTaskReorder,
   onDividerReorder,
+  onVerticalSeparatorMove,
+  onVerticalSeparatorSelect,
+  onDividerSelect,
   onTaskResize,
   onDependencyCreate,
   selectedDependencyIndex,
@@ -70,15 +84,21 @@ export function DiagramPreview({
   resourceOverAllocations,
   onOpenResourceWorkload,
   onDateHighlightRequest,
+  onLegendEditRequest,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const feedbackRef = useRef<HTMLOutputElement>(null);
   const pointerTaskIdRef = useRef<string | undefined>(undefined);
   const draggingRef = useRef(false);
+  const suppressNextClickRef = useRef(false);
   const [connection, setConnection] = useState<{ x1: number; y1: number; x2: number; y2: number }>();
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
   const [scrollPercent, setScrollPercent] = useState(0);
+  const suppressGestureClick = () => {
+    suppressNextClickRef.current = true;
+    window.setTimeout(() => { suppressNextClickRef.current = false; }, 0);
+  };
   const calendar = useMemo(() => parseGanttCalendar(source), [source]);
   const overlayResult = useMemo(() => {
     const started = performance.now();
@@ -92,10 +112,11 @@ export function DiagramPreview({
           scheduleGhost,
           projectStart,
           calendar,
+          verticalSeparators,
         )
       : svg;
-    return { value, durationMs: performance.now() - started };
-  }, [svg, tasks, dependencies, dividers, resourceFilter, scheduleGhost, projectStart, calendar]);
+    return { value: value ? makeLegendLabelsInteractive(value, parseLegendEntries(source)) : value, durationMs: performance.now() - started };
+  }, [svg, tasks, dependencies, dividers, verticalSeparators, resourceFilter, scheduleGhost, projectStart, calendar, source]);
   const interactiveSvg = overlayResult.value;
   const resolvedDates = useMemo(
     () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
@@ -124,6 +145,10 @@ export function DiagramPreview({
     }
     return marked;
   }, [interactiveSvg, selectedTaskId, selectedDependencyIndex]);
+  useEffect(() => {
+    const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
+    if (svg) alignClosedDayHatching(svg);
+  }, [selectedSvg, zoom]);
   const hoverDetails = hoveredTask
     ? taskHoverDetails(
         tasks.find((item) => item.id === hoveredTask.id),
@@ -193,7 +218,24 @@ export function DiagramPreview({
   }, [selectedTaskId]);
 
   const selectFromEvent = (event: React.SyntheticEvent<HTMLDivElement>) => {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      event.stopPropagation();
+      return;
+    }
     const target = event.target as Element;
+    const legendColor = target.closest("[data-legend-color]")?.getAttribute("data-legend-color");
+    if (legendColor) {
+      onLegendEditRequest(legendColor);
+      return;
+    }
+    if (target.closest("a[href]")) return;
+    const noteOwner = target.closest("[data-note-owner]")?.getAttribute("data-note-owner");
+    if (noteOwner?.startsWith("task:")) {
+      onDependencySelect(undefined);
+      onNoteSelect(noteOwner.slice(5));
+      return;
+    }
     const timelineDate = target.closest("[data-timeline-date]")?.getAttribute("data-timeline-date");
     if (timelineDate) {
       onDateHighlightRequest(timelineDate);
@@ -205,18 +247,60 @@ export function DiagramPreview({
       if (Number.isInteger(index)) onDependencySelect(index);
       return;
     }
+    const divider = target.closest("[data-divider-index]");
+    if (divider) {
+      const index = Number(divider.getAttribute("data-divider-index"));
+      if (Number.isInteger(index)) onDividerSelect(index);
+      return;
+    }
+    const verticalSeparator = target.closest("[data-vertical-separator-index]");
+    if (verticalSeparator) {
+      const index = Number(verticalSeparator.getAttribute("data-vertical-separator-index"));
+      if (Number.isInteger(index)) onVerticalSeparatorSelect(index);
+      return;
+    }
     const task = target.closest<SVGGElement>("[data-task-id]");
     const id = task?.getAttribute("data-task-id") ?? pointerTaskIdRef.current;
     pointerTaskIdRef.current = undefined;
     if (id) {
       onDependencySelect(undefined);
       onTaskSelect(id);
+      return;
     }
+    onBackgroundSelect();
   };
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as Element;
+    const verticalSeparator = target.closest<SVGGElement>("[data-vertical-separator-index]");
+    if (verticalSeparator) {
+      const index = Number(verticalSeparator.getAttribute("data-vertical-separator-index"));
+      if (!Number.isInteger(index)) return;
+      event.preventDefault();
+      draggingRef.current = true;
+      const startX = event.clientX;
+      const scale = svgScreenScale(verticalSeparator.ownerSVGElement);
+      const dayWidth = Number(verticalSeparator.getAttribute("data-day-width") ?? 16);
+      let days = 0;
+      const moveVertical = (moveEvent: PointerEvent) => {
+        days = Math.round((moveEvent.clientX - startX) / (dayWidth * scale));
+        verticalSeparator.setAttribute("transform", `translate(${days * dayWidth} 0)`);
+        showFeedback(days ? `Move vertical separator ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}` : undefined);
+      };
+      const endVertical = () => {
+        window.removeEventListener("pointermove", moveVertical);
+        window.removeEventListener("pointerup", endVertical, true);
+        verticalSeparator.removeAttribute("transform");
+        showFeedback();
+        draggingRef.current = false;
+        if (days) suppressGestureClick();
+        if (days) onVerticalSeparatorMove(index, days);
+      };
+      window.addEventListener("pointermove", moveVertical);
+      window.addEventListener("pointerup", endVertical, true);
+      return;
+    }
     const divider = target.closest<SVGGElement>("[data-divider-index]");
     if (divider) {
       const index = Number(divider.getAttribute("data-divider-index"));
@@ -309,6 +393,7 @@ export function DiagramPreview({
         const successorId = taskIdAtPoint(liveSvg, upEvent.clientX, upEvent.clientY);
         highlightConnectionTarget(liveSvg, undefined);
         if (successorId && successorId !== id) {
+          suppressGestureClick();
           onInteractionMessage(undefined);
           onDependencyCreate(id, successorId);
         } else
@@ -378,6 +463,7 @@ export function DiagramPreview({
         previewBar?.remove();
         showFeedback();
         draggingRef.current = false;
+        if (durationDelta !== 0) suppressGestureClick();
         setHoveredTask(undefined);
         onTaskSelect(id);
         if (durationDelta !== 0) onTaskResize(id, durationDelta, snappedDays);
@@ -473,6 +559,7 @@ export function DiagramPreview({
       highlightReorderTarget(task.ownerSVGElement, undefined);
       showFeedback();
       draggingRef.current = false;
+      if (dragMode !== "pending" || snappedDays !== 0) suppressGestureClick();
       setHoveredTask(undefined);
       onTaskSelect(id);
       if (dragMode === "vertical" && reorderTargetId) onTaskReorder(id, reorderTargetId);

@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   createDependency,
+  deleteDivider,
   deleteTask,
   insertDivider,
+  insertVerticalSeparator,
   insertTask,
   insertMilestone,
   moveDependentTasksByDays,
   moveDivider,
+  moveVerticalSeparatorByDays,
   moveTaskByDays,
   removeDependency,
   renameResource,
@@ -15,9 +18,13 @@ import {
   resizeTaskByDays,
   setNote,
   setTaskDeclaration,
+  setTaskLinks,
   setTaskPauses,
   setTaskResources,
   updateDependency,
+  updateDivider,
+  updateVerticalSeparator,
+  deleteVerticalSeparator,
 } from "./operations";
 import { parseGantt } from "./parser";
 import { applySourceEdits } from "./source-edits";
@@ -199,6 +206,30 @@ describe("task inspector operations", () => {
     expect(changed).not.toContain("pauses on 2026-09-02");
     expect(changed).toContain("[A] pauses on 2026-09-03\n[A] pauses on 2026-09-04");
     expect(parseGantt(changed).diagnostics).toEqual([]);
+  });
+
+  it("supports PlantUML weekday pauses", () => {
+    const source = "@startgantt\n[A] lasts 5 days\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    const changed = applySourceEdits(source, setTaskPauses(source, task, ["monday", "2026-09-03"]).edits);
+    expect(changed).toContain("[A] pauses on monday");
+    expect(parseGantt(changed).diagnostics).not.toEqual(expect.arrayContaining([expect.objectContaining({ code: "invalid-date" })]));
+  });
+
+  it("writes a selected color when inserting a task", () => {
+    const source = "@startgantt\n@endgantt";
+    const changed = applySourceEdits(source, insertTask(source, { label: "Build", durationDays: 2, startDate: "2026-09-01", color: "Orange" }).edits);
+    expect(changed).toContain("[Build] is colored in Orange");
+  });
+
+  it("replaces task links without rewriting unrelated source", () => {
+    const source = "@startgantt\n' keep\n[A] lasts 2 days\n[A] links to [[https://old.example Old]]\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    const changed = applySourceEdits(source, setTaskLinks(source, task, [{ url: "https://new.example", label: "Details" }, { url: "https://docs.example" }]).edits);
+    expect(changed).toContain("' keep");
+    expect(changed).not.toContain("old.example");
+    expect(changed).toContain("[A] links to [[https://new.example Details]]");
+    expect(parseGantt(changed).document.tasks[0]!.links).toHaveLength(2);
   });
   it("renames a person across every resource assignment", () => {
     const source = "@startgantt\n[A] on {Alice:50%} starts 2026-09-01\n[B] on {Alice} lasts 2 days\n@endgantt";
@@ -426,6 +457,44 @@ describe("annotations", () => {
     const movedDocument = parseGantt(moved).document;
     const atEnd = applySourceEdits(moved, moveDivider(moved, movedDocument.dividers[0]!.sourceRange).edits);
     expect(atEnd).toBe("@startgantt\n[A] lasts 1 day\n[B] lasts 1 day\n-- Phase --\n@endgantt");
+  });
+
+  it("renames and deletes a divider without touching surrounding source", () => {
+    const source = "@startgantt\n' keep\n-- Phase one --\n[A] lasts 2 days\n@endgantt";
+    const divider = parseGantt(source).document.dividers[0]!;
+    const renamed = applySourceEdits(source, updateDivider(source, divider.sourceRange, "Delivery").edits);
+    expect(renamed).toContain("' keep\n-- Delivery --\n[A]");
+    const renamedDivider = parseGantt(renamed).document.dividers[0]!;
+    const deleted = applySourceEdits(renamed, deleteDivider(renamed, renamedDivider.sourceRange).edits);
+    expect(deleted).toBe("@startgantt\n' keep\n[A] lasts 2 days\n@endgantt");
+  });
+
+  it("inserts a PlantUML vertical separator relative to a task boundary", () => {
+    const source = "@startgantt\n[A] lasts 2 days\n@endgantt";
+    const changed = applySourceEdits(source, insertVerticalSeparator(source, {
+      taskLabel: "A", anchor: "end", offset: 2, direction: "after",
+    }).edits);
+    expect(changed).toContain("Separator just 2 days after [A]'s end");
+    expect(parseGantt(changed).document.verticalSeparators).toEqual([
+      expect.objectContaining({ taskLabel: "A", anchor: "end", offset: 2, direction: "after" }),
+    ]);
+  });
+
+  it("moves a vertical separator across its reference boundary", () => {
+    const source = "@startgantt\n[A] lasts 2 days\nSeparator just 2 days before [A]'s end\n@endgantt";
+    const separator = parseGantt(source).document.verticalSeparators[0]!;
+    const changed = applySourceEdits(source, moveVerticalSeparatorByDays(source, separator, 5).edits);
+    expect(changed).toContain("Separator just 3 days after [A]'s end");
+  });
+
+  it("edits and deletes a vertical separator without rewriting tasks", () => {
+    const source = "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\nSeparator just at [A]'s end\n@endgantt";
+    const separator = parseGantt(source).document.verticalSeparators[0]!;
+    const changed = applySourceEdits(source, updateVerticalSeparator(separator, { taskLabel: "B", anchor: "start", offset: 1, direction: "before" }).edits);
+    expect(changed).toContain("[A] lasts 2 days\n[B] lasts 3 days");
+    expect(changed).toContain("Separator just 1 day before [B]'s start");
+    const current = parseGantt(changed).document.verticalSeparators[0]!;
+    expect(applySourceEdits(changed, deleteVerticalSeparator(changed, current).edits)).not.toContain("Separator just");
   });
 
   it("keeps comments, dividers, and notes intact while reordering a task", () => {

@@ -34,8 +34,22 @@ export interface GanttNote {
   sourceRange: TextRange;
 }
 
+export interface GanttLink {
+  url: string;
+  label?: string;
+  sourceRange: TextRange;
+}
+
 export interface GanttDivider {
   label: string;
+  sourceRange: TextRange;
+}
+
+export interface GanttVerticalSeparator {
+  taskLabel: string;
+  anchor: "start" | "end";
+  offset: number;
+  direction: "after" | "before";
   sourceRange: TextRange;
 }
 
@@ -49,6 +63,7 @@ export interface TaskDeclaration {
     | "color"
     | "resource"
     | "pause"
+    | "link"
     | "same-row"
     | "modifier"
     | "unknown";
@@ -74,6 +89,7 @@ export interface GanttTask {
   sameRowTaskId?: string;
   sameRowAs?: TaskReference;
   notes?: GanttNote[];
+  links?: GanttLink[];
 }
 
 export interface GanttDependency {
@@ -106,6 +122,7 @@ export interface GanttDocument {
   tasks: GanttTask[];
   dependencies: GanttDependency[];
   dividers: GanttDivider[];
+  verticalSeparators: GanttVerticalSeparator[];
   unknown: UnknownSyntaxNode[];
   projectStart?: DateExpression;
   symbols: GanttSymbolTable;

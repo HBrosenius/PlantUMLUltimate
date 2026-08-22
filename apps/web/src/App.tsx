@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
-import { AddDividerDialog } from "./AddDividerDialog";
+import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
 import { CommandPalette } from "./CommandPalette";
 import { TaskInspector, type TaskInspectorValue } from "./TaskInspector";
 import { MilestoneInspector, type MilestoneInspectorValue } from "./MilestoneInspector";
 import { DependencyInspector, type DependencyInspectorValue } from "./DependencyInspector";
+import { DividerInspector } from "./DividerInspector";
+import { LegendInspector } from "./LegendInspector";
+import { VerticalSeparatorInspector, type VerticalSeparatorValue } from "./VerticalSeparatorInspector";
+import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
@@ -27,13 +31,17 @@ import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
   deleteTask,
+  deleteDivider,
+  deleteVerticalSeparator,
   findTaskAt,
   ganttAdapter,
   insertDivider,
+  insertVerticalSeparator,
   insertMilestone,
   insertTask,
   moveDependentTasksByDays,
   moveDivider,
+  moveVerticalSeparatorByDays,
   normalizeTaskId,
   parseGantt,
   renameResource,
@@ -41,8 +49,11 @@ import {
   setNote,
   setTaskDeclaration,
   setTaskPauses,
+  setTaskLinks,
   setTaskResources,
   updateDependency,
+  updateDivider,
+  updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
 import type { Command } from "@plantuml-studio/editor-core";
 import {
@@ -65,14 +76,19 @@ import { parseWorkspaceBackup, serializeWorkspaceBackup } from "./workspace-back
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
+  const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [selectedDependencyIndex, setSelectedDependencyIndex] = useState<number>();
+  const [selectedDividerIndex, setSelectedDividerIndex] = useState<number>();
+  const [selectedVerticalSeparatorIndex, setSelectedVerticalSeparatorIndex] = useState<number>();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [addDividerOpen, setAddDividerOpen] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
+  const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
+  const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
   const [dateMenuFor, setDateMenuFor] = useState<string>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
@@ -135,6 +151,20 @@ export function App() {
     () => buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates),
     [parseResult.document.tasks, resourceCapacities, resolvedTaskDates],
   );
+  const legendEntries = useMemo(() => {
+    const labels = new Map(parseLegendEntries(workspace.source).map((entry) => [entry.color.toLowerCase(), entry.label]));
+    return usedLegendColors(parseResult.document.tasks).map((color) => ({ color, label: labels.get(color.toLowerCase()) ?? color }));
+  }, [parseResult.document.tasks, workspace.source]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = parseProjectSettings(workspace.source).showLegend
+        ? synchronizeLegend(workspace.source, parseResult.document.tasks)
+        : removeLegend(workspace.source);
+      if (next !== workspace.source) commitSource(next, "Synchronize legend");
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [parseResult.document.tasks, workspace.source]);
   const openSourceBytes = useMemo(
     () => tabs.documents.reduce((total, document) => total + document.source.length * 2, 0),
     [tabs.documents],
@@ -232,12 +262,29 @@ export function App() {
     };
   }, [tabMenu]);
 
+  useEffect(() => {
+    if (!selectedTaskId && selectedDependencyIndex === undefined && selectedDividerIndex === undefined && selectedVerticalSeparatorIndex === undefined) return;
+    const dismissInspector = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".task-inspector")) return;
+      setSelectedTaskId(undefined);
+      setSelectedDependencyIndex(undefined);
+      setSelectedDividerIndex(undefined);
+      setSelectedVerticalSeparatorIndex(undefined);
+      setFocusNoteTaskId(undefined);
+    };
+    document.addEventListener("click", dismissInspector);
+    return () => document.removeEventListener("click", dismissInspector);
+  }, [selectedDependencyIndex, selectedDividerIndex, selectedTaskId, selectedVerticalSeparatorIndex]);
+
   const selectTask = (taskId: string) => {
     const task = parseResult.document.symbols.tasks.get(taskId);
     if (!task) return;
     setResourcePanelOpen(false);
     setProjectInspectorOpen(false);
     setSelectedTaskId(task.id);
+    setSelectedDividerIndex(undefined);
+    setFocusNoteTaskId(undefined);
     selectedTasksByDocument.current.set(tabs.activeId, task.id);
     const declaration = task.declarations[0];
     setSelectionRequest(declaration ? { ...declaration.range } : { ...task.sourceRange });
@@ -346,6 +393,28 @@ export function App() {
     setInteractionMessage(
       beforeTask ? `Moved ${divider.label} before ${beforeTask.label}` : `Moved ${divider.label} to the end`,
     );
+  };
+
+  const applyDividerInspector = (label: string) => {
+    if (selectedDividerIndex === undefined) return;
+    const divider = parseResult.document.dividers[selectedDividerIndex];
+    if (!divider) return;
+    const operation = updateDivider(workspace.source, divider.sourceRange, label);
+    if (operation.unavailableReason) {
+      setInteractionMessage(operation.unavailableReason);
+      return;
+    }
+    if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Rename divider ${divider.label}`))
+      setInteractionMessage(`Renamed divider to ${label.trim()}`);
+  };
+
+  const deleteSelectedDivider = () => {
+    if (selectedDividerIndex === undefined) return;
+    const divider = parseResult.document.dividers[selectedDividerIndex];
+    if (!divider || !window.confirm(`Delete divider “${divider.label}”?`)) return;
+    if (!commitGeneratedSource(applySourceEdits(workspace.source, deleteDivider(workspace.source, divider.sourceRange).edits), `Delete divider ${divider.label}`)) return;
+    setSelectedDividerIndex(undefined);
+    setInteractionMessage(`Deleted divider ${divider.label}`);
   };
 
   const stageScheduleChange = (
@@ -729,20 +798,28 @@ export function App() {
   );
 
   const addDivider = useCallback(
-    (label: string, beforeTaskId: string) => {
-      const beforeTask = beforeTaskId
-        ? parseGantt(workspace.source).document.symbols.tasks.get(beforeTaskId)
+    (value: AddSeparatorValue) => {
+      if (value.kind === "vertical") {
+        const operation = insertVerticalSeparator(workspace.source, value);
+        if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
+        if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Add vertical separator")) return;
+        setAddDividerOpen(false);
+        setInteractionMessage("Added vertical separator");
+        return;
+      }
+      const beforeTask = value.beforeTaskId
+        ? parseGantt(workspace.source).document.symbols.tasks.get(value.beforeTaskId)
         : undefined;
       const beforeRange = beforeTask?.declarations.map((item) => item.range).sort((a, b) => a.from - b.from)[0];
-      const operation = insertDivider(workspace.source, label, beforeRange);
+      const operation = insertDivider(workspace.source, value.label, beforeRange);
       if (operation.unavailableReason) {
         setInteractionMessage(operation.unavailableReason);
         return;
       }
-      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${label.trim()}`))
+      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${value.label.trim()}`))
         return;
       setAddDividerOpen(false);
-      setInteractionMessage(`Added divider ${label.trim()}`);
+      setInteractionMessage(`Added divider ${value.label.trim()}`);
     },
     [commitGeneratedSource, workspace.source],
   );
@@ -827,9 +904,8 @@ export function App() {
         "same-row",
         sameRowTask ? `displays on same row as [${sameRowTask.alias?.value ?? sameRowTask.label}]` : undefined,
       );
-      const pauseDates = value.pauseDates
-        .split(",")
-        .map((date) => date.trim())
+      const pauseDates = value.pauses
+        .map((pause) => pause.value.trim())
         .filter(Boolean);
       const pauseOperation = current()
         ? setTaskPauses(source, current()!, pauseDates)
@@ -839,6 +915,16 @@ export function App() {
         return;
       }
       source = applySourceEdits(source, pauseOperation.edits);
+      const links = value.links.filter((link) => link.url.trim()).map((link) => ({
+        url: link.url.trim(),
+        ...(link.label.trim() ? { label: link.label.trim() } : {}),
+      }));
+      const linkOperation = current() ? setTaskLinks(source, current()!, links) : { edits: [], unavailableReason: "Task not found" };
+      if (linkOperation.unavailableReason) {
+        setInteractionMessage(linkOperation.unavailableReason);
+        return;
+      }
+      source = applySourceEdits(source, linkOperation.edits);
       const resources = value.resources.map((item) => ({
         name: item.name.trim(),
         allocation: Number(item.allocation),
@@ -965,7 +1051,11 @@ export function App() {
         setInteractionMessage("Highlighted dates need a PlantUML color name or hex value");
         return;
       }
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, value), "Update project calendar")) return;
+      const settingsSource = updateProjectSettings(workspace.source, value);
+      const nextSource = value.showLegend
+        ? synchronizeLegend(settingsSource, parseGantt(settingsSource).document.tasks)
+        : removeLegend(settingsSource);
+      if (!commitGeneratedSource(nextSource, "Update project calendar")) return;
       setProjectInspectorOpen(false);
       setInteractionMessage("Updated project calendar");
     },
@@ -1002,6 +1092,7 @@ export function App() {
         run: () => setAddDividerOpen(true),
       },
       { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
+      { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
       { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
       {
         id: "help.reference",
@@ -1330,14 +1421,43 @@ export function App() {
             tasks={parseResult.document.tasks}
             dependencies={parseResult.document.dependencies}
             dividers={parseResult.document.dividers}
+            verticalSeparators={parseResult.document.verticalSeparators}
             source={workspace.source}
             zoom={workspace.zoom}
             onZoomChange={(zoom) => update("zoom", zoom)}
             selectedTaskId={selectedTaskId}
             onTaskSelect={selectTask}
+            onNoteSelect={(taskId) => {
+              selectTask(taskId);
+              setFocusNoteTaskId(taskId);
+            }}
+            onBackgroundSelect={() => {
+              setSelectedTaskId(undefined);
+              setSelectedDependencyIndex(undefined);
+              setFocusNoteTaskId(undefined);
+            }}
             onTaskMove={moveTask}
             onTaskReorder={reorderDiagramTask}
             onDividerReorder={reorderDiagramDivider}
+            onVerticalSeparatorMove={(index, days) => {
+              const separator = parseResult.document.verticalSeparators[index];
+              if (!separator) return;
+              const operation = moveVerticalSeparatorByDays(workspace.source, separator, days);
+              if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
+              if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Move vertical separator"))
+                setInteractionMessage(`Moved vertical separator ${days > 0 ? "+" : ""}${days} days`);
+            }}
+            onVerticalSeparatorSelect={(index) => {
+              setSelectedTaskId(undefined);
+              setSelectedDependencyIndex(undefined);
+              setSelectedDividerIndex(undefined);
+              setSelectedVerticalSeparatorIndex(index);
+            }}
+            onDividerSelect={(index) => {
+              setSelectedTaskId(undefined);
+              setSelectedDependencyIndex(undefined);
+              setSelectedDividerIndex(index);
+            }}
             onTaskResize={resizeTask}
             onDependencyCreate={connectTasks}
             selectedDependencyIndex={selectedDependencyIndex}
@@ -1362,6 +1482,10 @@ export function App() {
             resourceOverAllocations={resourceOverAllocations}
             onOpenResourceWorkload={openResourcePanel}
             onDateHighlightRequest={openDateActionMenu}
+            onLegendEditRequest={(color) => {
+              setLegendFocusColor(color);
+              setLegendInspectorOpen(true);
+            }}
           />
         )}
       </main>
@@ -1500,6 +1624,7 @@ export function App() {
           calendar={ganttCalendar}
           resourceNames={resourceNames}
           conflicts={selectedResourceConflicts}
+          focusNote={focusNoteTaskId === selectedTask.id}
           onApply={applyTaskInspector}
           onDelete={deleteSelectedTask}
           onClose={() => setSelectedTaskId(undefined)}
@@ -1513,6 +1638,52 @@ export function App() {
           onApply={applyDependencyInspector}
           onDelete={deleteDependency}
           onClose={() => setSelectedDependencyIndex(undefined)}
+        />
+      )}
+      {selectedDividerIndex !== undefined && parseResult.document.dividers[selectedDividerIndex] && (
+        <DividerInspector
+          divider={parseResult.document.dividers[selectedDividerIndex]!}
+          onApply={applyDividerInspector}
+          onDelete={deleteSelectedDivider}
+          onClose={() => setSelectedDividerIndex(undefined)}
+        />
+      )}
+      {selectedVerticalSeparatorIndex !== undefined && parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex] && (
+        <VerticalSeparatorInspector
+          separator={parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex]!}
+          tasks={parseResult.document.tasks}
+          onApply={(value: VerticalSeparatorValue) => {
+            const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+            if (!separator) return;
+            const operation = updateVerticalSeparator(separator, value);
+            if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
+            if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator")) setInteractionMessage("Updated vertical separator");
+          }}
+          onDelete={() => {
+            const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+            if (!separator || !window.confirm("Delete this vertical separator?")) return;
+            if (commitGeneratedSource(applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, separator).edits), "Delete vertical separator")) {
+              setSelectedVerticalSeparatorIndex(undefined);
+              setInteractionMessage("Deleted vertical separator");
+            }
+          }}
+          onClose={() => setSelectedVerticalSeparatorIndex(undefined)}
+        />
+      )}
+      {legendInspectorOpen && (
+        <LegendInspector
+          entries={legendEntries}
+          focusColor={legendFocusColor}
+          onApply={(entries) => {
+            const labels = new Map(entries.map((entry) => [entry.color.toLowerCase(), entry.label]));
+            const source = synchronizeLegend(workspace.source, parseResult.document.tasks, labels);
+            if (commitGeneratedSource(source, "Update legend labels")) {
+              setLegendInspectorOpen(false);
+              setLegendFocusColor(undefined);
+              setInteractionMessage("Updated legend labels");
+            }
+          }}
+          onClose={() => { setLegendInspectorOpen(false); setLegendFocusColor(undefined); }}
         />
       )}
       {resourcePanelOpen && (

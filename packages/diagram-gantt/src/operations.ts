@@ -287,6 +287,85 @@ export function insertDivider(
   };
 }
 
+export function insertVerticalSeparator(
+  source: string,
+  input: { taskLabel: string; anchor: "start" | "end"; offset: number; direction: "after" | "before" },
+): MoveTaskResult {
+  const taskLabel = input.taskLabel.trim();
+  if (!taskLabel || /[\[\]\r\n]/.test(taskLabel))
+    return { edits: [], unavailableReason: "Choose a valid task for the vertical separator" };
+  if (!Number.isInteger(input.offset) || input.offset < 0)
+    return { edits: [], unavailableReason: "Vertical separator offset must be zero or more whole days" };
+  const endMatch = /(^|\r?\n)([ \t]*)@endgantt\b/i.exec(source);
+  if (!endMatch || endMatch.index === undefined)
+    return { edits: [], unavailableReason: "No @endgantt marker was found" };
+  const insertionPoint = endMatch.index + (endMatch[1]?.length ?? 0);
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const position = input.offset
+    ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} `
+    : "at ";
+  return { edits: [{ range: { from: insertionPoint, to: insertionPoint }, text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}${newline}${newline}` }] };
+}
+
+export function moveVerticalSeparatorByDays(
+  source: string,
+  separator: import("./model").GanttVerticalSeparator,
+  days: number,
+): MoveTaskResult {
+  if (!Number.isInteger(days)) return { edits: [], unavailableReason: "Vertical separators move in whole days" };
+  const current = (separator.direction === "before" ? -1 : 1) * separator.offset;
+  const next = current + days;
+  const position = next === 0
+    ? "at "
+    : `${Math.abs(next)} day${Math.abs(next) === 1 ? "" : "s"} ${next < 0 ? "before" : "after"} `;
+  return {
+    edits: [{
+      range: separator.sourceRange,
+      text: `Separator just ${position}[${separator.taskLabel}]'s ${separator.anchor}`,
+    }],
+  };
+}
+
+export function updateVerticalSeparator(
+  separator: import("./model").GanttVerticalSeparator,
+  input: { taskLabel: string; anchor: "start" | "end"; offset: number; direction: "after" | "before" },
+): MoveTaskResult {
+  const taskLabel = input.taskLabel.trim();
+  if (!taskLabel || /[\[\]\r\n]/.test(taskLabel))
+    return { edits: [], unavailableReason: "Choose a valid task for the vertical separator" };
+  if (!Number.isInteger(input.offset) || input.offset < 0)
+    return { edits: [], unavailableReason: "Vertical separator offset must be zero or more whole days" };
+  const position = input.offset
+    ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} `
+    : "at ";
+  return { edits: [{ range: separator.sourceRange, text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}` }] };
+}
+
+export function deleteVerticalSeparator(
+  source: string,
+  separator: import("./model").GanttVerticalSeparator,
+): MoveTaskResult {
+  return { edits: [{ range: wholeLineRange(source, separator.sourceRange), text: "" }] };
+}
+
+export function updateDivider(
+  source: string,
+  dividerRange: { from: number; to: number },
+  labelValue: string,
+): MoveTaskResult {
+  const label = labelValue.trim();
+  if (!label) return { edits: [], unavailableReason: "Divider name is required" };
+  if (label.includes("--") || /[\r\n]/.test(label))
+    return { edits: [], unavailableReason: "Divider name cannot contain -- or a line break" };
+  const original = source.slice(dividerRange.from, dividerRange.to);
+  const indentation = original.match(/^\s*/)?.[0] ?? "";
+  return { edits: [{ range: dividerRange, text: `${indentation}-- ${label} --` }] };
+}
+
+export function deleteDivider(source: string, dividerRange: { from: number; to: number }): MoveTaskResult {
+  return { edits: [{ range: wholeLineRange(source, dividerRange), text: "" }] };
+}
+
 export function moveDivider(
   source: string,
   dividerRange: { from: number; to: number },
@@ -356,6 +435,7 @@ export interface NewTaskInput {
   durationDays: number;
   startDate?: string;
   predecessorLabel?: string;
+  color?: string;
 }
 
 export interface NewMilestoneInput {
@@ -410,6 +490,11 @@ export function insertTask(source: string, input: NewTaskInput): MoveTaskResult 
   if (input.predecessorLabel) lines.push(`[${label}] starts at [${input.predecessorLabel}]'s end`);
   else if (input.startDate) lines.push(`[${label}] starts ${input.startDate}`);
   lines.push(`[${label}] lasts ${input.durationDays} ${input.durationDays === 1 ? "day" : "days"}`);
+  if (input.color?.trim()) {
+    const color = input.color.trim();
+    if (/\s|[\r\n]/.test(color)) return { edits: [], unavailableReason: "Color must be a PlantUML color name or hex value" };
+    lines.push(`[${label}] is colored in ${color}`);
+  }
   return {
     edits: [
       { range: { from: insertionPoint, to: insertionPoint }, text: `${lines.join(newline)}${newline}${newline}` },
@@ -497,8 +582,8 @@ export function setTaskDeclaration(
 }
 
 export function setTaskPauses(source: string, task: GanttTask, dates: readonly string[]): MoveTaskResult {
-  if (dates.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date)))
-    return { edits: [], unavailableReason: "Pause dates must use YYYY-MM-DD" };
+  if (dates.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date) && !/^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(date)))
+    return { edits: [], unavailableReason: "Pauses must use YYYY-MM-DD or a weekday name" };
   const pauseDeclarations = task.declarations.filter((item) => item.kind === "pause");
   const edits = pauseDeclarations.map((item) => ({ range: wholeLineRange(source, item.range), text: "" }));
   if (!dates.length) return { edits };
@@ -511,6 +596,26 @@ export function setTaskPauses(source: string, task: GanttTask, dates: readonly s
   edits.push({
     range: { from: anchor, to: anchor },
     text: dates.map((date) => `${newline}[${label}] pauses on ${date}`).join(""),
+  });
+  return { edits };
+}
+
+export function setTaskLinks(
+  source: string,
+  task: GanttTask,
+  links: readonly { url: string; label?: string }[],
+): MoveTaskResult {
+  if (links.some((link) => !/^https?:\/\/\S+$/i.test(link.url) || /[\[\]\r\n]/.test(link.label ?? "")))
+    return { edits: [], unavailableReason: "Links need an http(s) URL and labels cannot contain brackets" };
+  const declarations = task.declarations.filter((item) => item.kind === "link");
+  const edits = declarations.map((item) => ({ range: wholeLineRange(source, item.range), text: "" }));
+  if (!links.length) return { edits };
+  const anchor = Math.max(task.labelRange.to, ...task.declarations.filter((item) => item.kind !== "link").map((item) => item.range.to));
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const label = task.alias?.value ?? task.label;
+  edits.push({
+    range: { from: anchor, to: anchor },
+    text: links.map((link) => `${newline}[${label}] links to [[${link.url}${link.label?.trim() ? ` ${link.label.trim()}` : ""}]]`).join(""),
   });
   return { edits };
 }

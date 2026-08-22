@@ -585,6 +585,19 @@ input {
   cursor: grabbing;
   fill: rgb(249 115 22 / 10%);
 }
+
+.diagram svg .vertical-separator-guide {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+.diagram svg .vertical-separator-hit {
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: ew-resize;
+}
 .diagram svg .fallback-note rect {
   fill: #fffde7;
   stroke: #8a7b38;
@@ -1012,6 +1025,42 @@ textarea:focus-visible,
   background: var(--bg);
   color: var(--text);
   font: inherit;
+}
+
+.inspector-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.inspector-field-heading button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  color: #b91c1c;
+}
+
+.inspector-field-heading button:disabled {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.legend-color-swatch {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.structured-rows .structured-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.structured-rows .link-row {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
 }
 .task-inspector textarea {
   resize: vertical;

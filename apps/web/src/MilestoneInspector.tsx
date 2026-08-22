@@ -116,8 +116,13 @@ export function MilestoneInspector({
             onChange={(event) => update("color", event.target.value)}
           />
         </label>
-        <label>
-          Note
+        <label className="inspector-note-field">
+          <span className="inspector-field-heading">
+            Note
+            <button type="button" disabled={!value.note} onClick={() => update("note", "")}>
+              Remove note
+            </button>
+          </span>
           <textarea
             rows={4}
             placeholder="Add context for this milestone"

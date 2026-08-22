@@ -23,13 +23,14 @@ export interface ProjectSettings {
   hideResourceFootbox: boolean;
   highlightToday: boolean;
   todayColor: string;
+  showLegend: boolean;
 }
 
 export const WEEKDAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 const iso = (value: string) => value.replaceAll("/", "-");
 const directive =
-  /^\s*(?:title\s+.*|header\s+.*|footer\s+.*|caption\s+.*|Project\s+starts\s+.+|(?:printscale|ganttscale|projectscale)\s+(?:daily|weekly|monthly|quarterly|yearly)(?:\s+zoom\s+\d+)?|(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(?:is|are)\s+(?:closed|opened)|\d{4}[-/]\d{2}[-/]\d{2}(?:\s+to\s+\d{4}[-/]\d{2}[-/]\d{2})?\s+(?:(?:is|are)\s+(?:closed|opened)|(?:is|are)\s+colou?red\s+in\s+\S+)|today\s+is\s+colou?red\s+in\s+\S+|hide\s+(?:footbox|resources\s+names|resources\s+footbox))\s*$/i;
+  /^\s*(?:'\s*plantuml-ultimate:\s*legend\s+(?:shown|hidden)|title\s+.*|header\s+.*|footer\s+.*|caption\s+.*|Project\s+starts\s+.+|(?:printscale|ganttscale|projectscale)\s+(?:daily|weekly|monthly|quarterly|yearly)(?:\s+zoom\s+\d+)?|(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(?:is|are)\s+(?:closed|opened)|\d{4}[-/]\d{2}[-/]\d{2}(?:\s+to\s+\d{4}[-/]\d{2}[-/]\d{2})?\s+(?:(?:is|are)\s+(?:closed|opened)|(?:is|are)\s+colou?red\s+in\s+\S+)|today\s+is\s+colou?red\s+in\s+\S+|hide\s+(?:footbox|resources\s+names|resources\s+footbox))\s*$/i;
 
 export function parseProjectSettings(source: string): ProjectSettings {
   const settings: ProjectSettings = {
@@ -47,10 +48,16 @@ export function parseProjectSettings(source: string): ProjectSettings {
     hideResourceFootbox: false,
     highlightToday: false,
     todayColor: "#AAF",
+    showLegend: /(^|\n)\s*legend\s*$/im.test(source),
   };
   let ruleIndex = 0;
   for (const raw of source.split(/\r?\n/)) {
     const line = raw.trim();
+    const legendPreference = line.match(/^'\s*plantuml-ultimate:\s*legend\s+(shown|hidden)$/i);
+    if (legendPreference?.[1]) {
+      settings.showLegend = legendPreference[1].toLowerCase() === "shown";
+      continue;
+    }
     const title = line.match(/^title\s+(.+?)\s*$/i);
     if (title?.[1]) {
       settings.title = title[1];
@@ -142,6 +149,7 @@ export function updateProjectSettings(source: string, value: ProjectSettings): s
   if (value.hideFootbox) block.push("hide footbox");
   if (value.hideResourceNames) block.push("hide resources names");
   if (value.hideResourceFootbox) block.push("hide resources footbox");
+  block.push(`' plantuml-ultimate: legend ${value.showLegend ? "shown" : "hidden"}`);
   remaining.splice(insertAt - removedBefore, 0, ...block);
   return remaining.join(newline);
 }

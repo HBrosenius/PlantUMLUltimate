@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { parseProjectSettings, updateProjectSettings } from "./project-settings";
 
 describe("project settings", () => {
+  it("round-trips the legend visibility preference", () => {
+    const source = "@startgantt\n@endgantt";
+    const settings = parseProjectSettings(source);
+    expect(settings.showLegend).toBe(false);
+    const shown = updateProjectSettings(source, { ...settings, showLegend: true });
+    expect(shown).toContain("plantuml-ultimate: legend shown");
+    expect(parseProjectSettings(shown).showLegend).toBe(true);
+  });
   it("parses scale, calendar ranges, weekdays and display options", () => {
     const value = parseProjectSettings(
       "@startgantt\ntitle Delivery roadmap — 2026\nProject starts 2026-09-01\nprintscale weekly zoom 2\nsaturday are closed\n2026-09-10 to 2026-09-12 are closed\ntoday is colored in #AAF\nhide footbox\n@endgantt",

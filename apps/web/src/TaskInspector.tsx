@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
@@ -11,7 +11,8 @@ export interface TaskInspectorValue {
   durationUnit: "day" | "week" | "month";
   completion: string;
   color: string;
-  pauseDates: string;
+  pauses: Array<{ id: string; value: string }>;
+  links: Array<{ id: string; url: string; label: string }>;
   sameRowTaskId: string;
   predecessorId: string;
   resources: Array<{ id: string; name: string; allocation: string }>;
@@ -30,6 +31,7 @@ export function TaskInspector({
   onApply,
   onDelete,
   onClose,
+  focusNote = false,
 }: {
   task: GanttTask;
   tasks: readonly GanttTask[];
@@ -41,9 +43,11 @@ export function TaskInspector({
   onApply(value: TaskInspectorValue): void;
   onDelete(): void;
   onClose(): void;
+  focusNote?: boolean;
 }) {
   const resourceListId = useId();
   const colorListId = useId();
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const initial = (): TaskInspectorValue => ({
     label: task.label,
     startDate: task.start?.value ?? effectiveStart,
@@ -52,7 +56,8 @@ export function TaskInspector({
     durationUnit: task.duration?.unit ?? "day",
     completion: task.completion ? String(task.completion.value) : "",
     color: task.color?.value ?? "",
-    pauseDates: (task.pauses ?? []).map((pause) => pause.value).join(", "),
+    pauses: (task.pauses ?? []).map((pause, index) => ({ id: `pause-${index}`, value: pause.value })),
+    links: (task.links ?? []).map((link, index) => ({ id: `link-${index}`, url: link.url, label: link.label ?? "" })),
     sameRowTaskId: task.sameRowTaskId ?? "",
     predecessorId,
     resources: (task.resources ?? []).map((item, index) => ({
@@ -77,6 +82,13 @@ export function TaskInspector({
       durationUnit: parsedDurationUnit,
     }));
   }, [parsedDuration, parsedDurationUnit, parsedEndDate, parsedStartDate]);
+  useEffect(() => {
+    if (!focusNote) return;
+    const note = noteRef.current;
+    if (!note) return;
+    note.focus();
+    note.setSelectionRange(note.value.length, note.value.length);
+  }, [focusNote]);
   const update = <K extends keyof TaskInspectorValue>(key: K, next: TaskInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   const conversionStart = value.startDate || effectiveStart;
@@ -200,14 +212,24 @@ export function TaskInspector({
             ))}
           </datalist>
         </label>
-        <label>
-          Paused dates
-          <input
-            placeholder="2026-09-08, 2026-09-09"
-            value={value.pauseDates}
-            onChange={(event) => update("pauseDates", event.target.value)}
-          />
-        </label>
+        <fieldset className="structured-rows">
+          <legend>Pauses</legend>
+          <p className="fieldset-help">Use a date or weekday supported by PlantUML.</p>
+          {value.pauses.map((pause) => <div className="structured-row" key={pause.id}>
+            <input aria-label="Pause date or weekday" placeholder="2026-09-08 or monday" value={pause.value} onChange={(event) => update("pauses", value.pauses.map((item) => item.id === pause.id ? { ...item, value: event.target.value } : item))} />
+            <button type="button" aria-label="Remove pause" onClick={() => update("pauses", value.pauses.filter((item) => item.id !== pause.id))}>×</button>
+          </div>)}
+          <button type="button" onClick={() => update("pauses", [...value.pauses, { id: `pause-${Date.now()}`, value: "" }])}>+ Add pause</button>
+        </fieldset>
+        <fieldset className="structured-rows">
+          <legend>Links</legend>
+          {value.links.map((link) => <div className="structured-row link-row" key={link.id}>
+            <input aria-label="Link URL" type="url" placeholder="https://example.com" value={link.url} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item))} />
+            <input aria-label="Link label" placeholder="Optional label" value={link.label} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, label: event.target.value } : item))} />
+            <button type="button" aria-label="Remove link" onClick={() => update("links", value.links.filter((item) => item.id !== link.id))}>×</button>
+          </div>)}
+          <button type="button" onClick={() => update("links", [...value.links, { id: `link-${Date.now()}`, url: "", label: "" }])}>+ Add link</button>
+        </fieldset>
         <label>
           Display on same row as
           <select value={value.sameRowTaskId} onChange={(event) => update("sameRowTaskId", event.target.value)}>
@@ -222,9 +244,15 @@ export function TaskInspector({
               ))}
           </select>
         </label>
-        <label>
-          Note
+        <label className="inspector-note-field">
+          <span className="inspector-field-heading">
+            Note
+            <button type="button" disabled={!value.note} onClick={() => update("note", "")}>
+              Remove note
+            </button>
+          </span>
           <textarea
+            ref={noteRef}
             rows={4}
             placeholder="Add context for this task"
             value={value.note}

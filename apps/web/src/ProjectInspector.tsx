@@ -269,6 +269,10 @@ export function ProjectInspector({
         <fieldset>
           <legend>Display</legend>
           <label className="check">
+            <input type="checkbox" checked={value.showLegend} onChange={(event) => update("showLegend", event.target.checked)} />
+            Show color legend
+          </label>
+          <label className="check">
             <input
               type="checkbox"
               checked={value.highlightToday}
