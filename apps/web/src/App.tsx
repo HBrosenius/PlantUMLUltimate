@@ -1121,7 +1121,7 @@ export function App() {
       data-theme={workspace.theme}
     >
       <header className="toolbar">
-        <strong>PlantUML Studio</strong>
+        <strong>PlantUML Ultimate</strong>
         <div className="file-tools" aria-label="File controls">
           <FileMenu
             canExport={Boolean(result?.svg)}

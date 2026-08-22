@@ -54,7 +54,7 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
       >
         <header>
           <div>
-            <h2 id="help-title">PlantUML Studio Help</h2>
+            <h2 id="help-title">PlantUML Ultimate Help</h2>
             <p>Keyboard, diagram interaction, and Gantt syntax reference</p>
           </div>
           <button onClick={onClose} aria-label="Close Help">
@@ -110,7 +110,7 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
           </section>
         </div>
         <footer>
-          <span>PlantUML Studio · Local-first browser editor</span>
+          <span>PlantUML Ultimate · Local-first browser editor</span>
           <button className="primary" onClick={onClose}>
             Done
           </button>

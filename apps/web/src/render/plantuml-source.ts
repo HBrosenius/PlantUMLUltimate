@@ -3,10 +3,10 @@ export function sourceForPlantUmlRenderer(source: string): string {
   let inNote = false;
   return lines
     .map((line) => {
-      if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Studio";
+      if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Ultimate";
       if (/^\s*note\s+(?:bottom|top|left|right)\s*$/i.test(line)) {
         inNote = true;
-        return "' note rendered by PlantUML Studio";
+        return "' note rendered by PlantUML Ultimate";
       }
       if (inNote && /^\s*end\s+note\s*$/i.test(line)) {
         inNote = false;

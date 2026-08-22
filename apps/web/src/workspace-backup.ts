@@ -22,10 +22,10 @@ export function parseWorkspaceBackup(source: string): WorkspaceSession {
   } catch {
     throw new Error("The selected file is not valid JSON");
   }
-  if (!value || typeof value !== "object") throw new Error("The selected file is not a PlantUML Studio backup");
+  if (!value || typeof value !== "object") throw new Error("The selected file is not a PlantUML Ultimate backup");
   const backup = value as Partial<WorkspaceBackup>;
   if (backup.kind !== "plantuml-studio-workspace" || backup.version !== 1 || !backup.session)
-    throw new Error("The selected file is not a supported PlantUML Studio backup");
+    throw new Error("The selected file is not a supported PlantUML Ultimate backup");
   const session = normalizeSession(backup.session);
   if (!session.documents.length) throw new Error("The backup does not contain any documents");
   return session;

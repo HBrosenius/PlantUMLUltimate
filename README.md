@@ -1,6 +1,6 @@
-# PlantUML Studio
+# PlantUML Ultimate
 
-PlantUML Studio is a local-first, browser-based editor for creating and maintaining PlantUML Gantt diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
+PlantUML Ultimate is a local-first, browser-based editor for creating and maintaining PlantUML Gantt diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
 
 The application runs entirely in the browser. Diagram rendering, editing, workspace recovery, and exports do not require a PlantUML server.
 
