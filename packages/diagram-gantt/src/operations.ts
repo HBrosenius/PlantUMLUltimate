@@ -292,7 +292,7 @@ export function insertVerticalSeparator(
   input: { taskLabel: string; anchor: "start" | "end"; offset: number; direction: "after" | "before" },
 ): MoveTaskResult {
   const taskLabel = input.taskLabel.trim();
-  if (!taskLabel || /[\[\]\r\n]/.test(taskLabel))
+  if (!taskLabel || /[[\]\r\n]/.test(taskLabel))
     return { edits: [], unavailableReason: "Choose a valid task for the vertical separator" };
   if (!Number.isInteger(input.offset) || input.offset < 0)
     return { edits: [], unavailableReason: "Vertical separator offset must be zero or more whole days" };
@@ -331,7 +331,7 @@ export function updateVerticalSeparator(
   input: { taskLabel: string; anchor: "start" | "end"; offset: number; direction: "after" | "before" },
 ): MoveTaskResult {
   const taskLabel = input.taskLabel.trim();
-  if (!taskLabel || /[\[\]\r\n]/.test(taskLabel))
+  if (!taskLabel || /[[\]\r\n]/.test(taskLabel))
     return { edits: [], unavailableReason: "Choose a valid task for the vertical separator" };
   if (!Number.isInteger(input.offset) || input.offset < 0)
     return { edits: [], unavailableReason: "Vertical separator offset must be zero or more whole days" };
@@ -605,7 +605,7 @@ export function setTaskLinks(
   task: GanttTask,
   links: readonly { url: string; label?: string }[],
 ): MoveTaskResult {
-  if (links.some((link) => !/^https?:\/\/\S+$/i.test(link.url) || /[\[\]\r\n]/.test(link.label ?? "")))
+  if (links.some((link) => !/^https?:\/\/\S+$/i.test(link.url) || /[[\]\r\n]/.test(link.label ?? "")))
     return { edits: [], unavailableReason: "Links need an http(s) URL and labels cannot contain brackets" };
   const declarations = task.declarations.filter((item) => item.kind === "link");
   const edits = declarations.map((item) => ({ range: wholeLineRange(source, item.range), text: "" }));

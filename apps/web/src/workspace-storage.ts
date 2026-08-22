@@ -1,6 +1,8 @@
-import { DEFAULT_SOURCE, type Theme, type ViewMode } from "./model";
+import { normalizeDiagramKind } from "./diagram-kind";
+import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
 
 export interface WorkspaceSnapshot {
+  diagramKind: DiagramKind;
   source: string;
   fileName: string;
   dirty: boolean;
@@ -13,6 +15,7 @@ export interface WorkspaceSnapshot {
 
 export interface DocumentSnapshot {
   id: string;
+  diagramKind: DiagramKind;
   source: string;
   fileName: string;
   dirty: boolean;
@@ -21,7 +24,7 @@ export interface DocumentSnapshot {
 }
 
 export interface WorkspaceSession {
-  version: 2;
+  version: 3;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
   viewMode: ViewMode;
@@ -30,6 +33,7 @@ export interface WorkspaceSession {
 }
 
 export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
+  diagramKind: "gantt",
   source: DEFAULT_SOURCE,
   fileName: "untitled.puml",
   dirty: false,
@@ -41,10 +45,11 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
 };
 
 export const DEFAULT_SESSION: WorkspaceSession = {
-  version: 2,
+  version: 3,
   documents: [
     {
       id: "welcome",
+      diagramKind: "gantt",
       source: DEFAULT_SOURCE,
       fileName: "untitled.puml",
       dirty: false,
@@ -69,6 +74,10 @@ export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
   return {
     ...DEFAULT_WORKSPACE,
     ...candidate,
+    diagramKind: normalizeDiagramKind(
+      candidate.diagramKind,
+      typeof candidate.source === "string" ? candidate.source : DEFAULT_SOURCE,
+    ),
     cursor: { ...DEFAULT_WORKSPACE.cursor, ...candidate.cursor },
     splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
     zoom: Math.min(3, Math.max(0.25, Number(candidate.zoom) || 1)),
@@ -84,6 +93,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       )
       .map((item) => ({
         id: item.id,
+        diagramKind: normalizeDiagramKind((item as Partial<DocumentSnapshot>).diagramKind, item.source),
         source: item.source,
         fileName: item.fileName || "untitled.puml",
         dirty: Boolean(item.dirty),
@@ -98,7 +108,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       ? candidate.activeDocumentId!
       : documents[0]!.id;
     return {
-      version: 2,
+      version: 3,
       documents,
       activeDocumentId,
       viewMode: candidate.viewMode ?? "split",
@@ -108,10 +118,14 @@ export function normalizeSession(value: unknown): WorkspaceSession {
   }
   const legacy = normalizeWorkspace(value);
   return {
-    version: 2,
+    version: 3,
     documents: [
       {
         id: "migrated",
+        diagramKind: normalizeDiagramKind(
+          (value as Partial<WorkspaceSnapshot> | undefined)?.diagramKind,
+          legacy.source,
+        ),
         source: legacy.source,
         fileName: legacy.fileName,
         dirty: legacy.dirty,
@@ -132,6 +146,7 @@ export function activeWorkspace(session: WorkspaceSession): WorkspaceSnapshot {
     session.documents[0] ??
     DEFAULT_SESSION.documents[0]!;
   return {
+    diagramKind: document.diagramKind,
     source: document.source,
     fileName: document.fileName,
     dirty: document.dirty,

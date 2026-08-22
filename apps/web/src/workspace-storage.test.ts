@@ -52,7 +52,7 @@ describe("normalizeSession", () => {
 
   it("restores multiple documents and a valid active tab", () => {
     const session = normalizeSession({
-      version: 2,
+      version: 3,
       documents: [
         { id: "a", source: "A", fileName: "a.puml" },
         { id: "b", source: "B", fileName: "b.puml" },
@@ -79,7 +79,7 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 2,
+      version: 3,
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,
@@ -87,6 +87,7 @@ describe("workspace persistence", () => {
       documents: [
         {
           id: "first",
+          diagramKind: "gantt",
           source: "@startgantt\n[A] lasts 2 days\n@endgantt",
           fileName: "first.puml",
           dirty: false,
@@ -95,6 +96,7 @@ describe("workspace persistence", () => {
         },
         {
           id: "second",
+          diagramKind: "gantt",
           source: "@startgantt\n[B] lasts 3 days\n@endgantt",
           fileName: "second.puml",
           dirty: true,

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@plantuml-studio/diagram-gantt": "*",
+    "@plantuml-studio/diagram-sequence": "*",
     "@plantuml-studio/editor-core": "*",
     "@plantuml-studio/language-core": "*",
     "@plantuml-studio/language-plantuml": "*",

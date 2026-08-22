@@ -62,6 +62,328 @@ test("groups creation commands in an accessible Add menu", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeHidden();
 });
 
+test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser).toBeVisible();
+  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(2);
+  await expect(chooser.locator(".diagram-kind-beta")).toHaveText("Beta");
+  await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+  await expect(page.locator(".cm-content")).toContainText("@startuml");
+  await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
+  await expect(page.getByRole("button", { name: "Project" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Resources" })).toBeHidden();
+  await page.getByRole("button", { name: "Sequence", exact: true }).click();
+  const sequenceSettings = page.getByRole("complementary", { name: "Sequence settings" });
+  await sequenceSettings.getByLabel("Diagram title").fill("Checkout flow");
+  await sequenceSettings.getByLabel("Automatically activate lifelines").check();
+  await sequenceSettings.getByLabel("Hide participant footboxes").check();
+  await sequenceSettings.getByLabel("Enable autonumbering").check();
+  await sequenceSettings.getByLabel("Start").fill("10");
+  await sequenceSettings.getByLabel("Increment").fill("5");
+  await sequenceSettings.getByLabel("Format").fill("000");
+  await sequenceSettings.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("title Checkout flow");
+  await expect(page.locator(".cm-content")).toContainText("autoactivate on");
+  await expect(page.locator(".cm-content")).toContainText("hide footbox");
+  await expect(page.locator(".cm-content")).toContainText('autonumber 10 5 "000"');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const sequenceAddMenu = page.getByRole("menu", { name: "Add" });
+  await expect(sequenceAddMenu.getByRole("menuitem", { name: "Participant…" })).toBeVisible();
+  await expect(sequenceAddMenu.getByRole("menuitem", { name: "Message…" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Participant…" }).click();
+  const participant = page.getByRole("dialog", { name: "Add participant" });
+  await expect(participant.locator('datalist option[value="#LightBlue"]')).toHaveCount(1);
+  await expect(participant.getByLabel("Color", { exact: true })).toHaveAttribute("list", /.+/);
+  await expect(participant.getByLabel("Spot color")).toHaveAttribute("list", /.+/);
+  await participant.getByLabel("Shape").selectOption("database");
+  await participant.getByLabel("Name").fill("Orders");
+  await participant.getByLabel("Stereotype").fill("Store");
+  await participant.getByLabel("Spot character").fill("D");
+  await participant.getByLabel("Spot color").fill("#FDE68A");
+  await participant.getByLabel("Display order").fill("30");
+  await participant.getByRole("button", { name: "Add participant" }).click();
+  await expect(page.locator(".cm-content")).toContainText("database Orders <<(D,#FDE68A) Store>> order 30");
+  await expect(page.getByRole("region", { name: "Sequence diagram preview" })).toBeVisible();
+
+  await page.locator('[data-sequence-drag-hit][aria-label="Drag participant Orders"]').first().click();
+  const participantInspector = page.getByRole("complementary", { name: "Participant inspector" });
+  await expect(participantInspector).toBeVisible();
+  await participantInspector.getByLabel("Name").fill("Order store");
+  await participantInspector.getByLabel("Alias").fill("Orders");
+  await participantInspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText('database "Order store" as Orders <<(D,#FDE68A) Store>> order 30');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Message…" }).click();
+  const edgeMessage = page.getByRole("dialog", { name: "Add message" });
+  await edgeMessage.getByLabel("Message type").selectOption("outgoing");
+  await edgeMessage.getByLabel("From", { exact: true }).fill("User");
+  await edgeMessage.getByRole("combobox", { name: "Arrow type" }).click();
+  await edgeMessage.getByRole("option", { name: /Custom PlantUML syntax/ }).click();
+  await edgeMessage.getByLabel("Custom Arrow type").fill("-[#red]>");
+  await edgeMessage.getByLabel("Message", { exact: true }).fill("Boundary event");
+  await edgeMessage.getByRole("button", { name: "Add message" }).click();
+  await expect(page.locator(".cm-content")).toContainText("User -[#red]>]: Boundary event");
+
+  await page.locator('[data-sequence-drag-hit][aria-label="Drag message Request"]').click();
+  const messageInspector = page.getByRole("complementary", { name: "Message inspector" });
+  await expect(messageInspector).toBeVisible();
+  await messageInspector.getByRole("combobox", { name: "Arrow type" }).click();
+  await expect(messageInspector.getByRole("listbox", { name: "Arrow type choices" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(messageInspector.getByRole("listbox", { name: "Arrow type choices" })).toBeHidden();
+  await expect(messageInspector.getByRole("combobox", { name: "Arrow type" })).toBeFocused();
+  await messageInspector.getByRole("combobox", { name: "Arrow type" }).click();
+  await messageInspector.getByRole("option", { name: /Dotted open arrowhead/ }).click();
+  await messageInspector.getByRole("combobox", { name: "Lifecycle modifiers" }).click();
+  await messageInspector.getByRole("option", { name: /Activate target/ }).click();
+  await messageInspector.getByLabel("Message text").fill("Create request");
+  await messageInspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("User -->> System ++: Create request");
+
+  const requestText = page.locator('[data-sequence-message-endpoint="to"][data-sequence-message-id="message-0"]');
+  const ordersParticipant = page.locator('.sequence-participant-anchor[data-sequence-participant-id="orders"]');
+  const senderParticipant = page.locator('.sequence-participant-anchor[data-sequence-participant-id="user"]');
+  const requestBox = await requestText.boundingBox();
+  const ordersBox = await ordersParticipant.boundingBox();
+  expect(requestBox).not.toBeNull();
+  expect(ordersBox).not.toBeNull();
+  await page.mouse.move(requestBox!.x + requestBox!.width / 2, requestBox!.y + requestBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(ordersBox!.x + ordersBox!.width / 2, ordersBox!.y + ordersBox!.height / 2, { steps: 6 });
+  await expect(page.locator(".sequence-reconnect-preview")).toHaveCount(1);
+  await expect(page.locator(".sequence-reconnect-preview-head")).toBeVisible();
+  await expect(page.locator(".sequence-reconnect-preview")).toHaveAttribute(
+    "x1",
+    (await senderParticipant.getAttribute("cx"))!,
+  );
+  await page.mouse.up();
+  await expect(page.locator(".sequence-reconnect-preview")).toHaveCount(0);
+  await expect(page.locator(".cm-content")).toContainText("User -->> Orders ++: Create request");
+
+  await messageInspector.getByRole("button", { name: "Close message inspector" }).click();
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Message…" }).click();
+  const standardMessage = page.getByRole("dialog", { name: "Add message" });
+  await standardMessage.getByLabel("From", { exact: true }).fill("User");
+  await standardMessage.getByLabel("To", { exact: true }).fill("Orders");
+  await standardMessage.getByLabel("Message", { exact: true }).fill("New message");
+  await standardMessage.getByRole("button", { name: "Add message" }).click();
+  await expect(page.locator(".cm-content")).toContainText("User -> Orders: New message");
+
+  const systemParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="system"]').first();
+  const refreshedUserParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="user"]').first();
+  const systemBox = await systemParticipant.boundingBox();
+  const refreshedUserBox = await refreshedUserParticipant.boundingBox();
+  expect(systemBox).not.toBeNull();
+  expect(refreshedUserBox).not.toBeNull();
+  await page.mouse.move(systemBox!.x + systemBox!.width / 2, systemBox!.y + systemBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    refreshedUserBox!.x + refreshedUserBox!.width / 2,
+    refreshedUserBox!.y + refreshedUserBox!.height / 2,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("participant System") < text.indexOf("participant User");
+    })
+    .toBe(true);
+
+  const responseMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-1"]');
+  const firstMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-0"]');
+  const responseBox = await responseMessage.boundingBox();
+  const firstMessageBox = await firstMessage.boundingBox();
+  expect(responseBox).not.toBeNull();
+  expect(firstMessageBox).not.toBeNull();
+  await page.mouse.move(responseBox!.x + responseBox!.width / 2, responseBox!.y + responseBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    firstMessageBox!.x + firstMessageBox!.width / 2,
+    firstMessageBox!.y + firstMessageBox!.height / 2,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("System --> User: Response") < text.indexOf("User -->> Orders ++: Create request");
+    })
+    .toBe(true);
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Combined fragment…" }).click();
+  const fragmentDialog = page.getByRole("dialog", { name: "Add Sequence fragment" });
+  await fragmentDialog.getByLabel("Label", { exact: true }).fill("Successful request");
+  await fragmentDialog.getByLabel("Second branch label").fill("Failure");
+  await fragmentDialog.getByLabel("Header color").fill("#Gold");
+  await fragmentDialog.getByLabel("Background color").fill("#LightBlue");
+  await fragmentDialog.getByLabel("Second branch color").fill("#Pink");
+  await fragmentDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("alt#Gold #LightBlue Successful request");
+  await expect(page.locator(".cm-content")).toContainText("else #Pink Failure");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Activation…" }).click();
+  const activationDialog = page.getByRole("dialog", { name: "Add Sequence activation" });
+  await activationDialog.getByLabel("Participant").selectOption("System");
+  await activationDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("activate System");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Note…" }).click();
+  const noteDialog = page.getByRole("dialog", { name: "Add Sequence note" });
+  await noteDialog.getByLabel("Shape").selectOption("rnote");
+  await noteDialog.getByRole("combobox").nth(3).selectOption("User");
+  await noteDialog.getByRole("combobox").nth(4).selectOption("Orders");
+  await noteDialog.getByLabel("Text").fill("Persist the request\nThen confirm");
+  await noteDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("rnote over User, Orders");
+  await expect(page.locator(".cm-content")).toContainText("Then confirm");
+  await expect(page.locator(".cm-content")).toContainText("end note");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  const separatorDialog = page.getByRole("dialog", { name: "Add Sequence separator" });
+  await separatorDialog.getByLabel("Label").fill("Persistence");
+  await separatorDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("== Persistence ==");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  const flowDialog = page.getByRole("dialog", { name: "Add Sequence separator" });
+  await flowDialog.getByLabel("Structure").selectOption("create");
+  await page.getByRole("dialog", { name: "Add Sequence create" }).getByLabel("Participant type").selectOption("control");
+  await page.getByRole("dialog", { name: "Add Sequence create" }).getByLabel("Name").fill("Worker");
+  await page.getByRole("dialog", { name: "Add Sequence create" }).getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("create control Worker");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  await page.getByRole("dialog", { name: "Add Sequence separator" }).getByLabel("Structure").selectOption("return");
+  const returnDialog = page.getByRole("dialog", { name: "Add Sequence return" });
+  await returnDialog.getByLabel("Return text").fill("Completed");
+  await returnDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("return Completed");
+  await expect(page.locator(".sequence-diagram svg")).not.toContainText("Syntax Error");
+
+  await page.locator(".cm-line").filter({ hasText: "alt#Gold #LightBlue Successful request" }).click();
+  const structureInspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
+  await expect(structureInspector).toBeVisible();
+  await structureInspector.getByLabel("Branch 2 label").fill("Rejected");
+  await structureInspector.getByLabel("Branch 2 color").fill("#Red");
+  await structureInspector.getByRole("button", { name: "Add branch" }).click();
+  await structureInspector.getByLabel("Branch 3 label").fill("Timed out");
+  await structureInspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("else #Red Rejected");
+  await expect(page.locator(".cm-content")).toContainText("else Timed out");
+
+  await page.locator(".cm-line").filter({ hasText: "alt#Gold" }).click();
+  await expect(structureInspector).toBeVisible();
+  await structureInspector.getByLabel("Fragment type").selectOption("loop");
+  await structureInspector.getByLabel("Label", { exact: true }).fill("Retry request");
+  await structureInspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("loop#Gold #LightBlue Retry request");
+
+  await page.locator(".cm-line").filter({ hasText: "activate System" }).click();
+  await expect(structureInspector).toBeVisible();
+  await structureInspector.getByLabel("Action").selectOption("deactivate");
+  await structureInspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("deactivate System");
+
+  await page.locator(".cm-line").filter({ hasText: "== Persistence ==" }).click();
+  await expect(structureInspector).toBeVisible();
+  page.once("dialog", (dialog) => void dialog.accept());
+  await structureInspector.getByRole("button", { name: "Delete" }).click();
+  await expect(page.locator(".cm-content")).not.toContainText("== Persistence ==");
+});
+
+test("configures advanced Sequence layout and style with undo and redo", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await page.getByRole("button", { name: "Sequence", exact: true }).click();
+
+  const settings = page.getByRole("complementary", { name: "Sequence settings" });
+  await settings.getByLabel("Enable Teoz layout engine").check();
+  await settings.getByLabel("Message alignment").selectOption("center");
+  await settings.getByLabel("Place response text below arrows").check();
+  await settings.getByLabel("Message wrap width").fill("180");
+  await settings.getByLabel("Participant padding").fill("24");
+  await settings.getByLabel("Box padding").fill("12");
+  await settings.getByLabel("Arrow color").fill("#2563EB");
+  await settings.getByLabel("Participant fill").fill("#EFF6FF");
+  await settings.getByLabel("Note fill").fill("#FEF3C7");
+  await settings.getByRole("button", { name: "Apply" }).click();
+
+  const editor = page.locator(".cm-content");
+  await expect(editor).toContainText("!pragma teoz true");
+  await expect(editor).toContainText("skinparam sequenceMessageAlign center");
+  await expect(editor).toContainText("skinparam responseMessageBelowArrow true");
+  await expect(editor).toContainText("skinparam maxMessageSize 180");
+  await expect(editor).toContainText("skinparam ParticipantPadding 24");
+  await expect(editor).toContainText("skinparam BoxPadding 12");
+  await expect(editor).toContainText("skinparam sequenceArrowColor #2563EB");
+  await expect(editor).toContainText("skinparam sequenceParticipantBackgroundColor #EFF6FF");
+  await expect(editor).toContainText("skinparam noteBackgroundColor #FEF3C7");
+  await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(editor).not.toContainText("!pragma teoz true");
+  await expect(editor).not.toContainText("skinparam sequenceArrowColor #2563EB");
+  await page.getByRole("button", { name: "Redo" }).click();
+  await expect(editor).toContainText("!pragma teoz true");
+  await expect(editor).toContainText("skinparam sequenceArrowColor #2563EB");
+});
+
+test("reorders Sequence participants and messages from the dedicated drag tray", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Participant…" }).click();
+  const addParticipant = page.getByRole("dialog", { name: "Add participant" });
+  await addParticipant.getByLabel("Name").fill("Orders");
+  await addParticipant.getByRole("button", { name: "Add participant" }).click();
+  await page.getByRole("button", { name: "Reorder" }).click();
+
+  const participantOrder = page.getByRole("region", { name: "Participants order" });
+  const participantRow = (name: string) => participantOrder.locator(".sequence-order-item").filter({ hasText: name });
+  await participantRow("Orders").dragTo(participantRow("User"), { targetPosition: { x: 20, y: 2 } });
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("participant Orders") < text.indexOf("participant User");
+    })
+    .toBe(true);
+
+  const systemBounds = await participantRow("System").boundingBox();
+  expect(systemBounds).not.toBeNull();
+  await participantRow("Orders").dragTo(participantRow("System"), {
+    targetPosition: { x: 20, y: systemBounds!.height - 2 },
+  });
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("participant Orders") > text.indexOf("participant System");
+    })
+    .toBe(true);
+
+  const messageOrder = page.getByRole("region", { name: "Messages order" });
+  await messageOrder.getByText("Response", { exact: true }).dragTo(messageOrder.getByText("Request", { exact: true }));
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("System --> User: Response") < text.indexOf("User -> System: Request");
+    })
+    .toBe(true);
+});
+
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
   await page.getByRole("button", { name: "Add", exact: true }).focus();
   await page.keyboard.press("Alt+t");
@@ -130,6 +452,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   const original = source("[Backup target] lasts 2 days");
   await setSource(page, original);
   await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, source("[Second tab] lasts 3 days"));
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File" }).click();
@@ -251,29 +574,36 @@ test("marks and clears a closed day by clicking the timeline header", async ({ p
   await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is closed");
 });
 
-test("closed-day hatching aligns with real timeline grid boundaries across resize, zoom, and scroll", async ({ page }) => {
+test("closed-day hatching aligns with real timeline grid boundaries across resize, zoom, and scroll", async ({
+  page,
+}) => {
   await setSource(page, source("saturday are closed\nsunday are closed\n[Build] starts 2026-09-01 and lasts 45 days"));
-  const measure = async () => page.locator(".diagram svg").evaluate((svg) => {
-    const number = (element: Element, name: string) => Number(element.getAttribute(name));
-    const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")].map((text) => {
-      const box = text.getBBox();
-      return { closed: text.getAttribute("data-closed-date") === "true", center: box.x + box.width / 2 };
+  const measure = async () =>
+    page.locator(".diagram svg").evaluate((svg) => {
+      const number = (element: Element, name: string) => Number(element.getAttribute(name));
+      const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")].map((text) => {
+        const box = text.getBBox();
+        return { closed: text.getAttribute("data-closed-date") === "true", center: box.x + box.width / 2 };
+      });
+      const gaps = labels
+        .slice(1)
+        .map((label, index) => label.center - labels[index]!.center)
+        .filter((gap) => gap > 0.5)
+        .sort((a, b) => a - b);
+      const width = gaps[Math.floor(gaps.length / 2)]!;
+      const closedLabels = labels.filter((label) => label.closed);
+      return [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")].map((rect, index) => {
+        const left = number(rect, "x");
+        const right = left + number(rect, "width");
+        const center = closedLabels[index]!.center;
+        return {
+          left,
+          right,
+          expectedLeft: center - width / 2,
+          expectedRight: center + width / 2,
+        };
+      });
     });
-    const gaps = labels.slice(1).map((label, index) => label.center - labels[index]!.center).filter((gap) => gap > 0.5).sort((a, b) => a - b);
-    const width = gaps[Math.floor(gaps.length / 2)]!;
-    const closedLabels = labels.filter((label) => label.closed);
-    return [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")].map((rect, index) => {
-      const left = number(rect, "x");
-      const right = left + number(rect, "width");
-      const center = closedLabels[index]!.center;
-      return {
-        left,
-        right,
-        expectedLeft: center - width / 2,
-        expectedRight: center + width / 2,
-      };
-    });
-  });
   const assertAligned = (items: Awaited<ReturnType<typeof measure>>) => {
     expect(items.length).toBeGreaterThan(4);
     for (const item of items) {
@@ -285,12 +615,19 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
   await page.setViewportSize({ width: 820, height: 720 });
   await page.getByRole("button", { name: "Zoom in" }).click();
   await page.getByRole("button", { name: "Zoom in" }).click();
-  await page.locator(".preview-viewport").evaluate((element) => { element.scrollLeft = 300; });
+  await page.locator(".preview-viewport").evaluate((element) => {
+    element.scrollLeft = 300;
+  });
   assertAligned(await measure());
 });
 
 test("edits pauses and links with structured inspector rows", async ({ page }) => {
-  await setSource(page, source("[Build] starts 2026-09-01 and lasts 5 days\n[Build] pauses on monday\n[Build] links to [[https://example.com Existing]]"));
+  await setSource(
+    page,
+    source(
+      "[Build] starts 2026-09-01 and lasts 5 days\n[Build] pauses on monday\n[Build] links to [[https://example.com Existing]]",
+    ),
+  );
   await page.locator('[data-task-id="build"]').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Pause date or weekday")).toHaveValue("monday");
@@ -637,6 +974,7 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
   await expect(page.locator(".resource-card details")).toHaveCount(1);
   await page.getByRole("button", { name: "Close resource workload" }).click();
   await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
   await page.getByRole("button", { name: "Resources" }).click();
   await expect(page.getByRole("spinbutton", { name: "Capacity for Kalle" })).toHaveValue("100");

@@ -1,31 +1,54 @@
 import { useEffect, useRef, useState } from "react";
 import { basicSetup } from "codemirror";
 import { autocompletion } from "@codemirror/autocomplete";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { linter, lintGutter } from "@codemirror/lint";
 import { ganttCompletions, ganttDiagnostics, ganttQuickFixes, type GanttQuickFix } from "./gantt-language";
 import { plantUmlGanttHighlightStyle, plantUmlGanttMode } from "./plantuml-gantt-mode";
+import { plantUmlSequenceHighlightStyle, plantUmlSequenceMode } from "./plantuml-sequence-mode";
+import { sequenceCompletions, sequenceDiagnostics, sequenceQuickFixes } from "./sequence-language";
+import type { DiagramKind } from "./model";
 
 interface Props {
+  diagramKind: DiagramKind;
   value: string;
   onChange(value: string): void;
   onCursorChange(line: number, column: number, position: number): void;
   selectedRange?: { from: number; to: number } | undefined;
 }
 
-export function CodeEditor({ value, onChange, onCursorChange, selectedRange }: Props) {
+function languageExtensions(kind: DiagramKind): Extension {
+  return [
+    StreamLanguage.define(kind === "gantt" ? plantUmlGanttMode : plantUmlSequenceMode),
+    syntaxHighlighting(kind === "gantt" ? plantUmlGanttHighlightStyle : plantUmlSequenceHighlightStyle),
+    autocompletion({ override: [kind === "gantt" ? ganttCompletions : sequenceCompletions] }),
+    linter(
+      (current) =>
+        kind === "gantt"
+          ? ganttDiagnostics(current.state.doc.toString())
+          : sequenceDiagnostics(current.state.doc.toString()),
+      { delay: 120 },
+    ),
+  ];
+}
+
+export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selectedRange }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onCursorRef = useRef(onCursorChange);
   const initialValue = useRef(value);
+  const initialKind = useRef(diagramKind);
+  const kindRef = useRef(diagramKind);
+  const language = useRef(new Compartment());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => ganttQuickFixes(value));
+  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => diagramKind === "gantt" ? ganttQuickFixes(value) : sequenceQuickFixes(value));
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
+  kindRef.current = diagramKind;
 
   useEffect(() => {
     if (!host.current) return;
@@ -36,17 +59,14 @@ export function CodeEditor({ value, onChange, onCursorChange, selectedRange }: P
         extensions: [
           basicSetup,
           keymap.of([indentWithTab]),
-          StreamLanguage.define(plantUmlGanttMode),
-          syntaxHighlighting(plantUmlGanttHighlightStyle),
-          autocompletion({ override: [ganttCompletions] }),
+          language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
-          linter((current) => ganttDiagnostics(current.state.doc.toString()), { delay: 120 }),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               const source = update.state.doc.toString();
               onChangeRef.current(source);
-              setQuickFixes(ganttQuickFixes(source));
+              setQuickFixes(kindRef.current === "gantt" ? ganttQuickFixes(source) : sequenceQuickFixes(source));
             }
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;
@@ -60,6 +80,12 @@ export function CodeEditor({ value, onChange, onCursorChange, selectedRange }: P
     view.current = editor;
     return () => editor.destroy();
   }, []);
+
+  useEffect(() => {
+    if (!view.current) return;
+    view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
+    setQuickFixes(diagramKind === "gantt" ? ganttQuickFixes(view.current.state.doc.toString()) : sequenceQuickFixes(view.current.state.doc.toString()));
+  }, [diagramKind]);
 
   useEffect(() => {
     const editor = view.current;

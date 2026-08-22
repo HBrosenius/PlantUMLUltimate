@@ -1,6 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
+export type DiagramKind = "gantt" | "sequence";
 
 export interface RenderRequest {
   requestId: number;
@@ -33,3 +34,11 @@ sunday are closed
 [Testing] lasts 5 days
 
 @endgantt`;
+
+export const DEFAULT_SEQUENCE_SOURCE = `@startuml
+participant User
+participant System
+
+User -> System: Request
+System --> User: Response
+@enduml`;

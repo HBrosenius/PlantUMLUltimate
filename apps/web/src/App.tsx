@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
+import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
@@ -20,11 +21,21 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { AddMenu } from "./AddMenu";
+import { NewDocumentDialog } from "./NewDocumentDialog";
+import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
+import { AddSequenceMessageDialog, type AddSequenceMessageValue } from "./AddSequenceMessageDialog";
+import { SequenceParticipantInspector, type SequenceParticipantInspectorValue } from "./SequenceParticipantInspector";
+import { SequenceMessageInspector, type SequenceMessageInspectorValue } from "./SequenceMessageInspector";
+import { AddSequenceStructureDialog, type SequenceStructureKind } from "./AddSequenceStructureDialog";
+import { SequenceStructureInspector } from "./SequenceStructureInspector";
+import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
+import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
+import { detectDiagramKind } from "./diagram-kind";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { parseProjectSettings, updateProjectSettings } from "./project-settings";
-import type { Theme, ViewMode } from "./model";
+import type { DiagramKind, Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { documentDisplayNames } from "./workspace-storage";
@@ -66,7 +77,22 @@ import {
   writePlantUmlDocument,
   type WritableFileHandle,
 } from "./file-service";
-import { DEFAULT_SOURCE } from "./model";
+import { DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE } from "./model";
+import {
+  deleteSequenceMessage,
+  deleteSequenceParticipant,
+  deleteSequenceStructure,
+  findSequenceObjectAt,
+  insertSequenceMessage,
+  insertSequenceParticipant,
+  insertSequenceParticipantBox,
+  insertSequenceStructure,
+  parseSequence,
+  reorderSequenceStatement,
+  updateSequenceMessage,
+  updateSequenceParticipant,
+  updateSequenceStructure,
+} from "@plantuml-studio/diagram-sequence";
 import { validateGeneratedSource } from "./generated-source-validation";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
@@ -86,6 +112,14 @@ export function App() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [addDividerOpen, setAddDividerOpen] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
+  const [newDocumentOpen, setNewDocumentOpen] = useState(false);
+  const [addSequenceParticipantOpen, setAddSequenceParticipantOpen] = useState(false);
+  const [addSequenceMessageOpen, setAddSequenceMessageOpen] = useState(false);
+  const [addSequenceStructureKind, setAddSequenceStructureKind] = useState<SequenceStructureKind>();
+  const [selectedSequenceParticipantId, setSelectedSequenceParticipantId] = useState<string>();
+  const [selectedSequenceMessageId, setSelectedSequenceMessageId] = useState<string>();
+  const [selectedSequenceStructureId, setSelectedSequenceStructureId] = useState<string>();
+  const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
@@ -116,8 +150,31 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
-  const diagnosticCount = parseResult.diagnostics.filter((item) => item.code !== "unsupported-syntax").length;
-  const unsupportedCount = parseResult.document.unknown.length;
+  const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
+  const selectedSequenceParticipant = sequenceDocument.participants.find(
+    (item) => item.id === selectedSequenceParticipantId,
+  );
+  const selectedSequenceMessage = sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId);
+  const sequenceStructures = [
+    ...sequenceDocument.fragments,
+    ...sequenceDocument.activations,
+    ...sequenceDocument.notes,
+    ...sequenceDocument.timelineItems,
+    ...sequenceDocument.references,
+    ...sequenceDocument.boxes,
+    ...sequenceDocument.autonumbers,
+    ...sequenceDocument.creations,
+    ...sequenceDocument.durations,
+  ];
+  const selectedSequenceStructure = sequenceStructures.find((item) => item.id === selectedSequenceStructureId);
+  const sequenceParticipantNames = sequenceDocument.participants.map(
+    (participant) => participant.alias ?? participant.label,
+  );
+  const diagnosticCount =
+    workspace.diagramKind === "gantt"
+      ? parseResult.diagnostics.filter((item) => item.code !== "unsupported-syntax").length
+      : 0;
+  const unsupportedCount = workspace.diagramKind === "gantt" ? parseResult.document.unknown.length : 0;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
   const selectedPredecessorId = selectedTask
     ? (parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)?.predecessorTaskId ??
@@ -152,11 +209,17 @@ export function App() {
     [parseResult.document.tasks, resourceCapacities, resolvedTaskDates],
   );
   const legendEntries = useMemo(() => {
-    const labels = new Map(parseLegendEntries(workspace.source).map((entry) => [entry.color.toLowerCase(), entry.label]));
-    return usedLegendColors(parseResult.document.tasks).map((color) => ({ color, label: labels.get(color.toLowerCase()) ?? color }));
+    const labels = new Map(
+      parseLegendEntries(workspace.source).map((entry) => [entry.color.toLowerCase(), entry.label]),
+    );
+    return usedLegendColors(parseResult.document.tasks).map((color) => ({
+      color,
+      label: labels.get(color.toLowerCase()) ?? color,
+    }));
   }, [parseResult.document.tasks, workspace.source]);
 
   useEffect(() => {
+    if (workspace.diagramKind !== "gantt") return;
     const timer = window.setTimeout(() => {
       const next = parseProjectSettings(workspace.source).showLegend
         ? synchronizeLegend(workspace.source, parseResult.document.tasks)
@@ -164,7 +227,9 @@ export function App() {
       if (next !== workspace.source) commitSource(next, "Synchronize legend");
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [parseResult.document.tasks, workspace.source]);
+    // The effect already tracks the source used by commitSource; the callback is declared later in this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parseResult.document.tasks, workspace.diagramKind, workspace.source]);
   const openSourceBytes = useMemo(
     () => tabs.documents.reduce((total, document) => total + document.source.length * 2, 0),
     [tabs.documents],
@@ -198,6 +263,8 @@ export function App() {
       tabs.activateDocument(id);
       setSelectedTaskId(selectedTasksByDocument.current.get(id));
       setSelectedDependencyIndex(undefined);
+      setSelectedSequenceParticipantId(undefined);
+      setSelectedSequenceMessageId(undefined);
       setInteractionMessage(undefined);
     },
     [selectedTaskId, tabs],
@@ -263,7 +330,13 @@ export function App() {
   }, [tabMenu]);
 
   useEffect(() => {
-    if (!selectedTaskId && selectedDependencyIndex === undefined && selectedDividerIndex === undefined && selectedVerticalSeparatorIndex === undefined) return;
+    if (
+      !selectedTaskId &&
+      selectedDependencyIndex === undefined &&
+      selectedDividerIndex === undefined &&
+      selectedVerticalSeparatorIndex === undefined
+    )
+      return;
     const dismissInspector = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
@@ -412,7 +485,13 @@ export function App() {
     if (selectedDividerIndex === undefined) return;
     const divider = parseResult.document.dividers[selectedDividerIndex];
     if (!divider || !window.confirm(`Delete divider “${divider.label}”?`)) return;
-    if (!commitGeneratedSource(applySourceEdits(workspace.source, deleteDivider(workspace.source, divider.sourceRange).edits), `Delete divider ${divider.label}`)) return;
+    if (
+      !commitGeneratedSource(
+        applySourceEdits(workspace.source, deleteDivider(workspace.source, divider.sourceRange).edits),
+        `Delete divider ${divider.label}`,
+      )
+    )
+      return;
     setSelectedDividerIndex(undefined);
     setInteractionMessage(`Deleted divider ${divider.label}`);
   };
@@ -673,6 +752,7 @@ export function App() {
       const opened = await openPlantUmlDocument();
       if (!opened) return;
       const id = tabs.addDocument({
+        diagramKind: detectDiagramKind(opened.source) ?? "gantt",
         source: opened.source,
         fileName: opened.fileName,
         dirty: false,
@@ -769,18 +849,203 @@ export function App() {
     }
   }, [reportFileError, result?.svg, workspace.fileName]);
 
-  const newDocument = useCallback(() => {
-    tabs.addDocument({
-      source: DEFAULT_SOURCE,
-      fileName: "untitled.puml",
-      dirty: false,
-      cursor: { line: 1, column: 1 },
-    });
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-    refreshHistoryControls();
-    setInteractionMessage("Created a new document");
-  }, [refreshHistoryControls, tabs]);
+  const createDocument = useCallback(
+    (diagramKind: DiagramKind) => {
+      tabs.addDocument({
+        diagramKind,
+        source: diagramKind === "sequence" ? DEFAULT_SEQUENCE_SOURCE : DEFAULT_SOURCE,
+        fileName: "untitled.puml",
+        dirty: false,
+        cursor: { line: 1, column: 1 },
+      });
+      setSelectedTaskId(undefined);
+      setSelectedDependencyIndex(undefined);
+      refreshHistoryControls();
+      setNewDocumentOpen(false);
+      setInteractionMessage(`Created a new ${diagramKind === "sequence" ? "Sequence" : "Gantt"} diagram`);
+    },
+    [refreshHistoryControls, tabs],
+  );
+
+  const newDocument = useCallback(() => setNewDocumentOpen(true), []);
+
+  const addSequenceParticipant = useCallback(
+    (value: AddSequenceParticipantValue) => {
+      commitSource(insertSequenceParticipant(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
+      setAddSequenceParticipantOpen(false);
+      setInteractionMessage(`Added ${value.kind} ${value.label.trim()}`);
+    },
+    [commitSource, workspace.source],
+  );
+
+  const addSequenceMessage = useCallback(
+    (value: AddSequenceMessageValue) => {
+      commitSource(insertSequenceMessage(workspace.source, value), `Add message ${value.from} to ${value.to}`);
+      setAddSequenceMessageOpen(false);
+      setInteractionMessage(`Added message from ${value.from} to ${value.to}`);
+    },
+    [commitSource, workspace.source],
+  );
+
+  const addSequenceStructure = useCallback(
+    (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
+      const nextSource = value.kind === "box"
+        ? insertSequenceParticipantBox(workspace.source, sequenceDocument, value)
+        : insertSequenceStructure(workspace.source, value);
+      commitSource(nextSource, `Add Sequence ${value.kind}`);
+      setAddSequenceStructureKind(undefined);
+      setInteractionMessage(`Added Sequence ${value.kind}`);
+    },
+    [commitSource, sequenceDocument, workspace.source],
+  );
+
+  const selectSequenceParticipant = useCallback((id: string) => {
+    setSelectedSequenceParticipantId(id);
+    setSelectedSequenceMessageId(undefined);
+    setSelectedSequenceStructureId(undefined);
+  }, []);
+
+  const selectSequenceMessage = useCallback((id: string) => {
+    setSelectedSequenceMessageId(id);
+    setSelectedSequenceParticipantId(undefined);
+    setSelectedSequenceStructureId(undefined);
+  }, []);
+
+  const selectSequenceStructure = useCallback((id: string) => {
+    setSelectedSequenceStructureId(id);
+    setSelectedSequenceParticipantId(undefined);
+    setSelectedSequenceMessageId(undefined);
+  }, []);
+
+  const applySequenceParticipant = useCallback(
+    (value: SequenceParticipantInspectorValue) => {
+      if (!selectedSequenceParticipant) return;
+      const { order, ...presentation } = value;
+      const next = updateSequenceParticipant(workspace.source, sequenceDocument, selectedSequenceParticipant, {
+        ...presentation,
+        ...(order !== undefined ? { order } : {}),
+      });
+      commitSource(next, `Update participant ${selectedSequenceParticipant.label}`);
+      setSelectedSequenceParticipantId((value.alias.trim() || value.label.trim()).toLowerCase());
+      setInteractionMessage(`Updated participant ${value.label.trim()}`);
+    },
+    [commitSource, selectedSequenceParticipant, sequenceDocument, workspace.source],
+  );
+
+  const removeSequenceParticipant = useCallback(() => {
+    if (!selectedSequenceParticipant) return;
+    const reference = selectedSequenceParticipant.alias ?? selectedSequenceParticipant.label;
+    const attached = sequenceDocument.messages.filter(
+      (message) => message.from === reference || message.to === reference,
+    ).length;
+    if (
+      !window.confirm(
+        `Delete “${selectedSequenceParticipant.label}”${attached ? ` and ${attached} connected message${attached === 1 ? "" : "s"}` : ""}?`,
+      )
+    )
+      return;
+    commitSource(
+      deleteSequenceParticipant(workspace.source, sequenceDocument, selectedSequenceParticipant),
+      `Delete participant ${selectedSequenceParticipant.label}`,
+    );
+    setSelectedSequenceParticipantId(undefined);
+    setInteractionMessage(`Deleted participant ${selectedSequenceParticipant.label}`);
+  }, [commitSource, selectedSequenceParticipant, sequenceDocument, workspace.source]);
+
+  const applySequenceMessage = useCallback(
+    (value: SequenceMessageInspectorValue) => {
+      if (!selectedSequenceMessage) return;
+      commitSource(updateSequenceMessage(workspace.source, selectedSequenceMessage, value), "Update Sequence message");
+      setInteractionMessage("Updated message");
+    },
+    [commitSource, selectedSequenceMessage, workspace.source],
+  );
+
+  const removeSequenceMessage = useCallback(() => {
+    if (!selectedSequenceMessage || !window.confirm("Delete this message?")) return;
+    commitSource(deleteSequenceMessage(workspace.source, selectedSequenceMessage), "Delete Sequence message");
+    setSelectedSequenceMessageId(undefined);
+    setInteractionMessage("Deleted message");
+  }, [commitSource, selectedSequenceMessage, workspace.source]);
+
+  const applySequenceStructure = useCallback(
+    (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
+      if (!selectedSequenceStructure) return;
+      commitSource(
+        updateSequenceStructure(workspace.source, selectedSequenceStructure, value),
+        `Update Sequence ${value.kind}`,
+      );
+      setInteractionMessage(`Updated Sequence ${value.kind}`);
+    },
+    [commitSource, selectedSequenceStructure, workspace.source],
+  );
+
+  const removeSequenceStructure = useCallback(() => {
+    if (!selectedSequenceStructure || !window.confirm("Delete this Sequence structure?")) return;
+    commitSource(deleteSequenceStructure(workspace.source, selectedSequenceStructure), "Delete Sequence structure");
+    setSelectedSequenceStructureId(undefined);
+    setInteractionMessage("Deleted Sequence structure");
+  }, [commitSource, selectedSequenceStructure, workspace.source]);
+
+  const reorderSequenceParticipant = useCallback(
+    (id: string, targetId: string, placement: "before" | "after" = "before") => {
+      const moved = sequenceDocument.participants.find((item) => item.id === id);
+      const target = sequenceDocument.participants.find((item) => item.id === targetId);
+      if (!moved || !target) return;
+      commitSource(reorderSequenceStatement(workspace.source, moved, target, placement), `Reorder participant ${moved.label}`);
+      setInteractionMessage(`Moved ${moved.label} ${placement} ${target.label}`);
+    },
+    [commitSource, sequenceDocument.participants, workspace.source],
+  );
+
+  const reorderSequenceMessage = useCallback(
+    (id: string, targetId: string, placement: "before" | "after" = "before") => {
+      const moved = sequenceDocument.messages.find((item) => item.id === id);
+      const target = sequenceDocument.messages.find((item) => item.id === targetId);
+      if (!moved || !target) return;
+      commitSource(reorderSequenceStatement(workspace.source, moved, target, placement), "Reorder Sequence message");
+      setSelectedSequenceMessageId(undefined);
+      setInteractionMessage("Reordered message");
+    },
+    [commitSource, sequenceDocument.messages, workspace.source],
+  );
+
+  const reconnectSequenceMessage = useCallback(
+    (messageId: string, endpoint: "from" | "to", participantId: string) => {
+      const message = sequenceDocument.messages.find((item) => item.id === messageId);
+      const participant = sequenceDocument.participants.find((item) => item.id === participantId);
+      if (!message || !participant) return;
+      const reference = participant.alias ?? participant.label;
+      const next = updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: reference });
+      commitSource(next, `Reconnect message ${endpoint}`);
+      setInteractionMessage(`Changed message ${endpoint === "from" ? "sender" : "recipient"} to ${participant.label}`);
+    },
+    [commitSource, sequenceDocument, workspace.source],
+  );
+
+  const externalizeSequenceMessage = useCallback((messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?") => {
+    const message = sequenceDocument.messages.find((item) => item.id === messageId);
+    if (!message) return;
+    commitSource(updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: marker }), "Reconnect message to diagram edge");
+    setInteractionMessage(marker === "?" ? "Marked message as lost" : "Connected message to diagram edge");
+  }, [commitSource, sequenceDocument.messages, workspace.source]);
+
+  const createSequenceMessageByDrag = useCallback(
+    (fromId: string, toId: string) => {
+      const from = sequenceDocument.participants.find((item) => item.id === fromId);
+      const to = sequenceDocument.participants.find((item) => item.id === toId);
+      if (!from || !to) return;
+      const source = insertSequenceMessage(workspace.source, {
+        from: from.alias ?? from.label,
+        to: to.alias ?? to.label,
+        arrow: "->",
+        label: "New message",
+      });
+      commitSource(source, `Connect ${from.label} to ${to.label}`);
+      setInteractionMessage(`Added message from ${from.label} to ${to.label}`);
+    },
+    [commitSource, sequenceDocument.participants, workspace.source],
+  );
 
   const addTask = useCallback(
     (value: AddTaskValue) => {
@@ -801,8 +1066,12 @@ export function App() {
     (value: AddSeparatorValue) => {
       if (value.kind === "vertical") {
         const operation = insertVerticalSeparator(workspace.source, value);
-        if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
-        if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Add vertical separator")) return;
+        if (operation.unavailableReason) {
+          setInteractionMessage(operation.unavailableReason);
+          return;
+        }
+        if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Add vertical separator"))
+          return;
         setAddDividerOpen(false);
         setInteractionMessage("Added vertical separator");
         return;
@@ -816,7 +1085,9 @@ export function App() {
         setInteractionMessage(operation.unavailableReason);
         return;
       }
-      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${value.label.trim()}`))
+      if (
+        !commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${value.label.trim()}`)
+      )
         return;
       setAddDividerOpen(false);
       setInteractionMessage(`Added divider ${value.label.trim()}`);
@@ -904,9 +1175,7 @@ export function App() {
         "same-row",
         sameRowTask ? `displays on same row as [${sameRowTask.alias?.value ?? sameRowTask.label}]` : undefined,
       );
-      const pauseDates = value.pauses
-        .map((pause) => pause.value.trim())
-        .filter(Boolean);
+      const pauseDates = value.pauses.map((pause) => pause.value.trim()).filter(Boolean);
       const pauseOperation = current()
         ? setTaskPauses(source, current()!, pauseDates)
         : { edits: [], unavailableReason: "Task not found" };
@@ -915,11 +1184,15 @@ export function App() {
         return;
       }
       source = applySourceEdits(source, pauseOperation.edits);
-      const links = value.links.filter((link) => link.url.trim()).map((link) => ({
-        url: link.url.trim(),
-        ...(link.label.trim() ? { label: link.label.trim() } : {}),
-      }));
-      const linkOperation = current() ? setTaskLinks(source, current()!, links) : { edits: [], unavailableReason: "Task not found" };
+      const links = value.links
+        .filter((link) => link.url.trim())
+        .map((link) => ({
+          url: link.url.trim(),
+          ...(link.label.trim() ? { label: link.label.trim() } : {}),
+        }));
+      const linkOperation = current()
+        ? setTaskLinks(source, current()!, links)
+        : { edits: [], unavailableReason: "Task not found" };
       if (linkOperation.unavailableReason) {
         setInteractionMessage(linkOperation.unavailableReason);
         return;
@@ -1062,38 +1335,83 @@ export function App() {
     [commitGeneratedSource, workspace.source],
   );
 
-  const commands = useMemo<Command[]>(
-    () => [
+  const applySequenceSettings = useCallback((value: SequenceSettings) => {
+    commitSource(updateSequenceSettings(workspace.source, value), "Update Sequence settings");
+    setSequenceSettingsOpen(false);
+    setInteractionMessage("Updated Sequence settings");
+  }, [commitSource, workspace.source]);
+
+  const commands = useMemo<Command[]>(() => {
+    const diagramCommands: Command[] =
+      workspace.diagramKind === "gantt"
+        ? [
+            {
+              id: "edit.add-task",
+              label: "Add task…",
+              category: "Edit",
+              shortcut: optionShortcut("T"),
+              run: () => setAddTaskOpen(true),
+            },
+            {
+              id: "edit.add-milestone",
+              label: "Add milestone…",
+              category: "Edit",
+              shortcut: optionShortcut("M"),
+              run: () => setAddMilestoneOpen(true),
+            },
+            {
+              id: "edit.add-divider",
+              label: "Add divider…",
+              category: "Edit",
+              shortcut: optionShortcut("D"),
+              run: () => setAddDividerOpen(true),
+            },
+            { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
+            { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
+            { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
+          ]
+        : [
+            {
+              id: "edit.add-participant",
+              label: "Add participant…",
+              category: "Edit",
+              shortcut: optionShortcut("P"),
+              run: () => setAddSequenceParticipantOpen(true),
+            },
+            {
+              id: "edit.add-message",
+              label: "Add message…",
+              category: "Edit",
+              shortcut: optionShortcut("M"),
+              run: () => setAddSequenceMessageOpen(true),
+            },
+            {
+              id: "edit.add-fragment",
+              label: "Add combined fragment…",
+              category: "Edit",
+              run: () => setAddSequenceStructureKind("fragment"),
+            },
+            {
+              id: "edit.add-activation",
+              label: "Add activation…",
+              category: "Edit",
+              run: () => setAddSequenceStructureKind("activation"),
+            },
+            {
+              id: "edit.add-note",
+              label: "Add Sequence note…",
+              category: "Edit",
+              run: () => setAddSequenceStructureKind("note"),
+            },
+          ];
+    return [
       { id: "file.new", label: "New document", category: "File", shortcut: "⌘N", run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveDocument },
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
       { id: "file.backup", label: "Back up workspace", category: "File", run: backupWorkspace },
       { id: "file.restore", label: "Restore workspace…", category: "File", run: () => void restoreWorkspace() },
-      {
-        id: "edit.add-task",
-        label: "Add task…",
-        category: "Edit",
-        shortcut: optionShortcut("T"),
-        run: () => setAddTaskOpen(true),
-      },
-      {
-        id: "edit.add-milestone",
-        label: "Add milestone…",
-        category: "Edit",
-        shortcut: optionShortcut("M"),
-        run: () => setAddMilestoneOpen(true),
-      },
-      {
-        id: "edit.add-divider",
-        label: "Add divider…",
-        category: "Edit",
-        shortcut: optionShortcut("D"),
-        run: () => setAddDividerOpen(true),
-      },
-      { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
-      { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
-      { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
+      ...diagramCommands,
       {
         id: "help.reference",
         label: "Help & keyboard shortcuts",
@@ -1125,27 +1443,27 @@ export function App() {
       { id: "export.source", label: "Export source", category: "Export", run: exportSource },
       { id: "export.svg", label: "Export SVG", category: "Export", enabled: Boolean(result?.svg), run: exportSvg },
       { id: "export.png", label: "Export PNG", category: "Export", enabled: Boolean(result?.svg), run: exportPng },
-    ],
-    [
-      activeHistory,
-      backupWorkspace,
-      exportPng,
-      exportSource,
-      exportSvg,
-      newDocument,
-      openDocument,
-      openProjectInspector,
-      openResourcePanel,
-      redo,
-      restoreWorkspace,
-      result?.svg,
-      saveDocument,
-      saveDocumentAs,
-      undo,
-      update,
-      workspace.zoom,
-    ],
-  );
+    ];
+  }, [
+    activeHistory,
+    backupWorkspace,
+    exportPng,
+    exportSource,
+    exportSvg,
+    newDocument,
+    openDocument,
+    openProjectInspector,
+    openResourcePanel,
+    redo,
+    restoreWorkspace,
+    result?.svg,
+    saveDocument,
+    saveDocumentAs,
+    undo,
+    update,
+    workspace.zoom,
+    workspace.diagramKind,
+  ]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -1173,8 +1491,23 @@ export function App() {
         !editingOutsideCodeEditor &&
         !event.repeat
       ) {
-        const creation = event.code === "KeyT" ? "t" : event.code === "KeyM" ? "m" : event.code === "KeyD" ? "d" : "";
-        if (creation === "t" || creation === "m" || creation === "d") {
+        const creation =
+          event.code === "KeyT"
+            ? "t"
+            : event.code === "KeyM"
+              ? "m"
+              : event.code === "KeyD"
+                ? "d"
+                : event.code === "KeyP"
+                  ? "p"
+                  : "";
+        if (workspace.diagramKind === "sequence" && (creation === "p" || creation === "m")) {
+          event.preventDefault();
+          if (creation === "p") setAddSequenceParticipantOpen(true);
+          else setAddSequenceMessageOpen(true);
+          return;
+        }
+        if (workspace.diagramKind === "gantt" && (creation === "t" || creation === "m" || creation === "d")) {
           event.preventDefault();
           if (creation === "t") setAddTaskOpen(true);
           else if (creation === "m") setAddMilestoneOpen(true);
@@ -1222,7 +1555,7 @@ export function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [closeTab, newDocument, openDocument, redo, saveDocument, tabs.activeId, undo, update]);
+  }, [closeTab, newDocument, openDocument, redo, saveDocument, tabs.activeId, undo, update, workspace.diagramKind]);
 
   const resize = (event: React.PointerEvent<HTMLDivElement>) => {
     if (workspace.viewMode !== "split") return;
@@ -1243,7 +1576,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || sequenceSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -1262,12 +1595,27 @@ export function App() {
             onExportPng={() => void exportPng()}
           />
           <AddMenu
+            diagramKind={workspace.diagramKind}
             onTask={() => setAddTaskOpen(true)}
             onMilestone={() => setAddMilestoneOpen(true)}
             onDivider={() => setAddDividerOpen(true)}
+            onParticipant={() => setAddSequenceParticipantOpen(true)}
+            onMessage={() => setAddSequenceMessageOpen(true)}
+            onFragment={() => setAddSequenceStructureKind("fragment")}
+            onActivation={() => setAddSequenceStructureKind("activation")}
+            onNote={() => setAddSequenceStructureKind("note")}
+            onSequenceSpacing={() => setAddSequenceStructureKind("separator")}
+            onReference={() => setAddSequenceStructureKind("reference")}
+            onParticipantBox={() => setAddSequenceStructureKind("box")}
+            onAutonumber={() => setAddSequenceStructureKind("autonumber")}
           />
-          <button onClick={openProjectInspector}>Project</button>
-          <button onClick={openResourcePanel}>Resources</button>
+          {workspace.diagramKind === "gantt" && (
+            <>
+              <button onClick={openProjectInspector}>Project</button>
+              <button onClick={openResourcePanel}>Resources</button>
+            </>
+          )}
+          {workspace.diagramKind === "sequence" && <button onClick={() => setSequenceSettingsOpen(true)}>Sequence</button>}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
           </button>
@@ -1292,23 +1640,30 @@ export function App() {
             ↷
           </button>
         </div>
-        <label className="resource-filter">
-          Resource{" "}
-          <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)}>
-            <option value="">All</option>
-            {resourceNames.map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-          </select>
-        </label>
-        <label className="schedule-mode">
-          Schedule{" "}
-          <select value={scheduleMode} onChange={(event) => setScheduleMode(event.target.value as typeof scheduleMode)}>
-            <option value="ask">Always ask</option>
-            <option value="single">Only task</option>
-            <option value="cascade">Include dependents</option>
-          </select>
-        </label>
+        {workspace.diagramKind === "gantt" && (
+          <label className="resource-filter">
+            Resource{" "}
+            <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)}>
+              <option value="">All</option>
+              {resourceNames.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {workspace.diagramKind === "gantt" && (
+          <label className="schedule-mode">
+            Schedule{" "}
+            <select
+              value={scheduleMode}
+              onChange={(event) => setScheduleMode(event.target.value as typeof scheduleMode)}
+            >
+              <option value="ask">Always ask</option>
+              <option value="single">Only task</option>
+              <option value="cascade">Include dependents</option>
+            </select>
+          </label>
+        )}
         <label>
           Theme{" "}
           <select value={workspace.theme} onChange={(event) => update("theme", event.target.value as Theme)}>
@@ -1403,91 +1758,129 @@ export function App() {
       >
         {workspace.viewMode !== "diagram" && (
           <CodeEditor
+            diagramKind={workspace.diagramKind}
             value={workspace.source}
             onChange={(source) => commitSource(source, "Edit source")}
             selectedRange={selectionRequest}
             onCursorChange={(line, column, position) => {
               update("cursor", { line, column });
-              setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
+              if (workspace.diagramKind === "gantt") {
+                setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
+              } else {
+                const object = findSequenceObjectAt(sequenceDocument, position);
+                if (
+                  object &&
+                  sequenceDocument.participants.includes(object as (typeof sequenceDocument.participants)[number])
+                )
+                  selectSequenceParticipant(object.id);
+                else if (object && "from" in object) selectSequenceMessage(object.id);
+                else if (object) selectSequenceStructure(object.id);
+              }
             }}
           />
         )}
         {workspace.viewMode === "split" && (
           <div className="divider" onPointerDown={resize} role="separator" aria-orientation="vertical" />
         )}
-        {workspace.viewMode !== "code" && (
-          <DiagramPreview
-            svg={result?.svg}
-            tasks={parseResult.document.tasks}
-            dependencies={parseResult.document.dependencies}
-            dividers={parseResult.document.dividers}
-            verticalSeparators={parseResult.document.verticalSeparators}
-            source={workspace.source}
-            zoom={workspace.zoom}
-            onZoomChange={(zoom) => update("zoom", zoom)}
-            selectedTaskId={selectedTaskId}
-            onTaskSelect={selectTask}
-            onNoteSelect={(taskId) => {
-              selectTask(taskId);
-              setFocusNoteTaskId(taskId);
-            }}
-            onBackgroundSelect={() => {
-              setSelectedTaskId(undefined);
-              setSelectedDependencyIndex(undefined);
-              setFocusNoteTaskId(undefined);
-            }}
-            onTaskMove={moveTask}
-            onTaskReorder={reorderDiagramTask}
-            onDividerReorder={reorderDiagramDivider}
-            onVerticalSeparatorMove={(index, days) => {
-              const separator = parseResult.document.verticalSeparators[index];
-              if (!separator) return;
-              const operation = moveVerticalSeparatorByDays(workspace.source, separator, days);
-              if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
-              if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Move vertical separator"))
-                setInteractionMessage(`Moved vertical separator ${days > 0 ? "+" : ""}${days} days`);
-            }}
-            onVerticalSeparatorSelect={(index) => {
-              setSelectedTaskId(undefined);
-              setSelectedDependencyIndex(undefined);
-              setSelectedDividerIndex(undefined);
-              setSelectedVerticalSeparatorIndex(index);
-            }}
-            onDividerSelect={(index) => {
-              setSelectedTaskId(undefined);
-              setSelectedDependencyIndex(undefined);
-              setSelectedDividerIndex(index);
-            }}
-            onTaskResize={resizeTask}
-            onDependencyCreate={connectTasks}
-            selectedDependencyIndex={selectedDependencyIndex}
-            onDependencySelect={setSelectedDependencyIndex}
-            onDependencyDelete={deleteDependency}
-            onInteractionMessage={setInteractionMessage}
-            resourceFilter={resourceFilter}
-            scheduleGhost={
-              schedulePreview
-                ? { taskIds: schedulePreview.affected.map((item) => item.id), days: schedulePreview.days }
-                : undefined
-            }
-            projectStart={
-              parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
-            }
-            renderStatus={status}
-            renderError={result?.error}
-            onRenderRetry={retryRender}
-            parseDurationMs={parsed.durationMs}
-            openDocumentCount={tabs.documents.length}
-            openSourceBytes={openSourceBytes}
-            resourceOverAllocations={resourceOverAllocations}
-            onOpenResourceWorkload={openResourcePanel}
-            onDateHighlightRequest={openDateActionMenu}
-            onLegendEditRequest={(color) => {
-              setLegendFocusColor(color);
-              setLegendInspectorOpen(true);
-            }}
-          />
-        )}
+        {workspace.viewMode !== "code" &&
+          (workspace.diagramKind === "gantt" ? (
+            <DiagramPreview
+              svg={result?.svg}
+              tasks={parseResult.document.tasks}
+              dependencies={parseResult.document.dependencies}
+              dividers={parseResult.document.dividers}
+              verticalSeparators={parseResult.document.verticalSeparators}
+              source={workspace.source}
+              zoom={workspace.zoom}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              selectedTaskId={selectedTaskId}
+              onTaskSelect={selectTask}
+              onNoteSelect={(taskId) => {
+                selectTask(taskId);
+                setFocusNoteTaskId(taskId);
+              }}
+              onBackgroundSelect={() => {
+                setSelectedTaskId(undefined);
+                setSelectedDependencyIndex(undefined);
+                setFocusNoteTaskId(undefined);
+              }}
+              onTaskMove={moveTask}
+              onTaskReorder={reorderDiagramTask}
+              onDividerReorder={reorderDiagramDivider}
+              onVerticalSeparatorMove={(index, days) => {
+                const separator = parseResult.document.verticalSeparators[index];
+                if (!separator) return;
+                const operation = moveVerticalSeparatorByDays(workspace.source, separator, days);
+                if (operation.unavailableReason) {
+                  setInteractionMessage(operation.unavailableReason);
+                  return;
+                }
+                if (
+                  commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Move vertical separator")
+                )
+                  setInteractionMessage(`Moved vertical separator ${days > 0 ? "+" : ""}${days} days`);
+              }}
+              onVerticalSeparatorSelect={(index) => {
+                setSelectedTaskId(undefined);
+                setSelectedDependencyIndex(undefined);
+                setSelectedDividerIndex(undefined);
+                setSelectedVerticalSeparatorIndex(index);
+              }}
+              onDividerSelect={(index) => {
+                setSelectedTaskId(undefined);
+                setSelectedDependencyIndex(undefined);
+                setSelectedDividerIndex(index);
+              }}
+              onTaskResize={resizeTask}
+              onDependencyCreate={connectTasks}
+              selectedDependencyIndex={selectedDependencyIndex}
+              onDependencySelect={setSelectedDependencyIndex}
+              onDependencyDelete={deleteDependency}
+              onInteractionMessage={setInteractionMessage}
+              resourceFilter={resourceFilter}
+              scheduleGhost={
+                schedulePreview
+                  ? { taskIds: schedulePreview.affected.map((item) => item.id), days: schedulePreview.days }
+                  : undefined
+              }
+              projectStart={
+                parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
+              }
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              parseDurationMs={parsed.durationMs}
+              openDocumentCount={tabs.documents.length}
+              openSourceBytes={openSourceBytes}
+              resourceOverAllocations={resourceOverAllocations}
+              onOpenResourceWorkload={openResourcePanel}
+              onDateHighlightRequest={openDateActionMenu}
+              onLegendEditRequest={(color) => {
+                setLegendFocusColor(color);
+                setLegendInspectorOpen(true);
+              }}
+            />
+          ) : (
+            <SequenceDiagramPreview
+              svg={result?.svg}
+              zoom={workspace.zoom}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              participants={sequenceDocument.participants}
+              messages={sequenceDocument.messages}
+              selectedParticipantId={selectedSequenceParticipantId}
+              selectedMessageId={selectedSequenceMessageId}
+              onParticipantSelect={selectSequenceParticipant}
+              onMessageSelect={selectSequenceMessage}
+              onParticipantReorder={reorderSequenceParticipant}
+              onMessageReorder={reorderSequenceMessage}
+              onMessageReconnect={reconnectSequenceMessage}
+              onMessageCreate={createSequenceMessageByDrag}
+              onMessageExternalize={externalizeSequenceMessage}
+            />
+          ))}
       </main>
       <footer className="statusbar">
         <span role="status" aria-live="polite">
@@ -1513,7 +1906,7 @@ export function App() {
             {unsupportedCount} preserved line{unsupportedCount === 1 ? "" : "s"}
           </button>
         )}
-        <span>Gantt</span>
+        <span>{workspace.diagramKind === "sequence" ? "Sequence" : "Gantt"}</span>
         <span>
           {workspace.viewMode === "code"
             ? "Preview paused"
@@ -1527,6 +1920,28 @@ export function App() {
         <span>{hydrated ? "IndexedDB" : "Restoring…"}</span>
       </footer>
       {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
+      {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={() => setNewDocumentOpen(false)} />}
+      {addSequenceParticipantOpen && (
+        <AddSequenceParticipantDialog
+          onAdd={addSequenceParticipant}
+          onClose={() => setAddSequenceParticipantOpen(false)}
+        />
+      )}
+      {addSequenceMessageOpen && (
+        <AddSequenceMessageDialog
+          participants={sequenceDocument.participants.map((participant) => participant.alias ?? participant.label)}
+          onAdd={addSequenceMessage}
+          onClose={() => setAddSequenceMessageOpen(false)}
+        />
+      )}
+      {addSequenceStructureKind && (
+        <AddSequenceStructureDialog
+          initialKind={addSequenceStructureKind}
+          participants={sequenceParticipantNames}
+          onAdd={addSequenceStructure}
+          onClose={() => setAddSequenceStructureKind(undefined)}
+        />
+      )}
       {addTaskOpen && (
         <AddTaskDialog
           taskLabels={parseResult.document.tasks.map((task) => task.label)}
@@ -1556,6 +1971,13 @@ export function App() {
           settings={parseProjectSettings(workspace.source)}
           onApply={applyProjectSettings}
           onClose={() => setProjectInspectorOpen(false)}
+        />
+      )}
+      {sequenceSettingsOpen && (
+        <SequenceSettingsInspector
+          settings={parseSequenceSettings(workspace.source)}
+          onApply={applySequenceSettings}
+          onClose={() => setSequenceSettingsOpen(false)}
         />
       )}
       {dateMenuFor && (
@@ -1591,6 +2013,35 @@ export function App() {
           onApply={applyTimelineDateHighlight}
           onClear={clearTimelineDateHighlight}
           onClose={() => setHighlightDate(undefined)}
+        />
+      )}
+      {selectedSequenceParticipant && (
+        <SequenceParticipantInspector
+          key={`${selectedSequenceParticipant.id}:${selectedSequenceParticipant.sourceRange.to}`}
+          participant={selectedSequenceParticipant}
+          onApply={applySequenceParticipant}
+          onDelete={removeSequenceParticipant}
+          onClose={() => setSelectedSequenceParticipantId(undefined)}
+        />
+      )}
+      {selectedSequenceMessage && (
+        <SequenceMessageInspector
+          key={`${selectedSequenceMessage.id}:${selectedSequenceMessage.sourceRange.to}`}
+          message={selectedSequenceMessage}
+          participants={sequenceParticipantNames}
+          onApply={applySequenceMessage}
+          onDelete={removeSequenceMessage}
+          onClose={() => setSelectedSequenceMessageId(undefined)}
+        />
+      )}
+      {selectedSequenceStructure && (
+        <SequenceStructureInspector
+          key={`${selectedSequenceStructure.id}:${selectedSequenceStructure.sourceRange.to}`}
+          structure={selectedSequenceStructure}
+          participants={sequenceParticipantNames}
+          onApply={applySequenceStructure}
+          onDelete={removeSequenceStructure}
+          onClose={() => setSelectedSequenceStructureId(undefined)}
         />
       )}
       {selectedTask?.milestone && (
@@ -1648,28 +2099,40 @@ export function App() {
           onClose={() => setSelectedDividerIndex(undefined)}
         />
       )}
-      {selectedVerticalSeparatorIndex !== undefined && parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex] && (
-        <VerticalSeparatorInspector
-          separator={parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex]!}
-          tasks={parseResult.document.tasks}
-          onApply={(value: VerticalSeparatorValue) => {
-            const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
-            if (!separator) return;
-            const operation = updateVerticalSeparator(separator, value);
-            if (operation.unavailableReason) { setInteractionMessage(operation.unavailableReason); return; }
-            if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator")) setInteractionMessage("Updated vertical separator");
-          }}
-          onDelete={() => {
-            const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
-            if (!separator || !window.confirm("Delete this vertical separator?")) return;
-            if (commitGeneratedSource(applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, separator).edits), "Delete vertical separator")) {
-              setSelectedVerticalSeparatorIndex(undefined);
-              setInteractionMessage("Deleted vertical separator");
-            }
-          }}
-          onClose={() => setSelectedVerticalSeparatorIndex(undefined)}
-        />
-      )}
+      {selectedVerticalSeparatorIndex !== undefined &&
+        parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex] && (
+          <VerticalSeparatorInspector
+            separator={parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex]!}
+            tasks={parseResult.document.tasks}
+            onApply={(value: VerticalSeparatorValue) => {
+              const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+              if (!separator) return;
+              const operation = updateVerticalSeparator(separator, value);
+              if (operation.unavailableReason) {
+                setInteractionMessage(operation.unavailableReason);
+                return;
+              }
+              if (
+                commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator")
+              )
+                setInteractionMessage("Updated vertical separator");
+            }}
+            onDelete={() => {
+              const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+              if (!separator || !window.confirm("Delete this vertical separator?")) return;
+              if (
+                commitGeneratedSource(
+                  applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, separator).edits),
+                  "Delete vertical separator",
+                )
+              ) {
+                setSelectedVerticalSeparatorIndex(undefined);
+                setInteractionMessage("Deleted vertical separator");
+              }
+            }}
+            onClose={() => setSelectedVerticalSeparatorIndex(undefined)}
+          />
+        )}
       {legendInspectorOpen && (
         <LegendInspector
           entries={legendEntries}
@@ -1683,7 +2146,10 @@ export function App() {
               setInteractionMessage("Updated legend labels");
             }
           }}
-          onClose={() => { setLegendInspectorOpen(false); setLegendFocusColor(undefined); }}
+          onClose={() => {
+            setLegendInspectorOpen(false);
+            setLegendFocusColor(undefined);
+          }}
         />
       )}
       {resourcePanelOpen && (

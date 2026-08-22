@@ -1,14 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import { optionShortcut } from "./platform-shortcuts";
+import type { DiagramKind } from "./model";
 
 export function AddMenu({
+  diagramKind,
   onTask,
   onMilestone,
   onDivider,
+  onParticipant,
+  onMessage,
+  onFragment,
+  onActivation,
+  onNote,
+  onSequenceSpacing,
+  onReference,
+  onParticipantBox,
+  onAutonumber,
 }: {
+  diagramKind: DiagramKind;
   onTask(): void;
   onMilestone(): void;
   onDivider(): void;
+  onParticipant(): void;
+  onMessage(): void;
+  onFragment(): void;
+  onActivation(): void;
+  onNote(): void;
+  onSequenceSpacing(): void;
+  onReference(): void;
+  onParticipantBox(): void;
+  onAutonumber(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -83,18 +104,48 @@ export function AddMenu({
             }
           }}
         >
-          <button role="menuitem" onClick={() => run(onTask)}>
-            <span>Task…</span>
-            <kbd>{taskShortcut}</kbd>
-          </button>
-          <button role="menuitem" onClick={() => run(onMilestone)}>
-            <span>Milestone…</span>
-            <kbd>{milestoneShortcut}</kbd>
-          </button>
-          <button role="menuitem" onClick={() => run(onDivider)}>
-            <span>Divider…</span>
-            <kbd>{dividerShortcut}</kbd>
-          </button>
+          {diagramKind === "gantt" ? (
+            <>
+              <button role="menuitem" onClick={() => run(onTask)}>
+                <span>Task…</span>
+                <kbd>{taskShortcut}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onMilestone)}>
+                <span>Milestone…</span>
+                <kbd>{milestoneShortcut}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onDivider)}>
+                <span>Divider…</span>
+                <kbd>{dividerShortcut}</kbd>
+              </button>
+            </>
+          ) : (
+            <>
+              <button role="menuitem" onClick={() => run(onParticipant)}>
+                <span>Participant…</span>
+                <kbd>{optionShortcut("P")}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onMessage)}>
+                <span>Message…</span>
+                <kbd>{optionShortcut("M")}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onFragment)}>
+                <span>Combined fragment…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivation)}>
+                <span>Activation…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onNote)}>
+                <span>Note…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onSequenceSpacing)}>
+                <span>Flow controls and page breaks…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onReference)}><span>Reference…</span></button>
+              <button role="menuitem" onClick={() => run(onParticipantBox)}><span>Participant box…</span></button>
+              <button role="menuitem" onClick={() => run(onAutonumber)}><span>Autonumber…</span></button>
+            </>
+          )}
         </div>
       )}
     </div>

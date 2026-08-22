@@ -46,6 +46,7 @@ export function usePersistedWorkspace() {
           item.id === current.activeDocumentId
             ? {
                 ...item,
+                diagramKind: next.diagramKind,
                 source: next.source,
                 fileName: next.fileName,
                 dirty: next.dirty,
@@ -62,6 +63,7 @@ export function usePersistedWorkspace() {
     const id = `document-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const document: DocumentSnapshot = {
       id,
+      diagramKind: input?.diagramKind ?? DEFAULT_SESSION.documents[0]!.diagramKind,
       source: input?.source ?? DEFAULT_SESSION.documents[0]!.source,
       fileName: input?.fileName ?? "untitled.puml",
       dirty: input?.dirty ?? false,

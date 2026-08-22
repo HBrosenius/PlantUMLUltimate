@@ -1,12 +1,13 @@
 # PlantUML Ultimate
 
-PlantUML Ultimate is a local-first, browser-based editor for creating and maintaining PlantUML Gantt diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
+PlantUML Ultimate is a local-first, browser-based editor for creating and maintaining PlantUML Gantt and Sequence diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
 
 The application runs entirely in the browser. Diagram rendering, editing, workspace recovery, and exports do not require a PlantUML server.
 
 ## Highlights
 
-- CodeMirror editor with Gantt syntax highlighting, diagnostics, quick fixes, and context-aware completion
+- Diagram-type chooser with illustrated Gantt and Sequence examples
+- CodeMirror editor with diagram-specific syntax highlighting, diagnostics, quick fixes, and context-aware completion
 - Official PlantUML rendering through the browser-local `@plantuml/core` engine
 - Code, split, and diagram-only views
 - Multiple open documents with reorderable tabs and independent per-document settings
@@ -56,6 +57,8 @@ The static production files are written to `apps/web/dist`.
 
 ## Getting started
 
+Creating a document opens a diagram-type chooser. The toolbar, Add menu, settings, editor assistance, preview, and visual inspectors then adapt to either Gantt or Sequence editing.
+
 Enter or paste a complete PlantUML Gantt document in the code editor:
 
 ```plantuml
@@ -80,6 +83,18 @@ end note
 ```
 
 The preview updates automatically. Invalid or incomplete source is reported without silently replacing the last successful preview.
+
+## Sequence diagrams
+
+Sequence documents support the common PlantUML object and interaction families through both source editing and diagram-specific screens:
+
+- Participants: `participant`, `actor`, `boundary`, `control`, `entity`, `database`, `collections`, and `queue`, including aliases, stereotypes, stereotype spots, colors, order, creation, and participant boxes
+- Messages: solid, dotted, open-head, cross-head, circle-ended, incoming, outgoing, found, and lost arrows, including color/style modifiers, anchors, activation shortcuts, and return messages
+- Structures: `alt`, `opt`, `loop`, `par`, `break`, `critical`, and `group` fragments with branches and colors
+- Annotations and flow: `note`, `hnote`, `rnote`, multiline references, activations, deactivation, destruction, separators, delays, spacing, duration arrows, page breaks, and autonumber controls
+- Presentation: titles, headers, footers, Teoz layout, message alignment and wrapping, participant/box padding, and Sequence-specific colors
+
+The Add menu creates participants, messages, fragments, activations, notes, references, participant boxes, and timeline controls. Clicking supported diagram objects opens their inspector; participants and messages can also be reordered or reconnected by dragging. The code editor remains the authoritative escape hatch for valid PlantUML syntax that does not need a dedicated visual control.
 
 Use the view buttons in the toolbar to switch between:
 
@@ -351,6 +366,7 @@ npx playwright install chromium firefox webkit
 ```text
 apps/web/                    React application and browser integration
 packages/diagram-gantt/      Gantt parser, model, and source transformations
+packages/diagram-sequence/   Sequence parser, model, and source transformations
 packages/editor-core/        Framework-independent command and history logic
 packages/language-core/      Diagram adapter contracts
 packages/language-plantuml/  PlantUML detection and adapter registry
@@ -368,7 +384,7 @@ This keeps saved files portable: they remain regular PlantUML documents that can
 
 ## Current scope
 
-The visual interaction layer is focused on PlantUML Gantt diagrams. Other PlantUML diagram types are not yet visually editable. Some valid Gantt syntax is preserved and rendered but may appear in the preserved-syntax panel rather than having a dedicated inspector control.
+The visual interaction layer supports PlantUML Gantt and Sequence diagrams. The Sequence implementation targets the meaningful participant, message, fragment, lifecycle, annotation, grouping, timeline, layout, and style families listed above; it does not claim a dedicated screen for every obscure PlantUML grammar combination. Valid source remains editable and renderable even when a construct has no specialized visual control.
 
 Large renderer assets are expected in the production build because PlantUML and Graphviz run locally in the browser.
 
