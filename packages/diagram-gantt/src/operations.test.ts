@@ -374,6 +374,24 @@ describe("dependency operations", () => {
     );
     expect(changed).toContain("[Build] starts 3 days after [Design]'s start with Blue dotted link");
   });
+
+  it("preserves a resource assignment on the same line when rewriting the dependency", () => {
+    const source =
+      "@startgantt\n[Design] lasts 2 days\n[Build] on {Kalle:50%} starts at [Design]'s end\n[Build] lasts 4 days\n@endgantt";
+    const dependency = parseGantt(source).document.dependencies[0]!;
+    const changed = applySourceEdits(
+      source,
+      updateDependency(source, dependency, {
+        predecessorLabel: "Design",
+        successorLabel: "Build",
+        relation: "start-after-start",
+        offset: 3,
+        direction: "after",
+        lineStyle: "solid",
+      }).edits,
+    );
+    expect(changed).toContain("[Build] on {Kalle:50%} starts 3 days after [Design]'s start");
+  });
 });
 
 describe("annotations", () => {

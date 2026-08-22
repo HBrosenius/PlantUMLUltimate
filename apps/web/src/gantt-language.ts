@@ -151,6 +151,17 @@ export const PLANTUML_COLOR_NAMES = [
   "YellowGreen",
 ] as const;
 
+function applyReplacingCloser(insertText: string, closer: string) {
+  return (view: import("@codemirror/view").EditorView, _completion: unknown, from: number, to: number) => {
+    const after = view.state.sliceDoc(to, to + closer.length);
+    const end = after === closer ? to + closer.length : to;
+    view.dispatch({
+      changes: { from, to: end, insert: insertText },
+      selection: { anchor: from + insertText.length },
+    });
+  };
+}
+
 export function ganttCompletions(context: CompletionContext): CompletionResult | null {
   const before = context.state.sliceDoc(0, context.pos);
   const line = context.state.doc.lineAt(context.pos);
@@ -166,7 +177,7 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
         label: task.label,
         type: "variable",
         detail: task.alias ? `Existing task · alias ${task.alias.value}` : "Existing Gantt task",
-        apply: `${task.alias?.value ?? task.label}] `,
+        apply: applyReplacingCloser(`${task.alias?.value ?? task.label}] `, "]"),
       })),
       validFor: /^[^\]]*$/,
     };
@@ -184,7 +195,7 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
         label: name,
         type: "variable",
         detail: "Person · 100% allocation",
-        apply: `${name}:100%}`,
+        apply: applyReplacingCloser(`${name}:100%}`, "}"),
       })),
       validFor: /^[^}:]*$/,
     };
@@ -201,7 +212,7 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
         label: task.label,
         type: "variable",
         detail: "Gantt task",
-        apply: `${task.label}]'s end`,
+        apply: applyReplacingCloser(`${task.label}]'s end`, "]"),
       })),
       validFor: /^[^\]]*$/,
     };

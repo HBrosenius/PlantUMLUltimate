@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseGantt } from "@plantuml-studio/diagram-gantt";
+import { ganttAdapter, applySourceEdits, parseGantt } from "@plantuml-studio/diagram-gantt";
 import { buildResourceOverAllocations, buildResourceWorkloads } from "./ResourceWorkloadPanel";
+import { resolveTaskDates } from "./gantt-schedule";
+import { parseGanttCalendar } from "./gantt-calendar";
 
 describe("buildResourceWorkloads", () => {
   it("totals concurrent allocations per person and date", () => {
@@ -43,5 +45,48 @@ describe("buildResourceWorkloads", () => {
       "2026-09-01",
       "2026-09-03",
     ]);
+  });
+
+  it("recalculates over-allocation from the post-drag source, not the pre-drag dates", () => {
+    const source = `@startgantt
+project starts 2026-09-01
+[Backend] starts 2026-09-07
+[Backend] lasts 10 days
+[Backend] on {Kalle:100%}
+[Testing] starts 2026-09-14
+[Testing] lasts 1 days
+[Testing] on {Kalle:100%}
+@endgantt`;
+
+    const computeAllocations = (value: string) => {
+      const parsed = parseGantt(value);
+      const calendar = parseGanttCalendar(value);
+      const resolved = resolveTaskDates(
+        parsed.document.tasks,
+        parsed.document.dependencies,
+        parsed.document.projectStart?.resolved ? parsed.document.projectStart.value : undefined,
+        calendar,
+      );
+      return buildResourceOverAllocations(parsed.document.tasks, {}, resolved);
+    };
+
+    // 1-2: overlapping tasks assigned to the same resource are reported as over-allocated.
+    expect(computeAllocations(source).some((item) => item.name === "Kalle")).toBe(true);
+
+    // 3: drag Testing far enough away that it no longer overlaps Backend.
+    const parsed = ganttAdapter.parse(source);
+    const testing = [...parsed.document.symbols.tasks.values()].find((task) => task.label === "Testing")!;
+    const moved = ganttAdapter.applyVisualOperation(
+      { kind: "move-task", taskId: testing.id, days: 10 },
+      parsed.document,
+      source,
+    );
+    const nextSource = applySourceEdits(source, moved.edits);
+
+    // 4: the PlantUML source reflects the new date.
+    expect(nextSource).toContain("[Testing] starts 2026-09-24");
+
+    // 5-6: resource allocation is recalculated from the updated source and the warning clears immediately.
+    expect(computeAllocations(nextSource)).toEqual([]);
   });
 });

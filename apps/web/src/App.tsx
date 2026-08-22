@@ -13,6 +13,7 @@ import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDi
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { HighlightDateDialog } from "./HighlightDateDialog";
+import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { AddMenu } from "./AddMenu";
 import { resolveTaskDates } from "./gantt-schedule";
@@ -73,6 +74,7 @@ export function App() {
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [highlightDate, setHighlightDate] = useState<string>();
+  const [dateMenuFor, setDateMenuFor] = useState<string>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
   const [resourceFilter, setResourceFilter] = useState("");
@@ -247,12 +249,12 @@ export function App() {
     setProjectInspectorOpen(true);
   }, []);
 
-  const openProjectInspectorForDate = useCallback((date: string) => {
+  const openDateActionMenu = useCallback((date: string) => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(false);
     setResourcePanelOpen(false);
-    setHighlightDate(date);
+    setDateMenuFor(date);
   }, []);
 
   const openResourcePanel = useCallback(() => {
@@ -545,6 +547,39 @@ export function App() {
     setHighlightDate(undefined);
     setInteractionMessage(`Cleared highlight for ${highlightDate}`);
   }, [commitGeneratedSource, highlightDate, workspace.source]);
+
+  const applyTimelineDateClosed = useCallback(
+    (date: string) => {
+      const settings = parseProjectSettings(workspace.source);
+      const existing = settings.dateRules.find(
+        (rule) => rule.from === date && rule.to === date && rule.state !== "colored",
+      );
+      settings.dateRules = existing
+        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, state: "closed" } : rule))
+        : [...settings.dateRules, { id: `closed-${date}`, from: date, to: date, state: "closed" as const }];
+      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Close ${date}`)) return;
+      setDateMenuFor(undefined);
+      setInteractionMessage(`Marked ${date} as a closed day`);
+    },
+    [commitGeneratedSource, workspace.source],
+  );
+
+  const clearTimelineDateSetting = useCallback(
+    (date: string) => {
+      const settings = parseProjectSettings(workspace.source);
+      const remaining = settings.dateRules.filter((rule) => !(rule.from === date && rule.to === date));
+      if (remaining.length === settings.dateRules.length) {
+        setDateMenuFor(undefined);
+        return;
+      }
+      settings.dateRules = remaining;
+      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear date setting ${date}`))
+        return;
+      setDateMenuFor(undefined);
+      setInteractionMessage(`Cleared the date setting for ${date}`);
+    },
+    [commitGeneratedSource, workspace.source],
+  );
 
   const undo = useCallback(() => {
     const source = activeHistory.undo(workspace.source);
@@ -1326,7 +1361,7 @@ export function App() {
             openSourceBytes={openSourceBytes}
             resourceOverAllocations={resourceOverAllocations}
             onOpenResourceWorkload={openResourcePanel}
-            onDateHighlightRequest={openProjectInspectorForDate}
+            onDateHighlightRequest={openDateActionMenu}
           />
         )}
       </main>
@@ -1397,6 +1432,25 @@ export function App() {
           settings={parseProjectSettings(workspace.source)}
           onApply={applyProjectSettings}
           onClose={() => setProjectInspectorOpen(false)}
+        />
+      )}
+      {dateMenuFor && (
+        <DateActionMenu
+          date={dateMenuFor}
+          state={(() => {
+            const rule = parseProjectSettings(workspace.source).dateRules.find(
+              (item) => item.from === dateMenuFor && item.to === dateMenuFor,
+            );
+            if (!rule) return "none";
+            return rule.state === "colored" ? "highlighted" : rule.state;
+          })()}
+          onHighlight={() => {
+            setHighlightDate(dateMenuFor);
+            setDateMenuFor(undefined);
+          }}
+          onMarkClosed={() => applyTimelineDateClosed(dateMenuFor)}
+          onClear={() => clearTimelineDateSetting(dateMenuFor)}
+          onClose={() => setDateMenuFor(undefined)}
         />
       )}
       {highlightDate && (

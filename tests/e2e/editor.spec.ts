@@ -218,6 +218,11 @@ test("adds a colored critical date from project settings", async ({ page }) => {
 test("starts a highlighted date by clicking the timeline header", async ({ page }) => {
   await setSource(page, source("[Build] lasts 25 days"));
   await page.locator('[data-timeline-date="2026-09-18"]').click();
+  const menu = page.getByRole("dialog", { name: "2026-09-18" });
+  await expect(menu).toBeVisible();
+  await expect(menu).toContainText("No date setting");
+  await menu.getByRole("button", { name: "Highlight date" }).click();
+
   const dialog = page.getByRole("dialog", { name: "Highlight 2026-09-18" });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Color").fill("#ffd700");
@@ -225,9 +230,25 @@ test("starts a highlighted date by clicking the timeline header", async ({ page 
   await expect(page.locator(".cm-content")).toContainText("2026-09-18 is colored in #ffd700");
 
   await page.locator('[data-timeline-date="2026-09-18"]').click();
-  const clearDialog = page.getByRole("dialog", { name: "Highlight 2026-09-18" });
-  await clearDialog.getByRole("button", { name: "Clear highlight" }).click();
+  const reopenedMenu = page.getByRole("dialog", { name: "2026-09-18" });
+  await expect(reopenedMenu).toContainText("Currently highlighted");
+  await reopenedMenu.getByRole("button", { name: "Clear date setting" }).click();
   await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is colored in");
+});
+
+test("marks and clears a closed day by clicking the timeline header", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 25 days"));
+  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  const menu = page.getByRole("dialog", { name: "2026-09-18" });
+  await menu.getByRole("button", { name: "Mark as closed day" }).click();
+  await expect(page.locator(".cm-content")).toContainText("2026-09-18 is closed");
+
+  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  const reopenedMenu = page.getByRole("dialog", { name: "2026-09-18" });
+  await expect(reopenedMenu).toContainText("Currently marked as a closed day");
+  await expect(reopenedMenu.getByRole("button", { name: "Already a closed day" })).toBeDisabled();
+  await reopenedMenu.getByRole("button", { name: "Clear date setting" }).click();
+  await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is closed");
 });
 
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {
