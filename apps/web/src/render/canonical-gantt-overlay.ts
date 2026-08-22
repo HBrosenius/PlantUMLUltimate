@@ -64,12 +64,20 @@ export function alignClosedDayHatching(svg: SVGSVGElement): void {
   if (!width) return;
   const closed = labels.filter((item) => item.text.getAttribute("data-closed-date") === "true");
   const overlays = [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")];
+  const lowerWeekdayTop = [...svg.querySelectorAll<SVGTextElement>("text")]
+    .filter((text) => /^(?:Mo|Tu|We|Th|Fr|Sa|Su)$/i.test(text.textContent?.trim() ?? ""))
+    .map((text) => text.getBBox().y)
+    .sort((a, b) => b - a)[0];
   closed.forEach((item, index) => {
     const overlay = overlays[index];
     if (!overlay) return;
     const bounds = dayColumnBounds(item.center, width);
     overlay.setAttribute("x", String(bounds.left));
     overlay.setAttribute("width", String(width));
+    if (lowerWeekdayTop !== undefined) {
+      const top = Number(overlay.getAttribute("y"));
+      overlay.setAttribute("height", String(Math.max(0, lowerWeekdayTop - top)));
+    }
   });
 }
 

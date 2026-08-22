@@ -147,7 +147,15 @@ export function DiagramPreview({
   }, [interactiveSvg, selectedTaskId, selectedDependencyIndex]);
   useEffect(() => {
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
-    if (svg) alignClosedDayHatching(svg);
+    if (!svg) return;
+    alignClosedDayHatching(svg);
+    let cancelled = false;
+    void document.fonts?.ready.then(() => {
+      if (!cancelled && svg.isConnected) alignClosedDayHatching(svg);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedSvg, zoom]);
   const hoverDetails = hoveredTask
     ? taskHoverDetails(

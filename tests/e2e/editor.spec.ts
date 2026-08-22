@@ -602,15 +602,27 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
         .sort((a, b) => a - b);
       const width = gaps[Math.floor(gaps.length / 2)]!;
       const closedLabels = labels.filter((label) => label.closed);
+      const lowerWeekdayTop = [...svg.querySelectorAll<SVGTextElement>("text")]
+        .filter((text) => /^(?:Mo|Tu|We|Th|Fr|Sa|Su)$/i.test(text.textContent?.trim() ?? ""))
+        .map((text) => text.getBBox().y)
+        .sort((a, b) => b - a)[0]!;
+      const lowerWeekdayBaseline = [...svg.querySelectorAll<SVGTextElement>("text")]
+        .filter((text) => /^(?:Mo|Tu|We|Th|Fr|Sa|Su)$/i.test(text.textContent?.trim() ?? ""))
+        .map((text) => number(text, "y"))
+        .sort((a, b) => b - a)[0]!;
       return [...svg.querySelectorAll<SVGRectElement>(".closed-day-hatching rect")].map((rect, index) => {
         const left = number(rect, "x");
         const right = left + number(rect, "width");
+        const bottom = number(rect, "y") + number(rect, "height");
         const center = closedLabels[index]!.center;
         return {
           left,
           right,
           expectedLeft: center - width / 2,
           expectedRight: center + width / 2,
+          bottom,
+          expectedBottom: lowerWeekdayTop,
+          lowerWeekdayBaseline,
         };
       });
     });
@@ -619,6 +631,11 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
     for (const item of items) {
       expect(Math.abs(item.left - item.expectedLeft), JSON.stringify(item)).toBeLessThan(0.05);
       expect(Math.abs(item.right - item.expectedRight), JSON.stringify(item)).toBeLessThan(0.05);
+      // SVG font metrics can settle a fraction of a unit after the overlay effect runs.
+      // The important invariant is that hatching ends at the top of the lower header
+      // and never extends through its date labels.
+      expect(Math.abs(item.bottom - item.expectedBottom), JSON.stringify(item)).toBeLessThan(2);
+      expect(item.bottom, JSON.stringify(item)).toBeLessThan(item.lowerWeekdayBaseline);
     }
   };
   assertAligned(await measure());
