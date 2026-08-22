@@ -81,7 +81,7 @@ export async function openWorkspaceBackupFile(): Promise<string | undefined> {
   try {
     const [handle] = await pickerWindow.showOpenFilePicker({
       multiple: false,
-      types: [{ description: "PlantUML Studio backup", accept: { "application/json": [".json"] } }],
+      types: [{ description: "PlantUML Ultimate backup", accept: { "application/json": [".json"] } }],
     });
     if (!handle) return undefined;
     return await (await handle.getFile()).text();
