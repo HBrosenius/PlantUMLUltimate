@@ -343,7 +343,12 @@ export function updateDependency(source: string, dependency: GanttDependency, va
       : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"} ${value.lineStyle} link` : ""}`;
   const original = source.slice(dependency.sourceRange.from, dependency.sourceRange.to);
   const indentation = original.match(/^\s*/)?.[0] ?? "";
-  return { edits: [{ range: dependency.sourceRange, text: `${indentation}[${value.successorLabel}] ${relation}` }] };
+  const alias = original.match(/\bas\s+\[[^\]]+]/i)?.[0];
+  const resources = original.match(/\bon\s+(?:\{[^}]+}\s*)+/i)?.[0]?.trim();
+  const prefix = [`[${value.successorLabel}]`, alias, resources].filter((part): part is string => Boolean(part)).join(
+    " ",
+  );
+  return { edits: [{ range: dependency.sourceRange, text: `${indentation}${prefix} ${relation}` }] };
 }
 
 export interface NewTaskInput {

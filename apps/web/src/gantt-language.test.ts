@@ -1,7 +1,20 @@
 import { EditorState } from "@codemirror/state";
-import { CompletionContext } from "@codemirror/autocomplete";
+import { CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { describe, expect, it } from "vitest";
 import { ganttCompletions, ganttDiagnostics, ganttQuickFixes } from "./gantt-language";
+
+function runApply(doc: string, completion: Completion | undefined, from: number, to: number) {
+  if (typeof completion?.apply !== "function") throw new Error("Expected a function-valued apply");
+  let inserted: { from: number; to: number; insert: string } | undefined;
+  const fakeView = {
+    state: { sliceDoc: (sliceFrom: number, sliceTo: number) => doc.slice(sliceFrom, sliceTo) },
+    dispatch: (transaction: { changes: { from: number; to: number; insert: string } }) => {
+      inserted = transaction.changes;
+    },
+  } as unknown as import("@codemirror/view").EditorView;
+  completion.apply(fakeView, completion, from, to);
+  return inserted;
+}
 
 describe("Gantt CodeMirror language service", () => {
   it("completes existing task names at the start of a new task statement", () => {
@@ -10,7 +23,12 @@ describe("Gantt CodeMirror language service", () => {
     const position = source.indexOf("[Bu\n") + 3;
     const result = ganttCompletions(new CompletionContext(state, position, false));
     expect(result?.from).toBe(position - 2);
-    expect(result?.options.find((option) => option.label === "Build task")?.apply).toBe("Build task] ");
+    const option = result?.options.find((option) => option.label === "Build task");
+    expect(runApply(source, option, result!.from, position)).toEqual({
+      from: result!.from,
+      to: position,
+      insert: "Build task] ",
+    });
   });
 
   it("completes tasks and statements after the simplified then keyword", () => {
@@ -35,10 +53,13 @@ describe("Gantt CodeMirror language service", () => {
     const source = "@startgantt\n[A] on {Alice:50%} lasts 2 days\n[B] on {Al\n@endgantt";
     const state = EditorState.create({ doc: source });
     const position = source.indexOf("{Al\n") + 3;
-    const option = ganttCompletions(new CompletionContext(state, position, false))?.options.find(
-      (item) => item.label === "Alice",
-    );
-    expect(option?.apply).toBe("Alice:100%}");
+    const result = ganttCompletions(new CompletionContext(state, position, false));
+    const option = result?.options.find((item) => item.label === "Alice");
+    expect(runApply(source, option, result!.from, position)).toEqual({
+      from: result!.from,
+      to: position,
+      insert: "Alice:100%}",
+    });
   });
 
   it("offers a quick fix for a color statement missing 'in'", () => {
@@ -60,10 +81,13 @@ describe("Gantt CodeMirror language service", () => {
     const source = "@startgantt\n[Long task name] as [T1] lasts 2 days\n[Lo\n@endgantt";
     const state = EditorState.create({ doc: source });
     const position = source.indexOf("[Lo\n") + 3;
-    const completion = ganttCompletions(new CompletionContext(state, position, false))?.options.find(
-      (option) => option.label === "Long task name",
-    );
-    expect(completion?.apply).toBe("T1] ");
+    const result = ganttCompletions(new CompletionContext(state, position, false));
+    const completion = result?.options.find((option) => option.label === "Long task name");
+    expect(runApply(source, completion, result!.from, position)).toEqual({
+      from: result!.from,
+      to: position,
+      insert: "T1] ",
+    });
     expect(completion?.detail).toContain("alias T1");
   });
 
@@ -73,7 +97,22 @@ describe("Gantt CodeMirror language service", () => {
     const position = source.indexOf("[\n@endgantt");
     const result = ganttCompletions(new CompletionContext(state, position + 1, true));
     expect(result?.options.map((option) => option.label)).toContain("Design");
-    expect(result?.options.find((option) => option.label === "Design")?.apply).toBe("Design]'s end");
+    const option = result?.options.find((option) => option.label === "Design");
+    expect(runApply(source, option, result!.from, position + 1)).toEqual({
+      from: result!.from,
+      to: position + 1,
+      insert: "Design]'s end",
+    });
+  });
+
+  it("does not double the closing bracket when a ] already follows the cursor", () => {
+    const source = "@startgantt\n[Design] lasts 4 days\n[Bu]\n@endgantt";
+    const state = EditorState.create({ doc: source });
+    const position = source.indexOf("[Bu]") + 3;
+    const result = ganttCompletions(new CompletionContext(state, position, false));
+    const option = result?.options.find((item) => item.label === "Design");
+    const applied = runApply(source, option, result!.from, position);
+    expect(applied).toEqual({ from: result!.from, to: position + 1, insert: "Design] " });
   });
 
   it("offers syntax-aware task statement keywords", () => {

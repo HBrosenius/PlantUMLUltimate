@@ -919,6 +919,25 @@ textarea:focus-visible,
   border-color: #dc2626;
   color: #dc2626;
 }
+.date-action-menu {
+  width: min(280px, calc(100vw - 32px));
+}
+.date-action-menu-state {
+  margin: -8px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.date-action-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.date-action-menu-actions button.danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
 .schedule-preview p {
   color: var(--text);
 }
