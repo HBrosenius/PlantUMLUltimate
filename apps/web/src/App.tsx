@@ -2224,7 +2224,7 @@ export function App() {
       )}
       {selectedTask && !selectedTask.milestone && (
         <TaskInspector
-          key={`${selectedTask.id}:${selectedTask.sourceRange.to}`}
+          key={selectedTask.id}
           task={selectedTask}
           tasks={parseResult.document.tasks}
           predecessorId={selectedPredecessorId}

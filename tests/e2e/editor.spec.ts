@@ -774,7 +774,7 @@ test("edits pauses and links with structured inspector rows", async ({ page }) =
   await inspector.getByRole("button", { name: "Add link" }).click();
   await inspector.getByLabel("Link URL").nth(1).fill("https://plantuml.com/gantt-diagram");
   await inspector.getByLabel("Link label").nth(1).fill("PlantUML reference");
-  await inspector.getByRole("button", { name: "Apply" }).click();
+  await inspector.getByLabel("Link label").nth(1).blur();
   await expect(page.locator(".cm-content")).toContainText("[Build] pauses on 2026-09-04");
   await expect(page.locator(".cm-content")).toContainText("[[https://plantuml.com/gantt-diagram PlantUML reference]]");
 });
@@ -1216,6 +1216,7 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
     const inspector = page.getByRole("complementary", { name: "Task inspector" });
     await inspector.getByRole("button", { name: "+ Add person" }).click();
     await inspector.getByLabel("Person name").fill("Kalle");
+    await inspector.getByLabel("Person name").blur();
     await expect(page.locator(".cm-content")).toContainText(
       taskId === "a" ? "[A] on {Kalle:100%} starts 2026-09-01" : "[B] on {Kalle:100%} starts 2026-09-08",
     );
@@ -1281,15 +1282,19 @@ test("shows allocation-adjusted dates in the task hover card", async ({ page }) 
   await expect(card).toContainText("Kalle 75%");
 });
 
-test("autosaves task inspector text fields without an Apply button", async ({ page }) => {
+test("saves task inspector text fields on blur instead of while typing", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
   await page.locator('[data-task-id="build"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByRole("button", { name: "Apply" })).toHaveCount(0);
   await inspector.getByLabel("Color").fill("Orange");
+  await expect(page.locator(".cm-content")).not.toContainText("[Build] is colored in Orange");
+  await inspector.getByLabel("Color").blur();
   await expect(page.locator(".cm-content")).toContainText("[Build] is colored in Orange");
   await expect(inspector).toBeVisible();
   await inspector.getByLabel("Name").fill("Compile");
+  await expect(page.locator(".cm-content")).not.toContainText("[Compile]");
+  await inspector.getByLabel("Name").blur();
   await expect(page.locator(".cm-content")).toContainText("[Compile] is colored in Orange");
 });
 

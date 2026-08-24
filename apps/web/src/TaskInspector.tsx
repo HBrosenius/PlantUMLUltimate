@@ -96,30 +96,30 @@ export function TaskInspector({
     note.setSelectionRange(note.value.length, note.value.length);
   }, [focusNote]);
   const lastAppliedValue = useRef(JSON.stringify(value));
-  useEffect(() => {
-    const serialized = JSON.stringify(value);
+  const apply = (next = value) => {
+    const serialized = JSON.stringify(next);
     if (serialized === lastAppliedValue.current) return;
-    const duration = value.duration === "" ? undefined : Number(value.duration);
-    const completion = value.completion === "" ? undefined : Number(value.completion);
-    const validResources = value.resources.every((resource) => {
+    const duration = next.duration === "" ? undefined : Number(next.duration);
+    const completion = next.completion === "" ? undefined : Number(next.completion);
+    const validResources = next.resources.every((resource) => {
       const allocation = Number(resource.allocation);
       return resource.name.trim() && Number.isInteger(allocation) && allocation >= 1 && allocation <= 100;
     });
     if (
-      !value.label.trim() ||
+      !next.label.trim() ||
       (duration !== undefined && (!Number.isInteger(duration) || duration < 1)) ||
       (completion !== undefined && (!Number.isInteger(completion) || completion < 0 || completion > 100)) ||
       !validResources
     )
       return;
-    const timer = window.setTimeout(() => {
-      lastAppliedValue.current = serialized;
-      onApply(value);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [onApply, value]);
-  const update = <K extends keyof TaskInspectorValue>(key: K, next: TaskInspectorValue[K]) =>
-    setValue((current) => ({ ...current, [key]: next }));
+    lastAppliedValue.current = serialized;
+    onApply(next);
+  };
+  const update = <K extends keyof TaskInspectorValue>(key: K, next: TaskInspectorValue[K], applyNow = false) => {
+    const updated = { ...value, [key]: next };
+    setValue(updated);
+    if (applyNow) apply(updated);
+  };
   const conversionStart = value.startDate || effectiveStart;
   const convertedDuration = value.endDate ? workingDayDuration(conversionStart, value.endDate, calendar) : undefined;
   const durationMultiplier = value.durationUnit === "month" ? 30 : value.durationUnit === "week" ? 7 : 1;
@@ -139,14 +139,14 @@ export function TaskInspector({
       <form onSubmit={(event) => event.preventDefault()}>
         <label>
           Name
-          <input required value={value.label} onChange={(event) => update("label", event.target.value)} />
+          <input required value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={() => apply()} />
         </label>
         <label>
           Linked task
           <select
             aria-label="Linked task"
             value={value.predecessorId}
-            onChange={(event) => update("predecessorId", event.target.value)}
+            onChange={(event) => update("predecessorId", event.target.value, true)}
           >
             <option value="">No dependency</option>
             {tasks
@@ -164,7 +164,7 @@ export function TaskInspector({
             aria-label="Relationship"
             value={value.dependencyRelation}
             onChange={(event) =>
-              update("dependencyRelation", event.target.value as GanttDependency["relation"])
+              update("dependencyRelation", event.target.value as GanttDependency["relation"], true)
             }
           >
             <option value="start-after-end">Starts at linked task's end</option>
@@ -175,14 +175,14 @@ export function TaskInspector({
         </label>
         <label>
           Start
-          <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} />
+          <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} onBlur={() => apply()} />
         </label>
         {value.predecessorId && value.startDate === effectiveStart && (
           <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
         )}
         <label>
           End
-          <input type="date" value={value.endDate} onChange={(event) => update("endDate", event.target.value)} />
+          <input type="date" value={value.endDate} onChange={(event) => update("endDate", event.target.value)} onBlur={() => apply()} />
         </label>
         {value.predecessorId && value.dependencyRelation.startsWith("end-") && value.endDate === effectiveEnd && (
           <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
@@ -191,21 +191,27 @@ export function TaskInspector({
           <button
             type="button"
             disabled={!convertedDuration}
-            onClick={() =>
-              setValue((current) => ({
-                ...current,
+            onClick={() => {
+              const next = {
+                ...value,
                 endDate: "",
                 duration: String(convertedDuration),
                 durationUnit: "day",
-              }))
-            }
+              } satisfies TaskInspectorValue;
+              setValue(next);
+              apply(next);
+            }}
           >
             End → duration
           </button>
           <button
             type="button"
             disabled={!convertedEnd}
-            onClick={() => setValue((current) => ({ ...current, endDate: convertedEnd ?? "", duration: "" }))}
+            onClick={() => {
+              const next = { ...value, endDate: convertedEnd ?? "", duration: "" };
+              setValue(next);
+              apply(next);
+            }}
           >
             Duration → end
           </button>
@@ -219,10 +225,11 @@ export function TaskInspector({
               step="1"
               value={value.duration}
               onChange={(event) => update("duration", event.target.value)}
+              onBlur={() => apply()}
             />
             <select
               value={value.durationUnit}
-              onChange={(event) => update("durationUnit", event.target.value as "day" | "week" | "month")}
+              onChange={(event) => update("durationUnit", event.target.value as "day" | "week" | "month", true)}
             >
               <option value="day">days</option>
               <option value="week">weeks</option>
@@ -240,6 +247,7 @@ export function TaskInspector({
             placeholder="0–100%"
             value={value.completion}
             onChange={(event) => update("completion", event.target.value)}
+            onBlur={() => apply()}
           />
         </label>
         <label>
@@ -251,6 +259,7 @@ export function TaskInspector({
             placeholder="Orange or #f97316"
             value={value.color}
             onChange={(event) => update("color", event.target.value)}
+            onBlur={() => apply()}
           />
           <datalist id={colorListId}>
             {PLANTUML_COLOR_NAMES.map((color) => (
@@ -262,23 +271,23 @@ export function TaskInspector({
           <legend>Pauses</legend>
           <p className="fieldset-help">Use a date or weekday supported by PlantUML.</p>
           {value.pauses.map((pause) => <div className="structured-row" key={pause.id}>
-            <input aria-label="Pause date or weekday" placeholder="2026-09-08 or monday" value={pause.value} onChange={(event) => update("pauses", value.pauses.map((item) => item.id === pause.id ? { ...item, value: event.target.value } : item))} />
-            <button type="button" aria-label="Remove pause" onClick={() => update("pauses", value.pauses.filter((item) => item.id !== pause.id))}>×</button>
+            <input aria-label="Pause date or weekday" placeholder="2026-09-08 or monday" value={pause.value} onChange={(event) => update("pauses", value.pauses.map((item) => item.id === pause.id ? { ...item, value: event.target.value } : item))} onBlur={() => apply()} />
+            <button type="button" aria-label="Remove pause" onClick={() => update("pauses", value.pauses.filter((item) => item.id !== pause.id), true)}>×</button>
           </div>)}
           <button type="button" onClick={() => update("pauses", [...value.pauses, { id: `pause-${Date.now()}`, value: "" }])}>+ Add pause</button>
         </fieldset>
         <fieldset className="structured-rows">
           <legend>Links</legend>
           {value.links.map((link) => <div className="structured-row link-row" key={link.id}>
-            <input aria-label="Link URL" type="url" placeholder="https://example.com" value={link.url} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item))} />
-            <input aria-label="Link label" placeholder="Optional label" value={link.label} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, label: event.target.value } : item))} />
-            <button type="button" aria-label="Remove link" onClick={() => update("links", value.links.filter((item) => item.id !== link.id))}>×</button>
+            <input aria-label="Link URL" type="url" placeholder="https://example.com" value={link.url} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item))} onBlur={() => apply()} />
+            <input aria-label="Link label" placeholder="Optional label" value={link.label} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, label: event.target.value } : item))} onBlur={() => apply()} />
+            <button type="button" aria-label="Remove link" onClick={() => update("links", value.links.filter((item) => item.id !== link.id), true)}>×</button>
           </div>)}
           <button type="button" onClick={() => update("links", [...value.links, { id: `link-${Date.now()}`, url: "", label: "" }])}>+ Add link</button>
         </fieldset>
         <label>
           Display on same row as
-          <select value={value.sameRowTaskId} onChange={(event) => update("sameRowTaskId", event.target.value)}>
+          <select value={value.sameRowTaskId} onChange={(event) => update("sameRowTaskId", event.target.value, true)}>
             <option value="">Own row</option>
             {tasks
               .filter((item) => item.id !== task.id)
@@ -293,7 +302,7 @@ export function TaskInspector({
         <label className="inspector-note-field">
           <span className="inspector-field-heading">
             Note
-            <button type="button" disabled={!value.note} onClick={() => update("note", "")}>
+            <button type="button" disabled={!value.note} onClick={() => update("note", "", true)}>
               Remove note
             </button>
           </span>
@@ -303,6 +312,7 @@ export function TaskInspector({
             placeholder="Add context for this task"
             value={value.note}
             onChange={(event) => update("note", event.target.value)}
+            onBlur={() => apply()}
           />
         </label>
         <fieldset className="resource-assignments">
@@ -327,6 +337,7 @@ export function TaskInspector({
                     ),
                   )
                 }
+                onBlur={() => apply()}
               />
               <span className="allocation-input">
                 <input
@@ -344,6 +355,7 @@ export function TaskInspector({
                       ),
                     )
                   }
+                  onBlur={() => apply()}
                 />
                 <span>%</span>
               </span>
@@ -354,6 +366,7 @@ export function TaskInspector({
                   update(
                     "resources",
                     value.resources.filter((item) => item.id !== resource.id),
+                    true,
                   )
                 }
               >
@@ -379,7 +392,7 @@ export function TaskInspector({
         <p className={`resource-status${conflicts.length ? " conflict" : ""}`}>
           {conflicts.length ? `⚠ Overlaps: ${conflicts.join(", ")}` : "No detected resource conflicts"}
         </p>
-        <p className="calculated-hint">Changes are saved automatically.</p>
+        <p className="calculated-hint">Text and number fields are saved when you leave the field.</p>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete
