@@ -181,6 +181,7 @@ export function DiagramPreview({
     () => extractRenderedTaskGeometry(baselineOverlaySvg, baselineDates),
     [baselineOverlaySvg, baselineDates],
   );
+  const baselineLabels = useMemo(() => new Map(baselineTasks.map((task) => [task.id, task.label])), [baselineTasks]);
   const variance = useMemo(() => calculateTaskVariance(resolvedDates, baselineDates), [resolvedDates, baselineDates]);
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
@@ -216,6 +217,7 @@ export function DiagramPreview({
       resolvedDates,
       baselineDates,
       renderedBaselineGeometry,
+      baselineLabels,
     );
   }, [
     interactiveSvg,
@@ -226,6 +228,7 @@ export function DiagramPreview({
     resolvedDates,
     baselineDates,
     renderedBaselineGeometry,
+    baselineLabels,
   ]);
   const visibleTimelineDates = useMemo(() => {
     if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();
@@ -775,7 +778,10 @@ export function DiagramPreview({
                 const rect = baseline.getBoundingClientRect();
                 setHoveredTask(undefined);
                 setHoveredBaseline({
-                  label: tasks.find((item) => item.id === id)?.label ?? id,
+                  label:
+                    tasks.find((item) => item.id === id)?.label ??
+                    baselineTasks.find((item) => item.id === id)?.label ??
+                    id,
                   dates: baseline.getAttribute("data-baseline-dates") ?? "",
                   x: Math.min(preview.width - 250, Math.max(8, rect.right - preview.left + 8)),
                   y: Math.max(8, rect.top - preview.top),

@@ -1017,6 +1017,8 @@ input {
 .schedule-analysis-report p { margin: .25rem; }
 .baseline-hover-card { position: absolute; z-index: 12; display: grid; gap: .2rem; min-width: 190px; padding: .55rem .7rem; border: 1px solid #64748b; border-radius: 5px; background: var(--panel); box-shadow: 0 3px 10px rgb(0 0 0 / 18%); pointer-events: none; font-size: .85rem; }
 .baseline-hover-card span { color: var(--muted); }
+.diagram svg .removed-baseline-heading { fill: #64748b; font-size: 10px; font-weight: 700; }
+.diagram svg .removed-baseline-label { fill: #475569; font-size: 10px; pointer-events: none; }
 .diagram svg .task-drag-ghost {
   fill: var(--accent);
   stroke: #fff;

@@ -144,6 +144,9 @@ test("reports added, removed, moved, and out-of-range baseline tasks", async ({ 
   await expect(report).toContainText("C");
   await expect(report).toContainText("Added after baseline");
   await expect(report).toContainText("outside visible timeline");
+  await expect(page.locator(".removed-baseline-lane")).toBeVisible();
+  await expect(page.locator('.removed-baseline-bar[data-baseline-task-id="a"]')).toBeVisible();
+  await expect(page.locator(".removed-baseline-label")).toContainText("A");
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {

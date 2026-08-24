@@ -28,6 +28,7 @@ export function timelineBaselineX(
 export interface RenderedBaselineGeometry {
   span: number;
   startDate?: string;
+  height?: number;
 }
 
 function normalizeColumnOffset(offset: number, dayWidth: number): number {
@@ -56,11 +57,13 @@ export function extractRenderedTaskGeometry(
     const width = Number(bar?.getAttribute("width"));
     const x = Number(bar?.getAttribute("x"));
     const dayWidth = Number(group.getAttribute("data-day-width"));
+    const height = Number(bar?.getAttribute("height"));
     const sourceStart = id ? resolved.get(id)?.start : undefined;
     const sourceColumn = sourceStart ? dates.find((item) => item.date === sourceStart) : undefined;
     if (sourceColumn && Number.isFinite(x) && dayWidth > 0)
       offsets.push(normalizeColumnOffset(x - sourceColumn.x, dayWidth));
-    if (id && width > 0 && dayWidth > 0) geometry.set(id, { span: (width + 4) / dayWidth });
+    if (id && width > 0 && dayWidth > 0)
+      geometry.set(id, { span: (width + 4) / dayWidth, ...(height > 0 ? { height } : {}) });
   }
   offsets.sort((a, b) => a - b);
   const offset = offsets.length ? offsets[Math.floor(offsets.length / 2)]! : 0;
@@ -170,6 +173,7 @@ export function decorateScheduleAnalysis(
   current: ReadonlyMap<string, ResolvedTaskDates>,
   baseline: ReadonlyMap<string, ResolvedTaskDates>,
   renderedBaselineGeometry: ReadonlyMap<string, RenderedBaselineGeometry> = new Map(),
+  baselineLabels: ReadonlyMap<string, string> = new Map(),
 ): string {
   if (typeof DOMParser === "undefined") return svg;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
@@ -240,5 +244,66 @@ export function decorateScheduleAnalysis(
     )
       path.setAttribute("data-critical-path", "true");
   }
+  appendRemovedBaselineLane(
+    document,
+    root,
+    variance,
+    baseline,
+    renderedBaselineGeometry,
+    baselineLabels,
+    timelineDates,
+    firstBarX,
+  );
   return new XMLSerializer().serializeToString(root);
+}
+
+function appendRemovedBaselineLane(
+  document: Document,
+  root: Element,
+  variance: readonly TaskVariance[],
+  baseline: ReadonlyMap<string, ResolvedTaskDates>,
+  rendered: ReadonlyMap<string, RenderedBaselineGeometry>,
+  labels: ReadonlyMap<string, string>,
+  timelineDates: readonly { date: string; x: number }[],
+  firstBarX: number,
+): void {
+  const removed = variance.filter((item) => item.kind === "removed" && rendered.has(item.taskId));
+  const viewBox = root.getAttribute("viewBox")?.trim().split(/\s+/).map(Number);
+  if (!removed.length || viewBox?.length !== 4) return;
+  const dayWidth = Number(root.querySelector<SVGGElement>("[data-task-id]")?.getAttribute("data-day-width") ?? 16);
+  const laneTop = viewBox[1]! + viewBox[3]! + 7;
+  const extraHeight = 22 + removed.length * 19;
+  root.setAttribute("viewBox", `${viewBox[0]} ${viewBox[1]} ${viewBox[2]} ${viewBox[3]! + extraHeight}`);
+  const lane = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  lane.setAttribute("class", "removed-baseline-lane");
+  const heading = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  heading.setAttribute("x", "4");
+  heading.setAttribute("y", String(laneTop + 10));
+  heading.setAttribute("class", "removed-baseline-heading");
+  heading.textContent = "Removed baseline tasks";
+  lane.append(heading);
+  removed.forEach((change, index) => {
+    const dates = baseline.get(change.taskId);
+    const geometry = rendered.get(change.taskId);
+    if (!dates?.start || !dates.end || !geometry) return;
+    const start = geometry.startDate ?? dates.start;
+    const x = timelineBaselineX(timelineDates, start, dayWidth, firstBarX, 2);
+    const y = laneTop + 15 + index * 19;
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    marker.setAttribute("class", "baseline-bar removed-baseline-bar");
+    marker.setAttribute("data-baseline-task-id", change.taskId);
+    marker.setAttribute("data-baseline-dates", `${start} – ${dates.end}`);
+    marker.setAttribute("x", String(x));
+    marker.setAttribute("y", String(y));
+    marker.setAttribute("width", String(Math.max(1, geometry.span * dayWidth - 4)));
+    marker.setAttribute("height", String(geometry.height ?? 13));
+    lane.append(marker);
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", String(x + 4));
+    label.setAttribute("y", String(y + (geometry.height ?? 13) - 2));
+    label.setAttribute("class", "removed-baseline-label");
+    label.textContent = labels.get(change.taskId) ?? change.taskId;
+    lane.append(label);
+  });
+  root.append(lane);
 }
