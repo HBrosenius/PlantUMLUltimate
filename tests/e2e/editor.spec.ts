@@ -149,6 +149,39 @@ test("reports added, removed, moved, and out-of-range baseline tasks", async ({ 
   await expect(page.locator(".removed-baseline-label")).toContainText("A");
 });
 
+test("clears baseline variance when a moved task returns to its original dates", async ({ page }) => {
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Original schedule");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Set as baseline" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+
+  const task = page.locator('[data-task-id="frontend"]');
+  const dragByDays = async (days: number) => {
+    const firstDate = await page.locator('[data-timeline-header="top"]').nth(0).boundingBox();
+    const secondDate = await page.locator('[data-timeline-header="top"]').nth(1).boundingBox();
+    expect(firstDate).not.toBeNull();
+    expect(secondDate).not.toBeNull();
+    const pixels = (secondDate!.x - firstDate!.x) * days;
+    const box = await task.locator(".bar").boundingBox();
+    expect(box).not.toBeNull();
+    const x = box!.x + box!.width / 2;
+    const y = box!.y + box!.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + pixels, y, { steps: 4 });
+    await page.mouse.up();
+  };
+  await dragByDays(3);
+  await expect(page.locator(".schedule-analysis-report summary")).toContainText("1 changed task");
+  await expect(page.locator('[data-baseline-task-id="frontend"]')).toBeVisible();
+  await dragByDays(-3);
+  await expect(page.locator(".schedule-analysis-report summary")).toContainText("0 changed tasks");
+  await expect(page.locator('[data-baseline-task-id="frontend"]')).toHaveCount(0);
+});
+
 test("groups creation commands in an accessible Add menu", async ({ page }) => {
   const modifier = await page.evaluate(() => (/Mac|iPhone|iPad|iPod/i.test(navigator.platform) ? "⌥" : "Alt+"));
   const add = page.getByRole("button", { name: "Add", exact: true });
@@ -923,6 +956,64 @@ test("shows a persistent live preview while moving a task horizontally", async (
   await expect(page.locator("[data-task-id=a]")).toHaveAttribute("transform", /translate\([1-9]/);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-01");
+});
+
+test("snaps a Monday task to the previous Friday using dated timeline columns", async ({ page }) => {
+  await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 3 days"));
+  const friday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-04"]').boundingBox();
+  const monday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
+  const bar = await page.locator("[data-task-id=a] .bar").boundingBox();
+  expect(friday).not.toBeNull();
+  expect(monday).not.toBeNull();
+  expect(bar).not.toBeNull();
+  const delta = friday!.x + friday!.width / 2 - (monday!.x + monday!.width / 2);
+  const startX = bar!.x + bar!.width / 2;
+  const startY = bar!.y + bar!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + delta, startY, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-04");
+  await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-02");
+});
+
+test("moves the default Backend task from Monday to the preceding Friday", async ({ page }) => {
+  const friday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-04"]').boundingBox();
+  const monday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
+  const bar = await page.locator("[data-task-id=backend] .bar").boundingBox();
+  expect(friday).not.toBeNull();
+  expect(monday).not.toBeNull();
+  expect(bar).not.toBeNull();
+  const delta = friday!.x + friday!.width / 2 - (monday!.x + monday!.width / 2);
+  const startX = bar!.x + bar!.width / 2;
+  const startY = bar!.y + bar!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + delta, startY, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[Backend] starts 2026-09-04");
+  await expect(page.locator(".cm-content")).not.toContainText("[Backend] starts 2026-09-02");
+});
+
+test("keeps the last valid drag position when pointer capture is lost", async ({ page }) => {
+  await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 3 days"));
+  const friday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-04"]').boundingBox();
+  const monday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
+  const task = page.locator("[data-task-id=a]");
+  const bar = await task.locator(".bar").boundingBox();
+  expect(friday).not.toBeNull();
+  expect(monday).not.toBeNull();
+  expect(bar).not.toBeNull();
+  const delta = friday!.x + friday!.width / 2 - (monday!.x + monday!.width / 2);
+  const startX = bar!.x + bar!.width / 2;
+  const startY = bar!.y + bar!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + delta, startY, { steps: 4 });
+  await task.dispatchEvent("lostpointercapture", { clientX: 0, clientY: 0 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-04");
+  await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-02");
 });
 
 test("moves, resizes, and reorders focused tasks from the keyboard", async ({ page }) => {

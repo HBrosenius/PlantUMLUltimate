@@ -41,6 +41,16 @@ describe("schedule analysis", () => {
     ]);
   });
 
+  it("treats equal rendered positions as unchanged across closed-day source dates", () => {
+    const current = new Map([["a", { start: "2026-09-06", end: "2026-09-18", derived: false }]]);
+    const baseline = new Map([["a", { start: "2026-09-05", end: "2026-09-18", derived: false }]]);
+    const currentGeometry = new Map([["a", { startDate: "2026-09-07", span: 12 }]]);
+    const baselineGeometry = new Map([["a", { startDate: "2026-09-07", span: 12 }]]);
+    expect(calculateTaskVariance(current, baseline, currentGeometry, baselineGeometry)).toEqual([
+      { taskId: "a", kind: "unchanged", startDays: 0, endDays: 0 },
+    ]);
+  });
+
   it("classifies tasks added and removed since the baseline", () => {
     const current = new Map([["new", { start: "2026-09-02", end: "2026-09-03", derived: false }]]);
     const baseline = new Map([["old", { start: "2026-09-01", end: "2026-09-02", derived: false }]]);

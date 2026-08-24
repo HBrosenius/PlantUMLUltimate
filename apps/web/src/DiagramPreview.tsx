@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
-import { calendarResizeTarget, parseGanttCalendar } from "./gantt-calendar";
+import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
 import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
@@ -185,8 +185,15 @@ export function DiagramPreview({
     () => extractRenderedTaskGeometry(baselineOverlaySvg, baselineDates),
     [baselineOverlaySvg, baselineDates],
   );
+  const renderedCurrentGeometry = useMemo(
+    () => extractRenderedTaskGeometry(interactiveSvg, resolvedDates),
+    [interactiveSvg, resolvedDates],
+  );
   const baselineLabels = useMemo(() => new Map(baselineTasks.map((task) => [task.id, task.label])), [baselineTasks]);
-  const variance = useMemo(() => calculateTaskVariance(resolvedDates, baselineDates), [resolvedDates, baselineDates]);
+  const variance = useMemo(
+    () => calculateTaskVariance(resolvedDates, baselineDates, renderedCurrentGeometry, renderedBaselineGeometry),
+    [resolvedDates, baselineDates, renderedCurrentGeometry, renderedBaselineGeometry],
+  );
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
   const criticalPath = useMemo(() => analyzeCriticalPath(tasks, dependencies), [tasks, dependencies]);
@@ -580,7 +587,7 @@ export function DiagramPreview({
         previewBar?.remove();
         showFeedback();
         draggingRef.current = false;
-        if (durationDelta !== 0) suppressGestureClick();
+        suppressGestureClick();
         setHoveredTask(undefined);
         onTaskSelect(id);
         if (durationDelta !== 0) onTaskResize(id, durationDelta, snappedDays);
@@ -599,6 +606,12 @@ export function DiagramPreview({
     const startY = event.clientY;
     const dayWidth = Number(task.getAttribute("data-day-width") ?? 16);
     const pixelsPerSvgUnit = svgScreenScale(task.ownerSVGElement);
+    const screenDayWidth = timelineColumnScreenWidth(task.ownerSVGElement) ?? dayWidth * pixelsPerSvgUnit;
+    const timelineColumns = timelineScreenColumns(task.ownerSVGElement);
+    const sourceStart = resolvedDates.get(id)?.start;
+    let renderedStart = sourceStart;
+    while (renderedStart && !isWorkingDate(renderedStart, calendar)) renderedStart = shiftDate(renderedStart, 1);
+    const startColumnIndex = timelineColumns.findIndex((column) => column.date === renderedStart);
     const visualElements = visualTaskElements(task.ownerSVGElement, id);
     const previewBar = createTaskGhost(
       task,
@@ -608,11 +621,35 @@ export function DiagramPreview({
     const originalTransforms = visualElements.map((element) => element.getAttribute("transform"));
     const originalTaskTransform = task.getAttribute("transform");
     let snappedDays = 0;
+    let sourceMoveDays = 0;
     let lastDisplayedDays: number | undefined;
     let dragMode: "pending" | "horizontal" | "vertical" = "pending";
     let reorderTargetId: string | undefined;
     let ended = false;
+    let lastClientX = startX;
+    const snapHorizontal = (clientX: number, step = 1): { visualDays: number; sourceDays: number } => {
+      const deltaX = clientX - startX;
+      if (Math.abs(deltaX) < screenDayWidth / 2) return { visualDays: 0, sourceDays: 0 };
+      const startColumn = timelineColumns[startColumnIndex];
+      if (startColumn && sourceStart) {
+        const targetX = startColumn.center + deltaX;
+        const target = timelineColumns.reduce((closest, column) =>
+          Math.abs(column.center - targetX) < Math.abs(closest.center - targetX) ? column : closest,
+        );
+        const sourceDay = Date.parse(`${sourceStart}T00:00:00Z`) / 86_400_000;
+        const renderedDay = Date.parse(`${startColumn.date}T00:00:00Z`) / 86_400_000;
+        const targetDay = Date.parse(`${target.date}T00:00:00Z`) / 86_400_000;
+        if (Number.isFinite(sourceDay) && Number.isFinite(renderedDay) && Number.isFinite(targetDay))
+          return {
+            visualDays: Math.round((targetDay - renderedDay) / step) * step,
+            sourceDays: Math.round((targetDay - sourceDay) / step) * step,
+          };
+      }
+      const days = Math.round(deltaX / screenDayWidth / step) * step;
+      return { visualDays: days, sourceDays: days };
+    };
     const move = (moveEvent: PointerEvent) => {
+      lastClientX = moveEvent.clientX;
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       if (dragMode === "pending" && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 6)
@@ -639,9 +676,9 @@ export function DiagramPreview({
         showFeedback("This task has no date or dependency that can be moved.");
         return;
       }
-      const rawDays = deltaX / (dayWidth * pixelsPerSvgUnit);
-      const step = moveEvent.shiftKey ? 7 : 1;
-      snappedDays = Math.round(rawDays / step) * step;
+      const snapped = snapHorizontal(moveEvent.clientX, moveEvent.shiftKey ? 7 : 1);
+      snappedDays = snapped.visualDays;
+      sourceMoveDays = snapped.sourceDays;
       if (snappedDays === lastDisplayedDays) return;
       lastDisplayedDays = snappedDays;
       task.setAttribute("transform", `translate(${snappedDays * dayWidth} 0)`);
@@ -654,9 +691,21 @@ export function DiagramPreview({
           : undefined,
       );
     };
-    const end = () => {
+    const end = (endEvent?: Event) => {
       if (ended) return;
       ended = true;
+      if (dragMode !== "vertical" && canMoveDates) {
+        const releaseClientX =
+          endEvent instanceof PointerEvent && endEvent.type === "pointerup" ? endEvent.clientX : lastClientX;
+        const releaseDeltaX = releaseClientX - startX;
+        if (dragMode === "pending" && Math.abs(releaseDeltaX) > 6) dragMode = "horizontal";
+        const snapped = snapHorizontal(
+          releaseClientX,
+          endEvent instanceof PointerEvent && endEvent.shiftKey ? 7 : 1,
+        );
+        snappedDays = snapped.visualDays;
+        sourceMoveDays = snapped.sourceDays;
+      }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", end, true);
@@ -676,11 +725,14 @@ export function DiagramPreview({
       highlightReorderTarget(task.ownerSVGElement, undefined);
       showFeedback();
       draggingRef.current = false;
-      if (dragMode !== "pending" || snappedDays !== 0) suppressGestureClick();
+      // Selection is committed on pointerup. Suppress the synthetic click because
+      // opening the inspector replaces the SVG and can retarget that click to the
+      // new diagram background, immediately clearing the selection again.
+      suppressGestureClick();
       setHoveredTask(undefined);
       onTaskSelect(id);
       if (dragMode === "vertical" && reorderTargetId) onTaskReorder(id, reorderTargetId);
-      else if (snappedDays !== 0) onTaskMove(id, snappedDays);
+      else if (sourceMoveDays !== 0) onTaskMove(id, sourceMoveDays);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", end, true);
@@ -1260,6 +1312,28 @@ export function svgScreenScale(svg: SVGSVGElement | null): number {
   const viewBoxWidth = Number(svg.getAttribute("viewBox")?.trim().split(/\s+/)[2]);
   const renderedWidth = svg.getBoundingClientRect().width;
   return viewBoxWidth > 0 && renderedWidth > 0 ? renderedWidth / viewBoxWidth : 1;
+}
+
+function timelineColumnScreenWidth(svg: SVGSVGElement | null): number | undefined {
+  const centers = timelineScreenColumns(svg).map((column) => column.center);
+  const gaps = centers
+    .slice(1)
+    .map((center, index) => Math.abs(center - centers[index]!))
+    .filter((gap) => gap > 0.5)
+    .sort((a, b) => a - b);
+  return gaps.length ? gaps[Math.floor(gaps.length / 2)] : undefined;
+}
+
+function timelineScreenColumns(svg: SVGSVGElement | null): Array<{ date: string; center: number }> {
+  if (!svg) return [];
+  return [...svg.querySelectorAll<SVGGraphicsElement>('[data-timeline-header="top"][data-timeline-date]')].flatMap(
+    (element) => {
+      const date = element.getAttribute("data-timeline-date");
+      const rect = element.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      return date && Number.isFinite(center) ? [{ date, center }] : [];
+    },
+  );
 }
 
 function addIsoDays(value: string, days: number): string | undefined {

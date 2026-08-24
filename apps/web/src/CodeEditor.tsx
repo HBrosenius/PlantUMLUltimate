@@ -40,6 +40,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onCursorRef = useRef(onCursorChange);
+  const synchronizingValue = useRef(false);
   const initialValue = useRef(value);
   const initialKind = useRef(diagramKind);
   const kindRef = useRef(diagramKind);
@@ -64,7 +65,16 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
           language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
           EditorView.lineWrapping,
+          EditorView.domEventHandlers({
+            click: (_event, currentView) => {
+              const position = currentView.state.selection.main.head;
+              const line = currentView.state.doc.lineAt(position);
+              onCursorRef.current(line.number, position - line.from + 1, position);
+              return false;
+            },
+          }),
           EditorView.updateListener.of((update) => {
+            if (synchronizingValue.current) return;
             if (update.docChanged) {
               const source = update.state.doc.toString();
               onChangeRef.current(source);
@@ -96,7 +106,12 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   useEffect(() => {
     const editor = view.current;
     if (!editor || editor.state.doc.toString() === value) return;
-    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+    synchronizingValue.current = true;
+    try {
+      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+    } finally {
+      synchronizingValue.current = false;
+    }
   }, [value]);
 
   useEffect(() => {
@@ -162,7 +177,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
           {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy code"}
         </button>
       </div>
-      <div className="editor-host" ref={host} aria-label="PlantUML source editor" />
+      <div className="editor-host" ref={host} aria-label="PlantUML source editor" data-inspector-trigger />
     </section>
   );
 }

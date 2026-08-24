@@ -84,6 +84,8 @@ export function extractRenderedTaskGeometry(
 export function calculateTaskVariance(
   current: ReadonlyMap<string, ResolvedTaskDates>,
   baseline: ReadonlyMap<string, ResolvedTaskDates>,
+  currentGeometry: ReadonlyMap<string, RenderedBaselineGeometry> = new Map(),
+  baselineGeometry: ReadonlyMap<string, RenderedBaselineGeometry> = new Map(),
 ): TaskVariance[] {
   const taskIds = new Set([...current.keys(), ...baseline.keys()]);
   const result: TaskVariance[] = [];
@@ -98,10 +100,20 @@ export function calculateTaskVariance(
       result.push({ taskId, kind: "removed", startDays: 0, endDays: 0 });
       continue;
     }
-    const start = dateDays(dates.start),
-      oldStart = dateDays(previous?.start);
-    const end = dateDays(dates.end),
-      oldEnd = dateDays(previous?.end);
+    const rendered = currentGeometry.get(taskId);
+    const renderedBaseline = baselineGeometry.get(taskId);
+    const visualStart = rendered?.startDate ?? dates.start;
+    const visualBaselineStart = renderedBaseline?.startDate ?? previous.start;
+    const start = dateDays(visualStart),
+      oldStart = dateDays(visualBaselineStart);
+    const end =
+      start !== undefined && rendered?.span !== undefined
+        ? start + Math.max(0, Math.round(rendered.span) - 1)
+        : dateDays(dates.end);
+    const oldEnd =
+      oldStart !== undefined && renderedBaseline?.span !== undefined
+        ? oldStart + Math.max(0, Math.round(renderedBaseline.span) - 1)
+        : dateDays(previous.end);
     if (start === undefined || oldStart === undefined || end === undefined || oldEnd === undefined) continue;
     result.push({
       taskId,
@@ -228,6 +240,7 @@ export function decorateScheduleAnalysis(
     const hit = group.querySelector<SVGRectElement>(".bar");
     if (
       !change ||
+      change.kind === "unchanged" ||
       change.kind === "added" ||
       change.kind === "removed" ||
       !hit ||

@@ -1971,7 +1971,6 @@ export function App() {
             selectedRange={selectionRequest}
             onCursorChange={(line, column, position) => {
               update("cursor", { line, column });
-              if (!document.activeElement?.closest(".cm-editor")) return;
               if (workspace.diagramKind === "gantt") {
                 setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
               } else {
@@ -1983,6 +1982,11 @@ export function App() {
                   selectSequenceParticipant(object.id);
                 else if (object && "from" in object) selectSequenceMessage(object.id);
                 else if (object) selectSequenceStructure(object.id);
+                else {
+                  setSelectedSequenceParticipantId(undefined);
+                  setSelectedSequenceMessageId(undefined);
+                  setSelectedSequenceStructureId(undefined);
+                }
               }
             }}
           />
