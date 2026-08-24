@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
-import { taskWorkloadDays } from "./gantt-schedule";
+import { taskElapsedDays } from "./gantt-schedule";
 import { isWorkingDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface ResourceCapacity {
@@ -41,8 +41,7 @@ export function buildResourceWorkloads(
       resource.tasks.set(task.id, task);
       const start = task.start?.resolved ? task.start.value : resolvedDates?.get(task.id)?.start;
       if (start && task.duration) {
-        const workload = taskWorkloadDays(task)!;
-        const duration = Math.ceil((workload * 100) / Math.max(1, assignment.allocation ?? 100));
+        const duration = taskElapsedDays(task)!;
         const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
         let assignedDays = 0;
         let index = 0;

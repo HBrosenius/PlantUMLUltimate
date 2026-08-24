@@ -1128,6 +1128,20 @@ test("shows resource over-allocation directly below the diagram", async ({ page 
   await expect(page.getByRole("complementary", { name: "Resource workload" })).toBeVisible();
 });
 
+test("does not over-allocate a person when multiple people shorten a task", async ({ page }) => {
+  await setSource(
+    page,
+    source(
+      "saturday are closed\nsunday are closed\n[Backend] on {Kalle:100%} {Tyra:100%} starts 2026-09-07\n[Backend] lasts 8 days\n[Testing] on {Tyra:100%} starts 2026-09-14\n[Testing] lasts 5 days",
+    ),
+  );
+
+  await expect(page.getByRole("alert", { name: "Resource over-allocation" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Resources" }).click();
+  const tyra = page.locator(".resource-card").filter({ has: page.getByRole("button", { name: "Tyra" }) });
+  await expect(tyra).toContainText("Peak 100%");
+});
+
 test("shows resource over-allocation after dragging assigned tasks into overlap", async ({ page }) => {
   await setSource(
     page,

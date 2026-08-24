@@ -15,9 +15,9 @@ export function taskWorkloadDays(task: GanttTask): number | undefined {
 export function taskElapsedDays(task: GanttTask): number | undefined {
   const workload = taskWorkloadDays(task);
   if (!workload) return undefined;
-  const allocation = Math.min(
-    ...(task.resources ?? []).map((resource) => Math.max(1, resource.allocation ?? 100)),
-    100,
+  const allocation = Math.max(
+    1,
+    (task.resources ?? []).reduce((total, resource) => total + Math.max(1, resource.allocation ?? 100), 0) || 100,
   );
   return Math.ceil((workload * 100) / allocation);
 }

@@ -59,6 +59,25 @@ describe("buildResourceWorkloads", () => {
     ]);
   });
 
+  it("shares task workload across multiple assigned people", () => {
+    const source =
+      "@startgantt\n[Backend] on {Kalle:100%} {Tyra:100%} starts 2026-09-07\n[Backend] lasts 8 days\n[Testing] on {Tyra:100%} starts 2026-09-14\n[Testing] lasts 5 days\n@endgantt";
+    const tasks = parseGantt(source).document.tasks;
+
+    expect(buildResourceWorkloads(tasks).find((item) => item.name === "Tyra")?.days).toMatchObject([
+      { date: "2026-09-07", allocation: 100 },
+      { date: "2026-09-08", allocation: 100 },
+      { date: "2026-09-09", allocation: 100 },
+      { date: "2026-09-10", allocation: 100 },
+      { date: "2026-09-14", allocation: 100 },
+      { date: "2026-09-15", allocation: 100 },
+      { date: "2026-09-16", allocation: 100 },
+      { date: "2026-09-17", allocation: 100 },
+      { date: "2026-09-18", allocation: 100 },
+    ]);
+    expect(buildResourceOverAllocations(tasks, {})).toEqual([]);
+  });
+
   it("recalculates over-allocation from the post-drag source, not the pre-drag dates", () => {
     const source = `@startgantt
 project starts 2026-09-01
