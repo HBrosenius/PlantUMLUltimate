@@ -47,6 +47,8 @@ export function SequenceDiagramPreview({
         endpoint?: "from" | "to";
         x: number;
         y: number;
+        currentX: number;
+        currentY: number;
         create: boolean;
         element: Element;
         label: string;
@@ -119,7 +121,42 @@ export function SequenceDiagramPreview({
       }
     }
     addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
-  }, [messages, participants, selectedMessageId, svg]);
+    restoreActiveReconnectPreview(root);
+    const frame = window.requestAnimationFrame(() => {
+      root
+        .querySelectorAll(
+          ".sequence-selected-message-line, .sequence-selected-message-head, .sequence-participant-anchor, .sequence-message-endpoint",
+        )
+        .forEach((element) => element.remove());
+      addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
+      restoreActiveReconnectPreview(root);
+    });
+    return () => window.cancelAnimationFrame(frame);
+
+    function restoreActiveReconnectPreview(currentRoot: HTMLDivElement) {
+      const drag = dragRef.current;
+      if (drag?.kind !== "message-endpoint" || !drag.endpoint) return;
+      const handle = currentRoot.querySelector<SVGCircleElement>(
+        `[data-sequence-message-id="${CSS.escape(drag.id)}"][data-sequence-message-endpoint="${drag.endpoint}"]`,
+      );
+      if (!handle) return;
+      drag.reconnectPreview?.line.remove();
+      drag.reconnectPreview?.head.remove();
+      const preview = createReconnectPreview(
+        currentRoot,
+        handle,
+        drag.endpoint,
+        drag.id,
+        participants,
+        messages,
+      );
+      drag.element = handle;
+      if (preview) {
+        drag.reconnectPreview = preview;
+        updateReconnectPreview(preview, drag.currentX, drag.currentY);
+      } else delete drag.reconnectPreview;
+    }
+  });
 
   const selectRenderedObject = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
@@ -153,7 +190,14 @@ export function SequenceDiagramPreview({
     const element = endpointHandle ?? target.closest("text") ?? target;
     const reconnectPreview =
       endpointHandle instanceof SVGCircleElement && endpoint && endpointMessageId
-        ? createReconnectPreview(endpointHandle, endpoint, endpointMessageId)
+        ? createReconnectPreview(
+            diagramRef.current,
+            endpointHandle,
+            endpoint,
+            endpointMessageId,
+            participants,
+            messages,
+          )
         : undefined;
     const movePreview = !endpointMessageId && messageId
       ? createMessageMovePreview(diagramRef.current, messageId, participants, messages)
@@ -164,6 +208,8 @@ export function SequenceDiagramPreview({
       ...(endpoint ? { endpoint } : {}),
       x: event.clientX,
       y: event.clientY,
+      currentX: event.clientX,
+      currentY: event.clientY,
       create: Boolean(participantId && event.shiftKey),
       element,
       label: endpoint
@@ -180,6 +226,8 @@ export function SequenceDiagramPreview({
     if (!drag) return;
     const dx = event.clientX - drag.x;
     const dy = event.clientY - drag.y;
+    drag.currentX = event.clientX;
+    drag.currentY = event.clientY;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 5) return;
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
@@ -416,6 +464,29 @@ function addMessageReconnectAnchors(
       })
       .filter((item): item is { participant: SequenceParticipant; x: number } => Boolean(item));
 
+    const fromOwner = positions.find(({ participant }) => (participant.alias ?? participant.label) === message.from);
+    const toOwner = positions.find(({ participant }) => (participant.alias ?? participant.label) === message.to);
+    if (fromOwner && toOwner) {
+      const selectedLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      selectedLine.setAttribute("x1", String(fromOwner.x));
+      selectedLine.setAttribute("y1", String(y));
+      selectedLine.setAttribute("x2", String(toOwner.x));
+      selectedLine.setAttribute("y2", String(y));
+      selectedLine.setAttribute("class", "sequence-selected-message-line");
+      selectedLine.setAttribute("data-sequence-drag-hit", "true");
+      if (message.arrow.includes("--")) selectedLine.setAttribute("stroke-dasharray", "7 4");
+      const selectedHead = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      const direction = toOwner.x >= fromOwner.x ? 1 : -1;
+      const back = toOwner.x - direction * 11;
+      selectedHead.setAttribute(
+        "points",
+        `${toOwner.x},${y} ${back},${y - 6} ${back},${y + 6}`,
+      );
+      selectedHead.setAttribute("class", "sequence-selected-message-head");
+      selectedHead.setAttribute("data-sequence-drag-hit", "true");
+      svg.append(selectedLine, selectedHead);
+    }
+
     for (const { participant, x } of positions) {
       const anchor = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       anchor.setAttribute("cx", String(x));
@@ -449,21 +520,33 @@ function addMessageReconnectAnchors(
 }
 
 function createReconnectPreview(
+  root: HTMLDivElement | null,
   handle: SVGCircleElement,
   endpoint: "from" | "to",
   messageId: string,
+  participants: readonly SequenceParticipant[],
+  messages: readonly SequenceMessage[],
 ) {
   const svg = handle.ownerSVGElement;
   if (!svg) return undefined;
-  const otherEndpoint = endpoint === "from" ? "to" : "from";
-  const fixedHandle = svg.querySelector<SVGCircleElement>(
-    `[data-sequence-message-id="${CSS.escape(messageId)}"][data-sequence-message-endpoint="${otherEndpoint}"]`,
-  );
-  if (!fixedHandle) return undefined;
+  const message = messages.find((item) => item.id === messageId);
+  if (!message) return undefined;
+  const fixedReference = message[endpoint === "from" ? "to" : "from"];
+  const fixedParticipant = participants.find((item) => (item.alias ?? item.label) === fixedReference);
+  const fixedParticipantText = fixedParticipant
+    ? root?.querySelector<SVGTextElement>(
+        `text[data-sequence-participant-id="${CSS.escape(fixedParticipant.id)}"]`,
+      )
+    : undefined;
   const draggedX = Number(handle.getAttribute("cx"));
   const draggedY = Number(handle.getAttribute("cy"));
-  const fixedX = Number(fixedHandle.getAttribute("cx"));
-  const fixedY = Number(fixedHandle.getAttribute("cy"));
+  const fixedBox = fixedParticipantText?.getBBox();
+  const fixedX = fixedBox
+    ? fixedBox.x + fixedBox.width / 2
+    : endpoint === "from"
+      ? svg.viewBox.baseVal.x + svg.viewBox.baseVal.width - 8
+      : svg.viewBox.baseVal.x + 8;
+  const fixedY = draggedY;
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", String(endpoint === "to" ? fixedX : draggedX));
   line.setAttribute("y1", String(endpoint === "to" ? fixedY : draggedY));

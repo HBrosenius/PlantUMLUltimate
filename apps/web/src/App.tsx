@@ -186,17 +186,20 @@ export function App() {
     (item) => item.id === selectedSequenceParticipantId,
   );
   const selectedSequenceMessage = sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId);
-  const sequenceStructures = [
-    ...sequenceDocument.fragments,
-    ...sequenceDocument.activations,
-    ...sequenceDocument.notes,
-    ...sequenceDocument.timelineItems,
-    ...sequenceDocument.references,
-    ...sequenceDocument.boxes,
-    ...sequenceDocument.autonumbers,
-    ...sequenceDocument.creations,
-    ...sequenceDocument.durations,
-  ];
+  const sequenceStructures = useMemo(
+    () => [
+      ...sequenceDocument.fragments,
+      ...sequenceDocument.activations,
+      ...sequenceDocument.notes,
+      ...sequenceDocument.timelineItems,
+      ...sequenceDocument.references,
+      ...sequenceDocument.boxes,
+      ...sequenceDocument.autonumbers,
+      ...sequenceDocument.creations,
+      ...sequenceDocument.durations,
+    ],
+    [sequenceDocument],
+  );
   const selectedSequenceStructure = sequenceStructures.find((item) => item.id === selectedSequenceStructureId);
   const sequenceParticipantNames = sequenceDocument.participants.map(
     (participant) => participant.alias ?? participant.label,
@@ -1064,23 +1067,44 @@ export function App() {
     [commitSource, sequenceDocument, workspace.source],
   );
 
-  const selectSequenceParticipant = useCallback((id: string) => {
-    setSelectedSequenceParticipantId(id);
-    setSelectedSequenceMessageId(undefined);
-    setSelectedSequenceStructureId(undefined);
-  }, []);
+  const selectSequenceParticipant = useCallback(
+    (id: string, revealSource = true) => {
+      setSelectedSequenceParticipantId(id);
+      setSelectedSequenceMessageId(undefined);
+      setSelectedSequenceStructureId(undefined);
+      if (revealSource) {
+        const participant = sequenceDocument.participants.find((item) => item.id === id);
+        if (participant) setSelectionRequest({ ...participant.sourceRange });
+      }
+    },
+    [sequenceDocument],
+  );
 
-  const selectSequenceMessage = useCallback((id: string) => {
-    setSelectedSequenceMessageId(id);
-    setSelectedSequenceParticipantId(undefined);
-    setSelectedSequenceStructureId(undefined);
-  }, []);
+  const selectSequenceMessage = useCallback(
+    (id: string, revealSource = true) => {
+      setSelectedSequenceMessageId(id);
+      setSelectedSequenceParticipantId(undefined);
+      setSelectedSequenceStructureId(undefined);
+      if (revealSource) {
+        const message = sequenceDocument.messages.find((item) => item.id === id);
+        if (message) setSelectionRequest({ ...message.sourceRange });
+      }
+    },
+    [sequenceDocument],
+  );
 
-  const selectSequenceStructure = useCallback((id: string) => {
-    setSelectedSequenceStructureId(id);
-    setSelectedSequenceParticipantId(undefined);
-    setSelectedSequenceMessageId(undefined);
-  }, []);
+  const selectSequenceStructure = useCallback(
+    (id: string, revealSource = true) => {
+      setSelectedSequenceStructureId(id);
+      setSelectedSequenceParticipantId(undefined);
+      setSelectedSequenceMessageId(undefined);
+      if (revealSource) {
+        const structure = sequenceStructures.find((item) => item.id === id);
+        if (structure) setSelectionRequest({ ...structure.sourceRange });
+      }
+    },
+    [sequenceStructures],
+  );
 
   const applySequenceParticipant = useCallback(
     (value: SequenceParticipantInspectorValue) => {
@@ -1979,9 +2003,9 @@ export function App() {
                   object &&
                   sequenceDocument.participants.includes(object as (typeof sequenceDocument.participants)[number])
                 )
-                  selectSequenceParticipant(object.id);
-                else if (object && "from" in object) selectSequenceMessage(object.id);
-                else if (object) selectSequenceStructure(object.id);
+                  selectSequenceParticipant(object.id, false);
+                else if (object && "from" in object) selectSequenceMessage(object.id, false);
+                else if (object) selectSequenceStructure(object.id, false);
                 else {
                   setSelectedSequenceParticipantId(undefined);
                   setSelectedSequenceMessageId(undefined);

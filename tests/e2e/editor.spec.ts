@@ -246,6 +246,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Sequence diagram preview" })).toBeVisible();
 
   await page.locator('[data-sequence-drag-hit][aria-label="Drag participant Orders"]').first().click();
+  await expect(page.locator(".cm-selectionBackground")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("database Orders");
   const participantInspector = page.getByRole("complementary", { name: "Participant inspector" });
   await expect(participantInspector).toBeVisible();
   await expect(participantInspector.getByRole("combobox", { name: "Participant kind" })).toContainText("Database");
@@ -274,6 +276,11 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("User -[#red]>]: Boundary event");
 
   await page.locator('[data-sequence-drag-hit][aria-label="Drag message Request"]').click();
+  await expect(page.locator(".cm-selectionBackground")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("User -> System: Request");
+  await expect(page.locator(".sequence-selected-message-line")).toHaveCount(1);
+  await expect(page.locator(".sequence-selected-message-head")).toBeVisible();
+  await expect(page.locator('[data-sequence-message-id="message-0"][data-sequence-message-endpoint]')).toHaveCount(2);
   const messageInspector = page.getByRole("complementary", { name: "Message inspector" });
   await expect(messageInspector).toBeVisible();
   await messageInspector.getByRole("combobox", { name: "Arrow type" }).click();
@@ -308,6 +315,23 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await page.mouse.up();
   await expect(page.locator(".sequence-reconnect-preview")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toContainText("User -->> Orders ++: Create request");
+
+  const senderHandle = page.locator('[data-sequence-message-endpoint="from"][data-sequence-message-id="message-0"]');
+  const systemAnchor = page.locator('.sequence-participant-anchor[data-sequence-participant-id="system"]');
+  const senderBox = await senderHandle.boundingBox();
+  const systemAnchorBox = await systemAnchor.boundingBox();
+  expect(senderBox).not.toBeNull();
+  expect(systemAnchorBox).not.toBeNull();
+  await page.mouse.move(senderBox!.x + senderBox!.width / 2, senderBox!.y + senderBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    systemAnchorBox!.x + systemAnchorBox!.width / 2,
+    systemAnchorBox!.y + systemAnchorBox!.height / 2,
+    { steps: 6 },
+  );
+  await expect(page.locator(".sequence-reconnect-preview")).toHaveCount(1);
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("System -->> Orders ++: Create request");
 
   await messageInspector.getByRole("button", { name: "Close message inspector" }).click();
 
@@ -363,7 +387,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
-      return text.indexOf("System --> User: Response") < text.indexOf("User -->> Orders ++: Create request");
+      return text.indexOf("System --> User: Response") < text.indexOf("System -->> Orders ++: Create request");
     })
     .toBe(true);
 
