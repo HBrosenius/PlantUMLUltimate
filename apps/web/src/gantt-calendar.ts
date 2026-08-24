@@ -81,6 +81,7 @@ export function workingDayDuration(start: string, end: string, calendar: GanttCa
 export function workingEndDate(start: string, durationDays: number, calendar: GanttCalendar): string | undefined {
   if (!shiftDate(start, 0) || !Number.isInteger(durationDays) || durationDays < 1) return undefined;
   let value = start;
+  while (!isWorkingDate(value, calendar)) value = shiftDate(value, 1)!;
   let remaining = durationDays - 1;
   while (remaining > 0) {
     value = shiftDate(value, 1)!;

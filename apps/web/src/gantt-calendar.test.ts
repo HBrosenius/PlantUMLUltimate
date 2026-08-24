@@ -36,4 +36,21 @@ describe("Gantt calendar resize", () => {
     expect(workingDayDuration("2026-09-04", "2026-09-08", calendar)).toBe(3);
     expect(workingEndDate("2026-09-04", 3, calendar)).toBe("2026-09-08");
   });
+  it("does not count a closed task start as the first duration day", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[Task] starts 2026-09-05\n[Task] lasts 8 days\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    const calendar = parseGanttCalendar(source);
+    expect(workingEndDate("2026-09-05", 8, calendar)).toBe("2026-09-16");
+    expect(calendarResizeTarget(task, -1, calendar)).toEqual({
+      calendarDays: -1,
+      durationDelta: -1,
+      endDate: "2026-09-15",
+    });
+    expect(calendarResizeTarget(task, -3, calendar)).toEqual({
+      calendarDays: -5,
+      durationDelta: -3,
+      endDate: "2026-09-11",
+    });
+  });
 });

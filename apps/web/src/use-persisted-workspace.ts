@@ -147,6 +147,14 @@ export function usePersistedWorkspace() {
       documents: current.documents.map((document) => document.id === id ? { ...document, historyId } : document),
     }));
   }, []);
+  const setDocumentBaselineVersionId = useCallback((id: string, baselineVersionId?: string) => {
+    setSession((current) => ({
+      ...current,
+      documents: current.documents.map((document) =>
+        document.id === id ? { ...document, baselineVersionId } : document,
+      ),
+    }));
+  }, []);
 
   const controls = useMemo(
     () => ({
@@ -160,6 +168,7 @@ export function usePersistedWorkspace() {
       reorderDocument,
       restoreSession,
       setDocumentHistoryId,
+      setDocumentBaselineVersionId,
       session,
     }),
     [
@@ -171,6 +180,7 @@ export function usePersistedWorkspace() {
       reorderDocument,
       restoreSession,
       setDocumentHistoryId,
+      setDocumentBaselineVersionId,
       session,
     ],
   );

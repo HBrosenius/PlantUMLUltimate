@@ -6,6 +6,8 @@ import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gan
 import type { RenderStatus } from "./model";
 import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
+import { calculateTaskVariance, criticalPathTaskIds, decorateScheduleAnalysis, extractRenderedTaskGeometry } from "./schedule-analysis";
+import { useRenderer } from "./render/use-renderer";
 
 interface Props {
   svg: string | undefined;
@@ -45,6 +47,10 @@ interface Props {
   onOpenResourceWorkload(): void;
   onDateHighlightRequest(date: string): void;
   onLegendEditRequest(color: string): void;
+  baselineTasks?: readonly GanttTask[] | undefined;
+  baselineDependencies?: readonly GanttDependency[] | undefined;
+  baselineSource?: string | undefined;
+  baselineProjectStart?: string | undefined;
 }
 
 export function DiagramPreview({
@@ -85,6 +91,7 @@ export function DiagramPreview({
   onOpenResourceWorkload,
   onDateHighlightRequest,
   onLegendEditRequest,
+  baselineTasks = [], baselineDependencies = [], baselineSource, baselineProjectStart,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -94,6 +101,7 @@ export function DiagramPreview({
   const suppressNextClickRef = useRef(false);
   const [connection, setConnection] = useState<{ x1: number; y1: number; x2: number; y2: number }>();
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
+  const [hoveredBaseline, setHoveredBaseline] = useState<{ label: string; dates: string; x: number; y: number }>();
   const [scrollPercent, setScrollPercent] = useState(0);
   const suppressGestureClick = () => {
     suppressNextClickRef.current = true;
@@ -122,6 +130,34 @@ export function DiagramPreview({
     () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
     [tasks, dependencies, projectStart, calendar],
   );
+  const baselineCalendar = useMemo(() => parseGanttCalendar(baselineSource ?? ""), [baselineSource]);
+  const baselineRender = useRenderer(baselineSource ?? "", Boolean(baselineSource));
+  const baselineOverlaySvg = useMemo(() => baselineRender.result?.svg && baselineTasks.length
+    ? addCanonicalGanttOverlay(
+        baselineRender.result.svg,
+        baselineTasks,
+        baselineDependencies,
+        [],
+        "",
+        undefined,
+        baselineProjectStart,
+        baselineCalendar,
+        [],
+      )
+    : undefined,
+  [baselineRender.result?.svg, baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar]);
+  const baselineDates = useMemo(
+    () => resolveTaskDates(baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar),
+    [baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar],
+  );
+  const renderedBaselineGeometry = useMemo(
+    () => extractRenderedTaskGeometry(baselineOverlaySvg, baselineDates),
+    [baselineOverlaySvg, baselineDates],
+  );
+  const variance = useMemo(() => calculateTaskVariance(resolvedDates, baselineDates), [resolvedDates, baselineDates]);
+  const changedVariance = useMemo(() => variance.filter((item) => item.startDays || item.endDays), [variance]);
+  const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const criticalIds = useMemo(() => showCriticalPath ? criticalPathTaskIds(tasks, dependencies) : new Set<string>(), [showCriticalPath, tasks, dependencies]);
   const showFeedback = (message?: string) => {
     if (!feedbackRef.current) return;
     feedbackRef.current.textContent = message ?? "";
@@ -143,8 +179,8 @@ export function DiagramPreview({
       const marker = `data-dependency-index="${selectedDependencyIndex}"`;
       marked = marked.replace(marker, `${marker} data-selected="true"`);
     }
-    return marked;
-  }, [interactiveSvg, selectedTaskId, selectedDependencyIndex]);
+    return decorateScheduleAnalysis(marked, criticalIds, variance, resolvedDates, baselineDates, renderedBaselineGeometry);
+  }, [interactiveSvg, selectedTaskId, selectedDependencyIndex, criticalIds, variance, resolvedDates, baselineDates, renderedBaselineGeometry]);
   useEffect(() => {
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
     if (!svg) return;
@@ -232,6 +268,12 @@ export function DiagramPreview({
       return;
     }
     const target = event.target as Element;
+    const baselineTaskId = target.closest(".baseline-bar")?.getAttribute("data-baseline-task-id");
+    if (baselineTaskId) {
+      onDependencySelect(undefined);
+      onTaskSelect(baselineTaskId);
+      return;
+    }
     const legendColor = target.closest("[data-legend-color]")?.getAttribute("data-legend-color");
     if (legendColor) {
       onLegendEditRequest(legendColor);
@@ -629,6 +671,9 @@ export function DiagramPreview({
           <option value="month">Month</option>
           <option value="fit">Fit project</option>
         </select>
+        <button type="button" aria-pressed={showCriticalPath} onClick={() => setShowCriticalPath((value) => !value)}>
+          Critical path
+        </button>
         {selectedDependencyIndex !== undefined && (
           <button onClick={onDependencyDelete} aria-label="Delete dependency">
             Delete link
@@ -664,9 +709,22 @@ export function DiagramPreview({
             }}
             onPointerOver={(event) => {
               if (draggingRef.current) return;
+              const baseline = (event.target as Element).closest<SVGRectElement>(".baseline-bar");
+              const preview = previewRef.current?.getBoundingClientRect();
+              if (baseline && preview) {
+                const id = baseline.getAttribute("data-baseline-task-id") ?? "";
+                const rect = baseline.getBoundingClientRect();
+                setHoveredTask(undefined);
+                setHoveredBaseline({
+                  label: tasks.find((item) => item.id === id)?.label ?? id,
+                  dates: baseline.getAttribute("data-baseline-dates") ?? "",
+                  x: Math.min(preview.width - 250, Math.max(8, rect.right - preview.left + 8)),
+                  y: Math.max(8, rect.top - preview.top),
+                });
+                return;
+              }
               const group = (event.target as Element).closest<SVGGElement>("[data-task-id]");
               const id = group?.getAttribute("data-task-id");
-              const preview = previewRef.current?.getBoundingClientRect();
               if (id && id !== selectedTaskId && preview) {
                 const rect = group!.getBoundingClientRect();
                 setHoveredTask({
@@ -678,6 +736,9 @@ export function DiagramPreview({
             }}
             onPointerOut={(event) => {
               if (draggingRef.current) return;
+              const baselineFrom = (event.target as Element).closest(".baseline-bar");
+              const baselineTo = (event.relatedTarget as Element | null)?.closest?.(".baseline-bar");
+              if (baselineFrom && baselineFrom !== baselineTo) setHoveredBaseline(undefined);
               const from = (event.target as Element).closest("[data-task-id]");
               const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id]");
               if (from && from !== to) setHoveredTask(undefined);
@@ -735,6 +796,26 @@ export function DiagramPreview({
           </div>
         )}
       </div>
+      {baselineSource && <details className="schedule-analysis-report">
+        <summary>Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"}</summary>
+        <div className="schedule-analysis-report-body">
+          {changedVariance.length ? <table>
+            <thead><tr><th>Task</th><th>Baseline</th><th>Current</th><th>Variance</th></tr></thead>
+            <tbody>{changedVariance.map((change) => {
+              const task = tasks.find((item) => item.id === change.taskId);
+              const before = baselineDates.get(change.taskId);
+              const now = resolvedDates.get(change.taskId);
+              const formatShift = (days: number) => days === 0 ? "—" : `${days > 0 ? "+" : ""}${days}d`;
+              return <tr key={change.taskId}>
+                <th>{task?.label ?? change.taskId}</th>
+                <td>{before?.start} – {before?.end}</td>
+                <td>{now?.start} – {now?.end}</td>
+                <td>Start {formatShift(change.startDays)}, end {formatShift(change.endDays)}</td>
+              </tr>;
+            })}</tbody>
+          </table> : <p>The current schedule matches the baseline.</p>}
+        </div>
+      </details>}
       <aside className="calendar-legend" aria-label="Calendar legend">
         <span>
           <i className="closed-day-swatch" aria-hidden="true" /> Closed workday
@@ -851,6 +932,12 @@ export function DiagramPreview({
               ))}
             </div>
           )}
+        </aside>
+      )}
+      {hoveredBaseline && (
+        <aside className="baseline-hover-card" style={{ left: hoveredBaseline.x, top: hoveredBaseline.y }} role="tooltip">
+          <strong>{hoveredBaseline.label} baseline</strong>
+          <span>{hoveredBaseline.dates}</span>
         </aside>
       )}
       <output ref={feedbackRef} className="interaction-feedback" hidden aria-live="off" />

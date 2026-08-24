@@ -15,6 +15,8 @@ export function VersionHistoryDialog({
   onRestore,
   onUpdate,
   onDelete,
+  baselineVersionId,
+  onSetBaseline,
   onClose,
 }: {
   versions: readonly DocumentVersion[];
@@ -23,6 +25,8 @@ export function VersionHistoryDialog({
   onRestore(version: DocumentVersion): Promise<void>;
   onUpdate(version: DocumentVersion, patch: { label?: string; pinned?: boolean }): Promise<void>;
   onDelete(version: DocumentVersion): Promise<void>;
+  baselineVersionId?: string | undefined;
+  onSetBaseline(version?: DocumentVersion): Promise<void>;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -87,13 +91,14 @@ export function VersionHistoryDialog({
               <div className={`version-list-item${version.id === selected?.id ? " selected" : ""}`} key={version.id}>
                 <button type="button" aria-label={`Select version ${versionTitle(version)}`} onClick={() => setSelectedId(version.id)}>
                   <strong>{versionTitle(version)}</strong>
-                  <span>{version.source.split("\n").length} lines{version.pinned ? " · pinned" : ""}</span>
+                  <span>{version.source.split("\n").length} lines{version.id === baselineVersionId ? " · baseline" : version.pinned ? " · pinned" : ""}</span>
                 </button>
                 <button
                   type="button"
                   className="version-pin"
                   aria-label={`${version.pinned ? "Unpin" : "Pin"} ${versionTitle(version)}`}
                   title={version.pinned ? "Unpin version" : "Pin version"}
+                  disabled={version.id === baselineVersionId}
                   onClick={() => void onUpdate(version, { pinned: !version.pinned })}
                 >
                   {version.pinned ? "★" : "☆"}
@@ -120,6 +125,9 @@ export function VersionHistoryDialog({
               <input aria-label="Selected version name" value={editLabel} onChange={(event) => setEditLabel(event.target.value)} placeholder="Version name" />
               <button type="button" onClick={() => void onUpdate(selected, { label: editLabel })}>Save name</button>
               <button type="button" onClick={() => void onUpdate(selected, { pinned: !selected.pinned })}>{selected.pinned ? "Unpin" : "Pin"}</button>
+              <button type="button" onClick={() => void onSetBaseline(selected.id === baselineVersionId ? undefined : selected)}>
+                {selected.id === baselineVersionId ? "Clear baseline" : "Set as baseline"}
+              </button>
               <button type="button" className="danger" onClick={() => void onDelete(selected)}>Delete</button>
             </div>}
             {comparisonView === "source" && <div className="version-diff-navigation">

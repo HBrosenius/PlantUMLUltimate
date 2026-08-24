@@ -218,6 +218,7 @@ export function addCanonicalGanttOverlay(
       }
       const date = `${timelineYear}-${String(timelineMonth + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
       item.text.setAttribute("data-timeline-date", date);
+      item.text.setAttribute("data-timeline-x", String(item.x));
       item.text.setAttribute("data-timeline-header", "top");
       item.text.setAttribute("role", "button");
       item.text.setAttribute("tabindex", "0");
@@ -236,6 +237,7 @@ export function addCanonicalGanttOverlay(
     const date = matchingTop.text.getAttribute("data-timeline-date");
     if (!date) continue;
     item.text.setAttribute("data-timeline-date", date);
+    item.text.setAttribute("data-timeline-x", String(matchingTop.x));
     item.text.setAttribute("data-timeline-header", "bottom");
     item.text.setAttribute("role", "button");
     item.text.setAttribute("tabindex", "0");

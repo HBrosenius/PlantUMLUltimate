@@ -137,6 +137,7 @@ export function App() {
   const [dateMenuFor, setDateMenuFor] = useState<string>();
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
+  const [baselineVersion, setBaselineVersion] = useState<DocumentVersion>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
   const [resourceFilter, setResourceFilter] = useState("");
@@ -163,6 +164,21 @@ export function App() {
   }, [workspace.source]);
   const parseResult = parsed.value;
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeDocument.baselineVersionId) {
+      setBaselineVersion(undefined);
+      return;
+    }
+    void loadDocumentVersions(activeDocument.historyId).then((versions) => {
+      if (!cancelled) setBaselineVersion(versions.find((version) => version.id === activeDocument.baselineVersionId));
+    });
+    return () => { cancelled = true; };
+  }, [activeDocument.baselineVersionId, activeDocument.historyId]);
+  const baselineParseResult = useMemo(
+    () => baselineVersion ? parseGantt(baselineVersion.source) : undefined,
+    [baselineVersion],
+  );
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const selectedSequenceParticipant = sequenceDocument.participants.find(
     (item) => item.id === selectedSequenceParticipantId,
@@ -859,6 +875,8 @@ export function App() {
       else fileHandles.current.delete(tabs.activeId);
       const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       tabs.setDocumentHistoryId(tabs.activeId, historyId);
+      tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
+      setBaselineVersion(undefined);
       setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
       await recordDocumentVersion("saved", "Saved as new file", { historyId, fileName: saved.fileName });
       setInteractionMessage(`Saved ${saved.fileName}`);
@@ -885,13 +903,17 @@ export function App() {
       if (!window.confirm(`Delete version “${version.label || new Date(version.createdAt).toLocaleString()}”?`)) return;
       try {
         await deleteDocumentVersion(version.id);
+        if (version.id === activeDocument.baselineVersionId) {
+          tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
+          setBaselineVersion(undefined);
+        }
         setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
         setInteractionMessage("Deleted document version");
       } catch (error) {
         reportFileError(error);
       }
     },
-    [activeDocument.historyId, reportFileError],
+    [activeDocument.baselineVersionId, activeDocument.historyId, reportFileError, tabs],
   );
 
   const saveDocument = useCallback(async () => {
@@ -2002,6 +2024,10 @@ export function App() {
                 setLegendFocusColor(color);
                 setLegendInspectorOpen(true);
               }}
+              baselineTasks={baselineParseResult?.document.tasks}
+              baselineDependencies={baselineParseResult?.document.dependencies}
+              baselineSource={baselineVersion?.source}
+              baselineProjectStart={baselineParseResult?.document.projectStart?.resolved ? baselineParseResult.document.projectStart.value : undefined}
             />
           ) : (
             <SequenceDiagramPreview
@@ -2153,6 +2179,14 @@ export function App() {
           onRestore={restoreDocumentVersion}
           onUpdate={editDocumentVersion}
           onDelete={removeDocumentVersion}
+          baselineVersionId={activeDocument.baselineVersionId}
+          onSetBaseline={async (version) => {
+            if (version) await updateDocumentVersion(version.id, { pinned: true });
+            tabs.setDocumentBaselineVersionId(tabs.activeId, version?.id);
+            setBaselineVersion(version ? { ...version, pinned: true } : undefined);
+            setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
+            setInteractionMessage(version ? "Baseline version selected" : "Baseline cleared");
+          }}
           onClose={() => setVersionHistoryOpen(false)}
         />
       )}

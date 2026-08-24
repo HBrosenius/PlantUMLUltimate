@@ -22,6 +22,7 @@ export interface DocumentSnapshot {
   dirty: boolean;
   zoom: number;
   cursor: { line: number; column: number };
+  baselineVersionId?: string | undefined;
 }
 
 export interface WorkspaceSession {
@@ -107,6 +108,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           line: Math.max(1, Number(item.cursor?.line) || 1),
           column: Math.max(1, Number(item.cursor?.column) || 1),
         },
+        ...(typeof item.baselineVersionId === "string" ? { baselineVersionId: item.baselineVersionId } : {}),
       }));
     if (documents.length === 0) return DEFAULT_SESSION;
     const activeDocumentId = documents.some((item) => item.id === candidate.activeDocumentId)

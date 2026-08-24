@@ -1005,6 +1005,18 @@ input {
   opacity: 0.38;
   pointer-events: none;
 }
+.diagram svg .baseline-bar { fill: rgb(100 116 139 / 10%); stroke: #64748b; stroke-width: 2; stroke-dasharray: 5 3; pointer-events: visiblePainted; cursor: default; }
+.diagram svg .baseline-bar:hover { fill: rgb(100 116 139 / 22%); stroke: #334155; stroke-width: 2.5; }
+.diagram svg [data-critical-path="true"].task .bar { stroke: #dc2626; stroke-width: 3; }
+.diagram svg .interaction-dependency[data-critical-path="true"] { stroke: #dc2626; stroke-width: 3; }
+.schedule-analysis-report { position: absolute; z-index: 8; left: 10px; bottom: 48px; max-width: calc(100% - 20px); border: 1px solid var(--line); border-radius: 5px; background: var(--panel); box-shadow: 0 2px 8px rgb(0 0 0 / 14%); font-size: .82rem; }
+.schedule-analysis-report > summary { cursor: pointer; padding: .45rem .7rem; font-weight: 650; }
+.schedule-analysis-report-body { max-width: min(760px, calc(100vw - 80px)); max-height: 220px; overflow: auto; border-top: 1px solid var(--line); padding: .45rem .65rem; }
+.schedule-analysis-report table { border-collapse: collapse; white-space: nowrap; }
+.schedule-analysis-report th, .schedule-analysis-report td { padding: .3rem .55rem; border-bottom: 1px solid var(--line); text-align: left; }
+.schedule-analysis-report p { margin: .25rem; }
+.baseline-hover-card { position: absolute; z-index: 12; display: grid; gap: .2rem; min-width: 190px; padding: .55rem .7rem; border: 1px solid #64748b; border-radius: 5px; background: var(--panel); box-shadow: 0 3px 10px rgb(0 0 0 / 18%); pointer-events: none; font-size: .85rem; }
+.baseline-hover-card span { color: var(--muted); }
 .diagram svg .task-drag-ghost {
   fill: var(--accent);
   stroke: #fff;
