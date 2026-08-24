@@ -690,6 +690,57 @@ export function updateSequenceStructure(
   return applyReplacements(source, [{ ...structure.sourceRange, text: structureStatement(value) }]);
 }
 
+export function reconnectSequenceStructure(
+  source: string,
+  structure: SequenceStructure,
+  endpoint: number,
+  participant: string,
+): string {
+  if ("participants" in structure && (structure.id.startsWith("note-") || structure.id.startsWith("reference-"))) {
+    const participants = [...structure.participants];
+    if (!participants.length) participants.push(participant);
+    else participants[Math.min(Math.max(endpoint, 0), participants.length - 1)] = participant;
+    if (structure.id.startsWith("note-")) {
+      const note = structure as SequenceNote;
+      return updateSequenceStructure(source, note, {
+        kind: "note",
+        shape: note.shape,
+        aligned: note.aligned,
+        placement: note.placement,
+        participants,
+        text: note.text,
+        ...(note.color ? { color: note.color } : {}),
+      });
+    }
+    const reference = structure as SequenceReference;
+    return updateSequenceStructure(source, reference, {
+      kind: "reference",
+      participants,
+      text: reference.text,
+      multiline: reference.multiline,
+      ...(reference.color ? { color: reference.color } : {}),
+    });
+  }
+  if (structure.id.startsWith("activation-")) {
+    const activation = structure as SequenceActivation;
+    return updateSequenceStructure(source, activation, {
+      kind: "activation",
+      action: activation.kind,
+      participant,
+      ...(activation.color ? { color: activation.color } : {}),
+    });
+  }
+  if (structure.id.startsWith("creation-")) {
+    const creation = structure as SequenceCreation;
+    return updateSequenceStructure(source, creation, {
+      kind: "create",
+      participantKind: creation.participantKind,
+      participant,
+    });
+  }
+  return source;
+}
+
 export function deleteSequenceStructure(source: string, structure: SequenceStructure): string {
   const to = Math.min(source.length, structure.sourceRange.to + (source[structure.sourceRange.to] === "\n" ? 1 : 0));
   return applyReplacements(source, [{ from: structure.sourceRange.from, to, text: "" }]);
@@ -702,6 +753,10 @@ export function reorderSequenceStatement(
   placement: "before" | "after" = "before",
 ): string {
   if (moved.sourceRange.from === targetStatement.sourceRange.from) return source;
+  if (
+    targetStatement.sourceRange.from >= moved.sourceRange.from &&
+    targetStatement.sourceRange.to <= moved.sourceRange.to
+  ) return source;
   const from = moved.sourceRange.from;
   const to = Math.min(source.length, moved.sourceRange.to + (source[moved.sourceRange.to] === "\n" ? 1 : 0));
   const statement = source.slice(from, to);

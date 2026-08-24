@@ -229,6 +229,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   const sequenceAddMenu = page.getByRole("menu", { name: "Add" });
   await expect(sequenceAddMenu.getByRole("menuitem", { name: "Participant…" })).toBeVisible();
   await expect(sequenceAddMenu.getByRole("menuitem", { name: "Message…" })).toBeVisible();
+  await expect(sequenceAddMenu.getByRole("menuitem", { name: "Autonumber…" })).toHaveCount(0);
   await page.getByRole("menuitem", { name: "Participant…" }).click();
   const participant = page.getByRole("dialog", { name: "Add participant" });
   await expect(participant.locator('datalist option[value="#LightBlue"]')).toHaveCount(1);
@@ -568,6 +569,46 @@ test("reorders Sequence participants and messages from the dedicated drag tray",
       return text.indexOf("System --> User: Response") < text.indexOf("User -> System: Request");
     })
     .toBe(true);
+});
+
+test("drags Sequence structures and reconnects their participant attachments", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await setSource(page, "@startuml\nparticipant User\nparticipant System\nparticipant Orders\nUser -> System: Request\nnote over User, System: Important\nref over User, System: External flow\nactivate System\n== Later ==\n@enduml");
+
+  await expect(page.locator(".sequence-structure-grip")).toHaveCount(4);
+  await page.locator(".sequence-diagram text", { hasText: "Important" }).click({ force: true });
+  await expect(page.locator(".sequence-structure-endpoint")).toHaveCount(2);
+  const endpoint = await page.locator('.sequence-structure-endpoint[data-sequence-structure-endpoint="1"]').boundingBox();
+  const ordersAnchor = await page.locator('.sequence-participant-anchor[data-sequence-participant-id="orders"]').boundingBox();
+  expect(endpoint).not.toBeNull();
+  expect(ordersAnchor).not.toBeNull();
+  await page.mouse.move(endpoint!.x + endpoint!.width / 2, endpoint!.y + endpoint!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(ordersAnchor!.x + ordersAnchor!.width / 2, ordersAnchor!.y + ordersAnchor!.height / 2, { steps: 5 });
+  await expect(page.locator(".interaction-feedback")).toContainText("attachment handle on Orders");
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("note over User, Orders: Important");
+
+  const noteGrip = page.locator('.sequence-structure-grip[data-sequence-structure-id="note-0"]');
+  const messageTarget = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-0"]').first();
+  const gripBox = await noteGrip.boundingBox();
+  const targetBox = await messageTarget.boundingBox();
+  expect(gripBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(gripBox!.x + gripBox!.width / 2, gripBox!.y + gripBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gripBox!.x + gripBox!.width / 2, targetBox!.y + 2, { steps: 5 });
+  await expect(page.locator(".interaction-feedback")).toContainText("timeline element");
+  await expect(page.locator(".sequence-structure-move-preview")).toBeVisible();
+  await expect(page.locator(".sequence-structure-move-preview path")).toHaveCount(2);
+  await expect(page.locator(".sequence-structure-move-preview")).toHaveAttribute("transform", /translate\([^)]*[1-9]/);
+  await page.mouse.up();
+  await expect(page.locator(".sequence-structure-move-preview")).toHaveCount(0);
+  await expect.poll(async () => {
+    const text = await page.locator(".cm-content").innerText();
+    return text.indexOf("note over User, Orders") < text.indexOf("User -> System: Request");
+  }).toBe(true);
 });
 
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {

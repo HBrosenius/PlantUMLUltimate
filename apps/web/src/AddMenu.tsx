@@ -15,7 +15,6 @@ export function AddMenu({
   onSequenceSpacing,
   onReference,
   onParticipantBox,
-  onAutonumber,
 }: {
   diagramKind: DiagramKind;
   onTask(): void;
@@ -29,7 +28,6 @@ export function AddMenu({
   onSequenceSpacing(): void;
   onReference(): void;
   onParticipantBox(): void;
-  onAutonumber(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -143,7 +141,6 @@ export function AddMenu({
               </button>
               <button role="menuitem" onClick={() => run(onReference)}><span>Reference…</span></button>
               <button role="menuitem" onClick={() => run(onParticipantBox)}><span>Participant box…</span></button>
-              <button role="menuitem" onClick={() => run(onAutonumber)}><span>Autonumber…</span></button>
             </>
           )}
         </div>

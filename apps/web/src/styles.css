@@ -658,7 +658,8 @@ input {
   pointer-events: none;
 }
 .sequence-diagram [data-sequence-participant-id],
-.sequence-diagram [data-sequence-message-id] {
+.sequence-diagram [data-sequence-message-id],
+.sequence-diagram [data-sequence-structure-id] {
   cursor: grab;
 }
 .sequence-diagram,
@@ -705,6 +706,59 @@ input {
 }
 .sequence-diagram .sequence-message-endpoint-to {
   fill: #8b5cf6;
+}
+.sequence-diagram .sequence-selected-structure {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-dasharray: 5 3;
+  rx: 5px;
+  pointer-events: none;
+}
+.sequence-diagram .sequence-structure-endpoint {
+  fill: #f59e0b;
+  stroke: var(--panel);
+  stroke-width: 3px;
+  cursor: grab;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
+}
+.sequence-diagram .sequence-structure-participant-anchor {
+  stroke: #f59e0b;
+}
+.sequence-diagram .sequence-structure-grip {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+  stroke-dasharray: 2 2;
+  cursor: grab;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 25%));
+}
+.sequence-diagram .sequence-structure-grip.selected {
+  fill: #f59e0b;
+  stroke: var(--panel);
+  stroke-width: 2.5px;
+}
+.sequence-diagram .sequence-structure-move-preview {
+  opacity: 0.96;
+  pointer-events: none;
+  filter: drop-shadow(0 7px 9px rgb(0 0 0 / 34%));
+}
+.sequence-diagram .sequence-structure-move-preview-frame {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
+  stroke-width: 3px;
+  stroke-dasharray: 7 3;
+}
+.sequence-diagram .sequence-structure-move-preview-card {
+  fill: color-mix(in srgb, var(--panel) 88%, var(--accent));
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-dasharray: 6 3;
+}
+.sequence-diagram .sequence-structure-move-preview-label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 650;
 }
 .sequence-diagram .sequence-reconnect-preview {
   stroke: var(--accent);

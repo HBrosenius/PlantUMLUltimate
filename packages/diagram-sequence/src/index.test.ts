@@ -8,6 +8,7 @@ import {
   insertSequenceParticipantBox,
   insertSequenceStructure,
   parseSequence,
+  reconnectSequenceStructure,
   reorderSequenceStatement,
   updateSequenceMessage,
   updateSequenceParticipant,
@@ -297,5 +298,21 @@ describe("Sequence source operations", () => {
     const document = parseSequence(source);
     const changed = updateSequenceStructure(source, document.references[0]!, { kind: "reference", participants: ["B"], text: "Changed" });
     expect(changed).toContain("ref over B: Changed");
+  });
+
+  it("reconnects participant-bound structures without losing their presentation", () => {
+    let source = "@startuml\nparticipant A\nparticipant B\nparticipant C\nnote over A, B #Yellow: Shared\nref #LightBlue over A, B: Other flow\nactivate A #Red\ncreate control B\n@enduml";
+    let document = parseSequence(source);
+    source = reconnectSequenceStructure(source, document.notes[0]!, 1, "C");
+    document = parseSequence(source);
+    source = reconnectSequenceStructure(source, document.references[0]!, 0, "C");
+    document = parseSequence(source);
+    source = reconnectSequenceStructure(source, document.activations[0]!, 0, "B");
+    document = parseSequence(source);
+    source = reconnectSequenceStructure(source, document.creations[0]!, 0, "C");
+    expect(source).toContain("note over A, C #Yellow: Shared");
+    expect(source).toContain("ref #LightBlue over C, B: Other flow");
+    expect(source).toContain("activate B #Red");
+    expect(source).toContain("create control C");
   });
 });

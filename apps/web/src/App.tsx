@@ -98,6 +98,7 @@ import {
   insertSequenceParticipantBox,
   insertSequenceStructure,
   parseSequence,
+  reconnectSequenceStructure,
   reorderSequenceStatement,
   updateSequenceMessage,
   updateSequenceParticipant,
@@ -383,7 +384,7 @@ export function App() {
       if (
         target instanceof Element &&
         target.closest(
-          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
+          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint]",
         )
       )
         return;
@@ -1202,6 +1203,40 @@ export function App() {
     [commitSource, sequenceDocument.messages, workspace.source],
   );
 
+  const reorderSequenceTimeline = useCallback(
+    (id: string, targetId: string, placement: "before" | "after" = "before") => {
+      const timeline = [...sequenceDocument.messages, ...sequenceStructures];
+      const moved = timeline.find((item) => item.id === id);
+      const target = timeline.find((item) => item.id === targetId);
+      if (!moved || !target) return;
+      const next = reorderSequenceStatement(workspace.source, moved, target, placement);
+      if (next === workspace.source) return;
+      commitSource(next, "Reorder Sequence element");
+      setSelectedSequenceMessageId(undefined);
+      setSelectedSequenceStructureId(undefined);
+      setInteractionMessage(`Moved Sequence element ${placement} target`);
+    },
+    [commitSource, sequenceDocument.messages, sequenceStructures, workspace.source],
+  );
+
+  const reconnectSequenceElement = useCallback(
+    (structureId: string, endpoint: number, participantId: string) => {
+      const structure = sequenceStructures.find((item) => item.id === structureId);
+      const participant = sequenceDocument.participants.find((item) => item.id === participantId);
+      if (!structure || !participant) return;
+      const next = reconnectSequenceStructure(
+        workspace.source,
+        structure,
+        endpoint,
+        participant.alias ?? participant.label,
+      );
+      if (next === workspace.source) return;
+      commitSource(next, "Reconnect Sequence element");
+      setInteractionMessage(`Attached Sequence element to ${participant.label}`);
+    },
+    [commitSource, sequenceDocument.participants, sequenceStructures, workspace.source],
+  );
+
   const reconnectSequenceMessage = useCallback(
     (messageId: string, endpoint: "from" | "to", participantId: string) => {
       const message = sequenceDocument.messages.find((item) => item.id === messageId);
@@ -1830,7 +1865,6 @@ export function App() {
             onSequenceSpacing={() => setAddSequenceStructureKind("separator")}
             onReference={() => setAddSequenceStructureKind("reference")}
             onParticipantBox={() => setAddSequenceStructureKind("box")}
-            onAutonumber={() => setAddSequenceStructureKind("autonumber")}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2120,13 +2154,18 @@ export function App() {
               onRenderRetry={retryRender}
               participants={sequenceDocument.participants}
               messages={sequenceDocument.messages}
+              structures={sequenceStructures}
               selectedParticipantId={selectedSequenceParticipantId}
               selectedMessageId={selectedSequenceMessageId}
+              selectedStructureId={selectedSequenceStructureId}
               onParticipantSelect={selectSequenceParticipant}
               onMessageSelect={selectSequenceMessage}
+              onStructureSelect={selectSequenceStructure}
               onParticipantReorder={reorderSequenceParticipant}
               onMessageReorder={reorderSequenceMessage}
+              onTimelineReorder={reorderSequenceTimeline}
               onMessageReconnect={reconnectSequenceMessage}
+              onStructureReconnect={reconnectSequenceElement}
               onMessageCreate={createSequenceMessageByDrag}
               onMessageExternalize={externalizeSequenceMessage}
             />
