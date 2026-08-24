@@ -33,6 +33,51 @@ describe("schedule analysis", () => {
     expect([...criticalPathTaskIds(document.tasks, document.dependencies)].sort()).toEqual(["a", "b", "c"]);
   });
 
+  it("uses resolved calendar dates for explicitly dated critical paths", () => {
+    const source = `@startgantt
+Project starts 2026-08-10
+saturday are closed
+sunday are closed
+[Unified Messaging Analytics Front End] starts 2026-08-13 and ends 2026-09-24
+[Unified Messaging Analytics Front End Testing] starts at [Unified Messaging Analytics Front End]'s end
+[Unified Messaging Analytics Front End Testing] lasts 21 days
+[Unified UnMasked Messaging Download Report Testing] starts 2026-09-16 and ends 2026-09-30
+[Unified End To End Testing] starts at [Unified UnMasked Messaging Download Report Testing]'s end
+[Unified End To End Testing] lasts 11 days
+@endgantt`;
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const resolved = resolveTaskDates(document.tasks, document.dependencies, "2026-08-10", calendar);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, resolved, calendar);
+    const analytics = document.tasks.filter((task) => task.label.startsWith("Unified Messaging Analytics Front End"));
+    expect(resolved.get(analytics[1]!.id)?.end).toBe("2026-10-23");
+    expect([...analysis.taskIds]).toEqual(analytics.map((task) => task.id));
+  });
+
+  it("resolves a task from the latest of multiple predecessor constraints", () => {
+    const source = `@startgantt
+Project starts 2026-09-01
+saturday are closed
+sunday are closed
+[Back End] starts 2026-09-01 and ends 2026-09-02
+[Back End Testing] starts at [Back End]'s end
+[Back End Testing] lasts 15 days
+[Front End] starts 2026-09-01 and ends 2026-09-15
+[Front End Testing] starts at [Front End]'s end
+[Front End Testing] lasts 15 days
+[Front End Testing] starts at [Back End Testing]'s end
+@endgantt`;
+    const document = parseGantt(source).document;
+    const resolved = resolveTaskDates(
+      document.tasks,
+      document.dependencies,
+      "2026-09-01",
+      parseGanttCalendar(source),
+    );
+    const frontEndTesting = document.tasks.find((task) => task.label === "Front End Testing")!;
+    expect(resolved.get(frontEndTesting.id)?.start).toBe("2026-09-24");
+  });
+
   it("reports movement against resolved baseline dates", () => {
     const current = new Map([["a", { start: "2026-09-03", end: "2026-09-05", derived: false }]]);
     const baseline = new Map([["a", { start: "2026-09-01", end: "2026-09-03", derived: false }]]);

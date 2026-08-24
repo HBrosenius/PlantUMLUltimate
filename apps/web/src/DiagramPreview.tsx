@@ -196,7 +196,10 @@ export function DiagramPreview({
   );
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
-  const criticalPath = useMemo(() => analyzeCriticalPath(tasks, dependencies), [tasks, dependencies]);
+  const criticalPath = useMemo(
+    () => analyzeCriticalPath(tasks, dependencies, resolvedDates, calendar),
+    [calendar, dependencies, resolvedDates, tasks],
+  );
   const criticalIds = useMemo(
     () => (showCriticalPath ? criticalPath.taskIds : new Set<string>()),
     [criticalPath.taskIds, showCriticalPath],

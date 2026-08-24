@@ -1,5 +1,6 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
+import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface TaskVariance {
   taskId: string;
@@ -135,6 +136,8 @@ export interface CriticalPathAnalysis {
 export function analyzeCriticalPath(
   tasks: readonly GanttTask[],
   dependencies: readonly GanttDependency[],
+  resolvedDates?: ReadonlyMap<string, ResolvedTaskDates>,
+  calendar?: GanttCalendar,
 ): CriticalPathAnalysis {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const durations = new Map(tasks.map((task) => [task.id, (taskElapsedDays(task) ?? 1) + (task.pauses ?? []).length]));
@@ -170,6 +173,64 @@ export function analyzeCriticalPath(
   }
   if ([...incoming.values()].some((count) => count > 0))
     return { taskIds: new Set(), orderedTaskIds: [], projectDuration: 0, slackByTask: new Map() };
+  if (resolvedDates && calendar) {
+    const scheduled = tasks.flatMap((task) => {
+      const dates = resolvedDates.get(task.id);
+      const start = dateDays(dates?.start);
+      const end = dateDays(dates?.end);
+      return start !== undefined && end !== undefined ? [{ task, start, end }] : [];
+    });
+    if (scheduled.length) {
+      const projectStart = Math.min(...scheduled.map((item) => item.start));
+      const projectFinish = Math.max(...scheduled.map((item) => item.end));
+      const slackByTask = new Map(scheduled.map((item) => [item.task.id, projectFinish - item.end]));
+      const dateFor = (taskId: string, anchor: "start" | "end") => resolvedDates.get(taskId)?.[anchor];
+      const dependencyGap = (dependency: GanttDependency): number => {
+        const predecessorAnchor =
+          dependency.relation === "start-after-start" || dependency.relation === "end-after-start" ? "start" : "end";
+        const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
+        const predecessorDate = dateFor(dependency.predecessorTaskId, predecessorAnchor);
+        const successorDate = dateFor(dependency.successorTaskId, successorAnchor);
+        if (!predecessorDate || !successorDate) return 0;
+        const direction = dependency.direction === "before" ? -1 : 1;
+        let expected = shiftDate(predecessorDate, (dependency.offset?.value ?? 0) * direction);
+        if (
+          dependency.relation === "start-after-end" &&
+          (dependency.offset?.value ?? 0) === 0 &&
+          expected
+        ) {
+          do expected = shiftDate(expected, 1);
+          while (expected && !isWorkingDate(expected, calendar));
+        }
+        const expectedDay = dateDays(expected);
+        const successorDay = dateDays(successorDate);
+        return expectedDay === undefined || successorDay === undefined ? 0 : Math.max(0, successorDay - expectedDay);
+      };
+      for (const id of [...order].reverse()) {
+        for (const edge of outgoing.get(id) ?? []) {
+          const dependency = dependencies.find(
+            (item) => item.predecessorTaskId === id && item.successorTaskId === edge.successor,
+          );
+          if (!dependency || !slackByTask.has(id) || !slackByTask.has(edge.successor)) continue;
+          slackByTask.set(
+            id,
+            Math.min(slackByTask.get(id)!, slackByTask.get(edge.successor)! + dependencyGap(dependency)),
+          );
+        }
+      }
+      const taskIds = new Set(
+        scheduled.filter((item) => (slackByTask.get(item.task.id) ?? 1) === 0).map((item) => item.task.id),
+      );
+      return {
+        taskIds,
+        orderedTaskIds: order
+          .filter((id) => taskIds.has(id))
+          .sort((a, b) => (dateDays(resolvedDates.get(a)?.start) ?? 0) - (dateDays(resolvedDates.get(b)?.start) ?? 0)),
+        projectDuration: projectFinish - projectStart + 1,
+        slackByTask,
+      };
+    }
+  }
   const projectFinish = Math.max(
     ...tasks.map((task) => (earliest.get(task.id) ?? 0) + (durations.get(task.id) ?? 1)),
     0,
@@ -198,8 +259,10 @@ export function analyzeCriticalPath(
 export function criticalPathTaskIds(
   tasks: readonly GanttTask[],
   dependencies: readonly GanttDependency[],
+  resolvedDates?: ReadonlyMap<string, ResolvedTaskDates>,
+  calendar?: GanttCalendar,
 ): Set<string> {
-  return analyzeCriticalPath(tasks, dependencies).taskIds;
+  return analyzeCriticalPath(tasks, dependencies, resolvedDates, calendar).taskIds;
 }
 
 export function decorateScheduleAnalysis(

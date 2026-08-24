@@ -74,9 +74,10 @@ export function resolveTaskDates(
     let start = task.start ? resolveDateExpression(task.start.value, projectStart) : undefined;
     let end = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
     const derived = !start || !end;
-    const dependency = dependencies.find((item) => item.successorTaskId === task.id);
-    let dependencyAnchor: string | undefined;
-    if (dependency) {
+    const taskDependencies = dependencies.filter((item) => item.successorTaskId === task.id);
+    const dependencyStarts: string[] = [];
+    const dependencyEnds: string[] = [];
+    for (const dependency of taskDependencies) {
         const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
         const predecessorDates = predecessor ? solve(predecessor) : undefined;
         const anchor =
@@ -85,7 +86,7 @@ export function resolveTaskDates(
             : predecessorDates?.end;
         if (anchor) {
           const direction = dependency.direction === "before" ? -1 : 1;
-          dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+          let dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
           if (
             dependency.relation === "start-after-end" &&
             (dependency.offset?.value ?? 0) === 0 &&
@@ -95,12 +96,16 @@ export function resolveTaskDates(
               dependencyAnchor = shiftDate(dependencyAnchor, 1);
             } while (dependencyAnchor && !isWorkingDate(dependencyAnchor, calendar));
           }
+          if (dependencyAnchor) {
+            if (dependency.relation.startsWith("start-")) dependencyStarts.push(dependencyAnchor);
+            else dependencyEnds.push(dependencyAnchor);
+          }
         }
     }
     const duration = taskElapsedDays(task);
     const pauses = (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value);
-    if (!start && dependency && dependency.relation.startsWith("start-")) start = dependencyAnchor;
-    if (!end && dependency && dependency.relation.startsWith("end-")) end = dependencyAnchor;
+    if (!start && dependencyStarts.length) start = dependencyStarts.sort().at(-1);
+    if (!end && dependencyEnds.length) end = dependencyEnds.sort().at(-1);
     if (!start && end && duration) start = workingStart(end, duration, pauses);
     if (!start) {
       start ??= projectStart;
