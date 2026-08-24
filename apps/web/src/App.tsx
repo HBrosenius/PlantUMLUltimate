@@ -182,18 +182,6 @@ export function App() {
   const selectedPredecessorId = selectedTaskDependency?.predecessorTaskId ?? "";
   const selectedDependency =
     selectedDependencyIndex === undefined ? undefined : parseResult.document.dependencies[selectedDependencyIndex];
-  useEffect(() => {
-    if (!selectedTaskId && selectedDependencyIndex === undefined && !projectInspectorOpen) return;
-    const dismissInspector = (event: PointerEvent) => {
-      const target = event.target;
-      if (target instanceof Element && target.closest(".task-inspector")) return;
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      setProjectInspectorOpen(false);
-    };
-    window.addEventListener("pointerdown", dismissInspector);
-    return () => window.removeEventListener("pointerdown", dismissInspector);
-  }, [projectInspectorOpen, selectedDependencyIndex, selectedTaskId]);
   const resourceNames = useMemo(
     () =>
       [...new Set(parseResult.document.tasks.flatMap((task) => (task.resources ?? []).map((item) => item.value)))].sort(
@@ -349,17 +337,17 @@ export function App() {
       selectedVerticalSeparatorIndex === undefined &&
       !selectedSequenceParticipantId &&
       !selectedSequenceMessageId &&
-      !selectedSequenceStructureId
+      !selectedSequenceStructureId &&
+      !projectInspectorOpen
     )
       return;
-    const dismissInspector = (event: PointerEvent) => {
+    const dismissInspector = (event: MouseEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
-      if (target instanceof Element && target.closest(".cm-editor")) return;
       if (
         target instanceof Element &&
         target.closest(
-          "[data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
+          "[data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
         )
       )
         return;
@@ -370,11 +358,13 @@ export function App() {
       setSelectedSequenceParticipantId(undefined);
       setSelectedSequenceMessageId(undefined);
       setSelectedSequenceStructureId(undefined);
+      setProjectInspectorOpen(false);
       setFocusNoteTaskId(undefined);
     };
-    document.addEventListener("pointerdown", dismissInspector);
-    return () => document.removeEventListener("pointerdown", dismissInspector);
+    document.addEventListener("click", dismissInspector);
+    return () => document.removeEventListener("click", dismissInspector);
   }, [
+    projectInspectorOpen,
     selectedDependencyIndex,
     selectedDividerIndex,
     selectedSequenceMessageId,

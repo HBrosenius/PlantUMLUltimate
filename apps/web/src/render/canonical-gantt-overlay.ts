@@ -54,7 +54,7 @@ export function dayColumnBounds(center: number, width: number): { left: number; 
 }
 
 export function alignClosedDayHatching(svg: SVGSVGElement): void {
-  const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")]
+  const labels = [...svg.querySelectorAll<SVGTextElement>('[data-timeline-header="top"]')]
     .map((text) => {
       const box = text.getBBox();
       return { text, center: box.x + box.width / 2 };
@@ -173,6 +173,10 @@ export function addCanonicalGanttOverlay(
   const topDates = numberedDates
     .filter((item) => topDateY !== undefined && Math.abs(item.y - topDateY) < 1)
     .sort((a, b) => a.x - b.x);
+  const bottomDateY = numberedDates.length ? Math.max(...numberedDates.map((item) => item.y)) : undefined;
+  const bottomDates = numberedDates
+    .filter((item) => bottomDateY !== undefined && Math.abs(item.y - bottomDateY) < 1)
+    .sort((a, b) => a.x - b.x);
   // Date-label spacing is the authoritative day column geometry. The SVG also contains
   // vertical task/resource borders; including those in the width calculation can select
   // a half-column gap and make weekend hatching spill into the preceding working day.
@@ -214,12 +218,30 @@ export function addCanonicalGanttOverlay(
       }
       const date = `${timelineYear}-${String(timelineMonth + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
       item.text.setAttribute("data-timeline-date", date);
+      item.text.setAttribute("data-timeline-header", "top");
       item.text.setAttribute("role", "button");
       item.text.setAttribute("tabindex", "0");
       item.text.setAttribute("aria-label", `Highlight ${date}`);
       if (calendar && !isWorkingDate(date, calendar)) item.text.setAttribute("data-closed-date", "true");
       previousDay = item.day;
     }
+
+  for (const item of bottomDates) {
+    const matchingTop = topDates.reduce<(typeof topDates)[number] | undefined>(
+      (closest, candidate) =>
+        !closest || Math.abs(candidate.x - item.x) < Math.abs(closest.x - item.x) ? candidate : closest,
+      undefined,
+    );
+    if (!matchingTop || !canonicalDayWidth || Math.abs(matchingTop.x - item.x) > canonicalDayWidth / 2) continue;
+    const date = matchingTop.text.getAttribute("data-timeline-date");
+    if (!date) continue;
+    item.text.setAttribute("data-timeline-date", date);
+    item.text.setAttribute("data-timeline-header", "bottom");
+    item.text.setAttribute("role", "button");
+    item.text.setAttribute("tabindex", "0");
+    item.text.setAttribute("aria-label", `Highlight ${date}`);
+    if (calendar && !isWorkingDate(date, calendar)) item.text.setAttribute("data-closed-date", "true");
+  }
 
   const closedDates = topDates.filter((item) => item.text.getAttribute("data-closed-date") === "true");
   if (closedDates.length && canonicalDayWidth) {

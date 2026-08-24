@@ -550,7 +550,7 @@ test("adds a colored critical date from project settings", async ({ page }) => {
 
 test("starts a highlighted date by clicking the timeline header", async ({ page }) => {
   await setSource(page, source("[Build] lasts 25 days"));
-  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]').click();
   const menu = page.getByRole("dialog", { name: "2026-09-18" });
   await expect(menu).toBeVisible();
   await expect(menu).toContainText("No date setting");
@@ -562,21 +562,46 @@ test("starts a highlighted date by clicking the timeline header", async ({ page 
   await dialog.getByRole("button", { name: "Highlight" }).click();
   await expect(page.locator(".cm-content")).toContainText("2026-09-18 is colored in #ffd700");
 
-  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]').click();
   const reopenedMenu = page.getByRole("dialog", { name: "2026-09-18" });
   await expect(reopenedMenu).toContainText("Currently highlighted");
   await reopenedMenu.getByRole("button", { name: "Clear date setting" }).click();
   await expect(page.locator(".cm-content")).not.toContainText("2026-09-18 is colored in");
 });
 
+test("opens the date action menu when a task inspector is already open", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 25 days"));
+  await page.locator('[data-task-id="build"] .bar').click();
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
+  await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]').click();
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "2026-09-18" })).toBeVisible();
+});
+
+test("opens the date action menu from both timeline header rows", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 25 days"));
+  const top = page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]');
+  const bottom = page.locator('[data-timeline-header="bottom"][data-timeline-date="2026-09-18"]');
+  await expect(top).toHaveCount(1);
+  await expect(bottom).toHaveCount(1);
+  await top.click();
+  await expect(page.getByRole("dialog", { name: "2026-09-18" })).toBeVisible();
+  await page
+    .getByRole("dialog", { name: "2026-09-18" })
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await bottom.click();
+  await expect(page.getByRole("dialog", { name: "2026-09-18" })).toBeVisible();
+});
+
 test("marks and clears a closed day by clicking the timeline header", async ({ page }) => {
   await setSource(page, source("[Build] lasts 25 days"));
-  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]').click();
   const menu = page.getByRole("dialog", { name: "2026-09-18" });
   await menu.getByRole("button", { name: "Mark as closed day" }).click();
   await expect(page.locator(".cm-content")).toContainText("2026-09-18 is closed");
 
-  await page.locator('[data-timeline-date="2026-09-18"]').click();
+  await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-18"]').click();
   const reopenedMenu = page.getByRole("dialog", { name: "2026-09-18" });
   await expect(reopenedMenu).toContainText("Currently marked as a closed day");
   await expect(reopenedMenu.getByRole("button", { name: "Already a closed day" })).toBeDisabled();
@@ -591,7 +616,7 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
   const measure = async () =>
     page.locator(".diagram svg").evaluate((svg) => {
       const number = (element: Element, name: string) => Number(element.getAttribute(name));
-      const labels = [...svg.querySelectorAll<SVGTextElement>("[data-timeline-date]")].map((text) => {
+      const labels = [...svg.querySelectorAll<SVGTextElement>('[data-timeline-header="top"]')].map((text) => {
         const box = text.getBBox();
         return { closed: text.getAttribute("data-closed-date") === "true", center: box.x + box.width / 2 };
       });
