@@ -72,7 +72,7 @@ export function TaskInspector({
       allocation: String(item.allocation ?? 100),
     })),
     note: task.notes?.[0]?.text ?? "",
-    notePosition: task.notes?.[0]?.position ?? "bottom",
+    notePosition: "bottom",
   });
   const [value, setValue] = useState(initial);
   const parsedStartDate = task.start?.value ?? effectiveStart;

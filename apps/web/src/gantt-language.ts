@@ -310,7 +310,13 @@ function quickFixesForDiagnostics(
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
     const invalidDuration = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+).+$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
-    const replacement = duplicateTask
+    const unsupportedNotePosition =
+      diagnostic.code === "unsupported-gantt-note-position"
+        ? text.replace(/^(\s*note\s+)(?:top|left|right)/i, "$1bottom")
+        : undefined;
+    const replacement = unsupportedNotePosition
+      ? unsupportedNotePosition
+      : duplicateTask
       ? `${duplicateTask[1]}${duplicateTask[3]}`
       : color
         ? `${color[1]}is colored in ${color[2]}`

@@ -275,7 +275,7 @@ note bottom
 Task details
 end note
 [Build] starts at [Design]'s end
-note right
+note bottom
 Handoff details
 end note
 [Build] lasts 3 days
@@ -285,15 +285,32 @@ end note
     expect(result.document.symbols.tasks.get("design")?.notes).toMatchObject([
       { text: "Task details", position: "bottom" },
     ]);
-    expect(result.document.dependencies[0]?.notes).toMatchObject([{ text: "Handoff details", position: "right" }]);
+    expect(result.document.dependencies[0]?.notes).toMatchObject([{ text: "Handoff details", position: "bottom" }]);
   });
 
   it("attaches shorthand notes to the preceding task", () => {
     const source = '@startgantt\n[Risk ?] happens 2026-09-01\nnote right: Days needed = "?"\n@endgantt';
     const result = parseGantt(source);
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([{ code: "unsupported-gantt-note-position", severity: "error" }]);
     expect(result.document.tasks[0]?.notes).toEqual([
       expect.objectContaining({ position: "right", text: 'Days needed = "?"' }),
+    ]);
+  });
+
+  it("reports nonstandard block note placement in Gantt diagrams", () => {
+    const source = `@startgantt
+[DF Download Report Mismatch with Rialto ONE-1777] is colored in Yellow
+note right
+Duration unknown in source (shown as "?").
+end note
+@endgantt`;
+    const result = parseGantt(source);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "unsupported-gantt-note-position",
+        severity: "error",
+        message: "PlantUML Gantt does not support note right; use note bottom",
+      },
     ]);
   });
 

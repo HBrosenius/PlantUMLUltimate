@@ -256,7 +256,7 @@ export function setNote(
   ownerRange: { from: number; to: number },
   existing: readonly GanttNote[] | undefined,
   textValue: string,
-  position: GanttNote["position"] = "bottom",
+  _position: GanttNote["position"] = "bottom",
 ): MoveTaskResult {
   const text = textValue.trim();
   const note = existing?.[0];
@@ -265,7 +265,7 @@ export function setNote(
   if (/^\s*end\s+note\s*$/im.test(text))
     return { edits: [], unavailableReason: "Note text cannot contain an end note line" };
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
-  const block = `note ${position}${newline}${text.replace(/\r?\n/g, newline)}${newline}end note`;
+  const block = `note bottom${newline}${text.replace(/\r?\n/g, newline)}${newline}end note`;
   if (note) return { edits: [{ range: note.sourceRange, text: block }] };
   return { edits: [{ range: { from: ownerRange.to, to: ownerRange.to }, text: `${newline}${block}` }] };
 }

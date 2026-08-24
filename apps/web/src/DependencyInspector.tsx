@@ -36,7 +36,7 @@ export function DependencyInspector({
     color: dependency.color?.value ?? "",
     lineStyle: dependency.lineStyle?.value ?? "solid",
     note: dependency.notes?.[0]?.text ?? "",
-    notePosition: dependency.notes?.[0]?.position ?? "bottom",
+    notePosition: "bottom",
   });
   const [value, setValue] = useState(initial);
   const colorListId = useId();

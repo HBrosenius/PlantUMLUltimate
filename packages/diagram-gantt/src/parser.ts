@@ -128,6 +128,13 @@ export function parseGantt(source: string): ParseResult {
     const line = sourceLines[index]!;
     const inlineNote = line.text.match(/^\s*note\s+(bottom|top|left|right)\s*:\s*(.+?)\s*$/i);
     if (inlineNote?.[1] && inlineNote[2]) {
+      if (inlineNote[1].toLowerCase() !== "bottom")
+        diagnostics.push({
+          severity: "error",
+          message: `PlantUML Gantt does not support note ${inlineNote[1].toLowerCase()}; use note bottom`,
+          range: { from: line.from, to: line.to },
+          code: "unsupported-gantt-note-position",
+        });
       skippedNoteLines.add(line.from);
       noteBlocks.push({
         text: inlineNote[2],
@@ -138,6 +145,13 @@ export function parseGantt(source: string): ParseResult {
     }
     const noteMatch = line.text.match(/^\s*note\s+(bottom|top|left|right)\s*$/i);
     if (!noteMatch?.[1]) continue;
+    if (noteMatch[1].toLowerCase() !== "bottom")
+      diagnostics.push({
+        severity: "error",
+        message: `PlantUML Gantt does not support note ${noteMatch[1].toLowerCase()}; use note bottom`,
+        range: { from: line.from, to: line.to },
+        code: "unsupported-gantt-note-position",
+      });
     let end = index + 1;
     while (end < sourceLines.length && !/^\s*end\s+note\s*$/i.test(sourceLines[end]!.text)) end += 1;
     if (end >= sourceLines.length) {

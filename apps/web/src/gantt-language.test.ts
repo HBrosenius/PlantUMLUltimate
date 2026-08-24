@@ -67,6 +67,16 @@ describe("Gantt CodeMirror language service", () => {
     expect(diagnostics[0]?.actions?.[0]?.name).toBe("Fix statement");
   });
 
+  it("offers a Confluence-compatible fix for Gantt note placement", () => {
+    const source = '@startgantt\n[A] is colored in Yellow\nnote right: Duration unknown\n@endgantt';
+    expect(ganttQuickFixes(source)).toEqual([
+      expect.objectContaining({
+        replacement: "note bottom: Duration unknown",
+        message: expect.stringContaining("use note bottom"),
+      }),
+    ]);
+  });
+
   it("exposes duplicate task prefixes as persistent quick fixes", () => {
     const source = "@startgantt\n[Build] [Build] starts 2026-09-01\n@endgantt";
     expect(ganttQuickFixes(source)).toEqual([

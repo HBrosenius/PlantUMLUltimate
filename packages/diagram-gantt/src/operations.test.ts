@@ -471,11 +471,11 @@ describe("annotations", () => {
       noted,
       setNote(noted, reparsed.sourceRange, reparsed.notes, "Revised", "right").edits,
     );
-    expect(changed).toContain("note right\nRevised\nend note");
+    expect(changed).toContain("note bottom\nRevised\nend note");
     const changedTask = parseGantt(changed).document.tasks[0]!;
     expect(
       applySourceEdits(changed, setNote(changed, changedTask.sourceRange, changedTask.notes, "").edits),
-    ).not.toContain("note right");
+    ).not.toContain("note bottom");
   });
 
   it("moves a divider before a task or to the end", () => {
@@ -529,7 +529,7 @@ describe("annotations", () => {
 
   it("keeps comments, dividers, and notes intact while reordering a task", () => {
     const source =
-      "@startgantt\n-- Phase --\n' explanation for A\n[A] starts 2026-09-01 and lasts 2 days\nnote right\nKeep this note\nend note\n' separator comment\n[B] starts 2026-09-04 and lasts 2 days\n@endgantt";
+      "@startgantt\n-- Phase --\n' explanation for A\n[A] starts 2026-09-01 and lasts 2 days\nnote bottom\nKeep this note\nend note\n' separator comment\n[B] starts 2026-09-04 and lasts 2 days\n@endgantt";
     const document = parseGantt(source).document;
     const changed = applySourceEdits(
       source,
@@ -537,7 +537,7 @@ describe("annotations", () => {
     );
     expect(changed).toContain("-- Phase --");
     expect(changed).toContain("' explanation for A");
-    expect(changed).toContain("note right\nKeep this note\nend note");
+    expect(changed).toContain("note bottom\nKeep this note\nend note");
     expect(changed).toContain("' separator comment");
     expect(parseGantt(changed).diagnostics, changed).toEqual([]);
   });

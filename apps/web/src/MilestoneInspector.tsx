@@ -37,7 +37,7 @@ export function MilestoneInspector({
       referenceAnchor: relativeAnchor,
       color: milestone.color?.value ?? "",
       note: milestone.notes?.[0]?.text ?? "",
-      notePosition: milestone.notes?.[0]?.position ?? "bottom",
+      notePosition: "bottom",
     };
   };
   const [value, setValue] = useState(initial);
