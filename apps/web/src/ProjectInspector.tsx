@@ -110,7 +110,7 @@ export function ProjectInspector({
                       )
                     }
                   />
-                  {day.slice(0, 3)}
+                  {day.slice(0, 1).toUpperCase() + day.slice(1, 3)}
                 </label>
               );
             })}

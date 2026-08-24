@@ -615,6 +615,9 @@ test("rebuilds the renderer iframe once and explains a repeated bootstrap failur
 test("edits the diagram title from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
   await page.getByRole("button", { name: "Project" }).click();
+  await expect(page.getByRole("group", { name: "Closed weekdays" }).locator("label")).toHaveText([
+    "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
+  ]);
   await page.getByLabel("Diagram title").fill("Release roadmap — 2026");
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("title Release roadmap — 2026");
