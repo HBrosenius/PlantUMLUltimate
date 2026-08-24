@@ -6,11 +6,13 @@ import {
   DEFAULT_WORKSPACE,
   documentDisplayNames,
   createDocumentVersion,
+  deleteDocumentVersion,
   loadDocumentVersions,
   loadWorkspace,
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
+  updateDocumentVersion,
   type WorkspaceSession,
 } from "./workspace-storage";
 import { DEFAULT_SOURCE } from "./model";
@@ -141,5 +143,46 @@ describe("document versions", () => {
     const versions = await loadDocumentVersions("history-a");
     expect(versions).toHaveLength(1);
     expect(versions[0]).toMatchObject({ source: "first", label: "Baseline", pinned: true });
+  });
+
+  it("renames, pins, deletes, and retains only the newest automatic versions", async () => {
+    const historyId = "history-retention";
+    for (let index = 0; index < 32; index += 1) {
+      await createDocumentVersion({
+        historyId,
+        source: `source-${index}`,
+        fileName: "retention.puml",
+        diagramKind: "gantt",
+        reason: "saved",
+        createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+      });
+    }
+    let versions = await loadDocumentVersions(historyId);
+    expect(versions).toHaveLength(30);
+    expect(versions.at(-1)?.source).toBe("source-2");
+
+    const selected = versions.at(-1)!;
+    await updateDocumentVersion(selected.id, { label: "Keep this", pinned: true });
+    await createDocumentVersion({
+      historyId,
+      source: "source-32",
+      fileName: "retention.puml",
+      diagramKind: "gantt",
+      reason: "saved",
+      createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, 32)).toISOString(),
+    });
+    versions = await loadDocumentVersions(historyId);
+    expect(versions).toHaveLength(31);
+    expect(versions.find((version) => version.id === selected.id)).toMatchObject({ label: "Keep this", pinned: true });
+
+    await deleteDocumentVersion(selected.id);
+    expect((await loadDocumentVersions(historyId)).some((version) => version.id === selected.id)).toBe(false);
+  });
+
+  it("reports unavailable persistent version storage clearly", async () => {
+    Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: undefined });
+    await expect(loadDocumentVersions("history-unavailable")).rejects.toThrow(
+      "Persistent storage is unavailable in this browser",
+    );
   });
 });

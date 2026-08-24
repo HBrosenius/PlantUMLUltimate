@@ -55,18 +55,70 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   const dialog = page.getByRole("dialog", { name: "Version history" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Version name").fill("First draft");
+  await dialog.getByLabel("New version name").fill("First draft");
   await dialog.getByRole("button", { name: "Create version" }).click();
-  await expect(dialog.getByRole("button", { name: /First draft/ })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Select version First draft" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.reload();
+  await expect(page.locator(".cm-content")).toBeVisible();
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(dialog.getByRole("button", { name: "Select version First draft" })).toBeVisible();
+  await dialog.getByLabel("Selected version name").fill("Baseline");
+  await dialog.getByRole("button", { name: "Save name" }).click();
+  await expect(dialog.getByRole("button", { name: "Select version Baseline" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Unpin", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Pin", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Pin", exact: true }).click();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   await setSource(page, second);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByRole("table", { name: "Source differences" })).toContainText("[B] lasts 4 days");
+  await dialog.getByRole("button", { name: "Rendered", exact: true }).click();
+  await expect(dialog.getByLabel("Rendered differences").locator("svg")).toHaveCount(2, { timeout: 20_000 });
+  await dialog.getByRole("button", { name: "Source", exact: true }).click();
+  await dialog.getByLabel("New version name").fill("Discard me");
+  await dialog.getByRole("button", { name: "Create version" }).click();
+  await dialog.getByRole("button", { name: "Select version Discard me" }).click();
+  page.once("dialog", (confirmation) => void confirmation.accept());
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Select version Discard me" })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Select version Baseline" }).click();
+  await dialog.getByLabel("Changes only").check();
+  await expect(dialog.getByRole("table", { name: "Source differences" })).not.toContainText("Project starts 2026-09-01");
   await dialog.getByRole("button", { name: "Restore this version" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 2 days");
   await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 4 days");
+});
+
+test("starts a new version lineage after Save As", async ({ page }) => {
+  await setSource(page, source("[Original lineage] lasts 2 days"));
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Old lineage");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+  await page.evaluate(() => {
+    Object.defineProperty(window, "showSaveFilePicker", {
+      configurable: true,
+      value: async () => ({
+        name: "forked-plan.puml",
+        createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
+      }),
+    });
+  });
+
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Save As…" }).click();
+  await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.puml");
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(history.getByRole("button", { name: "Select version Saved as new file" })).toBeVisible();
+  await expect(history.getByRole("button", { name: "Select version Old lineage" })).toHaveCount(0);
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {
@@ -484,6 +536,12 @@ test("copies the current source from the code editor", async ({ page, context, b
 test("backs up and restores all open documents", async ({ page }) => {
   const original = source("[Backup target] lasts 2 days");
   await setSource(page, original);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Backup checkpoint");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "New document tab" }).click();
   await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, source("[Second tab] lasts 3 days"));
@@ -508,6 +566,10 @@ test("backs up and restores all open documents", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Restore workspace…" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Second tab] lasts 3 days");
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(2);
+  await page.locator(".document-tabs > button:not(.new-tab)").first().click();
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(history.getByRole("button", { name: "Select version Backup checkpoint" })).toBeVisible();
 });
 
 test("protects dirty tabs from browser unload", async ({ page }) => {

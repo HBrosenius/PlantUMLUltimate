@@ -141,6 +141,12 @@ export function usePersistedWorkspace() {
     [],
   );
   const restoreSession = useCallback((next: WorkspaceSession) => setSession(normalizeSession(next)), []);
+  const setDocumentHistoryId = useCallback((id: string, historyId: string) => {
+    setSession((current) => ({
+      ...current,
+      documents: current.documents.map((document) => document.id === id ? { ...document, historyId } : document),
+    }));
+  }, []);
 
   const controls = useMemo(
     () => ({
@@ -153,6 +159,7 @@ export function usePersistedWorkspace() {
       closeOtherDocuments,
       reorderDocument,
       restoreSession,
+      setDocumentHistoryId,
       session,
     }),
     [
@@ -163,6 +170,7 @@ export function usePersistedWorkspace() {
       duplicateDocument,
       reorderDocument,
       restoreSession,
+      setDocumentHistoryId,
       session,
     ],
   );

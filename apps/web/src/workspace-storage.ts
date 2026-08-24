@@ -70,6 +70,7 @@ const STORE = "workspace";
 const VERSION_STORE = "document-versions";
 const CURRENT = "current";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
+export const AUTOMATIC_VERSION_LIMIT = 30;
 
 export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
   if (!value || typeof value !== "object") return DEFAULT_WORKSPACE;
@@ -182,6 +183,7 @@ export function documentDisplayNames(
 }
 
 function openDatabase(): Promise<IDBDatabase> {
+  if (!globalThis.indexedDB) return Promise.reject(new Error("Persistent storage is unavailable in this browser"));
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE, 2);
     request.onupgradeneeded = () => {
@@ -279,7 +281,72 @@ export async function createDocumentVersion(
     transaction.onerror = () => reject(transaction.error);
   });
   database.close();
+  await pruneDocumentVersions(input.historyId);
   return version;
+}
+
+export async function updateDocumentVersion(
+  id: string,
+  patch: { label?: string; pinned?: boolean },
+): Promise<DocumentVersion> {
+  const database = await openDatabase();
+  const version = await new Promise<DocumentVersion>((resolve, reject) => {
+    const transaction = database.transaction(VERSION_STORE, "readwrite");
+    const store = transaction.objectStore(VERSION_STORE);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      const current = request.result as DocumentVersion | undefined;
+      if (!current) {
+        reject(new Error("Document version not found"));
+        return;
+      }
+      const label = patch.label?.trim();
+      const next: DocumentVersion = {
+        ...current,
+        ...(patch.pinned !== undefined ? { pinned: patch.pinned } : {}),
+      };
+      if (patch.label !== undefined) {
+        if (label) next.label = label;
+        else delete next.label;
+      }
+      store.put(next);
+      resolve(next);
+    };
+    request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+  return version;
+}
+
+export async function deleteDocumentVersion(id: string): Promise<void> {
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(VERSION_STORE, "readwrite");
+    transaction.objectStore(VERSION_STORE).delete(id);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
+
+export async function pruneDocumentVersions(
+  historyId: string,
+  limit = AUTOMATIC_VERSION_LIMIT,
+): Promise<number> {
+  const versions = await loadDocumentVersions(historyId);
+  const expired = versions.filter((version) => !version.pinned).slice(Math.max(0, limit));
+  if (!expired.length) return 0;
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(VERSION_STORE, "readwrite");
+    const store = transaction.objectStore(VERSION_STORE);
+    expired.forEach((version) => store.delete(version.id));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+  return expired.length;
 }
 
 export async function importDocumentVersions(versions: readonly DocumentVersion[]): Promise<void> {

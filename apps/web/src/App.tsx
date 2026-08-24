@@ -41,9 +41,11 @@ import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import {
   createDocumentVersion,
+  deleteDocumentVersion,
   documentDisplayNames,
   importDocumentVersions,
   loadDocumentVersions,
+  updateDocumentVersion,
   type DocumentVersion,
   type DocumentVersionReason,
 } from "./workspace-storage";
@@ -855,13 +857,42 @@ export function App() {
       if (!saved) return;
       if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
       else fileHandles.current.delete(tabs.activeId);
+      const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      tabs.setDocumentHistoryId(tabs.activeId, historyId);
       setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
-      await recordDocumentVersion("saved", undefined, { fileName: saved.fileName });
+      await recordDocumentVersion("saved", "Saved as new file", { historyId, fileName: saved.fileName });
       setInteractionMessage(`Saved ${saved.fileName}`);
     } catch (error) {
       reportFileError(error);
     }
-  }, [recordDocumentVersion, reportFileError, setWorkspace, tabs.activeId, workspace.fileName, workspace.source]);
+  }, [recordDocumentVersion, reportFileError, setWorkspace, tabs, workspace.fileName, workspace.source]);
+
+  const editDocumentVersion = useCallback(
+    async (version: DocumentVersion, patch: { label?: string; pinned?: boolean }) => {
+      try {
+        await updateDocumentVersion(version.id, patch);
+        setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
+        setInteractionMessage("Updated document version");
+      } catch (error) {
+        reportFileError(error);
+      }
+    },
+    [activeDocument.historyId, reportFileError],
+  );
+
+  const removeDocumentVersion = useCallback(
+    async (version: DocumentVersion) => {
+      if (!window.confirm(`Delete version “${version.label || new Date(version.createdAt).toLocaleString()}”?`)) return;
+      try {
+        await deleteDocumentVersion(version.id);
+        setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
+        setInteractionMessage("Deleted document version");
+      } catch (error) {
+        reportFileError(error);
+      }
+    },
+    [activeDocument.historyId, reportFileError],
+  );
 
   const saveDocument = useCallback(async () => {
     const handle = fileHandles.current.get(tabs.activeId);
@@ -2120,6 +2151,8 @@ export function App() {
             setInteractionMessage("Created document version");
           }}
           onRestore={restoreDocumentVersion}
+          onUpdate={editDocumentVersion}
+          onDelete={removeDocumentVersion}
           onClose={() => setVersionHistoryOpen(false)}
         />
       )}
