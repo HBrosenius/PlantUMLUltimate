@@ -63,6 +63,7 @@ export function usePersistedWorkspace() {
     const id = `document-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const document: DocumentSnapshot = {
       id,
+      historyId: input?.historyId ?? `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       diagramKind: input?.diagramKind ?? DEFAULT_SESSION.documents[0]!.diagramKind,
       source: input?.source ?? DEFAULT_SESSION.documents[0]!.source,
       fileName: input?.fileName ?? "untitled.puml",
@@ -102,7 +103,13 @@ export function usePersistedWorkspace() {
       const index = current.documents.findIndex((item) => item.id === id);
       if (index < 0) return current;
       const original = current.documents[index]!;
-      const copy: DocumentSnapshot = { ...original, id: nextId, fileName: `Copy of ${original.fileName}`, dirty: true };
+      const copy: DocumentSnapshot = {
+        ...original,
+        id: nextId,
+        historyId: `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        fileName: `Copy of ${original.fileName}`,
+        dirty: true,
+      };
       const documents = [...current.documents];
       documents.splice(index + 1, 0, copy);
       return { ...current, documents, activeDocumentId: nextId };

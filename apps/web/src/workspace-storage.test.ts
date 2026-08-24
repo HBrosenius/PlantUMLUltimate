@@ -5,6 +5,8 @@ import {
   DEFAULT_SESSION,
   DEFAULT_WORKSPACE,
   documentDisplayNames,
+  createDocumentVersion,
+  loadDocumentVersions,
   loadWorkspace,
   normalizeSession,
   normalizeWorkspace,
@@ -52,7 +54,7 @@ describe("normalizeSession", () => {
 
   it("restores multiple documents and a valid active tab", () => {
     const session = normalizeSession({
-      version: 3,
+      version: 4,
       documents: [
         { id: "a", source: "A", fileName: "a.puml" },
         { id: "b", source: "B", fileName: "b.puml" },
@@ -79,7 +81,7 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 3,
+      version: 4,
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,
@@ -87,6 +89,7 @@ describe("workspace persistence", () => {
       documents: [
         {
           id: "first",
+          historyId: "history-first",
           diagramKind: "gantt",
           source: "@startgantt\n[A] lasts 2 days\n@endgantt",
           fileName: "first.puml",
@@ -96,6 +99,7 @@ describe("workspace persistence", () => {
         },
         {
           id: "second",
+          historyId: "history-second",
           diagramKind: "gantt",
           source: "@startgantt\n[B] lasts 3 days\n@endgantt",
           fileName: "second.puml",
@@ -107,5 +111,35 @@ describe("workspace persistence", () => {
     };
     await saveWorkspace(session);
     await expect(loadWorkspace()).resolves.toEqual(session);
+  });
+});
+
+describe("document versions", () => {
+  it("persists versions by history and promotes duplicate manual checkpoints", async () => {
+    await createDocumentVersion({
+      historyId: "history-a",
+      source: "first",
+      fileName: "a.puml",
+      diagramKind: "gantt",
+      reason: "opened",
+    });
+    await createDocumentVersion({
+      historyId: "history-a",
+      source: "first",
+      fileName: "a.puml",
+      diagramKind: "gantt",
+      reason: "manual",
+      label: "Baseline",
+    });
+    await createDocumentVersion({
+      historyId: "history-b",
+      source: "other",
+      fileName: "b.puml",
+      diagramKind: "gantt",
+      reason: "saved",
+    });
+    const versions = await loadDocumentVersions("history-a");
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({ source: "first", label: "Baseline", pinned: true });
   });
 });

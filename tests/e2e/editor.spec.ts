@@ -34,6 +34,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Open…",
     "Save",
     "Save As…",
+    "Version history…",
     "Backup workspace…",
     "Restore workspace…",
     "Export›",
@@ -44,6 +45,28 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(file).toBeFocused();
+});
+
+test("creates, compares, and restores durable document versions", async ({ page }) => {
+  const first = source("[A] lasts 2 days");
+  const second = source("[B] lasts 4 days");
+  await setSource(page, first);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Version name").fill("First draft");
+  await dialog.getByRole("button", { name: "Create version" }).click();
+  await expect(dialog.getByRole("button", { name: /First draft/ })).toBeVisible();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  await setSource(page, second);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(dialog.getByRole("table", { name: "Source differences" })).toContainText("[B] lasts 4 days");
+  await dialog.getByRole("button", { name: "Restore this version" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[A] lasts 2 days");
+  await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 4 days");
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {

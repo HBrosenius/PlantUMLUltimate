@@ -20,6 +20,7 @@ import { HelpDialog } from "./HelpDialog";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
@@ -38,7 +39,14 @@ import { parseProjectSettings, updateProjectSettings } from "./project-settings"
 import type { DiagramKind, Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
-import { documentDisplayNames } from "./workspace-storage";
+import {
+  createDocumentVersion,
+  documentDisplayNames,
+  importDocumentVersions,
+  loadDocumentVersions,
+  type DocumentVersion,
+  type DocumentVersionReason,
+} from "./workspace-storage";
 import {
   applySourceEdits,
   deleteTask,
@@ -97,7 +105,7 @@ import { validateGeneratedSource } from "./generated-source-validation";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useResourceCapacities } from "./use-resource-capacities";
-import { parseWorkspaceBackup, serializeWorkspaceBackup } from "./workspace-backup";
+import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
 
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
@@ -125,6 +133,8 @@ export function App() {
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
   const [dateMenuFor, setDateMenuFor] = useState<string>();
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
   const [resourceFilter, setResourceFilter] = useState("");
@@ -150,6 +160,7 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
+  const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const selectedSequenceParticipant = sequenceDocument.participants.find(
     (item) => item.id === selectedSequenceParticipantId,
@@ -771,11 +782,51 @@ export function App() {
     setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
   }, []);
 
+  const recordDocumentVersion = useCallback(
+    async (
+      reason: DocumentVersionReason,
+      label?: string,
+      override?: { historyId?: string; source?: string; fileName?: string; diagramKind?: DiagramKind },
+    ) => {
+      const historyId = override?.historyId ?? activeDocument.historyId;
+      const existing = await loadDocumentVersions(historyId);
+      const version = await createDocumentVersion({
+        historyId,
+        ...(existing[0] ? { parentVersionId: existing[0].id } : {}),
+        source: override?.source ?? workspace.source,
+        fileName: override?.fileName ?? workspace.fileName,
+        diagramKind: override?.diagramKind ?? workspace.diagramKind,
+        reason,
+        ...(label?.trim() ? { label: label.trim() } : {}),
+        pinned: reason === "manual" || reason === "before-restore",
+      });
+      setDocumentVersions(await loadDocumentVersions(historyId));
+      return version;
+    },
+    [activeDocument.historyId, workspace.diagramKind, workspace.fileName, workspace.source],
+  );
+
+  const openVersionHistory = useCallback(async () => {
+    try {
+      let versions = await loadDocumentVersions(activeDocument.historyId);
+      if (!versions.length) {
+        await recordDocumentVersion("opened", "Initial version");
+        versions = await loadDocumentVersions(activeDocument.historyId);
+      }
+      setDocumentVersions(versions);
+      setVersionHistoryOpen(true);
+    } catch (error) {
+      reportFileError(error);
+    }
+  }, [activeDocument.historyId, recordDocumentVersion, reportFileError]);
+
   const openDocument = useCallback(async () => {
     try {
       const opened = await openPlantUmlDocument();
       if (!opened) return;
+      const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const id = tabs.addDocument({
+        historyId,
         diagramKind: detectDiagramKind(opened.source) ?? "gantt",
         source: opened.source,
         fileName: opened.fileName,
@@ -783,6 +834,12 @@ export function App() {
         cursor: { line: 1, column: 1 },
       });
       if (opened.handle) fileHandles.current.set(id, opened.handle);
+      await recordDocumentVersion("opened", "Opened file", {
+        historyId,
+        source: opened.source,
+        fileName: opened.fileName,
+        diagramKind: detectDiagramKind(opened.source) ?? "gantt",
+      });
       refreshHistoryControls();
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
@@ -790,7 +847,7 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [refreshHistoryControls, reportFileError, tabs]);
+  }, [recordDocumentVersion, refreshHistoryControls, reportFileError, tabs]);
 
   const saveDocumentAs = useCallback(async () => {
     try {
@@ -799,11 +856,12 @@ export function App() {
       if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
       else fileHandles.current.delete(tabs.activeId);
       setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
+      await recordDocumentVersion("saved", undefined, { fileName: saved.fileName });
       setInteractionMessage(`Saved ${saved.fileName}`);
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, setWorkspace, tabs.activeId, workspace.fileName, workspace.source]);
+  }, [recordDocumentVersion, reportFileError, setWorkspace, tabs.activeId, workspace.fileName, workspace.source]);
 
   const saveDocument = useCallback(async () => {
     const handle = fileHandles.current.get(tabs.activeId);
@@ -814,41 +872,62 @@ export function App() {
     try {
       await writePlantUmlDocument(handle, workspace.source);
       setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
+      await recordDocumentVersion("saved", undefined, { fileName: handle.name });
       setInteractionMessage(`Saved ${handle.name}`);
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, saveDocumentAs, setWorkspace, tabs.activeId, workspace.source]);
+  }, [recordDocumentVersion, reportFileError, saveDocumentAs, setWorkspace, tabs.activeId, workspace.source]);
+
+  const restoreDocumentVersion = useCallback(
+    async (version: DocumentVersion) => {
+      try {
+        await recordDocumentVersion("before-restore", "Before restore");
+        commitSource(version.source, `Restore version from ${new Date(version.createdAt).toLocaleString()}`);
+        setInteractionMessage(`Restored ${version.label || new Date(version.createdAt).toLocaleString()}`);
+        setVersionHistoryOpen(false);
+      } catch (error) {
+        reportFileError(error);
+      }
+    },
+    [commitSource, recordDocumentVersion, reportFileError],
+  );
 
   const exportSource = useCallback(
     () => downloadText(workspace.source, workspace.fileName, "text/plain;charset=utf-8"),
     [workspace.fileName, workspace.source],
   );
-  const backupWorkspace = useCallback(() => {
-    downloadText(
-      serializeWorkspaceBackup(tabs.session),
-      "plantuml-studio-backup.json",
-      "application/json;charset=utf-8",
-    );
-    setInteractionMessage(`Backed up ${tabs.documents.length} open document${tabs.documents.length === 1 ? "" : "s"}`);
-  }, [tabs.documents.length, tabs.session]);
+  const backupWorkspace = useCallback(async () => {
+    try {
+      const versions = (await Promise.all(tabs.documents.map((document) => loadDocumentVersions(document.historyId)))).flat();
+      downloadText(
+        serializeWorkspaceBackup(tabs.session, versions),
+        "plantuml-studio-backup.json",
+        "application/json;charset=utf-8",
+      );
+      setInteractionMessage(`Backed up ${tabs.documents.length} open document${tabs.documents.length === 1 ? "" : "s"}`);
+    } catch (error) {
+      reportFileError(error);
+    }
+  }, [reportFileError, tabs.documents, tabs.session]);
   const restoreWorkspace = useCallback(async () => {
     try {
       const contents = await openWorkspaceBackupFile();
       if (!contents) return;
-      const restored = parseWorkspaceBackup(contents);
+      const restored = parseWorkspaceBackupBundle(contents);
       if (
         tabs.documents.some((document) => document.dirty) &&
         !window.confirm("Restore this backup and replace all currently open tabs?")
       )
         return;
-      tabs.restoreSession(restored);
+      tabs.restoreSession(restored.session);
+      await importDocumentVersions(restored.versions);
       fileHandles.current.clear();
-      retainHistories(restored.documents.map((document) => document.id));
+      retainHistories(restored.session.documents.map((document) => document.id));
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       setInteractionMessage(
-        `Restored ${restored.documents.length} document${restored.documents.length === 1 ? "" : "s"}`,
+        `Restored ${restored.session.documents.length} document${restored.session.documents.length === 1 ? "" : "s"}`,
       );
     } catch (error) {
       reportFileError(error);
@@ -1619,6 +1698,7 @@ export function App() {
             onOpen={() => void openDocument()}
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
+            onVersionHistory={() => void openVersionHistory()}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
             onExportSource={exportSource}
@@ -2029,6 +2109,18 @@ export function App() {
           onMarkClosed={() => applyTimelineDateClosed(dateMenuFor)}
           onClear={() => clearTimelineDateSetting(dateMenuFor)}
           onClose={() => setDateMenuFor(undefined)}
+        />
+      )}
+      {versionHistoryOpen && (
+        <VersionHistoryDialog
+          versions={documentVersions}
+          currentSource={workspace.source}
+          onCreate={async (label) => {
+            await recordDocumentVersion("manual", label || "Manual version");
+            setInteractionMessage("Created document version");
+          }}
+          onRestore={restoreDocumentVersion}
+          onClose={() => setVersionHistoryOpen(false)}
         />
       )}
       {highlightDate && (

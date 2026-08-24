@@ -6,6 +6,7 @@ export function FileMenu({
   onOpen,
   onSave,
   onSaveAs,
+  onVersionHistory,
   onBackup,
   onRestore,
   onExportSource,
@@ -17,6 +18,7 @@ export function FileMenu({
   onOpen(): void;
   onSave(): void;
   onSaveAs(): void;
+  onVersionHistory(): void;
   onBackup(): void;
   onRestore(): void;
   onExportSource(): void;
@@ -108,6 +110,9 @@ export function FileMenu({
           </button>
           <button role="menuitem" onClick={() => run(onSaveAs)}>
             Save As…
+          </button>
+          <button role="menuitem" onClick={() => run(onVersionHistory)}>
+            Version history…
           </button>
           <span className="menu-separator" role="separator" />
           <button role="menuitem" onClick={() => run(onBackup)}>
