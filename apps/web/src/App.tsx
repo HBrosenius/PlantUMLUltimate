@@ -360,7 +360,7 @@ export function App() {
       if (
         target instanceof Element &&
         target.closest(
-          "[data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
+          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint]",
         )
       )
         return;
@@ -1753,11 +1753,11 @@ export function App() {
           />
           {workspace.diagramKind === "gantt" && (
             <>
-              <button onClick={openProjectInspector}>Project</button>
-              <button onClick={openResourcePanel}>Resources</button>
+              <button data-inspector-trigger onClick={openProjectInspector}>Project</button>
+              <button data-inspector-trigger onClick={openResourcePanel}>Resources</button>
             </>
           )}
-          {workspace.diagramKind === "sequence" && <button onClick={() => setSequenceSettingsOpen(true)}>Sequence</button>}
+          {workspace.diagramKind === "sequence" && <button data-inspector-trigger onClick={() => setSequenceSettingsOpen(true)}>Sequence</button>}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
           </button>
