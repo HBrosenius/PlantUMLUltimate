@@ -56,16 +56,27 @@ export function resolveTaskDates(
     }
     return value;
   };
+  const workingStart = (end: string, days: number, pauses: readonly string[]) => {
+    let value = end;
+    let remaining = Math.max(0, days);
+    const paused = new Set(pauses);
+    while (remaining > 0) {
+      if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
+      if (remaining > 0) value = shiftDate(value, -1)!;
+    }
+    return value;
+  };
   const solve = (task: GanttTask): ResolvedTaskDates => {
     const cached = resolved.get(task.id);
     if (cached) return cached;
     if (visiting.has(task.id)) return { derived: true };
     visiting.add(task.id);
     let start = task.start ? resolveDateExpression(task.start.value, projectStart) : undefined;
-    const derived = !start;
-    if (!start) {
-      const dependency = dependencies.find((item) => item.successorTaskId === task.id);
-      if (dependency) {
+    let end = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
+    const derived = !start || !end;
+    const dependency = dependencies.find((item) => item.successorTaskId === task.id);
+    let dependencyAnchor: string | undefined;
+    if (dependency) {
         const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
         const predecessorDates = predecessor ? solve(predecessor) : undefined;
         const anchor =
@@ -74,20 +85,24 @@ export function resolveTaskDates(
             : predecessorDates?.end;
         if (anchor) {
           const direction = dependency.direction === "before" ? -1 : 1;
-          start = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+          dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
         }
-      }
-      start ??= projectStart;
     }
     const duration = taskElapsedDays(task);
-    const explicitEnd = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
-    const end = explicitEnd
-      ? explicitEnd
+    const pauses = (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value);
+    if (!start && dependency && dependency.relation.startsWith("start-")) start = dependencyAnchor;
+    if (!end && dependency && dependency.relation.startsWith("end-")) end = dependencyAnchor;
+    if (!start && end && duration) start = workingStart(end, duration, pauses);
+    if (!start) {
+      start ??= projectStart;
+    }
+    end = end
+      ? end
       : start && duration
         ? workingEnd(
             start,
             duration,
-            (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value),
+            pauses,
           )
         : undefined;
     const value = { ...(start ? { start } : {}), ...(end ? { end } : {}), derived };

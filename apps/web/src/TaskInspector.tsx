@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { GanttTask } from "@plantuml-studio/diagram-gantt";
+import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
 
@@ -15,6 +15,7 @@ export interface TaskInspectorValue {
   links: Array<{ id: string; url: string; label: string }>;
   sameRowTaskId: string;
   predecessorId: string;
+  dependencyRelation: GanttDependency["relation"];
   resources: Array<{ id: string; name: string; allocation: string }>;
   note: string;
   notePosition: "bottom" | "top" | "left" | "right";
@@ -24,7 +25,9 @@ export function TaskInspector({
   task,
   tasks,
   predecessorId,
+  dependencyRelation,
   effectiveStart,
+  effectiveEnd,
   calendar,
   resourceNames,
   conflicts,
@@ -36,7 +39,9 @@ export function TaskInspector({
   task: GanttTask;
   tasks: readonly GanttTask[];
   predecessorId: string;
+  dependencyRelation: GanttDependency["relation"];
   effectiveStart: string;
+  effectiveEnd: string;
   calendar: GanttCalendar;
   resourceNames: readonly string[];
   conflicts: readonly string[];
@@ -51,7 +56,7 @@ export function TaskInspector({
   const initial = (): TaskInspectorValue => ({
     label: task.label,
     startDate: task.start?.value ?? effectiveStart,
-    endDate: task.end?.value ?? "",
+    endDate: task.end?.value ?? (dependencyRelation.startsWith("end-") ? effectiveEnd : ""),
     duration: task.duration ? String(task.duration.value) : "",
     durationUnit: task.duration?.unit ?? "day",
     completion: task.completion ? String(task.completion.value) : "",
@@ -60,6 +65,7 @@ export function TaskInspector({
     links: (task.links ?? []).map((link, index) => ({ id: `link-${index}`, url: link.url, label: link.label ?? "" })),
     sameRowTaskId: task.sameRowTaskId ?? "",
     predecessorId,
+    dependencyRelation,
     resources: (task.resources ?? []).map((item, index) => ({
       id: `${task.id}-${index}`,
       name: item.value,
@@ -70,7 +76,7 @@ export function TaskInspector({
   });
   const [value, setValue] = useState(initial);
   const parsedStartDate = task.start?.value ?? effectiveStart;
-  const parsedEndDate = task.end?.value ?? "";
+  const parsedEndDate = task.end?.value ?? (dependencyRelation.startsWith("end-") ? effectiveEnd : "");
   const parsedDuration = task.duration ? String(task.duration.value) : "";
   const parsedDurationUnit = task.duration?.unit ?? "day";
   useEffect(() => {
@@ -89,6 +95,29 @@ export function TaskInspector({
     note.focus();
     note.setSelectionRange(note.value.length, note.value.length);
   }, [focusNote]);
+  const lastAppliedValue = useRef(JSON.stringify(value));
+  useEffect(() => {
+    const serialized = JSON.stringify(value);
+    if (serialized === lastAppliedValue.current) return;
+    const duration = value.duration === "" ? undefined : Number(value.duration);
+    const completion = value.completion === "" ? undefined : Number(value.completion);
+    const validResources = value.resources.every((resource) => {
+      const allocation = Number(resource.allocation);
+      return resource.name.trim() && Number.isInteger(allocation) && allocation >= 1 && allocation <= 100;
+    });
+    if (
+      !value.label.trim() ||
+      (duration !== undefined && (!Number.isInteger(duration) || duration < 1)) ||
+      (completion !== undefined && (!Number.isInteger(completion) || completion < 0 || completion > 100)) ||
+      !validResources
+    )
+      return;
+    const timer = window.setTimeout(() => {
+      lastAppliedValue.current = serialized;
+      onApply(value);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [onApply, value]);
   const update = <K extends keyof TaskInspectorValue>(key: K, next: TaskInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   const conversionStart = value.startDate || effectiveStart;
@@ -107,19 +136,18 @@ export function TaskInspector({
           ×
         </button>
       </header>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onApply(value);
-        }}
-      >
+      <form onSubmit={(event) => event.preventDefault()}>
         <label>
           Name
           <input required value={value.label} onChange={(event) => update("label", event.target.value)} />
         </label>
         <label>
-          Starts after
-          <select value={value.predecessorId} onChange={(event) => update("predecessorId", event.target.value)}>
+          Linked task
+          <select
+            aria-label="Linked task"
+            value={value.predecessorId}
+            onChange={(event) => update("predecessorId", event.target.value)}
+          >
             <option value="">No dependency</option>
             {tasks
               .filter((item) => item.id !== task.id)
@@ -128,6 +156,21 @@ export function TaskInspector({
                   {item.label}
                 </option>
               ))}
+          </select>
+        </label>
+        <label>
+          Relationship
+          <select
+            aria-label="Relationship"
+            value={value.dependencyRelation}
+            onChange={(event) =>
+              update("dependencyRelation", event.target.value as GanttDependency["relation"])
+            }
+          >
+            <option value="start-after-end">Starts at linked task's end</option>
+            <option value="start-after-start">Starts at linked task's start</option>
+            <option value="end-after-end">Ends at linked task's end</option>
+            <option value="end-after-start">Ends at linked task's start</option>
           </select>
         </label>
         <label>
@@ -141,6 +184,9 @@ export function TaskInspector({
           End
           <input type="date" value={value.endDate} onChange={(event) => update("endDate", event.target.value)} />
         </label>
+        {value.predecessorId && value.dependencyRelation.startsWith("end-") && value.endDate === effectiveEnd && (
+          <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
+        )}
         <div className="schedule-conversion" role="group" aria-label="Convert task schedule">
           <button
             type="button"
@@ -333,12 +379,10 @@ export function TaskInspector({
         <p className={`resource-status${conflicts.length ? " conflict" : ""}`}>
           {conflicts.length ? `⚠ Overlaps: ${conflicts.join(", ")}` : "No detected resource conflicts"}
         </p>
+        <p className="calculated-hint">Changes are saved automatically.</p>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete
-          </button>
-          <button type="submit" className="primary">
-            Apply
           </button>
         </div>
       </form>

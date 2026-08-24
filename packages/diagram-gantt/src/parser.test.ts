@@ -60,6 +60,49 @@ Project starts 2026-09-01
     expect(result.document.projectStart?.resolved).toBe(true);
   });
 
+  it("classifies end-linked task declarations as end declarations", () => {
+    const result = parseGantt(
+      "@startgantt\n[A] lasts 2 days\n[B] lasts 2 days\n[B] ends at [A]'s end\n@endgantt",
+    );
+    expect(result.document.dependencies[0]?.relation).toBe("end-after-end");
+    expect(result.document.symbols.tasks.get("b")?.declarations).toContainEqual(
+      expect.objectContaining({ kind: "end" }),
+    );
+  });
+
+  it("parses task relationships embedded in compound task declarations", () => {
+    const source = `@startgantt
+[Prototype design] lasts 13 days and is colored in Lavender/LightBlue
+[Test prototype] lasts 9 days and is colored in Coral/Green and starts 3 days after [Prototype design]'s end
+[Write tests] lasts 5 days and ends at [Prototype design]'s end
+[Hire tests writers] lasts 6 days and ends at [Write tests]'s start
+[Init and write tests report] is colored in Coral/Green
+[Init and write tests report] starts 1 day before [Test prototype]'s start and ends at [Test prototype]'s end
+@endgantt`;
+    const result = parseGantt(source);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.document.dependencies).toHaveLength(5);
+    expect(result.document.dependencies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          predecessorTaskId: "prototype design",
+          successorTaskId: "write tests",
+          relation: "end-after-end",
+        }),
+        expect.objectContaining({
+          predecessorTaskId: "test prototype",
+          successorTaskId: "init and write tests report",
+          relation: "start-after-start",
+          direction: "before",
+          offset: expect.objectContaining({ value: 1 }),
+        }),
+      ]),
+    );
+    expect(result.document.symbols.tasks.get("write tests")?.declarations).toContainEqual(
+      expect.objectContaining({ kind: "end", inline: true }),
+    );
+  });
+
   it("accepts named, hexadecimal, and British-spelled task colors", () => {
     const source =
       "@startgantt\n[One] is colored in Orange\n[Two] is colored in #22c55e\n[Three] is coloured in LightBlue\n@endgantt";

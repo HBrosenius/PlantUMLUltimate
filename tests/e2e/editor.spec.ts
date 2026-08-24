@@ -993,6 +993,49 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   );
 });
 
+test("edits an end-to-end task relationship from the task inspector", async ({ page }) => {
+  await setSource(
+    page,
+    source("[A] starts 2026-09-01\n[A] lasts 5 days\n[B] lasts 3 days\n[B] starts at [A]'s end"),
+  );
+  await page.locator('[data-task-id="b"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Linked task")).toHaveValue("a");
+  await inspector.getByLabel("Relationship").selectOption("end-after-end");
+  await expect(page.locator(".cm-content")).toContainText("[B] ends at [A]'s end");
+  await expect(page.locator(".cm-content")).not.toContainText("[B] starts at [A]'s end");
+
+  await page.locator('[data-task-id="b"] .bar').click();
+  await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Relationship")).toHaveValue(
+    "end-after-end",
+  );
+});
+
+test("shows an existing end-linked relationship in the task inspector", async ({ page }) => {
+  await setSource(
+    page,
+    source(
+      "[Prototype design] lasts 13 days and is colored in Lavender/LightBlue\n[Write tests] lasts 5 days and ends at [Prototype design]'s end\n[Hire tests writers] lasts 6 days and ends at [Write tests]'s start",
+    ),
+  );
+  await page.locator('[data-task-id="write tests"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Linked task")).toHaveValue("prototype design");
+  await expect(inspector.getByLabel("Relationship")).toBeEnabled();
+  await expect(inspector.getByLabel("Relationship")).toHaveValue("end-after-end");
+});
+
+test("keeps the relationship choice available before selecting a linked task", async ({ page }) => {
+  await setSource(page, source("[A] lasts 2 days\n[B] lasts 2 days"));
+  await page.locator('[data-task-id="b"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Linked task")).toHaveValue("");
+  await expect(inspector.getByLabel("Relationship")).toBeEnabled();
+  await inspector.getByLabel("Relationship").selectOption("end-after-end");
+  await inspector.getByLabel("Linked task").selectOption("a");
+  await expect(page.locator(".cm-content")).toContainText("[B] ends at [A]'s end");
+});
+
 test("keeps resource capacities isolated between document tabs", async ({ page }) => {
   const firstSource = source("[A] on {Kalle:100%} starts 2026-09-01\n[A] lasts 2 days");
   await setSource(page, firstSource);
@@ -1046,6 +1089,32 @@ test("shows allocation-adjusted dates in the task hover card", async ({ page }) 
   await expect(card).toContainText("Kalle 75%");
 });
 
+test("autosaves task inspector text fields without an Apply button", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 2 days"));
+  await page.locator('[data-task-id="build"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByRole("button", { name: "Apply" })).toHaveCount(0);
+  await inspector.getByLabel("Color").fill("Orange");
+  await expect(page.locator(".cm-content")).toContainText("[Build] is colored in Orange");
+  await expect(inspector).toBeVisible();
+  await inspector.getByLabel("Name").fill("Compile");
+  await expect(page.locator(".cm-content")).toContainText("[Compile] is colored in Orange");
+});
+
+test("closes inspectors on any outside click and switches directly to another task", async ({ page }) => {
+  await setSource(page, source("[A] lasts 2 days\n[B] lasts 2 days"));
+  await page.locator('[data-task-id="a"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Name")).toHaveValue("A");
+  await page.getByRole("button", { name: "Help" }).click();
+  await expect(inspector).toHaveCount(0);
+  await page.getByRole("button", { name: "Close help" }).click();
+
+  await page.locator('[data-task-id="a"] .bar').click();
+  await page.locator('[data-task-id="b"] .bar').click();
+  await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue("B");
+});
+
 test("renders task and dependency notes at the same time", async ({ page }) => {
   await setSource(
     page,
@@ -1078,7 +1147,6 @@ test("converts task end dates and durations in both directions", async ({ page }
   await inspector.getByRole("button", { name: "End → duration" }).click();
   await expect(inspector.getByRole("textbox", { name: "End", exact: true })).toHaveValue("");
   await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).toHaveValue("3");
-  await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
   await expect(page.locator(".cm-content")).not.toContainText("ends 2026-09-08");
 
@@ -1086,7 +1154,6 @@ test("converts task end dates and durations in both directions", async ({ page }
   await inspector.getByRole("button", { name: "Duration → end" }).click();
   await expect(inspector.getByRole("textbox", { name: "End", exact: true })).toHaveValue("2026-09-08");
   await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).toHaveValue("");
-  await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] ends 2026-09-08");
   await expect(page.locator(".cm-content")).not.toContainText("lasts 3 days");
 });

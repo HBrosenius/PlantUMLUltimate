@@ -29,7 +29,6 @@ describe("resolveTaskDates", () => {
     expect(dates.get("a")).toMatchObject({ start: "2026-09-04", end: "2026-09-07", derived: true });
     expect(dates.get("b")).toMatchObject({ start: "2026-09-07", end: "2026-09-09", derived: true });
   });
-
   it("extends elapsed dates to account for partial resource allocation", () => {
     const source =
       "@startgantt\nProject starts 2026-09-01\n[More tasks] on {Kalle:75%} starts 2026-09-01\n[More tasks] lasts 20 days\n@endgantt";
@@ -39,5 +38,32 @@ describe("resolveTaskDates", () => {
         "more tasks",
       ),
     ).toMatchObject({ start: "2026-09-01", end: "2026-09-27" });
+  });
+
+  it("calculates a task backwards when its end is linked to another task", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-01\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 3 days\n[B] lasts 3 days\n[B] ends at [A]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const dates = resolveTaskDates(
+      document.tasks,
+      document.dependencies,
+      document.projectStart?.value,
+      parseGanttCalendar(source),
+    );
+    expect(dates.get("a")).toMatchObject({ start: "2026-09-07", end: "2026-09-09" });
+    expect(dates.get("b")).toMatchObject({ start: "2026-09-07", end: "2026-09-09", derived: true });
+  });
+
+  it("honors closed and paused dates while calculating backwards", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-01\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 5 days\n[B] lasts 4 days\n[B] pauses on 2026-09-09\n[B] ends at [A]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const dates = resolveTaskDates(
+      document.tasks,
+      document.dependencies,
+      document.projectStart?.value,
+      parseGanttCalendar(source),
+    );
+    expect(dates.get("b")).toMatchObject({ start: "2026-09-07", end: "2026-09-11" });
   });
 });

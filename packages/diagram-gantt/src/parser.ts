@@ -336,7 +336,7 @@ export function parseGantt(source: string): ParseResult {
         continue;
       }
 
-      const dependency = simpleStatement.match(/^(starts|ends)\s+at\s+\[([^\]]+)]'s\s+(start|end)\s*$/i);
+      const dependency = simpleStatement.match(/^(starts|ends)\s+at\s+\[([^\]]+)][’']s\s+(start|end)\s*$/i);
       if (dependency?.[1] && dependency[2] && dependency[3]) {
         const predecessorLabel = dependency[2];
         const predecessorStart = line.text.indexOf(predecessorLabel, labelRange.to - line.from);
@@ -360,7 +360,7 @@ export function parseGantt(source: string): ParseResult {
           relation,
           sourceRange: lineRange,
         });
-        declaration(task, "start", lineRange);
+        declaration(task, left === "starts" ? "start" : "end", lineRange);
         continue;
       }
 
@@ -477,7 +477,7 @@ export function parseGantt(source: string): ParseResult {
       }
 
       const relativeConstraint = simpleStatement.match(
-        /^(starts|ends)\s+(?:(\d+)\s+(days?|weeks?)\s+)?(after|before)\s+\[([^\]]+)]'s\s+(start|end)(?:\s+with\s+\S+\s+\S+\s+link)?\s*$/i,
+        /^(starts|ends)\s+(?:(\d+)\s+(days?|weeks?)\s+)?(after|before)\s+\[([^\]]+)][’']s\s+(start|end)(?:\s+with\s+\S+\s+\S+\s+link)?\s*$/i,
       );
       if (relativeConstraint?.[1] && relativeConstraint[5] && relativeConstraint[6]) {
         const predecessorLabel = relativeConstraint[5];
@@ -542,6 +542,10 @@ export function parseGantt(source: string): ParseResult {
           const clauseDuration = clause.match(/^(?:lasts|requires)\s+(\d+)\s+(days?|weeks?|months?)$/i);
           const clauseColor = clause.match(/^is\s+colou?red\s+in\s+(\S+)$/i);
           const clauseCompletion = clause.match(/^is\s+(\d+)%\s+completed$/i);
+          const clauseDependency = clause.match(/^(starts|ends)\s+at\s+\[([^\]]+)][’']s\s+(start|end)$/i);
+          const clauseRelativeDependency = clause.match(
+            /^(starts|ends)\s+(?:(\d+)\s+(days?|weeks?)\s+)?(after|before)\s+\[([^\]]+)][’']s\s+(start|end)$/i,
+          );
           if (clauseDate?.[1] && clauseDate[2]) {
             const valueStart = clauseStart + clause.lastIndexOf(clauseDate[2]);
             const expression = dateExpression(clauseDate[2], range(line, valueStart, clauseDate[2]));
@@ -572,6 +576,41 @@ export function parseGantt(source: string): ParseResult {
               range: range(line, valueStart, clauseCompletion[1]),
             };
             inlineDeclaration(task, "completion", clauseRange);
+            recognized += 1;
+          } else if (
+            (clauseDependency?.[1] && clauseDependency[2] && clauseDependency[3]) ||
+            (clauseRelativeDependency?.[1] && clauseRelativeDependency[5] && clauseRelativeDependency[6])
+          ) {
+            const left = (clauseDependency?.[1] ?? clauseRelativeDependency![1]!).toLowerCase();
+            const predecessorLabel = clauseDependency?.[2] ?? clauseRelativeDependency![5]!;
+            const right = (clauseDependency?.[3] ?? clauseRelativeDependency![6]!).toLowerCase();
+            const predecessorStart = clauseStart + clause.indexOf(predecessorLabel);
+            const relation =
+              left === "starts" && right === "end"
+                ? "start-after-end"
+                : left === "starts" && right === "start"
+                  ? "start-after-start"
+                  : left === "ends" && right === "end"
+                    ? "end-after-end"
+                    : "end-after-start";
+            const offsetValue = clauseRelativeDependency?.[2];
+            const offsetStart = offsetValue ? clauseStart + clause.indexOf(offsetValue) : -1;
+            dependencies.push({
+              predecessorTaskId:
+                taskReferences.get(normalizeTaskId(predecessorLabel)) ?? normalizeTaskId(predecessorLabel),
+              successorTaskId: task.id,
+              predecessor: taskReference(predecessorLabel, range(line, predecessorStart, predecessorLabel)),
+              successor: taskReference(label, labelRange),
+              relation,
+              sourceRange: clauseRange,
+              ...(offsetValue
+                ? { offset: { value: Number(offsetValue), range: range(line, offsetStart, offsetValue) } }
+                : {}),
+              ...(clauseRelativeDependency
+                ? { direction: clauseRelativeDependency[4]?.toLowerCase() === "before" ? "before" : "after" }
+                : {}),
+            });
+            inlineDeclaration(task, left === "starts" ? "start" : "end", clauseRange);
             recognized += 1;
           }
         }

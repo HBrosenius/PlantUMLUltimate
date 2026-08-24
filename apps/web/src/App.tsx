@@ -176,12 +176,24 @@ export function App() {
       : 0;
   const unsupportedCount = workspace.diagramKind === "gantt" ? parseResult.document.unknown.length : 0;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
-  const selectedPredecessorId = selectedTask
-    ? (parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)?.predecessorTaskId ??
-      "")
-    : "";
+  const selectedTaskDependency = selectedTask
+    ? parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)
+    : undefined;
+  const selectedPredecessorId = selectedTaskDependency?.predecessorTaskId ?? "";
   const selectedDependency =
     selectedDependencyIndex === undefined ? undefined : parseResult.document.dependencies[selectedDependencyIndex];
+  useEffect(() => {
+    if (!selectedTaskId && selectedDependencyIndex === undefined && !projectInspectorOpen) return;
+    const dismissInspector = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".task-inspector")) return;
+      setSelectedTaskId(undefined);
+      setSelectedDependencyIndex(undefined);
+      setProjectInspectorOpen(false);
+    };
+    window.addEventListener("pointerdown", dismissInspector);
+    return () => window.removeEventListener("pointerdown", dismissInspector);
+  }, [projectInspectorOpen, selectedDependencyIndex, selectedTaskId]);
   const resourceNames = useMemo(
     () =>
       [...new Set(parseResult.document.tasks.flatMap((task) => (task.resources ?? []).map((item) => item.value)))].sort(
@@ -1175,15 +1187,17 @@ export function App() {
         ? parseGantt(source).document.symbols.tasks.get(value.predecessorId)
         : undefined;
       const derivedStart = resolvedTaskDates.get(selectedTaskId)?.start ?? "";
-      applyDeclaration(
-        "start",
-        predecessor && value.startDate === derivedStart
-          ? `starts at [${predecessor.label}]'s end`
-          : value.startDate
-            ? `starts ${value.startDate}`
-            : undefined,
-      );
-      applyDeclaration("end", value.endDate ? `ends ${value.endDate}` : undefined);
+      const derivedEnd = resolvedTaskDates.get(selectedTaskId)?.end ?? "";
+      if (predecessor) {
+        const endsTask = value.dependencyRelation.startsWith("end-");
+        const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
+        const linkedStatement = `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`;
+        applyDeclaration("start", endsTask ? (value.startDate && value.startDate !== derivedStart ? `starts ${value.startDate}` : undefined) : linkedStatement);
+        applyDeclaration("end", endsTask ? linkedStatement : value.endDate && value.endDate !== derivedEnd ? `ends ${value.endDate}` : undefined);
+      } else {
+        applyDeclaration("start", value.startDate ? `starts ${value.startDate}` : undefined);
+        applyDeclaration("end", value.endDate ? `ends ${value.endDate}` : undefined);
+      }
       applyDeclaration(
         "duration",
         duration !== undefined ? `lasts ${duration} ${value.durationUnit}${duration === 1 ? "" : "s"}` : undefined,
@@ -1247,11 +1261,16 @@ export function App() {
         }
         source = applySourceEdits(source, noteOperation.edits);
       }
-      if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) return;
       setSelectedTaskId(currentId);
+      selectedTasksByDocument.current.set(tabs.activeId, currentId);
+      if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) {
+        setSelectedTaskId(selectedTaskId);
+        selectedTasksByDocument.current.set(tabs.activeId, selectedTaskId);
+        return;
+      }
       setInteractionMessage(`Updated ${value.label.trim()}`);
     },
-    [commitGeneratedSource, resolvedTaskDates, selectedTaskId, workspace.source],
+    [commitGeneratedSource, resolvedTaskDates, selectedTaskId, tabs.activeId, workspace.source],
   );
 
   const applyMilestoneInspector = useCallback(
@@ -1785,6 +1804,7 @@ export function App() {
             onChange={(source) => commitSource(source, "Edit source")}
             selectedRange={selectionRequest}
             onCursorChange={(line, column, position) => {
+              if (!document.activeElement?.closest(".cm-editor")) return;
               update("cursor", { line, column });
               if (workspace.diagramKind === "gantt") {
                 setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
@@ -2068,7 +2088,7 @@ export function App() {
       )}
       {selectedTask?.milestone && (
         <MilestoneInspector
-          key={`${selectedTask.id}:${selectedTask.sourceRange.to}`}
+          key={`${selectedTask.id}:${selectedTask.sourceRange.to}:${selectedTaskDependency?.predecessorTaskId ?? ""}:${selectedTaskDependency?.relation ?? ""}`}
           milestone={selectedTask}
           tasks={parseResult.document.tasks}
           relativeAnchor={
@@ -2093,7 +2113,9 @@ export function App() {
           task={selectedTask}
           tasks={parseResult.document.tasks}
           predecessorId={selectedPredecessorId}
+          dependencyRelation={selectedTaskDependency?.relation ?? "start-after-end"}
           effectiveStart={resolvedTaskDates.get(selectedTask.id)?.start ?? ""}
+          effectiveEnd={resolvedTaskDates.get(selectedTask.id)?.end ?? ""}
           calendar={ganttCalendar}
           resourceNames={resourceNames}
           conflicts={selectedResourceConflicts}
