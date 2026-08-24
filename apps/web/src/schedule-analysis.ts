@@ -3,11 +3,12 @@ import { taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 
 export interface TaskVariance {
   taskId: string;
+  kind: "unchanged" | "changed" | "added" | "removed";
   startDays: number;
   endDays: number;
 }
 
-const dateDays = (value?: string) => value ? Math.round(Date.parse(`${value}T00:00:00Z`) / 86_400_000) : undefined;
+const dateDays = (value?: string) => (value ? Math.round(Date.parse(`${value}T00:00:00Z`) / 86_400_000) : undefined);
 
 export function baselineBarGeometry(currentX: number, dayWidth: number, startDays: number, span: number) {
   return { x: currentX - startDays * dayWidth, width: Math.max(1, span * dayWidth - 4) };
@@ -24,10 +25,13 @@ export function timelineBaselineX(
   return index >= 0 ? firstBarX + index * dayWidth : fallbackX;
 }
 
-export interface RenderedBaselineGeometry { span: number; startDate?: string }
+export interface RenderedBaselineGeometry {
+  span: number;
+  startDate?: string;
+}
 
 function normalizeColumnOffset(offset: number, dayWidth: number): number {
-  return ((offset + dayWidth / 2) % dayWidth + dayWidth) % dayWidth - dayWidth / 2;
+  return ((((offset + dayWidth / 2) % dayWidth) + dayWidth) % dayWidth) - dayWidth / 2;
 }
 
 export function extractRenderedTaskGeometry(
@@ -38,11 +42,13 @@ export function extractRenderedTaskGeometry(
   if (!svg || typeof DOMParser === "undefined") return geometry;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (document.querySelector("parsererror")) return geometry;
-  const dates = [...document.querySelectorAll<SVGElement>('[data-timeline-header="top"][data-timeline-date]')].flatMap((element) => {
-    const date = element.getAttribute("data-timeline-date");
-    const x = Number(element.getAttribute("data-timeline-x"));
-    return date && Number.isFinite(x) ? [{ date, x }] : [];
-  });
+  const dates = [...document.querySelectorAll<SVGElement>('[data-timeline-header="top"][data-timeline-date]')].flatMap(
+    (element) => {
+      const date = element.getAttribute("data-timeline-date");
+      const x = Number(element.getAttribute("data-timeline-x"));
+      return date && Number.isFinite(x) ? [{ date, x }] : [];
+    },
+  );
   const offsets: number[] = [];
   for (const group of document.querySelectorAll<SVGGElement>("[data-task-id]")) {
     const id = group.getAttribute("data-task-id");
@@ -76,49 +82,85 @@ export function calculateTaskVariance(
   current: ReadonlyMap<string, ResolvedTaskDates>,
   baseline: ReadonlyMap<string, ResolvedTaskDates>,
 ): TaskVariance[] {
-  return [...current].flatMap(([taskId, dates]) => {
+  const taskIds = new Set([...current.keys(), ...baseline.keys()]);
+  const result: TaskVariance[] = [];
+  for (const taskId of taskIds) {
+    const dates = current.get(taskId);
     const previous = baseline.get(taskId);
-    const start = dateDays(dates.start), oldStart = dateDays(previous?.start);
-    const end = dateDays(dates.end), oldEnd = dateDays(previous?.end);
-    return start === undefined || oldStart === undefined || end === undefined || oldEnd === undefined
-      ? []
-      : [{ taskId, startDays: start - oldStart, endDays: end - oldEnd }];
-  });
+    if (!previous) {
+      result.push({ taskId, kind: "added", startDays: 0, endDays: 0 });
+      continue;
+    }
+    if (!dates) {
+      result.push({ taskId, kind: "removed", startDays: 0, endDays: 0 });
+      continue;
+    }
+    const start = dateDays(dates.start),
+      oldStart = dateDays(previous?.start);
+    const end = dateDays(dates.end),
+      oldEnd = dateDays(previous?.end);
+    if (start === undefined || oldStart === undefined || end === undefined || oldEnd === undefined) continue;
+    result.push({
+      taskId,
+      kind: start === oldStart && end === oldEnd ? "unchanged" : "changed",
+      startDays: start - oldStart,
+      endDays: end - oldEnd,
+    });
+  }
+  return result;
 }
 
-export function criticalPathTaskIds(tasks: readonly GanttTask[], dependencies: readonly GanttDependency[]): Set<string> {
+export function criticalPathTaskIds(
+  tasks: readonly GanttTask[],
+  dependencies: readonly GanttDependency[],
+): Set<string> {
   const byId = new Map(tasks.map((task) => [task.id, task]));
+  const durations = new Map(tasks.map((task) => [task.id, (taskElapsedDays(task) ?? 1) + (task.pauses ?? []).length]));
   const incoming = new Map(tasks.map((task) => [task.id, 0]));
-  const outgoing = new Map(tasks.map((task) => [task.id, [] as string[]]));
+  const outgoing = new Map(tasks.map((task) => [task.id, [] as { successor: string; weight: number }[]]));
   for (const dependency of dependencies) {
     if (!byId.has(dependency.predecessorTaskId) || !byId.has(dependency.successorTaskId)) continue;
-    outgoing.get(dependency.predecessorTaskId)!.push(dependency.successorTaskId);
+    const predecessorDuration = durations.get(dependency.predecessorTaskId) ?? 1;
+    const successorDuration = durations.get(dependency.successorTaskId) ?? 1;
+    const lag = (dependency.offset?.value ?? 0) * (dependency.direction === "before" ? -1 : 1);
+    const weight =
+      dependency.relation === "start-after-start"
+        ? lag
+        : dependency.relation === "end-after-end"
+          ? predecessorDuration + lag - successorDuration
+          : dependency.relation === "end-after-start"
+            ? lag - successorDuration
+            : predecessorDuration + lag;
+    outgoing.get(dependency.predecessorTaskId)!.push({ successor: dependency.successorTaskId, weight });
     incoming.set(dependency.successorTaskId, (incoming.get(dependency.successorTaskId) ?? 0) + 1);
   }
   const queue = [...incoming].filter(([, count]) => count === 0).map(([id]) => id);
-  const distance = new Map<string, number>();
-  const previous = new Map<string, string>();
-  let terminal: string | undefined;
+  const earliest = new Map(tasks.map((task) => [task.id, 0]));
+  const order: string[] = [];
   while (queue.length) {
     const id = queue.shift()!;
-    const finish = (distance.get(id) ?? 0) + (taskElapsedDays(byId.get(id)!) ?? 1);
-    if (!terminal || finish > (distance.get(terminal) ?? 0) + (taskElapsedDays(byId.get(terminal)!) ?? 1)) terminal = id;
-    for (const next of outgoing.get(id) ?? []) {
-      if (finish > (distance.get(next) ?? 0)) {
-        distance.set(next, finish);
-        previous.set(next, id);
-      }
-      incoming.set(next, incoming.get(next)! - 1);
-      if (incoming.get(next) === 0) queue.push(next);
+    order.push(id);
+    for (const edge of outgoing.get(id) ?? []) {
+      earliest.set(edge.successor, Math.max(earliest.get(edge.successor) ?? 0, (earliest.get(id) ?? 0) + edge.weight));
+      incoming.set(edge.successor, incoming.get(edge.successor)! - 1);
+      if (incoming.get(edge.successor) === 0) queue.push(edge.successor);
     }
   }
   if ([...incoming.values()].some((count) => count > 0)) return new Set();
-  const result = new Set<string>();
-  while (terminal) {
-    result.add(terminal);
-    terminal = previous.get(terminal);
+  const projectFinish = Math.max(
+    ...tasks.map((task) => (earliest.get(task.id) ?? 0) + (durations.get(task.id) ?? 1)),
+    0,
+  );
+  const latest = new Map(tasks.map((task) => [task.id, projectFinish - (durations.get(task.id) ?? 1)]));
+  for (const id of [...order].reverse()) {
+    for (const edge of outgoing.get(id) ?? [])
+      latest.set(id, Math.min(latest.get(id)!, (latest.get(edge.successor) ?? 0) - edge.weight));
   }
-  return result;
+  return new Set(
+    tasks
+      .filter((task) => Math.abs((latest.get(task.id) ?? 0) - (earliest.get(task.id) ?? 0)) < 0.0001)
+      .map((task) => task.id),
+  );
 }
 
 export function decorateScheduleAnalysis(
@@ -133,12 +175,13 @@ export function decorateScheduleAnalysis(
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (document.querySelector("parsererror")) return svg;
   const root = document.documentElement;
-  const timelineDates = [...root.querySelectorAll<SVGElement>('[data-timeline-header="top"][data-timeline-date]')]
-    .flatMap((element) => {
-      const date = element.getAttribute("data-timeline-date");
-      const x = Number(element.getAttribute("data-timeline-x"));
-      return date && Number.isFinite(x) ? [{ date, x }] : [];
-    });
+  const timelineDates = [
+    ...root.querySelectorAll<SVGElement>('[data-timeline-header="top"][data-timeline-date]'),
+  ].flatMap((element) => {
+    const date = element.getAttribute("data-timeline-date");
+    const x = Number(element.getAttribute("data-timeline-x"));
+    return date && Number.isFinite(x) ? [{ date, x }] : [];
+  });
   const firstBarCandidates = [...root.querySelectorAll<SVGGElement>("[data-task-id]")].flatMap((group) => {
     const id = group.getAttribute("data-task-id");
     const start = id ? current.get(id)?.start : undefined;
@@ -152,19 +195,30 @@ export function decorateScheduleAnalysis(
     const id = group.getAttribute("data-task-id") ?? "";
     if (criticalIds.has(id)) group.setAttribute("data-critical-path", "true");
     const change = variance.find((item) => item.taskId === id);
-    const now = current.get(id), old = baseline.get(id);
+    const now = current.get(id),
+      old = baseline.get(id);
     const hit = group.querySelector<SVGRectElement>(".bar");
-    if (!change || !hit || !now?.start || !old?.start || !old.end) continue;
+    if (
+      !change ||
+      change.kind === "added" ||
+      change.kind === "removed" ||
+      !hit ||
+      !now?.start ||
+      !old?.start ||
+      !old.end
+    )
+      continue;
     const dayWidth = Number(group.getAttribute("data-day-width") ?? 16);
     const renderedGeometry = renderedBaselineGeometry.get(id);
     const baselineStart = renderedGeometry?.startDate ?? old.start;
-    const span = renderedGeometry?.span ?? Math.max(1, (dateDays(old.end)! - dateDays(old.start)! + 1));
+    const span = renderedGeometry?.span ?? Math.max(1, dateDays(old.end)! - dateDays(old.start)! + 1);
     const geometry = baselineBarGeometry(Number(hit.getAttribute("x")), dayWidth, change.startDays, span);
     geometry.x = timelineBaselineX(timelineDates, baselineStart, dayWidth, firstBarX, geometry.x);
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     marker.setAttribute("class", "baseline-bar");
     marker.setAttribute("data-baseline-task-id", id);
     marker.setAttribute("data-baseline-dates", `${baselineStart} – ${old.end}`);
+    marker.setAttribute("data-baseline-visible", String(timelineDates.some((item) => item.date === baselineStart)));
     marker.setAttribute("x", String(geometry.x));
     marker.setAttribute("y", hit.getAttribute("y") ?? "0");
     marker.setAttribute("width", String(geometry.width));
@@ -180,7 +234,10 @@ export function decorateScheduleAnalysis(
     else root.append(marker);
   }
   for (const path of root.querySelectorAll<SVGElement>("[data-predecessor-task-id][data-successor-task-id]")) {
-    if (criticalIds.has(path.getAttribute("data-predecessor-task-id") ?? "") && criticalIds.has(path.getAttribute("data-successor-task-id") ?? ""))
+    if (
+      criticalIds.has(path.getAttribute("data-predecessor-task-id") ?? "") &&
+      criticalIds.has(path.getAttribute("data-successor-task-id") ?? "")
+    )
       path.setAttribute("data-critical-path", "true");
   }
   return new XMLSerializer().serializeToString(root);

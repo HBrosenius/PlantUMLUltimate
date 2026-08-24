@@ -88,7 +88,9 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await expect(dialog.getByRole("button", { name: "Select version Discard me" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Select version Baseline" }).click();
   await dialog.getByLabel("Changes only").check();
-  await expect(dialog.getByRole("table", { name: "Source differences" })).not.toContainText("Project starts 2026-09-01");
+  await expect(dialog.getByRole("table", { name: "Source differences" })).not.toContainText(
+    "Project starts 2026-09-01",
+  );
   await dialog.getByRole("button", { name: "Restore this version" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 2 days");
   await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 4 days");
@@ -119,6 +121,29 @@ test("starts a new version lineage after Save As", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(history.getByRole("button", { name: "Select version Saved as new file" })).toBeVisible();
   await expect(history.getByRole("button", { name: "Select version Old lineage" })).toHaveCount(0);
+});
+
+test("reports added, removed, moved, and out-of-range baseline tasks", async ({ page }) => {
+  await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 2 days\n[B] starts 2026-09-04\n[B] lasts 2 days"));
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Planning baseline");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Set as baseline" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-10-01\n[B] starts 2026-10-03\n[B] lasts 3 days\n[C] starts 2026-10-08\n[C] lasts 2 days\n@endgantt",
+  );
+  const report = page.locator(".schedule-analysis-report");
+  await report.locator("summary").click();
+  await expect(report).toContainText("A");
+  await expect(report).toContainText("Removed after baseline");
+  await expect(report).toContainText("C");
+  await expect(report).toContainText("Added after baseline");
+  await expect(report).toContainText("outside visible timeline");
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {
@@ -194,7 +219,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await participantInspector.getByLabel("Name").fill("Order store");
   await participantInspector.getByLabel("Alias").fill("Orders");
   await participantInspector.getByRole("button", { name: "Apply" }).click();
-  await expect(page.locator(".cm-content")).toContainText('database "Order store" as Orders <<(D,#FDE68A) Store>> order 30');
+  await expect(page.locator(".cm-content")).toContainText(
+    'database "Order store" as Orders <<(D,#FDE68A) Store>> order 30',
+  );
   await page.getByRole("button", { name: "Copy PlantUML source" }).click();
   await expect(participantInspector).toBeHidden();
 
@@ -258,7 +285,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("User -> Orders: New message");
 
   const systemParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="system"]').first();
-  const refreshedUserParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="user"]').first();
+  const refreshedUserParticipant = page
+    .locator('[data-sequence-drag-hit][data-sequence-participant-id="user"]')
+    .first();
   const systemBox = await systemParticipant.boundingBox();
   const refreshedUserBox = await refreshedUserParticipant.boundingBox();
   expect(systemBox).not.toBeNull();
@@ -344,9 +373,15 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
   const flowDialog = page.getByRole("dialog", { name: "Add Sequence separator" });
   await flowDialog.getByLabel("Structure").selectOption("create");
-  await page.getByRole("dialog", { name: "Add Sequence create" }).getByLabel("Participant type").selectOption("control");
+  await page
+    .getByRole("dialog", { name: "Add Sequence create" })
+    .getByLabel("Participant type")
+    .selectOption("control");
   await page.getByRole("dialog", { name: "Add Sequence create" }).getByLabel("Name").fill("Worker");
-  await page.getByRole("dialog", { name: "Add Sequence create" }).getByRole("button", { name: "Add", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Add Sequence create" })
+    .getByRole("button", { name: "Add", exact: true })
+    .click();
   await expect(page.locator(".cm-content")).toContainText("create control Worker");
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -391,7 +426,10 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
 
 test("configures advanced Sequence layout and style with undo and redo", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
   await page.getByRole("button", { name: "Sequence", exact: true }).click();
 
   const settings = page.getByRole("complementary", { name: "Sequence settings" });
@@ -428,7 +466,10 @@ test("configures advanced Sequence layout and style with undo and redo", async (
 
 test("reorders Sequence participants and messages from the dedicated drag tray", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Participant…" }).click();
@@ -616,7 +657,13 @@ test("edits the diagram title from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
   await page.getByRole("button", { name: "Project" }).click();
   await expect(page.getByRole("group", { name: "Closed weekdays" }).locator("label")).toHaveText([
-    "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun",
   ]);
   await page.getByLabel("Diagram title").fill("Release roadmap — 2026");
   await page.getByRole("button", { name: "Apply" }).click();
@@ -674,10 +721,7 @@ test("opens the date action menu from both timeline header rows", async ({ page 
   await expect(bottom).toHaveCount(1);
   await top.click();
   await expect(page.getByRole("dialog", { name: "2026-09-18" })).toBeVisible();
-  await page
-    .getByRole("dialog", { name: "2026-09-18" })
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await page.getByRole("dialog", { name: "2026-09-18" }).getByRole("button", { name: "Close", exact: true }).click();
   await bottom.click();
   await expect(page.getByRole("dialog", { name: "2026-09-18" })).toBeVisible();
 });
@@ -1055,6 +1099,27 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
 });
 
+test("shortens a weekend-starting task through every working endpoint", async ({ page }) => {
+  await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-05\n[A] lasts 6 days"));
+  await page.getByLabel("Schedule").selectOption("single");
+  await page.locator("[data-task-id=a] .bar").click();
+  await expect(page.locator("[data-task-id=a]")).toHaveAttribute("data-selected", "true");
+  const handle = page.locator("[data-task-id=a] [data-resize-handle]");
+  const box = await handle.boundingBox();
+  const firstDate = await page.locator('[data-timeline-header="top"]').nth(0).boundingBox();
+  const secondDate = await page.locator('[data-timeline-header="top"]').nth(1).boundingBox();
+  expect(box).not.toBeNull();
+  expect(firstDate).not.toBeNull();
+  expect(secondDate).not.toBeNull();
+  const dayPixels = Math.abs(secondDate!.x - firstDate!.x);
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 - dayPixels, box!.y + box!.height / 2, { steps: 3 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[A] lasts 5 days");
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-05");
+});
+
 test("shows a live vertical preview and reorders task source", async ({ page }) => {
   await setSource(
     page,
@@ -1101,16 +1166,11 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[B] lasts 4 days and is colored in LightBlue");
   await expect(page.locator(".cm-content")).not.toContainText("[B] [B]");
   await page.getByRole("button", { name: "Undo" }).click();
-  await expect(page.locator(".cm-content")).toContainText(
-    "[B] on {Kalle:100%} starts 2026-09-05",
-  );
+  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-05");
 });
 
 test("removes one person from a task with multiple assignments", async ({ page }) => {
-  await setSource(
-    page,
-    source("[A] on {Kalle:100%} {Lisa:50%} starts 2026-09-01\n[A] lasts 4 days"),
-  );
+  await setSource(page, source("[A] on {Kalle:100%} {Lisa:50%} starts 2026-09-01\n[A] lasts 4 days"));
   await page.locator('[data-task-id="a"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Person name")).toHaveCount(2);
@@ -1123,10 +1183,7 @@ test("removes one person from a task with multiple assignments", async ({ page }
 });
 
 test("edits an end-to-end task relationship from the task inspector", async ({ page }) => {
-  await setSource(
-    page,
-    source("[A] starts 2026-09-01\n[A] lasts 5 days\n[B] lasts 3 days\n[B] starts at [A]'s end"),
-  );
+  await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 5 days\n[B] lasts 3 days\n[B] starts at [A]'s end"));
   await page.locator('[data-task-id="b"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Linked task")).toHaveValue("a");
@@ -1208,12 +1265,7 @@ test("does not over-allocate a person when multiple people shorten a task", asyn
 });
 
 test("shows resource over-allocation after dragging assigned tasks into overlap", async ({ page }) => {
-  await setSource(
-    page,
-    source(
-      "[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 3 days",
-    ),
-  );
+  await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 3 days"));
   for (const taskId of ["a", "b"]) {
     await page.locator(`[data-task-id="${taskId}"] .bar`).click();
     const inspector = page.getByRole("complementary", { name: "Task inspector" });
@@ -1240,11 +1292,13 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
   await expect(warning).toBeVisible();
   await expect(warning).toContainText("Kalle: 200% assigned / 100% capacity");
 
-  await expect.poll(async () => {
-    const a = await page.locator('[data-task-id="a"] .bar').boundingBox();
-    const b = await page.locator('[data-task-id="b"] .bar').boundingBox();
-    return a && b ? Math.abs(a.x - b.x) : Number.POSITIVE_INFINITY;
-  }).toBeLessThan(10);
+  await expect
+    .poll(async () => {
+      const a = await page.locator('[data-task-id="a"] .bar').boundingBox();
+      const b = await page.locator('[data-task-id="b"] .bar').boundingBox();
+      return a && b ? Math.abs(a.x - b.x) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThan(10);
 
   await page.locator('[data-task-id="a"] .bar').click();
   const handle = await page.locator('[data-task-id="a"] [data-dependency-handle]').boundingBox();

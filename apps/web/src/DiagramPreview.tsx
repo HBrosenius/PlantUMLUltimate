@@ -6,7 +6,12 @@ import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gan
 import type { RenderStatus } from "./model";
 import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
-import { calculateTaskVariance, criticalPathTaskIds, decorateScheduleAnalysis, extractRenderedTaskGeometry } from "./schedule-analysis";
+import {
+  calculateTaskVariance,
+  criticalPathTaskIds,
+  decorateScheduleAnalysis,
+  extractRenderedTaskGeometry,
+} from "./schedule-analysis";
 import { useRenderer } from "./render/use-renderer";
 
 interface Props {
@@ -91,7 +96,10 @@ export function DiagramPreview({
   onOpenResourceWorkload,
   onDateHighlightRequest,
   onLegendEditRequest,
-  baselineTasks = [], baselineDependencies = [], baselineSource, baselineProjectStart,
+  baselineTasks = [],
+  baselineDependencies = [],
+  baselineSource,
+  baselineProjectStart,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -105,7 +113,9 @@ export function DiagramPreview({
   const [scrollPercent, setScrollPercent] = useState(0);
   const suppressGestureClick = () => {
     suppressNextClickRef.current = true;
-    window.setTimeout(() => { suppressNextClickRef.current = false; }, 0);
+    window.setTimeout(() => {
+      suppressNextClickRef.current = false;
+    }, 0);
   };
   const calendar = useMemo(() => parseGanttCalendar(source), [source]);
   const overlayResult = useMemo(() => {
@@ -123,8 +133,22 @@ export function DiagramPreview({
           verticalSeparators,
         )
       : svg;
-    return { value: value ? makeLegendLabelsInteractive(value, parseLegendEntries(source)) : value, durationMs: performance.now() - started };
-  }, [svg, tasks, dependencies, dividers, verticalSeparators, resourceFilter, scheduleGhost, projectStart, calendar, source]);
+    return {
+      value: value ? makeLegendLabelsInteractive(value, parseLegendEntries(source)) : value,
+      durationMs: performance.now() - started,
+    };
+  }, [
+    svg,
+    tasks,
+    dependencies,
+    dividers,
+    verticalSeparators,
+    resourceFilter,
+    scheduleGhost,
+    projectStart,
+    calendar,
+    source,
+  ]);
   const interactiveSvg = overlayResult.value;
   const resolvedDates = useMemo(
     () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
@@ -132,20 +156,23 @@ export function DiagramPreview({
   );
   const baselineCalendar = useMemo(() => parseGanttCalendar(baselineSource ?? ""), [baselineSource]);
   const baselineRender = useRenderer(baselineSource ?? "", Boolean(baselineSource));
-  const baselineOverlaySvg = useMemo(() => baselineRender.result?.svg && baselineTasks.length
-    ? addCanonicalGanttOverlay(
-        baselineRender.result.svg,
-        baselineTasks,
-        baselineDependencies,
-        [],
-        "",
-        undefined,
-        baselineProjectStart,
-        baselineCalendar,
-        [],
-      )
-    : undefined,
-  [baselineRender.result?.svg, baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar]);
+  const baselineOverlaySvg = useMemo(
+    () =>
+      baselineRender.result?.svg && baselineTasks.length
+        ? addCanonicalGanttOverlay(
+            baselineRender.result.svg,
+            baselineTasks,
+            baselineDependencies,
+            [],
+            "",
+            undefined,
+            baselineProjectStart,
+            baselineCalendar,
+            [],
+          )
+        : undefined,
+    [baselineRender.result?.svg, baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar],
+  );
   const baselineDates = useMemo(
     () => resolveTaskDates(baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar),
     [baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar],
@@ -155,9 +182,12 @@ export function DiagramPreview({
     [baselineOverlaySvg, baselineDates],
   );
   const variance = useMemo(() => calculateTaskVariance(resolvedDates, baselineDates), [resolvedDates, baselineDates]);
-  const changedVariance = useMemo(() => variance.filter((item) => item.startDays || item.endDays), [variance]);
+  const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
-  const criticalIds = useMemo(() => showCriticalPath ? criticalPathTaskIds(tasks, dependencies) : new Set<string>(), [showCriticalPath, tasks, dependencies]);
+  const criticalIds = useMemo(
+    () => (showCriticalPath ? criticalPathTaskIds(tasks, dependencies) : new Set<string>()),
+    [showCriticalPath, tasks, dependencies],
+  );
   const showFeedback = (message?: string) => {
     if (!feedbackRef.current) return;
     feedbackRef.current.textContent = message ?? "";
@@ -179,8 +209,33 @@ export function DiagramPreview({
       const marker = `data-dependency-index="${selectedDependencyIndex}"`;
       marked = marked.replace(marker, `${marker} data-selected="true"`);
     }
-    return decorateScheduleAnalysis(marked, criticalIds, variance, resolvedDates, baselineDates, renderedBaselineGeometry);
-  }, [interactiveSvg, selectedTaskId, selectedDependencyIndex, criticalIds, variance, resolvedDates, baselineDates, renderedBaselineGeometry]);
+    return decorateScheduleAnalysis(
+      marked,
+      criticalIds,
+      variance,
+      resolvedDates,
+      baselineDates,
+      renderedBaselineGeometry,
+    );
+  }, [
+    interactiveSvg,
+    selectedTaskId,
+    selectedDependencyIndex,
+    criticalIds,
+    variance,
+    resolvedDates,
+    baselineDates,
+    renderedBaselineGeometry,
+  ]);
+  const visibleTimelineDates = useMemo(() => {
+    if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();
+    const document = new DOMParser().parseFromString(selectedSvg, "image/svg+xml");
+    return new Set(
+      [...document.querySelectorAll<SVGElement>("[data-timeline-date]")]
+        .map((element) => element.getAttribute("data-timeline-date"))
+        .filter((date): date is string => Boolean(date)),
+    );
+  }, [selectedSvg]);
   useEffect(() => {
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
     if (!svg) return;
@@ -336,7 +391,11 @@ export function DiagramPreview({
       const moveVertical = (moveEvent: PointerEvent) => {
         days = Math.round((moveEvent.clientX - startX) / (dayWidth * scale));
         verticalSeparator.setAttribute("transform", `translate(${days * dayWidth} 0)`);
-        showFeedback(days ? `Move vertical separator ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}` : undefined);
+        showFeedback(
+          days
+            ? `Move vertical separator ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}`
+            : undefined,
+        );
       };
       const endVertical = () => {
         window.removeEventListener("pointermove", moveVertical);
@@ -796,26 +855,59 @@ export function DiagramPreview({
           </div>
         )}
       </div>
-      {baselineSource && <details className="schedule-analysis-report">
-        <summary>Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"}</summary>
-        <div className="schedule-analysis-report-body">
-          {changedVariance.length ? <table>
-            <thead><tr><th>Task</th><th>Baseline</th><th>Current</th><th>Variance</th></tr></thead>
-            <tbody>{changedVariance.map((change) => {
-              const task = tasks.find((item) => item.id === change.taskId);
-              const before = baselineDates.get(change.taskId);
-              const now = resolvedDates.get(change.taskId);
-              const formatShift = (days: number) => days === 0 ? "—" : `${days > 0 ? "+" : ""}${days}d`;
-              return <tr key={change.taskId}>
-                <th>{task?.label ?? change.taskId}</th>
-                <td>{before?.start} – {before?.end}</td>
-                <td>{now?.start} – {now?.end}</td>
-                <td>Start {formatShift(change.startDays)}, end {formatShift(change.endDays)}</td>
-              </tr>;
-            })}</tbody>
-          </table> : <p>The current schedule matches the baseline.</p>}
-        </div>
-      </details>}
+      {baselineSource && (
+        <details className="schedule-analysis-report">
+          <summary>
+            Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"}
+          </summary>
+          <div className="schedule-analysis-report-body">
+            {changedVariance.length ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Baseline</th>
+                    <th>Current</th>
+                    <th>Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {changedVariance.map((change) => {
+                    const task =
+                      tasks.find((item) => item.id === change.taskId) ??
+                      baselineTasks.find((item) => item.id === change.taskId);
+                    const before = baselineDates.get(change.taskId);
+                    const now = resolvedDates.get(change.taskId);
+                    const formatShift = (days: number) => (days === 0 ? "—" : `${days > 0 ? "+" : ""}${days}d`);
+                    const status =
+                      change.kind === "added"
+                        ? "Added after baseline"
+                        : change.kind === "removed"
+                          ? "Removed after baseline"
+                          : `Start ${formatShift(change.startDays)}, end ${formatShift(change.endDays)}`;
+                    const baselineVisible = !before?.start || visibleTimelineDates.has(before.start);
+                    return (
+                      <tr key={change.taskId}>
+                        <th>{task?.label ?? change.taskId}</th>
+                        <td>{before ? `${before.start} – ${before.end}` : "—"}</td>
+                        <td>{now ? `${now.start} – ${now.end}` : "—"}</td>
+                        <td>
+                          {status}
+                          {change.kind !== "added" && change.kind !== "removed" && !baselineVisible
+                            ? " · outside visible timeline"
+                            : ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <p>The current schedule matches the baseline.</p>
+            )}
+          </div>
+        </details>
+      )}
       <aside className="calendar-legend" aria-label="Calendar legend">
         <span>
           <i className="closed-day-swatch" aria-hidden="true" /> Closed workday
@@ -935,7 +1027,11 @@ export function DiagramPreview({
         </aside>
       )}
       {hoveredBaseline && (
-        <aside className="baseline-hover-card" style={{ left: hoveredBaseline.x, top: hoveredBaseline.y }} role="tooltip">
+        <aside
+          className="baseline-hover-card"
+          style={{ left: hoveredBaseline.x, top: hoveredBaseline.y }}
+          role="tooltip"
+        >
           <strong>{hoveredBaseline.label} baseline</strong>
           <span>{hoveredBaseline.dates}</span>
         </aside>
