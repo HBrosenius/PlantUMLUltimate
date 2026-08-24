@@ -139,7 +139,12 @@ export function TaskInspector({
       <form onSubmit={(event) => event.preventDefault()}>
         <label>
           Name
-          <input required value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={() => apply()} />
+          <input
+            required
+            value={value.label}
+            onChange={(event) => update("label", event.target.value)}
+            onBlur={() => apply()}
+          />
         </label>
         <label>
           Linked task
@@ -164,7 +169,11 @@ export function TaskInspector({
             aria-label="Relationship"
             value={value.dependencyRelation}
             onChange={(event) =>
-              update("dependencyRelation", event.target.value as GanttDependency["relation"], true)
+              update(
+                "dependencyRelation",
+                event.target.value as GanttDependency["relation"],
+                Boolean(value.predecessorId),
+              )
             }
           >
             <option value="start-after-end">Starts at linked task's end</option>
@@ -175,14 +184,24 @@ export function TaskInspector({
         </label>
         <label>
           Start
-          <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} onBlur={() => apply()} />
+          <input
+            type="date"
+            value={value.startDate}
+            onChange={(event) => update("startDate", event.target.value)}
+            onBlur={() => apply()}
+          />
         </label>
         {value.predecessorId && value.startDate === effectiveStart && (
           <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
         )}
         <label>
           End
-          <input type="date" value={value.endDate} onChange={(event) => update("endDate", event.target.value)} onBlur={() => apply()} />
+          <input
+            type="date"
+            value={value.endDate}
+            onChange={(event) => update("endDate", event.target.value)}
+            onBlur={() => apply()}
+          />
         </label>
         {value.predecessorId && value.dependencyRelation.startsWith("end-") && value.endDate === effectiveEnd && (
           <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
@@ -270,20 +289,92 @@ export function TaskInspector({
         <fieldset className="structured-rows">
           <legend>Pauses</legend>
           <p className="fieldset-help">Use a date or weekday supported by PlantUML.</p>
-          {value.pauses.map((pause) => <div className="structured-row" key={pause.id}>
-            <input aria-label="Pause date or weekday" placeholder="2026-09-08 or monday" value={pause.value} onChange={(event) => update("pauses", value.pauses.map((item) => item.id === pause.id ? { ...item, value: event.target.value } : item))} onBlur={() => apply()} />
-            <button type="button" aria-label="Remove pause" onClick={() => update("pauses", value.pauses.filter((item) => item.id !== pause.id), true)}>×</button>
-          </div>)}
-          <button type="button" onClick={() => update("pauses", [...value.pauses, { id: `pause-${Date.now()}`, value: "" }])}>+ Add pause</button>
+          {value.pauses.map((pause) => (
+            <div className="structured-row" key={pause.id}>
+              <input
+                aria-label="Pause date or weekday"
+                placeholder="2026-09-08 or monday"
+                value={pause.value}
+                onChange={(event) =>
+                  update(
+                    "pauses",
+                    value.pauses.map((item) => (item.id === pause.id ? { ...item, value: event.target.value } : item)),
+                  )
+                }
+                onBlur={() => apply()}
+              />
+              <button
+                type="button"
+                aria-label="Remove pause"
+                onClick={() =>
+                  update(
+                    "pauses",
+                    value.pauses.filter((item) => item.id !== pause.id),
+                    true,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => update("pauses", [...value.pauses, { id: `pause-${Date.now()}`, value: "" }])}
+          >
+            + Add pause
+          </button>
         </fieldset>
         <fieldset className="structured-rows">
           <legend>Links</legend>
-          {value.links.map((link) => <div className="structured-row link-row" key={link.id}>
-            <input aria-label="Link URL" type="url" placeholder="https://example.com" value={link.url} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item))} onBlur={() => apply()} />
-            <input aria-label="Link label" placeholder="Optional label" value={link.label} onChange={(event) => update("links", value.links.map((item) => item.id === link.id ? { ...item, label: event.target.value } : item))} onBlur={() => apply()} />
-            <button type="button" aria-label="Remove link" onClick={() => update("links", value.links.filter((item) => item.id !== link.id), true)}>×</button>
-          </div>)}
-          <button type="button" onClick={() => update("links", [...value.links, { id: `link-${Date.now()}`, url: "", label: "" }])}>+ Add link</button>
+          {value.links.map((link) => (
+            <div className="structured-row link-row" key={link.id}>
+              <input
+                aria-label="Link URL"
+                type="url"
+                placeholder="https://example.com"
+                value={link.url}
+                onChange={(event) =>
+                  update(
+                    "links",
+                    value.links.map((item) => (item.id === link.id ? { ...item, url: event.target.value } : item)),
+                  )
+                }
+                onBlur={() => apply()}
+              />
+              <input
+                aria-label="Link label"
+                placeholder="Optional label"
+                value={link.label}
+                onChange={(event) =>
+                  update(
+                    "links",
+                    value.links.map((item) => (item.id === link.id ? { ...item, label: event.target.value } : item)),
+                  )
+                }
+                onBlur={() => apply()}
+              />
+              <button
+                type="button"
+                aria-label="Remove link"
+                onClick={() =>
+                  update(
+                    "links",
+                    value.links.filter((item) => item.id !== link.id),
+                    true,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => update("links", [...value.links, { id: `link-${Date.now()}`, url: "", label: "" }])}
+          >
+            + Add link
+          </button>
         </fieldset>
         <label>
           Display on same row as

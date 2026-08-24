@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import {
   baselineBarGeometry,
+  analyzeCriticalPath,
   calculateTaskVariance,
   criticalPathTaskIds,
   timelineBaselineX,
@@ -17,6 +18,10 @@ describe("schedule analysis", () => {
 [C] lasts 2 days and starts at [A]'s end
 @endgantt`).document;
     expect([...criticalPathTaskIds(document.tasks, document.dependencies)].sort()).toEqual(["a", "b"]);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies);
+    expect(analysis.orderedTaskIds).toEqual(["a", "b"]);
+    expect(analysis.projectDuration).toBe(8);
+    expect(analysis.slackByTask.get("c")).toBe(3);
   });
 
   it("accounts for start/start and end/end relationship constraints", () => {

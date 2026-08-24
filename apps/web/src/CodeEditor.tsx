@@ -45,7 +45,9 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   const kindRef = useRef(diagramKind);
   const language = useRef(new Compartment());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => diagramKind === "gantt" ? ganttQuickFixes(value) : sequenceQuickFixes(value));
+  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() =>
+    diagramKind === "gantt" ? ganttQuickFixes(value) : sequenceQuickFixes(value),
+  );
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
   kindRef.current = diagramKind;
@@ -84,7 +86,11 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   useEffect(() => {
     if (!view.current) return;
     view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
-    setQuickFixes(diagramKind === "gantt" ? ganttQuickFixes(view.current.state.doc.toString()) : sequenceQuickFixes(view.current.state.doc.toString()));
+    setQuickFixes(
+      diagramKind === "gantt"
+        ? ganttQuickFixes(view.current.state.doc.toString())
+        : sequenceQuickFixes(view.current.state.doc.toString()),
+    );
   }, [diagramKind]);
 
   useEffect(() => {

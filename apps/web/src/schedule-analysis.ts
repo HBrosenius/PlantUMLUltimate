@@ -113,10 +113,17 @@ export function calculateTaskVariance(
   return result;
 }
 
-export function criticalPathTaskIds(
+export interface CriticalPathAnalysis {
+  taskIds: Set<string>;
+  orderedTaskIds: string[];
+  projectDuration: number;
+  slackByTask: Map<string, number>;
+}
+
+export function analyzeCriticalPath(
   tasks: readonly GanttTask[],
   dependencies: readonly GanttDependency[],
-): Set<string> {
+): CriticalPathAnalysis {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const durations = new Map(tasks.map((task) => [task.id, (taskElapsedDays(task) ?? 1) + (task.pauses ?? []).length]));
   const incoming = new Map(tasks.map((task) => [task.id, 0]));
@@ -149,7 +156,8 @@ export function criticalPathTaskIds(
       if (incoming.get(edge.successor) === 0) queue.push(edge.successor);
     }
   }
-  if ([...incoming.values()].some((count) => count > 0)) return new Set();
+  if ([...incoming.values()].some((count) => count > 0))
+    return { taskIds: new Set(), orderedTaskIds: [], projectDuration: 0, slackByTask: new Map() };
   const projectFinish = Math.max(
     ...tasks.map((task) => (earliest.get(task.id) ?? 0) + (durations.get(task.id) ?? 1)),
     0,
@@ -159,11 +167,27 @@ export function criticalPathTaskIds(
     for (const edge of outgoing.get(id) ?? [])
       latest.set(id, Math.min(latest.get(id)!, (latest.get(edge.successor) ?? 0) - edge.weight));
   }
-  return new Set(
-    tasks
-      .filter((task) => Math.abs((latest.get(task.id) ?? 0) - (earliest.get(task.id) ?? 0)) < 0.0001)
-      .map((task) => task.id),
+  const slackByTask = new Map(
+    tasks.map((task) => [task.id, (latest.get(task.id) ?? 0) - (earliest.get(task.id) ?? 0)]),
   );
+  const taskIds = new Set(
+    tasks.filter((task) => Math.abs(slackByTask.get(task.id) ?? 0) < 0.0001).map((task) => task.id),
+  );
+  return {
+    taskIds,
+    orderedTaskIds: order
+      .filter((id) => taskIds.has(id))
+      .sort((a, b) => (earliest.get(a) ?? 0) - (earliest.get(b) ?? 0)),
+    projectDuration: projectFinish,
+    slackByTask,
+  };
+}
+
+export function criticalPathTaskIds(
+  tasks: readonly GanttTask[],
+  dependencies: readonly GanttDependency[],
+): Set<string> {
+  return analyzeCriticalPath(tasks, dependencies).taskIds;
 }
 
 export function decorateScheduleAnalysis(

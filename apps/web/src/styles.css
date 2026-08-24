@@ -1015,6 +1015,11 @@ input {
 .schedule-analysis-report table { border-collapse: collapse; white-space: nowrap; }
 .schedule-analysis-report th, .schedule-analysis-report td { padding: .3rem .55rem; border-bottom: 1px solid var(--line); text-align: left; }
 .schedule-analysis-report p { margin: .25rem; }
+.schedule-analysis-actions { display: flex; gap: .4rem; justify-content: flex-end; margin-bottom: .4rem; }
+.critical-path-report { position: absolute; z-index: 8; right: 10px; bottom: 48px; max-width: calc(100% - 20px); border: 1px solid var(--line); border-radius: 5px; background: var(--panel); box-shadow: 0 2px 8px rgb(0 0 0 / 14%); font-size: .82rem; }
+.critical-path-report > summary { cursor: pointer; padding: .45rem .7rem; font-weight: 650; }
+.critical-path-report table { border-collapse: collapse; white-space: nowrap; }
+.critical-path-report th, .critical-path-report td { padding: .3rem .55rem; border-bottom: 1px solid var(--line); text-align: left; }
 .baseline-hover-card { position: absolute; z-index: 12; display: grid; gap: .2rem; min-width: 190px; padding: .55rem .7rem; border: 1px solid #64748b; border-radius: 5px; background: var(--panel); box-shadow: 0 3px 10px rgb(0 0 0 / 18%); pointer-events: none; font-size: .85rem; }
 .baseline-hover-card span { color: var(--muted); }
 .diagram svg .removed-baseline-heading { fill: #64748b; font-size: 10px; font-weight: 700; }

@@ -8,7 +8,7 @@ import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
 import {
   calculateTaskVariance,
-  criticalPathTaskIds,
+  analyzeCriticalPath,
   decorateScheduleAnalysis,
   extractRenderedTaskGeometry,
 } from "./schedule-analysis";
@@ -56,6 +56,8 @@ interface Props {
   baselineDependencies?: readonly GanttDependency[] | undefined;
   baselineSource?: string | undefined;
   baselineProjectStart?: string | undefined;
+  onChangeBaseline(): void;
+  onClearBaseline(): void;
 }
 
 export function DiagramPreview({
@@ -100,6 +102,8 @@ export function DiagramPreview({
   baselineDependencies = [],
   baselineSource,
   baselineProjectStart,
+  onChangeBaseline,
+  onClearBaseline,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -185,9 +189,10 @@ export function DiagramPreview({
   const variance = useMemo(() => calculateTaskVariance(resolvedDates, baselineDates), [resolvedDates, baselineDates]);
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const criticalPath = useMemo(() => analyzeCriticalPath(tasks, dependencies), [tasks, dependencies]);
   const criticalIds = useMemo(
-    () => (showCriticalPath ? criticalPathTaskIds(tasks, dependencies) : new Set<string>()),
-    [showCriticalPath, tasks, dependencies],
+    () => (showCriticalPath ? criticalPath.taskIds : new Set<string>()),
+    [criticalPath.taskIds, showCriticalPath],
   );
   const showFeedback = (message?: string) => {
     if (!feedbackRef.current) return;
@@ -867,6 +872,14 @@ export function DiagramPreview({
             Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"}
           </summary>
           <div className="schedule-analysis-report-body">
+            <div className="schedule-analysis-actions">
+              <button type="button" onClick={onChangeBaseline}>
+                Change baseline…
+              </button>
+              <button type="button" onClick={onClearBaseline}>
+                Clear baseline
+              </button>
+            </div>
             {changedVariance.length ? (
               <table>
                 <thead>
@@ -910,6 +923,42 @@ export function DiagramPreview({
               </table>
             ) : (
               <p>The current schedule matches the baseline.</p>
+            )}
+          </div>
+        </details>
+      )}
+      {showCriticalPath && (
+        <details className="critical-path-report" open>
+          <summary>Critical path · {criticalPath.projectDuration} days</summary>
+          <div className="schedule-analysis-report-body">
+            {criticalPath.orderedTaskIds.length ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Task</th>
+                    <th>Duration</th>
+                    <th>Slack</th>
+                    <th>Why critical</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {criticalPath.orderedTaskIds.map((id, index) => {
+                    const task = tasks.find((item) => item.id === id);
+                    return (
+                      <tr key={id}>
+                        <td>{index + 1}</td>
+                        <th>{task?.label ?? id}</th>
+                        <td>{task ? (taskElapsedDays(task) ?? 1) : 1}d</td>
+                        <td>{Math.round(criticalPath.slackByTask.get(id) ?? 0)}d</td>
+                        <td>Zero slack; a delay can move the project finish.</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <p>No critical path is available. Check for dependency cycles.</p>
             )}
           </div>
         </details>

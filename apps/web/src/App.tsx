@@ -173,10 +173,12 @@ export function App() {
     void loadDocumentVersions(activeDocument.historyId).then((versions) => {
       if (!cancelled) setBaselineVersion(versions.find((version) => version.id === activeDocument.baselineVersionId));
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activeDocument.baselineVersionId, activeDocument.historyId]);
   const baselineParseResult = useMemo(
-    () => baselineVersion ? parseGantt(baselineVersion.source) : undefined,
+    () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
     [baselineVersion],
   );
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
@@ -234,7 +236,8 @@ export function App() {
     [ganttCalendar, parseResult.document],
   );
   const resourceOverAllocations = useMemo(
-    () => buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
+    () =>
+      buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
     [ganttCalendar, parseResult.document.tasks, resourceCapacities, resolvedTaskDates],
   );
   const legendEntries = useMemo(() => {
@@ -372,6 +375,7 @@ export function App() {
       return;
     const dismissInspector = (event: MouseEvent) => {
       const target = event.target;
+      if (target instanceof Element && target.closest(".task-inspector")) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(".task-inspector"))) return;
       if (
         target instanceof Element &&
@@ -952,13 +956,17 @@ export function App() {
   );
   const backupWorkspace = useCallback(async () => {
     try {
-      const versions = (await Promise.all(tabs.documents.map((document) => loadDocumentVersions(document.historyId)))).flat();
+      const versions = (
+        await Promise.all(tabs.documents.map((document) => loadDocumentVersions(document.historyId)))
+      ).flat();
       downloadText(
         serializeWorkspaceBackup(tabs.session, versions),
         "plantuml-studio-backup.json",
         "application/json;charset=utf-8",
       );
-      setInteractionMessage(`Backed up ${tabs.documents.length} open document${tabs.documents.length === 1 ? "" : "s"}`);
+      setInteractionMessage(
+        `Backed up ${tabs.documents.length} open document${tabs.documents.length === 1 ? "" : "s"}`,
+      );
     } catch (error) {
       reportFileError(error);
     }
@@ -1045,9 +1053,10 @@ export function App() {
 
   const addSequenceStructure = useCallback(
     (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
-      const nextSource = value.kind === "box"
-        ? insertSequenceParticipantBox(workspace.source, sequenceDocument, value)
-        : insertSequenceStructure(workspace.source, value);
+      const nextSource =
+        value.kind === "box"
+          ? insertSequenceParticipantBox(workspace.source, sequenceDocument, value)
+          : insertSequenceStructure(workspace.source, value);
       commitSource(nextSource, `Add Sequence ${value.kind}`);
       setAddSequenceStructureKind(undefined);
       setInteractionMessage(`Added Sequence ${value.kind}`);
@@ -1148,7 +1157,10 @@ export function App() {
       const moved = sequenceDocument.participants.find((item) => item.id === id);
       const target = sequenceDocument.participants.find((item) => item.id === targetId);
       if (!moved || !target) return;
-      commitSource(reorderSequenceStatement(workspace.source, moved, target, placement), `Reorder participant ${moved.label}`);
+      commitSource(
+        reorderSequenceStatement(workspace.source, moved, target, placement),
+        `Reorder participant ${moved.label}`,
+      );
       setInteractionMessage(`Moved ${moved.label} ${placement} ${target.label}`);
     },
     [commitSource, sequenceDocument.participants, workspace.source],
@@ -1179,12 +1191,18 @@ export function App() {
     [commitSource, sequenceDocument, workspace.source],
   );
 
-  const externalizeSequenceMessage = useCallback((messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?") => {
-    const message = sequenceDocument.messages.find((item) => item.id === messageId);
-    if (!message) return;
-    commitSource(updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: marker }), "Reconnect message to diagram edge");
-    setInteractionMessage(marker === "?" ? "Marked message as lost" : "Connected message to diagram edge");
-  }, [commitSource, sequenceDocument.messages, workspace.source]);
+  const externalizeSequenceMessage = useCallback(
+    (messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?") => {
+      const message = sequenceDocument.messages.find((item) => item.id === messageId);
+      if (!message) return;
+      commitSource(
+        updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: marker }),
+        "Reconnect message to diagram edge",
+      );
+      setInteractionMessage(marker === "?" ? "Marked message as lost" : "Connected message to diagram edge");
+    },
+    [commitSource, sequenceDocument.messages, workspace.source],
+  );
 
   const createSequenceMessageByDrag = useCallback(
     (fromId: string, toId: string) => {
@@ -1314,8 +1332,22 @@ export function App() {
         const endsTask = value.dependencyRelation.startsWith("end-");
         const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
         const linkedStatement = `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`;
-        applyDeclaration("start", endsTask ? (value.startDate && value.startDate !== derivedStart ? `starts ${value.startDate}` : undefined) : linkedStatement);
-        applyDeclaration("end", endsTask ? linkedStatement : value.endDate && value.endDate !== derivedEnd ? `ends ${value.endDate}` : undefined);
+        applyDeclaration(
+          "start",
+          endsTask
+            ? value.startDate && value.startDate !== derivedStart
+              ? `starts ${value.startDate}`
+              : undefined
+            : linkedStatement,
+        );
+        applyDeclaration(
+          "end",
+          endsTask
+            ? linkedStatement
+            : value.endDate && value.endDate !== derivedEnd
+              ? `ends ${value.endDate}`
+              : undefined,
+        );
       } else {
         applyDeclaration("start", value.startDate ? `starts ${value.startDate}` : undefined);
         applyDeclaration("end", value.endDate ? `ends ${value.endDate}` : undefined);
@@ -1498,11 +1530,14 @@ export function App() {
     [commitGeneratedSource, workspace.source],
   );
 
-  const applySequenceSettings = useCallback((value: SequenceSettings) => {
-    commitSource(updateSequenceSettings(workspace.source, value), "Update Sequence settings");
-    setSequenceSettingsOpen(false);
-    setInteractionMessage("Updated Sequence settings");
-  }, [commitSource, workspace.source]);
+  const applySequenceSettings = useCallback(
+    (value: SequenceSettings) => {
+      commitSource(updateSequenceSettings(workspace.source, value), "Update Sequence settings");
+      setSequenceSettingsOpen(false);
+      setInteractionMessage("Updated Sequence settings");
+    },
+    [commitSource, workspace.source],
+  );
 
   const commands = useMemo<Command[]>(() => {
     const diagramCommands: Command[] =
@@ -1775,11 +1810,19 @@ export function App() {
           />
           {workspace.diagramKind === "gantt" && (
             <>
-              <button data-inspector-trigger onClick={openProjectInspector}>Project</button>
-              <button data-inspector-trigger onClick={openResourcePanel}>Resources</button>
+              <button data-inspector-trigger onClick={openProjectInspector}>
+                Project
+              </button>
+              <button data-inspector-trigger onClick={openResourcePanel}>
+                Resources
+              </button>
             </>
           )}
-          {workspace.diagramKind === "sequence" && <button data-inspector-trigger onClick={() => setSequenceSettingsOpen(true)}>Sequence</button>}
+          {workspace.diagramKind === "sequence" && (
+            <button data-inspector-trigger onClick={() => setSequenceSettingsOpen(true)}>
+              Sequence
+            </button>
+          )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
           </button>
@@ -1927,8 +1970,8 @@ export function App() {
             onChange={(source) => commitSource(source, "Edit source")}
             selectedRange={selectionRequest}
             onCursorChange={(line, column, position) => {
-              if (!document.activeElement?.closest(".cm-editor")) return;
               update("cursor", { line, column });
+              if (!document.activeElement?.closest(".cm-editor")) return;
               if (workspace.diagramKind === "gantt") {
                 setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
               } else {
@@ -2027,7 +2070,17 @@ export function App() {
               baselineTasks={baselineParseResult?.document.tasks}
               baselineDependencies={baselineParseResult?.document.dependencies}
               baselineSource={baselineVersion?.source}
-              baselineProjectStart={baselineParseResult?.document.projectStart?.resolved ? baselineParseResult.document.projectStart.value : undefined}
+              baselineProjectStart={
+                baselineParseResult?.document.projectStart?.resolved
+                  ? baselineParseResult.document.projectStart.value
+                  : undefined
+              }
+              onChangeBaseline={() => void openVersionHistory()}
+              onClearBaseline={() => {
+                tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
+                setBaselineVersion(undefined);
+                setInteractionMessage("Baseline cleared");
+              }}
             />
           ) : (
             <SequenceDiagramPreview
