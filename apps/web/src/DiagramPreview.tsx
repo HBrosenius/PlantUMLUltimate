@@ -746,13 +746,14 @@ export function DiagramPreview({
   return (
     <section className="preview" ref={previewRef} aria-label="Diagram preview">
       <div className="preview-tools">
-        <button onClick={() => adjacentTask(-1)} aria-label="Previous task">
+        <button data-inspector-trigger onClick={() => adjacentTask(-1)} aria-label="Previous task">
           ↑
         </button>
-        <button onClick={() => adjacentTask(1)} aria-label="Next task">
+        <button data-inspector-trigger onClick={() => adjacentTask(1)} aria-label="Next task">
           ↓
         </button>
         <button
+          data-inspector-trigger
           onClick={() => revealTask(selectedTaskId)}
           disabled={!selectedTaskId}
           aria-label="Jump to selected task"

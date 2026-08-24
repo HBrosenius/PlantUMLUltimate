@@ -1463,6 +1463,20 @@ test("closes inspectors on any outside click and switches directly to another ta
   await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue("B");
 });
 
+test("navigates between task inspectors with the preview arrows", async ({ page }) => {
+  await page.locator('[data-task-id="architecture"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Name")).toHaveValue("Architecture");
+
+  await page.getByRole("button", { name: "Next task" }).click();
+  await expect(inspector.getByLabel("Name")).toHaveValue("Backend");
+  await expect(inspector).toBeVisible();
+
+  await page.getByRole("button", { name: "Previous task" }).click();
+  await expect(inspector.getByLabel("Name")).toHaveValue("Architecture");
+  await expect(inspector).toBeVisible();
+});
+
 test("renders task and dependency notes at the same time", async ({ page }) => {
   await setSource(
     page,
