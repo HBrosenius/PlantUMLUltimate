@@ -316,6 +316,21 @@ describe("dependency operations", () => {
     );
   });
 
+  it("preserves a resource assignment when an explicit start becomes a dependency", () => {
+    const source =
+      "@startgantt\n[Backend] starts 2026-09-01\n[Backend] lasts 4 days\n[Frontend] on {Kalle:100%} starts 2026-09-01\n[Frontend] lasts 4 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      createDependency(source, document.symbols.tasks.get("backend")!, document.symbols.tasks.get("frontend")!).edits,
+    );
+
+    expect(changed).toContain("[Frontend] on {Kalle:100%} starts at [Backend]'s end");
+    expect(parseGantt(changed).document.symbols.tasks.get("frontend")?.resources).toEqual([
+      expect.objectContaining({ value: "Kalle", allocation: 100 }),
+    ]);
+  });
+
   it("splits a compound start declaration without duplicating the task prefix", () => {
     const source =
       "@startgantt\n[Design] lasts 2 days\n[Build] starts 2026-09-05 and ends 2026-09-10 and is colored in Blue\n@endgantt";
@@ -330,6 +345,21 @@ describe("dependency operations", () => {
     expect(changed).not.toContain("[Build] [Build]");
     expect(parseGantt(changed).diagnostics).toEqual([]);
     expect(parseGantt(changed).document.dependencies).toHaveLength(1);
+  });
+
+  it("keeps a compound declaration's resource assignment without duplicating it", () => {
+    const source =
+      "@startgantt\n[Design] lasts 2 days\n[Build] on {Kalle:100%} starts 2026-09-05 and ends 2026-09-10\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      createDependency(source, document.symbols.tasks.get("design")!, document.symbols.tasks.get("build")!).edits,
+    );
+
+    expect(changed.match(/\{Kalle:100%}/g)).toHaveLength(1);
+    expect(parseGantt(changed).document.symbols.tasks.get("build")?.resources).toEqual([
+      expect.objectContaining({ value: "Kalle", allocation: 100 }),
+    ]);
   });
 
   it("preserves an explicit date range as a working-day duration", () => {

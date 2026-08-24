@@ -86,6 +86,15 @@ export function resolveTaskDates(
         if (anchor) {
           const direction = dependency.direction === "before" ? -1 : 1;
           dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+          if (
+            dependency.relation === "start-after-end" &&
+            (dependency.offset?.value ?? 0) === 0 &&
+            dependencyAnchor
+          ) {
+            do {
+              dependencyAnchor = shiftDate(dependencyAnchor, 1);
+            } while (dependencyAnchor && !isWorkingDate(dependencyAnchor, calendar));
+          }
         }
     }
     const duration = taskElapsedDays(task);

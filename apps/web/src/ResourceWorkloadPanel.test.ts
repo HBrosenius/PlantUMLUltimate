@@ -47,6 +47,18 @@ describe("buildResourceWorkloads", () => {
     ]);
   });
 
+  it("uses the project working calendar when detecting overlap across closed weekends", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[A] on {Kalle:100%} starts 2026-09-04\n[A] lasts 2 days\n[B] on {Kalle:100%} starts 2026-09-07\n[B] lasts 2 days\n@endgantt";
+    const parsed = parseGantt(source);
+    const calendar = parseGanttCalendar(source);
+    const resolved = resolveTaskDates(parsed.document.tasks, parsed.document.dependencies, undefined, calendar);
+
+    expect(buildResourceOverAllocations(parsed.document.tasks, {}, resolved, calendar)).toMatchObject([
+      { name: "Kalle", peak: 200, days: 1, tasks: [{ label: "A" }, { label: "B" }] },
+    ]);
+  });
+
   it("recalculates over-allocation from the post-drag source, not the pre-drag dates", () => {
     const source = `@startgantt
 project starts 2026-09-01
@@ -87,6 +99,41 @@ project starts 2026-09-01
     expect(nextSource).toContain("[Testing] starts 2026-09-24");
 
     // 5-6: resource allocation is recalculated from the updated source and the warning clears immediately.
+    expect(computeAllocations(nextSource)).toEqual([]);
+  });
+
+  it("clears over-allocation when parallel tasks are connected into a sequence", () => {
+    const source = `@startgantt
+project starts 2026-09-01
+[Backend] on {Kalle:100%} starts 2026-09-01
+[Backend] lasts 3 days
+[Frontend] on {Kalle:100%} starts 2026-09-01
+[Frontend] lasts 3 days
+@endgantt`;
+    const computeAllocations = (value: string) => {
+      const parsed = parseGantt(value);
+      const calendar = parseGanttCalendar(value);
+      const resolved = resolveTaskDates(
+        parsed.document.tasks,
+        parsed.document.dependencies,
+        parsed.document.projectStart?.resolved ? parsed.document.projectStart.value : undefined,
+        calendar,
+      );
+      return buildResourceOverAllocations(parsed.document.tasks, {}, resolved, calendar);
+    };
+    expect(computeAllocations(source)).toHaveLength(1);
+
+    const parsed = parseGantt(source);
+    const nextSource = applySourceEdits(
+      source,
+      ganttAdapter.applyVisualOperation(
+        { kind: "create-dependency", predecessorTaskId: "backend", successorTaskId: "frontend" },
+        parsed.document,
+        source,
+      ).edits,
+    );
+
+    expect(nextSource).toContain("[Frontend] on {Kalle:100%} starts at [Backend]'s end");
     expect(computeAllocations(nextSource)).toEqual([]);
   });
 });

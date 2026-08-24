@@ -27,7 +27,7 @@ describe("resolveTaskDates", () => {
       parseGanttCalendar(source),
     );
     expect(dates.get("a")).toMatchObject({ start: "2026-09-04", end: "2026-09-07", derived: true });
-    expect(dates.get("b")).toMatchObject({ start: "2026-09-07", end: "2026-09-09", derived: true });
+    expect(dates.get("b")).toMatchObject({ start: "2026-09-08", end: "2026-09-10", derived: true });
   });
   it("extends elapsed dates to account for partial resource allocation", () => {
     const source =

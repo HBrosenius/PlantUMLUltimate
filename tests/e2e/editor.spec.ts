@@ -1019,7 +1019,7 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await setSource(
     page,
     source(
-      "[A] starts 2026-09-01\n[A] lasts 2 days\n[B] starts 2026-09-05 and ends 2026-09-08 and is colored in LightBlue",
+      "[A] starts 2026-09-01\n[A] lasts 2 days\n[B] on {Kalle:100%} starts 2026-09-05\n[B] lasts 4 days and is colored in LightBlue",
     ),
   );
   await page.locator("[data-task-id=a] .bar").click();
@@ -1032,13 +1032,29 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
   await expect(page.locator("[data-task-id=b]")).toHaveClass(/connection-target/);
   await page.mouse.up();
-  await expect(page.locator(".cm-content")).toContainText("[B] starts at [A]'s end");
+  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
   await expect(page.locator(".cm-content")).toContainText("[B] lasts 4 days and is colored in LightBlue");
   await expect(page.locator(".cm-content")).not.toContainText("[B] [B]");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.locator(".cm-content")).toContainText(
-    "[B] starts 2026-09-05 and ends 2026-09-08 and is colored in LightBlue",
+    "[B] on {Kalle:100%} starts 2026-09-05",
   );
+});
+
+test("removes one person from a task with multiple assignments", async ({ page }) => {
+  await setSource(
+    page,
+    source("[A] on {Kalle:100%} {Lisa:50%} starts 2026-09-01\n[A] lasts 4 days"),
+  );
+  await page.locator('[data-task-id="a"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByLabel("Person name")).toHaveCount(2);
+  await inspector.getByRole("button", { name: "Remove Kalle" }).click();
+
+  await expect(inspector.getByLabel("Person name")).toHaveCount(1);
+  await expect(inspector.getByLabel("Person name")).toHaveValue("Lisa");
+  await expect(page.locator(".cm-content")).toContainText("[A] on {Lisa:50%} starts 2026-09-01");
+  await expect(page.locator(".cm-content")).not.toContainText("{Kalle:100%}");
 });
 
 test("edits an end-to-end task relationship from the task inspector", async ({ page }) => {
@@ -1110,6 +1126,58 @@ test("shows resource over-allocation directly below the diagram", async ({ page 
   await expect(warning).toContainText("Kalle: 100% assigned / 50% capacity across 2 days (A)");
   await warning.getByRole("button", { name: "Review workload" }).click();
   await expect(page.getByRole("complementary", { name: "Resource workload" })).toBeVisible();
+});
+
+test("shows resource over-allocation after dragging assigned tasks into overlap", async ({ page }) => {
+  await setSource(
+    page,
+    source(
+      "[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 3 days",
+    ),
+  );
+  for (const taskId of ["a", "b"]) {
+    await page.locator(`[data-task-id="${taskId}"] .bar`).click();
+    const inspector = page.getByRole("complementary", { name: "Task inspector" });
+    await inspector.getByRole("button", { name: "+ Add person" }).click();
+    await inspector.getByLabel("Person name").fill("Kalle");
+    await expect(page.locator(".cm-content")).toContainText(
+      taskId === "a" ? "[A] on {Kalle:100%} starts 2026-09-01" : "[B] on {Kalle:100%} starts 2026-09-08",
+    );
+  }
+  const warning = page.getByRole("alert", { name: "Resource over-allocation" });
+  await expect(warning).toHaveCount(0);
+  const first = await page.locator('[data-task-id="a"] .bar').boundingBox();
+  const second = await page.locator('[data-task-id="b"] .bar').boundingBox();
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+
+  await page.mouse.move(second!.x + second!.width / 2, second!.y + second!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(first!.x + first!.width / 2, second!.y + second!.height / 2, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-01");
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText("Kalle: 200% assigned / 100% capacity");
+
+  await expect.poll(async () => {
+    const a = await page.locator('[data-task-id="a"] .bar').boundingBox();
+    const b = await page.locator('[data-task-id="b"] .bar').boundingBox();
+    return a && b ? Math.abs(a.x - b.x) : Number.POSITIVE_INFINITY;
+  }).toBeLessThan(10);
+
+  await page.locator('[data-task-id="a"] .bar').click();
+  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle]').boundingBox();
+  const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
+  expect(handle).not.toBeNull();
+  expect(target).not.toBeNull();
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 6 });
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
+  await expect(warning).toHaveCount(0);
 });
 
 test("keeps duplicate displayed task names distinct through aliases", async ({ page }) => {

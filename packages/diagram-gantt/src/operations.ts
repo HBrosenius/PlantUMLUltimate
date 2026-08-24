@@ -156,7 +156,11 @@ export function createDependency(source: string, predecessor: GanttTask, success
   if (predecessor.id === successor.id) return { edits: [], unavailableReason: "A task cannot depend on itself" };
   const predecessorReference = predecessor.alias?.value ?? predecessor.label;
   const successorReference = successor.alias?.value ?? successor.label;
-  const statement = `[${successorReference}] starts at [${predecessorReference}]'s end`;
+  const dependencyStatement = (declarationSource = "") => {
+    const resources = declarationSource.match(/\bon\s+((?:\{[^}\r\n]+}\s*)+)/i)?.[1]?.trim();
+    return `[${successorReference}]${resources ? ` on ${resources}` : ""} starts at [${predecessorReference}]'s end`;
+  };
+  const statement = dependencyStatement();
   const explicitStart = successor.start
     ? successor.declarations.find(
         (item) =>
@@ -200,7 +204,7 @@ export function createDependency(source: string, predecessor: GanttTask, success
     }
     const original = source.slice(explicitStart.range.from, explicitStart.range.to);
     const indentation = original.match(/^\s*/)?.[0] ?? "";
-    const edits: SourceEdit[] = [{ range: explicitStart.range, text: indentation + statement }];
+    const edits: SourceEdit[] = [{ range: explicitStart.range, text: indentation + dependencyStatement(original) }];
     const explicitEnd =
       durationClause && successor.end
         ? successor.declarations.find(

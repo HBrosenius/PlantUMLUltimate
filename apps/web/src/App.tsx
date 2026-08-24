@@ -216,8 +216,8 @@ export function App() {
     [ganttCalendar, parseResult.document],
   );
   const resourceOverAllocations = useMemo(
-    () => buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates),
-    [parseResult.document.tasks, resourceCapacities, resolvedTaskDates],
+    () => buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
+    [ganttCalendar, parseResult.document.tasks, resourceCapacities, resolvedTaskDates],
   );
   const legendEntries = useMemo(() => {
     const labels = new Map(
@@ -354,7 +354,7 @@ export function App() {
       return;
     const dismissInspector = (event: MouseEvent) => {
       const target = event.target;
-      if (target instanceof Element && target.closest(".task-inspector")) return;
+      if (event.composedPath().some((item) => item instanceof Element && item.matches(".task-inspector"))) return;
       if (
         target instanceof Element &&
         target.closest(
@@ -2282,6 +2282,7 @@ export function App() {
         <ResourceWorkloadPanel
           tasks={parseResult.document.tasks}
           resolvedDates={resolvedTaskDates}
+          calendar={ganttCalendar}
           capacities={resourceCapacities}
           onCapacityChange={(name, capacity) =>
             updateResourceCapacities((current) => ({

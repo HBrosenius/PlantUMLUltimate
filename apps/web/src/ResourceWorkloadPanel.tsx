@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskWorkloadDays } from "./gantt-schedule";
+import { isWorkingDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface ResourceCapacity {
   [name: string]: number;
@@ -30,6 +31,7 @@ export interface ResourceResolvedDate {
 export function buildResourceWorkloads(
   tasks: readonly GanttTask[],
   resolvedDates?: ReadonlyMap<string, ResourceResolvedDate>,
+  calendar?: GanttCalendar,
 ): ResourceWorkload[] {
   const resources = new Map<string, { name: string; days: Map<string, WorkloadDay>; tasks: Map<string, GanttTask> }>();
   for (const task of tasks) {
@@ -49,7 +51,7 @@ export function buildResourceWorkloads(
           date.setUTCDate(date.getUTCDate() + index);
           const value = date.toISOString().slice(0, 10);
           index += 1;
-          if (pauses.has(value)) continue;
+          if (pauses.has(value) || (calendar && !isWorkingDate(value, calendar))) continue;
           const day = resource.days.get(value) ?? { date: value, allocation: 0, tasks: [] };
           day.allocation += assignment.allocation ?? 100;
           day.tasks.push(task);
@@ -75,8 +77,9 @@ export function buildResourceOverAllocations(
   tasks: readonly GanttTask[],
   capacities: ResourceCapacity,
   resolvedDates?: ReadonlyMap<string, ResourceResolvedDate>,
+  calendar?: GanttCalendar,
 ): ResourceOverAllocation[] {
-  return buildResourceWorkloads(tasks, resolvedDates).flatMap((resource) => {
+  return buildResourceWorkloads(tasks, resolvedDates, calendar).flatMap((resource) => {
     const capacity = capacities[resource.name] ?? 100;
     const conflicts = resource.days.filter((day) => day.allocation > capacity);
     if (!conflicts.length) return [];
@@ -97,6 +100,7 @@ export function buildResourceOverAllocations(
 export function ResourceWorkloadPanel({
   tasks,
   resolvedDates,
+  calendar,
   capacities,
   onCapacityChange,
   onRename,
@@ -106,6 +110,7 @@ export function ResourceWorkloadPanel({
 }: {
   tasks: readonly GanttTask[];
   resolvedDates?: ReadonlyMap<string, ResourceResolvedDate>;
+  calendar: GanttCalendar;
   capacities: ResourceCapacity;
   onCapacityChange(name: string, capacity: number): void;
   onRename(currentName: string, nextName: string): void;
@@ -116,7 +121,10 @@ export function ResourceWorkloadPanel({
   const [scale, setScale] = useState<"daily" | "weekly">("daily");
   const [renaming, setRenaming] = useState<string>();
   const [renameValue, setRenameValue] = useState("");
-  const workloads = useMemo(() => buildResourceWorkloads(tasks, resolvedDates), [tasks, resolvedDates]);
+  const workloads = useMemo(
+    () => buildResourceWorkloads(tasks, resolvedDates, calendar),
+    [calendar, resolvedDates, tasks],
+  );
   return (
     <aside className="task-inspector resource-workload" aria-label="Resource workload">
       <header>
