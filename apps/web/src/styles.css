@@ -591,7 +591,6 @@ input {
   cursor: grabbing;
   fill: rgb(249 115 22 / 10%);
 }
-
 .diagram svg .vertical-separator-guide {
   stroke: var(--accent);
   stroke-width: 1.5;
@@ -1262,8 +1261,75 @@ textarea:focus-visible,
   color: white;
 }
 .new-document-dialog {
-  width: min(680px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 0;
+  border-radius: 16px;
 }
+.welcome-splash {
+  position: relative;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 30px 32px 28px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, #7c3aed 19%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--panel)), var(--panel) 68%);
+}
+.welcome-splash::after {
+  content: "";
+  position: absolute;
+  right: -35px;
+  bottom: -72px;
+  width: 210px;
+  height: 150px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+  pointer-events: none;
+}
+.welcome-logo {
+  display: block;
+  width: 104px;
+  height: 104px;
+  filter: drop-shadow(0 12px 18px rgb(37 99 235 / 24%));
+}
+.welcome-splash-copy { position: relative; z-index: 1; }
+.new-document-dialog .welcome-splash h2 {
+  margin: 2px 0 8px;
+  font-size: clamp(25px, 4vw, 34px);
+  letter-spacing: -.035em;
+}
+.welcome-splash-copy > p:not(.welcome-eyebrow):not(.welcome-byline) {
+  max-width: 540px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.welcome-eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.welcome-byline {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.diagram-kind-section { padding: 24px 28px 4px; }
+.diagram-kind-heading { margin-bottom: 14px; }
+.diagram-kind-heading h3 { margin: 0 0 4px; font-size: 17px; }
+.diagram-kind-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.new-document-dialog > .dialog-actions { padding: 16px 28px 22px; }
 .diagram-kind-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1340,6 +1406,16 @@ textarea:focus-visible,
   margin-bottom: 6px;
 }
 @media (max-width: 560px) {
+  .welcome-splash {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 16px;
+    padding: 22px 20px;
+  }
+  .welcome-logo { width: 68px; height: 68px; }
+  .welcome-splash-copy > p:not(.welcome-eyebrow):not(.welcome-byline) { font-size: 12px; }
+  .welcome-byline { line-height: 1.5; }
+  .diagram-kind-section { padding: 20px 18px 4px; }
+  .new-document-dialog > .dialog-actions { padding: 14px 18px 18px; }
   .diagram-kind-options {
     grid-template-columns: 1fr;
   }
