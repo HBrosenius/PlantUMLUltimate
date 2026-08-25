@@ -72,7 +72,7 @@ const quickFixesFor = (kind: DiagramKind, source: string): GanttQuickFix[] =>
       ? sequenceQuickFixes(source)
       : kind === "usecase"
         ? getUseCaseQuickFixes(source)
-        : classQuickFixes();
+        : classQuickFixes(source);
 
 export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selectedRange }: Props) {
   const host = useRef<HTMLDivElement>(null);

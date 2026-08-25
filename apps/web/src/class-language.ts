@@ -57,4 +57,34 @@ export const classDiagnostics = (s: string): Diagnostic[] =>
     message: x.message,
     source: "PlantUML Class",
   }));
-export const classQuickFixes = () => [];
+export interface ClassQuickFix {
+  from: number;
+  to: number;
+  replacement: string;
+  message: string;
+}
+export function classQuickFixes(source: string): ClassQuickFix[] {
+  const document = parseClassDiagram(source);
+  const end = /^\s*@enduml\b/im.exec(source);
+  return document.diagnostics.flatMap((item) => {
+    if (item.code === "unterminated-package" || item.code === "unterminated-class")
+      return [
+        {
+          from: end?.index ?? source.length,
+          to: end?.index ?? source.length,
+          replacement: "}\n",
+          message: item.code === "unterminated-class" ? "Close class member block" : "Close package",
+        },
+      ];
+    if (item.code === "unexpected-package-end")
+      return [
+        {
+          from: item.range.from,
+          to: Math.min(source.length, item.range.to + (source[item.range.to] === "\n" ? 1 : 0)),
+          replacement: "",
+          message: "Remove unexpected closing brace",
+        },
+      ];
+    return [];
+  });
+}

@@ -1933,6 +1933,24 @@ textarea:focus-visible,
   margin-left: 8px;
   color: var(--muted);
   font-size: 10px;
+  max-width: min(55vw, 620px);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.class-valid-drop {
+  fill: rgb(34 197 94 / 14%);
+  stroke: #16a34a;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+@media (max-width: 760px) {
+  .class-package-tray {
+    max-width: 48vw;
+  }
+  .class-package-tray > span,
+  .class-preview .usecase-keyboard-help {
+    display: none;
+  }
 }
 .class-package-tray button {
   min-height: 24px;

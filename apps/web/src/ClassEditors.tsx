@@ -457,11 +457,20 @@ export function ClassRelationshipInspector({
   );
 }
 
-export function AddClassPackageDialog({ onAdd, onClose }: { onAdd(v: ClassPackageInput): void; onClose(): void }) {
+export function AddClassPackageDialog({
+  document,
+  onAdd,
+  onClose,
+}: {
+  document: ClassDocument;
+  onAdd(v: ClassPackageInput): void;
+  onClose(): void;
+}) {
   const [kind, setKind] = useState<ClassPackage["kind"]>("package"),
     [label, setLabel] = useState(""),
     [alias, setAlias] = useState(""),
-    [color, setColor] = useState("");
+    [color, setColor] = useState(""),
+    [parentId, setParentId] = useState("");
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form
@@ -471,7 +480,13 @@ export function AddClassPackageDialog({ onAdd, onClose }: { onAdd(v: ClassPackag
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
-          onAdd({ kind, label, ...(alias ? { alias } : {}), ...(color ? { color } : {}) });
+          onAdd({
+            kind,
+            label,
+            ...(alias ? { alias } : {}),
+            ...(color ? { color } : {}),
+            ...(parentId ? { parentId } : {}),
+          });
         }}
       >
         <h2>Add package</h2>
@@ -502,6 +517,17 @@ export function AddClassPackageDialog({ onAdd, onClose }: { onAdd(v: ClassPackag
           <input aria-label="Package alias" value={alias} onChange={(e) => setAlias(e.target.value)} />
         </label>
         <ColorField value={color} onChange={setColor} />
+        <label>
+          Parent container
+          <select value={parentId} onChange={(event) => setParentId(event.target.value)}>
+            <option value="">Top level</option>
+            {document.packages.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

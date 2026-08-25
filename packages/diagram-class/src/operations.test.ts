@@ -33,8 +33,16 @@ describe("class operations", () => {
   });
   it("round-trips packages, notes, colors, and source ordering", () => {
     let source = '@startuml\nclass "A" as A\nclass "B" as B\n@enduml';
-    source = insertClassPackage(source, { kind: "package", label: "Domain", alias: "Domain", color: "LightBlue" });
+    source = insertClassPackage(source, parseClassDiagram(source), {
+      kind: "package",
+      label: "Domain",
+      alias: "Domain",
+      color: "LightBlue",
+    });
     let document = parseClassDiagram(source);
+    source = insertClassPackage(source, document, { kind: "namespace", label: "Internal", parentId: "domain" });
+    document = parseClassDiagram(source);
+    expect(document.packages.find((item) => item.id === "internal")?.parentId).toBe("domain");
     source = moveClassEntityToPackage(source, document, document.entities[0]!, "domain");
     document = parseClassDiagram(source);
     expect(document.entities.find((item) => item.id === "a")?.packageId).toBe("domain");

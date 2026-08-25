@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
 export function ClassDiagramPreview({
@@ -34,6 +42,7 @@ export function ClassDiagramPreview({
 }) {
   const root = useRef<HTMLDivElement>(null);
   const [renderRevision, setRenderRevision] = useState(0);
+  const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
     | {
         id: string;
@@ -53,6 +62,21 @@ export function ClassDiagramPreview({
     setRenderRevision((value) => value + 1);
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setKeyboardConnectFrom(undefined);
+    };
+    window.addEventListener("keydown", cancel);
+    return () => window.removeEventListener("keydown", cancel);
+  }, []);
+  useEffect(() => {
+    const retry = window.setTimeout(() => {
+      const host = root.current;
+      if (host?.querySelector("svg") && !host.querySelector(".class-semantic-hit"))
+        setRenderRevision((value) => value + 1);
+    }, 150);
+    return () => window.clearTimeout(retry);
+  }, [document, selectedId, svg]);
   useLayoutEffect(() => {
     const host = root.current,
       rendered = host?.querySelector("svg");
@@ -90,6 +114,7 @@ export function ClassDiagramPreview({
         "aria-label": `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
       });
       rendered.append(hit);
+      if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
       if (!entity) continue;
       const h = documentNode("circle");
       h.setAttribute("class", "class-connect-handle");
@@ -152,7 +177,7 @@ export function ClassDiagramPreview({
         addEndpoint(rendered, end, relation.id, firstIsFrom ? "to" : "from");
       }
     }
-  }, [document, renderRevision, renderStatus, selectedId, svg]);
+  }, [document, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const id = (e.target as Element).closest("[data-class-object-id]")?.getAttribute("data-class-object-id");
     if (id) onSelect(id);
@@ -188,6 +213,35 @@ export function ClassDiagramPreview({
     e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault();
   };
+  const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const target = (event.target as Element).closest<SVGElement>("[data-class-object-id]");
+    const id = target?.getAttribute("data-class-object-id");
+    const type = target?.getAttribute("data-class-object-type");
+    if (!id) return;
+    if (event.key.toLowerCase() === "c" && type === "entity") {
+      event.preventDefault();
+      setKeyboardConnectFrom(id);
+      onSelect(id);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (keyboardConnectFrom && type === "entity" && keyboardConnectFrom !== id) {
+        onRelationshipCreate(keyboardConnectFrom, id);
+        setKeyboardConnectFrom(undefined);
+      } else onSelect(id);
+      return;
+    }
+    if (!event.altKey || type !== "entity" || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    const current = document.entities.find((item) => item.id === id);
+    if (!current) return;
+    const peers = document.entities.filter((item) => item.packageId === current.packageId);
+    const index = peers.findIndex((item) => item.id === id);
+    const peer = peers[index + (event.key === "ArrowUp" ? -1 : 1)];
+    if (!peer) return;
+    event.preventDefault();
+    onReorder(id, peer.id, event.key === "ArrowUp" ? "before" : "after");
+  };
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d?.line) return;
@@ -218,7 +272,7 @@ export function ClassDiagramPreview({
     }
   };
   return (
-    <section className="preview" aria-label="Class diagram preview">
+    <section className="preview class-preview" aria-label="Class diagram preview">
       <div className="preview-tools">
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
@@ -240,12 +294,16 @@ export function ClassDiagramPreview({
                 data-class-object-type="package"
                 onClick={() => onSelect(item.id)}
               >
-                {item.label}
+                {packagePath(document, item.id)}
               </button>
             ))}
           </div>
         )}
-        <span className="usecase-keyboard-help">Drag a blue anchor to create a relationship</span>
+        <span className="usecase-keyboard-help">
+          {keyboardConnectFrom
+            ? "Choose another class and press Enter · Esc cancels"
+            : "Drag an anchor or press C to connect"}
+        </span>
       </div>
       <div className="preview-viewport">
         {svg ? (
@@ -257,6 +315,7 @@ export function ClassDiagramPreview({
             onPointerDown={down}
             onPointerMove={move}
             onPointerUp={up}
+            onKeyDown={keyboardSelect}
             dangerouslySetInnerHTML={{ __html: svg }}
           />
         ) : renderError ? (
@@ -279,6 +338,11 @@ const documentNode = <K extends keyof SVGElementTagNameMap>(n: K) =>
 const attrs = (e: Element, a: Record<string, string | number>) =>
   Object.entries(a).forEach(([k, v]) => e.setAttribute(k, String(v)));
 const norm = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
+const packagePath = (document: ClassDocument, id: string): string => {
+  const item = document.packages.find((candidate) => candidate.id === id);
+  if (!item) return id;
+  return item.parentId ? `${packagePath(document, item.parentId)} / ${item.label}` : item.label;
+};
 const client = (s: SVGSVGElement | null, x: number, y: number) => {
   const p = s!.createSVGPoint();
   p.x = x;

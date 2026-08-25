@@ -83,6 +83,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await classPackage.getByLabel("Package name").fill("Reporting");
   await classPackage.getByLabel("Package alias").fill("Reports");
   await classPackage.getByLabel("Color").fill("Lavender");
+  await classPackage.getByLabel("Parent container").selectOption("ordering");
   await classPackage.getByRole("button", { name: "Add package" }).click();
   await expect(page.locator(".cm-content")).toContainText('package "Reporting" as Reports #Lavender');
 
@@ -102,7 +103,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
 
   const moveStatus = page.locator('[data-class-move-id="status"]');
   const reportingTarget = page.getByRole("group", { name: "Class containers" }).getByRole("button", {
-    name: "Reporting",
+    name: "Ordering / Reporting",
   });
   const moveBox = await moveStatus.boundingBox();
   const targetBox = await reportingTarget.boundingBox();
@@ -131,6 +132,18 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   });
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText('OrderRepository "1" *--> "many" OrderLine');
+
+  const orderLineHit = page.locator('[data-class-object-type="entity"][data-class-object-id="orderline"]');
+  await orderLineHit.focus();
+  await page.keyboard.press("Alt+ArrowUp");
+  await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/class OrderLine[\s\S]*class Order/);
+  await orderLineHit.focus();
+  await page.keyboard.press("c");
+  await expect(page.getByText("Choose another class and press Enter · Esc cancels")).toBeVisible();
+  const statusHit = page.locator('[data-class-object-type="entity"][data-class-object-id="status"]');
+  await statusHit.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".cm-content")).toContainText("OrderLine --> Status");
 
   await page.getByRole("button", { name: "Class", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Class settings" });

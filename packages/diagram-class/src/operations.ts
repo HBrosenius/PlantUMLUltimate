@@ -21,6 +21,7 @@ export interface ClassPackageInput {
   label: string;
   alias?: string;
   color?: string;
+  parentId?: string;
 }
 export interface ClassRelationshipInput {
   from: string;
@@ -110,11 +111,13 @@ export const deleteClassRelationship = (s: string, r: ClassRelationship) =>
   replace(s, [
     { from: r.sourceRange.from, to: s[r.sourceRange.to] === "\n" ? r.sourceRange.to + 1 : r.sourceRange.to, text: "" },
   ]);
-export const insertClassPackage = (s: string, v: ClassPackageInput) =>
-  insert(
-    s,
-    `${v.kind} ${quote(v.label)}${v.alias ? ` as ${v.alias}` : ""}${v.color ? ` ${v.color.startsWith("#") ? v.color : `#${v.color}`}` : ""} {\n}`,
-  );
+export const insertClassPackage = (s: string, d: ClassDocument, v: ClassPackageInput) => {
+  const text = `${v.kind} ${quote(v.label)}${v.alias ? ` as ${v.alias}` : ""}${v.color ? ` ${v.color.startsWith("#") ? v.color : `#${v.color}`}` : ""} {\n}`;
+  const parent = v.parentId ? d.packages.find((item) => item.id === v.parentId) : undefined;
+  if (!parent) return insert(s, text);
+  const at = parent.closeRange.from;
+  return s.slice(0, at) + text + "\n" + s.slice(at);
+};
 export const updateClassPackage = (s: string, p: ClassPackage, v: ClassPackageInput) =>
   replace(s, [
     {

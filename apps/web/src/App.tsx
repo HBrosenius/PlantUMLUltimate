@@ -1398,7 +1398,7 @@ export function App() {
     }
   };
   const addClassPackage = (v: ClassPackageInput) => {
-    commitSource(insertClassPackage(workspace.source, v), "Add Class package");
+    commitSource(insertClassPackage(workspace.source, classDocument, v), "Add Class package");
     setAddClassPackageOpen(false);
   };
   const applyClassPackage = (v: ClassPackageInput) => {
@@ -3006,7 +3006,11 @@ export function App() {
         />
       )}
       {addClassPackageOpen && (
-        <AddClassPackageDialog onAdd={addClassPackage} onClose={() => setAddClassPackageOpen(false)} />
+        <AddClassPackageDialog
+          document={classDocument}
+          onAdd={addClassPackage}
+          onClose={() => setAddClassPackageOpen(false)}
+        />
       )}
       {classSettingsOpen && (
         <ClassSettingsInspector

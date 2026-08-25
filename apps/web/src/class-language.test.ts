@@ -1,7 +1,7 @@
 import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorState } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
-import { classCompletions, classDiagnostics } from "./class-language";
+import { classCompletions, classDiagnostics, classQuickFixes } from "./class-language";
 
 describe("Class language support", () => {
   it("completes declared relationship endpoints", () => {
@@ -18,6 +18,9 @@ describe("Class language support", () => {
     expect(result?.options).toEqual(expect.arrayContaining([expect.objectContaining({ label: "LightBlue" })]));
     expect(classDiagnostics("@startuml\nclass Order {\n@enduml")).toEqual([
       expect.objectContaining({ message: expect.stringContaining("missing }") }),
+    ]);
+    expect(classQuickFixes("@startuml\nclass Order {\n@enduml")).toEqual([
+      expect.objectContaining({ replacement: "}\n", message: "Close class member block" }),
     ]);
   });
 });
