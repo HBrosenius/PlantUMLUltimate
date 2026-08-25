@@ -1416,23 +1416,6 @@ textarea:focus-visible,
   color: var(--text);
   text-align: left;
 }
-.diagram-kind-beta {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  z-index: 2;
-  padding: 3px 8px;
-  border: 1px solid color-mix(in srgb, #8b5cf6 68%, white);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: white !important;
-  box-shadow: 0 3px 10px rgb(79 70 229 / 28%);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.045em;
-  line-height: 1.2 !important;
-  text-transform: uppercase;
-}
 .diagram-kind-options button:hover,
 .diagram-kind-options button:focus-visible {
   border-color: var(--accent);

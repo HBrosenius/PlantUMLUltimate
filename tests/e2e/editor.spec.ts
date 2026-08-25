@@ -37,6 +37,13 @@ test("shows the diagram splash after closing the final tab", async ({ page }) =>
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(1);
 });
 
+test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser.getByRole("button", { name: "Sequence diagram" })).toBeVisible();
+  await expect(chooser.getByText("Beta", { exact: true })).toHaveCount(0);
+});
+
 test("groups document commands in an accessible File and Export menu", async ({ page }) => {
   const file = page.getByRole("button", { name: "File" });
   await file.click();
@@ -217,7 +224,6 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(2);
-  await expect(chooser.locator(".diagram-kind-beta")).toHaveText("Beta");
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
