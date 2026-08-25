@@ -112,7 +112,7 @@ export function UseCaseDiagramPreview({
         handle.setAttribute("data-usecase-connect-from", object.id);
         handle.setAttribute("cx", String(box.x + box.width + 13));
         handle.setAttribute("cy", String(box.y + box.height / 2));
-        handle.setAttribute("r", "5");
+        handle.setAttribute("r", "8");
         handle.setAttribute("role", "button");
         handle.setAttribute("aria-label", `Drag to connect ${object.label}`);
         rendered.append(handle);
@@ -287,7 +287,14 @@ export function UseCaseDiagramPreview({
   const updateDrag = (event: PointerEvent<HTMLDivElement>) => {
     const active = drag.current;
     if (!active?.preview) return;
-    const point = clientPointInSvg(active.preview.ownerSVGElement, event.clientX, event.clientY);
+    const target = semanticTargetAt(root.current, event.clientX, event.clientY, ["actor", "usecase"]);
+    const targetId = target?.getAttribute("data-usecase-object-id");
+    const anchor = targetId
+      ? root.current?.querySelector<SVGGraphicsElement>(`[data-usecase-connect-from="${CSS.escape(targetId)}"]`)
+      : undefined;
+    const point = anchor
+      ? elementCenterInSvg(anchor, active.preview.ownerSVGElement)
+      : clientPointInSvg(active.preview.ownerSVGElement, event.clientX, event.clientY);
     if (!point) return;
     active.preview.setAttribute("x2", String(point.x));
     active.preview.setAttribute("y2", String(point.y));
@@ -455,13 +462,8 @@ function addRelationshipEndpoint(svg: SVGSVGElement, point: DOMPoint, relationsh
 
 function createConnectionPreview(handle: SVGGraphicsElement) {
   const svg = handle.ownerSVGElement;
-  const matrix = handle.getCTM();
-  if (!svg || !matrix) return undefined;
-  const local = svg.createSVGPoint();
-  const box = handle.getBBox();
-  local.x = box.x + box.width / 2;
-  local.y = box.y + box.height / 2;
-  const fixed = local.matrixTransform(matrix);
+  const fixed = elementCenterInSvg(handle, svg);
+  if (!svg || !fixed) return undefined;
   const line = window.document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("class", "usecase-connection-preview");
   line.setAttribute("x1", String(fixed.x));
@@ -470,6 +472,11 @@ function createConnectionPreview(handle: SVGGraphicsElement) {
   line.setAttribute("y2", String(fixed.y));
   svg.append(line);
   return line;
+}
+
+function elementCenterInSvg(element: SVGGraphicsElement, svg: SVGSVGElement | null) {
+  const box = element.getBoundingClientRect();
+  return clientPointInSvg(svg, box.left + box.width / 2, box.top + box.height / 2);
 }
 
 function clientPointInSvg(svg: SVGSVGElement | null, clientX: number, clientY: number) {

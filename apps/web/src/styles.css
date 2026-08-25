@@ -1796,7 +1796,7 @@ textarea:focus-visible,
 }
 .usecase-connection-handle:hover {
   fill: #1d4ed8;
-  r: 7px;
+  r: 10px;
 }
 .usecase-move-handle {
   fill: #64748b;

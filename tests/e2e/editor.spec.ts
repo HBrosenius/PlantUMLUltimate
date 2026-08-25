@@ -93,6 +93,30 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
   await page.mouse.down();
   await page.mouse.move(browseBox!.x + browseBox!.width / 2, browseBox!.y + browseBox!.height / 2, { steps: 5 });
+  const previewLine = page.locator(".usecase-connection-preview");
+  await expect(previewLine).toBeVisible();
+  const snappedCoordinates = await previewLine.evaluate((line) => ({
+    x1: Number(line.getAttribute("x1")),
+    y1: Number(line.getAttribute("y1")),
+    x2: Number(line.getAttribute("x2")),
+    y2: Number(line.getAttribute("y2")),
+  }));
+  const expectedAnchors = await page.evaluate(() => {
+    const source = document.querySelector<SVGGraphicsElement>('[data-usecase-connect-from="admin"]')!;
+    const target = document.querySelector<SVGGraphicsElement>('[data-usecase-connect-from="browse"]')!;
+    const svg = source.ownerSVGElement!;
+    const matrix = svg.getScreenCTM()!.inverse();
+    const center = (element: SVGGraphicsElement) => {
+      const box = element.getBoundingClientRect();
+      const point = new DOMPoint(box.left + box.width / 2, box.top + box.height / 2).matrixTransform(matrix);
+      return { x: point.x, y: point.y };
+    };
+    return { source: center(source), target: center(target) };
+  });
+  expect(snappedCoordinates.x1).toBeCloseTo(expectedAnchors.source.x, 1);
+  expect(snappedCoordinates.y1).toBeCloseTo(expectedAnchors.source.y, 1);
+  expect(snappedCoordinates.x2).toBeCloseTo(expectedAnchors.target.x, 1);
+  expect(snappedCoordinates.y2).toBeCloseTo(expectedAnchors.target.y, 1);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("Admin --> Browse");
 
