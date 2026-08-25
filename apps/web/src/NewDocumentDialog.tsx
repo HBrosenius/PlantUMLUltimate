@@ -14,6 +14,7 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     title: "Use Case diagram",
     description: "Model actors, system capabilities, relationships, packages, and requirements.",
   },
+  { kind: "class", title: "Class diagram", description: "Design types, members, packages, and relationships." },
 ];
 
 export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
@@ -51,6 +52,7 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
           <div className="diagram-kind-options">
             {OPTIONS.map((option, index) => (
               <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
+                {option.kind === "class" && <span className="diagram-kind-beta">Beta</span>}
                 <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>
@@ -174,6 +176,33 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
           result
         </text>
         <rect x="116" y="54" width="8" height="43" rx="3" fill="#f59e0b" />
+      </svg>
+    );
+  if (kind === "class")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <g fill="none" stroke="#64748b">
+          <rect x="18" y="15" width="78" height="78" rx="4" />
+          <path d="M18 38h78M18 63h78" />
+          <rect x="145" y="26" width="76" height="58" rx="4" />
+          <path d="M145 49h76M96 52h49m-8-5 8 5-8 5" />
+        </g>
+        <text x="57" y="30" textAnchor="middle">
+          Order
+        </text>
+        <text x="25" y="53">
+          -id: UUID
+        </text>
+        <text x="25" y="77">
+          +submit()
+        </text>
+        <text x="183" y="42" textAnchor="middle">
+          Repository
+        </text>
+        <text x="153" y="66">
+          +save()
+        </text>
       </svg>
     );
   return (

@@ -3,6 +3,19 @@ import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
+import { ClassDiagramPreview } from "./ClassDiagramPreview";
+import {
+  AddClassEntityDialog,
+  AddClassPackageDialog,
+  AddClassRelationshipDialog,
+  AddClassNoteDialog,
+  ClassEntityInspector,
+  ClassPackageInspector,
+  ClassRelationshipInspector,
+  ClassNoteInspector,
+} from "./ClassEditors";
+import { ClassSettingsInspector } from "./ClassSettingsInspector";
+import { parseClassSettings, updateClassSettings, type ClassSettings } from "./class-settings";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
@@ -90,7 +103,7 @@ import {
   writePlantUmlDocument,
   type WritableFileHandle,
 } from "./file-service";
-import { DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE, DEFAULT_USECASE_SOURCE } from "./model";
+import { DEFAULT_CLASS_SOURCE, DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE, DEFAULT_USECASE_SOURCE } from "./model";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -108,6 +121,28 @@ import {
   updateSequenceStructure,
 } from "@plantuml-studio/diagram-sequence";
 import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
+import {
+  deleteClassEntity,
+  deleteClassPackage,
+  deleteClassRelationship,
+  deleteClassNote,
+  findClassObjectAt,
+  insertClassEntity,
+  insertClassPackage,
+  insertClassRelationship,
+  insertClassNote,
+  moveClassEntityToPackage,
+  parseClassDiagram,
+  reorderClassEntity,
+  updateClassEntity,
+  updateClassPackage,
+  updateClassRelationship,
+  updateClassNote,
+  type ClassEntityInput,
+  type ClassPackageInput,
+  type ClassRelationshipInput,
+  type ClassNoteInput,
+} from "@plantuml-studio/diagram-class";
 import {
   deleteUseCaseElement,
   deleteUseCaseNote,
@@ -165,6 +200,12 @@ export function App() {
   const [selectedSequenceMessageId, setSelectedSequenceMessageId] = useState<string>();
   const [selectedSequenceStructureId, setSelectedSequenceStructureId] = useState<string>();
   const [selectedUseCaseObjectId, setSelectedUseCaseObjectId] = useState<string>();
+  const [selectedClassObjectId, setSelectedClassObjectId] = useState<string>();
+  const [addClassEntityOpen, setAddClassEntityOpen] = useState(false);
+  const [addClassRelationshipOpen, setAddClassRelationshipOpen] = useState(false);
+  const [addClassPackageOpen, setAddClassPackageOpen] = useState(false);
+  const [addClassNoteOpen, setAddClassNoteOpen] = useState(false);
+  const [classSettingsOpen, setClassSettingsOpen] = useState(false);
   const [addUseCaseElementKind, setAddUseCaseElementKind] = useState<UseCaseElementKind>();
   const [addUseCaseRelationshipOpen, setAddUseCaseRelationshipOpen] = useState(false);
   const [addUseCasePackageOpen, setAddUseCasePackageOpen] = useState(false);
@@ -231,6 +272,11 @@ export function App() {
   );
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
+  const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
+  const selectedClassEntity = classDocument.entities.find((x) => x.id === selectedClassObjectId);
+  const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
+  const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
+  const selectedClassNote = classDocument.notes.find((x) => x.id === selectedClassObjectId);
   const selectedSequenceParticipant = sequenceDocument.participants.find(
     (item) => item.id === selectedSequenceParticipantId,
   );
@@ -432,8 +478,10 @@ export function App() {
       !selectedSequenceMessageId &&
       !selectedSequenceStructureId &&
       !selectedUseCaseObjectId &&
+      !selectedClassObjectId &&
       !projectInspectorOpen &&
-      !useCaseSettingsOpen
+      !useCaseSettingsOpen &&
+      !classSettingsOpen
     )
       return;
     const dismissInspector = (event: MouseEvent) => {
@@ -443,7 +491,7 @@ export function App() {
       if (
         target instanceof Element &&
         target.closest(
-          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint]",
+          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from]",
         )
       )
         return;
@@ -455,8 +503,10 @@ export function App() {
       setSelectedSequenceMessageId(undefined);
       setSelectedSequenceStructureId(undefined);
       setSelectedUseCaseObjectId(undefined);
+      setSelectedClassObjectId(undefined);
       setProjectInspectorOpen(false);
       setUseCaseSettingsOpen(false);
+      setClassSettingsOpen(false);
       setFocusNoteTaskId(undefined);
     };
     document.addEventListener("click", dismissInspector);
@@ -470,6 +520,8 @@ export function App() {
     selectedSequenceParticipantId,
     selectedSequenceStructureId,
     selectedUseCaseObjectId,
+    selectedClassObjectId,
+    classSettingsOpen,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -1090,7 +1142,9 @@ export function App() {
             ? DEFAULT_SEQUENCE_SOURCE
             : diagramKind === "usecase"
               ? DEFAULT_USECASE_SOURCE
-              : DEFAULT_SOURCE,
+              : diagramKind === "class"
+                ? DEFAULT_CLASS_SOURCE
+                : DEFAULT_SOURCE,
         fileName: "untitled.puml",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -1105,7 +1159,14 @@ export function App() {
       refreshHistoryControls();
       setReplaceActiveDocumentOnCreate(false);
       setNewDocumentOpen(false);
-      const displayName = diagramKind === "sequence" ? "Sequence" : diagramKind === "usecase" ? "Use Case" : "Gantt";
+      const displayName =
+        diagramKind === "sequence"
+          ? "Sequence"
+          : diagramKind === "usecase"
+            ? "Use Case"
+            : diagramKind === "class"
+              ? "Class"
+              : "Gantt";
       setInteractionMessage(`Created a new ${displayName} diagram`);
     },
     [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
@@ -1257,6 +1318,124 @@ export function App() {
     },
     [commitSource, useCaseDocument, workspace.source],
   );
+
+  const createClassRelationshipByDrag = useCallback(
+    (from: string, to: string) => {
+      commitSource(
+        insertClassRelationship(workspace.source, classDocument, { from, to, kind: "association" }),
+        "Connect Class objects",
+      );
+      setInteractionMessage("Added Class association");
+    },
+    [classDocument, commitSource, workspace.source],
+  );
+  const reconnectClassRelationshipByDrag = useCallback(
+    (id: string, endpoint: "from" | "to", targetId: string) => {
+      const relation = classDocument.relationships.find((item) => item.id === id);
+      if (!relation) return;
+      commitSource(
+        updateClassRelationship(workspace.source, classDocument, relation, {
+          from: endpoint === "from" ? targetId : relation.from,
+          to: endpoint === "to" ? targetId : relation.to,
+          kind: relation.kind,
+          ...(relation.label ? { label: relation.label } : {}),
+          ...(relation.fromMultiplicity ? { fromMultiplicity: relation.fromMultiplicity } : {}),
+          ...(relation.toMultiplicity ? { toMultiplicity: relation.toMultiplicity } : {}),
+          ...(relation.color ? { color: relation.color } : {}),
+          ...(relation.lineStyle ? { lineStyle: relation.lineStyle } : {}),
+        }),
+        "Reconnect Class relationship",
+      );
+    },
+    [classDocument, commitSource, workspace.source],
+  );
+  const moveClassEntityByDrag = useCallback(
+    (id: string, packageId?: string) => {
+      const entity = classDocument.entities.find((item) => item.id === id);
+      if (entity)
+        commitSource(moveClassEntityToPackage(workspace.source, classDocument, entity, packageId), "Move Class object");
+    },
+    [classDocument, commitSource, workspace.source],
+  );
+  const reorderClassEntityByDrag = useCallback(
+    (id: string, targetId: string, placement: "before" | "after") => {
+      const entity = classDocument.entities.find((item) => item.id === id);
+      const target = classDocument.entities.find((item) => item.id === targetId);
+      if (entity && target)
+        commitSource(reorderClassEntity(workspace.source, entity, target, placement), "Reorder Class objects");
+    },
+    [classDocument.entities, commitSource, workspace.source],
+  );
+  const addClassEntity = (v: ClassEntityInput) => {
+    commitSource(insertClassEntity(workspace.source, v), "Add Class object");
+    setAddClassEntityOpen(false);
+  };
+  const applyClassEntity = (v: ClassEntityInput) => {
+    if (selectedClassEntity)
+      commitSource(updateClassEntity(workspace.source, classDocument, selectedClassEntity, v), "Update Class object");
+  };
+  const removeClassEntity = () => {
+    if (selectedClassEntity) {
+      commitSource(deleteClassEntity(workspace.source, classDocument, selectedClassEntity), "Delete Class object");
+      setSelectedClassObjectId(undefined);
+    }
+  };
+  const addClassRelationship = (v: ClassRelationshipInput) => {
+    commitSource(insertClassRelationship(workspace.source, classDocument, v), "Add Class relationship");
+    setAddClassRelationshipOpen(false);
+  };
+  const applyClassRelationship = (v: ClassRelationshipInput) => {
+    if (selectedClassRelationship)
+      commitSource(
+        updateClassRelationship(workspace.source, classDocument, selectedClassRelationship, v),
+        "Update Class relationship",
+      );
+  };
+  const removeClassRelationship = () => {
+    if (selectedClassRelationship) {
+      commitSource(deleteClassRelationship(workspace.source, selectedClassRelationship), "Delete Class relationship");
+      setSelectedClassObjectId(undefined);
+    }
+  };
+  const addClassPackage = (v: ClassPackageInput) => {
+    commitSource(insertClassPackage(workspace.source, v), "Add Class package");
+    setAddClassPackageOpen(false);
+  };
+  const applyClassPackage = (v: ClassPackageInput) => {
+    if (selectedClassPackage)
+      commitSource(updateClassPackage(workspace.source, selectedClassPackage, v), "Update Class package");
+  };
+  const removeClassPackage = () => {
+    if (selectedClassPackage) {
+      commitSource(deleteClassPackage(workspace.source, selectedClassPackage), "Delete Class package");
+      setSelectedClassObjectId(undefined);
+    }
+  };
+  const moveSelectedClassEntity = (id?: string) => {
+    if (selectedClassEntity)
+      commitSource(
+        moveClassEntityToPackage(workspace.source, classDocument, selectedClassEntity, id),
+        "Move Class object",
+      );
+  };
+  const applyClassSettings = (v: ClassSettings) => {
+    commitSource(updateClassSettings(workspace.source, v), "Update Class settings");
+    setInteractionMessage("Updated Class settings");
+  };
+  const addClassNote = (v: ClassNoteInput) => {
+    commitSource(insertClassNote(workspace.source, classDocument, v), "Add Class note");
+    setAddClassNoteOpen(false);
+  };
+  const applyClassNote = (v: ClassNoteInput) => {
+    if (selectedClassNote)
+      commitSource(updateClassNote(workspace.source, classDocument, selectedClassNote, v), "Update Class note");
+  };
+  const removeClassNote = () => {
+    if (selectedClassNote) {
+      commitSource(deleteClassNote(workspace.source, selectedClassNote), "Delete Class note");
+      setSelectedClassObjectId(undefined);
+    }
+  };
 
   const reconnectUseCaseRelationshipByDrag = useCallback(
     (relationshipId: string, endpoint: "from" | "to", targetId: string) => {
@@ -2116,7 +2295,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || sequenceSettingsOpen || useCaseSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -2153,6 +2332,10 @@ export function App() {
             onUseCaseRelationship={() => setAddUseCaseRelationshipOpen(true)}
             onUseCasePackage={() => setAddUseCasePackageOpen(true)}
             onUseCaseNote={() => setAddUseCaseNoteOpen(true)}
+            onClassEntity={() => setAddClassEntityOpen(true)}
+            onClassRelationship={() => setAddClassRelationshipOpen(true)}
+            onClassPackage={() => setAddClassPackageOpen(true)}
+            onClassNote={() => setAddClassNoteOpen(true)}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2178,6 +2361,17 @@ export function App() {
               }}
             >
               Use Case
+            </button>
+          )}
+          {workspace.diagramKind === "class" && (
+            <button
+              data-inspector-trigger
+              onClick={() => {
+                setSelectedClassObjectId(undefined);
+                setClassSettingsOpen(true);
+              }}
+            >
+              Class
             </button>
           )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
@@ -2344,9 +2538,9 @@ export function App() {
                   setSelectedSequenceMessageId(undefined);
                   setSelectedSequenceStructureId(undefined);
                 }
-              } else {
+              } else if (workspace.diagramKind === "usecase") {
                 setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
-              }
+              } else setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
             }}
           />
         )}
@@ -2470,7 +2664,7 @@ export function App() {
               onMessageCreate={createSequenceMessageByDrag}
               onMessageExternalize={externalizeSequenceMessage}
             />
-          ) : (
+          ) : workspace.diagramKind === "usecase" ? (
             <UseCaseDiagramPreview
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -2498,6 +2692,36 @@ export function App() {
               onRelationshipReconnect={reconnectUseCaseRelationshipByDrag}
               onMoveToPackage={moveUseCaseElementByDrag}
               onReorder={reorderUseCaseElementByDrag}
+            />
+          ) : (
+            <ClassDiagramPreview
+              svg={result?.svg}
+              zoom={workspace.zoom}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              document={classDocument}
+              selectedId={selectedClassObjectId}
+              onSelect={(id) => {
+                setClassSettingsOpen(false);
+                setSelectedClassObjectId(id);
+                const x = [
+                  ...classDocument.entities,
+                  ...classDocument.packages,
+                  ...classDocument.relationships,
+                  ...classDocument.notes,
+                ].find((x) => x.id === id);
+                if (x) setSelectionRequest({ ...x.sourceRange });
+              }}
+              onBackgroundSelect={() => {
+                setSelectedClassObjectId(undefined);
+                setClassSettingsOpen(false);
+              }}
+              onRelationshipCreate={createClassRelationshipByDrag}
+              onRelationshipReconnect={reconnectClassRelationshipByDrag}
+              onMoveToPackage={moveClassEntityByDrag}
+              onReorder={reorderClassEntityByDrag}
             />
           ))}
       </main>
@@ -2530,7 +2754,9 @@ export function App() {
             ? "Sequence"
             : workspace.diagramKind === "usecase"
               ? "Use Case"
-              : "Gantt"}
+              : workspace.diagramKind === "class"
+                ? "Class"
+                : "Gantt"}
         </span>
         <span>
           {workspace.viewMode === "code"
@@ -2741,6 +2967,65 @@ export function App() {
           onDelete={removeUseCaseNote}
           onClose={() => setSelectedUseCaseObjectId(undefined)}
         />
+      )}
+      {selectedClassEntity && (
+        <ClassEntityInspector
+          entity={selectedClassEntity}
+          packages={classDocument.packages}
+          onChange={applyClassEntity}
+          onPackageChange={moveSelectedClassEntity}
+          onDelete={removeClassEntity}
+          onClose={() => setSelectedClassObjectId(undefined)}
+        />
+      )}
+      {selectedClassRelationship && (
+        <ClassRelationshipInspector
+          item={selectedClassRelationship}
+          document={classDocument}
+          onChange={applyClassRelationship}
+          onDelete={removeClassRelationship}
+          onClose={() => setSelectedClassObjectId(undefined)}
+        />
+      )}
+      {selectedClassPackage && (
+        <ClassPackageInspector
+          item={selectedClassPackage}
+          onChange={applyClassPackage}
+          onDelete={removeClassPackage}
+          onClose={() => setSelectedClassObjectId(undefined)}
+        />
+      )}
+      {addClassEntityOpen && (
+        <AddClassEntityDialog onAdd={addClassEntity} onClose={() => setAddClassEntityOpen(false)} />
+      )}
+      {addClassRelationshipOpen && (
+        <AddClassRelationshipDialog
+          document={classDocument}
+          onAdd={addClassRelationship}
+          onClose={() => setAddClassRelationshipOpen(false)}
+        />
+      )}
+      {addClassPackageOpen && (
+        <AddClassPackageDialog onAdd={addClassPackage} onClose={() => setAddClassPackageOpen(false)} />
+      )}
+      {classSettingsOpen && (
+        <ClassSettingsInspector
+          settings={parseClassSettings(workspace.source)}
+          onChange={applyClassSettings}
+          onClose={() => setClassSettingsOpen(false)}
+        />
+      )}
+      {selectedClassNote && (
+        <ClassNoteInspector
+          item={selectedClassNote}
+          document={classDocument}
+          onChange={applyClassNote}
+          onDelete={removeClassNote}
+          onClose={() => setSelectedClassObjectId(undefined)}
+        />
+      )}{" "}
+      {addClassNoteOpen && (
+        <AddClassNoteDialog document={classDocument} onAdd={addClassNote} onClose={() => setAddClassNoteOpen(false)} />
       )}
       {selectedSequenceMessage && (
         <SequenceMessageInspector

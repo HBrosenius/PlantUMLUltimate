@@ -8,10 +8,12 @@ const SEQUENCE_MESSAGE =
 const USECASE_DECLARATION = /^\s*(?:usecase\/?\b|\([^\n)]+\)\/?(?:\s+as\s+\S+)?\s*$)/im;
 const USECASE_RELATION =
   /(?:<<\s*(?:include|extend)\s*>>|\([^\n)]+\)\s*(?:<?[-.]+|[-.]+>?)|(?:<?[-.]+|[-.]+>?)\s*\([^\n)]+\))/im;
+const CLASS_DECLARATION = /^\s*(?:abstract\s+class|abstract|class|interface|enum|annotation)\b/im;
 
 export function detectDiagramKind(source: string): DiagramKind | undefined {
   if (/^\s*@startgantt\b/im.test(source)) return "gantt";
   if (!/^\s*@startuml\b/im.test(source)) return undefined;
+  if (CLASS_DECLARATION.test(source)) return "class";
   if (USECASE_DECLARATION.test(source) || USECASE_RELATION.test(source)) return "usecase";
   if (SEQUENCE_DECLARATION.test(source) || SEQUENCE_STATEMENT.test(source) || SEQUENCE_MESSAGE.test(source)) {
     return "sequence";
@@ -20,6 +22,6 @@ export function detectDiagramKind(source: string): DiagramKind | undefined {
 }
 
 export function normalizeDiagramKind(value: unknown, source: string): DiagramKind {
-  if (value === "gantt" || value === "sequence" || value === "usecase") return value;
+  if (value === "gantt" || value === "sequence" || value === "usecase" || value === "class") return value;
   return detectDiagramKind(source) ?? "gantt";
 }

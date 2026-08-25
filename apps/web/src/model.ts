@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase";
+export type DiagramKind = "gantt" | "sequence" | "usecase" | "class";
 
 export interface RenderRequest {
   requestId: number;
@@ -58,4 +58,24 @@ Customer --> Browse
 Customer --> Order
 Order ..> Payment : <<include>>
 
+@enduml`;
+
+export const DEFAULT_CLASS_SOURCE = `@startuml
+skinparam classAttributeIconSize 0
+
+package "Ordering" {
+  class Order {
+    -id: UUID
+    +submit(): void
+  }
+  class OrderLine {
+    +quantity: int
+  }
+  interface OrderRepository {
+    +save(order: Order): void
+  }
+}
+
+Order "1" *-- "many" OrderLine
+OrderRepository ..> Order : persists
 @enduml`;

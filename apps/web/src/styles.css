@@ -1674,6 +1674,19 @@ textarea:focus-visible,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
+.diagram-kind-beta {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #6d28d9;
+  color: white !important;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
 @media (max-width: 760px) {
   .diagram-kind-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1873,6 +1886,77 @@ textarea:focus-visible,
   .usecase-move-handle {
     stroke-width: 6px;
   }
+}
+.class-semantic-hit {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+  cursor: pointer;
+}
+.class-semantic-hit:hover,
+.class-selected-object {
+  fill: rgb(37 99 235 / 10%);
+  stroke: #2563eb;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.class-connect-handle {
+  fill: #2563eb;
+  stroke: white;
+  stroke-width: 2;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.class-move-handle {
+  fill: #fff;
+  stroke: #2563eb;
+  stroke-width: 2;
+  cursor: grab;
+  pointer-events: all;
+}
+.class-relationship-endpoint {
+  fill: #fff;
+  stroke: #2563eb;
+  stroke-width: 3;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.class-package-drop-hit {
+  fill: rgb(37 99 235 / 0.001%);
+  stroke: transparent;
+  pointer-events: all;
+}
+.class-package-tray {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.class-package-tray button {
+  min-height: 24px;
+  padding: 2px 7px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 5px;
+  background: var(--panel);
+  font-size: 10px;
+}
+.class-relationship-hit {
+  fill: none;
+  stroke: rgb(37 99 235 / 0.001);
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.class-relationship-hit:hover {
+  stroke: rgb(37 99 235 / 24%);
+}
+.class-connection-preview {
+  stroke: #2563eb;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  pointer-events: none;
 }
 .sequence-branch-row {
   display: grid;

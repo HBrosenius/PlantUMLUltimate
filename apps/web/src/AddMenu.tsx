@@ -20,6 +20,10 @@ export function AddMenu({
   onUseCaseRelationship,
   onUseCasePackage,
   onUseCaseNote,
+  onClassEntity,
+  onClassRelationship,
+  onClassPackage,
+  onClassNote,
 }: {
   diagramKind: DiagramKind;
   onTask(): void;
@@ -38,6 +42,10 @@ export function AddMenu({
   onUseCaseRelationship(): void;
   onUseCasePackage(): void;
   onUseCaseNote(): void;
+  onClassEntity(): void;
+  onClassRelationship(): void;
+  onClassPackage(): void;
+  onClassNote(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -156,7 +164,7 @@ export function AddMenu({
                 <span>Participant box…</span>
               </button>
             </>
-          ) : (
+          ) : diagramKind === "usecase" ? (
             <>
               <button role="menuitem" onClick={() => run(onUseCaseActor)}>
                 <span>Actor…</span>
@@ -173,6 +181,21 @@ export function AddMenu({
                 <span>Package or boundary…</span>
               </button>
               <button role="menuitem" onClick={() => run(onUseCaseNote)}>
+                <span>Note…</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button role="menuitem" onClick={() => run(onClassEntity)}>
+                <span>Class, interface, or enum…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onClassRelationship)}>
+                <span>Relationship…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onClassPackage)}>
+                <span>Package or namespace…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onClassNote)}>
                 <span>Note…</span>
               </button>
             </>

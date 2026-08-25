@@ -40,8 +40,102 @@ test("shows the diagram splash after closing the final tab", async ({ page }) =>
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  await expect(chooser.getByRole("button", { name: "Sequence diagram" })).toBeVisible();
-  await expect(chooser.getByText("Beta", { exact: true })).toHaveCount(0);
+  const sequenceChoice = chooser.getByRole("button", { name: "Sequence diagram" });
+  await expect(sequenceChoice).toBeVisible();
+  await expect(sequenceChoice.getByText("Beta", { exact: true })).toHaveCount(0);
+});
+
+test("creates and edits Class diagram objects, members, relationships, packages, and settings", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser.getByRole("button", { name: /Class diagram/ }).getByText("Beta")).toBeVisible();
+  await chooser.getByRole("button", { name: /Class diagram/ }).click();
+  await expect(page.getByRole("region", { name: "Class diagram preview" })).toBeVisible();
+  await expect(page.locator(".cm-content")).toContainText("class Order");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Class, interface, or enum…" }).click();
+  const add = page.getByRole("dialog", { name: "Add Class object" });
+  await add.getByLabel("Class object type").selectOption("enum");
+  await add.getByLabel("Name").fill("OrderStatus");
+  await add.getByLabel("Alias").fill("Status");
+  await add.getByLabel("Members").fill("NEW\nSUBMITTED");
+  await add.getByRole("button", { name: "Add object" }).click();
+  await expect(page.locator(".cm-content")).toContainText('enum "OrderStatus" as Status');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Relationship…" }).click();
+  const rel = page.getByRole("dialog", { name: "Add Class relationship" });
+  await rel.getByLabel("From", { exact: true }).selectOption("order");
+  await rel.getByLabel("To", { exact: true }).selectOption("status");
+  await rel.getByLabel("Relationship").selectOption("composition");
+  await rel.getByLabel("Label").fill("state");
+  await rel.getByLabel("From multiplicity").fill("1");
+  await rel.getByLabel("To multiplicity").fill("many");
+  await rel.getByLabel("Color").fill("DarkGreen");
+  await rel.getByRole("button", { name: "Add relationship" }).click();
+  await expect(page.locator(".cm-content")).toContainText('Order "1" *-[#DarkGreen]-> "many" Status : state');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Package or namespace…" }).click();
+  const classPackage = page.getByRole("dialog", { name: "Add Class package" });
+  await classPackage.getByLabel("Package name").fill("Reporting");
+  await classPackage.getByLabel("Package alias").fill("Reports");
+  await classPackage.getByLabel("Color").fill("Lavender");
+  await classPackage.getByRole("button", { name: "Add package" }).click();
+  await expect(page.locator(".cm-content")).toContainText('package "Reporting" as Reports #Lavender');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Note…" }).click();
+  const classNote = page.getByRole("dialog", { name: "Add Class note" });
+  await classNote.getByLabel("Attached to").selectOption("status");
+  await classNote.getByLabel("Position").selectOption("left");
+  await classNote.getByLabel("Text").fill("Lifecycle state");
+  await classNote.getByLabel("Color").fill("Wheat");
+  await classNote.getByRole("button", { name: "Add note" }).click();
+  await expect(page.locator(".cm-content")).toContainText("note left of Status #Wheat : Lifecycle state");
+
+  await expect(page.locator(".class-connect-handle")).toHaveCount(4, { timeout: 20_000 });
+  await expect(page.locator(".class-move-handle")).toHaveCount(4);
+  await expect(page.getByRole("group", { name: "Class containers" }).getByRole("button")).toHaveCount(2);
+
+  const moveStatus = page.locator('[data-class-move-id="status"]');
+  const reportingTarget = page.getByRole("group", { name: "Class containers" }).getByRole("button", {
+    name: "Reporting",
+  });
+  const moveBox = await moveStatus.boundingBox();
+  const targetBox = await reportingTarget.boundingBox();
+  expect(moveBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(moveBox!.x + moveBox!.width / 2, moveBox!.y + moveBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 7 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText(
+    'package "Reporting" as Reports #Lavender {enum "OrderStatus" as Status',
+  );
+
+  await page.locator(".class-relationship-hit").first().click({ force: true });
+  await expect(page.locator(".class-relationship-endpoint")).toHaveCount(2);
+  const fromEndpoint = page.locator('[data-class-relationship-endpoint="from"]');
+  const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');
+  const endpointBox = await fromEndpoint.boundingBox();
+  const repositoryBox = await repositoryTarget.boundingBox();
+  expect(endpointBox).not.toBeNull();
+  expect(repositoryBox).not.toBeNull();
+  await page.mouse.move(endpointBox!.x + endpointBox!.width / 2, endpointBox!.y + endpointBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(repositoryBox!.x + repositoryBox!.width / 2, repositoryBox!.y + repositoryBox!.height / 2, {
+    steps: 7,
+  });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText('OrderRepository "1" *--> "many" OrderLine');
+
+  await page.getByRole("button", { name: "Class", exact: true }).click();
+  const settings = page.getByRole("complementary", { name: "Class settings" });
+  await settings.getByLabel("Layout direction").selectOption("left-to-right");
+  await expect(page.locator(".cm-content")).toContainText("left to right direction");
 });
 
 test("creates and edits Use Case objects through diagram-specific tools", async ({ page }) => {
