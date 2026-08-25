@@ -124,6 +124,7 @@ export function App() {
   const [addDividerOpen, setAddDividerOpen] = useState(false);
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [newDocumentOpen, setNewDocumentOpen] = useState(false);
+  const [replaceActiveDocumentOnCreate, setReplaceActiveDocumentOnCreate] = useState(false);
   const [addSequenceParticipantOpen, setAddSequenceParticipantOpen] = useState(false);
   const [addSequenceMessageOpen, setAddSequenceMessageOpen] = useState(false);
   const [addSequenceStructureKind, setAddSequenceStructureKind] = useState<SequenceStructureKind>();
@@ -150,6 +151,7 @@ export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
+  const startupSplashShown = useRef(false);
   const selectedTasksByDocument = useRef(new Map<string, string>());
   const { activeHistory, refreshHistoryControls, removeHistory, retainHistories } = useDocumentHistory(tabs.activeId);
   const {
@@ -165,6 +167,12 @@ export function App() {
   }, [workspace.source]);
   const parseResult = parsed.value;
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  useEffect(() => {
+    if (!hydrated || startupSplashShown.current) return;
+    startupSplashShown.current = true;
+    setReplaceActiveDocumentOnCreate(activeDocument.historyId === "history-welcome");
+    setNewDocumentOpen(true);
+  }, [activeDocument.historyId, hydrated]);
   useEffect(() => {
     let cancelled = false;
     if (!activeDocument.baselineVersionId) {
@@ -311,11 +319,16 @@ export function App() {
       const document = tabs.documents.find((item) => item.id === id);
       if (!document) return;
       if (document.dirty && !window.confirm(`Close “${document.fileName}” without saving?`)) return;
+      const closingLastDocument = tabs.documents.length === 1;
       tabs.closeDocument(id);
       removeHistory(id);
       fileHandles.current.delete(id);
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
+      if (closingLastDocument) {
+        setReplaceActiveDocumentOnCreate(true);
+        setNewDocumentOpen(true);
+      }
     },
     [removeHistory, tabs],
   );
@@ -1019,6 +1032,7 @@ export function App() {
 
   const createDocument = useCallback(
     (diagramKind: DiagramKind) => {
+      const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
       tabs.addDocument({
         diagramKind,
         source: diagramKind === "sequence" ? DEFAULT_SEQUENCE_SOURCE : DEFAULT_SOURCE,
@@ -1026,16 +1040,25 @@ export function App() {
         dirty: false,
         cursor: { line: 1, column: 1 },
       });
+      if (replacedDocumentId) {
+        tabs.closeDocument(replacedDocumentId);
+        removeHistory(replacedDocumentId);
+        fileHandles.current.delete(replacedDocumentId);
+      }
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       refreshHistoryControls();
+      setReplaceActiveDocumentOnCreate(false);
       setNewDocumentOpen(false);
       setInteractionMessage(`Created a new ${diagramKind === "sequence" ? "Sequence" : "Gantt"} diagram`);
     },
-    [refreshHistoryControls, tabs],
+    [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
   );
 
-  const newDocument = useCallback(() => setNewDocumentOpen(true), []);
+  const newDocument = useCallback(() => {
+    setReplaceActiveDocumentOnCreate(false);
+    setNewDocumentOpen(true);
+  }, []);
 
   const addSequenceParticipant = useCallback(
     (value: AddSequenceParticipantValue) => {

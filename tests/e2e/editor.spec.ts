@@ -22,7 +22,19 @@ async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Div
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
+});
+
+test("shows the diagram splash after closing the final tab", async ({ page }) => {
+  await page.getByRole("button", { name: "Close untitled.puml", exact: true }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+  await expect(page.locator(".cm-content")).toContainText("@startuml");
+  await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(1);
 });
 
 test("groups document commands in an accessible File and Export menu", async ({ page }) => {
@@ -62,6 +74,7 @@ test("creates, compares, and restores durable document versions", async ({ page 
 
   await page.reload();
   await expect(page.locator(".cm-content")).toBeVisible();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Cancel" }).click();
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByRole("button", { name: "Select version First draft" })).toBeVisible();
