@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence";
+export type DiagramKind = "gantt" | "sequence" | "usecase";
 
 export interface RenderRequest {
   requestId: number;
@@ -41,4 +41,21 @@ participant System
 
 User -> System: Request
 System --> User: Response
+@enduml`;
+
+export const DEFAULT_USECASE_SOURCE = `@startuml
+left to right direction
+
+actor Customer
+
+rectangle "Ordering system" {
+  usecase "Browse products" as Browse
+  usecase "Place order" as Order
+  usecase "Process payment" as Payment
+}
+
+Customer --> Browse
+Customer --> Order
+Order ..> Payment : <<include>>
+
 @enduml`;

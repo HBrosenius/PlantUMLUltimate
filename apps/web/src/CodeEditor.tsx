@@ -10,6 +10,8 @@ import { ganttCompletions, ganttDiagnostics, ganttQuickFixes, type GanttQuickFix
 import { plantUmlGanttHighlightStyle, plantUmlGanttMode } from "./plantuml-gantt-mode";
 import { plantUmlSequenceHighlightStyle, plantUmlSequenceMode } from "./plantuml-sequence-mode";
 import { sequenceCompletions, sequenceDiagnostics, sequenceQuickFixes } from "./sequence-language";
+import { plantUmlUseCaseHighlightStyle, plantUmlUseCaseMode } from "./plantuml-usecase-mode";
+import { getUseCaseQuickFixes, useCaseCompletions, useCaseDiagnostics } from "./usecase-language";
 import type { DiagramKind } from "./model";
 
 interface Props {
@@ -21,19 +23,31 @@ interface Props {
 }
 
 function languageExtensions(kind: DiagramKind): Extension {
+  const mode = kind === "gantt" ? plantUmlGanttMode : kind === "sequence" ? plantUmlSequenceMode : plantUmlUseCaseMode;
+  const highlights =
+    kind === "gantt"
+      ? plantUmlGanttHighlightStyle
+      : kind === "sequence"
+        ? plantUmlSequenceHighlightStyle
+        : plantUmlUseCaseHighlightStyle;
+  const completions =
+    kind === "gantt" ? ganttCompletions : kind === "sequence" ? sequenceCompletions : useCaseCompletions;
+  const diagnostics =
+    kind === "gantt" ? ganttDiagnostics : kind === "sequence" ? sequenceDiagnostics : useCaseDiagnostics;
   return [
-    StreamLanguage.define(kind === "gantt" ? plantUmlGanttMode : plantUmlSequenceMode),
-    syntaxHighlighting(kind === "gantt" ? plantUmlGanttHighlightStyle : plantUmlSequenceHighlightStyle),
-    autocompletion({ override: [kind === "gantt" ? ganttCompletions : sequenceCompletions] }),
-    linter(
-      (current) =>
-        kind === "gantt"
-          ? ganttDiagnostics(current.state.doc.toString())
-          : sequenceDiagnostics(current.state.doc.toString()),
-      { delay: 120 },
-    ),
+    StreamLanguage.define(mode),
+    syntaxHighlighting(highlights),
+    autocompletion({ override: [completions] }),
+    linter((current) => diagnostics(current.state.doc.toString()), { delay: 120 }),
   ];
 }
+
+const quickFixesFor = (kind: DiagramKind, source: string): GanttQuickFix[] =>
+  kind === "gantt"
+    ? ganttQuickFixes(source)
+    : kind === "sequence"
+      ? sequenceQuickFixes(source)
+      : getUseCaseQuickFixes(source);
 
 export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selectedRange }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -46,9 +60,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   const kindRef = useRef(diagramKind);
   const language = useRef(new Compartment());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() =>
-    diagramKind === "gantt" ? ganttQuickFixes(value) : sequenceQuickFixes(value),
-  );
+  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => quickFixesFor(diagramKind, value));
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
   kindRef.current = diagramKind;
@@ -78,7 +90,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
             if (update.docChanged) {
               const source = update.state.doc.toString();
               onChangeRef.current(source);
-              setQuickFixes(kindRef.current === "gantt" ? ganttQuickFixes(source) : sequenceQuickFixes(source));
+              setQuickFixes(quickFixesFor(kindRef.current, source));
             }
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;
@@ -96,11 +108,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   useEffect(() => {
     if (!view.current) return;
     view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
-    setQuickFixes(
-      diagramKind === "gantt"
-        ? ganttQuickFixes(view.current.state.doc.toString())
-        : sequenceQuickFixes(view.current.state.doc.toString()),
-    );
+    setQuickFixes(quickFixesFor(diagramKind, view.current.state.doc.toString()));
   }, [diagramKind]);
 
   useEffect(() => {

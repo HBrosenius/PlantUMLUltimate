@@ -44,6 +44,112 @@ test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await expect(chooser.getByText("Beta", { exact: true })).toHaveCount(0);
 });
 
+test("creates and edits Use Case objects through diagram-specific tools", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await expect(chooser.getByRole("button", { name: "Use Case diagram" }).getByText("Beta")).toBeVisible();
+  await chooser.getByRole("button", { name: "Use Case diagram" }).click();
+  await expect(page.getByRole("region", { name: "Use Case diagram preview" })).toBeVisible();
+  await expect(page.locator(".cm-content")).toContainText("actor Customer");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Actor…" }).click();
+  const actorDialog = page.getByRole("dialog", { name: "Add Use Case object" });
+  await actorDialog.getByLabel("Name").fill("Administrator");
+  await actorDialog.getByLabel("Alias").fill("Admin");
+  await actorDialog.getByLabel("Color").fill("#LightBlue");
+  await actorDialog.getByRole("button", { name: "Add actor" }).click();
+  await expect(page.locator(".cm-content")).toContainText('actor "Administrator" as Admin #LightBlue');
+  await page.locator('[data-usecase-object-id="admin"]').first().click();
+  const actorInspector = page.getByRole("complementary", { name: "Use Case object inspector" });
+  await expect(actorInspector).toBeVisible();
+  await expect(actorInspector.getByLabel("Name")).toHaveValue("Administrator");
+  await actorInspector.getByRole("button", { name: "Close Use Case object inspector" }).click();
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Relationship…" }).click();
+  const relationship = page.getByRole("dialog", { name: "Add Use Case relationship" });
+  await relationship.getByLabel("From", { exact: true }).selectOption("admin");
+  await relationship.getByLabel("To", { exact: true }).selectOption("order");
+  await relationship.getByLabel("Relationship", { exact: true }).selectOption("association");
+  await relationship.getByLabel("Label").fill("manages");
+  await relationship.getByRole("button", { name: "Add relationship" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Admin --> Order : manages");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Package or boundary…" }).click();
+  const container = page.getByRole("dialog", { name: "Add Use Case package" });
+  await container.getByLabel("Name").fill("Administration");
+  await container.getByRole("button", { name: "Add container" }).click();
+  await expect(page.locator(".cm-content")).toContainText('rectangle "Administration"');
+
+  const connectionHandle = page.locator('[data-usecase-connect-from="admin"]').first();
+  const browseTarget = page.locator('[data-usecase-object-id="browse"]').first();
+  const handleBox = await connectionHandle.boundingBox();
+  const browseBox = await browseTarget.boundingBox();
+  expect(handleBox).not.toBeNull();
+  expect(browseBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(browseBox!.x + browseBox!.width / 2, browseBox!.y + browseBox!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("Admin --> Browse");
+
+  await page.locator('[data-usecase-object-id="admin"]').first().dispatchEvent("click");
+  const containmentInspector = page.getByRole("complementary", { name: "Use Case object inspector" });
+  await expect(containmentInspector).toBeVisible();
+  await containmentInspector.getByLabel("Container").selectOption("administration");
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toContain('rectangle "Administration" {\nactor "Administrator"');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Note…" }).click();
+  const note = page.getByRole("dialog", { name: "Add Use Case note" });
+  await note.getByLabel("Attached to").selectOption("admin");
+  await note.getByLabel("Text").fill("Maintains access");
+  await note.getByRole("button", { name: "Add note" }).click();
+  await expect(page.locator(".cm-content")).toContainText("note right of Admin : Maintains access");
+});
+
+test("inspects arrow properties and reconnects a Use Case endpoint visually", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await setSource(
+    page,
+    '@startuml\nleft to right direction\nactor "Alpha" as A\nusecase "Beta" as B\nusecase "Gamma" as C\nA --> B : uses\n@enduml',
+  );
+
+  const arrowHit = page.locator('.usecase-relationship-hit[data-usecase-object-id="relationship-0"]').first();
+  await expect(arrowHit).toHaveCount(1);
+  await arrowHit.dispatchEvent("click");
+  const inspector = page.getByRole("complementary", { name: "Use Case relationship inspector" });
+  await expect(inspector).toBeVisible();
+  await inspector.getByLabel("Line style").selectOption("dashed");
+  await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
+
+  const endpoint = page.locator(
+    '[data-usecase-relationship-id="relationship-0"][data-usecase-relationship-endpoint="to"]',
+  );
+  const target = page.locator('[data-usecase-object-id="c"]').first();
+  const endpointBox = await endpoint.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(endpointBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(endpointBox!.x + endpointBox!.width / 2, endpointBox!.y + endpointBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move((endpointBox!.x + targetBox!.x) / 2, (endpointBox!.y + targetBox!.y) / 2);
+  await expect(page.locator(".usecase-connection-preview")).toBeVisible();
+  await expect(page.locator(".usecase-valid-drop").first()).toBeVisible();
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> C : uses");
+});
+
 test("groups document commands in an accessible File and Export menu", async ({ page }) => {
   const file = page.getByRole("button", { name: "File" });
   await file.click();
@@ -223,7 +329,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
-  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(2);
+  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(3);
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
@@ -297,7 +403,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
 
   await page.locator('[data-sequence-drag-hit][aria-label="Drag message Request"]').click();
   await expect(page.locator(".cm-selectionBackground")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("User -> System: Request");
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ""))
+    .toContain("User -> System: Request");
   await expect(page.locator(".sequence-selected-message-line")).toHaveCount(1);
   await expect(page.locator(".sequence-selected-message-head")).toBeVisible();
   await expect(page.locator('[data-sequence-message-id="message-0"][data-sequence-message-endpoint]')).toHaveCount(2);
@@ -592,19 +700,31 @@ test("reorders Sequence participants and messages from the dedicated drag tray",
 
 test("drags Sequence structures and reconnects their participant attachments", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
-  await setSource(page, "@startuml\nparticipant User\nparticipant System\nparticipant Orders\nUser -> System: Request\nnote over User, System: Important\nref over User, System: External flow\nactivate System\n== Later ==\n@enduml");
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(
+    page,
+    "@startuml\nparticipant User\nparticipant System\nparticipant Orders\nUser -> System: Request\nnote over User, System: Important\nref over User, System: External flow\nactivate System\n== Later ==\n@enduml",
+  );
 
   await expect(page.locator(".sequence-structure-grip")).toHaveCount(4);
   await page.locator(".sequence-diagram text", { hasText: "Important" }).click({ force: true });
   await expect(page.locator(".sequence-structure-endpoint")).toHaveCount(2);
-  const endpoint = await page.locator('.sequence-structure-endpoint[data-sequence-structure-endpoint="1"]').boundingBox();
-  const ordersAnchor = await page.locator('.sequence-participant-anchor[data-sequence-participant-id="orders"]').boundingBox();
+  const endpoint = await page
+    .locator('.sequence-structure-endpoint[data-sequence-structure-endpoint="1"]')
+    .boundingBox();
+  const ordersAnchor = await page
+    .locator('.sequence-participant-anchor[data-sequence-participant-id="orders"]')
+    .boundingBox();
   expect(endpoint).not.toBeNull();
   expect(ordersAnchor).not.toBeNull();
   await page.mouse.move(endpoint!.x + endpoint!.width / 2, endpoint!.y + endpoint!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(ordersAnchor!.x + ordersAnchor!.width / 2, ordersAnchor!.y + ordersAnchor!.height / 2, { steps: 5 });
+  await page.mouse.move(ordersAnchor!.x + ordersAnchor!.width / 2, ordersAnchor!.y + ordersAnchor!.height / 2, {
+    steps: 5,
+  });
   await expect(page.locator(".interaction-feedback")).toContainText("attachment handle on Orders");
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("note over User, Orders: Important");
@@ -624,10 +744,12 @@ test("drags Sequence structures and reconnects their participant attachments", a
   await expect(page.locator(".sequence-structure-move-preview")).toHaveAttribute("transform", /translate\([^)]*[1-9]/);
   await page.mouse.up();
   await expect(page.locator(".sequence-structure-move-preview")).toHaveCount(0);
-  await expect.poll(async () => {
-    const text = await page.locator(".cm-content").innerText();
-    return text.indexOf("note over User, Orders") < text.indexOf("User -> System: Request");
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("note over User, Orders") < text.indexOf("User -> System: Request");
+    })
+    .toBe(true);
 });
 
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {

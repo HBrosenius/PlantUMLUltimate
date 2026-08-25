@@ -9,6 +9,11 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     title: "Sequence diagram",
     description: "Model participants, messages, lifelines, and interactions.",
   },
+  {
+    kind: "usecase",
+    title: "Use Case diagram",
+    description: "Model actors, system capabilities, relationships, packages, and requirements.",
+  },
 ];
 
 export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
@@ -46,7 +51,12 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
           <div className="diagram-kind-options">
             {OPTIONS.map((option, index) => (
               <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
-              <DiagramKindPreview kind={option.kind} />
+                {option.kind === "usecase" && (
+                  <span className="diagram-kind-beta" aria-hidden="true">
+                    Beta
+                  </span>
+                )}
+                <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>
                   <span>{option.description}</span>
@@ -103,69 +113,106 @@ function PlantUmlUltimateLogo() {
 }
 
 function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
-  return kind === "gantt" ? (
+  if (kind === "gantt")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <defs>
+          <linearGradient id="gantt-blue" x1="0" x2="1">
+            <stop stopColor="#60a5fa" />
+            <stop offset="1" stopColor="#2563eb" />
+          </linearGradient>
+          <linearGradient id="gantt-violet" x1="0" x2="1">
+            <stop stopColor="#c084fc" />
+            <stop offset="1" stopColor="#7c3aed" />
+          </linearGradient>
+        </defs>
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <path className="preview-grid" d="M72 18V96M112 18V96M152 18V96M192 18V96M18 42H222M18 68H222" />
+        <text x="18" y="31">
+          Research
+        </text>
+        <text x="18" y="57">
+          Design
+        </text>
+        <text x="18" y="83">
+          Build
+        </text>
+        <rect x="78" y="21" width="55" height="13" rx="6.5" fill="url(#gantt-blue)" />
+        <rect x="112" y="47" width="65" height="13" rx="6.5" fill="url(#gantt-violet)" />
+        <rect x="154" y="73" width="57" height="13" rx="6.5" fill="url(#gantt-blue)" />
+        <path className="preview-link" d="M133 28C144 28 101 53 112 53M177 54C188 54 143 79 154 79" />
+        <circle cx="218" cy="79.5" r="5" fill="#f59e0b" />
+      </svg>
+    );
+  if (kind === "sequence")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <defs>
+          <linearGradient id="sequence-card" x1="0" y1="0" x2="1" y2="1">
+            <stop stopColor="#38bdf8" />
+            <stop offset="1" stopColor="#6366f1" />
+          </linearGradient>
+        </defs>
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <g className="preview-person">
+          <circle cx="42" cy="21" r="6" />
+          <path d="M42 27v13m-10-7h20M42 40l-8 10m8-10 8 10" />
+        </g>
+        <rect x="92" y="13" width="56" height="18" rx="5" fill="url(#sequence-card)" />
+        <text className="preview-light-text" x="120" y="25" textAnchor="middle">
+          API
+        </text>
+        <path className="preview-lifeline" d="M42 53V100M120 32V100M200 32V100" />
+        <path
+          className="preview-database"
+          d="M176 18c0-7 48-7 48 0v16c0 7-48 7-48 0zM176 18c0 7 48 7 48 0M176 27c0 7 48 7 48 0"
+        />
+        <path className="preview-message" d="M44 60H116l-8-5m8 5-8 5M124 78H196l-8-5m8 5-8 5" />
+        <path className="preview-return" d="M196 92H46l8-5m-8 5 8 5" />
+        <text x="66" y="56">
+          request
+        </text>
+        <text x="148" y="74">
+          query
+        </text>
+        <text x="102" y="88">
+          result
+        </text>
+        <rect x="116" y="54" width="8" height="43" rx="3" fill="#f59e0b" />
+      </svg>
+    );
+  return (
     <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
       <defs>
-        <linearGradient id="gantt-blue" x1="0" x2="1">
-          <stop stopColor="#60a5fa" />
+        <linearGradient id="usecase-card" x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#14b8a6" />
           <stop offset="1" stopColor="#2563eb" />
         </linearGradient>
-        <linearGradient id="gantt-violet" x1="0" x2="1">
-          <stop stopColor="#c084fc" />
-          <stop offset="1" stopColor="#7c3aed" />
-        </linearGradient>
       </defs>
       <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
-      <path className="preview-grid" d="M72 18V96M112 18V96M152 18V96M192 18V96M18 42H222M18 68H222" />
-      <text x="18" y="31">
-        Research
+      <rect x="72" y="13" width="150" height="86" rx="8" fill="none" stroke="#94a3b8" />
+      <text x="82" y="27">
+        Ordering system
       </text>
-      <text x="18" y="57">
-        Design
-      </text>
-      <text x="18" y="83">
-        Build
-      </text>
-      <rect x="78" y="21" width="55" height="13" rx="6.5" fill="url(#gantt-blue)" />
-      <rect x="112" y="47" width="65" height="13" rx="6.5" fill="url(#gantt-violet)" />
-      <rect x="154" y="73" width="57" height="13" rx="6.5" fill="url(#gantt-blue)" />
-      <path className="preview-link" d="M133 28C144 28 101 53 112 53M177 54C188 54 143 79 154 79" />
-      <circle cx="218" cy="79.5" r="5" fill="#f59e0b" />
-    </svg>
-  ) : (
-    <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
-      <defs>
-        <linearGradient id="sequence-card" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#38bdf8" />
-          <stop offset="1" stopColor="#6366f1" />
-        </linearGradient>
-      </defs>
-      <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
       <g className="preview-person">
-        <circle cx="42" cy="21" r="6" />
-        <path d="M42 27v13m-10-7h20M42 40l-8 10m8-10 8 10" />
+        <circle cx="35" cy="35" r="6" />
+        <path d="M35 41v17m-11-10h22M35 58l-8 12m8-12 8 12" />
       </g>
-      <rect x="92" y="13" width="56" height="18" rx="5" fill="url(#sequence-card)" />
-      <text className="preview-light-text" x="120" y="25" textAnchor="middle">
-        API
+      <text x="22" y="84">
+        Customer
       </text>
-      <path className="preview-lifeline" d="M42 53V100M120 32V100M200 32V100" />
-      <path
-        className="preview-database"
-        d="M176 18c0-7 48-7 48 0v16c0 7-48 7-48 0zM176 18c0 7 48 7 48 0M176 27c0 7 48 7 48 0"
-      />
-      <path className="preview-message" d="M44 60H116l-8-5m8 5-8 5M124 78H196l-8-5m8 5-8 5" />
-      <path className="preview-return" d="M196 92H46l8-5m-8 5 8 5" />
-      <text x="66" y="56">
-        request
+      <ellipse cx="130" cy="49" rx="42" ry="14" fill="url(#usecase-card)" opacity=".9" />
+      <ellipse cx="166" cy="80" rx="42" ry="14" fill="url(#usecase-card)" opacity=".72" />
+      <text className="preview-light-text" x="130" y="52" textAnchor="middle">
+        Place order
       </text>
-      <text x="148" y="74">
-        query
+      <text className="preview-light-text" x="166" y="83" textAnchor="middle">
+        Payment
       </text>
-      <text x="102" y="88">
-        result
+      <path className="preview-message" d="M47 51 87 49m85 13-6 3 4 5m-8-8-18-5" />
+      <text x="145" y="65">
+        include
       </text>
-      <rect x="116" y="54" width="8" height="43" rx="3" fill="#f59e0b" />
     </svg>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
+import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
@@ -87,7 +88,7 @@ import {
   writePlantUmlDocument,
   type WritableFileHandle,
 } from "./file-service";
-import { DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE } from "./model";
+import { DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE, DEFAULT_USECASE_SOURCE } from "./model";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -104,6 +105,36 @@ import {
   updateSequenceParticipant,
   updateSequenceStructure,
 } from "@plantuml-studio/diagram-sequence";
+import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
+import {
+  deleteUseCaseElement,
+  deleteUseCaseNote,
+  deleteUseCasePackage,
+  deleteUseCaseRelationship,
+  insertUseCaseElement,
+  insertUseCaseNote,
+  insertUseCasePackage,
+  insertUseCaseRelationship,
+  moveUseCaseElementToPackage,
+  reorderUseCaseElement,
+  updateUseCaseElement,
+  updateUseCaseNote,
+  updateUseCasePackage,
+  updateUseCaseRelationship,
+  type UseCaseElementInput,
+  type UseCaseElementKind,
+  type UseCaseNoteInput,
+  type UseCasePackageInput,
+  type UseCaseRelationshipInput,
+} from "@plantuml-studio/diagram-usecase";
+import { AddUseCaseElementDialog } from "./AddUseCaseElementDialog";
+import { UseCaseElementInspector } from "./UseCaseElementInspector";
+import { AddUseCaseRelationshipDialog } from "./AddUseCaseRelationshipDialog";
+import { UseCaseRelationshipInspector } from "./UseCaseRelationshipInspector";
+import { AddUseCasePackageDialog } from "./AddUseCasePackageDialog";
+import { UseCasePackageInspector } from "./UseCasePackageInspector";
+import { AddUseCaseNoteDialog } from "./AddUseCaseNoteDialog";
+import { UseCaseNoteInspector } from "./UseCaseNoteInspector";
 import { validateGeneratedSource } from "./generated-source-validation";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
@@ -131,6 +162,11 @@ export function App() {
   const [selectedSequenceParticipantId, setSelectedSequenceParticipantId] = useState<string>();
   const [selectedSequenceMessageId, setSelectedSequenceMessageId] = useState<string>();
   const [selectedSequenceStructureId, setSelectedSequenceStructureId] = useState<string>();
+  const [selectedUseCaseObjectId, setSelectedUseCaseObjectId] = useState<string>();
+  const [addUseCaseElementKind, setAddUseCaseElementKind] = useState<UseCaseElementKind>();
+  const [addUseCaseRelationshipOpen, setAddUseCaseRelationshipOpen] = useState(false);
+  const [addUseCasePackageOpen, setAddUseCasePackageOpen] = useState(false);
+  const [addUseCaseNoteOpen, setAddUseCaseNoteOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
@@ -191,6 +227,7 @@ export function App() {
     [baselineVersion],
   );
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
+  const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const selectedSequenceParticipant = sequenceDocument.participants.find(
     (item) => item.id === selectedSequenceParticipantId,
   );
@@ -210,6 +247,10 @@ export function App() {
     [sequenceDocument],
   );
   const selectedSequenceStructure = sequenceStructures.find((item) => item.id === selectedSequenceStructureId);
+  const selectedUseCaseElement = useCaseDocument.elements.find((item) => item.id === selectedUseCaseObjectId);
+  const selectedUseCaseRelationship = useCaseDocument.relationships.find((item) => item.id === selectedUseCaseObjectId);
+  const selectedUseCasePackage = useCaseDocument.packages.find((item) => item.id === selectedUseCaseObjectId);
+  const selectedUseCaseNote = useCaseDocument.notes.find((item) => item.id === selectedUseCaseObjectId);
   const sequenceParticipantNames = sequenceDocument.participants.map(
     (participant) => participant.alias ?? participant.label,
   );
@@ -387,6 +428,7 @@ export function App() {
       !selectedSequenceParticipantId &&
       !selectedSequenceMessageId &&
       !selectedSequenceStructureId &&
+      !selectedUseCaseObjectId &&
       !projectInspectorOpen
     )
       return;
@@ -397,7 +439,7 @@ export function App() {
       if (
         target instanceof Element &&
         target.closest(
-          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint]",
+          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id]",
         )
       )
         return;
@@ -408,6 +450,7 @@ export function App() {
       setSelectedSequenceParticipantId(undefined);
       setSelectedSequenceMessageId(undefined);
       setSelectedSequenceStructureId(undefined);
+      setSelectedUseCaseObjectId(undefined);
       setProjectInspectorOpen(false);
       setFocusNoteTaskId(undefined);
     };
@@ -420,6 +463,7 @@ export function App() {
     selectedSequenceMessageId,
     selectedSequenceParticipantId,
     selectedSequenceStructureId,
+    selectedUseCaseObjectId,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -1035,7 +1079,12 @@ export function App() {
       const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
       tabs.addDocument({
         diagramKind,
-        source: diagramKind === "sequence" ? DEFAULT_SEQUENCE_SOURCE : DEFAULT_SOURCE,
+        source:
+          diagramKind === "sequence"
+            ? DEFAULT_SEQUENCE_SOURCE
+            : diagramKind === "usecase"
+              ? DEFAULT_USECASE_SOURCE
+              : DEFAULT_SOURCE,
         fileName: "untitled.puml",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -1050,7 +1099,8 @@ export function App() {
       refreshHistoryControls();
       setReplaceActiveDocumentOnCreate(false);
       setNewDocumentOpen(false);
-      setInteractionMessage(`Created a new ${diagramKind === "sequence" ? "Sequence" : "Gantt"} diagram`);
+      const displayName = diagramKind === "sequence" ? "Sequence" : diagramKind === "usecase" ? "Use Case" : "Gantt";
+      setInteractionMessage(`Created a new ${displayName} diagram`);
     },
     [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
   );
@@ -1067,6 +1117,202 @@ export function App() {
       setInteractionMessage(`Added ${value.kind} ${value.label.trim()}`);
     },
     [commitSource, workspace.source],
+  );
+
+  const addUseCaseElement = useCallback(
+    (value: UseCaseElementInput) => {
+      commitSource(insertUseCaseElement(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
+      setAddUseCaseElementKind(undefined);
+      setInteractionMessage(`Added ${value.kind === "actor" ? "actor" : "use case"} ${value.label.trim()}`);
+    },
+    [commitSource, workspace.source],
+  );
+
+  const applyUseCaseElement = useCallback(
+    (value: UseCaseElementInput) => {
+      if (!selectedUseCaseElement) return;
+      commitSource(
+        updateUseCaseElement(workspace.source, useCaseDocument, selectedUseCaseElement, value),
+        `Update ${selectedUseCaseElement.kind} ${selectedUseCaseElement.label}`,
+      );
+      setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
+    },
+    [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source],
+  );
+
+  const removeUseCaseElement = useCallback(() => {
+    if (!selectedUseCaseElement) return;
+    const connected = useCaseDocument.relationships.filter(
+      (item) => item.from === selectedUseCaseElement.id || item.to === selectedUseCaseElement.id,
+    ).length;
+    if (
+      !window.confirm(
+        `Delete “${selectedUseCaseElement.label}”${connected ? ` and ${connected} connected relationship${connected === 1 ? "" : "s"}` : ""}?`,
+      )
+    )
+      return;
+    commitSource(
+      deleteUseCaseElement(workspace.source, useCaseDocument, selectedUseCaseElement),
+      `Delete ${selectedUseCaseElement.kind} ${selectedUseCaseElement.label}`,
+    );
+    setSelectedUseCaseObjectId(undefined);
+  }, [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source]);
+
+  const addUseCaseRelationship = useCallback(
+    (value: UseCaseRelationshipInput) => {
+      commitSource(insertUseCaseRelationship(workspace.source, useCaseDocument, value), "Add Use Case relationship");
+      setAddUseCaseRelationshipOpen(false);
+      setInteractionMessage("Added Use Case relationship");
+    },
+    [commitSource, useCaseDocument, workspace.source],
+  );
+
+  const applyUseCaseRelationship = useCallback(
+    (value: UseCaseRelationshipInput) => {
+      if (!selectedUseCaseRelationship) return;
+      commitSource(
+        updateUseCaseRelationship(workspace.source, useCaseDocument, selectedUseCaseRelationship, value),
+        "Update Use Case relationship",
+      );
+    },
+    [commitSource, selectedUseCaseRelationship, useCaseDocument, workspace.source],
+  );
+
+  const removeUseCaseRelationship = useCallback(() => {
+    if (!selectedUseCaseRelationship) return;
+    commitSource(
+      deleteUseCaseRelationship(workspace.source, selectedUseCaseRelationship),
+      "Delete Use Case relationship",
+    );
+    setSelectedUseCaseObjectId(undefined);
+  }, [commitSource, selectedUseCaseRelationship, workspace.source]);
+
+  const addUseCasePackage = useCallback(
+    (value: UseCasePackageInput) => {
+      commitSource(insertUseCasePackage(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
+      setAddUseCasePackageOpen(false);
+    },
+    [commitSource, workspace.source],
+  );
+
+  const applyUseCasePackage = useCallback(
+    (value: UseCasePackageInput) => {
+      if (!selectedUseCasePackage) return;
+      commitSource(
+        updateUseCasePackage(workspace.source, selectedUseCasePackage, value),
+        `Update ${selectedUseCasePackage.kind} ${selectedUseCasePackage.label}`,
+      );
+      setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
+    },
+    [commitSource, selectedUseCasePackage, workspace.source],
+  );
+
+  const removeUseCasePackage = useCallback(() => {
+    if (!selectedUseCasePackage) return;
+    commitSource(
+      deleteUseCasePackage(workspace.source, selectedUseCasePackage),
+      `Remove ${selectedUseCasePackage.kind} ${selectedUseCasePackage.label}`,
+    );
+    setSelectedUseCaseObjectId(undefined);
+  }, [commitSource, selectedUseCasePackage, workspace.source]);
+
+  const addUseCaseNote = useCallback(
+    (value: UseCaseNoteInput) => {
+      commitSource(insertUseCaseNote(workspace.source, useCaseDocument, value), "Add Use Case note");
+      setAddUseCaseNoteOpen(false);
+    },
+    [commitSource, useCaseDocument, workspace.source],
+  );
+
+  const applyUseCaseNote = useCallback(
+    (value: UseCaseNoteInput) => {
+      if (!selectedUseCaseNote) return;
+      commitSource(
+        updateUseCaseNote(workspace.source, useCaseDocument, selectedUseCaseNote, value),
+        "Update Use Case note",
+      );
+    },
+    [commitSource, selectedUseCaseNote, useCaseDocument, workspace.source],
+  );
+
+  const removeUseCaseNote = useCallback(() => {
+    if (!selectedUseCaseNote) return;
+    commitSource(deleteUseCaseNote(workspace.source, selectedUseCaseNote), "Delete Use Case note");
+    setSelectedUseCaseObjectId(undefined);
+  }, [commitSource, selectedUseCaseNote, workspace.source]);
+
+  const createUseCaseRelationshipByDrag = useCallback(
+    (from: string, to: string) => {
+      commitSource(
+        insertUseCaseRelationship(workspace.source, useCaseDocument, { from, to, kind: "association" }),
+        "Connect Use Case objects",
+      );
+      setInteractionMessage("Added association");
+    },
+    [commitSource, useCaseDocument, workspace.source],
+  );
+
+  const reconnectUseCaseRelationshipByDrag = useCallback(
+    (relationshipId: string, endpoint: "from" | "to", targetId: string) => {
+      const relationship = useCaseDocument.relationships.find((item) => item.id === relationshipId);
+      if (!relationship) return;
+      const nextValue: UseCaseRelationshipInput = {
+        from: endpoint === "from" ? targetId : relationship.from,
+        to: endpoint === "to" ? targetId : relationship.to,
+        kind: relationship.kind,
+        arrow: relationship.arrow,
+        ...(relationship.kind === "association" && relationship.label ? { label: relationship.label } : {}),
+        ...(relationship.color ? { color: relationship.color } : {}),
+        ...(relationship.lineStyle ? { lineStyle: relationship.lineStyle } : {}),
+        ...(relationship.direction ? { direction: relationship.direction } : {}),
+      };
+      commitSource(
+        updateUseCaseRelationship(workspace.source, useCaseDocument, relationship, nextValue),
+        "Reconnect Use Case relationship",
+      );
+      setInteractionMessage(`Reconnected ${endpoint} endpoint`);
+    },
+    [commitSource, useCaseDocument, workspace.source],
+  );
+
+  const moveUseCaseElementByDrag = useCallback(
+    (elementId: string, packageId: string) => {
+      const element = useCaseDocument.elements.find((item) => item.id === elementId);
+      const target = useCaseDocument.packages.find((item) => item.id === packageId);
+      if (!element || !target) return;
+      commitSource(
+        moveUseCaseElementToPackage(workspace.source, useCaseDocument, element, packageId),
+        `Move ${element.label} into ${target.label}`,
+      );
+      setInteractionMessage(`Moved ${element.label} into ${target.label}`);
+    },
+    [commitSource, useCaseDocument, workspace.source],
+  );
+
+  const moveSelectedUseCaseElementToPackage = useCallback(
+    (packageId?: string) => {
+      if (!selectedUseCaseElement) return;
+      commitSource(
+        moveUseCaseElementToPackage(workspace.source, useCaseDocument, selectedUseCaseElement, packageId),
+        `Move ${selectedUseCaseElement.label}`,
+      );
+    },
+    [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source],
+  );
+
+  const reorderUseCaseElementByDrag = useCallback(
+    (elementId: string, targetId: string, placement: "before" | "after") => {
+      const element = useCaseDocument.elements.find((item) => item.id === elementId);
+      const target = useCaseDocument.elements.find((item) => item.id === targetId);
+      if (!element || !target) return;
+      const next = reorderUseCaseElement(workspace.source, element, target, placement);
+      if (next === workspace.source) {
+        setInteractionMessage("Objects can be reordered only within the same container");
+        return;
+      }
+      commitSource(next, `Reorder ${element.label}`);
+    },
+    [commitSource, useCaseDocument.elements, workspace.source],
   );
 
   const addSequenceMessage = useCallback(
@@ -1856,7 +2102,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || sequenceSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || sequenceSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -1888,6 +2134,11 @@ export function App() {
             onSequenceSpacing={() => setAddSequenceStructureKind("separator")}
             onReference={() => setAddSequenceStructureKind("reference")}
             onParticipantBox={() => setAddSequenceStructureKind("box")}
+            onUseCaseActor={() => setAddUseCaseElementKind("actor")}
+            onUseCase={() => setAddUseCaseElementKind("usecase")}
+            onUseCaseRelationship={() => setAddUseCaseRelationshipOpen(true)}
+            onUseCasePackage={() => setAddUseCasePackageOpen(true)}
+            onUseCaseNote={() => setAddUseCaseNoteOpen(true)}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2054,7 +2305,7 @@ export function App() {
               update("cursor", { line, column });
               if (workspace.diagramKind === "gantt") {
                 setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
-              } else {
+              } else if (workspace.diagramKind === "sequence") {
                 const object = findSequenceObjectAt(sequenceDocument, position);
                 if (
                   object &&
@@ -2068,6 +2319,8 @@ export function App() {
                   setSelectedSequenceMessageId(undefined);
                   setSelectedSequenceStructureId(undefined);
                 }
+              } else {
+                setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
               }
             }}
           />
@@ -2167,7 +2420,7 @@ export function App() {
                 setInteractionMessage("Baseline cleared");
               }}
             />
-          ) : (
+          ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -2191,6 +2444,31 @@ export function App() {
               onStructureReconnect={reconnectSequenceElement}
               onMessageCreate={createSequenceMessageByDrag}
               onMessageExternalize={externalizeSequenceMessage}
+            />
+          ) : (
+            <UseCaseDiagramPreview
+              svg={result?.svg}
+              zoom={workspace.zoom}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              document={useCaseDocument}
+              selectedId={selectedUseCaseObjectId}
+              onSelect={(id) => {
+                setSelectedUseCaseObjectId(id);
+                const object = [
+                  ...useCaseDocument.elements,
+                  ...useCaseDocument.packages,
+                  ...useCaseDocument.notes,
+                ].find((item) => item.id === id);
+                if (object) setSelectionRequest({ ...object.sourceRange });
+              }}
+              onBackgroundSelect={() => setSelectedUseCaseObjectId(undefined)}
+              onRelationshipCreate={createUseCaseRelationshipByDrag}
+              onRelationshipReconnect={reconnectUseCaseRelationshipByDrag}
+              onMoveToPackage={moveUseCaseElementByDrag}
+              onReorder={reorderUseCaseElementByDrag}
             />
           ))}
       </main>
@@ -2218,7 +2496,13 @@ export function App() {
             {unsupportedCount} preserved line{unsupportedCount === 1 ? "" : "s"}
           </button>
         )}
-        <span>{workspace.diagramKind === "sequence" ? "Sequence" : "Gantt"}</span>
+        <span>
+          {workspace.diagramKind === "sequence"
+            ? "Sequence"
+            : workspace.diagramKind === "usecase"
+              ? "Use Case"
+              : "Gantt"}
+        </span>
         <span>
           {workspace.viewMode === "code"
             ? "Preview paused"
@@ -2237,6 +2521,30 @@ export function App() {
         <AddSequenceParticipantDialog
           onAdd={addSequenceParticipant}
           onClose={() => setAddSequenceParticipantOpen(false)}
+        />
+      )}
+      {addUseCaseElementKind && (
+        <AddUseCaseElementDialog
+          initialKind={addUseCaseElementKind}
+          onAdd={addUseCaseElement}
+          onClose={() => setAddUseCaseElementKind(undefined)}
+        />
+      )}
+      {addUseCaseRelationshipOpen && (
+        <AddUseCaseRelationshipDialog
+          elements={useCaseDocument.elements}
+          onAdd={addUseCaseRelationship}
+          onClose={() => setAddUseCaseRelationshipOpen(false)}
+        />
+      )}
+      {addUseCasePackageOpen && (
+        <AddUseCasePackageDialog onAdd={addUseCasePackage} onClose={() => setAddUseCasePackageOpen(false)} />
+      )}
+      {addUseCaseNoteOpen && (
+        <AddUseCaseNoteDialog
+          elements={useCaseDocument.elements}
+          onAdd={addUseCaseNote}
+          onClose={() => setAddUseCaseNoteOpen(false)}
         />
       )}
       {addSequenceMessageOpen && (
@@ -2356,6 +2664,46 @@ export function App() {
           onApply={applySequenceParticipant}
           onDelete={removeSequenceParticipant}
           onClose={() => setSelectedSequenceParticipantId(undefined)}
+        />
+      )}
+      {selectedUseCaseElement && (
+        <UseCaseElementInspector
+          key={`${selectedUseCaseElement.id}:${selectedUseCaseElement.sourceRange.to}`}
+          element={selectedUseCaseElement}
+          onChange={applyUseCaseElement}
+          onDelete={removeUseCaseElement}
+          onClose={() => setSelectedUseCaseObjectId(undefined)}
+          packages={useCaseDocument.packages}
+          onPackageChange={moveSelectedUseCaseElementToPackage}
+        />
+      )}
+      {selectedUseCaseRelationship && (
+        <UseCaseRelationshipInspector
+          key={`${selectedUseCaseRelationship.id}:${selectedUseCaseRelationship.sourceRange.to}`}
+          relationship={selectedUseCaseRelationship}
+          elements={useCaseDocument.elements}
+          onChange={applyUseCaseRelationship}
+          onDelete={removeUseCaseRelationship}
+          onClose={() => setSelectedUseCaseObjectId(undefined)}
+        />
+      )}
+      {selectedUseCasePackage && (
+        <UseCasePackageInspector
+          key={`${selectedUseCasePackage.id}:${selectedUseCasePackage.sourceRange.to}`}
+          item={selectedUseCasePackage}
+          onChange={applyUseCasePackage}
+          onDelete={removeUseCasePackage}
+          onClose={() => setSelectedUseCaseObjectId(undefined)}
+        />
+      )}
+      {selectedUseCaseNote && (
+        <UseCaseNoteInspector
+          key={`${selectedUseCaseNote.id}:${selectedUseCaseNote.sourceRange.to}`}
+          note={selectedUseCaseNote}
+          elements={useCaseDocument.elements}
+          onChange={applyUseCaseNote}
+          onDelete={removeUseCaseNote}
+          onClose={() => setSelectedUseCaseObjectId(undefined)}
         />
       )}
       {selectedSequenceMessage && (

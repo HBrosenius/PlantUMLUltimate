@@ -15,6 +15,11 @@ export function AddMenu({
   onSequenceSpacing,
   onReference,
   onParticipantBox,
+  onUseCaseActor,
+  onUseCase,
+  onUseCaseRelationship,
+  onUseCasePackage,
+  onUseCaseNote,
 }: {
   diagramKind: DiagramKind;
   onTask(): void;
@@ -28,6 +33,11 @@ export function AddMenu({
   onSequenceSpacing(): void;
   onReference(): void;
   onParticipantBox(): void;
+  onUseCaseActor(): void;
+  onUseCase(): void;
+  onUseCaseRelationship(): void;
+  onUseCasePackage(): void;
+  onUseCaseNote(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -117,7 +127,7 @@ export function AddMenu({
                 <kbd>{dividerShortcut}</kbd>
               </button>
             </>
-          ) : (
+          ) : diagramKind === "sequence" ? (
             <>
               <button role="menuitem" onClick={() => run(onParticipant)}>
                 <span>Participant…</span>
@@ -139,8 +149,32 @@ export function AddMenu({
               <button role="menuitem" onClick={() => run(onSequenceSpacing)}>
                 <span>Flow controls and page breaks…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onReference)}><span>Reference…</span></button>
-              <button role="menuitem" onClick={() => run(onParticipantBox)}><span>Participant box…</span></button>
+              <button role="menuitem" onClick={() => run(onReference)}>
+                <span>Reference…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onParticipantBox)}>
+                <span>Participant box…</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button role="menuitem" onClick={() => run(onUseCaseActor)}>
+                <span>Actor…</span>
+                <kbd>{optionShortcut("A")}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onUseCase)}>
+                <span>Use case…</span>
+                <kbd>{optionShortcut("U")}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onUseCaseRelationship)}>
+                <span>Relationship…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onUseCasePackage)}>
+                <span>Package or boundary…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onUseCaseNote)}>
+                <span>Note…</span>
+              </button>
             </>
           )}
         </div>

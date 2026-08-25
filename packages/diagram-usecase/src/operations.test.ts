@@ -1,0 +1,105 @@
+import { describe, expect, it } from "vitest";
+import {
+  deleteUseCaseElement,
+  deleteUseCasePackage,
+  insertUseCaseElement,
+  insertUseCaseNote,
+  insertUseCasePackage,
+  insertUseCaseRelationship,
+  moveUseCaseElementToPackage,
+  reorderUseCaseElement,
+  parseUseCase,
+  updateUseCaseElement,
+  updateUseCaseRelationship,
+} from "./index";
+
+describe("Use Case source operations", () => {
+  it("inserts an element before the end directive", () => {
+    expect(insertUseCaseElement("@startuml\n@enduml", { kind: "actor", label: "Customer", color: "LightBlue" })).toBe(
+      '@startuml\nactor "Customer" #LightBlue\n@enduml',
+    );
+  });
+
+  it("renames relationship endpoints with an element", () => {
+    const source = '@startuml\nactor "Customer" as C\nusecase "Order" as O\nC --> O\n@enduml';
+    const document = parseUseCase(source);
+    const updated = updateUseCaseElement(source, document, document.actors[0]!, {
+      kind: "actor",
+      label: "Buyer",
+      alias: "B",
+    });
+    expect(updated).toContain('actor "Buyer" as B');
+    expect(updated).toContain("B --> O");
+  });
+
+  it("deletes attached relationships", () => {
+    const source = '@startuml\nactor "Customer" as C\nusecase "Order" as O\nC --> O\n@enduml';
+    const document = parseUseCase(source);
+    expect(deleteUseCaseElement(source, document, document.actors[0]!)).not.toContain("C --> O");
+  });
+
+  it("creates and updates semantic relationships", () => {
+    const source = '@startuml\nactor "Customer" as C\nusecase "Order" as O\n@enduml';
+    const document = parseUseCase(source);
+    const inserted = insertUseCaseRelationship(source, document, { from: "c", to: "o", kind: "include" });
+    expect(inserted).toContain("C ..> O : <<include>>");
+    const parsed = parseUseCase(inserted);
+    const updated = updateUseCaseRelationship(inserted, parsed, parsed.relationships[0]!, {
+      from: "c",
+      to: "o",
+      kind: "association",
+      label: "places",
+    });
+    expect(updated).toContain("C --> O : places");
+    const styled = updateUseCaseRelationship(inserted, parsed, parsed.relationships[0]!, {
+      from: "c",
+      to: "o",
+      kind: "association",
+      lineStyle: "dashed",
+      direction: "right",
+      color: "#Blue",
+    });
+    expect(styled).toContain("C -[#Blue,dashed]right-> O");
+    expect(parseUseCase(styled).relationships[0]).toMatchObject({
+      color: "#Blue",
+      lineStyle: "dashed",
+      direction: "right",
+    });
+  });
+
+  it("adds packages and notes and unwraps packages on deletion", () => {
+    const source = '@startuml\nactor "Customer" as C\n@enduml';
+    const packaged = insertUseCasePackage(source, { kind: "rectangle", label: "Ordering" });
+    expect(packaged).toContain('rectangle "Ordering" {\n}');
+    const noted = insertUseCaseNote(source, parseUseCase(source), {
+      targetId: "c",
+      placement: "right",
+      text: "Primary user",
+    });
+    expect(noted).toContain("note right of C : Primary user");
+    const nested = '@startuml\nrectangle "Ordering" {\nusecase "Order" as O\n}\n@enduml';
+    const parsed = parseUseCase(nested);
+    const unwrapped = deleteUseCasePackage(nested, parsed.packages[0]!);
+    expect(unwrapped).toContain('usecase "Order" as O');
+    expect(unwrapped).not.toContain("rectangle");
+  });
+
+  it("moves an element into and out of a system boundary", () => {
+    const source =
+      '@startuml\nactor "Customer" as C\nrectangle "Ordering" as System {\nusecase "Order" as O\n}\n@enduml';
+    const document = parseUseCase(source);
+    const inside = moveUseCaseElementToPackage(source, document, document.actors[0]!, "system");
+    expect(inside.indexOf('actor "Customer" as C')).toBeGreaterThan(inside.indexOf('rectangle "Ordering"'));
+    expect(inside.indexOf('actor "Customer" as C')).toBeLessThan(inside.indexOf("}\n@enduml"));
+    const parsed = parseUseCase(inside);
+    const outside = moveUseCaseElementToPackage(inside, parsed, parsed.actors[0]!);
+    expect(parseUseCase(outside).actors[0]?.packageId).toBeUndefined();
+  });
+
+  it("reorders peer declarations without moving them across containers", () => {
+    const source = '@startuml\nactor "First" as A\nactor "Second" as B\n@enduml';
+    const document = parseUseCase(source);
+    const reordered = reorderUseCaseElement(source, document.actors[1]!, document.actors[0]!, "before");
+    expect(reordered.indexOf('actor "Second"')).toBeLessThan(reordered.indexOf('actor "First"'));
+  });
+});
