@@ -94,7 +94,7 @@ export function parseUseCase(source: string): UseCaseDocument {
     const range = { from: line.from, to: line.to };
     if (!text || text.startsWith("'") || /^@(?:startuml|enduml)\b/i.test(text)) continue;
     if (
-      /^(?:title|caption|header|footer|legend|endlegend|left to right direction|top to bottom direction|skinparam\b|allowmixing\b)/i.test(
+      /^(?:title|caption|header|footer|legend|endlegend|left to right direction|top to bottom direction|hide stereotype|skinparam\b|allowmixing\b)/i.test(
         text,
       )
     )

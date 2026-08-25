@@ -150,6 +150,36 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await expect(noteInspector.getByLabel("Alias")).toHaveValue("ReleaseRisk");
 });
 
+test("edits general Use Case settings without rewriting diagram objects", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+
+  await page.getByRole("button", { name: "Use Case", exact: true }).click();
+  const settings = page.getByRole("complementary", { name: "Use Case settings" });
+  await expect(settings).toBeVisible();
+  await settings.getByLabel("Layout direction").selectOption("top-to-bottom");
+  await expect(page.locator(".cm-content")).toContainText("top to bottom direction");
+  await settings.getByLabel("Package style").selectOption("folder");
+  await expect(page.locator(".cm-content")).toContainText("skinparam packageStyle folder");
+  await settings.getByLabel("Show shadows").uncheck();
+  await expect(page.locator(".cm-content")).toContainText("skinparam shadowing false");
+  await settings.getByLabel("Hide stereotype labels").check();
+  await expect(page.locator(".cm-content")).toContainText("hide stereotype");
+
+  await settings.getByLabel("Diagram title").fill("Customer portal");
+  await settings.getByLabel("Caption").click();
+  await expect(page.locator(".cm-content")).toContainText("title Customer portal");
+  await settings.getByLabel("Actor fill").fill("#LightBlue");
+  await settings.getByLabel("Actor border").click();
+  await expect(page.locator(".cm-content")).toContainText("skinparam actorBackgroundColor #LightBlue");
+  await expect(page.locator(".cm-content")).toContainText("actor Customer");
+  await expect(page.locator(".cm-content")).toContainText('usecase "Browse products" as Browse');
+});
+
 test("inspects arrow properties and reconnects a Use Case endpoint visually", async ({ page }) => {
   test.setTimeout(60_000);
   await page.getByRole("button", { name: "New document tab" }).click();

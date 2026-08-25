@@ -32,6 +32,8 @@ import { AddSequenceStructureDialog, type SequenceStructureKind } from "./AddSeq
 import { SequenceStructureInspector } from "./SequenceStructureInspector";
 import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
+import { UseCaseSettingsInspector } from "./UseCaseSettingsInspector";
+import { parseUseCaseSettings, updateUseCaseSettings, type UseCaseSettings } from "./usecase-settings";
 import { detectDiagramKind } from "./diagram-kind";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
@@ -168,6 +170,7 @@ export function App() {
   const [addUseCasePackageOpen, setAddUseCasePackageOpen] = useState(false);
   const [addUseCaseNoteOpen, setAddUseCaseNoteOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
+  const [useCaseSettingsOpen, setUseCaseSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
@@ -429,7 +432,8 @@ export function App() {
       !selectedSequenceMessageId &&
       !selectedSequenceStructureId &&
       !selectedUseCaseObjectId &&
-      !projectInspectorOpen
+      !projectInspectorOpen &&
+      !useCaseSettingsOpen
     )
       return;
     const dismissInspector = (event: MouseEvent) => {
@@ -452,12 +456,14 @@ export function App() {
       setSelectedSequenceStructureId(undefined);
       setSelectedUseCaseObjectId(undefined);
       setProjectInspectorOpen(false);
+      setUseCaseSettingsOpen(false);
       setFocusNoteTaskId(undefined);
     };
     document.addEventListener("click", dismissInspector);
     return () => document.removeEventListener("click", dismissInspector);
   }, [
     projectInspectorOpen,
+    useCaseSettingsOpen,
     selectedDependencyIndex,
     selectedDividerIndex,
     selectedSequenceMessageId,
@@ -1867,6 +1873,14 @@ export function App() {
     [commitSource, workspace.source],
   );
 
+  const applyUseCaseSettings = useCallback(
+    (value: UseCaseSettings) => {
+      commitSource(updateUseCaseSettings(workspace.source, value), "Update Use Case settings");
+      setInteractionMessage("Updated Use Case settings");
+    },
+    [commitSource, workspace.source],
+  );
+
   const commands = useMemo<Command[]>(() => {
     const diagramCommands: Command[] =
       workspace.diagramKind === "gantt"
@@ -2102,7 +2116,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || sequenceSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || sequenceSettingsOpen || useCaseSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -2153,6 +2167,17 @@ export function App() {
           {workspace.diagramKind === "sequence" && (
             <button data-inspector-trigger onClick={() => setSequenceSettingsOpen(true)}>
               Sequence
+            </button>
+          )}
+          {workspace.diagramKind === "usecase" && (
+            <button
+              data-inspector-trigger
+              onClick={() => {
+                setSelectedUseCaseObjectId(undefined);
+                setUseCaseSettingsOpen(true);
+              }}
+            >
+              Use Case
             </button>
           )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
@@ -2456,6 +2481,7 @@ export function App() {
               document={useCaseDocument}
               selectedId={selectedUseCaseObjectId}
               onSelect={(id) => {
+                setUseCaseSettingsOpen(false);
                 setSelectedUseCaseObjectId(id);
                 const object = [
                   ...useCaseDocument.elements,
@@ -2464,7 +2490,10 @@ export function App() {
                 ].find((item) => item.id === id);
                 if (object) setSelectionRequest({ ...object.sourceRange });
               }}
-              onBackgroundSelect={() => setSelectedUseCaseObjectId(undefined)}
+              onBackgroundSelect={() => {
+                setSelectedUseCaseObjectId(undefined);
+                setUseCaseSettingsOpen(false);
+              }}
               onRelationshipCreate={createUseCaseRelationshipByDrag}
               onRelationshipReconnect={reconnectUseCaseRelationshipByDrag}
               onMoveToPackage={moveUseCaseElementByDrag}
@@ -2598,6 +2627,13 @@ export function App() {
           settings={parseSequenceSettings(workspace.source)}
           onApply={applySequenceSettings}
           onClose={() => setSequenceSettingsOpen(false)}
+        />
+      )}
+      {useCaseSettingsOpen && (
+        <UseCaseSettingsInspector
+          settings={parseUseCaseSettings(workspace.source)}
+          onChange={applyUseCaseSettings}
+          onClose={() => setUseCaseSettingsOpen(false)}
         />
       )}
       {dateMenuFor && (
