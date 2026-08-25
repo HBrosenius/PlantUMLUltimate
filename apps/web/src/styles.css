@@ -1674,23 +1674,6 @@ textarea:focus-visible,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.diagram-kind-beta {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  z-index: 2;
-  padding: 3px 8px;
-  border: 1px solid color-mix(in srgb, #8b5cf6 68%, white);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: white !important;
-  box-shadow: 0 3px 10px rgb(79 70 229 / 28%);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.045em;
-  line-height: 1.2 !important;
-  text-transform: uppercase;
-}
 @media (max-width: 760px) {
   .diagram-kind-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1876,16 +1859,20 @@ textarea:focus-visible,
   stroke-width: 2;
   stroke-dasharray: 5 3;
 }
-.usecase-beta-label {
+.usecase-keyboard-help {
   margin-left: auto;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: white;
+  color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .usecase-connection-handle,
+  .usecase-relationship-endpoint {
+    stroke-width: 8px;
+  }
+  .usecase-move-handle {
+    stroke-width: 6px;
+  }
 }
 .sequence-branch-row {
   display: grid;

@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import type { UseCaseDocument } from "@plantuml-studio/diagram-usecase";
 import type { RenderStatus } from "./model";
 
@@ -47,6 +55,7 @@ export function UseCaseDiagramPreview({
   >(undefined);
   const suppressClick = useRef(false);
   const cancelledDragClick = useRef(false);
+  const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
 
   useLayoutEffect(() => {
     const host = root.current;
@@ -89,6 +98,13 @@ export function UseCaseDiagramPreview({
       const objectKind = "kind" in object ? object.kind : "note";
       const objectLabel = "label" in object ? object.label : "text" in object ? object.text : "relationship";
       hit.setAttribute("aria-label", `Select ${objectKind} ${objectLabel}`);
+      if (
+        keyboardConnectFrom &&
+        object.id !== keyboardConnectFrom &&
+        "kind" in object &&
+        (object.kind === "actor" || object.kind === "usecase")
+      )
+        hit.classList.add("usecase-valid-drop");
       rendered.append(hit);
       if ("kind" in object && (object.kind === "actor" || object.kind === "usecase")) {
         const handle = window.document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -169,13 +185,14 @@ export function UseCaseDiagramPreview({
         addRelationshipEndpoint(rendered, end, relationship.id, firstIsFrom ? "to" : "from");
       }
     }
-  }, [document, onSelect, selectedId, svg]);
+  }, [document, keyboardConnectFrom, onSelect, selectedId, svg]);
 
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || !drag.current) return;
+      if (event.key !== "Escape" || (!drag.current && !keyboardConnectFrom)) return;
       event.preventDefault();
-      cancelActiveDrag();
+      if (drag.current) cancelActiveDrag();
+      setKeyboardConnectFrom(undefined);
     };
     window.addEventListener("keydown", cancel);
     return () => window.removeEventListener("keydown", cancel);
@@ -196,11 +213,25 @@ export function UseCaseDiagramPreview({
   };
 
   const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    const target = event.target instanceof Element ? event.target.closest<SVGElement>("[data-usecase-object-id]") : null;
+    const target =
+      event.target instanceof Element ? event.target.closest<SVGElement>("[data-usecase-object-id]") : null;
     const id = target?.getAttribute("data-usecase-object-id");
     if (!id) return;
+    const type = target?.getAttribute("data-usecase-object-type");
+    const connectable = type === "actor" || type === "usecase";
+    if (event.key.toLowerCase() === "c" && connectable) {
+      event.preventDefault();
+      setKeyboardConnectFrom(id);
+      onSelect(id);
+      return;
+    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      if (keyboardConnectFrom && connectable && keyboardConnectFrom !== id) {
+        onRelationshipCreate(keyboardConnectFrom, id);
+        setKeyboardConnectFrom(undefined);
+        return;
+      }
       onSelect(id);
       return;
     }
@@ -342,7 +373,11 @@ export function UseCaseDiagramPreview({
         <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
           +
         </button>
-        <span className="usecase-beta-label">Beta</span>
+        <span className="usecase-keyboard-help" role="status" aria-live="polite">
+          {keyboardConnectFrom
+            ? "Choose a target and press Enter · Esc cancels"
+            : "Focus an object and press C to connect"}
+        </span>
       </div>
       <div className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}>
         {svg ? (

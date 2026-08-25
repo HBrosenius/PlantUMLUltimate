@@ -138,12 +138,32 @@ describe("Use Case source operations", () => {
     const source =
       '@startuml\ntitle Keep me\npackage "Outer" as Outer {\nrectangle "Inner" as Inner {\nusecase "Order" as O\n}\n}\nfooter Also keep me\n@enduml';
     const document = parseUseCase(source);
-    const unwrapped = deleteUseCasePackage(source, document.packages.find((item) => item.id === "inner")!);
+    const unwrapped = deleteUseCasePackage(
+      source,
+      document.packages.find((item) => item.id === "inner")!,
+    );
     expect(unwrapped).toContain('package "Outer" as Outer {');
     expect(unwrapped).not.toContain('rectangle "Inner"');
     expect(unwrapped).toContain('usecase "Order" as O');
     expect(unwrapped).toContain("title Keep me");
     expect(unwrapped).toContain("footer Also keep me");
     expect(parseUseCase(unwrapped).useCases[0]).toMatchObject({ packageId: "outer" });
+  });
+
+  it("edits a large diagram without rewriting surrounding declarations", () => {
+    const declarations = Array.from({ length: 150 }, (_, index) => `usecase "Capability ${index}" as U${index}`);
+    const source = ["@startuml", "skinparam shadowing false", ...declarations, "U0 --> U149", "@enduml"].join("\n");
+    const document = parseUseCase(source);
+    const updated = updateUseCaseElement(source, document, document.useCases[75]!, {
+      kind: "usecase",
+      label: "Renamed capability",
+      alias: "U75",
+      stereotype: "Core",
+    });
+    expect(updated).toContain('usecase "Renamed capability" as U75 <<Core>>');
+    expect(updated).toContain('usecase "Capability 74" as U74');
+    expect(updated).toContain('usecase "Capability 76" as U76');
+    expect(updated).toContain("skinparam shadowing false");
+    expect(updated).toContain("U0 --> U149");
   });
 });

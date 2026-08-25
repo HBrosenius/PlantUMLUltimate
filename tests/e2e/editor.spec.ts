@@ -48,7 +48,7 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   test.setTimeout(60_000);
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  await expect(chooser.getByRole("button", { name: "Use Case diagram" }).getByText("Beta")).toBeVisible();
+  await expect(chooser.getByRole("button", { name: "Use Case diagram" }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: "Use Case diagram" }).click();
   await expect(page.getByRole("region", { name: "Use Case diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("actor Customer");
@@ -206,6 +206,19 @@ test("selects and reorders Use Case objects with the keyboard", async ({ page })
   await expect
     .poll(() => page.locator(".cm-content").innerText())
     .toMatch(/actor "User" as Second[\s\S]*actor "User" as First/);
+
+  await secondActor.focus();
+  await page.keyboard.press("c");
+  await expect(page.getByText("Choose a target and press Enter · Esc cancels")).toBeVisible();
+  const review = page.locator('[data-usecase-object-id="review"]').first();
+  await review.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".cm-content")).toContainText("Second --> Review");
+
+  await secondActor.focus();
+  await page.keyboard.press("c");
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Focus an object and press C to connect")).toBeVisible();
 });
 
 test("keeps Use Case selection aligned after zoom and responsive resizing", async ({ page }) => {
@@ -237,7 +250,9 @@ test("keeps Use Case selection aligned after zoom and responsive resizing", asyn
   await page.keyboard.press("Enter");
   await expect(page.getByRole("complementary", { name: "Use Case relationship inspector" })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(page.locator('.usecase-relationship-hit[data-usecase-object-id="relationship-0"]').first()).toHaveCount(1);
+  await expect(page.locator('.usecase-relationship-hit[data-usecase-object-id="relationship-0"]').first()).toHaveCount(
+    1,
+  );
 });
 
 test("groups document commands in an accessible File and Export menu", async ({ page }) => {

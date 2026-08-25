@@ -66,4 +66,44 @@ end note
     expect(document.unknown).toEqual([]);
     expect(document.diagnostics).toEqual([]);
   });
+
+  it("parses a mixed real-world diagram while preserving unsupported presentation directives", () => {
+    const document = parseUseCase(`@startuml
+title Customer portal
+skinparam packageStyle rectangle
+actor "Registered customer" as Customer <<Person>> #LightBlue
+rectangle "Customer portal" as Portal #F8F8F8 {
+  (Browse catalog) as Browse
+  usecase/ "Place order" as Order <<Core>> #LightGreen
+}
+Customer -right-> Browse : searches
+Customer --> Order
+Order .up.> Browse : <<extend>>
+note bottom of Order
+Requires an authenticated customer
+and an available payment method.
+end note
+footer Internal model
+@enduml`);
+    expect(document.elements).toHaveLength(3);
+    expect(document.packages).toMatchObject([{ id: "portal", kind: "rectangle" }]);
+    expect(document.relationships).toMatchObject([
+      { from: "customer", to: "browse", direction: "right", kind: "association" },
+      { from: "customer", to: "order", kind: "association" },
+      { from: "order", to: "browse", direction: "up", kind: "extend" },
+    ]);
+    expect(document.notes[0]?.text).toContain("available payment method");
+    expect(document.unknown).toEqual([]);
+    expect(document.diagnostics).toEqual([]);
+  });
+
+  it("handles large diagrams without losing object identity", () => {
+    const declarations = Array.from({ length: 250 }, (_, index) => `usecase "Capability ${index}" as U${index}`);
+    const relationships = Array.from({ length: 249 }, (_, index) => `U${index} --> U${index + 1}`);
+    const document = parseUseCase(["@startuml", ...declarations, ...relationships, "@enduml"].join("\n"));
+    expect(document.useCases).toHaveLength(250);
+    expect(document.relationships).toHaveLength(249);
+    expect(document.useCases[249]?.id).toBe("u249");
+    expect(document.diagnostics).toEqual([]);
+  });
 });
