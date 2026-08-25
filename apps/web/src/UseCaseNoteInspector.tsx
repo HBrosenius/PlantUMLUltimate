@@ -6,6 +6,7 @@ const valueOf = (note: UseCaseNote): UseCaseNoteInput => ({
   text: note.text,
   placement: note.placement ?? "right",
   ...(note.targetIds[0] ? { targetId: note.targetIds[0] } : {}),
+  ...(note.alias ? { alias: note.alias } : {}),
   ...(note.color ? { color: note.color } : {}),
 });
 export function UseCaseNoteInspector({
@@ -32,23 +33,39 @@ export function UseCaseNoteInspector({
   return (
     <aside className="task-inspector usecase-note-inspector" aria-label="Use Case note inspector">
       <header>
-        <strong>Note inspector</strong>
+        <div>
+          <strong>Note inspector</strong>
+          <small>Edit attachment, content, and appearance</small>
+        </div>
         <button onClick={onClose} aria-label="Close note inspector">
           ×
         </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
-        <label>
+        <fieldset>
+          <legend>Attachment</legend>
+          <label>
           Attached to
           <select value={value.targetId ?? ""} onChange={(event) => change("targetId", event.target.value)}>
+            <option value="">Floating note</option>
             {elements.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
               </option>
             ))}
           </select>
-        </label>
-        <label>
+          </label>
+          {!value.targetId && (
+          <label>
+            Alias
+            <input
+              value={value.alias ?? ""}
+              onChange={(event) => setValue((current) => ({ ...current, alias: event.target.value }))}
+              onBlur={() => value.alias?.trim() && onChange(value)}
+            />
+          </label>
+          )}
+          <label>
           Position
           <select
             value={value.placement}
@@ -59,8 +76,11 @@ export function UseCaseNoteInspector({
             <option value="top">Top</option>
             <option value="bottom">Bottom</option>
           </select>
-        </label>
-        <label>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Content</legend>
+          <label>
           Text
           <textarea
             rows={6}
@@ -68,8 +88,11 @@ export function UseCaseNoteInspector({
             onChange={(event) => setValue((current) => ({ ...current, text: event.target.value }))}
             onBlur={() => value.text.trim() && onChange(value)}
           />
-        </label>
-        <label>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>
           Color
           <input
             list={colorListId}
@@ -77,12 +100,13 @@ export function UseCaseNoteInspector({
             onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
             onBlur={() => onChange(value)}
           />
-        </label>
+          </label>
         <datalist id={colorListId}>
           {PLANTUML_COLOR_NAMES.map((name) => (
             <option key={name} value={`#${name}`} />
           ))}
         </datalist>
+        </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete note

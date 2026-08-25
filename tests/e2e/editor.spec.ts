@@ -82,6 +82,7 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await container.getByLabel("Name").fill("Administration");
   await container.getByRole("button", { name: "Add container" }).click();
   await expect(page.locator(".cm-content")).toContainText('rectangle "Administration"');
+  await expect(page.locator('.usecase-package-drop-hit[data-usecase-object-id="administration"]')).toHaveCount(1);
 
   const connectionHandle = page.locator('[data-usecase-connect-from="admin"]').first();
   const browseTarget = page.locator('[data-usecase-object-id="browse"]').first();
@@ -110,6 +111,19 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await note.getByLabel("Text").fill("Maintains access");
   await note.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note right of Admin : Maintains access");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Note…" }).click();
+  const floatingNote = page.getByRole("dialog", { name: "Add Use Case note" });
+  await floatingNote.getByLabel("Attached to").selectOption("");
+  await floatingNote.getByLabel("Alias").fill("ReleaseRisk");
+  await floatingNote.getByLabel("Text").fill("Confirm the release owner");
+  await floatingNote.getByRole("button", { name: "Add note" }).click();
+  await expect(page.locator(".cm-content")).toContainText('note "Confirm the release owner" as ReleaseRisk');
+  await page.locator('[data-usecase-object-id="note-1"]').first().dispatchEvent("click");
+  const noteInspector = page.getByRole("complementary", { name: "Use Case note inspector" });
+  await expect(noteInspector.getByLabel("Attached to")).toHaveValue("");
+  await expect(noteInspector.getByLabel("Alias")).toHaveValue("ReleaseRisk");
 });
 
 test("inspects arrow properties and reconnects a Use Case endpoint visually", async ({ page }) => {
@@ -145,9 +159,85 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   await page.mouse.move((endpointBox!.x + targetBox!.x) / 2, (endpointBox!.y + targetBox!.y) / 2);
   await expect(page.locator(".usecase-connection-preview")).toBeVisible();
   await expect(page.locator(".usecase-valid-drop").first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".usecase-connection-preview")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
+
+  await expect(endpoint).toBeVisible();
+  const retryEndpointBox = await endpoint.boundingBox();
+  expect(retryEndpointBox).not.toBeNull();
+  await page.mouse.move(
+    retryEndpointBox!.x + retryEndpointBox!.width / 2,
+    retryEndpointBox!.y + retryEndpointBox!.height / 2,
+  );
+  await page.mouse.down();
   await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 5 });
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> C : uses");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
+  await page.getByRole("button", { name: "Redo" }).click();
+  await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> C : uses");
+});
+
+test("selects and reorders Use Case objects with the keyboard", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await setSource(
+    page,
+    '@startuml\nleft to right direction\nactor "User" as First\nactor "User" as Second\nusecase "Review" as Review\n@enduml',
+  );
+
+  const secondActor = page.locator('[data-usecase-object-id="second"]').first();
+  await expect(secondActor).toBeVisible();
+  await secondActor.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "Use Case object inspector" });
+  await expect(inspector).toBeVisible();
+  await expect(inspector.getByLabel("Alias")).toHaveValue("Second");
+
+  await secondActor.focus();
+  await page.keyboard.press("Alt+ArrowUp");
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toMatch(/actor "User" as Second[\s\S]*actor "User" as First/);
+});
+
+test("keeps Use Case selection aligned after zoom and responsive resizing", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await setSource(
+    page,
+    '@startuml\nleft to right direction\nactor "Alpha" as A\nusecase "Beta" as B\nA --> B : uses\n@enduml',
+  );
+
+  const preview = page.getByRole("region", { name: "Use Case diagram preview" });
+  await preview.getByRole("button", { name: "Zoom in" }).click();
+  await preview.getByRole("button", { name: "Zoom in" }).click();
+  await page.setViewportSize({ width: 820, height: 700 });
+
+  const beta = page.locator('[data-usecase-object-id="b"]').first();
+  await expect(beta).toBeVisible();
+  await beta.dispatchEvent("click");
+  await expect(page.getByRole("complementary", { name: "Use Case object inspector" }).getByLabel("Alias")).toHaveValue(
+    "B",
+  );
+
+  const arrow = page.locator('.usecase-relationship-hit[data-usecase-object-id="relationship-0"]').first();
+  await arrow.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Use Case relationship inspector" })).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator('.usecase-relationship-hit[data-usecase-object-id="relationship-0"]').first()).toHaveCount(1);
 });
 
 test("groups document commands in an accessible File and Export menu", async ({ page }) => {

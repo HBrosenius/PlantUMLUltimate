@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import type { UseCaseDocument } from "@plantuml-studio/diagram-usecase";
 import type { RenderStatus } from "./model";
 
@@ -46,6 +46,7 @@ export function UseCaseDiagramPreview({
     | undefined
   >(undefined);
   const suppressClick = useRef(false);
+  const cancelledDragClick = useRef(false);
 
   useLayoutEffect(() => {
     const host = root.current;
@@ -53,18 +54,22 @@ export function UseCaseDiagramPreview({
     if (!host || !rendered) return;
     rendered
       .querySelectorAll(
-        ".usecase-semantic-hit, .usecase-selected-object, .usecase-connection-handle, .usecase-move-handle, .usecase-relationship-hit, .usecase-relationship-endpoint, .usecase-connection-preview",
+        ".usecase-semantic-hit, .usecase-selected-object, .usecase-connection-handle, .usecase-move-handle, .usecase-relationship-hit, .usecase-relationship-endpoint, .usecase-connection-preview, .usecase-package-drop-hit",
       )
       .forEach((item) => item.remove());
     const objects = [...document.elements, ...document.packages, ...document.notes, ...document.relationships];
     const renderedEntityIds = new Map<string, string>();
     for (const text of rendered.querySelectorAll<SVGTextElement>("text")) {
       const content = text.textContent?.trim() ?? "";
-      const object = objects.find((item) => {
-        if ("text" in item)
-          return content === item.text || item.text.split("\n").some((line) => content === line.trim());
-        return "label" in item && (content === item.label || ("alias" in item && content === item.alias));
-      });
+      const renderedGroup = text.closest<SVGGElement>("g.entity[data-qualified-name], g.cluster[data-qualified-name]");
+      const qualifiedName = normalizeRenderedId(renderedGroup?.getAttribute("data-qualified-name") ?? "");
+      const object =
+        objects.find((item) => item.id === qualifiedName) ??
+        objects.find((item) => {
+          if ("text" in item)
+            return content === item.text || item.text.split("\n").some((line) => content === line.trim());
+          return "label" in item && (content === item.label || ("alias" in item && content === item.alias));
+        });
       if (!object) continue;
       const renderedEntityId = text.closest<SVGGElement>("g.entity")?.id;
       if (renderedEntityId && "kind" in object && (object.kind === "actor" || object.kind === "usecase"))
@@ -108,6 +113,24 @@ export function UseCaseDiagramPreview({
         rendered.append(moveHandle);
       }
     }
+    for (const item of document.packages) {
+      const group = [
+        ...rendered.querySelectorAll<SVGGElement>("g.cluster[data-qualified-name], g.entity[data-qualified-name]"),
+      ].find((candidate) => {
+        const name = normalizeRenderedId(candidate.getAttribute("data-qualified-name") ?? "");
+        return (
+          name === item.id || name === normalizeRenderedId(item.label) || name === normalizeRenderedId(item.alias ?? "")
+        );
+      });
+      const boundary = group?.querySelector<SVGRectElement>(":scope > rect");
+      if (!group || !boundary) continue;
+      const drop = boundary.cloneNode(false) as SVGRectElement;
+      drop.setAttribute("class", "usecase-package-drop-hit");
+      drop.setAttribute("data-usecase-object-id", item.id);
+      drop.setAttribute("data-usecase-object-type", item.kind);
+      drop.setAttribute("aria-hidden", "true");
+      group.append(drop);
+    }
     for (const group of rendered.querySelectorAll<SVGGElement>("g[data-entity-1][data-entity-2]")) {
       const firstId = group.getAttribute("data-entity-1") ?? "";
       const secondId = group.getAttribute("data-entity-2") ?? "";
@@ -127,6 +150,7 @@ export function UseCaseDiagramPreview({
         );
         hit.setAttribute("data-usecase-object-id", relationship.id);
         hit.setAttribute("data-usecase-object-type", "relationship");
+        hit.setAttribute("tabindex", "0");
         hit.setAttribute("role", "button");
         hit.setAttribute("aria-label", `Select ${relationship.kind} relationship`);
         hit.addEventListener("click", (event) => {
@@ -147,9 +171,21 @@ export function UseCaseDiagramPreview({
     }
   }, [document, onSelect, selectedId, svg]);
 
+  useEffect(() => {
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !drag.current) return;
+      event.preventDefault();
+      cancelActiveDrag();
+    };
+    window.addEventListener("keydown", cancel);
+    return () => window.removeEventListener("keydown", cancel);
+  });
+
   const select = (event: MouseEvent<HTMLDivElement>) => {
-    if (suppressClick.current) {
+    if (suppressClick.current || cancelledDragClick.current) {
       suppressClick.current = false;
+      cancelledDragClick.current = false;
+      event.stopPropagation();
       return;
     }
     const target =
@@ -157,6 +193,27 @@ export function UseCaseDiagramPreview({
     const id = target?.getAttribute("data-usecase-object-id");
     if (id) onSelect(id);
     else onBackgroundSelect();
+  };
+
+  const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const target = event.target instanceof Element ? event.target.closest<SVGElement>("[data-usecase-object-id]") : null;
+    const id = target?.getAttribute("data-usecase-object-id");
+    if (!id) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(id);
+      return;
+    }
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    const elementIndex = document.elements.findIndex((item) => item.id === id);
+    if (elementIndex < 0) return;
+    const current = document.elements[elementIndex]!;
+    const peers = document.elements.filter((item) => item.packageId === current.packageId);
+    const peerIndex = peers.findIndex((item) => item.id === id);
+    const targetPeer = peers[peerIndex + (event.key === "ArrowUp" ? -1 : 1)];
+    if (!targetPeer) return;
+    event.preventDefault();
+    onReorder(id, targetPeer.id, event.key === "ArrowUp" ? "before" : "after");
   };
 
   const startDrag = (event: PointerEvent<HTMLDivElement>) => {
@@ -184,6 +241,8 @@ export function UseCaseDiagramPreview({
       y: event.clientY,
       ...(preview ? { preview } : {}),
     };
+    root.current?.classList.toggle("usecase-dragging-move", kind === "move");
+    root.current?.classList.toggle("usecase-dragging-connection", kind !== "move");
     if (kind !== "move")
       root.current
         ?.querySelectorAll<SVGElement>(
@@ -208,9 +267,7 @@ export function UseCaseDiagramPreview({
     if (!active) return;
     drag.current = undefined;
     active.preview?.remove();
-    root.current
-      ?.querySelectorAll(".usecase-valid-drop")
-      .forEach((item) => item.classList.remove("usecase-valid-drop"));
+    clearDragPresentation();
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
     const moved = Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5;
@@ -246,6 +303,26 @@ export function UseCaseDiagramPreview({
     }
   };
 
+  const cancelActiveDrag = () => {
+    drag.current?.preview?.remove();
+    drag.current = undefined;
+    clearDragPresentation();
+    cancelledDragClick.current = true;
+  };
+
+  const cancelPointerDrag = () => {
+    cancelActiveDrag();
+    cancelledDragClick.current = false;
+    suppressNextClick();
+  };
+
+  const clearDragPresentation = () => {
+    root.current?.classList.remove("usecase-dragging-move", "usecase-dragging-connection");
+    root.current
+      ?.querySelectorAll(".usecase-valid-drop")
+      .forEach((item) => item.classList.remove("usecase-valid-drop"));
+  };
+
   const suppressNextClick = () => {
     suppressClick.current = true;
     window.setTimeout(() => {
@@ -274,9 +351,11 @@ export function UseCaseDiagramPreview({
             className="diagram usecase-diagram"
             style={{ transform: `scale(${zoom})` }}
             onClick={select}
+            onKeyDown={keyboardSelect}
             onPointerDown={startDrag}
             onPointerMove={updateDrag}
             onPointerUp={finishDrag}
+            onPointerCancel={cancelPointerDrag}
             dangerouslySetInnerHTML={{ __html: svg }}
           />
         ) : renderError ? (
@@ -305,7 +384,11 @@ const normalizeRenderedId = (value: string) =>
     .toLowerCase();
 
 function semanticTargetAt(root: HTMLDivElement | null, x: number, y: number, types: string[]) {
-  return [...(root?.querySelectorAll<SVGElement>(".usecase-semantic-hit[data-usecase-object-id]") ?? [])]
+  return [
+    ...(root?.querySelectorAll<SVGElement>(
+      ".usecase-semantic-hit[data-usecase-object-id], .usecase-package-drop-hit[data-usecase-object-id]",
+    ) ?? []),
+  ]
     .filter((item) => types.includes(item.getAttribute("data-usecase-object-type") ?? ""))
     .filter((item) => {
       const box = item.getBoundingClientRect();

@@ -54,10 +54,11 @@ export function parseUseCase(source: string): UseCaseDocument {
       /^\s*note\s+(left|right|top|bottom)\s+of\s+([^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
     );
     const floating = line.text.match(/^\s*note\s+"([^"]*)"\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
-    if (!attached && !floating) continue;
+    const floatingBlock = line.text.match(/^\s*note\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
+    if (!attached && !floating && !floatingBlock) continue;
     let end = index;
     let text = attached?.[4] ?? floating?.[1] ?? "";
-    if (attached && !attached[4]) {
+    if ((attached && !attached[4]) || floatingBlock) {
       const body: string[] = [];
       end = index + 1;
       while (end < lines.length && !/^\s*end\s+note\s*$/i.test(lines[end]!.text)) body.push(lines[end++]!.text);
@@ -72,13 +73,14 @@ export function parseUseCase(source: string): UseCaseDocument {
       } else text = body.join("\n").trim();
     }
     const range = { from: line.from, to: lines[end]!.to };
-    const noteColor = attached?.[3] ?? floating?.[3];
+    const noteColor = attached?.[3] ?? floating?.[3] ?? floatingBlock?.[2];
+    const noteAlias = floating?.[2] ?? floatingBlock?.[1];
     notes.push({
       id: `note-${notes.length}`,
       text,
       ...(attached?.[1] ? { placement: attached[1].toLowerCase() as NonNullable<UseCaseNote["placement"]> } : {}),
       targetIds: attached?.[2] ? [normalizeId(attached[2])] : [],
-      ...(floating?.[2] ? { alias: floating[2] } : {}),
+      ...(noteAlias ? { alias: noteAlias } : {}),
       ...(noteColor ? { color: noteColor } : {}),
       sourceRange: range,
     });

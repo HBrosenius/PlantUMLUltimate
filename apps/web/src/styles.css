@@ -1859,6 +1859,17 @@ textarea:focus-visible,
   stroke: rgb(22 163 74 / 75%);
   stroke-width: 2;
 }
+.usecase-package-drop-hit {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: none;
+}
+.usecase-dragging-move .usecase-package-drop-hit {
+  fill: rgb(34 197 94 / 5%);
+  stroke: rgb(22 163 74 / 58%);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
 .usecase-selected-object {
   fill: rgb(37 99 235 / 10%);
   stroke: #2563eb;
@@ -2150,6 +2161,120 @@ textarea:focus-visible,
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .sequence-settings-inspector .inspector-actions {
+  position: sticky;
+  bottom: -16px;
+  margin: 0 -16px -16px;
+  padding: 11px 16px 14px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+.usecase-element-inspector,
+.usecase-relationship-inspector,
+.usecase-package-inspector,
+.usecase-note-inspector {
+  width: 360px;
+  padding: 16px;
+}
+.usecase-element-inspector header,
+.usecase-relationship-inspector header,
+.usecase-package-inspector header,
+.usecase-note-inspector header {
+  margin-bottom: 12px;
+}
+.usecase-element-inspector header > div,
+.usecase-relationship-inspector header > div,
+.usecase-package-inspector header > div,
+.usecase-note-inspector header > div {
+  display: grid;
+  gap: 3px;
+}
+.usecase-element-inspector header small,
+.usecase-relationship-inspector header small,
+.usecase-package-inspector header small,
+.usecase-note-inspector header small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.usecase-element-inspector form,
+.usecase-relationship-inspector form,
+.usecase-package-inspector form,
+.usecase-note-inspector form {
+  display: grid;
+  gap: 11px;
+}
+.usecase-element-inspector fieldset,
+.usecase-relationship-inspector fieldset,
+.usecase-package-inspector fieldset,
+.usecase-note-inspector fieldset {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+}
+.usecase-element-inspector legend,
+.usecase-relationship-inspector legend,
+.usecase-package-inspector legend,
+.usecase-note-inspector legend {
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+.task-inspector[class*="usecase-"] fieldset label,
+.task-inspector[class*="usecase-"] details label {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.task-inspector[class*="usecase-"] .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 7px;
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.task-inspector[class*="usecase-"] .checkbox-row:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.task-inspector[class*="usecase-"] .checkbox-row input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.usecase-endpoint-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.usecase-advanced-fields {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg) 52%, transparent);
+}
+.usecase-advanced-fields summary {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.usecase-advanced-fields[open] summary {
+  margin-bottom: 9px;
+}
+.task-inspector[class*="usecase-"] .inspector-actions {
   position: sticky;
   bottom: -16px;
   margin: 0 -16px -16px;

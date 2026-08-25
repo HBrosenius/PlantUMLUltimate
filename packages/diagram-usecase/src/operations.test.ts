@@ -96,10 +96,54 @@ describe("Use Case source operations", () => {
     expect(parseUseCase(outside).actors[0]?.packageId).toBeUndefined();
   });
 
+  it("moves an element into the innermost nested package", () => {
+    const source =
+      '@startuml\nactor "Customer" as C\npackage "Outer" as Outer {\nrectangle "Inner" as Inner {\n}\n}\n@enduml';
+    const document = parseUseCase(source);
+    const moved = moveUseCaseElementToPackage(source, document, document.actors[0]!, "inner");
+    expect(parseUseCase(moved).actors[0]).toMatchObject({ packageId: "inner" });
+  });
+
+  it("keeps declarations before earlier relationships when moving into a later container", () => {
+    const source =
+      '@startuml\nactor "Admin" as Admin\nusecase "Order" as Order\nAdmin --> Order : manages\nrectangle "Administration" as Area {\n}\n@enduml';
+    const document = parseUseCase(source);
+    const moved = moveUseCaseElementToPackage(source, document, document.actors[0]!, "area");
+    expect(moved.indexOf('actor "Admin" as Admin')).toBeLessThan(moved.indexOf("Admin --> Order"));
+    expect(parseUseCase(moved).actors[0]).toMatchObject({ packageId: "area" });
+    expect(parseUseCase(moved).relationships).toHaveLength(1);
+  });
+
   it("reorders peer declarations without moving them across containers", () => {
     const source = '@startuml\nactor "First" as A\nactor "Second" as B\n@enduml';
     const document = parseUseCase(source);
     const reordered = reorderUseCaseElement(source, document.actors[1]!, document.actors[0]!, "before");
     expect(reordered.indexOf('actor "Second"')).toBeLessThan(reordered.indexOf('actor "First"'));
+  });
+
+  it("round-trips floating notes and preserves unrelated source", () => {
+    const source = "@startuml\nskinparam handwritten true\n@enduml";
+    const inserted = insertUseCaseNote(source, parseUseCase(source), {
+      alias: "Risk",
+      placement: "right",
+      text: "First line\nSecond line",
+      color: "LightYellow",
+    });
+    expect(inserted).toContain("note as Risk #LightYellow\nFirst line\nSecond line\nend note");
+    expect(inserted).toContain("skinparam handwritten true");
+    expect(parseUseCase(inserted).notes[0]).toMatchObject({ alias: "Risk", text: "First line\nSecond line" });
+  });
+
+  it("unwraps only the selected nested container and preserves surrounding source", () => {
+    const source =
+      '@startuml\ntitle Keep me\npackage "Outer" as Outer {\nrectangle "Inner" as Inner {\nusecase "Order" as O\n}\n}\nfooter Also keep me\n@enduml';
+    const document = parseUseCase(source);
+    const unwrapped = deleteUseCasePackage(source, document.packages.find((item) => item.id === "inner")!);
+    expect(unwrapped).toContain('package "Outer" as Outer {');
+    expect(unwrapped).not.toContain('rectangle "Inner"');
+    expect(unwrapped).toContain('usecase "Order" as O');
+    expect(unwrapped).toContain("title Keep me");
+    expect(unwrapped).toContain("footer Also keep me");
+    expect(parseUseCase(unwrapped).useCases[0]).toMatchObject({ packageId: "outer" });
   });
 });

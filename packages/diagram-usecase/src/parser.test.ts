@@ -50,4 +50,20 @@ Person --> Missing
     expect(document.useCases[0]).toMatchObject({ id: "order", business: true });
     expect(document.diagnostics).toEqual([]);
   });
+
+  it("parses compact and multiline floating notes without treating their bodies as unknown source", () => {
+    const document = parseUseCase(`@startuml
+note "Short reminder" as Short #Yellow
+note as Detail #LightBlue
+First line
+Second line
+end note
+@enduml`);
+    expect(document.notes).toMatchObject([
+      { alias: "Short", text: "Short reminder", color: "#Yellow", targetIds: [] },
+      { alias: "Detail", text: "First line\nSecond line", color: "#LightBlue", targetIds: [] },
+    ]);
+    expect(document.unknown).toEqual([]);
+    expect(document.diagnostics).toEqual([]);
+  });
 });

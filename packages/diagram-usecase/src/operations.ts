@@ -40,6 +40,7 @@ export interface UseCaseNoteInput {
   text: string;
   placement: "left" | "right" | "top" | "bottom";
   targetId?: string;
+  alias?: string;
   color?: string;
 }
 
@@ -91,9 +92,16 @@ function packageOpening(value: UseCasePackageInput): string {
 }
 
 function noteStatement(document: UseCaseDocument, value: UseCaseNoteInput): string {
-  const target = value.targetId ? ` of ${endpointReference(document, value.targetId)}` : "";
   const color = value.color?.trim();
-  const prefix = `note ${value.placement}${target}${color ? ` ${color.startsWith("#") ? color : `#${color}`}` : ""}`;
+  const colorSuffix = color ? ` ${color.startsWith("#") ? color : `#${color}`}` : "";
+  if (!value.targetId) {
+    const alias = value.alias?.trim() || "Note";
+    return value.text.includes("\n")
+      ? `note as ${alias}${colorSuffix}\n${value.text.trim()}\nend note`
+      : `note ${quote(value.text.trim())} as ${alias}${colorSuffix}`;
+  }
+  const target = ` of ${endpointReference(document, value.targetId)}`;
+  const prefix = `note ${value.placement}${target}${colorSuffix}`;
   return value.text.includes("\n") ? `${prefix}\n${value.text.trim()}\nend note` : `${prefix} : ${value.text.trim()}`;
 }
 
@@ -227,13 +235,32 @@ export function moveUseCaseElementToPackage(
   if (element.packageId === packageId) return source;
   const target = packageId ? document.packages.find((item) => item.id === packageId) : undefined;
   if (packageId && !target) return source;
-  const from = element.sourceRange.from;
-  const to = source[element.sourceRange.to] === "\n" ? element.sourceRange.to + 1 : element.sourceRange.to;
   const declaration = source.slice(element.sourceRange.from, element.sourceRange.to).trim();
-  const without = `${source.slice(0, from)}${source.slice(to)}`;
   const originalInsertion = target?.closeRange.from ?? insertionPoint(source);
-  const at = originalInsertion > to ? originalInsertion - (to - from) : originalInsertion;
-  return `${without.slice(0, at)}${declaration}\n${without.slice(at)}`;
+  const precedingReferences = [
+    ...document.relationships.filter(
+      (item) =>
+        item.sourceRange.from < originalInsertion && (item.from === element.id || item.to === element.id),
+    ),
+    ...document.notes.filter(
+      (item) => item.sourceRange.from < originalInsertion && item.targetIds.includes(element.id),
+    ),
+  ].sort((a, b) => a.sourceRange.from - b.sourceRange.from);
+  const movedStatements = precedingReferences.map((item) => source.slice(item.sourceRange.from, item.sourceRange.to).trim());
+  const ranges = [element.sourceRange, ...precedingReferences.map((item) => item.sourceRange)]
+    .map((range) => ({
+      from: range.from,
+      to: source[range.to] === "\n" ? range.to + 1 : range.to,
+    }))
+    .sort((a, b) => b.from - a.from);
+  const without = ranges.reduce((current, range) => `${current.slice(0, range.from)}${current.slice(range.to)}`, source);
+  const removedBeforeInsertion = ranges.reduce(
+    (total, range) => total + (range.from < originalInsertion ? range.to - range.from : 0),
+    0,
+  );
+  const at = originalInsertion - removedBeforeInsertion;
+  const block = [declaration, ...movedStatements].join("\n");
+  return `${without.slice(0, at)}${block}\n${without.slice(at)}`;
 }
 
 export function reorderUseCaseElement(

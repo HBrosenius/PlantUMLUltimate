@@ -31,13 +31,18 @@ export function UseCasePackageInspector({
   return (
     <aside className="task-inspector usecase-package-inspector" aria-label="Use Case container inspector">
       <header>
-        <strong>Container inspector</strong>
+        <div>
+          <strong>Container inspector</strong>
+          <small>Edit the system boundary or package</small>
+        </div>
         <button onClick={onClose} aria-label="Close container inspector">
           ×
         </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
-        <label>
+        <fieldset>
+          <legend>Identity</legend>
+          <label>
           Type
           <select
             value={value.kind}
@@ -50,16 +55,19 @@ export function UseCasePackageInspector({
             <option value="rectangle">System boundary</option>
             <option value="package">Package</option>
           </select>
-        </label>
-        <label>
+          </label>
+          <label>
           Name
           <input value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={save} />
-        </label>
-        <label>
+          </label>
+          <label>
           Alias
           <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
-        </label>
-        <label>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>
           Color
           <input
             list={colorListId}
@@ -67,20 +75,21 @@ export function UseCasePackageInspector({
             onChange={(event) => update("color", event.target.value)}
             onBlur={save}
           />
-        </label>
+          </label>
         <datalist id={colorListId}>
           {PLANTUML_COLOR_NAMES.map((name) => (
             <option key={name} value={`#${name}`} />
           ))}
         </datalist>
-        <label>
+          <label>
           Stereotype
           <input
             value={value.stereotype ?? ""}
             onChange={(event) => update("stereotype", event.target.value)}
             onBlur={save}
           />
-        </label>
+          </label>
+        </fieldset>
         <p className="field-hint">Deleting a container keeps its contents and removes only the boundary.</p>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>

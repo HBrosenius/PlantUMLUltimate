@@ -37,13 +37,18 @@ export function UseCaseElementInspector({
   return (
     <aside className="task-inspector usecase-element-inspector" aria-label="Use Case object inspector">
       <header>
-        <strong>{element.kind === "actor" ? "Actor" : "Use case"} inspector</strong>
+        <div>
+          <strong>{element.kind === "actor" ? "Actor" : "Use case"} inspector</strong>
+          <small>Edit identity, appearance, and placement</small>
+        </div>
         <button onClick={onClose} aria-label="Close Use Case object inspector">
           ×
         </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
-        <label>
+        <fieldset>
+          <legend>Identity</legend>
+          <label>
           Type
           <select
             value={value.kind}
@@ -56,16 +61,19 @@ export function UseCaseElementInspector({
             <option value="actor">Actor</option>
             <option value="usecase">Use case</option>
           </select>
-        </label>
-        <label>
+          </label>
+          <label>
           Name
           <input required value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={save} />
-        </label>
-        <label>
+          </label>
+          <label>
           Alias
           <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
-        </label>
-        <label>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>
           Color
           <input
             list={colorListId}
@@ -74,21 +82,21 @@ export function UseCaseElementInspector({
             onChange={(event) => update("color", event.target.value)}
             onBlur={save}
           />
-        </label>
+          </label>
         <datalist id={colorListId}>
           {PLANTUML_COLOR_NAMES.map((name) => (
             <option key={name} value={`#${name}`} />
           ))}
         </datalist>
-        <label>
+          <label>
           Stereotype
           <input
             value={value.stereotype ?? ""}
             onChange={(event) => update("stereotype", event.target.value)}
             onBlur={save}
           />
-        </label>
-        <label className="checkbox-row">
+          </label>
+          <label className="checkbox-row">
           <input
             type="checkbox"
             checked={value.business ?? false}
@@ -99,8 +107,11 @@ export function UseCaseElementInspector({
             }}
           />{" "}
           Business object
-        </label>
-        <label>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Placement</legend>
+          <label>
           Container
           <select
             value={element.packageId ?? ""}
@@ -113,7 +124,8 @@ export function UseCaseElementInspector({
               </option>
             ))}
           </select>
-        </label>
+          </label>
+        </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete {element.kind === "actor" ? "actor" : "use case"}

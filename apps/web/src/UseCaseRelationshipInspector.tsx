@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type {
   UseCaseRelationship,
   UseCaseRelationshipInput,
   UseCaseRelationshipKind,
 } from "@plantuml-studio/diagram-usecase";
+import { PLANTUML_COLOR_NAMES } from "./gantt-language";
 
 const valueOf = (item: UseCaseRelationship): UseCaseRelationshipInput => ({
   from: item.from,
@@ -30,6 +31,7 @@ export function UseCaseRelationshipInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(() => valueOf(relationship));
+  const colorListId = useId();
   useEffect(() => setValue(valueOf(relationship)), [relationship]);
   const change = <K extends keyof UseCaseRelationshipInput>(key: K, next: UseCaseRelationshipInput[K]) => {
     const updated = { ...value, [key]: next };
@@ -45,13 +47,19 @@ export function UseCaseRelationshipInspector({
   return (
     <aside className="task-inspector usecase-relationship-inspector" aria-label="Use Case relationship inspector">
       <header>
-        <strong>Relationship inspector</strong>
+        <div>
+          <strong>Relationship inspector</strong>
+          <small>Configure endpoints, meaning, and line style</small>
+        </div>
         <button onClick={onClose} aria-label="Close relationship inspector">
           ×
         </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
-        <label>
+        <fieldset>
+          <legend>Connection</legend>
+          <div className="usecase-endpoint-grid">
+          <label>
           From
           <select aria-label="From" value={value.from} onChange={(event) => change("from", event.target.value)}>
             {elements.map((item) => (
@@ -60,8 +68,8 @@ export function UseCaseRelationshipInspector({
               </option>
             ))}
           </select>
-        </label>
-        <label>
+          </label>
+          <label>
           To
           <select aria-label="To" value={value.to} onChange={(event) => change("to", event.target.value)}>
             {elements.map((item) => (
@@ -70,8 +78,9 @@ export function UseCaseRelationshipInspector({
               </option>
             ))}
           </select>
-        </label>
-        <label>
+          </label>
+          </div>
+          <label>
           Relationship
           <select
             aria-label="Relationship"
@@ -83,8 +92,8 @@ export function UseCaseRelationshipInspector({
             <option value="extend">Extend</option>
             <option value="generalization">Generalization</option>
           </select>
-        </label>
-        {value.kind === "association" && (
+          </label>
+          {value.kind === "association" && (
           <label>
             Label
             <input
@@ -93,8 +102,11 @@ export function UseCaseRelationshipInspector({
               onBlur={() => onChange(value)}
             />
           </label>
-        )}
-        <label>
+          )}
+        </fieldset>
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>
           Direction
           <select
             value={value.direction ?? ""}
@@ -111,8 +123,8 @@ export function UseCaseRelationshipInspector({
             <option value="up">Up</option>
             <option value="down">Down</option>
           </select>
-        </label>
-        <label>
+          </label>
+          <label>
           Line style
           <select
             value={value.lineStyle ?? "solid"}
@@ -125,10 +137,12 @@ export function UseCaseRelationshipInspector({
             <option value="dotted">Dotted</option>
             <option value="bold">Bold</option>
           </select>
-        </label>
-        <label>
+          </label>
+          <label>
           Color
           <input
+            list={colorListId}
+            autoComplete="off"
             value={value.color ?? ""}
             placeholder="#Blue"
             onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
@@ -138,15 +152,24 @@ export function UseCaseRelationshipInspector({
               onChange(updated);
             }}
           />
-        </label>
-        <label>
-          Arrow syntax
-          <input
-            value={value.arrow ?? ""}
-            onChange={(event) => setValue((current) => ({ ...current, arrow: event.target.value }))}
-            onBlur={() => onChange(value)}
-          />
-        </label>
+          </label>
+        <datalist id={colorListId}>
+          {PLANTUML_COLOR_NAMES.map((name) => (
+            <option key={name} value={`#${name}`} />
+          ))}
+        </datalist>
+        </fieldset>
+        <details className="usecase-advanced-fields">
+          <summary>Advanced PlantUML syntax</summary>
+          <label>
+            Arrow syntax
+            <input
+              value={value.arrow ?? ""}
+              onChange={(event) => setValue((current) => ({ ...current, arrow: event.target.value }))}
+              onBlur={() => onChange(value)}
+            />
+          </label>
+        </details>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete relationship
