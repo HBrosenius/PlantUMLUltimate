@@ -213,12 +213,24 @@ export function AddMenu({
             </>
           ) : (
             <>
-              <button role="menuitem" onClick={() => run(onActivityAction)}><span>Action…</span></button>
-              <button role="menuitem" onClick={() => run(onActivityStructure)}><span>Flow structure…</span></button>
-              <button role="menuitem" onClick={() => run(onActivityTerminal)}><span>Terminal…</span></button>
-              <button role="menuitem" onClick={() => run(onActivityArrow)}><span>Flow arrow…</span></button>
-              <button role="menuitem" onClick={() => run(onActivityPartition)}><span>Partition…</span></button>
-              <button role="menuitem" onClick={() => run(onActivityNote)}><span>Note…</span></button>
+              <button role="menuitem" onClick={() => run(onActivityAction)}>
+                <span>Action…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivityStructure)}>
+                <span>Flow structure…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivityTerminal)}>
+                <span>Terminal…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivityArrow)}>
+                <span>Flow arrow…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivityPartition)}>
+                <span>Partition…</span>
+              </button>
+              <button role="menuitem" onClick={() => run(onActivityNote)}>
+                <span>Note…</span>
+              </button>
             </>
           )}
         </div>

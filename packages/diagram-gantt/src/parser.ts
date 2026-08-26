@@ -631,13 +631,15 @@ export function parseGantt(source: string): ParseResult {
         if (recognized === compoundClauses.length) continue;
       }
 
-      const validModifier =
-        /^(?:pauses\s+on\s+.+|displays\s+on\s+same\s+row\s+as\s+\[[^\]]+]|is\s+deleted)\s*$/i.test(
-          statement,
-        );
+      const validModifier = /^(?:pauses\s+on\s+.+|displays\s+on\s+same\s+row\s+as\s+\[[^\]]+]|is\s+deleted)\s*$/i.test(
+        statement,
+      );
       const link = statement.match(/^links\s+to\s+\[\[(\S+?)(?:\s+(.+?))?]]\s*$/i);
       if (link?.[1]) {
-        task.links = [...(task.links ?? []), { url: link[1], ...(link[2] ? { label: link[2] } : {}), sourceRange: lineRange }];
+        task.links = [
+          ...(task.links ?? []),
+          { url: link[1], ...(link[2] ? { label: link[2] } : {}), sourceRange: lineRange },
+        ];
         declaration(task, "link", lineRange);
         continue;
       }

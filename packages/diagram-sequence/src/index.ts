@@ -134,20 +134,48 @@ export function parseSequence(source: string): SequenceDocument {
   const autonumbers: SequenceAutonumber[] = [];
   const creations: SequenceCreation[] = [];
   const durations: SequenceDuration[] = [];
-  for (const match of source.matchAll(/^\s*(\/\s*)?(note|hnote|rnote)\s+(left of|right of|left|right|over|across)\s*([^:#\n]*?)(?:\s+(#[\w]+))?\s*\r?\n([\s\S]*?)^\s*end\s+note\s*$/gim)) {
+  for (const match of source.matchAll(
+    /^\s*(\/\s*)?(note|hnote|rnote)\s+(left of|right of|left|right|over|across)\s*([^:#\n]*?)(?:\s+(#[\w]+))?\s*\r?\n([\s\S]*?)^\s*end\s+note\s*$/gim,
+  )) {
     const from = match.index!;
-    notes.push({ id: `note-${notes.length}`, shape: match[2]!.toLowerCase() as SequenceNote["shape"], aligned: Boolean(match[1]), placement: match[3]!.toLowerCase() as SequenceNote["placement"], participants: (match[4] ?? "").split(",").map((item) => unquote(item.trim())).filter(Boolean), ...(match[5] ? { color: match[5] } : {}), text: (match[6] ?? "").trim(), sourceRange: { from, to: from + match[0].length } });
+    notes.push({
+      id: `note-${notes.length}`,
+      shape: match[2]!.toLowerCase() as SequenceNote["shape"],
+      aligned: Boolean(match[1]),
+      placement: match[3]!.toLowerCase() as SequenceNote["placement"],
+      participants: (match[4] ?? "")
+        .split(",")
+        .map((item) => unquote(item.trim()))
+        .filter(Boolean),
+      ...(match[5] ? { color: match[5] } : {}),
+      text: (match[6] ?? "").trim(),
+      sourceRange: { from, to: from + match[0].length },
+    });
   }
-  for (const match of source.matchAll(/^\s*ref(?:\s+(#[\w]+))?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim)) {
+  for (const match of source.matchAll(
+    /^\s*ref(?:\s+(#[\w]+))?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim,
+  )) {
     const from = match.index!;
-    references.push({ id: `reference-${references.length}`, participants: match[2]!.split(",").map((item) => unquote(item.trim())).filter(Boolean), text: (match[3] ?? "").trim(), ...(match[1] ? { color: match[1] } : {}), multiline: true, sourceRange: { from, to: from + match[0].length } });
+    references.push({
+      id: `reference-${references.length}`,
+      participants: match[2]!
+        .split(",")
+        .map((item) => unquote(item.trim()))
+        .filter(Boolean),
+      text: (match[3] ?? "").trim(),
+      ...(match[1] ? { color: match[1] } : {}),
+      multiline: true,
+      sourceRange: { from, to: from + match[0].length },
+    });
   }
   const fragmentStack: SequenceFragment[] = [];
   const boxStack: SequenceParticipantBox[] = [];
   let offset = 0;
   for (const line of source.split(/\n/)) {
     const range = { from: offset, to: offset + line.length };
-    if ([...notes, ...references].some((item) => range.from >= item.sourceRange.from && range.from < item.sourceRange.to)) {
+    if (
+      [...notes, ...references].some((item) => range.from >= item.sourceRange.from && range.from < item.sourceRange.to)
+    ) {
       offset += line.length + 1;
       continue;
     }
@@ -178,7 +206,14 @@ export function parseSequence(source: string): SequenceDocument {
       const outgoing = messageLine.match(OUTGOING_MESSAGE);
       const message = messageLine.match(MESSAGE);
       if (duration)
-        durations.push({ id: `duration-${durations.length}`, fromAnchor: duration[1]!, arrow: duration[2]!, toAnchor: duration[3]!, label: duration[4] ?? "", sourceRange: range });
+        durations.push({
+          id: `duration-${durations.length}`,
+          fromAnchor: duration[1]!,
+          arrow: duration[2]!,
+          toAnchor: duration[3]!,
+          label: duration[4] ?? "",
+          sourceRange: range,
+        });
       else if (incoming)
         messages.push({
           id: `message-${messages.length}`,
@@ -224,7 +259,9 @@ export function parseSequence(source: string): SequenceDocument {
         const reference = line.match(/^\s*ref(?:\s+(#[\w]+))?\s+over\s+([^:]+)\s*:\s*(.*)$/i);
         const box = line.match(/^\s*box(?:\s+"([^"]*)"|\s+([^#]*?))?(?:\s+(#[\w]+))?\s*$/i);
         const autonumber = line.match(/^\s*autonumber(?:\s+(stop|resume|inc\s+[ABC]|inc))?(?:\s+(.*))?$/i);
-        const creation = line.match(/^\s*create(?:\s+(participant|actor|boundary|control|entity|database|collections|queue))?\s+("[^"]+"|\S+)\s*$/i);
+        const creation = line.match(
+          /^\s*create(?:\s+(participant|actor|boundary|control|entity|database|collections|queue))?\s+("[^"]+"|\S+)\s*$/i,
+        );
         const returned = line.match(/^\s*return(?:\s+(.*))?$/i);
         const newpage = line.match(/^\s*newpage(?:\s+(.*))?$/i);
         if (fragment) {
@@ -287,9 +324,25 @@ export function parseSequence(source: string): SequenceDocument {
             sourceRange: range,
           });
         else if (reference)
-          references.push({ id: `reference-${references.length}`, participants: reference[2]!.split(",").map((item) => unquote(item.trim())).filter(Boolean), text: reference[3] ?? "", ...(reference[1] ? { color: reference[1] } : {}), multiline: false, sourceRange: range });
+          references.push({
+            id: `reference-${references.length}`,
+            participants: reference[2]!
+              .split(",")
+              .map((item) => unquote(item.trim()))
+              .filter(Boolean),
+            text: reference[3] ?? "",
+            ...(reference[1] ? { color: reference[1] } : {}),
+            multiline: false,
+            sourceRange: range,
+          });
         else if (box) {
-          const item: SequenceParticipantBox = { id: `box-${boxes.length}`, label: (box[1] ?? box[2] ?? "").trim(), ...(box[3] ? { color: box[3] } : {}), participants: [], sourceRange: range };
+          const item: SequenceParticipantBox = {
+            id: `box-${boxes.length}`,
+            label: (box[1] ?? box[2] ?? "").trim(),
+            ...(box[3] ? { color: box[3] } : {}),
+            participants: [],
+            sourceRange: range,
+          };
           boxes.push(item);
           boxStack.push(item);
         } else if (/^\s*end\s+box\s*$/i.test(line)) {
@@ -297,10 +350,40 @@ export function parseSequence(source: string): SequenceDocument {
           if (open) open.sourceRange.to = range.to;
         } else if (autonumber) {
           const operation = autonumber[1]?.toLowerCase() ?? "";
-          autonumbers.push({ id: `autonumber-${autonumbers.length}`, command: operation === "stop" ? "stop" : operation === "resume" ? "resume" : operation.startsWith("inc") ? "increment" : "start", value: [autonumber[1], autonumber[2]].filter(Boolean).join(" "), sourceRange: range });
-        } else if (creation) creations.push({ id: `creation-${creations.length}`, participantKind: (creation[1]?.toLowerCase() ?? "participant") as SequenceParticipantKind, participant: unquote(creation[2]!), sourceRange: range });
-        else if (returned) timelineItems.push({ id: `timeline-${timelineItems.length}`, kind: "return", label: returned[1]?.trim() ?? "", sourceRange: range });
-        else if (newpage) timelineItems.push({ id: `timeline-${timelineItems.length}`, kind: "newpage", label: newpage[1]?.trim() ?? "", sourceRange: range });
+          autonumbers.push({
+            id: `autonumber-${autonumbers.length}`,
+            command:
+              operation === "stop"
+                ? "stop"
+                : operation === "resume"
+                  ? "resume"
+                  : operation.startsWith("inc")
+                    ? "increment"
+                    : "start",
+            value: [autonumber[1], autonumber[2]].filter(Boolean).join(" "),
+            sourceRange: range,
+          });
+        } else if (creation)
+          creations.push({
+            id: `creation-${creations.length}`,
+            participantKind: (creation[1]?.toLowerCase() ?? "participant") as SequenceParticipantKind,
+            participant: unquote(creation[2]!),
+            sourceRange: range,
+          });
+        else if (returned)
+          timelineItems.push({
+            id: `timeline-${timelineItems.length}`,
+            kind: "return",
+            label: returned[1]?.trim() ?? "",
+            sourceRange: range,
+          });
+        else if (newpage)
+          timelineItems.push({
+            id: `timeline-${timelineItems.length}`,
+            kind: "newpage",
+            label: newpage[1]?.trim() ?? "",
+            sourceRange: range,
+          });
         else if (/^\s*end\s*$/i.test(line)) {
           const open = fragmentStack.pop();
           if (open) open.sourceRange.to = range.to;
@@ -310,7 +393,12 @@ export function parseSequence(source: string): SequenceDocument {
     offset += line.length + 1;
   }
   for (const box of boxes)
-    box.participants = participants.filter((participant) => participant.sourceRange.from > box.sourceRange.from && participant.sourceRange.to < box.sourceRange.to).map(participantReference);
+    box.participants = participants
+      .filter(
+        (participant) =>
+          participant.sourceRange.from > box.sourceRange.from && participant.sourceRange.to < box.sourceRange.to,
+      )
+      .map(participantReference);
   for (const fragment of fragments) {
     const lines = source.slice(fragment.sourceRange.from, fragment.sourceRange.to).split("\n");
     let depth = 0;
@@ -319,13 +407,26 @@ export function parseSequence(source: string): SequenceDocument {
       else if (/^\s*end\s*$/i.test(line)) depth -= 1;
       else if (depth === 0) {
         const branch = line.match(/^\s*else(?:\s+(#[\w]+))?\s*(.*)$/i);
-        if (branch) fragment.branches.push({ label: branch[2]?.trim() ?? "", ...(branch[1] ? { color: branch[1] } : {}) });
+        if (branch)
+          fragment.branches.push({ label: branch[2]?.trim() ?? "", ...(branch[1] ? { color: branch[1] } : {}) });
       }
     }
   }
   notes.sort((a, b) => a.sourceRange.from - b.sourceRange.from);
   references.sort((a, b) => a.sourceRange.from - b.sourceRange.from);
-  return { participants, messages, fragments, activations, notes, timelineItems, references, boxes, autonumbers, creations, durations };
+  return {
+    participants,
+    messages,
+    fragments,
+    activations,
+    notes,
+    timelineItems,
+    references,
+    boxes,
+    autonumbers,
+    creations,
+    durations,
+  };
 }
 
 function quote(value: string): string {
@@ -351,7 +452,10 @@ function participantStatement(value: {
   spotColor?: string;
   order?: number;
 }): string {
-  const spot = value.spotCharacter?.trim() && value.spotColor?.trim() ? `(${value.spotCharacter.trim().slice(0, 1)},${value.spotColor.trim()}) ` : "";
+  const spot =
+    value.spotCharacter?.trim() && value.spotColor?.trim()
+      ? `(${value.spotCharacter.trim().slice(0, 1)},${value.spotColor.trim()}) `
+      : "";
   const stereotype = spot || value.stereotype?.trim() ? ` <<${spot}${value.stereotype?.trim() ?? ""}>>` : "";
   return `${value.kind} ${quote(value.label.trim())}${value.alias?.trim() ? ` as ${quote(value.alias.trim())}` : ""}${stereotype}${value.order !== undefined ? ` order ${value.order}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
 }
@@ -421,7 +525,16 @@ export function updateSequenceParticipant(
   source: string,
   document: SequenceDocument,
   participant: SequenceParticipant,
-  value: { kind: SequenceParticipantKind; label: string; alias?: string; color?: string; stereotype?: string; spotCharacter?: string; spotColor?: string; order?: number },
+  value: {
+    kind: SequenceParticipantKind;
+    label: string;
+    alias?: string;
+    color?: string;
+    stereotype?: string;
+    spotCharacter?: string;
+    spotColor?: string;
+    order?: number;
+  },
 ): string {
   const previousReference = participantReference(participant);
   const nextReference = value.alias?.trim() || value.label.trim();
@@ -439,19 +552,54 @@ export function updateSequenceParticipant(
   }
   for (const activation of document.activations) {
     if (activation.participant !== previousReference) continue;
-    replacements.push({ ...activation.sourceRange, text: structureStatement({ kind: "activation", action: activation.kind, participant: nextReference, ...(activation.color ? { color: activation.color } : {}) }) });
+    replacements.push({
+      ...activation.sourceRange,
+      text: structureStatement({
+        kind: "activation",
+        action: activation.kind,
+        participant: nextReference,
+        ...(activation.color ? { color: activation.color } : {}),
+      }),
+    });
   }
   for (const note of document.notes) {
     if (!note.participants.includes(previousReference)) continue;
-    replacements.push({ ...note.sourceRange, text: structureStatement({ kind: "note", shape: note.shape, aligned: note.aligned, placement: note.placement, participants: note.participants.map((item) => item === previousReference ? nextReference : item), text: note.text, ...(note.color ? { color: note.color } : {}) }) });
+    replacements.push({
+      ...note.sourceRange,
+      text: structureStatement({
+        kind: "note",
+        shape: note.shape,
+        aligned: note.aligned,
+        placement: note.placement,
+        participants: note.participants.map((item) => (item === previousReference ? nextReference : item)),
+        text: note.text,
+        ...(note.color ? { color: note.color } : {}),
+      }),
+    });
   }
   for (const reference of document.references) {
     if (!reference.participants.includes(previousReference)) continue;
-    replacements.push({ ...reference.sourceRange, text: structureStatement({ kind: "reference", multiline: reference.multiline, participants: reference.participants.map((item) => item === previousReference ? nextReference : item), text: reference.text, ...(reference.color ? { color: reference.color } : {}) }) });
+    replacements.push({
+      ...reference.sourceRange,
+      text: structureStatement({
+        kind: "reference",
+        multiline: reference.multiline,
+        participants: reference.participants.map((item) => (item === previousReference ? nextReference : item)),
+        text: reference.text,
+        ...(reference.color ? { color: reference.color } : {}),
+      }),
+    });
   }
   for (const creation of document.creations) {
     if (creation.participant !== previousReference) continue;
-    replacements.push({ ...creation.sourceRange, text: structureStatement({ kind: "create", participantKind: creation.participantKind, participant: nextReference }) });
+    replacements.push({
+      ...creation.sourceRange,
+      text: structureStatement({
+        kind: "create",
+        participantKind: creation.participantKind,
+        participant: nextReference,
+      }),
+    });
   }
   return applyReplacements(source, replacements);
 }
@@ -534,9 +682,26 @@ export function findSequenceObjectAt(
 }
 
 export type SequenceStructureInput =
-  | { kind: "fragment"; fragmentKind: SequenceFragmentKind; label: string; secondaryLabel?: string; headerColor?: string; backgroundColor?: string; branches?: Array<{ label: string; color?: string }>; elseLabel?: string }
+  | {
+      kind: "fragment";
+      fragmentKind: SequenceFragmentKind;
+      label: string;
+      secondaryLabel?: string;
+      headerColor?: string;
+      backgroundColor?: string;
+      branches?: Array<{ label: string; color?: string }>;
+      elseLabel?: string;
+    }
   | { kind: "activation"; action: SequenceActivation["kind"]; participant: string; color?: string }
-  | { kind: "note"; shape?: SequenceNote["shape"]; aligned?: boolean; placement: SequenceNote["placement"]; participants: string[]; text: string; color?: string }
+  | {
+      kind: "note";
+      shape?: SequenceNote["shape"];
+      aligned?: boolean;
+      placement: SequenceNote["placement"];
+      participants: string[];
+      text: string;
+      color?: string;
+    }
   | { kind: "separator"; label: string }
   | { kind: "delay"; label: string }
   | { kind: "space"; pixels?: number }
@@ -558,25 +723,35 @@ function autonumberStatement(value: Extract<SequenceStructureInput, { kind: "aut
 export function insertSequenceStructure(source: string, value: SequenceStructureInput): string {
   let statement: string;
   if (value.kind === "fragment") {
-    const alternatives = value.branches ?? (value.fragmentKind === "alt" || value.fragmentKind === "par" ? [{ label: value.elseLabel?.trim() || "alternative" }] : []);
+    const alternatives =
+      value.branches ??
+      (value.fragmentKind === "alt" || value.fragmentKind === "par"
+        ? [{ label: value.elseLabel?.trim() || "alternative" }]
+        : []);
     statement = `${fragmentHeader(value)}\n${alternatives.map((branch) => `else${branch.color?.trim() ? ` ${branch.color.trim()}` : ""}${branch.label.trim() ? ` ${branch.label.trim()}` : ""}\n`).join("")}end`;
   } else if (value.kind === "activation") {
     statement = `${value.action} ${quote(value.participant)}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
   } else if (value.kind === "note") {
     const owners = value.participants.map(quote).join(", ");
     const header = `${value.aligned ? "/ " : ""}${value.shape ?? "note"} ${value.placement}${owners ? ` ${owners}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
-    statement = value.text.includes("\n") ? `${header}\n${value.text.trim()}\nend note` : `${header}: ${value.text.trim()}`;
+    statement = value.text.includes("\n")
+      ? `${header}\n${value.text.trim()}\nend note`
+      : `${header}: ${value.text.trim()}`;
   } else if (value.kind === "reference") {
     const header = `ref${value.color?.trim() ? ` ${value.color.trim()}` : ""} over ${value.participants.map(quote).join(", ")}`;
-    statement = value.multiline || value.text.includes("\n") ? `${header}\n${value.text.trim()}\nend ref` : `${header}: ${value.text.trim()}`;
-  }
-  else if (value.kind === "box")
+    statement =
+      value.multiline || value.text.includes("\n")
+        ? `${header}\n${value.text.trim()}\nend ref`
+        : `${header}: ${value.text.trim()}`;
+  } else if (value.kind === "box")
     statement = `box${value.label.trim() ? ` ${quote(value.label.trim())}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}\n${value.participants.map((participant) => `participant ${quote(participant)}`).join("\n")}\nend box`;
   else if (value.kind === "autonumber") statement = autonumberStatement(value);
-  else if (value.kind === "create") statement = `create${value.participantKind === "participant" ? "" : ` ${value.participantKind}`} ${quote(value.participant)}`;
+  else if (value.kind === "create")
+    statement = `create${value.participantKind === "participant" ? "" : ` ${value.participantKind}`} ${quote(value.participant)}`;
   else if (value.kind === "return") statement = `return${value.label.trim() ? ` ${value.label.trim()}` : ""}`;
   else if (value.kind === "newpage") statement = `newpage${value.label.trim() ? ` ${value.label.trim()}` : ""}`;
-  else if (value.kind === "duration") statement = `{${value.fromAnchor.trim()}} ${value.arrow} {${value.toAnchor.trim()}}${value.label.trim() ? `: ${value.label.trim()}` : ""}`;
+  else if (value.kind === "duration")
+    statement = `{${value.fromAnchor.trim()}} ${value.arrow} {${value.toAnchor.trim()}}${value.label.trim() ? `: ${value.label.trim()}` : ""}`;
   else if (value.kind === "separator") statement = `== ${value.label.trim()} ==`;
   else if (value.kind === "delay") statement = value.label.trim() ? `...${value.label.trim()}...` : "...";
   else statement = `||${value.pixels && value.pixels > 0 ? value.pixels : ""}||`;
@@ -607,15 +782,19 @@ function structureStatement(value: SequenceStructureInput): string {
   }
   if (value.kind === "reference") {
     const header = `ref${value.color?.trim() ? ` ${value.color.trim()}` : ""} over ${value.participants.map(quote).join(", ")}`;
-    return value.multiline || value.text.includes("\n") ? `${header}\n${value.text.trim()}\nend ref` : `${header}: ${value.text.trim()}`;
+    return value.multiline || value.text.includes("\n")
+      ? `${header}\n${value.text.trim()}\nend ref`
+      : `${header}: ${value.text.trim()}`;
   }
   if (value.kind === "box")
     return `box${value.label.trim() ? ` ${quote(value.label.trim())}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
   if (value.kind === "autonumber") return autonumberStatement(value);
-  if (value.kind === "create") return `create${value.participantKind === "participant" ? "" : ` ${value.participantKind}`} ${quote(value.participant)}`;
+  if (value.kind === "create")
+    return `create${value.participantKind === "participant" ? "" : ` ${value.participantKind}`} ${quote(value.participant)}`;
   if (value.kind === "return") return `return${value.label.trim() ? ` ${value.label.trim()}` : ""}`;
   if (value.kind === "newpage") return `newpage${value.label.trim() ? ` ${value.label.trim()}` : ""}`;
-  if (value.kind === "duration") return `{${value.fromAnchor.trim()}} ${value.arrow} {${value.toAnchor.trim()}}${value.label.trim() ? `: ${value.label.trim()}` : ""}`;
+  if (value.kind === "duration")
+    return `{${value.fromAnchor.trim()}} ${value.arrow} {${value.toAnchor.trim()}}${value.label.trim() ? `: ${value.label.trim()}` : ""}`;
   if (value.kind === "separator") return `== ${value.label.trim()} ==`;
   if (value.kind === "delay") return value.label.trim() ? `...${value.label.trim()}...` : "...";
   return `||${value.pixels && value.pixels > 0 ? value.pixels : ""}||`;
@@ -634,7 +813,9 @@ export function insertSequenceParticipantBox(
     value.participants.includes(participantReference(participant)),
   );
   if (!selected.length) return insertSequenceStructure(source, value);
-  const declarations = selected.map((participant) => source.slice(participant.sourceRange.from, participant.sourceRange.to));
+  const declarations = selected.map((participant) =>
+    source.slice(participant.sourceRange.from, participant.sourceRange.to),
+  );
   const at = Math.min(...selected.map((participant) => participant.sourceRange.from));
   const without = applyReplacements(
     source,
@@ -675,13 +856,15 @@ export function updateSequenceStructure(
       else chunks.at(-1)!.push(line);
       if (/^\s*end\s*$/i.test(line)) depth -= 1;
     }
-    const alternatives = branching ? value.branches ?? [{ label: "alternative" }] : [];
+    const alternatives = branching ? (value.branches ?? [{ label: "alternative" }]) : [];
     const retained = chunks.slice(0, alternatives.length + 1);
     while (retained.length < alternatives.length + 1) retained.push([]);
     for (const extra of chunks.slice(alternatives.length + 1)) retained.at(-1)!.push(...extra);
     const rebuilt = [structureStatement(value), ...retained[0]!];
     alternatives.forEach((branch, index) => {
-      rebuilt.push(`else${branch.color?.trim() ? ` ${branch.color.trim()}` : ""}${branch.label.trim() ? ` ${branch.label.trim()}` : ""}`);
+      rebuilt.push(
+        `else${branch.color?.trim() ? ` ${branch.color.trim()}` : ""}${branch.label.trim() ? ` ${branch.label.trim()}` : ""}`,
+      );
       rebuilt.push(...retained[index + 1]!);
     });
     rebuilt.push(lines.at(-1) ?? "end");
@@ -756,7 +939,8 @@ export function reorderSequenceStatement(
   if (
     targetStatement.sourceRange.from >= moved.sourceRange.from &&
     targetStatement.sourceRange.to <= moved.sourceRange.to
-  ) return source;
+  )
+    return source;
   const from = moved.sourceRange.from;
   const to = Math.min(source.length, moved.sourceRange.to + (source[moved.sourceRange.to] === "\n" ? 1 : 0));
   const statement = source.slice(from, to);

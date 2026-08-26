@@ -239,21 +239,25 @@ export function moveUseCaseElementToPackage(
   const originalInsertion = target?.closeRange.from ?? insertionPoint(source);
   const precedingReferences = [
     ...document.relationships.filter(
-      (item) =>
-        item.sourceRange.from < originalInsertion && (item.from === element.id || item.to === element.id),
+      (item) => item.sourceRange.from < originalInsertion && (item.from === element.id || item.to === element.id),
     ),
     ...document.notes.filter(
       (item) => item.sourceRange.from < originalInsertion && item.targetIds.includes(element.id),
     ),
   ].sort((a, b) => a.sourceRange.from - b.sourceRange.from);
-  const movedStatements = precedingReferences.map((item) => source.slice(item.sourceRange.from, item.sourceRange.to).trim());
+  const movedStatements = precedingReferences.map((item) =>
+    source.slice(item.sourceRange.from, item.sourceRange.to).trim(),
+  );
   const ranges = [element.sourceRange, ...precedingReferences.map((item) => item.sourceRange)]
     .map((range) => ({
       from: range.from,
       to: source[range.to] === "\n" ? range.to + 1 : range.to,
     }))
     .sort((a, b) => b.from - a.from);
-  const without = ranges.reduce((current, range) => `${current.slice(0, range.from)}${current.slice(range.to)}`, source);
+  const without = ranges.reduce(
+    (current, range) => `${current.slice(0, range.from)}${current.slice(range.to)}`,
+    source,
+  );
   const removedBeforeInsertion = ranges.reduce(
     (total, range) => total + (range.from < originalInsertion ? range.to - range.from : 0),
     0,

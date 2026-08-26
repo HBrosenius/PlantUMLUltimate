@@ -129,7 +129,9 @@ export function DependencyInspector({
             onChange={(event) => update("color", event.target.value)}
           />
           <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((color) => <option key={color} value={color} />)}
+            {PLANTUML_COLOR_NAMES.map((color) => (
+              <option key={color} value={color} />
+            ))}
           </datalist>
         </label>
         <label className="inspector-note-field">

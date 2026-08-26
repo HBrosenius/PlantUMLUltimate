@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
-import { ARROW_TYPES, ArrowPreview, LIFECYCLE_TYPES, LifecyclePreview, VisualChoiceSelect } from "./SequenceMessageInspector";
+import {
+  ARROW_TYPES,
+  ArrowPreview,
+  LIFECYCLE_TYPES,
+  LifecyclePreview,
+  VisualChoiceSelect,
+} from "./SequenceMessageInspector";
 
 export interface AddSequenceMessageValue {
   from: string;
@@ -53,7 +59,11 @@ export function AddSequenceMessageDialog({
         <h2>Add message</h2>
         <label>
           Message type
-          <select autoFocus value={messageKind} onChange={(event) => setMessageKind(event.target.value as typeof messageKind)}>
+          <select
+            autoFocus
+            value={messageKind}
+            onChange={(event) => setMessageKind(event.target.value as typeof messageKind)}
+          >
             <option value="standard">Between participants</option>
             <option value="incoming">Incoming from diagram edge</option>
             <option value="outgoing">Outgoing to diagram edge</option>
@@ -61,19 +71,23 @@ export function AddSequenceMessageDialog({
             <option value="lost">Lost message</option>
           </select>
         </label>
-        {messageKind !== "incoming" && messageKind !== "found" && <label>
-          From
-          <input
-            required
-            list="sequence-participants"
-            value={from}
-            onChange={(event) => setFrom(event.target.value)}
-          />
-        </label>}
-        {messageKind !== "outgoing" && messageKind !== "lost" && <label>
-          To
-          <input required list="sequence-participants" value={to} onChange={(event) => setTo(event.target.value)} />
-        </label>}
+        {messageKind !== "incoming" && messageKind !== "found" && (
+          <label>
+            From
+            <input
+              required
+              list="sequence-participants"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </label>
+        )}
+        {messageKind !== "outgoing" && messageKind !== "lost" && (
+          <label>
+            To
+            <input required list="sequence-participants" value={to} onChange={(event) => setTo(event.target.value)} />
+          </label>
+        )}
         <datalist id="sequence-participants">
           {participants.map((name) => (
             <option key={name} value={name} />
@@ -81,17 +95,36 @@ export function AddSequenceMessageDialog({
         </datalist>
         <label>
           Arrow
-          <VisualChoiceSelect ariaLabel="Arrow type" value={arrow} choices={ARROW_TYPES} onChange={setArrow} renderPreview={(choice) => <ArrowPreview arrow={choice} />} />
+          <VisualChoiceSelect
+            ariaLabel="Arrow type"
+            value={arrow}
+            choices={ARROW_TYPES}
+            onChange={setArrow}
+            renderPreview={(choice) => <ArrowPreview arrow={choice} />}
+          />
         </label>
         <label>
           Lifecycle modifiers
-          <VisualChoiceSelect ariaLabel="Lifecycle modifiers" value={modifiers} choices={LIFECYCLE_TYPES} onChange={setModifiers} renderPreview={(choice) => <LifecyclePreview modifier={choice} />} />
+          <VisualChoiceSelect
+            ariaLabel="Lifecycle modifiers"
+            value={modifiers}
+            choices={LIFECYCLE_TYPES}
+            onChange={setModifiers}
+            renderPreview={(choice) => <LifecyclePreview modifier={choice} />}
+          />
         </label>
         <label>
           Message
           <input value={label} onChange={(event) => setLabel(event.target.value)} />
         </label>
-        <label>Anchor<input value={anchor} onChange={(event) => setAnchor(event.target.value)} placeholder="Optional Teoz anchor" /></label>
+        <label>
+          Anchor
+          <input
+            value={anchor}
+            onChange={(event) => setAnchor(event.target.value)}
+            placeholder="Optional Teoz anchor"
+          />
+        </label>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

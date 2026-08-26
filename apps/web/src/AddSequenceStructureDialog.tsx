@@ -1,5 +1,10 @@
 import { useRef, useState } from "react";
-import type { SequenceFragmentKind, SequenceNote, SequenceParticipantKind, SequenceStructureInput } from "@plantuml-studio/diagram-sequence";
+import type {
+  SequenceFragmentKind,
+  SequenceNote,
+  SequenceParticipantKind,
+  SequenceStructureInput,
+} from "@plantuml-studio/diagram-sequence";
 import { useDialogFocus } from "./use-dialog-focus";
 
 export type SequenceStructureKind = SequenceStructureInput["kind"];
@@ -37,7 +42,21 @@ export function AddSequenceStructureDialog({
   useDialogFocus(dialog, onClose);
   const submit = (): SequenceStructureInput => {
     if (kind === "fragment")
-      return { kind, fragmentKind, label, ...(fragmentKind === "group" && secondary.trim() ? { secondaryLabel: secondary } : {}), ...(color.trim() ? { headerColor: color } : {}), ...(backgroundColor.trim() ? { backgroundColor } : {}), ...((fragmentKind === "alt" || fragmentKind === "par") ? { branches: [{ label: secondary.trim() || "alternative", ...(branchColor.trim() ? { color: branchColor } : {}) }] } : {}) };
+      return {
+        kind,
+        fragmentKind,
+        label,
+        ...(fragmentKind === "group" && secondary.trim() ? { secondaryLabel: secondary } : {}),
+        ...(color.trim() ? { headerColor: color } : {}),
+        ...(backgroundColor.trim() ? { backgroundColor } : {}),
+        ...(fragmentKind === "alt" || fragmentKind === "par"
+          ? {
+              branches: [
+                { label: secondary.trim() || "alternative", ...(branchColor.trim() ? { color: branchColor } : {}) },
+              ],
+            }
+          : {}),
+      };
     if (kind === "activation") return { kind, action, participant, ...(color.trim() ? { color } : {}) };
     if (kind === "note")
       return {
@@ -51,12 +70,24 @@ export function AddSequenceStructureDialog({
       };
     if (kind === "space") return { kind, ...(Number(pixels) > 0 ? { pixels: Number(pixels) } : {}) };
     if (kind === "reference")
-      return { kind, participants: [participant, secondParticipant].filter(Boolean), text: label, multiline: label.includes("\n"), ...(color.trim() ? { color } : {}) };
+      return {
+        kind,
+        participants: [participant, secondParticipant].filter(Boolean),
+        text: label,
+        multiline: label.includes("\n"),
+        ...(color.trim() ? { color } : {}),
+      };
     if (kind === "box") return { kind, label, participants: selectedParticipants, ...(color.trim() ? { color } : {}) };
     if (kind === "autonumber")
-      return { kind, command: autonumberCommand, ...(Number(pixels) > 0 ? { start: Number(pixels) } : {}), ...(secondary.trim() ? { format: secondary } : {}) };
+      return {
+        kind,
+        command: autonumberCommand,
+        ...(Number(pixels) > 0 ? { start: Number(pixels) } : {}),
+        ...(secondary.trim() ? { format: secondary } : {}),
+      };
     if (kind === "create") return { kind, participantKind, participant: label };
-    if (kind === "duration") return { kind, fromAnchor: participant, toAnchor: secondParticipant, arrow: durationArrow, label };
+    if (kind === "duration")
+      return { kind, fromAnchor: participant, toAnchor: secondParticipant, arrow: durationArrow, label };
     return { kind, label };
   };
   return (
@@ -115,10 +146,34 @@ export function AddSequenceStructureDialog({
                 <input value={secondary} onChange={(event) => setSecondary(event.target.value)} />
               </label>
             )}
-            {fragmentKind === "group" && <label>Secondary label<input value={secondary} onChange={(event) => setSecondary(event.target.value)} /></label>}
-            <label>Header color<input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#Gold" /></label>
-            <label>Background color<input value={backgroundColor} onChange={(event) => setBackgroundColor(event.target.value)} placeholder="#LightBlue" /></label>
-            {(fragmentKind === "alt" || fragmentKind === "par") && <label>Second branch color<input value={branchColor} onChange={(event) => setBranchColor(event.target.value)} placeholder="#Pink" /></label>}
+            {fragmentKind === "group" && (
+              <label>
+                Secondary label
+                <input value={secondary} onChange={(event) => setSecondary(event.target.value)} />
+              </label>
+            )}
+            <label>
+              Header color
+              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#Gold" />
+            </label>
+            <label>
+              Background color
+              <input
+                value={backgroundColor}
+                onChange={(event) => setBackgroundColor(event.target.value)}
+                placeholder="#LightBlue"
+              />
+            </label>
+            {(fragmentKind === "alt" || fragmentKind === "par") && (
+              <label>
+                Second branch color
+                <input
+                  value={branchColor}
+                  onChange={(event) => setBranchColor(event.target.value)}
+                  placeholder="#Pink"
+                />
+              </label>
+            )}
           </>
         )}
         {kind === "activation" && (
@@ -145,8 +200,18 @@ export function AddSequenceStructureDialog({
         )}
         {kind === "note" && (
           <>
-            <label>Shape<select value={noteShape} onChange={(event) => setNoteShape(event.target.value as SequenceNote["shape"])}><option value="note">Folded note</option><option value="hnote">Hexagonal note</option><option value="rnote">Rectangular note</option></select></label>
-            <label className="checkbox-row"><input type="checkbox" checked={aligned} onChange={(event) => setAligned(event.target.checked)} />Align with previous note</label>
+            <label>
+              Shape
+              <select value={noteShape} onChange={(event) => setNoteShape(event.target.value as SequenceNote["shape"])}>
+                <option value="note">Folded note</option>
+                <option value="hnote">Hexagonal note</option>
+                <option value="rnote">Rectangular note</option>
+              </select>
+            </label>
+            <label className="checkbox-row">
+              <input type="checkbox" checked={aligned} onChange={(event) => setAligned(event.target.checked)} />
+              Align with previous note
+            </label>
             <label>
               Placement
               <select
@@ -205,37 +270,143 @@ export function AddSequenceStructureDialog({
         )}
         {kind === "reference" && (
           <>
-            <ParticipantField label="First participant" value={participant} participants={participants} onChange={setParticipant} />
-            <ParticipantField label="Second participant" value={secondParticipant} participants={participants} onChange={setSecondParticipant} optional />
-            <label>Reference text<textarea required rows={4} value={label} onChange={(event) => setLabel(event.target.value)} /></label>
-            <label>Color<input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" /></label>
+            <ParticipantField
+              label="First participant"
+              value={participant}
+              participants={participants}
+              onChange={setParticipant}
+            />
+            <ParticipantField
+              label="Second participant"
+              value={secondParticipant}
+              participants={participants}
+              onChange={setSecondParticipant}
+              optional
+            />
+            <label>
+              Reference text
+              <textarea required rows={4} value={label} onChange={(event) => setLabel(event.target.value)} />
+            </label>
+            <label>
+              Color
+              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
+            </label>
           </>
         )}
         {kind === "box" && (
           <>
-            <label>Box label<input value={label} onChange={(event) => setLabel(event.target.value)} /></label>
+            <label>
+              Box label
+              <input value={label} onChange={(event) => setLabel(event.target.value)} />
+            </label>
             <fieldset>
               <legend>Participants</legend>
               {participants.map((name) => (
                 <label key={name} className="checkbox-row">
-                  <input type="checkbox" checked={selectedParticipants.includes(name)} onChange={() => setSelectedParticipants((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name])} />
+                  <input
+                    type="checkbox"
+                    checked={selectedParticipants.includes(name)}
+                    onChange={() =>
+                      setSelectedParticipants((current) =>
+                        current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
+                      )
+                    }
+                  />
                   {name}
                 </label>
               ))}
             </fieldset>
-            <label>Color<input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" /></label>
+            <label>
+              Color
+              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
+            </label>
           </>
         )}
         {kind === "autonumber" && (
           <>
-            <label>Command<select value={autonumberCommand} onChange={(event) => setAutonumberCommand(event.target.value as typeof autonumberCommand)}><option value="start">Start</option><option value="stop">Stop</option><option value="resume">Resume</option><option value="increment">Increment</option></select></label>
-            {autonumberCommand === "start" && <label>Start number<input type="number" value={pixels} onChange={(event) => setPixels(event.target.value)} /></label>}
-            {autonumberCommand === "start" && <label>Format<input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder="000" /></label>}
+            <label>
+              Command
+              <select
+                value={autonumberCommand}
+                onChange={(event) => setAutonumberCommand(event.target.value as typeof autonumberCommand)}
+              >
+                <option value="start">Start</option>
+                <option value="stop">Stop</option>
+                <option value="resume">Resume</option>
+                <option value="increment">Increment</option>
+              </select>
+            </label>
+            {autonumberCommand === "start" && (
+              <label>
+                Start number
+                <input type="number" value={pixels} onChange={(event) => setPixels(event.target.value)} />
+              </label>
+            )}
+            {autonumberCommand === "start" && (
+              <label>
+                Format
+                <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder="000" />
+              </label>
+            )}
           </>
         )}
-        {kind === "create" && <><label>Participant type<select value={participantKind} onChange={(event) => setParticipantKind(event.target.value as SequenceParticipantKind)}>{["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"].map((name) => <option key={name}>{name}</option>)}</select></label><label>Name<input required value={label} onChange={(event) => setLabel(event.target.value)} /></label></>}
-        {(kind === "return" || kind === "newpage") && <label>{kind === "return" ? "Return text" : "Page title"}<input value={label} onChange={(event) => setLabel(event.target.value)} /></label>}
-        {kind === "duration" && <><label>Start anchor<input required value={participant} onChange={(event) => setParticipant(event.target.value)} placeholder="start" /></label><label>End anchor<input required value={secondParticipant} onChange={(event) => setSecondParticipant(event.target.value)} placeholder="end" /></label><label>Arrow<input required value={durationArrow} onChange={(event) => setDurationArrow(event.target.value)} /></label><label>Label<input value={label} onChange={(event) => setLabel(event.target.value)} /></label></>}
+        {kind === "create" && (
+          <>
+            <label>
+              Participant type
+              <select
+                value={participantKind}
+                onChange={(event) => setParticipantKind(event.target.value as SequenceParticipantKind)}
+              >
+                {["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"].map(
+                  (name) => (
+                    <option key={name}>{name}</option>
+                  ),
+                )}
+              </select>
+            </label>
+            <label>
+              Name
+              <input required value={label} onChange={(event) => setLabel(event.target.value)} />
+            </label>
+          </>
+        )}
+        {(kind === "return" || kind === "newpage") && (
+          <label>
+            {kind === "return" ? "Return text" : "Page title"}
+            <input value={label} onChange={(event) => setLabel(event.target.value)} />
+          </label>
+        )}
+        {kind === "duration" && (
+          <>
+            <label>
+              Start anchor
+              <input
+                required
+                value={participant}
+                onChange={(event) => setParticipant(event.target.value)}
+                placeholder="start"
+              />
+            </label>
+            <label>
+              End anchor
+              <input
+                required
+                value={secondParticipant}
+                onChange={(event) => setSecondParticipant(event.target.value)}
+                placeholder="end"
+              />
+            </label>
+            <label>
+              Arrow
+              <input required value={durationArrow} onChange={(event) => setDurationArrow(event.target.value)} />
+            </label>
+            <label>
+              Label
+              <input value={label} onChange={(event) => setLabel(event.target.value)} />
+            </label>
+          </>
+        )}
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

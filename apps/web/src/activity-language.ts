@@ -46,7 +46,12 @@ export const activityDiagnostics = (source: string): Diagnostic[] =>
     source: "PlantUML Activity",
   }));
 
-export interface ActivityQuickFix { from: number; to: number; replacement: string; message: string }
+export interface ActivityQuickFix {
+  from: number;
+  to: number;
+  replacement: string;
+  message: string;
+}
 export function activityQuickFixes(source: string): ActivityQuickFix[] {
   const end = /^\s*@enduml\b/im.exec(source)?.index ?? source.length;
   return parseActivity(source).diagnostics.flatMap((item) => {
@@ -58,7 +63,8 @@ export function activityQuickFixes(source: string): ActivityQuickFix[] {
       repeat: "repeat while (condition?)",
       while: "endwhile",
     };
-    if (item.code === "unterminated-partition") return [{ from: end, to: end, replacement: "}\n", message: "Close partition" }];
+    if (item.code === "unterminated-partition")
+      return [{ from: end, to: end, replacement: "}\n", message: "Close partition" }];
     if (item.code === "unterminated-control") {
       const kind = item.message.split(" ")[0]?.toLowerCase() ?? "";
       return [{ from: end, to: end, replacement: `${endings[kind] ?? "endif"}\n`, message: `Close ${kind} block` }];

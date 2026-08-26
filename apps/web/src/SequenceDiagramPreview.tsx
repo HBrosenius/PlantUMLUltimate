@@ -103,7 +103,9 @@ export function SequenceDiagramPreview({
   useLayoutEffect(() => {
     const root = diagramRef.current;
     if (!root) return;
-    root.querySelectorAll("[data-sequence-drag-hit], .sequence-selected-structure").forEach((element) => element.remove());
+    root
+      .querySelectorAll("[data-sequence-drag-hit], .sequence-selected-structure")
+      .forEach((element) => element.remove());
     for (const text of root.querySelectorAll<SVGTextElement>("text")) {
       text.removeAttribute("data-sequence-participant-id");
       text.removeAttribute("data-sequence-message-id");
@@ -131,22 +133,24 @@ export function SequenceDiagramPreview({
           text.setAttribute("data-sequence-message-id", message.id);
           text.setAttribute("data-draggable", "true");
           text.setAttribute("aria-label", `Drag message ${message.label || "unlabelled"} vertically to reorder`);
-          addDragHitTarget(
-            text,
-            "data-sequence-message-id",
-            message.id,
-            `Drag message ${message.label}`,
-            18,
-            11,
-            true,
-          );
+          addDragHitTarget(text, "data-sequence-message-id", message.id, `Drag message ${message.label}`, 18, 11, true);
         } else {
-          const structure = structures.find((item) => structureTextTokens(item).some((token) => token && (content === token || content.includes(token))));
+          const structure = structures.find((item) =>
+            structureTextTokens(item).some((token) => token && (content === token || content.includes(token))),
+          );
           if (structure) {
             text.setAttribute("data-sequence-structure-id", structure.id);
             text.setAttribute("data-draggable", "true");
             text.setAttribute("aria-label", `Drag ${structureLabel(structure)} vertically to reorder`);
-            addDragHitTarget(text, "data-sequence-structure-id", structure.id, `Drag ${structureLabel(structure)}`, 18, 11, true);
+            addDragHitTarget(
+              text,
+              "data-sequence-structure-id",
+              structure.id,
+              `Drag ${structureLabel(structure)}`,
+              18,
+              11,
+              true,
+            );
           }
         }
       }
@@ -176,14 +180,7 @@ export function SequenceDiagramPreview({
       if (!handle) return;
       drag.reconnectPreview?.line.remove();
       drag.reconnectPreview?.head.remove();
-      const preview = createReconnectPreview(
-        currentRoot,
-        handle,
-        drag.endpoint,
-        drag.id,
-        participants,
-        messages,
-      );
+      const preview = createReconnectPreview(currentRoot, handle, drag.endpoint, drag.id, participants, messages);
       drag.element = handle;
       if (preview) {
         drag.reconnectPreview = preview;
@@ -207,7 +204,9 @@ export function SequenceDiagramPreview({
     const message = messages.find((item) => item.label && (text === item.label || text.endsWith(item.label)));
     if (message) onMessageSelect(message.id);
     else {
-      const structure = structures.find((item) => structureTextTokens(item).some((token) => token && (text === token || text.includes(token))));
+      const structure = structures.find((item) =>
+        structureTextTokens(item).some((token) => token && (text === token || text.includes(token))),
+      );
       if (structure) onStructureSelect(structure.id);
     }
   };
@@ -241,19 +240,33 @@ export function SequenceDiagramPreview({
             messages,
           )
         : undefined;
-    const movePreview = !endpointMessageId && messageId
-      ? createMessageMovePreview(diagramRef.current, messageId, participants, messages)
-      : undefined;
-    const structureMovePreview = structureId && !endpointStructureId
-      ? createStructureMovePreview(diagramRef.current, structureId, event.clientX, event.clientY)
-      : undefined;
+    const movePreview =
+      !endpointMessageId && messageId
+        ? createMessageMovePreview(diagramRef.current, messageId, participants, messages)
+        : undefined;
+    const structureMovePreview =
+      structureId && !endpointStructureId
+        ? createStructureMovePreview(diagramRef.current, structureId, event.clientX, event.clientY)
+        : undefined;
     dragRef.current = {
-      kind: endpointStructureId ? "structure-endpoint" : endpointMessageId ? "message-endpoint" : participantId ? "participant" : structureId ? "structure" : "message",
+      kind: endpointStructureId
+        ? "structure-endpoint"
+        : endpointMessageId
+          ? "message-endpoint"
+          : participantId
+            ? "participant"
+            : structureId
+              ? "structure"
+              : "message",
       id: endpointStructureId ?? endpointMessageId ?? participantId ?? structureId ?? messageId!,
       ...(endpoint ? { endpoint } : {}),
       ...(endpointStructureId ? { structureEndpoint } : {}),
-      ...((endpointStructureId || endpointMessageId) ? { participantTargets: participantTargetPositions(diagramRef.current) } : {}),
-      ...((structureId || messageId) && !endpointStructureId && !endpointMessageId ? { timelineTargets: timelineTargetPositions(diagramRef.current) } : {}),
+      ...(endpointStructureId || endpointMessageId
+        ? { participantTargets: participantTargetPositions(diagramRef.current) }
+        : {}),
+      ...((structureId || messageId) && !endpointStructureId && !endpointMessageId
+        ? { timelineTargets: timelineTargetPositions(diagramRef.current) }
+        : {}),
       x: event.clientX,
       y: event.clientY,
       currentX: event.clientX,
@@ -263,8 +276,8 @@ export function SequenceDiagramPreview({
       label: endpointStructureId
         ? "Structure participant endpoint"
         : endpoint
-        ? `${endpoint === "from" ? "Sender" : "Receiver"} endpoint`
-        : element.textContent?.trim() || (participantId ? "Participant" : "Message"),
+          ? `${endpoint === "from" ? "Sender" : "Receiver"} endpoint`
+          : element.textContent?.trim() || (participantId ? "Participant" : "Message"),
       ...(reconnectPreview ? { reconnectPreview } : {}),
       ...(movePreview ? { movePreview } : {}),
       ...(structureMovePreview ? { structureMovePreview } : {}),
@@ -286,7 +299,12 @@ export function SequenceDiagramPreview({
     if (drag.movePreview) updateMessageMovePreview(drag.movePreview, event.clientX, event.clientY);
     if (drag.structureMovePreview) updateStructureMovePreview(drag.structureMovePreview, event.clientX, event.clientY);
     if (drag.kind === "message-endpoint" || drag.kind === "structure-endpoint") {
-      const participantTargetId = nearestParticipantAtX(diagramRef.current, event.clientX, drag.id, drag.participantTargets);
+      const participantTargetId = nearestParticipantAtX(
+        diagramRef.current,
+        event.clientX,
+        drag.id,
+        drag.participantTargets,
+      );
       if (participantTargetId) drag.participantTargetId = participantTargetId;
       else delete drag.participantTargetId;
     }
@@ -307,11 +325,13 @@ export function SequenceDiagramPreview({
         ? "Drop on a participant to reorder"
         : drag.kind === "message-endpoint"
           ? `Drop the ${drag.endpoint === "from" ? "sender" : "receiver"} handle on a participant anchor`
-        : drag.kind === "structure-endpoint"
-          ? `Drop this attachment handle on ${participants.find((item) => item.id === drag.participantTargetId)?.label ?? "a participant anchor"}`
-        : Math.abs(dx) > Math.abs(dy)
-          ? drag.kind === "message" ? "Drop on a participant to reconnect this endpoint" : "Drag vertically to reorder"
-          : "Drop on another timeline element to reorder";
+          : drag.kind === "structure-endpoint"
+            ? `Drop this attachment handle on ${participants.find((item) => item.id === drag.participantTargetId)?.label ?? "a participant anchor"}`
+            : Math.abs(dx) > Math.abs(dy)
+              ? drag.kind === "message"
+                ? "Drop on a participant to reconnect this endpoint"
+                : "Drag vertically to reorder"
+              : "Drop on another timeline element to reorder";
     if (dragFeedbackRef.current) {
       dragFeedbackRef.current.textContent = feedback;
       dragFeedbackRef.current.hidden = false;
@@ -355,7 +375,10 @@ export function SequenceDiagramPreview({
       participantId = drag.participantTargetId;
     if (
       (!participantId || participantId === drag.id) &&
-      (drag.kind === "participant" || drag.kind === "message-endpoint" || drag.kind === "structure-endpoint" || (drag.kind === "message" && Math.abs(dx) > Math.abs(dy)))
+      (drag.kind === "participant" ||
+        drag.kind === "message-endpoint" ||
+        drag.kind === "structure-endpoint" ||
+        (drag.kind === "message" && Math.abs(dx) > Math.abs(dy)))
     ) {
       const nearest = [
         ...(diagramRef.current?.querySelectorAll<SVGGraphicsElement>("[data-sequence-participant-id]") ?? []),
@@ -371,13 +394,28 @@ export function SequenceDiagramPreview({
         .sort((a, b) => a.distance - b.distance)[0];
       if (nearest?.id && nearest.distance < 80) participantId = nearest.id;
     }
-    let timelineId = drop?.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id")
-      ?? drop?.closest("[data-sequence-structure-id]")?.getAttribute("data-sequence-structure-id");
+    let timelineId =
+      drop?.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id") ??
+      drop?.closest("[data-sequence-structure-id]")?.getAttribute("data-sequence-structure-id");
     if ((drag.kind === "message" || drag.kind === "structure") && Math.abs(dy) >= Math.abs(dx) && drag.timelineTargetId)
       timelineId = drag.timelineTargetId;
-    if ((drag.kind === "message" || drag.kind === "structure") && Math.abs(dy) >= Math.abs(dx) && (!timelineId || timelineId === drag.id)) {
-      const nearest = [...(diagramRef.current?.querySelectorAll<SVGGraphicsElement>("[data-sequence-message-id], [data-sequence-structure-id]") ?? [])]
-        .map((element) => { const rect = element.getBoundingClientRect(); return { id: element.getAttribute("data-sequence-message-id") ?? element.getAttribute("data-sequence-structure-id"), distance: Math.abs(rect.top + rect.height / 2 - event.clientY) }; })
+    if (
+      (drag.kind === "message" || drag.kind === "structure") &&
+      Math.abs(dy) >= Math.abs(dx) &&
+      (!timelineId || timelineId === drag.id)
+    ) {
+      const nearest = [
+        ...(diagramRef.current?.querySelectorAll<SVGGraphicsElement>(
+          "[data-sequence-message-id], [data-sequence-structure-id]",
+        ) ?? []),
+      ]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            id: element.getAttribute("data-sequence-message-id") ?? element.getAttribute("data-sequence-structure-id"),
+            distance: Math.abs(rect.top + rect.height / 2 - event.clientY),
+          };
+        })
         .filter((item) => item.id && item.id !== drag.id)
         .sort((a, b) => a.distance - b.distance)[0];
       if (nearest?.id && nearest.distance < 80) timelineId = nearest.id;
@@ -390,7 +428,10 @@ export function SequenceDiagramPreview({
         const target = diagramRef.current?.querySelector<SVGGraphicsElement>(
           `[data-sequence-drag-hit][data-sequence-participant-id="${CSS.escape(participantId)}"]`,
         );
-        const placement = target && event.clientX > target.getBoundingClientRect().left + target.getBoundingClientRect().width / 2 ? "after" : "before";
+        const placement =
+          target && event.clientX > target.getBoundingClientRect().left + target.getBoundingClientRect().width / 2
+            ? "after"
+            : "before";
         onParticipantReorder(drag.id, participantId, placement);
       }
       return;
@@ -414,7 +455,10 @@ export function SequenceDiagramPreview({
       const target = diagramRef.current?.querySelector<SVGGraphicsElement>(
         `[data-sequence-drag-hit][data-sequence-message-id="${CSS.escape(timelineId)}"], [data-sequence-drag-hit][data-sequence-structure-id="${CSS.escape(timelineId)}"]`,
       );
-      const placement = target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2 ? "after" : "before";
+      const placement =
+        target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2
+          ? "after"
+          : "before";
       onTimelineReorder(drag.id, timelineId, placement);
     } else if (participantId && drag.kind === "message") {
       suppressClickRef.current = true;
@@ -451,7 +495,13 @@ export function SequenceDiagramPreview({
           </span>
         )}
         <span className="sequence-drag-hint">Drag participants sideways · timeline elements vertically</span>
-        {selectedMessage && <span className="sequence-edge-actions"><button onClick={() => onMessageExternalize(selectedMessage.id, "from", "[")}>From edge</button><button onClick={() => onMessageExternalize(selectedMessage.id, "to", "]")}>To edge</button><button onClick={() => onMessageExternalize(selectedMessage.id, "to", "?")}>Mark lost</button></span>}
+        {selectedMessage && (
+          <span className="sequence-edge-actions">
+            <button onClick={() => onMessageExternalize(selectedMessage.id, "from", "[")}>From edge</button>
+            <button onClick={() => onMessageExternalize(selectedMessage.id, "to", "]")}>To edge</button>
+            <button onClick={() => onMessageExternalize(selectedMessage.id, "to", "?")}>Mark lost</button>
+          </span>
+        )}
       </div>
       {orderTrayOpen && (
         <aside id="sequence-order-tray" className="sequence-order-tray" aria-label="Reorder Sequence items">
@@ -518,7 +568,9 @@ export function SequenceDiagramPreview({
 }
 
 function participantTargetPositions(root: HTMLDivElement | null): Array<{ id: string; x: number }> {
-  const anchors = [...(root?.querySelectorAll<SVGGraphicsElement>(".sequence-participant-anchor[data-sequence-participant-id]") ?? [])];
+  const anchors = [
+    ...(root?.querySelectorAll<SVGGraphicsElement>(".sequence-participant-anchor[data-sequence-participant-id]") ?? []),
+  ];
   const candidates = anchors.length
     ? anchors
     : [...(root?.querySelectorAll<SVGGraphicsElement>("text[data-sequence-participant-id]") ?? [])];
@@ -532,7 +584,9 @@ function participantTargetPositions(root: HTMLDivElement | null): Array<{ id: st
 
 function timelineTargetPositions(root: HTMLDivElement | null): Array<{ id: string; y: number }> {
   const positions = new Map<string, number>();
-  for (const element of root?.querySelectorAll<SVGGraphicsElement>("[data-sequence-drag-hit][data-sequence-message-id], .sequence-structure-grip[data-sequence-structure-id]") ?? []) {
+  for (const element of root?.querySelectorAll<SVGGraphicsElement>(
+    "[data-sequence-drag-hit][data-sequence-message-id], .sequence-structure-grip[data-sequence-structure-id]",
+  ) ?? []) {
     const id = element.getAttribute("data-sequence-message-id") ?? element.getAttribute("data-sequence-structure-id");
     if (!id || positions.has(id)) continue;
     const rect = element.getBoundingClientRect();
@@ -569,8 +623,12 @@ function createStructureMovePreview(
 ) {
   const svg = root?.querySelector<SVGSVGElement>("svg");
   if (!root || !svg) return undefined;
-  const texts = [...root.querySelectorAll<SVGTextElement>(`text[data-sequence-structure-id="${CSS.escape(structureId)}"]`)];
-  const grip = root.querySelector<SVGGraphicsElement>(`.sequence-structure-grip[data-sequence-structure-id="${CSS.escape(structureId)}"]`);
+  const texts = [
+    ...root.querySelectorAll<SVGTextElement>(`text[data-sequence-structure-id="${CSS.escape(structureId)}"]`),
+  ];
+  const grip = root.querySelector<SVGGraphicsElement>(
+    `.sequence-structure-grip[data-sequence-structure-id="${CSS.escape(structureId)}"]`,
+  );
   const measured: SVGGraphicsElement[] = texts.length ? texts : grip ? [grip] : [];
   if (!measured.length) return undefined;
   try {
@@ -581,20 +639,36 @@ function createStructureMovePreview(
     const textBottom = Math.max(...textBoxes.map((box) => box.y + box.height));
     const center = { x: (textLeft + textRight) / 2, y: (textTop + textBottom) / 2 };
     const siblings = texts[0]?.parentElement
-      ? [...texts[0].parentElement.querySelectorAll<SVGGraphicsElement>(":scope > path, :scope > rect, :scope > polygon, :scope > line, :scope > text")]
+      ? [
+          ...texts[0].parentElement.querySelectorAll<SVGGraphicsElement>(
+            ":scope > path, :scope > rect, :scope > polygon, :scope > line, :scope > text",
+          ),
+        ]
       : [];
     const enclosure = siblings
-      .filter((element) => ["path", "rect", "polygon"].includes(element.tagName.toLowerCase()) && !element.hasAttribute("data-sequence-drag-hit"))
+      .filter(
+        (element) =>
+          ["path", "rect", "polygon"].includes(element.tagName.toLowerCase()) &&
+          !element.hasAttribute("data-sequence-drag-hit"),
+      )
       .map((element) => ({ element, box: element.getBBox() }))
-      .filter(({ box }) => box.x <= center.x && box.x + box.width >= center.x && box.y <= center.y && box.y + box.height >= center.y)
+      .filter(
+        ({ box }) =>
+          box.x <= center.x && box.x + box.width >= center.x && box.y <= center.y && box.y + box.height >= center.y,
+      )
       .sort((a, b) => a.box.width * a.box.height - b.box.width * b.box.height)[0];
     const visualElements = enclosure
       ? siblings.filter((element) => {
-          if (element.hasAttribute("data-sequence-drag-hit") || element.classList.contains("sequence-structure-grip")) return false;
+          if (element.hasAttribute("data-sequence-drag-hit") || element.classList.contains("sequence-structure-grip"))
+            return false;
           const box = element.getBBox();
           const bounds = enclosure.box;
-          return box.x >= bounds.x - 1 && box.x + box.width <= bounds.x + bounds.width + 1
-            && box.y >= bounds.y - 1 && box.y + box.height <= bounds.y + bounds.height + 1;
+          return (
+            box.x >= bounds.x - 1 &&
+            box.x + box.width <= bounds.x + bounds.width + 1 &&
+            box.y >= bounds.y - 1 &&
+            box.y + box.height <= bounds.y + bounds.height + 1
+          );
         })
       : [];
     const visualBoxes = visualElements.length ? visualElements.map((element) => element.getBBox()) : textBoxes;
@@ -647,7 +721,11 @@ function createStructureMovePreview(
       label.setAttribute("x", String(left + 20));
       label.setAttribute("y", String(top + 12));
       label.setAttribute("class", "sequence-structure-move-preview-label");
-      label.textContent = grip?.getAttribute("aria-label")?.replace(/^Drag /, "").replace(/ vertically$/, "") || "Sequence element";
+      label.textContent =
+        grip
+          ?.getAttribute("aria-label")
+          ?.replace(/^Drag /, "")
+          .replace(/ vertically$/, "") || "Sequence element";
       layer.appendChild(label);
     }
     svg.appendChild(layer);
@@ -672,20 +750,29 @@ function updateStructureMovePreview(
 
 function structureLabel(structure: SequenceStructure): string {
   if (structure.id.startsWith("fragment-") && "label" in structure) return `Fragment: ${structure.label || "fragment"}`;
-  if (structure.id.startsWith("activation-") && "participant" in structure) return `Activation: ${structure.participant}`;
-  if (structure.id.startsWith("note-") && "text" in structure) return `Note: ${structure.text.split("\n")[0] || "note"}`;
-  if (structure.id.startsWith("reference-") && "text" in structure) return `Reference: ${structure.text.split("\n")[0] || "reference"}`;
+  if (structure.id.startsWith("activation-") && "participant" in structure)
+    return `Activation: ${structure.participant}`;
+  if (structure.id.startsWith("note-") && "text" in structure)
+    return `Note: ${structure.text.split("\n")[0] || "note"}`;
+  if (structure.id.startsWith("reference-") && "text" in structure)
+    return `Reference: ${structure.text.split("\n")[0] || "reference"}`;
   if (structure.id.startsWith("box-") && "label" in structure) return `Participant box: ${structure.label || "box"}`;
   if (structure.id.startsWith("creation-") && "participant" in structure) return `Create ${structure.participant}`;
   if (structure.id.startsWith("duration-") && "label" in structure) return `Duration: ${structure.label || "duration"}`;
   if (structure.id.startsWith("autonumber-")) return "Autonumber";
-  if ("label" in structure) return `${"kind" in structure ? structure.kind : "Element"}: ${structure.label || "unlabelled"}`;
+  if ("label" in structure)
+    return `${"kind" in structure ? structure.kind : "Element"}: ${structure.label || "unlabelled"}`;
   return "Sequence element";
 }
 
 function structureTextTokens(structure: SequenceStructure): string[] {
   if (structure.id.startsWith("note-") || structure.id.startsWith("reference-"))
-    return "text" in structure ? structure.text.split("\n").map((line) => line.trim()).filter(Boolean) : [];
+    return "text" in structure
+      ? structure.text
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [];
   if (structure.id.startsWith("fragment-") || structure.id.startsWith("box-") || structure.id.startsWith("duration-"))
     return "label" in structure && structure.label ? [structure.label] : [];
   if ("label" in structure && structure.label) return [structure.label];
@@ -737,9 +824,11 @@ function addStructureReconnectAnchors(
 ) {
   if (!selectedStructureId) return;
   const structure = structures.find((item) => item.id === selectedStructureId);
-  const structureText = root.querySelector<SVGGraphicsElement>(
-    `text[data-sequence-structure-id="${CSS.escape(selectedStructureId)}"]`,
-  ) ?? root.querySelector<SVGGraphicsElement>(`.sequence-structure-grip[data-sequence-structure-id="${CSS.escape(selectedStructureId)}"]`);
+  const structureText =
+    root.querySelector<SVGGraphicsElement>(`text[data-sequence-structure-id="${CSS.escape(selectedStructureId)}"]`) ??
+    root.querySelector<SVGGraphicsElement>(
+      `.sequence-structure-grip[data-sequence-structure-id="${CSS.escape(selectedStructureId)}"]`,
+    );
   const svg = structureText?.ownerSVGElement;
   if (!structure || !structureText || !svg) return;
   try {
@@ -756,7 +845,9 @@ function addStructureReconnectAnchors(
     if (!owners.length) return;
     const y = box.y + box.height / 2;
     const positions = participants.flatMap((participant) => {
-      const text = root.querySelector<SVGTextElement>(`text[data-sequence-participant-id="${CSS.escape(participant.id)}"]`);
+      const text = root.querySelector<SVGTextElement>(
+        `text[data-sequence-participant-id="${CSS.escape(participant.id)}"]`,
+      );
       if (!text) return [];
       const participantBox = text.getBBox();
       return [{ participant, x: participantBox.x + participantBox.width / 2 }];
@@ -831,10 +922,7 @@ function addMessageReconnectAnchors(
       const selectedHead = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
       const direction = toOwner.x >= fromOwner.x ? 1 : -1;
       const back = toOwner.x - direction * 11;
-      selectedHead.setAttribute(
-        "points",
-        `${toOwner.x},${y} ${back},${y - 6} ${back},${y + 6}`,
-      );
+      selectedHead.setAttribute("points", `${toOwner.x},${y} ${back},${y - 6} ${back},${y + 6}`);
       selectedHead.setAttribute("class", "sequence-selected-message-head");
       selectedHead.setAttribute("data-sequence-drag-hit", "true");
       svg.append(selectedLine, selectedHead);
@@ -887,9 +975,7 @@ function createReconnectPreview(
   const fixedReference = message[endpoint === "from" ? "to" : "from"];
   const fixedParticipant = participants.find((item) => (item.alias ?? item.label) === fixedReference);
   const fixedParticipantText = fixedParticipant
-    ? root?.querySelector<SVGTextElement>(
-        `text[data-sequence-participant-id="${CSS.escape(fixedParticipant.id)}"]`,
-      )
+    ? root?.querySelector<SVGTextElement>(`text[data-sequence-participant-id="${CSS.escape(fixedParticipant.id)}"]`)
     : undefined;
   const draggedX = Number(handle.getAttribute("cx"));
   const draggedY = Number(handle.getAttribute("cy"));
@@ -953,18 +1039,14 @@ function createMessageMovePreview(
   messages: readonly SequenceMessage[],
 ) {
   const message = messages.find((item) => item.id === messageId);
-  const messageText = root?.querySelector<SVGTextElement>(
-    `text[data-sequence-message-id="${CSS.escape(messageId)}"]`,
-  );
+  const messageText = root?.querySelector<SVGTextElement>(`text[data-sequence-message-id="${CSS.escape(messageId)}"]`);
   const svg = messageText?.ownerSVGElement;
   if (!message || !messageText || !svg) return undefined;
   const viewBox = svg.viewBox.baseVal;
   const participantX = (reference: string, edge: "from" | "to") => {
     const participant = participants.find((item) => (item.alias ?? item.label) === reference);
     const text = participant
-      ? root?.querySelector<SVGTextElement>(
-          `text[data-sequence-participant-id="${CSS.escape(participant.id)}"]`,
-        )
+      ? root?.querySelector<SVGTextElement>(`text[data-sequence-participant-id="${CSS.escape(participant.id)}"]`)
       : undefined;
     if (text) {
       const box = text.getBBox();
@@ -1041,13 +1123,19 @@ function OrderList({
               event.dataTransfer.setData("text/plain", `${kind}:${item.id}`);
               onDrag({ kind, id: item.id });
             }}
-            onDragEnd={() => { onDrag(undefined); setDropTarget(undefined); }}
+            onDragEnd={() => {
+              onDrag(undefined);
+              setDropTarget(undefined);
+            }}
             onDragOver={(event) => {
               if (dragged?.kind === kind && dragged.id !== item.id) {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "move";
                 const bounds = event.currentTarget.getBoundingClientRect();
-                setDropTarget({ id: item.id, placement: event.clientY > bounds.top + bounds.height / 2 ? "after" : "before" });
+                setDropTarget({
+                  id: item.id,
+                  placement: event.clientY > bounds.top + bounds.height / 2 ? "after" : "before",
+                });
               }
             }}
             onDragLeave={(event) => {
@@ -1063,7 +1151,9 @@ function OrderList({
               onDrag(undefined);
             }}
           >
-            <span className="sequence-order-grip" aria-hidden="true">⠿</span>
+            <span className="sequence-order-grip" aria-hidden="true">
+              ⠿
+            </span>
             <span>{item.label}</span>
             <small>{index + 1}</small>
           </div>

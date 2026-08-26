@@ -78,29 +78,25 @@ export function resolveTaskDates(
     const dependencyStarts: string[] = [];
     const dependencyEnds: string[] = [];
     for (const dependency of taskDependencies) {
-        const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
-        const predecessorDates = predecessor ? solve(predecessor) : undefined;
-        const anchor =
-          dependency.relation === "start-after-start" || dependency.relation === "end-after-start"
-            ? predecessorDates?.start
-            : predecessorDates?.end;
-        if (anchor) {
-          const direction = dependency.direction === "before" ? -1 : 1;
-          let dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
-          if (
-            dependency.relation === "start-after-end" &&
-            (dependency.offset?.value ?? 0) === 0 &&
-            dependencyAnchor
-          ) {
-            do {
-              dependencyAnchor = shiftDate(dependencyAnchor, 1);
-            } while (dependencyAnchor && !isWorkingDate(dependencyAnchor, calendar));
-          }
-          if (dependencyAnchor) {
-            if (dependency.relation.startsWith("start-")) dependencyStarts.push(dependencyAnchor);
-            else dependencyEnds.push(dependencyAnchor);
-          }
+      const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
+      const predecessorDates = predecessor ? solve(predecessor) : undefined;
+      const anchor =
+        dependency.relation === "start-after-start" || dependency.relation === "end-after-start"
+          ? predecessorDates?.start
+          : predecessorDates?.end;
+      if (anchor) {
+        const direction = dependency.direction === "before" ? -1 : 1;
+        let dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+        if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && dependencyAnchor) {
+          do {
+            dependencyAnchor = shiftDate(dependencyAnchor, 1);
+          } while (dependencyAnchor && !isWorkingDate(dependencyAnchor, calendar));
         }
+        if (dependencyAnchor) {
+          if (dependency.relation.startsWith("start-")) dependencyStarts.push(dependencyAnchor);
+          else dependencyEnds.push(dependencyAnchor);
+        }
+      }
     }
     const duration = taskElapsedDays(task);
     const pauses = (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value);
@@ -110,15 +106,7 @@ export function resolveTaskDates(
     if (!start) {
       start ??= projectStart;
     }
-    end = end
-      ? end
-      : start && duration
-        ? workingEnd(
-            start,
-            duration,
-            pauses,
-          )
-        : undefined;
+    end = end ? end : start && duration ? workingEnd(start, duration, pauses) : undefined;
     const value = { ...(start ? { start } : {}), ...(end ? { end } : {}), derived };
     resolved.set(task.id, value);
     visiting.delete(task.id);

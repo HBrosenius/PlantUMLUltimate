@@ -144,7 +144,7 @@ export function usePersistedWorkspace() {
   const setDocumentHistoryId = useCallback((id: string, historyId: string) => {
     setSession((current) => ({
       ...current,
-      documents: current.documents.map((document) => document.id === id ? { ...document, historyId } : document),
+      documents: current.documents.map((document) => (document.id === id ? { ...document, historyId } : document)),
     }));
   }, []);
   const setDocumentBaselineVersionId = useCallback((id: string, baselineVersionId?: string) => {

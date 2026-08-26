@@ -17,7 +17,13 @@ export function serializeWorkspaceBackup(
   const createdAt =
     typeof versionsOrCreatedAt === "string" ? versionsOrCreatedAt : (createdAtOverride ?? new Date().toISOString());
   return JSON.stringify(
-    { kind: "plantuml-studio-workspace", version: 2, createdAt, session, versions: [...versions] } satisfies WorkspaceBackup,
+    {
+      kind: "plantuml-studio-workspace",
+      version: 2,
+      createdAt,
+      session,
+      versions: [...versions],
+    } satisfies WorkspaceBackup,
     null,
     2,
   );

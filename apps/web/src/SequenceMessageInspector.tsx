@@ -123,7 +123,14 @@ export function SequenceMessageInspector({
           Message text
           <textarea rows={4} value={value.label} onChange={(event) => update("label", event.target.value)} />
         </label>
-        <label>Anchor<input value={value.anchor} onChange={(event) => update("anchor", event.target.value)} placeholder="Optional Teoz anchor" /></label>
+        <label>
+          Anchor
+          <input
+            value={value.anchor}
+            onChange={(event) => update("anchor", event.target.value)}
+            placeholder="Optional Teoz anchor"
+          />
+        </label>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete message
@@ -213,13 +220,31 @@ export function VisualChoiceSelect({
               {showSyntax && <code>{choice.value || "none"}</code>}
             </button>
           ))}
-          {allowCustom && <button type="button" role="option" aria-selected={!known} onClick={(event) => { event.preventDefault(); setCustomEditing(true); setOpen(false); }}>
-            <span className="visual-custom-icon">{`{…}`}</span><span>Custom PlantUML syntax</span><code>edit below</code>
-          </button>}
+          {allowCustom && (
+            <button
+              type="button"
+              role="option"
+              aria-selected={!known}
+              onClick={(event) => {
+                event.preventDefault();
+                setCustomEditing(true);
+                setOpen(false);
+              }}
+            >
+              <span className="visual-custom-icon">{`{…}`}</span>
+              <span>Custom PlantUML syntax</span>
+              <code>edit below</code>
+            </button>
+          )}
         </div>
       )}
       {allowCustom && (customEditing || !known) && (
-        <input aria-label={`Custom ${ariaLabel}`} required={ariaLabel === "Arrow type"} value={value} onChange={(event) => onChange(event.target.value)} />
+        <input
+          aria-label={`Custom ${ariaLabel}`}
+          required={ariaLabel === "Arrow type"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
       )}
     </div>
   );
@@ -231,20 +256,36 @@ export function ArrowPreview({ arrow }: { arrow: string }) {
   const cross = arrow.endsWith("x");
   const circle = arrow.startsWith("o");
   const bidirectional = arrow.startsWith("<");
-  return <svg className="message-choice-preview" viewBox="0 0 94 24" aria-hidden="true">
-    {circle && <circle cx="8" cy="12" r="4" />}
-    {bidirectional && <path d="M13 7 L5 12 L13 17" />}
-    <line x1={circle ? 12 : 7} y1="12" x2="84" y2="12" strokeDasharray={dotted ? "5 4" : undefined} />
-    {cross ? <path d="M80 7 L90 17 M90 7 L80 17" /> : open ? <path d="M76 6 L88 12 L76 18" /> : <path className="filled-head" d="M76 6 L89 12 L76 18 Z" />}
-  </svg>;
+  return (
+    <svg className="message-choice-preview" viewBox="0 0 94 24" aria-hidden="true">
+      {circle && <circle cx="8" cy="12" r="4" />}
+      {bidirectional && <path d="M13 7 L5 12 L13 17" />}
+      <line x1={circle ? 12 : 7} y1="12" x2="84" y2="12" strokeDasharray={dotted ? "5 4" : undefined} />
+      {cross ? (
+        <path d="M80 7 L90 17 M90 7 L80 17" />
+      ) : open ? (
+        <path d="M76 6 L88 12 L76 18" />
+      ) : (
+        <path className="filled-head" d="M76 6 L89 12 L76 18 Z" />
+      )}
+    </svg>
+  );
 }
 
 export function LifecyclePreview({ modifier }: { modifier: string }) {
-  return <svg className="message-choice-preview lifecycle-choice-preview" viewBox="0 0 94 24" aria-hidden="true">
-    <line x1="10" y1="12" x2="82" y2="12" /><path className="filled-head" d="M74 6 L87 12 L74 18 Z" />
-    {modifier === "++" && <rect x="57" y="3" width="9" height="18" rx="2" />}
-    {modifier === "--" && <><rect x="25" y="3" width="9" height="18" rx="2" /><line x1="22" y1="20" x2="37" y2="20" /></>}
-    {modifier === "**" && <path d="M62 3 V21 M53 12 H71 M56 6 L68 18 M68 6 L56 18" />}
-    {modifier === "!!" && <path className="lifecycle-destroy" d="M55 5 L69 19 M69 5 L55 19" />}
-  </svg>;
+  return (
+    <svg className="message-choice-preview lifecycle-choice-preview" viewBox="0 0 94 24" aria-hidden="true">
+      <line x1="10" y1="12" x2="82" y2="12" />
+      <path className="filled-head" d="M74 6 L87 12 L74 18 Z" />
+      {modifier === "++" && <rect x="57" y="3" width="9" height="18" rx="2" />}
+      {modifier === "--" && (
+        <>
+          <rect x="25" y="3" width="9" height="18" rx="2" />
+          <line x1="22" y1="20" x2="37" y2="20" />
+        </>
+      )}
+      {modifier === "**" && <path d="M62 3 V21 M53 12 H71 M56 6 L68 18 M68 6 L56 18" />}
+      {modifier === "!!" && <path className="lifecycle-destroy" d="M55 5 L69 19 M69 5 L55 19" />}
+    </svg>
+  );
 }

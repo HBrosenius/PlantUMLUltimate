@@ -36,7 +36,9 @@ describe("workspace backups", () => {
       reason: "manual" as const,
       pinned: true,
     };
-    expect(parseWorkspaceBackupBundle(serializeWorkspaceBackup(DEFAULT_SESSION, [version])).versions).toEqual([version]);
+    expect(parseWorkspaceBackupBundle(serializeWorkspaceBackup(DEFAULT_SESSION, [version])).versions).toEqual([
+      version,
+    ]);
     const legacy = JSON.stringify({
       kind: "plantuml-studio-workspace",
       version: 1,

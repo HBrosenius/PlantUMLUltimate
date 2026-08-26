@@ -18,16 +18,27 @@ export function DividerInspector({
     <aside className="task-inspector divider-inspector" aria-label="Divider inspector">
       <header>
         <strong>Divider inspector</strong>
-        <button onClick={onClose} aria-label="Close divider inspector">×</button>
+        <button onClick={onClose} aria-label="Close divider inspector">
+          ×
+        </button>
       </header>
-      <form onSubmit={(event) => { event.preventDefault(); onApply(label); }}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onApply(label);
+        }}
+      >
         <label>
           Name
           <input required autoFocus value={label} onChange={(event) => setLabel(event.target.value)} />
         </label>
         <div className="inspector-actions">
-          <button type="button" className="danger" onClick={onDelete}>Delete divider</button>
-          <button type="submit" className="primary">Apply</button>
+          <button type="button" className="danger" onClick={onDelete}>
+            Delete divider
+          </button>
+          <button type="submit" className="primary">
+            Apply
+          </button>
         </div>
       </form>
     </aside>

@@ -36,7 +36,8 @@ export function diffVersionSources(leftSource: string, rightSource: string): Ver
       rightIndex += 1;
     } else if (
       rightIndex < right.length &&
-      (leftIndex >= left.length || table[leftIndex * width + rightIndex + 1]! >= table[(leftIndex + 1) * width + rightIndex]!)
+      (leftIndex >= left.length ||
+        table[leftIndex * width + rightIndex + 1]! >= table[(leftIndex + 1) * width + rightIndex]!)
     ) {
       result.push({ kind: "added", right: right[rightIndex]!, rightNumber: rightIndex + 1 });
       rightIndex += 1;

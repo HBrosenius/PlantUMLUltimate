@@ -81,13 +81,46 @@ export function SequenceParticipantInspector({
             placeholder="#LightBlue or #f97316"
           />
         </label>
-        <label>Stereotype<input value={value.stereotype} onChange={(event) => update("stereotype", event.target.value)} placeholder="Service" /></label>
-        <label>Spot character<input maxLength={1} value={value.spotCharacter} onChange={(event) => update("spotCharacter", event.target.value)} placeholder="C" /></label>
-        <label>Spot color<input list={colorListId} autoComplete="off" value={value.spotColor} onChange={(event) => update("spotColor", event.target.value)} placeholder="#LightBlue or #ADD1B2" /></label>
+        <label>
+          Stereotype
+          <input
+            value={value.stereotype}
+            onChange={(event) => update("stereotype", event.target.value)}
+            placeholder="Service"
+          />
+        </label>
+        <label>
+          Spot character
+          <input
+            maxLength={1}
+            value={value.spotCharacter}
+            onChange={(event) => update("spotCharacter", event.target.value)}
+            placeholder="C"
+          />
+        </label>
+        <label>
+          Spot color
+          <input
+            list={colorListId}
+            autoComplete="off"
+            value={value.spotColor}
+            onChange={(event) => update("spotColor", event.target.value)}
+            placeholder="#LightBlue or #ADD1B2"
+          />
+        </label>
         <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => <option key={name} value={`#${name}`} />)}
+          {PLANTUML_COLOR_NAMES.map((name) => (
+            <option key={name} value={`#${name}`} />
+          ))}
         </datalist>
-        <label>Display order<input type="number" value={value.order ?? ""} onChange={(event) => update("order", event.target.value === "" ? undefined : Number(event.target.value))} /></label>
+        <label>
+          Display order
+          <input
+            type="number"
+            value={value.order ?? ""}
+            onChange={(event) => update("order", event.target.value === "" ? undefined : Number(event.target.value))}
+          />
+        </label>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Delete participant

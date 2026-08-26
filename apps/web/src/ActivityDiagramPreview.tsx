@@ -52,7 +52,18 @@ export function ActivityDiagramPreview({
       const hit = window.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       hit.setAttribute("class", `activity-semantic-hit${selectedId === object.id ? " activity-selected-object" : ""}`);
       hit.setAttribute("data-activity-object-id", object.id);
-      hit.setAttribute("data-activity-object-type", document.arrows.some((arrow) => arrow.id === object.id) ? "arrow" : "text" in object ? "note" : "kind" in object ? object.kind === "action" ? "action" : "control" : "object");
+      hit.setAttribute(
+        "data-activity-object-type",
+        document.arrows.some((arrow) => arrow.id === object.id)
+          ? "arrow"
+          : "text" in object
+            ? "note"
+            : "kind" in object
+              ? object.kind === "action"
+                ? "action"
+                : "control"
+              : "object",
+      );
       hit.setAttribute("x", String(box.x - 9));
       hit.setAttribute("y", String(box.y - 7));
       hit.setAttribute("width", String(Math.max(34, box.width + 18)));
@@ -60,9 +71,14 @@ export function ActivityDiagramPreview({
       hit.setAttribute("rx", "7");
       hit.setAttribute("role", "button");
       hit.setAttribute("tabindex", "0");
-      hit.setAttribute("aria-label", `Select ${"text" in object ? "note" : "kind" in object ? object.kind : "item"} ${activityText(object)[0] ?? ""}`);
+      hit.setAttribute(
+        "aria-label",
+        `Select ${"text" in object ? "note" : "kind" in object ? object.kind : "item"} ${activityText(object)[0] ?? ""}`,
+      );
       rendered.append(hit);
-      const movable = "kind" in object && (object.kind === "action" || ["if", "switch", "fork", "split", "repeat", "while"].includes(object.kind));
+      const movable =
+        "kind" in object &&
+        (object.kind === "action" || ["if", "switch", "fork", "split", "repeat", "while"].includes(object.kind));
       if (!movable) continue;
       const handle = window.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       handle.setAttribute("class", "activity-move-handle");
@@ -79,9 +95,15 @@ export function ActivityDiagramPreview({
   return (
     <section className="preview activity-preview" aria-label="Activity diagram preview">
       <div className="preview-tools">
-        <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">−</button>
-        <button onClick={() => onZoomChange(1)} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
-        <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">+</button>
+        <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
+          −
+        </button>
+        <button onClick={() => onZoomChange(1)} aria-label="Reset zoom">
+          {Math.round(zoom * 100)}%
+        </button>
+        <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
+          +
+        </button>
         {document.partitions.length > 0 && (
           <div className="class-package-tray" role="group" aria-label="Activity partitions">
             <span>Partitions</span>
@@ -124,7 +146,16 @@ export function ActivityDiagramPreview({
           <div className="class-package-tray" role="group" aria-label="Activity controls">
             <span>Controls</span>
             {document.controls.map((item) => (
-              <button key={item.id} type="button" data-activity-object-id={item.id} data-inspector-trigger onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}>
+              <button
+                key={item.id}
+                type="button"
+                data-activity-object-id={item.id}
+                data-inspector-trigger
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect(item.id);
+                }}
+              >
                 {item.condition || item.label || item.kind.replaceAll("-", " ")}
               </button>
             ))}
@@ -152,11 +183,22 @@ export function ActivityDiagramPreview({
         {document.nodes.some((item) => item.kind !== "action") && (
           <div className="class-package-tray" role="group" aria-label="Activity terminals">
             <span>Terminals</span>
-            {document.nodes.filter((item) => item.kind !== "action").map((item, index) => (
-              <button key={item.id} type="button" data-activity-object-id={item.id} data-inspector-trigger onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}>
-                {item.kind} {index + 1}
-              </button>
-            ))}
+            {document.nodes
+              .filter((item) => item.kind !== "action")
+              .map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-activity-object-id={item.id}
+                  data-inspector-trigger
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(item.id);
+                  }}
+                >
+                  {item.kind} {index + 1}
+                </button>
+              ))}
           </div>
         )}
         <span className="usecase-keyboard-help">Click an action to inspect it</span>
@@ -168,8 +210,11 @@ export function ActivityDiagramPreview({
             className="diagram activity-diagram"
             style={{ transform: `scale(${zoom})` }}
             onPointerDown={(event) => {
-              const origin = (event.target as Element).closest('[data-activity-move-id], [data-activity-object-type="action"]');
-              const id = origin?.getAttribute("data-activity-move-id") ?? origin?.getAttribute("data-activity-object-id");
+              const origin = (event.target as Element).closest(
+                '[data-activity-move-id], [data-activity-object-type="action"]',
+              );
+              const id =
+                origin?.getAttribute("data-activity-move-id") ?? origin?.getAttribute("data-activity-object-id");
               if (!id) return;
               drag.current = { id, x: event.clientX, y: event.clientY };
               event.currentTarget.classList.add("activity-dragging-move");
@@ -191,7 +236,9 @@ export function ActivityDiagramPreview({
             }}
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
-              const id = (event.target as Element).closest("[data-activity-object-id]")?.getAttribute("data-activity-object-id");
+              const id = (event.target as Element)
+                .closest("[data-activity-object-id]")
+                ?.getAttribute("data-activity-object-id");
               if (!id) return;
               event.preventDefault();
               onSelect(id);
@@ -201,7 +248,9 @@ export function ActivityDiagramPreview({
                 suppressClick.current = false;
                 return;
               }
-              const id = (event.target as Element).closest("[data-activity-object-id]")?.getAttribute("data-activity-object-id");
+              const id = (event.target as Element)
+                .closest("[data-activity-object-id]")
+                ?.getAttribute("data-activity-object-id");
               if (id) onSelect(id);
               else onBackgroundSelect();
             }}
@@ -214,14 +263,24 @@ export function ActivityDiagramPreview({
             <button onClick={onRenderRetry}>Retry</button>
           </div>
         ) : (
-          <div className="render-placeholder">{renderStatus === "rendering" ? "Rendering Activity diagram…" : "Enter Activity source to render a preview."}</div>
+          <div className="render-placeholder">
+            {renderStatus === "rendering"
+              ? "Rendering Activity diagram…"
+              : "Enter Activity source to render a preview."}
+          </div>
         )}
       </div>
     </section>
   );
 }
 
-const activityText = (item: ActivityDocument["nodes"][number] | ActivityDocument["controls"][number] | ActivityDocument["notes"][number] | ActivityDocument["arrows"][number]) =>
+const activityText = (
+  item:
+    | ActivityDocument["nodes"][number]
+    | ActivityDocument["controls"][number]
+    | ActivityDocument["notes"][number]
+    | ActivityDocument["arrows"][number],
+) =>
   "text" in item
     ? item.text.split("\n").map((line) => line.trim())
     : "condition" in item
@@ -237,10 +296,17 @@ const finishReorder = (
   const value = drag.current;
   drag.current = undefined;
   if (!value || Math.hypot(event.clientX - value.x, event.clientY - value.y) < 5) return false;
-  const target = [...(root?.querySelectorAll<SVGGraphicsElement>('[data-activity-object-type="action"]') ?? [])].find((item) => {
-    const box = item.getBoundingClientRect();
-    return event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
-  });
+  const target = [...(root?.querySelectorAll<SVGGraphicsElement>('[data-activity-object-type="action"]') ?? [])].find(
+    (item) => {
+      const box = item.getBoundingClientRect();
+      return (
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      );
+    },
+  );
   const targetId = target?.getAttribute("data-activity-object-id");
   if (!target || !targetId || targetId === value.id) return true;
   const box = target.getBoundingClientRect();

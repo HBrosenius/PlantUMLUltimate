@@ -220,8 +220,12 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
         <path d="m174 32 24 24-24 24-24-24z" fill="#c084fc" />
         <circle cx="220" cy="56" r="9" fill="none" stroke="#2563eb" strokeWidth="3" />
         <circle cx="220" cy="56" r="5" fill="#2563eb" />
-        <text className="preview-light-text" x="101" y="59" textAnchor="middle">Work</text>
-        <text className="preview-light-text" x="174" y="59" textAnchor="middle">OK?</text>
+        <text className="preview-light-text" x="101" y="59" textAnchor="middle">
+          Work
+        </text>
+        <text className="preview-light-text" x="174" y="59" textAnchor="middle">
+          OK?
+        </text>
       </svg>
     );
   return (

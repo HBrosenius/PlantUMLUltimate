@@ -25,22 +25,38 @@ describe("activity operations", () => {
     let source = "@startuml\n' keep me\nstart\nstop\n@enduml";
     source = insertActivityPartition(source, parseActivity(source), { label: "Fulfilment", color: "Lavender" });
     let document = parseActivity(source);
-    source = insertActivityAction(source, document, { label: "Pack order", color: "PaleGreen", partitionId: "fulfilment" });
+    source = insertActivityAction(source, document, {
+      label: "Pack order",
+      color: "PaleGreen",
+      partitionId: "fulfilment",
+    });
     document = parseActivity(source);
     expect(source).toContain('partition "Fulfilment" #Lavender {\n:Pack order; <<#PaleGreen>>\n}');
-    source = updateActivityAction(source, document.nodes.find((item) => item.kind === "action")!, { label: "Pack and label" });
-    source = insertActivityNote(source, parseActivity(source), { placement: "right", text: "Warehouse\noperation", color: "Wheat" });
+    source = updateActivityAction(
+      source,
+      document.nodes.find((item) => item.kind === "action")!,
+      { label: "Pack and label" },
+    );
+    source = insertActivityNote(source, parseActivity(source), {
+      placement: "right",
+      text: "Warehouse\noperation",
+      color: "Wheat",
+    });
     document = parseActivity(source);
     source = updateActivityNote(source, document.notes[0]!, { placement: "left", text: "Internal" });
     expect(source).toContain("note left\nInternal\nend note");
     expect(source).toContain("' keep me");
     document = parseActivity(source);
-    source = deleteActivityNode(source, document.nodes.find((item) => item.kind === "action")!);
+    source = deleteActivityNode(
+      source,
+      document.nodes.find((item) => item.kind === "action")!,
+    );
     expect(source).not.toContain("Pack and label");
     expect(source).toContain("' keep me");
   });
   it("edits controls and arrows and reorders an action with its note", () => {
-    let source = "@startuml\nstart\n:A;\nnote right\nA note\nend note\n:B;\nif (Ready?) then (yes)\n-[#Blue,dashed]-> [go]\nendif\nstop\n@enduml";
+    let source =
+      "@startuml\nstart\n:A;\nnote right\nA note\nend note\n:B;\nif (Ready?) then (yes)\n-[#Blue,dashed]-> [go]\nendif\nstop\n@enduml";
     let document = parseActivity(source);
     source = updateActivityControl(source, document.controls[0]!, { condition: "Approved?", label: "ok" });
     document = parseActivity(source);
@@ -79,7 +95,8 @@ describe("activity operations", () => {
     expect(parseActivity(updated).diagnostics).toHaveLength(0);
   });
   it("moves actions and notes between parsed targets without rewriting unrelated source", () => {
-    let source = '@startuml\n\' keep\npartition "One" {\n:A;\nnote right\nAttached\nend note\n}\npartition "Two" {\n:B;\n}\n@enduml';
+    let source =
+      '@startuml\n\' keep\npartition "One" {\n:A;\nnote right\nAttached\nend note\n}\npartition "Two" {\n:B;\n}\n@enduml';
     let document = parseActivity(source);
     source = moveActivityActionToPartition(source, document, document.nodes[0]!, "two");
     expect(source).toContain('partition "Two" {\n:B;\n:A;\nnote right\nAttached\nend note\n}');
@@ -117,7 +134,14 @@ describe("activity operations", () => {
     expect(nested).toContain('partition "Two" {\n:B;\npartition "One" {\n:A;\n}\n}');
     document = parseActivity(nested);
     expect(document.partitions.find((item) => item.id === "one")?.parentId).toBe("two");
-    expect(moveActivityPartition(nested, document, document.partitions.find((item) => item.id === "two")!, "one")).toBe(nested);
+    expect(
+      moveActivityPartition(
+        nested,
+        document,
+        document.partitions.find((item) => item.id === "two")!,
+        "one",
+      ),
+    ).toBe(nested);
   });
   it("reorders a complete nested control block around an action", () => {
     const source = "@startuml\n:A;\nif (Outer?) then\nwhile (Inner?)\n:B;\nendwhile\nendif\n:C;\n@enduml";

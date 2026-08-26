@@ -45,7 +45,11 @@ function timelineDayWidth(document: Document): number | undefined {
 }
 
 export function timelineColumnWidth(centers: readonly number[], fallback?: number): number | undefined {
-  const gaps = centers.slice(1).map((value, index) => value - centers[index]!).filter((gap) => gap > 0.5).sort((a, b) => a - b);
+  const gaps = centers
+    .slice(1)
+    .map((value, index) => value - centers[index]!)
+    .filter((gap) => gap > 0.5)
+    .sort((a, b) => a - b);
   return gaps.length ? gaps[Math.floor(gaps.length / 2)] : fallback;
 }
 
@@ -180,7 +184,10 @@ export function addCanonicalGanttOverlay(
   // Date-label spacing is the authoritative day column geometry. The SVG also contains
   // vertical task/resource borders; including those in the width calculation can select
   // a half-column gap and make weekend hatching spill into the preceding working day.
-  const canonicalDayWidth = timelineColumnWidth(topDates.map((item) => item.x), gridDayWidth);
+  const canonicalDayWidth = timelineColumnWidth(
+    topDates.map((item) => item.x),
+    gridDayWidth,
+  );
   const monthNames = [
     "january",
     "february",
@@ -471,7 +478,9 @@ export function addCanonicalGanttOverlay(
 
   verticalSeparators.forEach((separator, index) => {
     const reference = tasks.find((task) =>
-      [task.label, task.alias?.value].some((value) => value?.trim().toLowerCase() === separator.taskLabel.trim().toLowerCase()),
+      [task.label, task.alias?.value].some(
+        (value) => value?.trim().toLowerCase() === separator.taskLabel.trim().toLowerCase(),
+      ),
     );
     const bounds = reference ? geometry.get(reference.id) : undefined;
     if (!bounds || !canonicalDayWidth) return;
@@ -489,13 +498,17 @@ export function addCanonicalGanttOverlay(
     group.setAttribute("aria-label", `Move vertical separator at ${separator.taskLabel}'s ${separator.anchor}`);
     const visible = document.createElementNS(SVG_NS, "line");
     visible.setAttribute("class", "vertical-separator-guide");
-    visible.setAttribute("x1", String(x)); visible.setAttribute("x2", String(x));
-    visible.setAttribute("y1", String(top)); visible.setAttribute("y2", String(top + height));
+    visible.setAttribute("x1", String(x));
+    visible.setAttribute("x2", String(x));
+    visible.setAttribute("y1", String(top));
+    visible.setAttribute("y2", String(top + height));
     group.append(visible);
     const hit = document.createElementNS(SVG_NS, "line");
     hit.setAttribute("class", "vertical-separator-hit interaction-hit");
-    hit.setAttribute("x1", String(x)); hit.setAttribute("x2", String(x));
-    hit.setAttribute("y1", String(top)); hit.setAttribute("y2", String(top + height));
+    hit.setAttribute("x1", String(x));
+    hit.setAttribute("x2", String(x));
+    hit.setAttribute("y1", String(top));
+    hit.setAttribute("y2", String(top + height));
     group.append(hit);
     root.append(group);
   });

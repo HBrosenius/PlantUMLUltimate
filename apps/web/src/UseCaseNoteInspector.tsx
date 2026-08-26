@@ -45,67 +45,67 @@ export function UseCaseNoteInspector({
         <fieldset>
           <legend>Attachment</legend>
           <label>
-          Attached to
-          <select value={value.targetId ?? ""} onChange={(event) => change("targetId", event.target.value)}>
-            <option value="">Floating note</option>
-            {elements.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+            Attached to
+            <select value={value.targetId ?? ""} onChange={(event) => change("targetId", event.target.value)}>
+              <option value="">Floating note</option>
+              {elements.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </label>
           {!value.targetId && (
-          <label>
-            Alias
-            <input
-              value={value.alias ?? ""}
-              onChange={(event) => setValue((current) => ({ ...current, alias: event.target.value }))}
-              onBlur={() => value.alias?.trim() && onChange(value)}
-            />
-          </label>
+            <label>
+              Alias
+              <input
+                value={value.alias ?? ""}
+                onChange={(event) => setValue((current) => ({ ...current, alias: event.target.value }))}
+                onBlur={() => value.alias?.trim() && onChange(value)}
+              />
+            </label>
           )}
           <label>
-          Position
-          <select
-            value={value.placement}
-            onChange={(event) => change("placement", event.target.value as UseCaseNoteInput["placement"])}
-          >
-            <option value="right">Right</option>
-            <option value="left">Left</option>
-            <option value="top">Top</option>
-            <option value="bottom">Bottom</option>
-          </select>
+            Position
+            <select
+              value={value.placement}
+              onChange={(event) => change("placement", event.target.value as UseCaseNoteInput["placement"])}
+            >
+              <option value="right">Right</option>
+              <option value="left">Left</option>
+              <option value="top">Top</option>
+              <option value="bottom">Bottom</option>
+            </select>
           </label>
         </fieldset>
         <fieldset>
           <legend>Content</legend>
           <label>
-          Text
-          <textarea
-            rows={6}
-            value={value.text}
-            onChange={(event) => setValue((current) => ({ ...current, text: event.target.value }))}
-            onBlur={() => value.text.trim() && onChange(value)}
-          />
+            Text
+            <textarea
+              rows={6}
+              value={value.text}
+              onChange={(event) => setValue((current) => ({ ...current, text: event.target.value }))}
+              onBlur={() => value.text.trim() && onChange(value)}
+            />
           </label>
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
           <label>
-          Color
-          <input
-            list={colorListId}
-            value={value.color ?? ""}
-            onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
-            onBlur={() => onChange(value)}
-          />
+            Color
+            <input
+              list={colorListId}
+              value={value.color ?? ""}
+              onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
+              onBlur={() => onChange(value)}
+            />
           </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+          <datalist id={colorListId}>
+            {PLANTUML_COLOR_NAMES.map((name) => (
+              <option key={name} value={`#${name}`} />
+            ))}
+          </datalist>
         </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>

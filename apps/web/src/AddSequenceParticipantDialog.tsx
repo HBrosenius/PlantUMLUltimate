@@ -44,7 +44,15 @@ export function AddSequenceParticipantDialog({
         onMouseDown={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault();
-          onAdd({ kind, label, ...(alias.trim() ? { alias } : {}), ...(color.trim() ? { color } : {}), ...(stereotype.trim() ? { stereotype } : {}), ...(spotCharacter.trim() && spotColor.trim() ? { spotCharacter, spotColor } : {}), ...(order !== "" ? { order: Number(order) } : {}) });
+          onAdd({
+            kind,
+            label,
+            ...(alias.trim() ? { alias } : {}),
+            ...(color.trim() ? { color } : {}),
+            ...(stereotype.trim() ? { stereotype } : {}),
+            ...(spotCharacter.trim() && spotColor.trim() ? { spotCharacter, spotColor } : {}),
+            ...(order !== "" ? { order: Number(order) } : {}),
+          });
         }}
       >
         <h2>Add participant</h2>
@@ -66,15 +74,51 @@ export function AddSequenceParticipantDialog({
         </label>
         <label>
           Color
-          <input list={colorListId} autoComplete="off" value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue or #f97316" />
+          <input
+            list={colorListId}
+            autoComplete="off"
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+            placeholder="#LightBlue or #f97316"
+          />
         </label>
-        <label>Stereotype<input value={stereotype} onChange={(event) => setStereotype(event.target.value)} placeholder="Service" /></label>
-        <label>Spot character<input maxLength={1} value={spotCharacter} onChange={(event) => setSpotCharacter(event.target.value)} placeholder="C" /></label>
-        <label>Spot color<input list={colorListId} autoComplete="off" value={spotColor} onChange={(event) => setSpotColor(event.target.value)} placeholder="#LightBlue or #ADD1B2" /></label>
+        <label>
+          Stereotype
+          <input value={stereotype} onChange={(event) => setStereotype(event.target.value)} placeholder="Service" />
+        </label>
+        <label>
+          Spot character
+          <input
+            maxLength={1}
+            value={spotCharacter}
+            onChange={(event) => setSpotCharacter(event.target.value)}
+            placeholder="C"
+          />
+        </label>
+        <label>
+          Spot color
+          <input
+            list={colorListId}
+            autoComplete="off"
+            value={spotColor}
+            onChange={(event) => setSpotColor(event.target.value)}
+            placeholder="#LightBlue or #ADD1B2"
+          />
+        </label>
         <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => <option key={name} value={`#${name}`} />)}
+          {PLANTUML_COLOR_NAMES.map((name) => (
+            <option key={name} value={`#${name}`} />
+          ))}
         </datalist>
-        <label>Display order<input type="number" value={order} onChange={(event) => setOrder(event.target.value)} placeholder="Optional" /></label>
+        <label>
+          Display order
+          <input
+            type="number"
+            value={order}
+            onChange={(event) => setOrder(event.target.value)}
+            placeholder="Optional"
+          />
+        </label>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

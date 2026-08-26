@@ -301,7 +301,11 @@ export function App() {
     updateCapacities: updateResourceCapacities,
     renameCapacity,
   } = useResourceCapacities(tabs.activeId);
-  const { status, result, retry: retryRender } = useRenderer(
+  const {
+    status,
+    result,
+    retry: retryRender,
+  } = useRenderer(
     workspace.source,
     hydrated && !newDocumentOpen && workspace.viewMode !== "code",
     workspace.diagramKind === "class" || workspace.diagramKind === "usecase" || workspace.diagramKind === "activity"
@@ -1231,7 +1235,7 @@ export function App() {
                 ? DEFAULT_CLASS_SOURCE
                 : diagramKind === "activity"
                   ? DEFAULT_ACTIVITY_SOURCE
-                : DEFAULT_SOURCE,
+                  : DEFAULT_SOURCE,
         fileName: "untitled.puml",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -1255,7 +1259,7 @@ export function App() {
               ? "Class"
               : diagramKind === "activity"
                 ? "Activity"
-              : "Gantt";
+                : "Gantt";
       setInteractionMessage(`Created a new ${displayName} diagram`);
     },
     [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
@@ -1613,7 +1617,10 @@ export function App() {
   };
   const applyActivityNote = (value: ActivityNoteInput) => {
     if (selectedActivityNote)
-      commitSource(updateActivityNoteWithTarget(workspace.source, activityDocument, selectedActivityNote, value), "Update Activity note");
+      commitSource(
+        updateActivityNoteWithTarget(workspace.source, activityDocument, selectedActivityNote, value),
+        "Update Activity note",
+      );
   };
   const removeActivityNote = () => {
     if (!selectedActivityNote) return;
@@ -3023,7 +3030,7 @@ export function App() {
                 ? "Class"
                 : workspace.diagramKind === "activity"
                   ? "Activity"
-                : "Gantt"}
+                  : "Gantt"}
         </span>
         <span>
           {workspace.viewMode === "code"
@@ -3068,10 +3075,7 @@ export function App() {
         />
       )}
       {addActivityTerminalOpen && (
-        <AddActivityTerminalDialog
-          onAdd={addActivityTerminal}
-          onClose={() => setAddActivityTerminalOpen(false)}
-        />
+        <AddActivityTerminalDialog onAdd={addActivityTerminal} onClose={() => setAddActivityTerminalOpen(false)} />
       )}
       {addActivityArrowOpen && (
         <AddActivityArrowDialog

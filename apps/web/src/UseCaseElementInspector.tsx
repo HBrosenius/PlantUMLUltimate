@@ -49,81 +49,86 @@ export function UseCaseElementInspector({
         <fieldset>
           <legend>Identity</legend>
           <label>
-          Type
-          <select
-            value={value.kind}
-            onChange={(event) => {
-              const kind = event.target.value as UseCaseElementKind;
-              update("kind", kind);
-              onChange({ ...value, kind });
-            }}
-          >
-            <option value="actor">Actor</option>
-            <option value="usecase">Use case</option>
-          </select>
+            Type
+            <select
+              value={value.kind}
+              onChange={(event) => {
+                const kind = event.target.value as UseCaseElementKind;
+                update("kind", kind);
+                onChange({ ...value, kind });
+              }}
+            >
+              <option value="actor">Actor</option>
+              <option value="usecase">Use case</option>
+            </select>
           </label>
           <label>
-          Name
-          <input required value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={save} />
+            Name
+            <input
+              required
+              value={value.label}
+              onChange={(event) => update("label", event.target.value)}
+              onBlur={save}
+            />
           </label>
           <label>
-          Alias
-          <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
+            Alias
+            <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
           </label>
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
           <label>
-          Color
-          <input
-            list={colorListId}
-            autoComplete="off"
-            value={value.color ?? ""}
-            onChange={(event) => update("color", event.target.value)}
-            onBlur={save}
-          />
+            Color
+            <input
+              list={colorListId}
+              autoComplete="off"
+              value={value.color ?? ""}
+              onChange={(event) => update("color", event.target.value)}
+              onBlur={save}
+            />
           </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+          <datalist id={colorListId}>
+            {PLANTUML_COLOR_NAMES.map((name) => (
+              <option key={name} value={`#${name}`} />
+            ))}
+          </datalist>
           <label>
-          Stereotype
-          <input
-            value={value.stereotype ?? ""}
-            onChange={(event) => update("stereotype", event.target.value)}
-            onBlur={save}
-          />
+            Stereotype
+            <input
+              value={value.stereotype ?? ""}
+              onChange={(event) => update("stereotype", event.target.value)}
+              onBlur={save}
+            />
           </label>
           <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={value.business ?? false}
-            onChange={(event) => {
-              const business = event.target.checked;
-              update("business", business);
-              onChange({ ...value, business });
-            }}
-          />{" "}
-          Business object
+            <input
+              type="checkbox"
+              checked={value.business ?? false}
+              onChange={(event) => {
+                const business = event.target.checked;
+                update("business", business);
+                onChange({ ...value, business });
+              }}
+            />{" "}
+            Business object
           </label>
         </fieldset>
         <fieldset>
           <legend>Placement</legend>
           <label>
-          Container
-          <select
-            value={element.packageId ?? ""}
-            onChange={(event) => onPackageChange(event.target.value || undefined)}
-          >
-            <option value="">Outside all containers</option>
-            {packages.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+            Container
+            <select
+              value={element.packageId ?? ""}
+              onChange={(event) => onPackageChange(event.target.value || undefined)}
+            >
+              <option value="">Outside all containers</option>
+              {packages.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </label>
         </fieldset>
         <div className="inspector-actions">

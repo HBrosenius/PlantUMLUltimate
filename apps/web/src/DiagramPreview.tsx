@@ -702,10 +702,7 @@ export function DiagramPreview({
           endEvent instanceof PointerEvent && endEvent.type === "pointerup" ? endEvent.clientX : lastClientX;
         const releaseDeltaX = releaseClientX - startX;
         if (dragMode === "pending" && Math.abs(releaseDeltaX) > 6) dragMode = "horizontal";
-        const snapped = snapHorizontal(
-          releaseClientX,
-          endEvent instanceof PointerEvent && endEvent.shiftKey ? 7 : 1,
-        );
+        const snapped = snapHorizontal(releaseClientX, endEvent instanceof PointerEvent && endEvent.shiftKey ? 7 : 1);
         snappedDays = snapped.visualDays;
         sourceMoveDays = snapped.sourceDays;
       }

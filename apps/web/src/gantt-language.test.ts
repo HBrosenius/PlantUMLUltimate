@@ -68,7 +68,7 @@ describe("Gantt CodeMirror language service", () => {
   });
 
   it("offers a Confluence-compatible fix for Gantt note placement", () => {
-    const source = '@startgantt\n[A] is colored in Yellow\nnote right: Duration unknown\n@endgantt';
+    const source = "@startgantt\n[A] is colored in Yellow\nnote right: Duration unknown\n@endgantt";
     expect(ganttQuickFixes(source)).toEqual([
       expect.objectContaining({
         replacement: "note bottom: Duration unknown",

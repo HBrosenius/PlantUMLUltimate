@@ -68,7 +68,9 @@ describe("Sequence type catalog conformance", () => {
       new Set(["actor", "boundary", "control", "entity", "database", "collections", "queue", "participant"]),
     );
     expect(document.messages).toHaveLength(11);
-    expect(document.messages.filter((item) => item.from === "[" || item.to === "]" || item.from === "?" || item.to === "?")).toHaveLength(4);
+    expect(
+      document.messages.filter((item) => item.from === "[" || item.to === "]" || item.from === "?" || item.to === "?"),
+    ).toHaveLength(4);
     expect(new Set(document.fragments.map((item) => item.kind))).toEqual(
       new Set(["alt", "opt", "loop", "par", "break", "critical", "group"]),
     );
@@ -77,9 +79,13 @@ describe("Sequence type catalog conformance", () => {
   it("recognizes every supported annotation, lifecycle, grouping, and timeline family", () => {
     const document = parseSequence(TYPE_CATALOG);
     expect(new Set(document.notes.map((item) => item.shape))).toEqual(new Set(["note", "hnote", "rnote"]));
-    expect(new Set(document.activations.map((item) => item.kind))).toEqual(new Set(["activate", "deactivate", "destroy"]));
+    expect(new Set(document.activations.map((item) => item.kind))).toEqual(
+      new Set(["activate", "deactivate", "destroy"]),
+    );
     expect(document.references).toMatchObject([{ multiline: true, participants: ["User", "Store"] }]);
-    expect(new Set(document.timelineItems.map((item) => item.kind))).toEqual(new Set(["separator", "delay", "space", "return", "newpage"]));
+    expect(new Set(document.timelineItems.map((item) => item.kind))).toEqual(
+      new Set(["separator", "delay", "space", "return", "newpage"]),
+    );
     expect(document.boxes).toMatchObject([{ label: "Backend", participants: ["Internal"] }]);
     expect(document.creations).toMatchObject([{ participantKind: "control", participant: "Dynamic" }]);
     expect(document.autonumbers).toMatchObject([{ command: "start" }, { command: "stop" }]);

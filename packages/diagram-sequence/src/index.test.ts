@@ -30,9 +30,18 @@ describe("parseSequence", () => {
   });
 
   it("parses participant stereotypes, spots, display order, and colors", () => {
-    const source = '@startuml\nparticipant "Order API" as API <<(S,#ADD1B2) Service>> order 20 #LightBlue\nactor User <<Human>> order 10\n@enduml';
+    const source =
+      '@startuml\nparticipant "Order API" as API <<(S,#ADD1B2) Service>> order 20 #LightBlue\nactor User <<Human>> order 10\n@enduml';
     expect(parseSequence(source).participants).toMatchObject([
-      { label: "Order API", alias: "API", stereotype: "Service", spotCharacter: "S", spotColor: "#ADD1B2", order: 20, color: "#LightBlue" },
+      {
+        label: "Order API",
+        alias: "API",
+        stereotype: "Service",
+        spotCharacter: "S",
+        spotColor: "#ADD1B2",
+        order: 20,
+        color: "#LightBlue",
+      },
       { kind: "actor", label: "User", stereotype: "Human", order: 10 },
     ]);
   });
@@ -47,7 +56,16 @@ describe("Sequence source operations", () => {
   });
 
   it("inserts rich participant declarations in canonical form", () => {
-    const source = insertSequenceParticipant("@startuml\n@enduml", { kind: "control", label: "Order API", alias: "API", stereotype: "Service", spotCharacter: "S", spotColor: "#ADD1B2", order: 20, color: "#LightBlue" });
+    const source = insertSequenceParticipant("@startuml\n@enduml", {
+      kind: "control",
+      label: "Order API",
+      alias: "API",
+      stereotype: "Service",
+      spotCharacter: "S",
+      spotColor: "#ADD1B2",
+      order: 20,
+      color: "#LightBlue",
+    });
     expect(source).toContain('control "Order API" as API <<(S,#ADD1B2) Service>> order 20 #LightBlue');
   });
 
@@ -67,9 +85,16 @@ describe("Sequence source operations", () => {
   });
 
   it("renames participant references in notes, references, activations, and creation directives", () => {
-    const source = "@startuml\nparticipant API\nactivate API\nnote over API: Working\nref over API: Other flow\ncreate control API\n@enduml";
+    const source =
+      "@startuml\nparticipant API\nactivate API\nnote over API: Working\nref over API: Other flow\ncreate control API\n@enduml";
     const document = parseSequence(source);
-    const updated = updateSequenceParticipant(source, document, document.participants[0]!, { kind: "participant", label: "Service", alias: "Svc", stereotype: "Backend", order: 5 });
+    const updated = updateSequenceParticipant(source, document, document.participants[0]!, {
+      kind: "participant",
+      label: "Service",
+      alias: "Svc",
+      stereotype: "Backend",
+      order: 5,
+    });
     expect(updated).toContain("participant Service as Svc <<Backend>> order 5");
     expect(updated).toContain("activate Svc");
     expect(updated).toContain("note over Svc: Working");
@@ -92,7 +117,8 @@ describe("Sequence source operations", () => {
   });
 
   it("parses and round-trips incoming, outgoing, found, lost, and styled arrows", () => {
-    const source = "@startuml\n[-> A: Incoming\nA ->]: Outgoing\n?-> A: Found\nA ->?: Lost\nA -[#red,dashed]-> B: Styled\nA o\\--x B: Custom\n@enduml";
+    const source =
+      "@startuml\n[-> A: Incoming\nA ->]: Outgoing\n?-> A: Found\nA ->?: Lost\nA -[#red,dashed]-> B: Styled\nA o\\--x B: Custom\n@enduml";
     const document = parseSequence(source);
     expect(document.messages).toMatchObject([
       { from: "[", to: "A", arrow: "->", label: "Incoming" },
@@ -102,9 +128,16 @@ describe("Sequence source operations", () => {
       { from: "A", to: "B", arrow: "-[#red,dashed]->", label: "Styled" },
       { from: "A", to: "B", arrow: "o\\--x", label: "Custom" },
     ]);
-    const changed = updateSequenceMessage(source, document.messages[0]!, { from: "[", to: "B", arrow: "-->", label: "Changed" });
+    const changed = updateSequenceMessage(source, document.messages[0]!, {
+      from: "[",
+      to: "B",
+      arrow: "-->",
+      label: "Changed",
+    });
     expect(changed).toContain("[--> B: Changed");
-    expect(insertSequenceMessage("@startuml\n@enduml", { from: "A", to: "]", arrow: "->", label: "Edge" })).toContain("A ->]: Edge");
+    expect(insertSequenceMessage("@startuml\n@enduml", { from: "A", to: "]", arrow: "->", label: "Edge" })).toContain(
+      "A ->]: Edge",
+    );
   });
 
   it("deletes a participant together with connected messages", () => {
@@ -204,11 +237,31 @@ describe("Sequence source operations", () => {
   });
 
   it("parses and edits fragment colors, branch colors, and secondary group labels without losing bodies", () => {
-    const source = "@startuml\nalt#Gold #LightBlue Success\nA -> B: Primary\nelse #Pink Failure\nloop Retry\nB -> A: Nested\nend\nelse #Orange Timeout\nA -> B: Final\nend\ngroup Processing [Internal work]\nA -> B: Grouped\nend\n@enduml";
+    const source =
+      "@startuml\nalt#Gold #LightBlue Success\nA -> B: Primary\nelse #Pink Failure\nloop Retry\nB -> A: Nested\nend\nelse #Orange Timeout\nA -> B: Final\nend\ngroup Processing [Internal work]\nA -> B: Grouped\nend\n@enduml";
     const document = parseSequence(source);
-    expect(document.fragments[0]).toMatchObject({ headerColor: "#Gold", backgroundColor: "#LightBlue", label: "Success", branches: [{ color: "#Pink", label: "Failure" }, { color: "#Orange", label: "Timeout" }] });
-    expect(document.fragments[2]).toMatchObject({ kind: "group", label: "Processing", secondaryLabel: "Internal work" });
-    const updated = updateSequenceStructure(source, document.fragments[0]!, { kind: "fragment", fragmentKind: "alt", label: "Accepted", headerColor: "#Blue", backgroundColor: "#AliceBlue", branches: [{ label: "Rejected", color: "#Red" }, { label: "Expired", color: "#Gray" }, { label: "Fallback" }] });
+    expect(document.fragments[0]).toMatchObject({
+      headerColor: "#Gold",
+      backgroundColor: "#LightBlue",
+      label: "Success",
+      branches: [
+        { color: "#Pink", label: "Failure" },
+        { color: "#Orange", label: "Timeout" },
+      ],
+    });
+    expect(document.fragments[2]).toMatchObject({
+      kind: "group",
+      label: "Processing",
+      secondaryLabel: "Internal work",
+    });
+    const updated = updateSequenceStructure(source, document.fragments[0]!, {
+      kind: "fragment",
+      fragmentKind: "alt",
+      label: "Accepted",
+      headerColor: "#Blue",
+      backgroundColor: "#AliceBlue",
+      branches: [{ label: "Rejected", color: "#Red" }, { label: "Expired", color: "#Gray" }, { label: "Fallback" }],
+    });
     expect(updated).toContain("alt#Blue #AliceBlue Accepted");
     expect(updated).toContain("else #Red Rejected");
     expect(updated).toContain("else #Gray Expired");
@@ -219,7 +272,8 @@ describe("Sequence source operations", () => {
   });
 
   it("parses references, participant boxes, and autonumber commands", () => {
-    const source = '@startuml\nbox "Backend" #LightBlue\nparticipant API\ndatabase DB\nend box\nref #Yellow over API, DB: Persist\nautonumber 10 10 "000"\nautonumber stop\n@enduml';
+    const source =
+      '@startuml\nbox "Backend" #LightBlue\nparticipant API\ndatabase DB\nend box\nref #Yellow over API, DB: Persist\nautonumber 10 10 "000"\nautonumber stop\n@enduml';
     const document = parseSequence(source);
     expect(document.boxes).toMatchObject([{ label: "Backend", color: "#LightBlue", participants: ["API", "DB"] }]);
     expect(document.references).toMatchObject([{ participants: ["API", "DB"], color: "#Yellow", text: "Persist" }]);
@@ -227,51 +281,100 @@ describe("Sequence source operations", () => {
   });
 
   it("parses return, creation, page breaks, and balanced multi-line notes", () => {
-    const source = "@startuml\ncreate control Worker\nA -> Worker: Start\nnote over A, Worker #Yellow\nFirst line\nSecond line\nend note\nreturn Complete\nnewpage Retry flow\n@enduml";
+    const source =
+      "@startuml\ncreate control Worker\nA -> Worker: Start\nnote over A, Worker #Yellow\nFirst line\nSecond line\nend note\nreturn Complete\nnewpage Retry flow\n@enduml";
     const document = parseSequence(source);
     expect(document.creations).toMatchObject([{ participantKind: "control", participant: "Worker" }]);
-    expect(document.timelineItems).toMatchObject([{ kind: "return", label: "Complete" }, { kind: "newpage", label: "Retry flow" }]);
-    expect(document.notes).toMatchObject([{ placement: "over", participants: ["A", "Worker"], color: "#Yellow", text: "First line\nSecond line" }]);
+    expect(document.timelineItems).toMatchObject([
+      { kind: "return", label: "Complete" },
+      { kind: "newpage", label: "Retry flow" },
+    ]);
+    expect(document.notes).toMatchObject([
+      { placement: "over", participants: ["A", "Worker"], color: "#Yellow", text: "First line\nSecond line" },
+    ]);
     expect(source.slice(document.notes[0]!.sourceRange.from, document.notes[0]!.sourceRange.to)).toContain("end note");
   });
 
   it("round-trips note shapes, aligned notes, formatting, and multiline references", () => {
-    const source = "@startuml\nparticipant A\nparticipant B\nhnote right of A #Yellow: **Important** [[https://example.com link]]\n/ rnote over A, B\nLine one\n<i>Line two</i>\nend note\nref #LightBlue over A, B\nExternal flow\nwith details\nend ref\n@enduml";
+    const source =
+      "@startuml\nparticipant A\nparticipant B\nhnote right of A #Yellow: **Important** [[https://example.com link]]\n/ rnote over A, B\nLine one\n<i>Line two</i>\nend note\nref #LightBlue over A, B\nExternal flow\nwith details\nend ref\n@enduml";
     const document = parseSequence(source);
     expect(document.notes).toMatchObject([
       { shape: "hnote", aligned: false, placement: "right of", text: "**Important** [[https://example.com link]]" },
       { shape: "rnote", aligned: true, placement: "over", participants: ["A", "B"], text: "Line one\n<i>Line two</i>" },
     ]);
-    expect(document.references).toMatchObject([{ multiline: true, color: "#LightBlue", participants: ["A", "B"], text: "External flow\nwith details" }]);
-    const noteUpdated = updateSequenceStructure(source, document.notes[0]!, { kind: "note", shape: "rnote", aligned: true, placement: "left", participants: [], text: "[[https://openai.com OpenAI]]" });
+    expect(document.references).toMatchObject([
+      { multiline: true, color: "#LightBlue", participants: ["A", "B"], text: "External flow\nwith details" },
+    ]);
+    const noteUpdated = updateSequenceStructure(source, document.notes[0]!, {
+      kind: "note",
+      shape: "rnote",
+      aligned: true,
+      placement: "left",
+      participants: [],
+      text: "[[https://openai.com OpenAI]]",
+    });
     expect(noteUpdated).toContain("/ rnote left: [[https://openai.com OpenAI]]");
-    const refUpdated = updateSequenceStructure(source, parseSequence(source).references[0]!, { kind: "reference", participants: ["B"], text: "First\nSecond", multiline: true });
+    const refUpdated = updateSequenceStructure(source, parseSequence(source).references[0]!, {
+      kind: "reference",
+      participants: ["B"],
+      text: "First\nSecond",
+      multiline: true,
+    });
     expect(refUpdated).toContain("ref over B\nFirst\nSecond\nend ref");
   });
 
   it("parses and edits Teoz message anchors and duration arrows", () => {
-    let source = "@startuml\n!pragma teoz true\n{start} A -> B: Begin\n{finish} B --> A: End\n{start} <-> {finish}: elapsed\n@enduml";
+    let source =
+      "@startuml\n!pragma teoz true\n{start} A -> B: Begin\n{finish} B --> A: End\n{start} <-> {finish}: elapsed\n@enduml";
     let document = parseSequence(source);
-    expect(document.messages).toMatchObject([{ anchor: "start", from: "A", to: "B" }, { anchor: "finish", from: "B", to: "A" }]);
-    expect(document.durations).toMatchObject([{ fromAnchor: "start", toAnchor: "finish", arrow: "<->", label: "elapsed" }]);
-    source = updateSequenceMessage(source, document.messages[0]!, { from: "A", to: "B", arrow: "->", label: "Changed", anchor: "opened" });
+    expect(document.messages).toMatchObject([
+      { anchor: "start", from: "A", to: "B" },
+      { anchor: "finish", from: "B", to: "A" },
+    ]);
+    expect(document.durations).toMatchObject([
+      { fromAnchor: "start", toAnchor: "finish", arrow: "<->", label: "elapsed" },
+    ]);
+    source = updateSequenceMessage(source, document.messages[0]!, {
+      from: "A",
+      to: "B",
+      arrow: "->",
+      label: "Changed",
+      anchor: "opened",
+    });
     expect(source).toContain("{opened} A -> B: Changed");
     document = parseSequence(source);
-    const updated = updateSequenceStructure(source, document.durations[0]!, { kind: "duration", fromAnchor: "opened", toAnchor: "finish", arrow: "<-->", label: "total time" });
+    const updated = updateSequenceStructure(source, document.durations[0]!, {
+      kind: "duration",
+      fromAnchor: "opened",
+      toAnchor: "finish",
+      arrow: "<-->",
+      label: "total time",
+    });
     expect(updated).toContain("{opened} <--> {finish}: total time");
   });
 
   it("inserts and edits return, creation, page breaks, and multi-line notes", () => {
     let source = "@startuml\nparticipant A\n@enduml";
     source = insertSequenceStructure(source, { kind: "create", participantKind: "database", participant: "Store" });
-    source = insertSequenceStructure(source, { kind: "note", placement: "over", participants: ["A", "Store"], text: "Line one\nLine two" });
+    source = insertSequenceStructure(source, {
+      kind: "note",
+      placement: "over",
+      participants: ["A", "Store"],
+      text: "Line one\nLine two",
+    });
     source = insertSequenceStructure(source, { kind: "return", label: "Done" });
     source = insertSequenceStructure(source, { kind: "newpage", label: "Next" });
     expect(source).toContain("create database Store");
     expect(source).toContain("note over A, Store\nLine one\nLine two\nend note");
     expect(source).toContain("return Done\nnewpage Next");
     const document = parseSequence(source);
-    const updated = updateSequenceStructure(source, document.notes[0]!, { kind: "note", placement: "right", participants: ["Store"], text: "Single line" });
+    const updated = updateSequenceStructure(source, document.notes[0]!, {
+      kind: "note",
+      placement: "right",
+      participants: ["Store"],
+      text: "Single line",
+    });
     expect(updated).toContain("note right Store: Single line");
     expect(updated).not.toContain("Line two");
   });
@@ -284,24 +387,40 @@ describe("Sequence source operations", () => {
       participants: ["API", "DB"],
       color: "#LightBlue",
     });
-    expect(updated).toContain('box Services #LightBlue\nparticipant API\ndatabase DB\nend box');
+    expect(updated).toContain("box Services #LightBlue\nparticipant API\ndatabase DB\nend box");
     expect(updated.match(/participant API/g)).toHaveLength(1);
     expect(updated).toContain("User -> API: Call");
   });
 
   it("inserts and updates references and autonumber commands", () => {
     let source = "@startuml\nparticipant A\nparticipant B\n@enduml";
-    source = insertSequenceStructure(source, { kind: "reference", participants: ["A", "B"], text: "Other flow", color: "#Yellow" });
-    source = insertSequenceStructure(source, { kind: "autonumber", command: "start", start: 10, increment: 5, format: "000" });
+    source = insertSequenceStructure(source, {
+      kind: "reference",
+      participants: ["A", "B"],
+      text: "Other flow",
+      color: "#Yellow",
+    });
+    source = insertSequenceStructure(source, {
+      kind: "autonumber",
+      command: "start",
+      start: 10,
+      increment: 5,
+      format: "000",
+    });
     expect(source).toContain("ref #Yellow over A, B: Other flow");
     expect(source).toContain('autonumber 10 5 "000"');
     const document = parseSequence(source);
-    const changed = updateSequenceStructure(source, document.references[0]!, { kind: "reference", participants: ["B"], text: "Changed" });
+    const changed = updateSequenceStructure(source, document.references[0]!, {
+      kind: "reference",
+      participants: ["B"],
+      text: "Changed",
+    });
     expect(changed).toContain("ref over B: Changed");
   });
 
   it("reconnects participant-bound structures without losing their presentation", () => {
-    let source = "@startuml\nparticipant A\nparticipant B\nparticipant C\nnote over A, B #Yellow: Shared\nref #LightBlue over A, B: Other flow\nactivate A #Red\ncreate control B\n@enduml";
+    let source =
+      "@startuml\nparticipant A\nparticipant B\nparticipant C\nnote over A, B #Yellow: Shared\nref #LightBlue over A, B: Other flow\nactivate A #Red\ncreate control B\n@enduml";
     let document = parseSequence(source);
     source = reconnectSequenceStructure(source, document.notes[0]!, 1, "C");
     document = parseSequence(source);

@@ -3,7 +3,8 @@ import { tags } from "@lezer/highlight";
 
 interface SequenceModeState {}
 
-const KEYWORDS = /^(?:participant|actor|boundary|control|entity|database|collections|queue|as|order|activate|deactivate|destroy|create|return|alt|else|opt|loop|par|break|critical|group|end|ref|over|note|hnote|rnote|left|right|of|across|box|autonumber|stop|resume|inc|autoactivate|hide|show|footbox|unlinked|newpage|title|header|footer|legend|skinparam|teoz|pragma)(?![\w])/i;
+const KEYWORDS =
+  /^(?:participant|actor|boundary|control|entity|database|collections|queue|as|order|activate|deactivate|destroy|create|return|alt|else|opt|loop|par|break|critical|group|end|ref|over|note|hnote|rnote|left|right|of|across|box|autonumber|stop|resume|inc|autoactivate|hide|show|footbox|unlinked|newpage|title|header|footer|legend|skinparam|teoz|pragma)(?![\w])/i;
 
 export const plantUmlSequenceMode: StreamParser<SequenceModeState> = {
   name: "plantuml-sequence",

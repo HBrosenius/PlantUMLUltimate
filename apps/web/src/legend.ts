@@ -1,6 +1,9 @@
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 
-export interface LegendEntry { color: string; label: string }
+export interface LegendEntry {
+  color: string;
+  label: string;
+}
 
 const ROW = /^\s*\|\s*<#([^>]+)>\s*\|\s*(.*?)\s*\|\s*$/;
 const HEADER = /^\s*\|=?\s*Color\s*\|=?\s*Task Type\s*\|\s*$/i;
@@ -37,10 +40,11 @@ export function synchronizeLegend(
   const block = /(^|\n)([ \t]*legend\s*\r?\n)([\s\S]*?)(\r?\n[ \t]*endlegend\b[^\n\r]*)/i.exec(source);
   if (block?.index !== undefined && block[2] !== undefined && block[3] !== undefined && block[4] !== undefined) {
     const preserved = block[3].split(/\r?\n/).filter((line) => !ROW.test(line) && !HEADER.test(line));
-    const body = [...preserved.filter((line) => line.trim()), ...(rows.length ? [HEADER_ROW] : []), ...rows].join(source.includes("\r\n") ? "\r\n" : "\n");
-    const replacement = rows.length || preserved.some((line) => line.trim())
-      ? `${block[1] ?? ""}${block[2]}${body}${block[4]}`
-      : "";
+    const body = [...preserved.filter((line) => line.trim()), ...(rows.length ? [HEADER_ROW] : []), ...rows].join(
+      source.includes("\r\n") ? "\r\n" : "\n",
+    );
+    const replacement =
+      rows.length || preserved.some((line) => line.trim()) ? `${block[1] ?? ""}${block[2]}${body}${block[4]}` : "";
     return source.slice(0, block.index) + replacement + source.slice(block.index + block[0].length);
   }
   if (!rows.length) return source;
@@ -48,7 +52,11 @@ export function synchronizeLegend(
   if (!end || end.index === undefined) return source;
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const at = end.index + (end[1]?.length ?? 0);
-  return source.slice(0, at) + `legend${newline}${HEADER_ROW}${newline}${rows.join(newline)}${newline}endlegend${newline}${newline}` + source.slice(at);
+  return (
+    source.slice(0, at) +
+    `legend${newline}${HEADER_ROW}${newline}${rows.join(newline)}${newline}endlegend${newline}${newline}` +
+    source.slice(at)
+  );
 }
 
 export function removeLegend(source: string): string {

@@ -24,7 +24,8 @@ export interface SequenceSettings {
   groupBorderColor: string;
 }
 
-const MANAGED_LINE = /^\s*(?:title\s+.*|header\s+.*|footer\s+.*|autoactivate\s+(?:on|off)|hide\s+(?:footbox|unlinked)|autonumber(?!\s+(?:stop|resume|inc)\b).*|!?pragma\s+teoz\s+\w+|skinparam\s+(?:sequenceMessageAlign|responseMessageBelowArrow|maxMessageSize|ParticipantPadding|BoxPadding|sequenceArrowColor|sequenceParticipantBackgroundColor|sequenceParticipantBorderColor|sequenceLifeLineBorderColor|noteBackgroundColor|noteBorderColor|sequenceGroupBorderColor)\s+.*)\s*$/i;
+const MANAGED_LINE =
+  /^\s*(?:title\s+.*|header\s+.*|footer\s+.*|autoactivate\s+(?:on|off)|hide\s+(?:footbox|unlinked)|autonumber(?!\s+(?:stop|resume|inc)\b).*|!?pragma\s+teoz\s+\w+|skinparam\s+(?:sequenceMessageAlign|responseMessageBelowArrow|maxMessageSize|ParticipantPadding|BoxPadding|sequenceArrowColor|sequenceParticipantBackgroundColor|sequenceParticipantBorderColor|sequenceLifeLineBorderColor|noteBackgroundColor|noteBorderColor|sequenceGroupBorderColor)\s+.*)\s*$/i;
 
 export function parseSequenceSettings(source: string): SequenceSettings {
   const value: SequenceSettings = {
@@ -59,7 +60,9 @@ export function parseSequenceSettings(source: string): SequenceSettings {
     if (activation) value.autoactivate = activation[1]!.toLowerCase() === "on";
     if (/^\s*hide\s+footbox\s*$/i.test(line)) value.hideFootbox = true;
     if (/^\s*hide\s+unlinked\s*$/i.test(line)) value.hideUnlinked = true;
-    const numbering = line.match(/^\s*autonumber(?!\s+(?:stop|resume|inc)\b)(?:\s+(\d+))?(?:\s+(\d+))?(?:\s+(?:"([^"]*)"|(\S+)))?\s*$/i);
+    const numbering = line.match(
+      /^\s*autonumber(?!\s+(?:stop|resume|inc)\b)(?:\s+(\d+))?(?:\s+(\d+))?(?:\s+(?:"([^"]*)"|(\S+)))?\s*$/i,
+    );
     if (numbering) {
       value.autonumber = true;
       value.autonumberStart = numbering[1] ?? "";
@@ -68,10 +71,13 @@ export function parseSequenceSettings(source: string): SequenceSettings {
     }
     const teoz = line.match(/^\s*!?pragma\s+teoz\s+(true|false)\s*$/i);
     if (teoz) value.teoz = teoz[1]!.toLowerCase() === "true";
-    const skinparam = line.match(/^\s*skinparam\s+(sequenceMessageAlign|responseMessageBelowArrow|maxMessageSize|ParticipantPadding|BoxPadding|sequenceArrowColor|sequenceParticipantBackgroundColor|sequenceParticipantBorderColor|sequenceLifeLineBorderColor|noteBackgroundColor|noteBorderColor|sequenceGroupBorderColor)\s+(\S+)\s*$/i);
+    const skinparam = line.match(
+      /^\s*skinparam\s+(sequenceMessageAlign|responseMessageBelowArrow|maxMessageSize|ParticipantPadding|BoxPadding|sequenceArrowColor|sequenceParticipantBackgroundColor|sequenceParticipantBorderColor|sequenceLifeLineBorderColor|noteBackgroundColor|noteBorderColor|sequenceGroupBorderColor)\s+(\S+)\s*$/i,
+    );
     if (skinparam) {
       const name = skinparam[1]!.toLowerCase();
-      if (name === "sequencemessagealign") value.messageAlignment = skinparam[2]!.toLowerCase() as SequenceSettings["messageAlignment"];
+      if (name === "sequencemessagealign")
+        value.messageAlignment = skinparam[2]!.toLowerCase() as SequenceSettings["messageAlignment"];
       else if (name === "responsemessagebelowarrow") value.responseBelowArrow = skinparam[2]!.toLowerCase() === "true";
       else if (name === "maxmessagesize") value.maxMessageSize = skinparam[2]!;
       else if (name === "participantpadding") value.participantPadding = skinparam[2]!;
@@ -116,8 +122,10 @@ export function updateSequenceSettings(source: string, value: SequenceSettings):
   if (value.participantPadding.trim()) block.push(`skinparam ParticipantPadding ${value.participantPadding.trim()}`);
   if (value.boxPadding.trim()) block.push(`skinparam BoxPadding ${value.boxPadding.trim()}`);
   if (value.arrowColor.trim()) block.push(`skinparam sequenceArrowColor ${value.arrowColor.trim()}`);
-  if (value.participantBackgroundColor.trim()) block.push(`skinparam sequenceParticipantBackgroundColor ${value.participantBackgroundColor.trim()}`);
-  if (value.participantBorderColor.trim()) block.push(`skinparam sequenceParticipantBorderColor ${value.participantBorderColor.trim()}`);
+  if (value.participantBackgroundColor.trim())
+    block.push(`skinparam sequenceParticipantBackgroundColor ${value.participantBackgroundColor.trim()}`);
+  if (value.participantBorderColor.trim())
+    block.push(`skinparam sequenceParticipantBorderColor ${value.participantBorderColor.trim()}`);
   if (value.lifelineColor.trim()) block.push(`skinparam sequenceLifeLineBorderColor ${value.lifelineColor.trim()}`);
   if (value.noteBackgroundColor.trim()) block.push(`skinparam noteBackgroundColor ${value.noteBackgroundColor.trim()}`);
   if (value.noteBorderColor.trim()) block.push(`skinparam noteBorderColor ${value.noteBorderColor.trim()}`);

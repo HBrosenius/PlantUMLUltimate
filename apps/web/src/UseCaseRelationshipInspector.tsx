@@ -59,105 +59,105 @@ export function UseCaseRelationshipInspector({
         <fieldset>
           <legend>Connection</legend>
           <div className="usecase-endpoint-grid">
-          <label>
-          From
-          <select aria-label="From" value={value.from} onChange={(event) => change("from", event.target.value)}>
-            {elements.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-          </label>
-          <label>
-          To
-          <select aria-label="To" value={value.to} onChange={(event) => change("to", event.target.value)}>
-            {elements.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-          </label>
+            <label>
+              From
+              <select aria-label="From" value={value.from} onChange={(event) => change("from", event.target.value)}>
+                {elements.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              To
+              <select aria-label="To" value={value.to} onChange={(event) => change("to", event.target.value)}>
+                {elements.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <label>
-          Relationship
-          <select
-            aria-label="Relationship"
-            value={value.kind}
-            onChange={(event) => change("kind", event.target.value as UseCaseRelationshipKind)}
-          >
-            <option value="association">Association</option>
-            <option value="include">Include</option>
-            <option value="extend">Extend</option>
-            <option value="generalization">Generalization</option>
-          </select>
+            Relationship
+            <select
+              aria-label="Relationship"
+              value={value.kind}
+              onChange={(event) => change("kind", event.target.value as UseCaseRelationshipKind)}
+            >
+              <option value="association">Association</option>
+              <option value="include">Include</option>
+              <option value="extend">Extend</option>
+              <option value="generalization">Generalization</option>
+            </select>
           </label>
           {value.kind === "association" && (
-          <label>
-            Label
-            <input
-              value={value.label ?? ""}
-              onChange={(event) => setValue((current) => ({ ...current, label: event.target.value }))}
-              onBlur={() => onChange(value)}
-            />
-          </label>
+            <label>
+              Label
+              <input
+                value={value.label ?? ""}
+                onChange={(event) => setValue((current) => ({ ...current, label: event.target.value }))}
+                onBlur={() => onChange(value)}
+              />
+            </label>
           )}
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
           <label>
-          Direction
-          <select
-            value={value.direction ?? ""}
-            onChange={(event) =>
-              changePresentation(
-                "direction",
-                (event.target.value || undefined) as UseCaseRelationshipInput["direction"],
-              )
-            }
-          >
-            <option value="">Automatic</option>
-            <option value="left">Left</option>
-            <option value="right">Right</option>
-            <option value="up">Up</option>
-            <option value="down">Down</option>
-          </select>
+            Direction
+            <select
+              value={value.direction ?? ""}
+              onChange={(event) =>
+                changePresentation(
+                  "direction",
+                  (event.target.value || undefined) as UseCaseRelationshipInput["direction"],
+                )
+              }
+            >
+              <option value="">Automatic</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+              <option value="up">Up</option>
+              <option value="down">Down</option>
+            </select>
           </label>
           <label>
-          Line style
-          <select
-            value={value.lineStyle ?? "solid"}
-            onChange={(event) =>
-              changePresentation("lineStyle", event.target.value as UseCaseRelationshipInput["lineStyle"])
-            }
-          >
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed</option>
-            <option value="dotted">Dotted</option>
-            <option value="bold">Bold</option>
-          </select>
+            Line style
+            <select
+              value={value.lineStyle ?? "solid"}
+              onChange={(event) =>
+                changePresentation("lineStyle", event.target.value as UseCaseRelationshipInput["lineStyle"])
+              }
+            >
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="bold">Bold</option>
+            </select>
           </label>
           <label>
-          Color
-          <input
-            list={colorListId}
-            autoComplete="off"
-            value={value.color ?? ""}
-            placeholder="#Blue"
-            onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
-            onBlur={() => {
-              const { arrow: _arrow, ...updated } = value;
-              setValue(updated);
-              onChange(updated);
-            }}
-          />
+            Color
+            <input
+              list={colorListId}
+              autoComplete="off"
+              value={value.color ?? ""}
+              placeholder="#Blue"
+              onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
+              onBlur={() => {
+                const { arrow: _arrow, ...updated } = value;
+                setValue(updated);
+                onChange(updated);
+              }}
+            />
           </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+          <datalist id={colorListId}>
+            {PLANTUML_COLOR_NAMES.map((name) => (
+              <option key={name} value={`#${name}`} />
+            ))}
+          </datalist>
         </fieldset>
         <details className="usecase-advanced-fields">
           <summary>Advanced PlantUML syntax</summary>

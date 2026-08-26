@@ -68,12 +68,7 @@ sunday are closed
 [Front End Testing] starts at [Back End Testing]'s end
 @endgantt`;
     const document = parseGantt(source).document;
-    const resolved = resolveTaskDates(
-      document.tasks,
-      document.dependencies,
-      "2026-09-01",
-      parseGanttCalendar(source),
-    );
+    const resolved = resolveTaskDates(document.tasks, document.dependencies, "2026-09-01", parseGanttCalendar(source));
     const frontEndTesting = document.tasks.find((task) => task.label === "Front End Testing")!;
     expect(resolved.get(frontEndTesting.id)?.start).toBe("2026-09-24");
   });

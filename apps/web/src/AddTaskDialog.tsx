@@ -62,7 +62,9 @@ export function AddTaskDialog({
             onChange={(event) => setColor(event.target.value)}
           />
           <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => <option key={name} value={name} />)}
+            {PLANTUML_COLOR_NAMES.map((name) => (
+              <option key={name} value={name} />
+            ))}
           </datalist>
         </label>
         <label>

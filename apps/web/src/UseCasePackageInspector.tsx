@@ -43,51 +43,51 @@ export function UseCasePackageInspector({
         <fieldset>
           <legend>Identity</legend>
           <label>
-          Type
-          <select
-            value={value.kind}
-            onChange={(event) => {
-              const kind = event.target.value as UseCasePackageInput["kind"];
-              update("kind", kind);
-              onChange({ ...value, kind });
-            }}
-          >
-            <option value="rectangle">System boundary</option>
-            <option value="package">Package</option>
-          </select>
+            Type
+            <select
+              value={value.kind}
+              onChange={(event) => {
+                const kind = event.target.value as UseCasePackageInput["kind"];
+                update("kind", kind);
+                onChange({ ...value, kind });
+              }}
+            >
+              <option value="rectangle">System boundary</option>
+              <option value="package">Package</option>
+            </select>
           </label>
           <label>
-          Name
-          <input value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={save} />
+            Name
+            <input value={value.label} onChange={(event) => update("label", event.target.value)} onBlur={save} />
           </label>
           <label>
-          Alias
-          <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
+            Alias
+            <input value={value.alias ?? ""} onChange={(event) => update("alias", event.target.value)} onBlur={save} />
           </label>
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
           <label>
-          Color
-          <input
-            list={colorListId}
-            value={value.color ?? ""}
-            onChange={(event) => update("color", event.target.value)}
-            onBlur={save}
-          />
+            Color
+            <input
+              list={colorListId}
+              value={value.color ?? ""}
+              onChange={(event) => update("color", event.target.value)}
+              onBlur={save}
+            />
           </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+          <datalist id={colorListId}>
+            {PLANTUML_COLOR_NAMES.map((name) => (
+              <option key={name} value={`#${name}`} />
+            ))}
+          </datalist>
           <label>
-          Stereotype
-          <input
-            value={value.stereotype ?? ""}
-            onChange={(event) => update("stereotype", event.target.value)}
-            onBlur={save}
-          />
+            Stereotype
+            <input
+              value={value.stereotype ?? ""}
+              onChange={(event) => update("stereotype", event.target.value)}
+              onBlur={save}
+            />
           </label>
         </fieldset>
         <p className="field-hint">Deleting a container keeps its contents and removes only the boundary.</p>

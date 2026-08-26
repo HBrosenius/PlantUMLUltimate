@@ -194,11 +194,7 @@ export function analyzeCriticalPath(
         if (!predecessorDate || !successorDate) return 0;
         const direction = dependency.direction === "before" ? -1 : 1;
         let expected = shiftDate(predecessorDate, (dependency.offset?.value ?? 0) * direction);
-        if (
-          dependency.relation === "start-after-end" &&
-          (dependency.offset?.value ?? 0) === 0 &&
-          expected
-        ) {
+        if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && expected) {
           do expected = shiftDate(expected, 1);
           while (expected && !isWorkingDate(expected, calendar));
         }

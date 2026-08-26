@@ -15,7 +15,15 @@ import type {
 import { useDialogFocus } from "./use-dialog-focus";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
 
-export function ColorField({ value, onChange, onBlur }: { value: string; onChange(value: string): void; onBlur?(): void }) {
+export function ColorField({
+  value,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  onChange(value: string): void;
+  onBlur?(): void;
+}) {
   const id = useId();
   return (
     <label>

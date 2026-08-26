@@ -5,7 +5,8 @@ import { findTaskAt } from "./model";
 
 describe("parseGantt", () => {
   it("parses horizontal and vertical separators as different model objects", () => {
-    const source = "@startgantt\n[A] lasts 2 days\n-- Phase --\nSeparator just at [A]'s start\nSeparator just 3 days before [A]'s end\n@endgantt";
+    const source =
+      "@startgantt\n[A] lasts 2 days\n-- Phase --\nSeparator just at [A]'s start\nSeparator just 3 days before [A]'s end\n@endgantt";
     const document = parseGantt(source).document;
     expect(document.dividers).toHaveLength(1);
     expect(document.verticalSeparators).toEqual([
@@ -61,9 +62,7 @@ Project starts 2026-09-01
   });
 
   it("classifies end-linked task declarations as end declarations", () => {
-    const result = parseGantt(
-      "@startgantt\n[A] lasts 2 days\n[B] lasts 2 days\n[B] ends at [A]'s end\n@endgantt",
-    );
+    const result = parseGantt("@startgantt\n[A] lasts 2 days\n[B] lasts 2 days\n[B] ends at [A]'s end\n@endgantt");
     expect(result.document.dependencies[0]?.relation).toBe("end-after-end");
     expect(result.document.symbols.tasks.get("b")?.declarations).toContainEqual(
       expect.objectContaining({ kind: "end" }),

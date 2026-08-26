@@ -29,11 +29,30 @@ stop
 @enduml`;
     const document = parseActivity(source);
     expect(document.nodes.map((item) => item.kind)).toEqual([
-      "start", "action", "action", "action", "action", "action", "action", "stop",
+      "start",
+      "action",
+      "action",
+      "action",
+      "action",
+      "action",
+      "action",
+      "stop",
     ]);
-    expect(document.nodes[1]).toMatchObject({ label: "Validate cart", color: "#PaleGreen", stereotype: "service", partitionId: "checkout" });
+    expect(document.nodes[1]).toMatchObject({
+      label: "Validate cart",
+      color: "#PaleGreen",
+      stereotype: "service",
+      partitionId: "checkout",
+    });
     expect(document.controls.map((item) => item.kind)).toEqual([
-      "if", "else", "endif", "fork", "fork-again", "end-fork", "repeat", "repeat-while",
+      "if",
+      "else",
+      "endif",
+      "fork",
+      "fork-again",
+      "end-fork",
+      "repeat",
+      "repeat-while",
     ]);
     expect(document.controls[1]).toMatchObject({ label: "no" });
     expect(document.arrows[0]).toMatchObject({ label: "complete", color: "#Blue", lineStyle: "dashed" });
@@ -49,7 +68,12 @@ stop
   });
   it("parses floating notes without attaching them to the preceding action", () => {
     const document = parseActivity("@startuml\n:A;\nfloating note left #Wheat\nIndependent\nend note\n:B;\n@enduml");
-    expect(document.notes[0]).toMatchObject({ text: "Independent", placement: "left", color: "#Wheat", floating: true });
+    expect(document.notes[0]).toMatchObject({
+      text: "Independent",
+      placement: "left",
+      color: "#Wheat",
+      floating: true,
+    });
     expect(document.notes[0]?.targetId).toBeUndefined();
   });
 });

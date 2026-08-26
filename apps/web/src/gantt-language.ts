@@ -317,14 +317,14 @@ function quickFixesForDiagnostics(
     const replacement = unsupportedNotePosition
       ? unsupportedNotePosition
       : duplicateTask
-      ? `${duplicateTask[1]}${duplicateTask[3]}`
-      : color
-        ? `${color[1]}is colored in ${color[2]}`
-        : missingDurationUnit
-          ? `${missingDurationUnit[1]} days`
-          : diagnostic.code === "invalid-duration" && invalidDuration
-            ? `${invalidDuration[1]}1 day`
-            : undefined;
+        ? `${duplicateTask[1]}${duplicateTask[3]}`
+        : color
+          ? `${color[1]}is colored in ${color[2]}`
+          : missingDurationUnit
+            ? `${missingDurationUnit[1]} days`
+            : diagnostic.code === "invalid-duration" && invalidDuration
+              ? `${invalidDuration[1]}1 day`
+              : undefined;
     return replacement
       ? [{ from: diagnostic.range.from, to: diagnostic.range.to, replacement, message: diagnostic.message }]
       : [];
