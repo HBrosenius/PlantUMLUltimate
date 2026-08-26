@@ -1924,6 +1924,9 @@ textarea:focus-visible,
 .class-package-drop-hit {
   fill: rgb(37 99 235 / 0.001%);
   stroke: transparent;
+  pointer-events: none;
+}
+.class-dragging-move .class-package-drop-hit {
   pointer-events: all;
 }
 .class-package-tray {
@@ -1953,12 +1956,33 @@ textarea:focus-visible,
   }
 }
 .class-package-tray button {
+  flex: 0 0 auto;
   min-height: 24px;
   padding: 2px 7px;
   border: 1px dashed var(--border-strong);
   border-radius: 5px;
   background: var(--panel);
   font-size: 10px;
+  white-space: nowrap;
+}
+.class-dragging-move .class-semantic-hit[data-class-object-type="entity"],
+.class-dragging-move .class-package-drop-hit,
+.class-package-tray button {
+  transition:
+    fill 120ms ease,
+    stroke 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+.class-active-drop {
+  fill: rgb(34 197 94 / 16%);
+  stroke: #16a34a;
+  stroke-width: 3;
+}
+.class-package-tray button.class-active-drop {
+  color: #166534;
+  border-color: #16a34a;
+  background: #dcfce7;
 }
 .class-relationship-hit {
   fill: none;

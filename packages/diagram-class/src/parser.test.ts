@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { parseClassDiagram } from "./parser";
+import { findClassObjectAt, parseClassDiagram } from "./parser";
 describe("parseClassDiagram", () => {
+  it("keeps nested package aliases distinct", () => {
+    const document = parseClassDiagram(
+      '@startuml\npackage "Ordering" {\npackage "Reporting" as Reports #Lavender {\nclass Order\n}\n}\n@enduml',
+    );
+    expect(document.packages).toEqual([
+      expect.objectContaining({ id: "ordering", label: "Ordering" }),
+      expect.objectContaining({ id: "reports", label: "Reporting", parentId: "ordering" }),
+    ]);
+    expect(findClassObjectAt(document, document.packages[1]!.openRange.from)?.id).toBe("reports");
+  });
   it("parses entities, members, packages, notes and all relationship families", () => {
     const d = parseClassDiagram(`@startuml
 package "Domain" as D {

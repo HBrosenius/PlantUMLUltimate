@@ -132,6 +132,7 @@ import {
   insertClassRelationship,
   insertClassNote,
   moveClassEntityToPackage,
+  moveClassPackageToPackage,
   parseClassDiagram,
   reorderClassEntity,
   updateClassEntity,
@@ -1410,6 +1411,13 @@ export function App() {
       commitSource(deleteClassPackage(workspace.source, selectedClassPackage), "Delete Class package");
       setSelectedClassObjectId(undefined);
     }
+  };
+  const moveSelectedClassPackage = (parentId?: string) => {
+    if (selectedClassPackage)
+      commitSource(
+        moveClassPackageToPackage(workspace.source, classDocument, selectedClassPackage, parentId),
+        "Move Class package",
+      );
   };
   const moveSelectedClassEntity = (id?: string) => {
     if (selectedClassEntity)
@@ -2990,7 +2998,9 @@ export function App() {
       {selectedClassPackage && (
         <ClassPackageInspector
           item={selectedClassPackage}
+          packages={classDocument.packages}
           onChange={applyClassPackage}
+          onParentChange={moveSelectedClassPackage}
           onDelete={removeClassPackage}
           onClose={() => setSelectedClassObjectId(undefined)}
         />

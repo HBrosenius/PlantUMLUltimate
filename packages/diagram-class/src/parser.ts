@@ -228,6 +228,6 @@ export function parseClassDiagram(source: string): ClassDocument {
   };
 }
 export const findClassObjectAt = (d: ClassDocument, p: number) =>
-  [...d.entities, ...d.packages, ...d.relationships, ...d.notes].find(
-    (x) => p >= x.sourceRange.from && p <= x.sourceRange.to,
-  );
+  [...d.entities, ...d.packages, ...d.relationships, ...d.notes]
+    .filter((x) => p >= x.sourceRange.from && p <= x.sourceRange.to)
+    .sort((a, b) => a.sourceRange.to - a.sourceRange.from - (b.sourceRange.to - b.sourceRange.from))[0];

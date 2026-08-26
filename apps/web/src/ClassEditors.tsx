@@ -540,12 +540,16 @@ export function AddClassPackageDialog({
 }
 export function ClassPackageInspector({
   item,
+  packages,
   onChange,
+  onParentChange,
   onDelete,
   onClose,
 }: {
   item: ClassPackage;
+  packages: ClassPackage[];
   onChange(v: ClassPackageInput): void;
+  onParentChange(parentId?: string): void;
   onDelete(): void;
   onClose(): void;
 }) {
@@ -595,7 +599,12 @@ export function ClassPackageInspector({
           </label>
           <label>
             Name
-            <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} onBlur={save} />
+            <input
+              aria-label="Package name"
+              value={v.label}
+              onChange={(e) => setV({ ...v, label: e.target.value })}
+              onBlur={save}
+            />
           </label>
           <label>
             Alias
@@ -606,6 +615,22 @@ export function ClassPackageInspector({
           <legend>Appearance</legend>
           <ColorField value={v.color ?? ""} onChange={(color) => setV({ ...v, color })} onBlur={save} />
         </fieldset>
+        <fieldset>
+          <legend>Placement</legend>
+          <label>
+            Parent container
+            <select value={item.parentId ?? ""} onChange={(event) => onParentChange(event.target.value || undefined)}>
+              <option value="">Top level</option>
+              {packages
+                .filter((candidate) => candidate.id !== item.id && !isPackageDescendant(packages, candidate, item.id))
+                .map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.label}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
             Remove package
@@ -615,6 +640,14 @@ export function ClassPackageInspector({
     </aside>
   );
 }
+const isPackageDescendant = (packages: ClassPackage[], candidate: ClassPackage, ancestorId: string) => {
+  let current: ClassPackage | undefined = candidate;
+  while (current?.parentId) {
+    if (current.parentId === ancestorId) return true;
+    current = packages.find((item) => item.id === current!.parentId);
+  }
+  return false;
+};
 export function AddClassNoteDialog({
   document,
   onAdd,

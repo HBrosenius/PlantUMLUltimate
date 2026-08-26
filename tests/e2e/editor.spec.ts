@@ -112,6 +112,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await page.mouse.move(moveBox!.x + moveBox!.width / 2, moveBox!.y + moveBox!.height / 2);
   await page.mouse.down();
   await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 7 });
+  await expect(reportingTarget).toHaveClass(/class-active-drop/);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText(
     'package "Reporting" as Reports #Lavender {enum "OrderStatus" as Status',
@@ -144,6 +145,16 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await statusHit.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".cm-content")).toContainText("OrderLine --> Status");
+
+  const renderedReportingPackage = page.getByRole("button", { name: "Select package Reporting", exact: true });
+  await expect(renderedReportingPackage).toHaveAttribute("data-class-object-id", "reports");
+  await renderedReportingPackage.click({ force: true });
+  const packageInspector = page.getByRole("complementary", { name: "Class package inspector" });
+  await expect(packageInspector.getByLabel("Package name")).toHaveValue("Reporting");
+  await packageInspector.getByLabel("Parent container").selectOption("");
+  await expect(
+    page.getByRole("group", { name: "Class containers" }).getByRole("button", { name: "Reporting", exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Class", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Class settings" });

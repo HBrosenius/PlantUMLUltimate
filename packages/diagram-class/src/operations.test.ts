@@ -7,6 +7,7 @@ import {
   insertClassPackage,
   insertClassRelationship,
   moveClassEntityToPackage,
+  moveClassPackageToPackage,
   parseClassDiagram,
   reorderClassEntity,
   updateClassEntity,
@@ -43,6 +44,21 @@ describe("class operations", () => {
     source = insertClassPackage(source, document, { kind: "namespace", label: "Internal", parentId: "domain" });
     document = parseClassDiagram(source);
     expect(document.packages.find((item) => item.id === "internal")?.parentId).toBe("domain");
+    expect(
+      moveClassPackageToPackage(
+        source,
+        document,
+        document.packages.find((item) => item.id === "domain")!,
+        "internal",
+      ),
+    ).toBe(source);
+    source = moveClassPackageToPackage(
+      source,
+      document,
+      document.packages.find((item) => item.id === "internal")!,
+    );
+    document = parseClassDiagram(source);
+    expect(document.packages.find((item) => item.id === "internal")?.parentId).toBeUndefined();
     source = moveClassEntityToPackage(source, document, document.entities[0]!, "domain");
     document = parseClassDiagram(source);
     expect(document.entities.find((item) => item.id === "a")?.packageId).toBe("domain");

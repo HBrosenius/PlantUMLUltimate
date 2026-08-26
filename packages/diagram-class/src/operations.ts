@@ -142,6 +142,23 @@ export function moveClassEntityToPackage(s: string, d: ClassDocument, e: ClassEn
     at = original > to ? original - (to - from) : original;
   return without.slice(0, at) + text + "\n" + without.slice(at);
 }
+export function moveClassPackageToPackage(s: string, d: ClassDocument, item: ClassPackage, parentId?: string) {
+  if (item.parentId === parentId || item.id === parentId) return s;
+  const target = parentId ? d.packages.find((candidate) => candidate.id === parentId) : undefined;
+  if (parentId && !target) return s;
+  let ancestor = target;
+  while (ancestor) {
+    if (ancestor.id === item.id) return s;
+    ancestor = ancestor.parentId ? d.packages.find((candidate) => candidate.id === ancestor!.parentId) : undefined;
+  }
+  const from = item.sourceRange.from,
+    to = s[item.sourceRange.to] === "\n" ? item.sourceRange.to + 1 : item.sourceRange.to,
+    text = s.slice(from, item.sourceRange.to).trim(),
+    without = s.slice(0, from) + s.slice(to),
+    original = target?.closeRange.from ?? point(s),
+    at = original > to ? original - (to - from) : original;
+  return without.slice(0, at) + text + "\n" + without.slice(at);
+}
 export function reorderClassEntity(s: string, e: ClassEntity, target: ClassEntity, placement: "before" | "after") {
   if (e.id === target.id || e.packageId !== target.packageId) return s;
   const from = e.sourceRange.from,

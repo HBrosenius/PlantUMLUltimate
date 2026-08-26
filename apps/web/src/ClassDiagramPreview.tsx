@@ -41,6 +41,8 @@ export function ClassDiagramPreview({
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const selectRef = useRef(onSelect);
+  selectRef.current = onSelect;
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
@@ -112,6 +114,12 @@ export function ClassDiagramPreview({
         tabindex: 0,
         role: "button",
         "aria-label": `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
+      });
+      hit.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
+        if (id) selectRef.current(id);
       });
       rendered.append(hit);
       if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
@@ -210,6 +218,8 @@ export function ClassDiagramPreview({
       y: e.clientY,
       ...(kind !== "move" ? { line } : {}),
     };
+    root.current?.classList.toggle("class-dragging-move", kind === "move");
+    root.current?.classList.toggle("class-dragging-connection", kind !== "move");
     e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault();
   };
@@ -244,6 +254,11 @@ export function ClassDiagramPreview({
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
+    window.document
+      .querySelectorAll(".class-active-drop")
+      .forEach((item) => item.classList.remove("class-active-drop"));
+    const hovered = targetAt(root.current, e.clientX, e.clientY);
+    if (d?.kind === "move") hovered?.classList.add("class-active-drop");
     if (!d?.line) return;
     const s = d.line.ownerSVGElement;
     const target = targetAt(root.current, e.clientX, e.clientY),
@@ -259,6 +274,7 @@ export function ClassDiagramPreview({
     if (!d) return;
     drag.current = undefined;
     d.line?.remove();
+    clearDragPresentation();
     const target = targetAt(root.current, e.clientX, e.clientY),
       id = target?.getAttribute("data-class-object-id");
     if (!id || id === d.id || Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 5) return;
@@ -270,6 +286,12 @@ export function ClassDiagramPreview({
       const box = target!.getBoundingClientRect();
       onReorder(d.id, id, e.clientY < box.top + box.height / 2 ? "before" : "after");
     }
+  };
+  const clearDragPresentation = () => {
+    root.current?.classList.remove("class-dragging-move", "class-dragging-connection");
+    window.document
+      .querySelectorAll(".class-active-drop")
+      .forEach((item) => item.classList.remove("class-active-drop"));
   };
   return (
     <section className="preview class-preview" aria-label="Class diagram preview">
@@ -292,7 +314,12 @@ export function ClassDiagramPreview({
                 type="button"
                 data-class-object-id={item.id}
                 data-class-object-type="package"
-                onClick={() => onSelect(item.id)}
+                data-inspector-trigger
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  onSelect(item.id);
+                }}
+                onClick={(event) => event.stopPropagation()}
               >
                 {packagePath(document, item.id)}
               </button>
@@ -315,6 +342,11 @@ export function ClassDiagramPreview({
             onPointerDown={down}
             onPointerMove={move}
             onPointerUp={up}
+            onPointerCancel={() => {
+              drag.current?.line?.remove();
+              drag.current = undefined;
+              clearDragPresentation();
+            }}
             onKeyDown={keyboardSelect}
             dangerouslySetInnerHTML={{ __html: svg }}
           />
