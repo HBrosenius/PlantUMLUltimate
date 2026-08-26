@@ -1344,6 +1344,7 @@ export function App() {
           ...(relation.toMultiplicity ? { toMultiplicity: relation.toMultiplicity } : {}),
           ...(relation.color ? { color: relation.color } : {}),
           ...(relation.lineStyle ? { lineStyle: relation.lineStyle } : {}),
+          arrow: relation.arrow,
         }),
         "Reconnect Class relationship",
       );
@@ -1394,7 +1395,10 @@ export function App() {
   };
   const removeClassRelationship = () => {
     if (selectedClassRelationship) {
-      commitSource(deleteClassRelationship(workspace.source, selectedClassRelationship), "Delete Class relationship");
+      commitSource(
+        deleteClassRelationship(workspace.source, selectedClassRelationship, classDocument),
+        "Delete Class relationship",
+      );
       setSelectedClassObjectId(undefined);
     }
   };
@@ -1435,8 +1439,17 @@ export function App() {
     setAddClassNoteOpen(false);
   };
   const applyClassNote = (v: ClassNoteInput) => {
-    if (selectedClassNote)
-      commitSource(updateClassNote(workspace.source, classDocument, selectedClassNote, v), "Update Class note");
+    if (selectedClassNote) {
+      const source = updateClassNote(workspace.source, classDocument, selectedClassNote, v);
+      const updated = parseClassDiagram(source).notes.find(
+        (note) =>
+          note.targetId === v.targetId &&
+          note.text === v.text.trim() &&
+          (note.color ?? "").toLowerCase() === (v.color ? `#${v.color.replace(/^#/, "")}` : "").toLowerCase(),
+      );
+      commitSource(source, "Update Class note");
+      if (updated) setSelectedClassObjectId(updated.id);
+    }
   };
   const removeClassNote = () => {
     if (selectedClassNote) {

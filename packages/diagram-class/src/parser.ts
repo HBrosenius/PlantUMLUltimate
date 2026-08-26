@@ -24,6 +24,7 @@ export function parseClassDiagram(source: string): ClassDocument {
     offset += text.length + 1;
   }
   const consumed = new Set<number>();
+  let lastRelationshipId: string | undefined;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     const note = line.text.match(
@@ -62,6 +63,41 @@ export function parseClassDiagram(source: string): ClassDocument {
     const line = lines[i]!;
     const text = line.text.trim();
     const range = { from: line.from, to: line.to };
+    const linkNote = line.text.match(/^\s*note\s+on\s+link(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i);
+    if (linkNote) {
+      let end = i;
+      let noteText = linkNote[2] ?? "";
+      if (!linkNote[2]) {
+        const body: string[] = [];
+        end = i + 1;
+        while (end < lines.length && !/^\s*end note\s*$/i.test(lines[end]!.text)) body.push(lines[end++]!.text);
+        if (end >= lines.length) {
+          diagnostics.push({
+            severity: "error",
+            message: "Link note is missing end note",
+            range,
+            code: "unterminated-note",
+          });
+          end = i;
+        } else noteText = body.join("\n").trim();
+      }
+      notes.push({
+        id: `note-${notes.length}`,
+        text: noteText,
+        ...(lastRelationshipId ? { targetId: lastRelationshipId } : {}),
+        ...(linkNote[1] ? { color: linkNote[1] } : {}),
+        sourceRange: { from: line.from, to: lines[end]!.to },
+      });
+      if (!lastRelationshipId)
+        diagnostics.push({
+          severity: "error",
+          message: "Link note has no preceding relationship",
+          range,
+          code: "orphan-link-note",
+        });
+      i = end;
+      continue;
+    }
     if (
       !text ||
       text.startsWith("'") ||
@@ -122,7 +158,16 @@ export function parseClassDiagram(source: string): ClassDocument {
       const color = rest.match(/#[\w]+/)?.[0];
       let end = i;
       const members: ClassMember[] = [];
-      if (decl[6]) {
+      const inlineMembers = line.text.match(/\{\s*(.*?)\s*}\s*$/)?.[1];
+      if (inlineMembers !== undefined) {
+        members.push(
+          ...inlineMembers
+            .split(";")
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .map(member),
+        );
+      } else if (decl[6]) {
         end = i + 1;
         while (end < lines.length && !/^\s*}\s*$/.test(lines[end]!.text)) members.push(member(lines[end++]!.text));
         if (end >= lines.length) {
@@ -174,8 +219,9 @@ export function parseClassDiagram(source: string): ClassDocument {
               : arrow.includes(".")
                 ? "dependency"
                 : "association";
+      const relationshipId = `relationship-${relationships.length}`;
       relationships.push({
-        id: `relationship-${relationships.length}`,
+        id: relationshipId,
         from: aliases.get(normalize(rel[1]!)) ?? normalize(rel[1]!),
         to: aliases.get(normalize(rel[5]!)) ?? normalize(rel[5]!),
         arrow,
@@ -187,6 +233,7 @@ export function parseClassDiagram(source: string): ClassDocument {
         ...(lineStyle ? { lineStyle } : {}),
         sourceRange: range,
       });
+      lastRelationshipId = relationshipId;
       continue;
     }
     unknown.push({ text: line.text, range });
@@ -198,13 +245,14 @@ export function parseClassDiagram(source: string): ClassDocument {
       range: open.item.openRange,
       code: "unterminated-package",
     });
+  const declarations = [...entities, ...packages];
   const ids = new Set(entities.map((x) => x.id));
-  for (const e of entities) {
-    if (entities.filter((x) => x.id === e.id).length > 1)
+  for (const declaration of declarations) {
+    if (declarations.filter((item) => item.id === declaration.id).length > 1)
       diagnostics.push({
         severity: "error",
-        message: `Duplicate alias: ${e.alias ?? e.label}`,
-        range: e.sourceRange,
+        message: `Duplicate alias: ${declaration.alias ?? declaration.label}`,
+        range: declaration.sourceRange,
         code: "duplicate-alias",
       });
   }
@@ -217,6 +265,15 @@ export function parseClassDiagram(source: string): ClassDocument {
         code: "unknown-endpoint",
       });
   }
+  const noteTargets = new Set([...ids, ...relationships.map((item) => item.id)]);
+  for (const note of notes)
+    if (note.targetId && !noteTargets.has(note.targetId))
+      diagnostics.push({
+        severity: "error",
+        message: "Unknown note target",
+        range: note.sourceRange,
+        code: "unknown-note-target",
+      });
   return {
     entities,
     packages,

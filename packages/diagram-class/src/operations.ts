@@ -32,6 +32,7 @@ export interface ClassRelationshipInput {
   toMultiplicity?: string;
   color?: string;
   lineStyle?: "solid" | "dashed" | "dotted" | "bold";
+  arrow?: string | undefined;
 }
 export interface ClassNoteInput {
   text: string;
@@ -51,6 +52,7 @@ const point = (s: string) => {
 const entityLine = (v: ClassEntityInput) =>
   `${v.kind === "abstract" ? "abstract class" : v.kind} ${quote(v.label.trim())}${v.alias?.trim() ? ` as ${v.alias.trim()}` : ""}${v.generic?.trim() ? `<${v.generic.trim()}>` : ""}${v.stereotype?.trim() ? ` <<${v.stereotype.trim()}>>` : ""}${v.color?.trim() ? ` ${v.color.startsWith("#") ? v.color : `#${v.color}`}` : ""}${v.members.length ? ` {\n${v.members.map((x) => `  ${x.trim()}`).join("\n")}\n}` : ""}`;
 const arrow = (v: ClassRelationshipInput) => {
+  if (v.arrow) return v.arrow;
   const color = v.color?.trim();
   const style = [
     color ? (color.startsWith("#") ? color : `#${color}`) : undefined,
@@ -87,6 +89,7 @@ export function updateClassEntity(s: string, d: ClassDocument, e: ClassEntity, v
       ...(r.toMultiplicity ? { toMultiplicity: r.toMultiplicity } : {}),
       ...(r.color ? { color: r.color } : {}),
       ...(r.lineStyle ? { lineStyle: r.lineStyle } : {}),
+      arrow: r.arrow,
     };
     reps.push({ ...r.sourceRange, text: relationLine(d, input) });
   }
@@ -107,10 +110,17 @@ export const insertClassRelationship = (s: string, d: ClassDocument, v: ClassRel
   insert(s, relationLine(d, v));
 export const updateClassRelationship = (s: string, d: ClassDocument, r: ClassRelationship, v: ClassRelationshipInput) =>
   replace(s, [{ ...r.sourceRange, text: relationLine(d, v) }]);
-export const deleteClassRelationship = (s: string, r: ClassRelationship) =>
-  replace(s, [
-    { from: r.sourceRange.from, to: s[r.sourceRange.to] === "\n" ? r.sourceRange.to + 1 : r.sourceRange.to, text: "" },
-  ]);
+export const deleteClassRelationship = (s: string, r: ClassRelationship, d?: ClassDocument) =>
+  replace(
+    s,
+    [r.sourceRange, ...(d?.notes.filter((note) => note.targetId === r.id).map((note) => note.sourceRange) ?? [])].map(
+      (range) => ({
+        from: range.from,
+        to: s[range.to] === "\n" ? range.to + 1 : range.to,
+        text: "",
+      }),
+    ),
+  );
 export const insertClassPackage = (s: string, d: ClassDocument, v: ClassPackageInput) => {
   const text = `${v.kind} ${quote(v.label)}${v.alias ? ` as ${v.alias}` : ""}${v.color ? ` ${v.color.startsWith("#") ? v.color : `#${v.color}`}` : ""} {\n}`;
   const parent = v.parentId ? d.packages.find((item) => item.id === v.parentId) : undefined;
@@ -173,13 +183,30 @@ export function reorderClassEntity(s: string, e: ClassEntity, target: ClassEntit
   return without.slice(0, at) + text + "\n" + without.slice(at);
 }
 const noteLine = (d: ClassDocument, v: ClassNoteInput) => {
-  const color = v.color?.trim(),
-    prefix = `note ${v.placement} of ${ref(d, v.targetId)}${color ? ` ${color.startsWith("#") ? color : `#${color}`}` : ""}`;
+  const color = v.color?.trim();
+  if (d.relationships.some((item) => item.id === v.targetId)) {
+    const prefix = `note on link${color ? ` ${color.startsWith("#") ? color : `#${color}`}` : ""}`;
+    return `${prefix}\n${v.text.trim()}\nend note`;
+  }
+  const prefix = `note ${v.placement} of ${ref(d, v.targetId)}${color ? ` ${color.startsWith("#") ? color : `#${color}`}` : ""}`;
   return v.text.includes("\n") ? `${prefix}\n${v.text.trim()}\nend note` : `${prefix} : ${v.text.trim()}`;
 };
-export const insertClassNote = (s: string, d: ClassDocument, v: ClassNoteInput) => insert(s, noteLine(d, v));
-export const updateClassNote = (s: string, d: ClassDocument, n: ClassNote, v: ClassNoteInput) =>
-  replace(s, [{ ...n.sourceRange, text: noteLine(d, v) }]);
+export const insertClassNote = (s: string, d: ClassDocument, v: ClassNoteInput) => {
+  const relationship = d.relationships.find((item) => item.id === v.targetId);
+  if (!relationship) return insert(s, noteLine(d, v));
+  const at = relationship.sourceRange.to;
+  return s.slice(0, at) + "\n" + noteLine(d, v) + s.slice(at);
+};
+export const updateClassNote = (s: string, d: ClassDocument, n: ClassNote, v: ClassNoteInput) => {
+  const relationship = d.relationships.find((item) => item.id === v.targetId);
+  if (!relationship || n.targetId === v.targetId) return replace(s, [{ ...n.sourceRange, text: noteLine(d, v) }]);
+  const from = n.sourceRange.from,
+    to = s[n.sourceRange.to] === "\n" ? n.sourceRange.to + 1 : n.sourceRange.to,
+    without = s.slice(0, from) + s.slice(to),
+    original = relationship.sourceRange.to,
+    at = original > to ? original - (to - from) : original;
+  return without.slice(0, at) + "\n" + noteLine(d, v) + without.slice(at);
+};
 export const deleteClassNote = (s: string, n: ClassNote) =>
   replace(s, [
     { from: n.sourceRange.from, to: s[n.sourceRange.to] === "\n" ? n.sourceRange.to + 1 : n.sourceRange.to, text: "" },

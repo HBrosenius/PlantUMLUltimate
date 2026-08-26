@@ -348,6 +348,7 @@ const relationValue = (x: ClassRelationship): ClassRelationshipInput => ({
   ...(x.toMultiplicity ? { toMultiplicity: x.toMultiplicity } : {}),
   ...(x.color ? { color: x.color } : {}),
   ...(x.lineStyle ? { lineStyle: x.lineStyle } : {}),
+  arrow: x.arrow,
 });
 export function ClassRelationshipInspector({
   item,
@@ -394,7 +395,10 @@ export function ClassRelationshipInspector({
           ))}
           <label>
             Relationship
-            <select value={v.kind} onChange={(e) => change({ ...v, kind: e.target.value as ClassRelationshipKind })}>
+            <select
+              value={v.kind}
+              onChange={(e) => change({ ...v, kind: e.target.value as ClassRelationshipKind, arrow: undefined })}
+            >
               {["association", "inheritance", "implementation", "composition", "aggregation", "dependency"].map((x) => (
                 <option key={x}>{x}</option>
               ))}
@@ -437,7 +441,11 @@ export function ClassRelationshipInspector({
             <select
               value={v.lineStyle ?? "solid"}
               onChange={(e) =>
-                change({ ...v, lineStyle: e.target.value as NonNullable<ClassRelationshipInput["lineStyle"]> })
+                change({
+                  ...v,
+                  lineStyle: e.target.value as NonNullable<ClassRelationshipInput["lineStyle"]>,
+                  arrow: undefined,
+                })
               }
             >
               {["solid", "dashed", "dotted", "bold"].map((style) => (
@@ -445,7 +453,11 @@ export function ClassRelationshipInspector({
               ))}
             </select>
           </label>
-          <ColorField value={v.color ?? ""} onChange={(color) => setV({ ...v, color })} onBlur={() => onChange(v)} />
+          <ColorField
+            value={v.color ?? ""}
+            onChange={(color) => setV({ ...v, color, arrow: undefined })}
+            onBlur={() => onChange(v)}
+          />
         </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
@@ -682,16 +694,23 @@ export function AddClassNoteDialog({
                 {x.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label>
-          Position
-          <select value={placement} onChange={(e) => setPlacement(e.target.value as ClassNoteInput["placement"])}>
-            {["left", "right", "top", "bottom"].map((x) => (
-              <option key={x}>{x}</option>
+            {document.relationships.map((relationship) => (
+              <option key={relationship.id} value={relationship.id}>
+                Relationship: {entityLabel(document, relationship.from)} → {entityLabel(document, relationship.to)}
+              </option>
             ))}
           </select>
         </label>
+        {!document.relationships.some((relationship) => relationship.id === targetId) && (
+          <label>
+            Position
+            <select value={placement} onChange={(e) => setPlacement(e.target.value as ClassNoteInput["placement"])}>
+              {["left", "right", "top", "bottom"].map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Text
           <textarea required rows={6} value={text} onChange={(e) => setText(e.target.value)} />
@@ -734,7 +753,7 @@ export function ClassNoteInspector({
         targetId: item.targetId ?? document.entities[0]?.id ?? "",
         ...(item.color ? { color: item.color } : {}),
       }),
-    [item, document.entities],
+    [item, document.entities, document.relationships],
   );
   const change = (n: ClassNoteInput) => {
     setV(n);
@@ -760,19 +779,26 @@ export function ClassNoteInspector({
                   {x.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
-            Position
-            <select
-              value={v.placement}
-              onChange={(e) => change({ ...v, placement: e.target.value as ClassNoteInput["placement"] })}
-            >
-              {["left", "right", "top", "bottom"].map((x) => (
-                <option key={x}>{x}</option>
+              {document.relationships.map((relationship) => (
+                <option key={relationship.id} value={relationship.id}>
+                  Relationship: {entityLabel(document, relationship.from)} → {entityLabel(document, relationship.to)}
+                </option>
               ))}
             </select>
           </label>
+          {!document.relationships.some((relationship) => relationship.id === v.targetId) && (
+            <label>
+              Position
+              <select
+                value={v.placement}
+                onChange={(e) => change({ ...v, placement: e.target.value as ClassNoteInput["placement"] })}
+              >
+                {["left", "right", "top", "bottom"].map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </label>
+          )}
         </fieldset>
         <fieldset>
           <legend>Content</legend>
@@ -799,3 +825,5 @@ export function ClassNoteInspector({
     </aside>
   );
 }
+const entityLabel = (document: ClassDocument, id: string) =>
+  document.entities.find((item) => item.id === id)?.label ?? id;

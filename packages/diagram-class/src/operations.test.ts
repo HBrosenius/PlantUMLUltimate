@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   deleteClassEntity,
   deleteClassNote,
+  deleteClassRelationship,
   insertClassEntity,
   insertClassNote,
   insertClassPackage,
@@ -12,6 +13,7 @@ import {
   reorderClassEntity,
   updateClassEntity,
   updateClassNote,
+  updateClassRelationship,
 } from "./index";
 describe("class operations", () => {
   it("inserts and edits member blocks", () => {
@@ -103,6 +105,49 @@ describe("class operations", () => {
     });
     expect(updated).toContain("R -[#Red,dashed]-> B : link");
     expect(parseClassDiagram(updated).diagnostics).toHaveLength(0);
+  });
+  it("preserves authored arrows and round-trips relationship notes", () => {
+    let source = "@startuml\nclass A\nclass B\nA -left[#Blue,dotted]-> B : calls\n@enduml";
+    let document = parseClassDiagram(source);
+    source = updateClassRelationship(source, document, document.relationships[0]!, {
+      from: "a",
+      to: "b",
+      kind: "association",
+      label: "invokes",
+      arrow: document.relationships[0]!.arrow,
+      ...(document.relationships[0]!.color ? { color: document.relationships[0]!.color } : {}),
+      ...(document.relationships[0]!.lineStyle ? { lineStyle: document.relationships[0]!.lineStyle } : {}),
+    });
+    expect(source).toContain("A -left[#Blue,dotted]-> B : invokes");
+    document = parseClassDiagram(source);
+    source = insertClassNote(source, document, {
+      targetId: "relationship-0",
+      placement: "right",
+      text: "Important\ncontract",
+      color: "Wheat",
+    });
+    expect(source).toContain("A -left[#Blue,dotted]-> B : invokes\nnote on link #Wheat\nImportant\ncontract\nend note");
+    document = parseClassDiagram(source);
+    expect(document.notes[0]).toMatchObject({ targetId: "relationship-0", text: "Important\ncontract" });
+    source = updateClassNote(source, document, document.notes[0]!, {
+      targetId: "a",
+      placement: "left",
+      text: "Now attached to A",
+    });
+    expect(source).toContain("note left of A : Now attached to A");
+    document = parseClassDiagram(source);
+    expect(document.notes[0]).toMatchObject({ targetId: "a", placement: "left" });
+    source = updateClassNote(source, document, document.notes[0]!, {
+      targetId: "relationship-0",
+      placement: "right",
+      text: "Back on the relationship",
+    });
+    expect(source).toContain("A -left[#Blue,dotted]-> B : invokes\nnote on link\nBack on the relationship\nend note");
+    document = parseClassDiagram(source);
+    expect(document.notes[0]).toMatchObject({ targetId: "relationship-0" });
+    expect(document.notes[0]).not.toHaveProperty("placement");
+    source = deleteClassRelationship(source, document.relationships[0]!, document);
+    expect(source).not.toContain("note on link");
   });
   it("creates and removes relationships with an entity", () => {
     const source = '@startuml\nclass "A" as A\nclass "B" as B\n@enduml';

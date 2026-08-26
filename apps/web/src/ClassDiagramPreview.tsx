@@ -89,13 +89,16 @@ export function ClassDiagramPreview({
       )
       .forEach((x) => x.remove());
     const entityMap = new Map<string, string>();
+    const entitiesByText = indexByText(document.entities, (item) => [item.label, item.alias]);
+    const packagesByText = indexByText(document.packages, (item) => [item.label, item.alias]);
+    const notesByText = indexByText(document.notes, (item) => [item.text, ...item.text.split("\n")]);
+    const relationshipsByPair = relationshipsByEndpoints(document);
     for (const text of rendered.querySelectorAll<SVGTextElement>("text")) {
       const value = text.textContent?.trim() ?? "";
-      const entity = document.entities.find((x) => value === x.label || value === (x.alias ?? x.label));
-      const note = document.notes.find(
-        (x) => value === x.text || x.text.split("\n").some((line) => value === line.trim()),
-      );
-      const pkg = document.packages.find((x) => value === x.label || value === (x.alias ?? x.label));
+      const key = norm(value);
+      const entity = entitiesByText.get(key);
+      const note = notesByText.get(key);
+      const pkg = packagesByText.get(key);
       const object = entity ?? note ?? pkg;
       if (!object) continue;
       const group = text.closest<SVGGElement>("g.entity[data-qualified-name]");
@@ -158,7 +161,7 @@ export function ClassDiagramPreview({
       const a =
           entityMap.get(group.getAttribute("data-entity-1") ?? "") ?? norm(group.getAttribute("data-entity-1") ?? ""),
         b = entityMap.get(group.getAttribute("data-entity-2") ?? "") ?? norm(group.getAttribute("data-entity-2") ?? "");
-      const relation = document.relationships.find((x) => (x.from === a && x.to === b) || (x.from === b && x.to === a));
+      const relation = relationshipsByPair.get(endpointKey(a, b));
       if (!relation) continue;
       for (const path of group.querySelectorAll("path")) {
         const hit = path.cloneNode(false) as SVGPathElement;
@@ -370,6 +373,24 @@ const documentNode = <K extends keyof SVGElementTagNameMap>(n: K) =>
 const attrs = (e: Element, a: Record<string, string | number>) =>
   Object.entries(a).forEach(([k, v]) => e.setAttribute(k, String(v)));
 const norm = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
+const indexByText = <T,>(items: T[], values: (item: T) => Array<string | undefined>) => {
+  const result = new Map<string, T>();
+  for (const item of items)
+    for (const value of values(item)) {
+      const key = norm(value ?? "");
+      if (key && !result.has(key)) result.set(key, item);
+    }
+  return result;
+};
+const endpointKey = (a: string, b: string) => [a, b].sort().join("\u0000");
+const relationshipsByEndpoints = (document: ClassDocument) => {
+  const result = new Map<string, ClassDocument["relationships"][number]>();
+  for (const relationship of document.relationships) {
+    const key = endpointKey(relationship.from, relationship.to);
+    if (!result.has(key)) result.set(key, relationship);
+  }
+  return result;
+};
 const packagePath = (document: ClassDocument, id: string): string => {
   const item = document.packages.find((candidate) => candidate.id === id);
   if (!item) return id;

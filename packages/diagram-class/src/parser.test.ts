@@ -26,6 +26,7 @@ Account *--> "many" Status : owns
 note right of Account : Aggregate root
 @enduml`);
     expect(d.entities).toHaveLength(3);
+    expect(d.entities.find((item) => item.id === "status")?.members.map((item) => item.text)).toEqual(["ACTIVE"]);
     expect(d.entities[0]).toMatchObject({
       id: "account",
       kind: "abstract",
@@ -36,6 +37,28 @@ note right of Account : Aggregate root
     expect(d.relationships.map((x) => x.kind)).toEqual(["inheritance", "composition"]);
     expect(d.notes[0]?.targetId).toBe("account");
     expect(d.diagnostics).toEqual([]);
+  });
+  it("parses inline members and notes on relationships", () => {
+    const document = parseClassDiagram(`@startuml
+class A { +id: UUID; +save(): void }
+class B
+A -left[#Blue,dotted]-> B : unusual arrow
+note on link #Wheat
+  Important relationship
+end note
+@enduml`);
+    expect(document.entities[0]?.members.map((item) => item.text)).toEqual(["+id: UUID", "+save(): void"]);
+    expect(document.relationships[0]).toMatchObject({
+      arrow: "-left[#Blue,dotted]->",
+      color: "#Blue",
+      lineStyle: "dotted",
+    });
+    expect(document.notes[0]).toMatchObject({
+      targetId: "relationship-0",
+      text: "Important relationship",
+      color: "#Wheat",
+    });
+    expect(document.diagnostics).toHaveLength(0);
   });
   it("reports broken containers and endpoints", () => {
     const d = parseClassDiagram("@startuml\npackage P {\nclass A\nA --> Missing\n@enduml");
