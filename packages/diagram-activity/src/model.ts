@@ -56,6 +56,7 @@ export interface ActivityNote {
   placement: "left" | "right" | "top" | "bottom";
   color?: string;
   targetId?: string;
+  floating?: boolean;
   sourceRange: TextRange;
 }
 

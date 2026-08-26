@@ -47,4 +47,9 @@ stop
     expect(document.diagnostics).toContainEqual(expect.objectContaining({ code: "unterminated-control" }));
     expect(document.unknown[0]?.text).toBe("custom command");
   });
+  it("parses floating notes without attaching them to the preceding action", () => {
+    const document = parseActivity("@startuml\n:A;\nfloating note left #Wheat\nIndependent\nend note\n:B;\n@enduml");
+    expect(document.notes[0]).toMatchObject({ text: "Independent", placement: "left", color: "#Wheat", floating: true });
+    expect(document.notes[0]?.targetId).toBeUndefined();
+  });
 });

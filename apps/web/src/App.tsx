@@ -11,6 +11,10 @@ import {
   ActivityActionInspector,
   ActivityArrowInspector,
   ActivityControlInspector,
+  ActivityTerminalInspector,
+  AddActivityStructureDialog,
+  AddActivityTerminalDialog,
+  AddActivityArrowDialog,
   ActivityNoteInspector,
   ActivityPartitionInspector,
   AddActivityActionDialog,
@@ -165,25 +169,33 @@ import {
 } from "@plantuml-studio/diagram-class";
 import {
   deleteActivityArrow,
+  deleteActivityControlBlock,
   deleteActivityNode,
   deleteActivityNote,
   deleteActivityPartition,
   findActivityObjectAt,
   insertActivityAction,
+  insertActivityArrow,
   insertActivityNote,
   insertActivityPartition,
+  insertActivityStructure,
+  insertActivityTerminal,
   parseActivity,
+  moveActivityActionToPartition,
+  moveActivityPartition,
   reorderActivityAction,
+  reorderActivityControlBlock,
   updateActivityAction,
   updateActivityArrow,
   updateActivityControl,
-  updateActivityNote,
+  updateActivityNoteWithTarget,
   updateActivityPartition,
   type ActivityActionInput,
   type ActivityArrowInput,
   type ActivityControlInput,
   type ActivityNoteInput,
   type ActivityPartitionInput,
+  type ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
 import {
   deleteUseCaseElement,
@@ -247,6 +259,9 @@ export function App() {
   const [addActivityActionOpen, setAddActivityActionOpen] = useState(false);
   const [addActivityPartitionOpen, setAddActivityPartitionOpen] = useState(false);
   const [addActivityNoteOpen, setAddActivityNoteOpen] = useState(false);
+  const [addActivityStructureOpen, setAddActivityStructureOpen] = useState(false);
+  const [addActivityTerminalOpen, setAddActivityTerminalOpen] = useState(false);
+  const [addActivityArrowOpen, setAddActivityArrowOpen] = useState(false);
   const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [addClassEntityOpen, setAddClassEntityOpen] = useState(false);
   const [addClassRelationshipOpen, setAddClassRelationshipOpen] = useState(false);
@@ -329,6 +344,9 @@ export function App() {
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const selectedActivityAction = activityDocument.nodes.find(
     (item) => item.id === selectedActivityObjectId && item.kind === "action",
+  );
+  const selectedActivityTerminal = activityDocument.nodes.find(
+    (item) => item.id === selectedActivityObjectId && item.kind !== "action",
   );
   const selectedActivityPartition = activityDocument.partitions.find((item) => item.id === selectedActivityObjectId);
   const selectedActivityNote = activityDocument.notes.find((item) => item.id === selectedActivityObjectId);
@@ -1540,6 +1558,14 @@ export function App() {
     if (selectedActivityAction)
       commitSource(updateActivityAction(workspace.source, selectedActivityAction, value), "Update Activity action");
   };
+  const moveActivityActionPartition = (partitionId?: string) => {
+    if (!selectedActivityAction) return;
+    commitSource(
+      moveActivityActionToPartition(workspace.source, activityDocument, selectedActivityAction, partitionId),
+      "Move Activity action",
+    );
+    setSelectedActivityObjectId(undefined);
+  };
   const removeActivityAction = () => {
     if (!selectedActivityAction) return;
     commitSource(deleteActivityNode(workspace.source, selectedActivityAction), "Delete Activity action");
@@ -1556,6 +1582,14 @@ export function App() {
         "Update Activity partition",
       );
   };
+  const moveSelectedActivityPartition = (parentId?: string) => {
+    if (!selectedActivityPartition) return;
+    commitSource(
+      moveActivityPartition(workspace.source, activityDocument, selectedActivityPartition, parentId),
+      "Move Activity partition",
+    );
+    setSelectedActivityObjectId(undefined);
+  };
   const removeActivityPartition = () => {
     if (!selectedActivityPartition) return;
     commitSource(deleteActivityPartition(workspace.source, selectedActivityPartition), "Delete Activity partition");
@@ -1565,9 +1599,21 @@ export function App() {
     commitSource(insertActivityNote(workspace.source, activityDocument, value), "Add Activity note");
     setAddActivityNoteOpen(false);
   };
+  const addActivityStructure = (value: ActivityStructureInput) => {
+    commitSource(insertActivityStructure(workspace.source, activityDocument, value), "Add Activity flow structure");
+    setAddActivityStructureOpen(false);
+  };
+  const addActivityTerminal = (kind: "start" | "stop" | "end" | "detach" | "kill") => {
+    commitSource(insertActivityTerminal(workspace.source, kind), `Add Activity ${kind}`);
+    setAddActivityTerminalOpen(false);
+  };
+  const addActivityArrow = (value: ActivityArrowInput) => {
+    commitSource(insertActivityArrow(workspace.source, activityDocument, value), "Add Activity flow arrow");
+    setAddActivityArrowOpen(false);
+  };
   const applyActivityNote = (value: ActivityNoteInput) => {
     if (selectedActivityNote)
-      commitSource(updateActivityNote(workspace.source, selectedActivityNote, value), "Update Activity note");
+      commitSource(updateActivityNoteWithTarget(workspace.source, activityDocument, selectedActivityNote, value), "Update Activity note");
   };
   const removeActivityNote = () => {
     if (!selectedActivityNote) return;
@@ -1577,6 +1623,19 @@ export function App() {
   const applyActivityControl = (value: ActivityControlInput) => {
     if (selectedActivityControl)
       commitSource(updateActivityControl(workspace.source, selectedActivityControl, value), "Update Activity control");
+  };
+  const removeActivityControl = () => {
+    if (!selectedActivityControl) return;
+    commitSource(
+      deleteActivityControlBlock(workspace.source, activityDocument, selectedActivityControl),
+      "Delete Activity flow structure",
+    );
+    setSelectedActivityObjectId(undefined);
+  };
+  const removeActivityTerminal = () => {
+    if (!selectedActivityTerminal) return;
+    commitSource(deleteActivityNode(workspace.source, selectedActivityTerminal), "Delete Activity terminal");
+    setSelectedActivityObjectId(undefined);
   };
   const applyActivityArrow = (value: ActivityArrowInput) => {
     if (selectedActivityArrow)
@@ -1590,8 +1649,14 @@ export function App() {
   const reorderActivityActionByDrag = (id: string, targetId: string, placement: "before" | "after") => {
     const item = activityDocument.nodes.find((node) => node.id === id);
     const target = activityDocument.nodes.find((node) => node.id === targetId);
-    if (!item || !target) return;
-    commitSource(reorderActivityAction(workspace.source, activityDocument, item, target, placement), "Reorder Activity action");
+    const control = activityDocument.controls.find((entry) => entry.id === id);
+    if (!target || (!item && !control)) return;
+    commitSource(
+      item
+        ? reorderActivityAction(workspace.source, activityDocument, item, target, placement)
+        : reorderActivityControlBlock(workspace.source, activityDocument, control!, target, placement),
+      item ? "Reorder Activity action" : "Reorder Activity flow structure",
+    );
   };
 
   const reconnectUseCaseRelationshipByDrag = useCallback(
@@ -2496,6 +2561,9 @@ export function App() {
             onActivityAction={() => setAddActivityActionOpen(true)}
             onActivityPartition={() => setAddActivityPartitionOpen(true)}
             onActivityNote={() => setAddActivityNoteOpen(true)}
+            onActivityStructure={() => setAddActivityStructureOpen(true)}
+            onActivityTerminal={() => setAddActivityTerminalOpen(true)}
+            onActivityArrow={() => setAddActivityArrowOpen(true)}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2980,6 +3048,7 @@ export function App() {
       )}
       {addActivityPartitionOpen && (
         <AddActivityPartitionDialog
+          document={activityDocument}
           onAdd={addActivityPartition}
           onClose={() => setAddActivityPartitionOpen(false)}
         />
@@ -2989,6 +3058,26 @@ export function App() {
           document={activityDocument}
           onAdd={addActivityNote}
           onClose={() => setAddActivityNoteOpen(false)}
+        />
+      )}
+      {addActivityStructureOpen && (
+        <AddActivityStructureDialog
+          document={activityDocument}
+          onAdd={addActivityStructure}
+          onClose={() => setAddActivityStructureOpen(false)}
+        />
+      )}
+      {addActivityTerminalOpen && (
+        <AddActivityTerminalDialog
+          onAdd={addActivityTerminal}
+          onClose={() => setAddActivityTerminalOpen(false)}
+        />
+      )}
+      {addActivityArrowOpen && (
+        <AddActivityArrowDialog
+          document={activityDocument}
+          onAdd={addActivityArrow}
+          onClose={() => setAddActivityArrowOpen(false)}
         />
       )}
       {addSequenceParticipantOpen && (
@@ -3207,7 +3296,9 @@ export function App() {
       {selectedActivityAction && (
         <ActivityActionInspector
           item={selectedActivityAction}
+          document={activityDocument}
           onChange={applyActivityAction}
+          onPartitionChange={moveActivityActionPartition}
           onDelete={removeActivityAction}
           onClose={() => setSelectedActivityObjectId(undefined)}
         />
@@ -3216,6 +3307,14 @@ export function App() {
         <ActivityControlInspector
           item={selectedActivityControl}
           onChange={applyActivityControl}
+          onDelete={removeActivityControl}
+          onClose={() => setSelectedActivityObjectId(undefined)}
+        />
+      )}
+      {selectedActivityTerminal && (
+        <ActivityTerminalInspector
+          item={selectedActivityTerminal}
+          onDelete={removeActivityTerminal}
           onClose={() => setSelectedActivityObjectId(undefined)}
         />
       )}
@@ -3230,7 +3329,9 @@ export function App() {
       {selectedActivityPartition && (
         <ActivityPartitionInspector
           item={selectedActivityPartition}
+          document={activityDocument}
           onChange={applyActivityPartition}
+          onParentChange={moveSelectedActivityPartition}
           onDelete={removeActivityPartition}
           onClose={() => setSelectedActivityObjectId(undefined)}
         />
@@ -3238,6 +3339,7 @@ export function App() {
       {selectedActivityNote && (
         <ActivityNoteInspector
           item={selectedActivityNote}
+          document={activityDocument}
           onChange={applyActivityNote}
           onDelete={removeActivityNote}
           onClose={() => setSelectedActivityObjectId(undefined)}

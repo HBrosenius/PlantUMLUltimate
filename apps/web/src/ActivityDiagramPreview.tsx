@@ -29,6 +29,7 @@ export function ActivityDiagramPreview({
 }) {
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number } | undefined>(undefined);
+  const suppressClick = useRef(false);
   useLayoutEffect(() => {
     const rendered = root.current?.querySelector("svg");
     if (!rendered) return;
@@ -37,6 +38,7 @@ export function ActivityDiagramPreview({
       ...document.nodes.filter((item) => item.kind === "action"),
       ...document.controls,
       ...document.notes,
+      ...document.arrows.filter((item) => item.label),
     ];
     for (const text of rendered.querySelectorAll<SVGTextElement>("text")) {
       const value = text.textContent?.trim() ?? "";
@@ -50,7 +52,7 @@ export function ActivityDiagramPreview({
       const hit = window.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       hit.setAttribute("class", `activity-semantic-hit${selectedId === object.id ? " activity-selected-object" : ""}`);
       hit.setAttribute("data-activity-object-id", object.id);
-      hit.setAttribute("data-activity-object-type", "text" in object ? "note" : "kind" in object ? object.kind === "action" ? "action" : "control" : "object");
+      hit.setAttribute("data-activity-object-type", document.arrows.some((arrow) => arrow.id === object.id) ? "arrow" : "text" in object ? "note" : "kind" in object ? object.kind === "action" ? "action" : "control" : "object");
       hit.setAttribute("x", String(box.x - 9));
       hit.setAttribute("y", String(box.y - 7));
       hit.setAttribute("width", String(Math.max(34, box.width + 18)));
@@ -60,7 +62,8 @@ export function ActivityDiagramPreview({
       hit.setAttribute("tabindex", "0");
       hit.setAttribute("aria-label", `Select ${"text" in object ? "note" : "kind" in object ? object.kind : "item"} ${activityText(object)[0] ?? ""}`);
       rendered.append(hit);
-      if (!("kind" in object) || object.kind !== "action") continue;
+      const movable = "kind" in object && (object.kind === "action" || ["if", "switch", "fork", "split", "repeat", "while"].includes(object.kind));
+      if (!movable) continue;
       const handle = window.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       handle.setAttribute("class", "activity-move-handle");
       handle.setAttribute("data-activity-move-id", object.id);
@@ -69,7 +72,7 @@ export function ActivityDiagramPreview({
       handle.setAttribute("width", "12");
       handle.setAttribute("height", "12");
       handle.setAttribute("rx", "3");
-      handle.setAttribute("aria-label", `Drag to reorder ${object.label}`);
+      handle.setAttribute("aria-label", `Drag to reorder ${activityText(object)[0] ?? "flow item"}`);
       rendered.append(handle);
     }
   }, [document, selectedId, svg]);
@@ -117,6 +120,16 @@ export function ActivityDiagramPreview({
             ))}
           </div>
         )}
+        {document.controls.length > 0 && (
+          <div className="class-package-tray" role="group" aria-label="Activity controls">
+            <span>Controls</span>
+            {document.controls.map((item) => (
+              <button key={item.id} type="button" data-activity-object-id={item.id} data-inspector-trigger onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}>
+                {item.condition || item.label || item.kind.replaceAll("-", " ")}
+              </button>
+            ))}
+          </div>
+        )}
         {document.arrows.length > 0 && (
           <div className="class-package-tray" role="group" aria-label="Activity flow arrows">
             <span>Flows</span>
@@ -136,6 +149,16 @@ export function ActivityDiagramPreview({
             ))}
           </div>
         )}
+        {document.nodes.some((item) => item.kind !== "action") && (
+          <div className="class-package-tray" role="group" aria-label="Activity terminals">
+            <span>Terminals</span>
+            {document.nodes.filter((item) => item.kind !== "action").map((item, index) => (
+              <button key={item.id} type="button" data-activity-object-id={item.id} data-inspector-trigger onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}>
+                {item.kind} {index + 1}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="usecase-keyboard-help">Click an action to inspect it</span>
       </div>
       <div className="preview-viewport">
@@ -145,17 +168,39 @@ export function ActivityDiagramPreview({
             className="diagram activity-diagram"
             style={{ transform: `scale(${zoom})` }}
             onPointerDown={(event) => {
-              const id = (event.target as Element).closest("[data-activity-move-id]")?.getAttribute("data-activity-move-id");
+              const origin = (event.target as Element).closest('[data-activity-move-id], [data-activity-object-type="action"]');
+              const id = origin?.getAttribute("data-activity-move-id") ?? origin?.getAttribute("data-activity-object-id");
               if (!id) return;
               drag.current = { id, x: event.clientX, y: event.clientY };
-              event.currentTarget.setPointerCapture(event.pointerId);
-              event.preventDefault();
+              event.currentTarget.classList.add("activity-dragging-move");
+              if (origin?.hasAttribute("data-activity-move-id")) {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.preventDefault();
+              }
             }}
-            onPointerUp={(event) => finishReorder(event, root.current, drag, onReorder)}
+            onPointerUp={(event) => {
+              suppressClick.current = finishReorder(event, root.current, drag, onReorder);
+              window.setTimeout(() => {
+                suppressClick.current = false;
+              }, 0);
+              event.currentTarget.classList.remove("activity-dragging-move");
+            }}
             onPointerCancel={() => {
               drag.current = undefined;
+              root.current?.classList.remove("activity-dragging-move");
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              const id = (event.target as Element).closest("[data-activity-object-id]")?.getAttribute("data-activity-object-id");
+              if (!id) return;
+              event.preventDefault();
+              onSelect(id);
             }}
             onClick={(event) => {
+              if (suppressClick.current) {
+                suppressClick.current = false;
+                return;
+              }
               const id = (event.target as Element).closest("[data-activity-object-id]")?.getAttribute("data-activity-object-id");
               if (id) onSelect(id);
               else onBackgroundSelect();
@@ -176,7 +221,7 @@ export function ActivityDiagramPreview({
   );
 }
 
-const activityText = (item: ActivityDocument["nodes"][number] | ActivityDocument["controls"][number] | ActivityDocument["notes"][number]) =>
+const activityText = (item: ActivityDocument["nodes"][number] | ActivityDocument["controls"][number] | ActivityDocument["notes"][number] | ActivityDocument["arrows"][number]) =>
   "text" in item
     ? item.text.split("\n").map((line) => line.trim())
     : "condition" in item
@@ -191,13 +236,14 @@ const finishReorder = (
 ) => {
   const value = drag.current;
   drag.current = undefined;
-  if (!value || Math.hypot(event.clientX - value.x, event.clientY - value.y) < 5) return;
+  if (!value || Math.hypot(event.clientX - value.x, event.clientY - value.y) < 5) return false;
   const target = [...(root?.querySelectorAll<SVGGraphicsElement>('[data-activity-object-type="action"]') ?? [])].find((item) => {
     const box = item.getBoundingClientRect();
     return event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
   });
   const targetId = target?.getAttribute("data-activity-object-id");
-  if (!target || !targetId || targetId === value.id) return;
+  if (!target || !targetId || targetId === value.id) return true;
   const box = target.getBoundingClientRect();
   onReorder(value.id, targetId, event.clientY < box.top + box.height / 2 ? "before" : "after");
+  return true;
 };

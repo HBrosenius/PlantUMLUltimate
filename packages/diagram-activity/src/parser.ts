@@ -30,11 +30,11 @@ export function parseActivity(source: string): ActivityDocument {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
-    const match = line.text.match(/^\s*note\s+(left|right|top|bottom)(?:\s+(#[\w-]+))?\s*(?::\s*(.*))?$/i);
+    const match = line.text.match(/^\s*(floating\s+)?note\s+(left|right|top|bottom)(?:\s+(#[\w-]+))?\s*(?::\s*(.*))?$/i);
     if (!match) continue;
     let end = index;
-    let text = match[3] ?? "";
-    if (!match[3]) {
+    let text = match[4] ?? "";
+    if (!match[4]) {
       const body: string[] = [];
       end = index + 1;
       while (end < lines.length && !/^\s*end\s+note\s*$/i.test(lines[end]!.text)) body.push(lines[end++]!.text);
@@ -47,8 +47,9 @@ export function parseActivity(source: string): ActivityDocument {
     notes.push({
       id: `note-${notes.length}`,
       text,
-      placement: match[1]!.toLowerCase() as ActivityDocument["notes"][number]["placement"],
-      ...(match[2] ? { color: match[2] } : {}),
+      placement: match[2]!.toLowerCase() as ActivityDocument["notes"][number]["placement"],
+      ...(match[3] ? { color: match[3] } : {}),
+      ...(match[1] ? { floating: true } : {}),
       sourceRange: { from: line.from, to: lines[end]!.to },
     });
     index = end;
@@ -153,7 +154,7 @@ export function parseActivity(source: string): ActivityDocument {
   for (const open of controlStack)
     diagnostics.push({ severity: "error", message: `${open.kind} block is not closed`, range: open.range, code: "unterminated-control" });
   for (const note of notes) {
-    if (note.targetId) continue;
+    if (note.targetId || note.floating) continue;
     const target = [...nodes, ...controls]
       .filter((item) => item.sourceRange.to < note.sourceRange.from)
       .sort((a, b) => b.sourceRange.to - a.sourceRange.to)[0];

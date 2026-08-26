@@ -239,10 +239,10 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await secondAction.getByLabel("Text").fill("Index archive");
   await secondAction.getByLabel("Partition").selectOption("operations-team");
   await secondAction.getByRole("button", { name: "Add action" }).click();
-  const secondHandle = page.locator('[data-activity-move-id="action-6"]');
-  await expect(secondHandle).toBeVisible({ timeout: 20_000 });
-  await secondHandle.scrollIntoViewIfNeeded();
-  const handleBox = await secondHandle.boundingBox();
+  const secondActionHit = page.locator('[data-activity-object-id="action-6"]');
+  await expect(secondActionHit).toBeVisible({ timeout: 20_000 });
+  await secondActionHit.scrollIntoViewIfNeeded();
+  const handleBox = await secondActionHit.boundingBox();
   const targetBox = await page.locator('[data-activity-object-id="action-5"]').boundingBox();
   expect(handleBox).not.toBeNull();
   expect(targetBox).not.toBeNull();
@@ -277,6 +277,51 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await noteInspector.getByLabel("Text").fill("Stored for compliance audit");
   await noteInspector.getByLabel("Text").blur();
   await expect(page.locator(".cm-content")).toContainText("note leftStored for compliance auditend note");
+  await noteInspector.getByLabel("Attached to").selectOption({ label: "Index archive" });
+  await expect.poll(async () => {
+    const source = await page.locator(".cm-content").textContent();
+    return (source?.indexOf("Stored for compliance audit") ?? -1) < (source?.indexOf("Archive completed order") ?? -1);
+  }).toBe(true);
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Flow arrow…" }).click();
+  const flowArrow = page.getByRole("dialog", { name: "Add Activity flow arrow" });
+  await flowArrow.getByLabel("Place after").selectOption({ label: "Archive completed order" });
+  await flowArrow.getByLabel("Label").fill("continue");
+  await flowArrow.getByLabel("Line style").selectOption("dashed");
+  await flowArrow.getByLabel("Color").fill("Blue");
+  await flowArrow.getByRole("button", { name: "Add arrow" }).click();
+  await expect(page.locator(".cm-content")).toContainText("-[#Blue,dashed]-> [continue]");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Flow structure…" }).click();
+  const structure = page.getByRole("dialog", { name: "Add Activity flow structure" });
+  await structure.getByLabel("Structure").selectOption("while");
+  await structure.getByLabel("Condition").fill("Archive pending?");
+  await structure.getByLabel("First action").fill("Check archive status");
+  await structure.getByLabel("Partition").selectOption("operations-team");
+  await structure.getByRole("button", { name: "Add structure" }).click();
+  await expect(page.locator(".cm-content")).toContainText("while (Archive pending?) is (yes)");
+  await expect(page.locator(".cm-content")).toContainText(":Check archive status;");
+  await expect(page.locator(".cm-content")).toContainText("endwhile (no)");
+  const renderedLoop = page.getByRole("group", { name: "Activity controls" }).getByRole("button", { name: "Archive pending?" });
+  await expect(renderedLoop).toBeVisible({ timeout: 20_000 });
+  await renderedLoop.click({ force: true });
+  const loopInspector = page.getByRole("complementary", { name: "Activity control inspector" });
+  await loopInspector.getByRole("button", { name: "Delete flow structure" }).click();
+  await expect(page.locator(".cm-content")).not.toContainText("Archive pending?");
+  await expect(page.locator(".cm-content")).not.toContainText("Check archive status");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Terminal…" }).click();
+  const terminal = page.getByRole("dialog", { name: "Add Activity terminal" });
+  await terminal.getByLabel("Terminal").selectOption("kill");
+  await terminal.getByRole("button", { name: "Add terminal" }).click();
+  await expect(page.locator(".cm-content")).toContainText("kill@enduml");
+  await page.getByRole("group", { name: "Activity terminals" }).getByRole("button", { name: /kill/ }).click();
+  const terminalInspector = page.getByRole("complementary", { name: "Activity terminal inspector" });
+  await terminalInspector.getByRole("button", { name: "Delete terminal" }).click();
+  await expect(page.locator(".cm-content")).not.toContainText("kill@enduml");
 });
 
 test("creates and edits Use Case objects through diagram-specific tools", async ({ page }) => {

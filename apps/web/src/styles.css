@@ -373,6 +373,19 @@ input {
   border: 1px solid var(--line);
   border-radius: 4px;
 }
+.activity-preview .preview-tools {
+  left: 8px;
+  max-height: 88px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  overflow: auto;
+}
+.activity-preview .preview-viewport {
+  padding-top: 104px;
+}
+.activity-preview .class-package-tray {
+  min-width: 0;
+}
 .preview-viewport {
   width: 100%;
   height: 100%;
@@ -1907,6 +1920,12 @@ textarea:focus-visible,
   pointer-events: all;
   cursor: pointer;
 }
+.activity-semantic-hit[data-activity-object-type="action"] {
+  cursor: grab;
+}
+.activity-dragging-move .activity-semantic-hit[data-activity-object-type="action"] {
+  cursor: grabbing;
+}
 .activity-semantic-hit:hover,
 .activity-selected-object {
   fill: rgb(37 99 235 / 10%);
@@ -1920,6 +1939,15 @@ textarea:focus-visible,
   stroke-width: 2;
   cursor: grab;
   pointer-events: all;
+}
+.activity-dragging-move .activity-semantic-hit[data-activity-object-type="action"] {
+  fill: rgb(34 197 94 / 12%);
+  stroke: rgb(22 163 74 / 72%);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.activity-dragging-move .activity-move-handle {
+  cursor: grabbing;
 }
 @media (pointer: coarse) {
   .activity-move-handle {
