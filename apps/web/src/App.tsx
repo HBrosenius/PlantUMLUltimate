@@ -4,6 +4,17 @@ import { DiagramPreview } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
+import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
+import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
+import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
+import {
+  ActivityActionInspector,
+  ActivityNoteInspector,
+  ActivityPartitionInspector,
+  AddActivityActionDialog,
+  AddActivityNoteDialog,
+  AddActivityPartitionDialog,
+} from "./ActivityEditors";
 import {
   AddClassEntityDialog,
   AddClassPackageDialog,
@@ -103,7 +114,13 @@ import {
   writePlantUmlDocument,
   type WritableFileHandle,
 } from "./file-service";
-import { DEFAULT_CLASS_SOURCE, DEFAULT_SEQUENCE_SOURCE, DEFAULT_SOURCE, DEFAULT_USECASE_SOURCE } from "./model";
+import {
+  DEFAULT_ACTIVITY_SOURCE,
+  DEFAULT_CLASS_SOURCE,
+  DEFAULT_SEQUENCE_SOURCE,
+  DEFAULT_SOURCE,
+  DEFAULT_USECASE_SOURCE,
+} from "./model";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -144,6 +161,22 @@ import {
   type ClassRelationshipInput,
   type ClassNoteInput,
 } from "@plantuml-studio/diagram-class";
+import {
+  deleteActivityNode,
+  deleteActivityNote,
+  deleteActivityPartition,
+  findActivityObjectAt,
+  insertActivityAction,
+  insertActivityNote,
+  insertActivityPartition,
+  parseActivity,
+  updateActivityAction,
+  updateActivityNote,
+  updateActivityPartition,
+  type ActivityActionInput,
+  type ActivityNoteInput,
+  type ActivityPartitionInput,
+} from "@plantuml-studio/diagram-activity";
 import {
   deleteUseCaseElement,
   deleteUseCaseNote,
@@ -202,6 +235,11 @@ export function App() {
   const [selectedSequenceStructureId, setSelectedSequenceStructureId] = useState<string>();
   const [selectedUseCaseObjectId, setSelectedUseCaseObjectId] = useState<string>();
   const [selectedClassObjectId, setSelectedClassObjectId] = useState<string>();
+  const [selectedActivityObjectId, setSelectedActivityObjectId] = useState<string>();
+  const [addActivityActionOpen, setAddActivityActionOpen] = useState(false);
+  const [addActivityPartitionOpen, setAddActivityPartitionOpen] = useState(false);
+  const [addActivityNoteOpen, setAddActivityNoteOpen] = useState(false);
+  const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [addClassEntityOpen, setAddClassEntityOpen] = useState(false);
   const [addClassRelationshipOpen, setAddClassRelationshipOpen] = useState(false);
   const [addClassPackageOpen, setAddClassPackageOpen] = useState(false);
@@ -243,7 +281,9 @@ export function App() {
   const { status, result, retry: retryRender } = useRenderer(
     workspace.source,
     hydrated && !newDocumentOpen && workspace.viewMode !== "code",
-    workspace.diagramKind === "class" || workspace.diagramKind === "usecase" ? "graphviz" : "native",
+    workspace.diagramKind === "class" || workspace.diagramKind === "usecase" || workspace.diagramKind === "activity"
+      ? "graphviz"
+      : "native",
   );
   const parsed = useMemo(() => {
     const started = performance.now();
@@ -278,6 +318,12 @@ export function App() {
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
+  const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
+  const selectedActivityAction = activityDocument.nodes.find(
+    (item) => item.id === selectedActivityObjectId && item.kind === "action",
+  );
+  const selectedActivityPartition = activityDocument.partitions.find((item) => item.id === selectedActivityObjectId);
+  const selectedActivityNote = activityDocument.notes.find((item) => item.id === selectedActivityObjectId);
   const selectedClassEntity = classDocument.entities.find((x) => x.id === selectedClassObjectId);
   const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
   const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
@@ -484,9 +530,11 @@ export function App() {
       !selectedSequenceStructureId &&
       !selectedUseCaseObjectId &&
       !selectedClassObjectId &&
+      !selectedActivityObjectId &&
       !projectInspectorOpen &&
       !useCaseSettingsOpen &&
-      !classSettingsOpen
+      !classSettingsOpen &&
+      !activitySettingsOpen
     )
       return;
     const dismissInspector = (event: MouseEvent) => {
@@ -496,7 +544,7 @@ export function App() {
       if (
         target instanceof Element &&
         target.closest(
-          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from]",
+          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id]",
         )
       )
         return;
@@ -509,9 +557,11 @@ export function App() {
       setSelectedSequenceStructureId(undefined);
       setSelectedUseCaseObjectId(undefined);
       setSelectedClassObjectId(undefined);
+      setSelectedActivityObjectId(undefined);
       setProjectInspectorOpen(false);
       setUseCaseSettingsOpen(false);
       setClassSettingsOpen(false);
+      setActivitySettingsOpen(false);
       setFocusNoteTaskId(undefined);
     };
     document.addEventListener("click", dismissInspector);
@@ -526,7 +576,9 @@ export function App() {
     selectedSequenceStructureId,
     selectedUseCaseObjectId,
     selectedClassObjectId,
+    selectedActivityObjectId,
     classSettingsOpen,
+    activitySettingsOpen,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -1149,6 +1201,8 @@ export function App() {
               ? DEFAULT_USECASE_SOURCE
               : diagramKind === "class"
                 ? DEFAULT_CLASS_SOURCE
+                : diagramKind === "activity"
+                  ? DEFAULT_ACTIVITY_SOURCE
                 : DEFAULT_SOURCE,
         fileName: "untitled.puml",
         dirty: false,
@@ -1171,6 +1225,8 @@ export function App() {
             ? "Use Case"
             : diagramKind === "class"
               ? "Class"
+              : diagramKind === "activity"
+                ? "Activity"
               : "Gantt";
       setInteractionMessage(`Created a new ${displayName} diagram`);
     },
@@ -1438,6 +1494,10 @@ export function App() {
     commitSource(updateClassSettings(workspace.source, v), "Update Class settings");
     setInteractionMessage("Updated Class settings");
   };
+  const applyActivitySettings = (value: ActivitySettings) => {
+    commitSource(updateActivitySettings(workspace.source, value), "Update Activity settings");
+    setInteractionMessage("Updated Activity settings");
+  };
   const addClassNote = (v: ClassNoteInput) => {
     commitSource(insertClassNote(workspace.source, classDocument, v), "Add Class note");
     setAddClassNoteOpen(false);
@@ -1460,6 +1520,49 @@ export function App() {
       commitSource(deleteClassNote(workspace.source, selectedClassNote), "Delete Class note");
       setSelectedClassObjectId(undefined);
     }
+  };
+
+  const addActivityAction = (value: ActivityActionInput) => {
+    commitSource(insertActivityAction(workspace.source, activityDocument, value), "Add Activity action");
+    setAddActivityActionOpen(false);
+  };
+  const applyActivityAction = (value: ActivityActionInput) => {
+    if (selectedActivityAction)
+      commitSource(updateActivityAction(workspace.source, selectedActivityAction, value), "Update Activity action");
+  };
+  const removeActivityAction = () => {
+    if (!selectedActivityAction) return;
+    commitSource(deleteActivityNode(workspace.source, selectedActivityAction), "Delete Activity action");
+    setSelectedActivityObjectId(undefined);
+  };
+  const addActivityPartition = (value: ActivityPartitionInput) => {
+    commitSource(insertActivityPartition(workspace.source, activityDocument, value), "Add Activity partition");
+    setAddActivityPartitionOpen(false);
+  };
+  const applyActivityPartition = (value: ActivityPartitionInput) => {
+    if (selectedActivityPartition)
+      commitSource(
+        updateActivityPartition(workspace.source, selectedActivityPartition, value),
+        "Update Activity partition",
+      );
+  };
+  const removeActivityPartition = () => {
+    if (!selectedActivityPartition) return;
+    commitSource(deleteActivityPartition(workspace.source, selectedActivityPartition), "Delete Activity partition");
+    setSelectedActivityObjectId(undefined);
+  };
+  const addActivityNote = (value: ActivityNoteInput) => {
+    commitSource(insertActivityNote(workspace.source, activityDocument, value), "Add Activity note");
+    setAddActivityNoteOpen(false);
+  };
+  const applyActivityNote = (value: ActivityNoteInput) => {
+    if (selectedActivityNote)
+      commitSource(updateActivityNote(workspace.source, selectedActivityNote, value), "Update Activity note");
+  };
+  const removeActivityNote = () => {
+    if (!selectedActivityNote) return;
+    commitSource(deleteActivityNote(workspace.source, selectedActivityNote), "Delete Activity note");
+    setSelectedActivityObjectId(undefined);
   };
 
   const reconnectUseCaseRelationshipByDrag = useCallback(
@@ -2320,7 +2423,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -2361,6 +2464,9 @@ export function App() {
             onClassRelationship={() => setAddClassRelationshipOpen(true)}
             onClassPackage={() => setAddClassPackageOpen(true)}
             onClassNote={() => setAddClassNoteOpen(true)}
+            onActivityAction={() => setAddActivityActionOpen(true)}
+            onActivityPartition={() => setAddActivityPartitionOpen(true)}
+            onActivityNote={() => setAddActivityNoteOpen(true)}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2397,6 +2503,17 @@ export function App() {
               }}
             >
               Class
+            </button>
+          )}
+          {workspace.diagramKind === "activity" && (
+            <button
+              data-inspector-trigger
+              onClick={() => {
+                setSelectedActivityObjectId(undefined);
+                setActivitySettingsOpen(true);
+              }}
+            >
+              Activity
             </button>
           )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
@@ -2565,7 +2682,9 @@ export function App() {
                 }
               } else if (workspace.diagramKind === "usecase") {
                 setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
-              } else setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
+              } else if (workspace.diagramKind === "class") {
+                setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
+              } else setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
             }}
           />
         )}
@@ -2718,7 +2837,7 @@ export function App() {
               onMoveToPackage={moveUseCaseElementByDrag}
               onReorder={reorderUseCaseElementByDrag}
             />
-          ) : (
+          ) : workspace.diagramKind === "class" ? (
             <ClassDiagramPreview
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -2747,6 +2866,29 @@ export function App() {
               onRelationshipReconnect={reconnectClassRelationshipByDrag}
               onMoveToPackage={moveClassEntityByDrag}
               onReorder={reorderClassEntityByDrag}
+            />
+          ) : (
+            <ActivityDiagramPreview
+              svg={result?.svg}
+              zoom={workspace.zoom}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              document={activityDocument}
+              selectedId={selectedActivityObjectId}
+              onSelect={(id) => {
+                setSelectedActivityObjectId(id);
+                const object = [
+                  ...activityDocument.nodes,
+                  ...activityDocument.controls,
+                  ...activityDocument.partitions,
+                  ...activityDocument.notes,
+                  ...activityDocument.arrows,
+                ].find((item) => item.id === id);
+                if (object) setSelectionRequest({ ...object.sourceRange });
+              }}
+              onBackgroundSelect={() => setSelectedActivityObjectId(undefined)}
             />
           ))}
       </main>
@@ -2781,6 +2923,8 @@ export function App() {
               ? "Use Case"
               : workspace.diagramKind === "class"
                 ? "Class"
+                : workspace.diagramKind === "activity"
+                  ? "Activity"
                 : "Gantt"}
         </span>
         <span>
@@ -2797,6 +2941,26 @@ export function App() {
       </footer>
       {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={() => setNewDocumentOpen(false)} />}
+      {addActivityActionOpen && (
+        <AddActivityActionDialog
+          document={activityDocument}
+          onAdd={addActivityAction}
+          onClose={() => setAddActivityActionOpen(false)}
+        />
+      )}
+      {addActivityPartitionOpen && (
+        <AddActivityPartitionDialog
+          onAdd={addActivityPartition}
+          onClose={() => setAddActivityPartitionOpen(false)}
+        />
+      )}
+      {addActivityNoteOpen && (
+        <AddActivityNoteDialog
+          document={activityDocument}
+          onAdd={addActivityNote}
+          onClose={() => setAddActivityNoteOpen(false)}
+        />
+      )}
       {addSequenceParticipantOpen && (
         <AddSequenceParticipantDialog
           onAdd={addSequenceParticipant}
@@ -2885,6 +3049,13 @@ export function App() {
           settings={parseUseCaseSettings(workspace.source)}
           onChange={applyUseCaseSettings}
           onClose={() => setUseCaseSettingsOpen(false)}
+        />
+      )}
+      {activitySettingsOpen && (
+        <ActivitySettingsInspector
+          settings={parseActivitySettings(workspace.source)}
+          onChange={applyActivitySettings}
+          onClose={() => setActivitySettingsOpen(false)}
         />
       )}
       {dateMenuFor && (
@@ -3001,6 +3172,30 @@ export function App() {
           onPackageChange={moveSelectedClassEntity}
           onDelete={removeClassEntity}
           onClose={() => setSelectedClassObjectId(undefined)}
+        />
+      )}
+      {selectedActivityAction && (
+        <ActivityActionInspector
+          item={selectedActivityAction}
+          onChange={applyActivityAction}
+          onDelete={removeActivityAction}
+          onClose={() => setSelectedActivityObjectId(undefined)}
+        />
+      )}
+      {selectedActivityPartition && (
+        <ActivityPartitionInspector
+          item={selectedActivityPartition}
+          onChange={applyActivityPartition}
+          onDelete={removeActivityPartition}
+          onClose={() => setSelectedActivityObjectId(undefined)}
+        />
+      )}
+      {selectedActivityNote && (
+        <ActivityNoteInspector
+          item={selectedActivityNote}
+          onChange={applyActivityNote}
+          onDelete={removeActivityNote}
+          onClose={() => setSelectedActivityObjectId(undefined)}
         />
       )}
       {selectedClassRelationship && (

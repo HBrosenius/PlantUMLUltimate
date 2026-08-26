@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase" | "class";
+export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "activity";
 
 export interface RenderRequest {
   requestId: number;
@@ -78,4 +78,24 @@ package "Ordering" {
 
 Order "1" *-- "many" OrderLine
 OrderRepository ..> Order : persists
+@enduml`;
+
+export const DEFAULT_ACTIVITY_SOURCE = `@startuml
+start
+
+partition "Order processing" {
+  :Receive order;
+  if (Payment valid?) then (yes)
+    :Reserve stock;
+    fork
+      :Create shipment;
+    fork again
+      :Send confirmation;
+    end fork
+  else (no)
+    :Request new payment details;
+  endif
+}
+
+stop
 @enduml`;

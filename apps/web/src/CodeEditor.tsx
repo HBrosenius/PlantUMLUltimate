@@ -14,6 +14,8 @@ import { plantUmlUseCaseHighlightStyle, plantUmlUseCaseMode } from "./plantuml-u
 import { getUseCaseQuickFixes, useCaseCompletions, useCaseDiagnostics } from "./usecase-language";
 import { plantUmlClassHighlightStyle, plantUmlClassMode } from "./plantuml-class-mode";
 import { classCompletions, classDiagnostics, classQuickFixes } from "./class-language";
+import { plantUmlActivityHighlightStyle, plantUmlActivityMode } from "./plantuml-activity-mode";
+import { activityCompletions, activityDiagnostics, activityQuickFixes } from "./activity-language";
 import type { DiagramKind } from "./model";
 
 interface Props {
@@ -32,7 +34,9 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? plantUmlSequenceMode
         : kind === "usecase"
           ? plantUmlUseCaseMode
-          : plantUmlClassMode;
+          : kind === "class"
+            ? plantUmlClassMode
+            : plantUmlActivityMode;
   const highlights =
     kind === "gantt"
       ? plantUmlGanttHighlightStyle
@@ -40,7 +44,9 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? plantUmlSequenceHighlightStyle
         : kind === "usecase"
           ? plantUmlUseCaseHighlightStyle
-          : plantUmlClassHighlightStyle;
+          : kind === "class"
+            ? plantUmlClassHighlightStyle
+            : plantUmlActivityHighlightStyle;
   const completions =
     kind === "gantt"
       ? ganttCompletions
@@ -48,7 +54,9 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? sequenceCompletions
         : kind === "usecase"
           ? useCaseCompletions
-          : classCompletions;
+          : kind === "class"
+            ? classCompletions
+            : activityCompletions;
   const diagnostics =
     kind === "gantt"
       ? ganttDiagnostics
@@ -56,7 +64,9 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? sequenceDiagnostics
         : kind === "usecase"
           ? useCaseDiagnostics
-          : classDiagnostics;
+          : kind === "class"
+            ? classDiagnostics
+            : activityDiagnostics;
   return [
     StreamLanguage.define(mode),
     syntaxHighlighting(highlights),
@@ -72,7 +82,9 @@ const quickFixesFor = (kind: DiagramKind, source: string): GanttQuickFix[] =>
       ? sequenceQuickFixes(source)
       : kind === "usecase"
         ? getUseCaseQuickFixes(source)
-        : classQuickFixes(source);
+        : kind === "class"
+          ? classQuickFixes(source)
+          : activityQuickFixes(source);
 
 export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selectedRange }: Props) {
   const host = useRef<HTMLDivElement>(null);

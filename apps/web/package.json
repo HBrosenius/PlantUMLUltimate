@@ -9,6 +9,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@plantuml-studio/diagram-activity": "*",
     "@plantuml-studio/diagram-gantt": "*",
     "@plantuml-studio/diagram-class": "*",
     "@plantuml-studio/diagram-sequence": "*",

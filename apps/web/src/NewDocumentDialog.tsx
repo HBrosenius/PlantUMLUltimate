@@ -15,6 +15,11 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     description: "Model actors, system capabilities, relationships, packages, and requirements.",
   },
   { kind: "class", title: "Class diagram", description: "Design types, members, packages, and relationships." },
+  {
+    kind: "activity",
+    title: "Activity diagram",
+    description: "Model workflows, decisions, parallel work, loops, partitions, and outcomes.",
+  },
 ];
 
 export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
@@ -52,6 +57,7 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
           <div className="diagram-kind-options">
             {OPTIONS.map((option, index) => (
               <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
+                {option.kind === "activity" && <span className="diagram-kind-beta">Beta</span>}
                 <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>
@@ -202,6 +208,20 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
         <text x="153" y="66">
           +save()
         </text>
+      </svg>
+    );
+  if (kind === "activity")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <circle cx="34" cy="56" r="8" fill="#2563eb" />
+        <path className="preview-link" d="M42 56H72M130 56h22M196 56h20" />
+        <rect x="72" y="39" width="58" height="34" rx="12" fill="#60a5fa" />
+        <path d="m174 32 24 24-24 24-24-24z" fill="#c084fc" />
+        <circle cx="220" cy="56" r="9" fill="none" stroke="#2563eb" strokeWidth="3" />
+        <circle cx="220" cy="56" r="5" fill="#2563eb" />
+        <text className="preview-light-text" x="101" y="59" textAnchor="middle">Work</text>
+        <text className="preview-light-text" x="174" y="59" textAnchor="middle">OK?</text>
       </svg>
     );
   return (

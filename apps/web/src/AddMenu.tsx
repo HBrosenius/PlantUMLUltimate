@@ -24,6 +24,9 @@ export function AddMenu({
   onClassRelationship,
   onClassPackage,
   onClassNote,
+  onActivityAction,
+  onActivityPartition,
+  onActivityNote,
 }: {
   diagramKind: DiagramKind;
   onTask(): void;
@@ -46,6 +49,9 @@ export function AddMenu({
   onClassRelationship(): void;
   onClassPackage(): void;
   onClassNote(): void;
+  onActivityAction(): void;
+  onActivityPartition(): void;
+  onActivityNote(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -184,7 +190,7 @@ export function AddMenu({
                 <span>Note…</span>
               </button>
             </>
-          ) : (
+          ) : diagramKind === "class" ? (
             <>
               <button role="menuitem" onClick={() => run(onClassEntity)}>
                 <span>Class, interface, or enum…</span>
@@ -198,6 +204,12 @@ export function AddMenu({
               <button role="menuitem" onClick={() => run(onClassNote)}>
                 <span>Note…</span>
               </button>
+            </>
+          ) : (
+            <>
+              <button role="menuitem" onClick={() => run(onActivityAction)}><span>Action…</span></button>
+              <button role="menuitem" onClick={() => run(onActivityPartition)}><span>Partition…</span></button>
+              <button role="menuitem" onClick={() => run(onActivityNote)}><span>Note…</span></button>
             </>
           )}
         </div>

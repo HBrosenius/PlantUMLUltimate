@@ -1682,6 +1682,19 @@ textarea:focus-visible,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
+.diagram-kind-beta {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #6d28d9;
+  color: white !important;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
 @media (max-width: 760px) {
   .diagram-kind-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1887,6 +1900,19 @@ textarea:focus-visible,
   stroke: transparent;
   pointer-events: all;
   cursor: pointer;
+}
+.activity-semantic-hit {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+  cursor: pointer;
+}
+.activity-semantic-hit:hover,
+.activity-selected-object {
+  fill: rgb(37 99 235 / 10%);
+  stroke: #2563eb;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
 }
 .class-semantic-hit:hover,
 .class-selected-object {

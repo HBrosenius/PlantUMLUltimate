@@ -187,6 +187,73 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(page.locator(".cm-content")).toContainText("left to right direction");
 });
 
+test("creates and edits Activity actions, partitions, and notes", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  const activityChoice = chooser.getByRole("button", { name: /Activity diagram/ });
+  await expect(activityChoice.getByText("Beta", { exact: true })).toBeVisible();
+  await activityChoice.click();
+  await expect(page.getByRole("region", { name: "Activity diagram preview" })).toBeVisible();
+  await expect(page.locator(".cm-content")).toContainText(":Receive order;");
+  await expect(page.locator(".activity-diagram svg")).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole("button", { name: "Activity", exact: true }).click();
+  const settings = page.getByRole("complementary", { name: "Activity settings" });
+  await settings.getByLabel("Title").fill("Order lifecycle");
+  await settings.getByLabel("Title").blur();
+  await expect(page.locator(".cm-content")).toContainText("title Order lifecycle");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Partition…" }).click();
+  const partition = page.getByRole("dialog", { name: "Add Activity partition" });
+  await partition.getByLabel("Name").fill("Operations");
+  await partition.getByLabel("Color").fill("Lavender");
+  await partition.getByRole("button", { name: "Add partition" }).click();
+  await expect(page.locator(".cm-content")).toContainText('partition "Operations" #Lavender');
+  await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
+  const partitionInspector = page.getByRole("complementary", { name: "Activity partition inspector" });
+  await partitionInspector.getByLabel("Name").fill("Operations team");
+  await partitionInspector.getByLabel("Name").blur();
+  await expect(page.locator(".cm-content")).toContainText('partition "Operations team" #Lavender');
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Action…" }).click();
+  const action = page.getByRole("dialog", { name: "Add Activity action" });
+  await action.getByLabel("Text").fill("Archive order");
+  await action.getByLabel("Partition").selectOption("operations-team");
+  await action.getByLabel("Stereotype").fill("service");
+  await action.getByLabel("Color").fill("PaleGreen");
+  await action.getByRole("button", { name: "Add action" }).click();
+  await expect(page.locator(".cm-content")).toContainText(":Archive order; <<service>> <<#PaleGreen>>");
+
+  const renderedAction = page.locator('[data-activity-object-id="action-5"]');
+  await expect(renderedAction).toBeVisible({ timeout: 20_000 });
+  await renderedAction.click({ force: true });
+  const inspector = page.getByRole("complementary", { name: "Activity action inspector" });
+  await inspector.getByLabel("Text").fill("Archive completed order");
+  await inspector.getByLabel("Text").blur();
+  await expect(page.locator(".cm-content")).toContainText(":Archive completed order; <<service>> <<#PaleGreen>>");
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Note…" }).click();
+  const note = page.getByRole("dialog", { name: "Add Activity note" });
+  await note.getByLabel("Position").selectOption("left");
+  await note.getByLabel("Attached to").selectOption("action-5");
+  await note.getByLabel("Text").fill("Stored for audit");
+  await note.getByRole("button", { name: "Add note" }).click();
+  await expect(page.locator(".cm-content")).toContainText("note leftStored for auditend note");
+  const renderedNote = page.getByRole("group", { name: "Activity notes" }).getByRole("button", {
+    name: "Stored for audit",
+  });
+  await expect(renderedNote).toBeVisible({ timeout: 20_000 });
+  await renderedNote.click();
+  const noteInspector = page.getByRole("complementary", { name: "Activity note inspector" });
+  await noteInspector.getByLabel("Text").fill("Stored for compliance audit");
+  await noteInspector.getByLabel("Text").blur();
+  await expect(page.locator(".cm-content")).toContainText("note leftStored for compliance auditend note");
+});
+
 test("creates and edits Use Case objects through diagram-specific tools", async ({ page }) => {
   test.setTimeout(60_000);
   await page.getByRole("button", { name: "New document tab" }).click();
@@ -631,7 +698,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
-  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(4);
+  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(5);
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
