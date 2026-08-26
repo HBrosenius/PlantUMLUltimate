@@ -831,7 +831,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText(
     'database "Order store" as Orders <<(D,#FDE68A) Store>> order 30',
   );
-  await page.getByRole("button", { name: "Copy PlantUML source" }).click();
+  await page.getByRole("button", { name: "Copy code" }).click();
   await expect(participantInspector).toBeHidden();
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -1256,8 +1256,8 @@ test("copies the current source from the code editor", async ({ page, context, b
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const value = source("[Copy me] lasts 2 days");
   await setSource(page, value);
-  await page.getByRole("button", { name: "Copy PlantUML source" }).click();
-  await expect(page.getByRole("button", { name: "Copy PlantUML source" })).toHaveText("Copied!");
+  await page.getByRole("button", { name: "Copy code" }).click();
+  await expect(page.getByRole("button", { name: "Copied!" })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
 });
 

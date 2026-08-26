@@ -114,6 +114,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
           language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
           EditorView.lineWrapping,
+          EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
           EditorView.domEventHandlers({
             click: (_event, currentView) => {
               const position = currentView.state.selection.main.head;
@@ -218,7 +219,7 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
             Fix issue{quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}
           </button>
         )}
-        <button type="button" onClick={() => void copySource()} aria-label="Copy PlantUML source">
+        <button type="button" onClick={() => void copySource()}>
           {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy code"}
         </button>
       </div>

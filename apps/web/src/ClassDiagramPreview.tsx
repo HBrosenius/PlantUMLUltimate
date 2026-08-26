@@ -302,7 +302,7 @@ export function ClassDiagramPreview({
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>
-        <button onClick={() => onZoomChange(1)} aria-label="Reset zoom">
+        <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
           {Math.round(zoom * 100)}%
         </button>
         <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
