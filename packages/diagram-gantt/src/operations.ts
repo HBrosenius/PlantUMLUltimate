@@ -161,6 +161,16 @@ export function createDependency(source: string, predecessor: GanttTask, success
     return `[${successorReference}]${resources ? ` on ${resources}` : ""} starts at [${predecessorReference}]'s end`;
   };
   const statement = dependencyStatement();
+  const endMarker = /(^|\r?\n)([ \t]*)@endgantt\b/i.exec(source);
+  const dependencyInsertion = (text = statement): SourceEdit => {
+    const newline = source.includes("\r\n") ? "\r\n" : "\n";
+    const from = endMarker ? endMarker.index + endMarker[1]!.length : source.length;
+    const needsLeadingNewline = from > 0 && source[from - 1] !== "\n";
+    return {
+      range: { from, to: from },
+      text: `${needsLeadingNewline ? newline : ""}${text}${newline}`,
+    };
+  };
   const explicitStart = successor.start
     ? successor.declarations.find(
         (item) =>
@@ -195,16 +205,18 @@ export function createDependency(source: string, predecessor: GanttTask, success
           durationClause,
         );
       const indentation = originalLine.match(/^\s*/)?.[0] ?? "";
-      const newline = source.includes("\r\n") ? "\r\n" : "\n";
       return {
         edits: [
-          { range: { from: lineFrom, to: lineTo }, text: `${indentation}${statement}${newline}${remainingLine}` },
+          { range: { from: lineFrom, to: lineTo }, text: `${indentation}${remainingLine.trimStart()}` },
+          dependencyInsertion(),
         ],
       };
     }
     const original = source.slice(explicitStart.range.from, explicitStart.range.to);
-    const indentation = original.match(/^\s*/)?.[0] ?? "";
-    const edits: SourceEdit[] = [{ range: explicitStart.range, text: indentation + dependencyStatement(original) }];
+    const edits: SourceEdit[] = [
+      { range: explicitStart.range, text: "" },
+      dependencyInsertion(dependencyStatement(original)),
+    ];
     const explicitEnd =
       durationClause && successor.end
         ? successor.declarations.find(
@@ -225,11 +237,8 @@ export function createDependency(source: string, predecessor: GanttTask, success
     }
     return { edits };
   }
-  const newline = source.includes("\r\n") ? "\r\n" : "\n";
   return {
-    edits: [
-      { range: { from: successor.sourceRange.to, to: successor.sourceRange.to }, text: `${newline}${statement}` },
-    ],
+    edits: [dependencyInsertion()],
   };
 }
 
@@ -305,10 +314,15 @@ export function insertVerticalSeparator(
     return { edits: [], unavailableReason: "No @endgantt marker was found" };
   const insertionPoint = endMatch.index + (endMatch[1]?.length ?? 0);
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
-  const position = input.offset
-    ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} `
-    : "at ";
-  return { edits: [{ range: { from: insertionPoint, to: insertionPoint }, text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}${newline}${newline}` }] };
+  const position = input.offset ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} ` : "at ";
+  return {
+    edits: [
+      {
+        range: { from: insertionPoint, to: insertionPoint },
+        text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}${newline}${newline}`,
+      },
+    ],
+  };
 }
 
 export function moveVerticalSeparatorByDays(
@@ -319,14 +333,15 @@ export function moveVerticalSeparatorByDays(
   if (!Number.isInteger(days)) return { edits: [], unavailableReason: "Vertical separators move in whole days" };
   const current = (separator.direction === "before" ? -1 : 1) * separator.offset;
   const next = current + days;
-  const position = next === 0
-    ? "at "
-    : `${Math.abs(next)} day${Math.abs(next) === 1 ? "" : "s"} ${next < 0 ? "before" : "after"} `;
+  const position =
+    next === 0 ? "at " : `${Math.abs(next)} day${Math.abs(next) === 1 ? "" : "s"} ${next < 0 ? "before" : "after"} `;
   return {
-    edits: [{
-      range: separator.sourceRange,
-      text: `Separator just ${position}[${separator.taskLabel}]'s ${separator.anchor}`,
-    }],
+    edits: [
+      {
+        range: separator.sourceRange,
+        text: `Separator just ${position}[${separator.taskLabel}]'s ${separator.anchor}`,
+      },
+    ],
   };
 }
 
@@ -339,10 +354,10 @@ export function updateVerticalSeparator(
     return { edits: [], unavailableReason: "Choose a valid task for the vertical separator" };
   if (!Number.isInteger(input.offset) || input.offset < 0)
     return { edits: [], unavailableReason: "Vertical separator offset must be zero or more whole days" };
-  const position = input.offset
-    ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} `
-    : "at ";
-  return { edits: [{ range: separator.sourceRange, text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}` }] };
+  const position = input.offset ? `${input.offset} day${input.offset === 1 ? "" : "s"} ${input.direction} ` : "at ";
+  return {
+    edits: [{ range: separator.sourceRange, text: `Separator just ${position}[${taskLabel}]'s ${input.anchor}` }],
+  };
 }
 
 export function deleteVerticalSeparator(
@@ -428,9 +443,9 @@ export function updateDependency(source: string, dependency: GanttDependency, va
   const indentation = original.match(/^\s*/)?.[0] ?? "";
   const alias = original.match(/\bas\s+\[[^\]]+]/i)?.[0];
   const resources = original.match(/\bon\s+(?:\{[^}]+}\s*)+/i)?.[0]?.trim();
-  const prefix = [`[${value.successorLabel}]`, alias, resources].filter((part): part is string => Boolean(part)).join(
-    " ",
-  );
+  const prefix = [`[${value.successorLabel}]`, alias, resources]
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
   return { edits: [{ range: dependency.sourceRange, text: `${indentation}${prefix} ${relation}` }] };
 }
 
@@ -496,7 +511,8 @@ export function insertTask(source: string, input: NewTaskInput): MoveTaskResult 
   lines.push(`[${label}] lasts ${input.durationDays} ${input.durationDays === 1 ? "day" : "days"}`);
   if (input.color?.trim()) {
     const color = input.color.trim();
-    if (/\s|[\r\n]/.test(color)) return { edits: [], unavailableReason: "Color must be a PlantUML color name or hex value" };
+    if (/\s|[\r\n]/.test(color))
+      return { edits: [], unavailableReason: "Color must be a PlantUML color name or hex value" };
     lines.push(`[${label}] is colored in ${color}`);
   }
   return {
@@ -586,7 +602,13 @@ export function setTaskDeclaration(
 }
 
 export function setTaskPauses(source: string, task: GanttTask, dates: readonly string[]): MoveTaskResult {
-  if (dates.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date) && !/^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(date)))
+  if (
+    dates.some(
+      (date) =>
+        !/^\d{4}-\d{2}-\d{2}$/.test(date) &&
+        !/^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(date),
+    )
+  )
     return { edits: [], unavailableReason: "Pauses must use YYYY-MM-DD or a weekday name" };
   const pauseDeclarations = task.declarations.filter((item) => item.kind === "pause");
   const edits = pauseDeclarations.map((item) => ({ range: wholeLineRange(source, item.range), text: "" }));
@@ -614,12 +636,19 @@ export function setTaskLinks(
   const declarations = task.declarations.filter((item) => item.kind === "link");
   const edits = declarations.map((item) => ({ range: wholeLineRange(source, item.range), text: "" }));
   if (!links.length) return { edits };
-  const anchor = Math.max(task.labelRange.to, ...task.declarations.filter((item) => item.kind !== "link").map((item) => item.range.to));
+  const anchor = Math.max(
+    task.labelRange.to,
+    ...task.declarations.filter((item) => item.kind !== "link").map((item) => item.range.to),
+  );
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const label = task.alias?.value ?? task.label;
   edits.push({
     range: { from: anchor, to: anchor },
-    text: links.map((link) => `${newline}[${label}] links to [[${link.url}${link.label?.trim() ? ` ${link.label.trim()}` : ""}]]`).join(""),
+    text: links
+      .map(
+        (link) => `${newline}[${label}] links to [[${link.url}${link.label?.trim() ? ` ${link.label.trim()}` : ""}]]`,
+      )
+      .join(""),
   });
   return { edits };
 }

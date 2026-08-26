@@ -213,19 +213,28 @@ describe("task inspector operations", () => {
     const task = parseGantt(source).document.tasks[0]!;
     const changed = applySourceEdits(source, setTaskPauses(source, task, ["monday", "2026-09-03"]).edits);
     expect(changed).toContain("[A] pauses on monday");
-    expect(parseGantt(changed).diagnostics).not.toEqual(expect.arrayContaining([expect.objectContaining({ code: "invalid-date" })]));
+    expect(parseGantt(changed).diagnostics).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "invalid-date" })]),
+    );
   });
 
   it("writes a selected color when inserting a task", () => {
     const source = "@startgantt\n@endgantt";
-    const changed = applySourceEdits(source, insertTask(source, { label: "Build", durationDays: 2, startDate: "2026-09-01", color: "Orange" }).edits);
+    const changed = applySourceEdits(
+      source,
+      insertTask(source, { label: "Build", durationDays: 2, startDate: "2026-09-01", color: "Orange" }).edits,
+    );
     expect(changed).toContain("[Build] is colored in Orange");
   });
 
   it("replaces task links without rewriting unrelated source", () => {
     const source = "@startgantt\n' keep\n[A] lasts 2 days\n[A] links to [[https://old.example Old]]\n@endgantt";
     const task = parseGantt(source).document.tasks[0]!;
-    const changed = applySourceEdits(source, setTaskLinks(source, task, [{ url: "https://new.example", label: "Details" }, { url: "https://docs.example" }]).edits);
+    const changed = applySourceEdits(
+      source,
+      setTaskLinks(source, task, [{ url: "https://new.example", label: "Details" }, { url: "https://docs.example" }])
+        .edits,
+    );
     expect(changed).toContain("' keep");
     expect(changed).not.toContain("old.example");
     expect(changed).toContain("[A] links to [[https://new.example Details]]");
@@ -302,7 +311,7 @@ describe("task inspector operations", () => {
 });
 
 describe("dependency operations", () => {
-  it("replaces only an explicit start declaration", () => {
+  it("moves a new constraint after all task declarations", () => {
     const source =
       "@startgantt\n' keep\n[Design] lasts 2 days\n  [Build] starts 2026-09-05\n[Build] lasts 4 days\n@endgantt";
     const document = parseGantt(source).document;
@@ -312,8 +321,26 @@ describe("dependency operations", () => {
       document.symbols.tasks.get("build")!,
     );
     expect(applySourceEdits(source, result.edits)).toBe(
-      "@startgantt\n' keep\n[Design] lasts 2 days\n  [Build] starts at [Design]'s end\n[Build] lasts 4 days\n@endgantt",
+      "@startgantt\n' keep\n[Design] lasts 2 days\n\n[Build] lasts 4 days\n[Build] starts at [Design]'s end\n@endgantt",
     );
+  });
+
+  it("creates a dependency on a task declared later without a forward reference", () => {
+    const source =
+      "@startgantt\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n[Testing] starts 2026-09-13\n[Testing] lasts 5 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      createDependency(source, document.symbols.tasks.get("testing")!, document.symbols.tasks.get("frontend")!).edits,
+    );
+
+    expect(changed.indexOf("[Frontend] starts at [Testing]'s end")).toBeGreaterThan(
+      changed.indexOf("[Testing] lasts 5 days"),
+    );
+    expect(parseGantt(changed).diagnostics).toEqual([]);
+    expect(parseGantt(changed).document.dependencies).toMatchObject([
+      { predecessorTaskId: "testing", successorTaskId: "frontend", relation: "start-after-end" },
+    ]);
   });
 
   it("preserves a resource assignment when an explicit start becomes a dependency", () => {
@@ -341,7 +368,7 @@ describe("dependency operations", () => {
       document.symbols.tasks.get("build")!,
     );
     const changed = applySourceEdits(source, result.edits);
-    expect(changed).toContain("[Build] starts at [Design]'s end\n[Build] lasts 6 days and is colored in Blue");
+    expect(changed).toContain("[Build] lasts 6 days and is colored in Blue\n[Build] starts at [Design]'s end");
     expect(changed).not.toContain("[Build] [Build]");
     expect(parseGantt(changed).diagnostics).toEqual([]);
     expect(parseGantt(changed).document.dependencies).toHaveLength(1);
@@ -501,9 +528,15 @@ describe("annotations", () => {
 
   it("inserts a PlantUML vertical separator relative to a task boundary", () => {
     const source = "@startgantt\n[A] lasts 2 days\n@endgantt";
-    const changed = applySourceEdits(source, insertVerticalSeparator(source, {
-      taskLabel: "A", anchor: "end", offset: 2, direction: "after",
-    }).edits);
+    const changed = applySourceEdits(
+      source,
+      insertVerticalSeparator(source, {
+        taskLabel: "A",
+        anchor: "end",
+        offset: 2,
+        direction: "after",
+      }).edits,
+    );
     expect(changed).toContain("Separator just 2 days after [A]'s end");
     expect(parseGantt(changed).document.verticalSeparators).toEqual([
       expect.objectContaining({ taskLabel: "A", anchor: "end", offset: 2, direction: "after" }),
@@ -520,7 +553,10 @@ describe("annotations", () => {
   it("edits and deletes a vertical separator without rewriting tasks", () => {
     const source = "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\nSeparator just at [A]'s end\n@endgantt";
     const separator = parseGantt(source).document.verticalSeparators[0]!;
-    const changed = applySourceEdits(source, updateVerticalSeparator(separator, { taskLabel: "B", anchor: "start", offset: 1, direction: "before" }).edits);
+    const changed = applySourceEdits(
+      source,
+      updateVerticalSeparator(separator, { taskLabel: "B", anchor: "start", offset: 1, direction: "before" }).edits,
+    );
     expect(changed).toContain("[A] lasts 2 days\n[B] lasts 3 days");
     expect(changed).toContain("Separator just 1 day before [B]'s start");
     const current = parseGantt(changed).document.verticalSeparators[0]!;

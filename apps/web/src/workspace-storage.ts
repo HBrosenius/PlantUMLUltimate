@@ -1,3 +1,4 @@
+import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/diagram-gantt";
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
 
@@ -26,7 +27,7 @@ export interface DocumentSnapshot {
 }
 
 export interface WorkspaceSession {
-  version: 4;
+  version: 5;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
   viewMode: ViewMode;
@@ -47,7 +48,7 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
 };
 
 export const DEFAULT_SESSION: WorkspaceSession = {
-  version: 4,
+  version: 5,
   documents: [
     {
       id: "welcome",
@@ -73,6 +74,35 @@ const CURRENT = "current";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
 
+function wholeLineRange(source: string, range: { from: number; to: number }): { from: number; to: number } {
+  const from = source.lastIndexOf("\n", Math.max(0, range.from - 1)) + 1;
+  const lineBreak = source.indexOf("\n", range.to);
+  return { from, to: lineBreak < 0 ? source.length : lineBreak + 1 };
+}
+
+export function migrateGanttDependencyPlacement(source: string): string {
+  const parsed = parseGantt(source);
+  const blocks = parsed.document.dependencies
+    .filter((dependency) => !/->/.test(source.slice(dependency.sourceRange.from, dependency.sourceRange.to)))
+    .map((dependency) => {
+      const lastRange = dependency.notes?.at(-1)?.sourceRange ?? dependency.sourceRange;
+      return wholeLineRange(source, { from: dependency.sourceRange.from, to: lastRange.to });
+    })
+    .sort((left, right) => left.from - right.from);
+  if (!blocks.length) return source;
+
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const endMarker = /(^|\r?\n)([ \t]*)@endgantt\b/i.exec(source);
+  if (!endMarker) return source;
+  const insertionPoint = endMarker.index + endMarker[1]!.length;
+  const dependencyText = blocks.map((range) => source.slice(range.from, range.to).replace(/\r?\n$/, "")).join(newline);
+  const edits: SourceEdit[] = [
+    ...blocks.map((range) => ({ range, text: "" })),
+    { range: { from: insertionPoint, to: insertionPoint }, text: `${dependencyText}${newline}` },
+  ];
+  return applySourceEdits(source, edits);
+}
+
 export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
   if (!value || typeof value !== "object") return DEFAULT_WORKSPACE;
   const candidate = value as Partial<WorkspaceSnapshot>;
@@ -92,30 +122,36 @@ export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
 export function normalizeSession(value: unknown): WorkspaceSession {
   if (value && typeof value === "object" && Array.isArray((value as Partial<WorkspaceSession>).documents)) {
     const candidate = value as Partial<WorkspaceSession>;
+    const migrateDependencies = Number(candidate.version ?? 0) < 5;
     const documents = candidate
       .documents!.filter((item): item is DocumentSnapshot =>
         Boolean(item && typeof item.id === "string" && typeof item.source === "string"),
       )
-      .map((item) => ({
-        id: item.id,
-        historyId: item.historyId || `history-${item.id}`,
-        diagramKind: normalizeDiagramKind((item as Partial<DocumentSnapshot>).diagramKind, item.source),
-        source: item.source,
-        fileName: item.fileName || "untitled.puml",
-        dirty: Boolean(item.dirty),
-        zoom: Math.min(3, Math.max(0.25, Number(item.zoom) || 1)),
-        cursor: {
-          line: Math.max(1, Number(item.cursor?.line) || 1),
-          column: Math.max(1, Number(item.cursor?.column) || 1),
-        },
-        ...(typeof item.baselineVersionId === "string" ? { baselineVersionId: item.baselineVersionId } : {}),
-      }));
+      .map((item) => {
+        const diagramKind = normalizeDiagramKind((item as Partial<DocumentSnapshot>).diagramKind, item.source);
+        const source =
+          migrateDependencies && diagramKind === "gantt" ? migrateGanttDependencyPlacement(item.source) : item.source;
+        return {
+          id: item.id,
+          historyId: item.historyId || `history-${item.id}`,
+          diagramKind,
+          source,
+          fileName: item.fileName || "untitled.puml",
+          dirty: Boolean(item.dirty) || source !== item.source,
+          zoom: Math.min(3, Math.max(0.25, Number(item.zoom) || 1)),
+          cursor: {
+            line: Math.max(1, Number(item.cursor?.line) || 1),
+            column: Math.max(1, Number(item.cursor?.column) || 1),
+          },
+          ...(typeof item.baselineVersionId === "string" ? { baselineVersionId: item.baselineVersionId } : {}),
+        };
+      });
     if (documents.length === 0) return DEFAULT_SESSION;
     const activeDocumentId = documents.some((item) => item.id === candidate.activeDocumentId)
       ? candidate.activeDocumentId!
       : documents[0]!.id;
     return {
-      version: 4,
+      version: 5,
       documents,
       activeDocumentId,
       viewMode: candidate.viewMode ?? "split",
@@ -124,19 +160,21 @@ export function normalizeSession(value: unknown): WorkspaceSession {
     };
   }
   const legacy = normalizeWorkspace(value);
+  const diagramKind = normalizeDiagramKind(
+    (value as Partial<WorkspaceSnapshot> | undefined)?.diagramKind,
+    legacy.source,
+  );
+  const source = diagramKind === "gantt" ? migrateGanttDependencyPlacement(legacy.source) : legacy.source;
   return {
-    version: 4,
+    version: 5,
     documents: [
       {
         id: "migrated",
         historyId: "history-migrated",
-        diagramKind: normalizeDiagramKind(
-          (value as Partial<WorkspaceSnapshot> | undefined)?.diagramKind,
-          legacy.source,
-        ),
-        source: legacy.source,
+        diagramKind,
+        source,
         fileName: legacy.fileName,
-        dirty: legacy.dirty,
+        dirty: legacy.dirty || source !== legacy.source,
         zoom: legacy.zoom,
         cursor: legacy.cursor,
       },
@@ -332,10 +370,7 @@ export async function deleteDocumentVersion(id: string): Promise<void> {
   database.close();
 }
 
-export async function pruneDocumentVersions(
-  historyId: string,
-  limit = AUTOMATIC_VERSION_LIMIT,
-): Promise<number> {
+export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC_VERSION_LIMIT): Promise<number> {
   const versions = await loadDocumentVersions(historyId);
   const expired = versions.filter((version) => !version.pinned).slice(Math.max(0, limit));
   if (!expired.length) return 0;

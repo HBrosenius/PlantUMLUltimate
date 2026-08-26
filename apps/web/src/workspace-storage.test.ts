@@ -9,6 +9,7 @@ import {
   deleteDocumentVersion,
   loadDocumentVersions,
   loadWorkspace,
+  migrateGanttDependencyPlacement,
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
@@ -56,7 +57,7 @@ describe("normalizeSession", () => {
 
   it("restores multiple documents and a valid active tab", () => {
     const session = normalizeSession({
-      version: 4,
+      version: 5,
       documents: [
         { id: "a", source: "A", fileName: "a.puml" },
         { id: "b", source: "B", fileName: "b.puml" },
@@ -66,6 +67,48 @@ describe("normalizeSession", () => {
     });
     expect(session.documents.map((item) => item.id)).toEqual(["a", "b"]);
     expect(activeWorkspace(session).source).toBe("B");
+  });
+
+  it("migrates dependencies in every open Gantt document once", () => {
+    const first =
+      "@startgantt\n[Frontend] starts at [Testing]'s end\n[Frontend] lasts 3 days\n[Testing] lasts 2 days\n@endgantt";
+    const second = "@startgantt\n[A] lasts 1 day\n[B] starts at [A]'s end\n[B] lasts 1 day\n@endgantt";
+    const session = normalizeSession({
+      version: 4,
+      documents: [
+        { id: "first", source: first, fileName: "first.puml", dirty: false },
+        { id: "second", source: second, fileName: "second.puml", dirty: false },
+        { id: "sequence", source: "@startuml\nA -> B\n@enduml", fileName: "sequence.puml", dirty: false },
+      ],
+      activeDocumentId: "first",
+    });
+
+    expect(session.version).toBe(5);
+    expect(session.documents[0]?.source.indexOf("[Frontend] starts at [Testing]'s end")).toBeGreaterThan(
+      session.documents[0]?.source.indexOf("[Testing] lasts 2 days") ?? -1,
+    );
+    expect(session.documents[1]?.source.indexOf("[B] starts at [A]'s end")).toBeGreaterThan(
+      session.documents[1]?.source.indexOf("[B] lasts 1 day") ?? -1,
+    );
+    expect(session.documents.map((document) => document.dirty)).toEqual([true, true, false]);
+    expect(normalizeSession(session)).toEqual(session);
+  });
+});
+
+describe("migrateGanttDependencyPlacement", () => {
+  it("moves attached dependency notes with the constraint and leaves arrow shorthand unchanged", () => {
+    const source = `@startgantt
+[B] starts at [A]'s end
+note bottom
+Handoff
+end note
+[B] lasts 2 days
+[A] lasts 3 days
+[A] -> [B]
+@endgantt`;
+    const changed = migrateGanttDependencyPlacement(source);
+
+    expect(changed).toContain("[A] -> [B]\n[B] starts at [A]'s end\nnote bottom\nHandoff\nend note\n@endgantt");
   });
 });
 
@@ -83,7 +126,7 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 4,
+      version: 5,
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,

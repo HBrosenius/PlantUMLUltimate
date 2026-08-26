@@ -40,6 +40,6 @@ describe("diagram adapter architecture", () => {
       parsed.document,
       source,
     );
-    expect(connected.edits[0]?.text).toContain("[B] starts at [A]'s end");
+    expect(connected.edits.some((edit) => edit.text.includes("[B] starts at [A]'s end"))).toBe(true);
   });
 });
