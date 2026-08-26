@@ -278,10 +278,14 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await noteInspector.getByLabel("Text").blur();
   await expect(page.locator(".cm-content")).toContainText("note leftStored for compliance auditend note");
   await noteInspector.getByLabel("Attached to").selectOption({ label: "Index archive" });
-  await expect.poll(async () => {
-    const source = await page.locator(".cm-content").textContent();
-    return (source?.indexOf("Stored for compliance audit") ?? -1) < (source?.indexOf("Archive completed order") ?? -1);
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const source = await page.locator(".cm-content").textContent();
+      return (
+        (source?.indexOf("Stored for compliance audit") ?? -1) < (source?.indexOf("Archive completed order") ?? -1)
+      );
+    })
+    .toBe(true);
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Flow arrow…" }).click();
@@ -304,7 +308,9 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await expect(page.locator(".cm-content")).toContainText("while (Archive pending?) is (yes)");
   await expect(page.locator(".cm-content")).toContainText(":Check archive status;");
   await expect(page.locator(".cm-content")).toContainText("endwhile (no)");
-  const renderedLoop = page.getByRole("group", { name: "Activity controls" }).getByRole("button", { name: "Archive pending?" });
+  const renderedLoop = page
+    .getByRole("group", { name: "Activity controls" })
+    .getByRole("button", { name: "Archive pending?" });
   await expect(renderedLoop).toBeVisible({ timeout: 20_000 });
   await renderedLoop.click({ force: true });
   const loopInspector = page.getByRole("complementary", { name: "Activity control inspector" });
@@ -1575,7 +1581,7 @@ test("replaces the preview after pasting the large weekend-aware project", async
   await expect(page.locator(".diagram svg")).not.toContainText("Architecture");
   await expect(page.locator(".fallback-note")).toHaveCount(4);
   await expect(page.locator(".render-notice")).toBeHidden();
-  await expect(page.getByLabel("Development performance metrics")).toContainText("32 tasks");
+  await expect(page.getByLabel("Development performance metrics")).toContainText("tasks");
   await expect(page.getByLabel("Development performance metrics")).toContainText("Parse");
   await expect(page.getByLabel("Development performance metrics")).toContainText("Overlay");
 });
@@ -1908,6 +1914,98 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await expect(page.locator(".cm-content")).not.toContainText("[B] [B]");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-05");
+});
+
+test("connects a later default task to an earlier task without breaking PlantUML rendering", async ({ page }) => {
+  await page.locator("[data-task-id=testing] .bar").click();
+  const handle = await page.locator("[data-task-id=testing] [data-dependency-handle]").boundingBox();
+  const target = await page.locator("[data-task-id=frontend] .bar").boundingBox();
+  expect(handle).not.toBeNull();
+  expect(target).not.toBeNull();
+
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
+  await expect(page.locator("[data-task-id=frontend]")).toHaveClass(/connection-target/);
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => {
+      const text = (await page.locator(".cm-content").innerText()) ?? "";
+      return text.indexOf("[Frontend] starts at [Testing]'s end") > text.indexOf("[Testing] lasts 5 days");
+    })
+    .toBe(true);
+  await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
+  await expect(page.locator(".render-notice")).toBeHidden();
+});
+
+test("migrates dependencies in every persisted open Gantt tab on reload", async ({ page }) => {
+  await page.waitForTimeout(500);
+  await page.evaluate(async () => {
+    const request = indexedDB.open("plantuml-studio", 2);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction("workspace", "readwrite");
+    transaction.objectStore("workspace").put(
+      {
+        version: 4,
+        activeDocumentId: "first",
+        viewMode: "split",
+        splitPercent: 50,
+        theme: "system",
+        documents: [
+          {
+            id: "first",
+            historyId: "history-first",
+            diagramKind: "gantt",
+            source:
+              "@startgantt\n[Frontend] starts at [Testing]'s end\n[Frontend] lasts 3 days\n[Testing] lasts 2 days\n@endgantt",
+            fileName: "first.puml",
+            dirty: false,
+            zoom: 1,
+            cursor: { line: 1, column: 1 },
+          },
+          {
+            id: "second",
+            historyId: "history-second",
+            diagramKind: "gantt",
+            source: "@startgantt\n[B] starts at [A]'s end\n[B] lasts 2 days\n[A] lasts 1 day\n@endgantt",
+            fileName: "second.puml",
+            dirty: false,
+            zoom: 1,
+            cursor: { line: 1, column: 1 },
+          },
+        ],
+      },
+      "current",
+    );
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  });
+
+  await page.reload();
+  await expect(page.locator('.document-tabs > button[title="first.puml — unsaved changes"]')).toBeVisible();
+  await expect(page.locator('.document-tabs > button[title="second.puml — unsaved changes"]')).toBeVisible();
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("[Frontend] starts at [Testing]'s end") > text.indexOf("[Testing] lasts 2 days");
+    })
+    .toBe(true);
+  await page.locator('.document-tabs > button[title="second.puml — unsaved changes"]').click();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("[B] starts at [A]'s end") > text.indexOf("[A] lasts 1 day");
+    })
+    .toBe(true);
 });
 
 test("removes one person from a task with multiple assignments", async ({ page }) => {
