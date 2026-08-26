@@ -1,8 +1,10 @@
-import type { ActivityDocument, ActivityNode, ActivityNote, ActivityPartition } from "./model";
+import type { ActivityArrow, ActivityControl, ActivityDocument, ActivityNode, ActivityNote, ActivityPartition } from "./model";
 
 export interface ActivityActionInput { label: string; color?: string; stereotype?: string; partitionId?: string }
 export interface ActivityNoteInput { text: string; placement: "left" | "right" | "top" | "bottom"; color?: string; targetId?: string }
 export interface ActivityPartitionInput { label: string; color?: string; parentId?: string }
+export interface ActivityControlInput { condition?: string; label?: string }
+export interface ActivityArrowInput { label?: string; color?: string; lineStyle?: "solid" | "dashed" | "dotted" | "bold" }
 
 const point = (source: string) => /(?:^|\n)\s*@enduml\b/i.exec(source)?.index ?? source.length;
 const insert = (source: string, text: string, at = point(source)) => `${source.slice(0, at)}${at && source[at - 1] !== "\n" ? "\n" : ""}${text}\n${source.slice(at)}`;
@@ -32,3 +34,55 @@ export const insertActivityNote = (source: string, document: ActivityDocument, v
 };
 export const updateActivityNote = (source: string, note: ActivityNote, value: ActivityNoteInput) => replace(source, note.sourceRange, noteLine(value));
 export const deleteActivityNote = (source: string, note: ActivityNote) => replace(source, { from: note.sourceRange.from, to: source[note.sourceRange.to] === "\n" ? note.sourceRange.to + 1 : note.sourceRange.to }, "");
+
+const controlLine = (item: ActivityControl, value: ActivityControlInput) => {
+  const condition = value.condition?.trim() || item.condition || "condition";
+  const label = value.label?.trim();
+  if (item.kind === "if" || item.kind === "elseif") return `${item.kind} (${condition}) then${label ? ` (${label})` : ""}`;
+  if (item.kind === "else") return `else${label ? ` (${label})` : ""}`;
+  if (item.kind === "while") return `while (${condition})${label ? ` is (${label})` : ""}`;
+  if (item.kind === "repeat-while") return `repeat while (${condition})${label ? ` is (${label})` : ""}`;
+  if (item.kind === "switch") return `switch (${condition})`;
+  if (item.kind === "case") return `case (${label || condition})`;
+  if (item.kind === "endwhile") return `endwhile${label ? ` (${label})` : ""}`;
+  return item.kind.replaceAll("-", " ");
+};
+export const updateActivityControl = (source: string, item: ActivityControl, value: ActivityControlInput) =>
+  replace(source, item.sourceRange, controlLine(item, value));
+
+const arrowLine = (value: ActivityArrowInput) => {
+  const modifiers = [
+    ...(value.color?.trim() ? [value.color.startsWith("#") ? value.color : `#${value.color}`] : []),
+    ...(value.lineStyle && value.lineStyle !== "solid" ? [value.lineStyle] : []),
+  ];
+  return `-${modifiers.length ? `[${modifiers.join(",")}]` : ""}->${value.label?.trim() ? ` [${value.label.trim()}]` : ""}`;
+};
+export const updateActivityArrow = (source: string, item: ActivityArrow, value: ActivityArrowInput) =>
+  replace(source, item.sourceRange, arrowLine(value));
+export const deleteActivityArrow = (source: string, item: ActivityArrow) =>
+  replace(source, { from: item.sourceRange.from, to: source[item.sourceRange.to] === "\n" ? item.sourceRange.to + 1 : item.sourceRange.to }, "");
+
+export function reorderActivityAction(
+  source: string,
+  document: ActivityDocument,
+  item: ActivityNode,
+  target: ActivityNode,
+  placement: "before" | "after",
+) {
+  if (item.id === target.id || item.kind !== "action" || target.kind !== "action" || item.partitionId !== target.partitionId)
+    return source;
+  const first = Math.min(item.sourceRange.from, target.sourceRange.from);
+  const last = Math.max(item.sourceRange.from, target.sourceRange.from);
+  if (document.controls.some((control) => control.sourceRange.from > first && control.sourceRange.from < last)) return source;
+  const attached = document.notes.filter((note) => note.targetId === item.id);
+  const from = item.sourceRange.from;
+  const itemEnd = Math.max(item.sourceRange.to, ...attached.map((note) => note.sourceRange.to));
+  const to = source[itemEnd] === "\n" ? itemEnd + 1 : itemEnd;
+  const block = source.slice(from, itemEnd).trim();
+  const targetNotes = document.notes.filter((note) => note.targetId === target.id);
+  const targetEnd = Math.max(target.sourceRange.to, ...targetNotes.map((note) => note.sourceRange.to));
+  const targetAt = placement === "before" ? target.sourceRange.from : targetEnd + (source[targetEnd] === "\n" ? 1 : 0);
+  const without = source.slice(0, from) + source.slice(to);
+  const at = targetAt > to ? targetAt - (to - from) : targetAt;
+  return without.slice(0, at) + block + "\n" + without.slice(at);
+}

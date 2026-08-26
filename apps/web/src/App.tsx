@@ -9,6 +9,8 @@ import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
 import {
   ActivityActionInspector,
+  ActivityArrowInspector,
+  ActivityControlInspector,
   ActivityNoteInspector,
   ActivityPartitionInspector,
   AddActivityActionDialog,
@@ -162,6 +164,7 @@ import {
   type ClassNoteInput,
 } from "@plantuml-studio/diagram-class";
 import {
+  deleteActivityArrow,
   deleteActivityNode,
   deleteActivityNote,
   deleteActivityPartition,
@@ -170,10 +173,15 @@ import {
   insertActivityNote,
   insertActivityPartition,
   parseActivity,
+  reorderActivityAction,
   updateActivityAction,
+  updateActivityArrow,
+  updateActivityControl,
   updateActivityNote,
   updateActivityPartition,
   type ActivityActionInput,
+  type ActivityArrowInput,
+  type ActivityControlInput,
   type ActivityNoteInput,
   type ActivityPartitionInput,
 } from "@plantuml-studio/diagram-activity";
@@ -324,6 +332,8 @@ export function App() {
   );
   const selectedActivityPartition = activityDocument.partitions.find((item) => item.id === selectedActivityObjectId);
   const selectedActivityNote = activityDocument.notes.find((item) => item.id === selectedActivityObjectId);
+  const selectedActivityControl = activityDocument.controls.find((item) => item.id === selectedActivityObjectId);
+  const selectedActivityArrow = activityDocument.arrows.find((item) => item.id === selectedActivityObjectId);
   const selectedClassEntity = classDocument.entities.find((x) => x.id === selectedClassObjectId);
   const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
   const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
@@ -1563,6 +1573,25 @@ export function App() {
     if (!selectedActivityNote) return;
     commitSource(deleteActivityNote(workspace.source, selectedActivityNote), "Delete Activity note");
     setSelectedActivityObjectId(undefined);
+  };
+  const applyActivityControl = (value: ActivityControlInput) => {
+    if (selectedActivityControl)
+      commitSource(updateActivityControl(workspace.source, selectedActivityControl, value), "Update Activity control");
+  };
+  const applyActivityArrow = (value: ActivityArrowInput) => {
+    if (selectedActivityArrow)
+      commitSource(updateActivityArrow(workspace.source, selectedActivityArrow, value), "Update Activity flow arrow");
+  };
+  const removeActivityArrow = () => {
+    if (!selectedActivityArrow) return;
+    commitSource(deleteActivityArrow(workspace.source, selectedActivityArrow), "Delete Activity flow arrow");
+    setSelectedActivityObjectId(undefined);
+  };
+  const reorderActivityActionByDrag = (id: string, targetId: string, placement: "before" | "after") => {
+    const item = activityDocument.nodes.find((node) => node.id === id);
+    const target = activityDocument.nodes.find((node) => node.id === targetId);
+    if (!item || !target) return;
+    commitSource(reorderActivityAction(workspace.source, activityDocument, item, target, placement), "Reorder Activity action");
   };
 
   const reconnectUseCaseRelationshipByDrag = useCallback(
@@ -2889,6 +2918,7 @@ export function App() {
                 if (object) setSelectionRequest({ ...object.sourceRange });
               }}
               onBackgroundSelect={() => setSelectedActivityObjectId(undefined)}
+              onReorder={reorderActivityActionByDrag}
             />
           ))}
       </main>
@@ -3179,6 +3209,21 @@ export function App() {
           item={selectedActivityAction}
           onChange={applyActivityAction}
           onDelete={removeActivityAction}
+          onClose={() => setSelectedActivityObjectId(undefined)}
+        />
+      )}
+      {selectedActivityControl && (
+        <ActivityControlInspector
+          item={selectedActivityControl}
+          onChange={applyActivityControl}
+          onClose={() => setSelectedActivityObjectId(undefined)}
+        />
+      )}
+      {selectedActivityArrow && (
+        <ActivityArrowInspector
+          item={selectedActivityArrow}
+          onChange={applyActivityArrow}
+          onDelete={removeActivityArrow}
           onClose={() => setSelectedActivityObjectId(undefined)}
         />
       )}

@@ -198,6 +198,12 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await expect(page.locator(".cm-content")).toContainText(":Receive order;");
   await expect(page.locator(".activity-diagram svg")).toBeVisible({ timeout: 20_000 });
 
+  await page.locator('[data-activity-object-id="control-0"]').first().click({ force: true });
+  const controlInspector = page.getByRole("complementary", { name: "Activity control inspector" });
+  await controlInspector.getByLabel("Condition").fill("Payment approved?");
+  await controlInspector.getByLabel("Condition").blur();
+  await expect(page.locator(".cm-content")).toContainText("if (Payment approved?) then (yes)");
+
   await page.getByRole("button", { name: "Activity", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Activity settings" });
   await settings.getByLabel("Title").fill("Order lifecycle");
@@ -227,7 +233,26 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await action.getByRole("button", { name: "Add action" }).click();
   await expect(page.locator(".cm-content")).toContainText(":Archive order; <<service>> <<#PaleGreen>>");
 
-  const renderedAction = page.locator('[data-activity-object-id="action-5"]');
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Action…" }).click();
+  const secondAction = page.getByRole("dialog", { name: "Add Activity action" });
+  await secondAction.getByLabel("Text").fill("Index archive");
+  await secondAction.getByLabel("Partition").selectOption("operations-team");
+  await secondAction.getByRole("button", { name: "Add action" }).click();
+  const secondHandle = page.locator('[data-activity-move-id="action-6"]');
+  await expect(secondHandle).toBeVisible({ timeout: 20_000 });
+  await secondHandle.scrollIntoViewIfNeeded();
+  const handleBox = await secondHandle.boundingBox();
+  const targetBox = await page.locator('[data-activity-object-id="action-5"]').boundingBox();
+  expect(handleBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 4, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText(":Index archive;:Archive order;");
+
+  const renderedAction = page.getByRole("button", { name: "Select action Archive order" });
   await expect(renderedAction).toBeVisible({ timeout: 20_000 });
   await renderedAction.click({ force: true });
   const inspector = page.getByRole("complementary", { name: "Activity action inspector" });
@@ -239,7 +264,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await page.getByRole("menuitem", { name: "Note…" }).click();
   const note = page.getByRole("dialog", { name: "Add Activity note" });
   await note.getByLabel("Position").selectOption("left");
-  await note.getByLabel("Attached to").selectOption("action-5");
+  await note.getByLabel("Attached to").selectOption({ label: "Archive completed order" });
   await note.getByLabel("Text").fill("Stored for audit");
   await note.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note leftStored for auditend note");

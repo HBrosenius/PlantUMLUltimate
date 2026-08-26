@@ -1914,6 +1914,18 @@ textarea:focus-visible,
   stroke-width: 2;
   stroke-dasharray: 5 3;
 }
+.activity-move-handle {
+  fill: #fff;
+  stroke: #2563eb;
+  stroke-width: 2;
+  cursor: grab;
+  pointer-events: all;
+}
+@media (pointer: coarse) {
+  .activity-move-handle {
+    stroke-width: 7px;
+  }
+}
 .class-semantic-hit:hover,
 .class-selected-object {
   fill: rgb(37 99 235 / 10%);

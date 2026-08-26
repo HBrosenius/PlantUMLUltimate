@@ -7,6 +7,9 @@ import {
   parseActivity,
   updateActivityAction,
   updateActivityNote,
+  reorderActivityAction,
+  updateActivityArrow,
+  updateActivityControl,
 } from "./index";
 
 describe("activity operations", () => {
@@ -27,5 +30,22 @@ describe("activity operations", () => {
     source = deleteActivityNode(source, document.nodes.find((item) => item.kind === "action")!);
     expect(source).not.toContain("Pack and label");
     expect(source).toContain("' keep me");
+  });
+  it("edits controls and arrows and reorders an action with its note", () => {
+    let source = "@startuml\nstart\n:A;\nnote right\nA note\nend note\n:B;\nif (Ready?) then (yes)\n-[#Blue,dashed]-> [go]\nendif\nstop\n@enduml";
+    let document = parseActivity(source);
+    source = updateActivityControl(source, document.controls[0]!, { condition: "Approved?", label: "ok" });
+    document = parseActivity(source);
+    source = updateActivityArrow(source, document.arrows[0]!, { color: "Red", lineStyle: "dotted", label: "continue" });
+    document = parseActivity(source);
+    source = reorderActivityAction(source, document, document.nodes[1]!, document.nodes[2]!, "after");
+    expect(source).toContain(":B;\n:A;\nnote right\nA note\nend note");
+    expect(source).toContain("if (Approved?) then (ok)");
+    expect(source).toContain("-[#Red,dotted]-> [continue]");
+  });
+  it("does not reorder actions across a flow control", () => {
+    const source = "@startuml\nstart\n:A;\nif (Ready?) then (yes)\n:B;\nendif\nstop\n@enduml";
+    const document = parseActivity(source);
+    expect(reorderActivityAction(source, document, document.nodes[1]!, document.nodes[2]!, "after")).toBe(source);
   });
 });
