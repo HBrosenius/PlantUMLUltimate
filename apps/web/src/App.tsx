@@ -240,7 +240,11 @@ export function App() {
     updateCapacities: updateResourceCapacities,
     renameCapacity,
   } = useResourceCapacities(tabs.activeId);
-  const { status, result, retry: retryRender } = useRenderer(workspace.source, workspace.viewMode !== "code");
+  const { status, result, retry: retryRender } = useRenderer(
+    workspace.source,
+    hydrated && !newDocumentOpen && workspace.viewMode !== "code",
+    workspace.diagramKind === "class" || workspace.diagramKind === "usecase" ? "graphviz" : "native",
+  );
   const parsed = useMemo(() => {
     const started = performance.now();
     const value = ganttAdapter.parse(workspace.source);

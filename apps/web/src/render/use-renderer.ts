@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import plantUmlEngineUrl from "@plantuml/core/plantuml.js?url";
-import graphvizUrl from "@plantuml/core/viz-global.js?url";
 import type { RenderResult, RenderStatus } from "../model";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
+
+export type RendererLayoutEngine = "native" | "graphviz";
 
 interface FrameMessage {
   channel: string;
@@ -21,11 +21,17 @@ interface PendingRender {
 }
 const CACHE_LIMIT = 50;
 
-function frameDocument(channel: string): string {
+function frameDocument(
+  channel: string,
+  assets: { plantUmlEngineUrl: string; graphvizUrl: string },
+  layoutEngine: RendererLayoutEngine,
+): string {
+  const { plantUmlEngineUrl, graphvizUrl } = assets;
   const engine = JSON.stringify(plantUmlEngineUrl);
   const graphviz = graphvizUrl.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
   const frameChannel = JSON.stringify(channel);
-  return `<!doctype html><html><head><meta charset="utf-8"><script src="${graphviz}"></script></head><body><script type="module">
+  const graphvizScript = layoutEngine === "graphviz" ? `<script src="${graphviz}"></script>` : "";
+  return `<!doctype html><html><head><meta charset="utf-8">${graphvizScript}</head><body><script type="module">
     const channel = ${frameChannel};
     const send = (message) => parent.postMessage({ channel, ...message }, "*");
     try {
@@ -53,7 +59,7 @@ function frameDocument(channel: string): string {
   </script></body></html>`;
 }
 
-export function useRenderer(source: string, enabled = true) {
+export function useRenderer(source: string, enabled = true, layoutEngine: RendererLayoutEngine = "graphviz") {
   const frame = useRef<HTMLIFrameElement | null>(null);
   const channel = useRef(`plantuml-${crypto.randomUUID()}`);
   const ready = useRef(false);
@@ -75,6 +81,7 @@ export function useRenderer(source: string, enabled = true) {
     let instance: HTMLIFrameElement | undefined;
     let recoveryTimer: number | undefined;
     let recoveryAttempted = false;
+    let cancelled = false;
 
     const sendPending = () => {
       if (!ready.current || busy.current || !pending.current || !instance?.contentWindow) return;
@@ -151,16 +158,18 @@ export function useRenderer(source: string, enabled = true) {
     };
 
     window.addEventListener("message", receive);
-    const boot = () => {
+    const boot = async () => {
       window.clearTimeout(recoveryTimer);
       instance?.remove();
       ready.current = false;
       busy.current = false;
+      const { rendererAssets } = await import("./renderer-assets");
+      if (cancelled) return;
       instance = document.createElement("iframe");
       instance.hidden = true;
       instance.title = "Local PlantUML renderer";
       instance.setAttribute("aria-hidden", "true");
-      instance.srcdoc = frameDocument(channel.current);
+      instance.srcdoc = frameDocument(channel.current, rendererAssets, layoutEngine);
       document.body.append(instance);
       frame.current = instance;
     };
@@ -168,6 +177,7 @@ export function useRenderer(source: string, enabled = true) {
       .requestIdleCallback;
     const idleId = requestIdle ? requestIdle(boot, { timeout: 400 }) : setTimeout(boot, 50);
     return () => {
+      cancelled = true;
       window.removeEventListener("message", receive);
       const cancelIdle = (window as unknown as { cancelIdleCallback?: typeof window.cancelIdleCallback })
         .cancelIdleCallback;
@@ -181,7 +191,7 @@ export function useRenderer(source: string, enabled = true) {
       window.clearTimeout(recoveryTimer);
       flushPending.current = undefined;
     };
-  }, [enabled]);
+  }, [enabled, layoutEngine]);
 
   useEffect(() => {
     if (!enabled) {

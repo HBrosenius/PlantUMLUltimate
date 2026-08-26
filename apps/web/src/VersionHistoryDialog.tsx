@@ -43,8 +43,10 @@ export function VersionHistoryDialog({
   const compare = versions.find((version) => version.id === compareId);
   const rightSource = compare?.source ?? currentSource;
   const leftSource = selected?.source ?? currentSource;
-  const leftRendered = useRenderer(leftSource, comparisonView === "rendered");
-  const rightRendered = useRenderer(rightSource, comparisonView === "rendered");
+  const layoutEngine =
+    /^\s*@startgantt\b/im.test(leftSource) && /^\s*@startgantt\b/im.test(rightSource) ? "native" : "graphviz";
+  const leftRendered = useRenderer(leftSource, comparisonView === "rendered", layoutEngine);
+  const rightRendered = useRenderer(rightSource, comparisonView === "rendered", layoutEngine);
   const diff = useMemo(
     () => diffVersionSources(leftSource, rightSource),
     [leftSource, rightSource],

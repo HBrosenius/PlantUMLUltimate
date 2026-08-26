@@ -159,7 +159,7 @@ export function DiagramPreview({
     [tasks, dependencies, projectStart, calendar],
   );
   const baselineCalendar = useMemo(() => parseGanttCalendar(baselineSource ?? ""), [baselineSource]);
-  const baselineRender = useRenderer(baselineSource ?? "", Boolean(baselineSource));
+  const baselineRender = useRenderer(baselineSource ?? "", Boolean(baselineSource), "native");
   const baselineOverlaySvg = useMemo(
     () =>
       baselineRender.result?.svg && baselineTasks.length
