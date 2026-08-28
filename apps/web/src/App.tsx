@@ -196,7 +196,9 @@ import {
   type ClassPackageInput,
   type ClassRelationshipInput,
   type ClassNoteInput,
+  collectClassSymbolOccurrences,
 } from "@plantuml-studio/diagram-class";
+import type { ClassSymbolOccurrence } from "@plantuml-studio/diagram-class";
 import {
   deleteActivityArrow,
   deleteActivityControlBlock,
@@ -268,13 +270,14 @@ export function App() {
   const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
   const [sourceHighlightedSequenceParticipantId, setSourceHighlightedSequenceParticipantId] = useState<string>();
   const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
+  const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
   const [sourceSymbol, setSourceSymbol] = useState<{
-    kind: "task" | "person" | "participant" | "actor" | "usecase";
+    kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
     key: string;
   }>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<{
-    occurrence: GanttSymbolOccurrence | SequenceParticipantOccurrence | UseCaseSymbolOccurrence;
+    occurrence: GanttSymbolOccurrence | SequenceParticipantOccurrence | UseCaseSymbolOccurrence | ClassSymbolOccurrence;
     mode:
       | "task"
       | "task alias"
@@ -284,11 +287,13 @@ export function App() {
       | "actor"
       | "actor alias"
       | "use case"
-      | "use case alias";
+      | "use case alias"
+      | "class entity"
+      | "class entity alias";
   }>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
-    kind: "task" | "person" | "participant" | "actor" | "usecase";
+    kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
     key: string;
     label: string;
   }>();
@@ -381,6 +386,7 @@ export function App() {
   const parseResult = parsed.value;
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
+  const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const symbolOccurrences = useMemo(
     () =>
       workspace.diagramKind === "gantt"
@@ -389,8 +395,10 @@ export function App() {
           ? sequenceParticipantOccurrences(workspace.source, sequenceDocument)
           : workspace.diagramKind === "usecase"
             ? collectUseCaseSymbolOccurrences(workspace.source, useCaseDocument)
-            : [],
-    [parseResult.document, sequenceDocument, useCaseDocument, workspace.diagramKind, workspace.source],
+            : workspace.diagramKind === "class"
+              ? collectClassSymbolOccurrences(workspace.source, classDocument)
+              : [],
+    [classDocument, parseResult.document, sequenceDocument, useCaseDocument, workspace.diagramKind, workspace.source],
   );
   const symbolHighlights = useMemo(
     () =>
@@ -431,6 +439,15 @@ export function App() {
         setRenameSymbol({ occurrence, mode: !element.alias || occurrence.declaration === "label" ? kind : `${kind} alias` });
         return true;
       }
+      if (occurrence.kind === "class-entity") {
+        const entity = classDocument.entities.find((item) => item.id === occurrence.key);
+        if (!entity) return false;
+        setRenameSymbol({
+          occurrence,
+          mode: !entity.alias || occurrence.declaration === "label" ? "class entity" : "class entity alias",
+        });
+        return true;
+      }
       const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
       const mode =
         task?.alias && normalizeTaskId(occurrence.value) === task.id
@@ -441,10 +458,13 @@ export function App() {
       setRenameSymbol({ occurrence, mode });
       return true;
     },
-    [parseResult.document.symbols.tasks, sequenceDocument.participants, symbolAt, useCaseDocument.elements],
+    [classDocument.entities, parseResult.document.symbols.tasks, sequenceDocument.participants, symbolAt, useCaseDocument.elements],
   );
   const occurrencesFor = useCallback(
-    (symbol: { kind: "task" | "person" | "participant" | "actor" | "usecase"; key: string }) =>
+    (symbol: {
+      kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
+      key: string;
+    }) =>
       symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
     [symbolOccurrences],
   );
@@ -483,7 +503,6 @@ export function App() {
     () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
     [baselineVersion],
   );
-  const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
   const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
@@ -3126,14 +3145,16 @@ export function App() {
             onRenameRequest={
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
-              workspace.diagramKind === "usecase"
+              workspace.diagramKind === "usecase" ||
+              workspace.diagramKind === "class"
                 ? requestSymbolRename
                 : undefined
             }
             onSymbolContextMenu={
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
-              workspace.diagramKind === "usecase"
+              workspace.diagramKind === "usecase" ||
+              workspace.diagramKind === "class"
                 ? (position, x, y) => {
                     if (!symbolAt(position)) return false;
                     setSymbolMenu({ position, x, y });
@@ -3176,7 +3197,11 @@ export function App() {
                 setSourceHighlightedUseCaseId(occurrence?.key);
                 if (!occurrence) setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
               } else if (workspace.diagramKind === "class") {
-                setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
+                const occurrence = symbolAt(position);
+                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+                setSourceSymbolPosition(occurrence ? position : undefined);
+                setSourceHighlightedClassEntityId(occurrence?.key);
+                if (!occurrence) setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
               } else if (workspace.diagramKind === "activity")
                 setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
               else {
@@ -3347,7 +3372,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={classDocument}
-              selectedId={selectedClassObjectId}
+              selectedId={sourceHighlightedClassEntityId ?? selectedClassObjectId}
               onSelect={(id) => {
                 setClassSettingsOpen(false);
                 setSelectedClassObjectId(id);
@@ -4136,6 +4161,10 @@ export function App() {
                 renameSymbol.occurrence.kind === "actor" || renameSymbol.occurrence.kind === "usecase"
                   ? useCaseDocument.elements.find((item) => item.id === renameSymbol.occurrence.key)
                   : undefined;
+              const classEntity =
+                renameSymbol.occurrence.kind === "class-entity"
+                  ? classDocument.entities.find((item) => item.id === renameSymbol.occurrence.key)
+                  : undefined;
               if (renameSymbol.mode === "task alias")
                 return normalizeTaskId(item.value) === renameSymbol.occurrence.key;
               if (renameSymbol.mode === "task" && task?.alias) return item.range.from === task.labelRange.from;
@@ -4146,11 +4175,39 @@ export function App() {
                 return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
               if ((renameSymbol.mode === "actor" || renameSymbol.mode === "use case") && useCaseElement?.alias)
                 return "declaration" in item && item.declaration === "label";
+              if (renameSymbol.mode === "class entity alias")
+                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
+              if (renameSymbol.mode === "class entity" && classEntity?.alias)
+                return "declaration" in item && item.declaration === "label";
               return true;
             }).length
           }
           onRename={(nextValue) => {
             const target = renameSymbol;
+            if (target.occurrence.kind === "class-entity") {
+              const entity = classDocument.entities.find((item) => item.id === target.occurrence.key);
+              if (!entity) {
+                setInteractionMessage("Class entity not found");
+                return;
+              }
+              const trimmed = nextValue.trim();
+              const aliasMode = target.mode === "class entity alias";
+              const next = updateClassEntity(workspace.source, classDocument, entity, {
+                kind: entity.kind,
+                label: aliasMode ? entity.label : trimmed,
+                ...(aliasMode ? { alias: trimmed } : entity.alias ? { alias: entity.alias } : {}),
+                ...(entity.generic ? { generic: entity.generic } : {}),
+                ...(entity.stereotype ? { stereotype: entity.stereotype } : {}),
+                ...(entity.color ? { color: entity.color } : {}),
+                members: entity.members.map((item) => item.text),
+              });
+              commitSource(next, `Rename ${target.mode}`);
+              const nextId = (aliasMode ? trimmed : entity.alias ?? trimmed).toLowerCase();
+              setSourceHighlightedClassEntityId(nextId);
+              setRenameSymbol(undefined);
+              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+              return;
+            }
             if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase") {
               const element = useCaseDocument.elements.find((item) => item.id === target.occurrence.key);
               if (!element) {

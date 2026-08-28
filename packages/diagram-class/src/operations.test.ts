@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  collectClassSymbolOccurrences,
   deleteClassEntity,
   deleteClassNote,
   deleteClassRelationship,
@@ -16,6 +17,26 @@ import {
   updateClassRelationship,
 } from "./index";
 describe("class operations", () => {
+  it("finds semantic entity references without matching members, relationship labels, or note text", () => {
+    const source =
+      '@startuml\nclass "Customer account" as Account {\n  +owner: Customer\n}\ninterface Customer\nAccount --> Customer : Account serves Customer\nnote right of Account : Account note\n@enduml';
+    const occurrences = collectClassSymbolOccurrences(source, parseClassDiagram(source));
+
+    expect(occurrences.filter((item) => item.key === "account").map((item) => item.value)).toEqual([
+      "Customer account",
+      "Account",
+      "Account",
+      "Account",
+    ]);
+    expect(occurrences.filter((item) => item.key === "customer").map((item) => item.value)).toEqual([
+      "Customer",
+      "Customer",
+    ]);
+    expect(occurrences.map((item) => source.slice(item.range.from, item.range.to))).toEqual(
+      occurrences.map((item) => item.value),
+    );
+  });
+
   it("inserts and edits member blocks", () => {
     const source = "@startuml\n@enduml";
     const inserted = insertClassEntity(source, {
@@ -94,7 +115,8 @@ describe("class operations", () => {
     expect(parseClassDiagram(source).notes).toHaveLength(0);
   });
   it("keeps relationships and their appearance when an endpoint is renamed", () => {
-    const source = '@startuml\nclass "A" as A\nclass "B" as B\nA -[#Red,dashed]-> B : link\n@enduml';
+    const source =
+      '@startuml\nclass "A" as A\nclass "B" as B\nA -[#Red,dashed]-> B : link\nnote right of A : details\n@enduml';
     const document = parseClassDiagram(source);
     expect(document.relationships[0]).toMatchObject({ color: "#Red", lineStyle: "dashed" });
     const updated = updateClassEntity(source, document, document.entities[0]!, {
@@ -104,6 +126,7 @@ describe("class operations", () => {
       members: [],
     });
     expect(updated).toContain("R -[#Red,dashed]-> B : link");
+    expect(updated).toContain("note right of R : details");
     expect(parseClassDiagram(updated).diagnostics).toHaveLength(0);
   });
   it("preserves authored arrows and round-trips relationship notes", () => {

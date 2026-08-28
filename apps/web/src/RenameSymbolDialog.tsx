@@ -17,7 +17,9 @@ export function RenameSymbolDialog({
     | "actor"
     | "actor alias"
     | "use case"
-    | "use case alias";
+    | "use case alias"
+    | "class entity"
+    | "class entity alias";
   value: string;
   occurrenceCount: number;
   onRename(value: string): void;

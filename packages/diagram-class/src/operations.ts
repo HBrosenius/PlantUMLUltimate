@@ -93,6 +93,12 @@ export function updateClassEntity(s: string, d: ClassDocument, e: ClassEntity, v
     };
     reps.push({ ...r.sourceRange, text: relationLine(d, input) });
   }
+  for (const note of d.notes) {
+    if (note.targetId !== e.id || !note.placement) continue;
+    const color = note.color ? ` ${note.color}` : "";
+    const body = note.text.includes("\n") ? `\n${note.text}\nend note` : ` : ${note.text}`;
+    reps.push({ ...note.sourceRange, text: `note ${note.placement} of ${next}${color}${body}` });
+  }
   return replace(s, reps);
 }
 export function deleteClassEntity(s: string, d: ClassDocument, e: ClassEntity) {

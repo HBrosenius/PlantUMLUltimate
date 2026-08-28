@@ -236,6 +236,37 @@ test("highlights, finds, and renames Use Case actor references", async ({ page }
   await expect(page.locator(".cm-content")).toContainText("note right of Buyer : Customer note");
 });
 
+test("highlights, finds, and renames Class entity references", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: /Class diagram/ }).click();
+  await setSource(
+    page,
+    '@startuml\nclass "Customer account" as Account {\n  +owner: Account\n}\ninterface Customer\nAccount --> Customer : Account serves Customer\nnote right of Account : Account note\n@enduml',
+  );
+
+  const entityReference = await pointInText(page, 5, "Account");
+  await page.mouse.click(entityReference.x, entityReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(4);
+  await expect(page.getByRole("complementary", { name: "Class object inspector" })).toHaveCount(0);
+
+  await page.mouse.click(entityReference.x, entityReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for Account" });
+  await expect(references).toContainText("4 occurrences");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await page.mouse.click(entityReference.x, entityReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename class entity alias" });
+  await expect(rename).toContainText("3 semantic occurrences");
+  await rename.getByLabel("New name").fill("Profile");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText('class "Customer account" as Profile');
+  await expect(page.locator(".cm-content")).toContainText("+owner: Account");
+  await expect(page.locator(".cm-content")).toContainText("Profile --> Customer : Account serves Customer");
+  await expect(page.locator(".cm-content")).toContainText("note right of Profile : Account note");
+});
+
 test("creates and visually edits a WBS diagram", async ({ page, browserName }) => {
   test.skip(
     browserName === "webkit",
