@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  collectActivitySymbolOccurrences,
   deleteActivityNode,
   deleteActivityControlBlock,
   insertActivityAction,
@@ -21,6 +22,24 @@ import {
 } from "./index";
 
 describe("activity operations", () => {
+  it("treats each action and partition declaration as a distinct semantic symbol", () => {
+    const source =
+      '@startuml\npartition "Operations" {\n:Review order;\nnote right\nReview order details\nend note\n:Review order;\n}\n@enduml';
+    const document = parseActivity(source);
+    const occurrences = collectActivitySymbolOccurrences(source, document);
+
+    expect(occurrences).toMatchObject([
+      { kind: "activity-partition", key: "operations", value: "Operations" },
+      { kind: "activity-action", key: "action-0", value: "Review order" },
+      { kind: "activity-action", key: "action-1", value: "Review order" },
+    ]);
+    expect(occurrences.map((item) => source.slice(item.range.from, item.range.to))).toEqual([
+      "Operations",
+      "Review order",
+      "Review order",
+    ]);
+  });
+
   it("round-trips actions, partitions, and notes without rewriting unrelated source", () => {
     let source = "@startuml\n' keep me\nstart\nstop\n@enduml";
     source = insertActivityPartition(source, parseActivity(source), { label: "Fulfilment", color: "Lavender" });

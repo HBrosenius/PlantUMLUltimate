@@ -222,6 +222,7 @@ import {
   updateActivityControl,
   updateActivityNoteWithTarget,
   updateActivityPartition,
+  collectActivitySymbolOccurrences,
   type ActivityActionInput,
   type ActivityArrowInput,
   type ActivityControlInput,
@@ -229,6 +230,7 @@ import {
   type ActivityPartitionInput,
   type ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
+import type { ActivitySymbolOccurrence } from "@plantuml-studio/diagram-activity";
 import {
   deleteUseCaseElement,
   deleteUseCaseNote,
@@ -271,13 +273,27 @@ export function App() {
   const [sourceHighlightedSequenceParticipantId, setSourceHighlightedSequenceParticipantId] = useState<string>();
   const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
   const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
+  const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
   const [sourceSymbol, setSourceSymbol] = useState<{
-    kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
+    kind:
+      | "task"
+      | "person"
+      | "participant"
+      | "actor"
+      | "usecase"
+      | "class-entity"
+      | "activity-action"
+      | "activity-partition";
     key: string;
   }>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<{
-    occurrence: GanttSymbolOccurrence | SequenceParticipantOccurrence | UseCaseSymbolOccurrence | ClassSymbolOccurrence;
+    occurrence:
+      | GanttSymbolOccurrence
+      | SequenceParticipantOccurrence
+      | UseCaseSymbolOccurrence
+      | ClassSymbolOccurrence
+      | ActivitySymbolOccurrence;
     mode:
       | "task"
       | "task alias"
@@ -289,11 +305,21 @@ export function App() {
       | "use case"
       | "use case alias"
       | "class entity"
-      | "class entity alias";
+      | "class entity alias"
+      | "activity action"
+      | "activity partition";
   }>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
-    kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
+    kind:
+      | "task"
+      | "person"
+      | "participant"
+      | "actor"
+      | "usecase"
+      | "class-entity"
+      | "activity-action"
+      | "activity-partition";
     key: string;
     label: string;
   }>();
@@ -387,6 +413,7 @@ export function App() {
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
+  const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const symbolOccurrences = useMemo(
     () =>
       workspace.diagramKind === "gantt"
@@ -397,8 +424,18 @@ export function App() {
             ? collectUseCaseSymbolOccurrences(workspace.source, useCaseDocument)
             : workspace.diagramKind === "class"
               ? collectClassSymbolOccurrences(workspace.source, classDocument)
-              : [],
-    [classDocument, parseResult.document, sequenceDocument, useCaseDocument, workspace.diagramKind, workspace.source],
+              : workspace.diagramKind === "activity"
+                ? collectActivitySymbolOccurrences(workspace.source, activityDocument)
+                : [],
+    [
+      activityDocument,
+      classDocument,
+      parseResult.document,
+      sequenceDocument,
+      useCaseDocument,
+      workspace.diagramKind,
+      workspace.source,
+    ],
   );
   const symbolHighlights = useMemo(
     () =>
@@ -448,6 +485,13 @@ export function App() {
         });
         return true;
       }
+      if (occurrence.kind === "activity-action" || occurrence.kind === "activity-partition") {
+        setRenameSymbol({
+          occurrence,
+          mode: occurrence.kind === "activity-action" ? "activity action" : "activity partition",
+        });
+        return true;
+      }
       const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
       const mode =
         task?.alias && normalizeTaskId(occurrence.value) === task.id
@@ -462,7 +506,15 @@ export function App() {
   );
   const occurrencesFor = useCallback(
     (symbol: {
-      kind: "task" | "person" | "participant" | "actor" | "usecase" | "class-entity";
+      kind:
+        | "task"
+        | "person"
+        | "participant"
+        | "actor"
+        | "usecase"
+        | "class-entity"
+        | "activity-action"
+        | "activity-partition";
       key: string;
     }) =>
       symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
@@ -503,7 +555,6 @@ export function App() {
     () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
     [baselineVersion],
   );
-  const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
   const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
   const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
@@ -3146,7 +3197,8 @@ export function App() {
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
-              workspace.diagramKind === "class"
+              workspace.diagramKind === "class" ||
+              workspace.diagramKind === "activity"
                 ? requestSymbolRename
                 : undefined
             }
@@ -3154,7 +3206,8 @@ export function App() {
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
-              workspace.diagramKind === "class"
+              workspace.diagramKind === "class" ||
+              workspace.diagramKind === "activity"
                 ? (position, x, y) => {
                     if (!symbolAt(position)) return false;
                     setSymbolMenu({ position, x, y });
@@ -3202,8 +3255,13 @@ export function App() {
                 setSourceSymbolPosition(occurrence ? position : undefined);
                 setSourceHighlightedClassEntityId(occurrence?.key);
                 if (!occurrence) setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
-              } else if (workspace.diagramKind === "activity")
-                setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
+              } else if (workspace.diagramKind === "activity") {
+                const occurrence = symbolAt(position);
+                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+                setSourceSymbolPosition(occurrence ? position : undefined);
+                setSourceHighlightedActivityId(occurrence?.key);
+                if (!occurrence) setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
+              }
               else {
                 setWbsSettingsOpen(false);
                 setSelectedWbsNodeId(findWbsNodeAt(wbsDocument, position)?.id);
@@ -3402,7 +3460,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={activityDocument}
-              selectedId={selectedActivityObjectId}
+              selectedId={sourceHighlightedActivityId ?? selectedActivityObjectId}
               onSelect={(id) => {
                 setSelectedActivityObjectId(id);
                 const object = [
@@ -4184,6 +4242,44 @@ export function App() {
           }
           onRename={(nextValue) => {
             const target = renameSymbol;
+            if (target.occurrence.kind === "activity-action") {
+              const node = activityDocument.nodes.find((item) => item.id === target.occurrence.key);
+              if (!node || node.kind !== "action") {
+                setInteractionMessage("Activity action not found");
+                return;
+              }
+              const trimmed = nextValue.trim();
+              const next = updateActivityAction(workspace.source, node, {
+                label: trimmed,
+                ...(node.color ? { color: node.color } : {}),
+                ...(node.stereotype ? { stereotype: node.stereotype } : {}),
+                ...(node.partitionId ? { partitionId: node.partitionId } : {}),
+              });
+              commitSource(next, "Rename activity action");
+              setSourceHighlightedActivityId(node.id);
+              setRenameSymbol(undefined);
+              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+              return;
+            }
+            if (target.occurrence.kind === "activity-partition") {
+              const partition = activityDocument.partitions.find((item) => item.id === target.occurrence.key);
+              if (!partition) {
+                setInteractionMessage("Activity partition not found");
+                return;
+              }
+              const trimmed = nextValue.trim();
+              const next = updateActivityPartition(workspace.source, partition, {
+                label: trimmed,
+                ...(partition.color ? { color: partition.color } : {}),
+                ...(partition.parentId ? { parentId: partition.parentId } : {}),
+              });
+              commitSource(next, "Rename activity partition");
+              const renamed = parseActivity(next).partitions.find((item) => item.label === trimmed);
+              setSourceHighlightedActivityId(renamed?.id);
+              setRenameSymbol(undefined);
+              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+              return;
+            }
             if (target.occurrence.kind === "class-entity") {
               const entity = classDocument.entities.find((item) => item.id === target.occurrence.key);
               if (!entity) {

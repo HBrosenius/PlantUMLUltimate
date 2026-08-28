@@ -267,6 +267,42 @@ test("highlights, finds, and renames Class entity references", async ({ page }) 
   await expect(page.locator(".cm-content")).toContainText("note right of Profile : Account note");
 });
 
+test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: /Activity diagram/ }).click();
+  await setSource(
+    page,
+    '@startuml\npartition "Operations" {\n:Review order;\nnote right\nReview order note\nend note\n:Review order;\n}\n@enduml',
+  );
+
+  const action = await pointInText(page, 2, "Review order");
+  await page.mouse.click(action.x, action.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(1);
+  await expect(page.getByRole("complementary", { name: "Activity action inspector" })).toHaveCount(0);
+  await page.mouse.click(action.x, action.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for Review order" });
+  await expect(references).toContainText("1 occurrence");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await page.mouse.click(action.x, action.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const actionRename = page.getByRole("dialog", { name: "Rename activity action" });
+  await actionRename.getByLabel("New name").fill("Approve order");
+  await actionRename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText(":Approve order;");
+  await expect(page.locator(".cm-content")).toContainText("Review order note");
+  await expect.poll(async () => ((await page.locator(".cm-content").innerText()).match(/:Review order;/g) ?? []).length).toBe(1);
+
+  const partition = await pointInText(page, 1, "Operations");
+  await page.mouse.click(partition.x, partition.y);
+  await page.keyboard.press("F2");
+  const partitionRename = page.getByRole("dialog", { name: "Rename activity partition" });
+  await partitionRename.getByLabel("New name").fill("Fulfilment");
+  await partitionRename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText('partition "Fulfilment"');
+});
+
 test("creates and visually edits a WBS diagram", async ({ page, browserName }) => {
   test.skip(
     browserName === "webkit",
