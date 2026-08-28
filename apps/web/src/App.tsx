@@ -121,6 +121,7 @@ import {
 } from "@plantuml-studio/diagram-gantt";
 import type { GanttSymbolOccurrence } from "@plantuml-studio/diagram-gantt";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
+import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import type { Command } from "@plantuml-studio/editor-core";
 import {
   downloadSvgAsPng,
@@ -269,6 +270,7 @@ export function App() {
     mode: "task" | "task alias" | "person";
   }>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
+  const [referenceSymbol, setReferenceSymbol] = useState<{ kind: "task" | "person"; key: string; label: string }>();
   const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
@@ -394,6 +396,22 @@ export function App() {
       return true;
     },
     [parseResult.document.symbols.tasks, symbolAt],
+  );
+  const occurrencesFor = useCallback(
+    (symbol: { kind: "task" | "person"; key: string }) =>
+      symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
+    [symbolOccurrences],
+  );
+  const navigateSymbolReference = useCallback(
+    (position: number, direction: -1 | 1) => {
+      const occurrence = symbolAt(position);
+      if (!occurrence) return;
+      const occurrences = occurrencesFor(occurrence);
+      const currentIndex = occurrences.findIndex((item) => position >= item.range.from && position <= item.range.to);
+      const next = occurrences[(Math.max(0, currentIndex) + direction + occurrences.length) % occurrences.length];
+      if (next) setSelectionRequest({ ...next.range });
+    },
+    [occurrencesFor, symbolAt],
   );
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   useEffect(() => {
@@ -552,6 +570,7 @@ export function App() {
     setSourceSymbol(undefined);
     setSourceSymbolPosition(undefined);
     setRenameSymbol(undefined);
+    setReferenceSymbol(undefined);
   }, [tabs.activeId, workspace.diagramKind]);
 
   useEffect(() => {
@@ -3997,7 +4016,45 @@ export function App() {
           >
             Rename…
           </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              const occurrence = symbolAt(symbolMenu.position);
+              if (occurrence)
+                setReferenceSymbol({ kind: occurrence.kind, key: occurrence.key, label: occurrence.value });
+              setSymbolMenu(undefined);
+            }}
+          >
+            Find references
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              navigateSymbolReference(symbolMenu.position, -1);
+              setSymbolMenu(undefined);
+            }}
+          >
+            Previous reference
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              navigateSymbolReference(symbolMenu.position, 1);
+              setSymbolMenu(undefined);
+            }}
+          >
+            Next reference
+          </button>
         </div>
+      )}
+      {referenceSymbol && (
+        <SymbolReferencesPanel
+          label={referenceSymbol.label}
+          source={workspace.source}
+          occurrences={occurrencesFor(referenceSymbol)}
+          onSelect={(occurrence) => setSelectionRequest({ ...occurrence.range })}
+          onClose={() => setReferenceSymbol(undefined)}
+        />
       )}
       {renameSymbol && (
         <RenameSymbolDialog

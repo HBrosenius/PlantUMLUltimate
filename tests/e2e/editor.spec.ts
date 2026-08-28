@@ -145,6 +145,29 @@ test("highlights and renames task and person references from the editor", async 
   await expect(page.locator(".cm-content")).toContainText("{Alicia:50%}");
 });
 
+test("finds and navigates semantic task references", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 3 days\n[Test] starts at [Build]'s end and lasts 2 days"));
+  const taskReference = await pointInText(page, 3, "Build");
+  await page.mouse.click(taskReference.x, taskReference.y, { button: "right" });
+  const symbolMenu = page.getByRole("menu", { name: "Symbol actions" });
+  await expect(symbolMenu.getByRole("menuitem")).toHaveCount(4);
+  await symbolMenu.getByRole("menuitem", { name: "Find references" }).click();
+
+  const references = page.getByRole("complementary", { name: "References for Build" });
+  await expect(references).toContainText("2 occurrences");
+  await expect(references.getByRole("listitem")).toHaveCount(2);
+  await expect(references.getByRole("listitem").first()).toContainText("Line 3 · declaration");
+  await expect(references.getByRole("listitem").last()).toContainText("Line 4 · reference");
+  await references.getByRole("listitem").first().click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 3");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  const taskDeclaration = await pointInText(page, 2, "Build");
+  await page.mouse.click(taskDeclaration.x, taskDeclaration.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Next reference" }).click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 4");
+});
+
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });

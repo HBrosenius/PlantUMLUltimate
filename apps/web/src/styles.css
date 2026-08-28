@@ -2524,6 +2524,44 @@ textarea:focus-visible,
   cursor: default;
   opacity: 0.72;
 }
+.symbol-references-panel header > div {
+  display: grid;
+  gap: 2px;
+}
+.symbol-references-panel header small,
+.reference-count,
+.reference-results button span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.reference-count {
+  margin: -6px 0 10px;
+}
+.reference-results {
+  display: grid;
+  gap: 5px;
+}
+.reference-results button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+}
+.reference-results button:hover,
+.reference-results button:focus-visible {
+  border-color: var(--accent);
+}
+.reference-results code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .resource-status {
   margin: 12px 0;
   color: var(--muted);

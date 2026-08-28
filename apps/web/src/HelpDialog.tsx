@@ -86,7 +86,8 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
               <li>Hover a task for dates, people, and dependency navigation.</li>
               <li>Click a dependency line to inspect or delete it.</li>
               <li>
-                In the code editor, task and person references highlight together; press F2 or right-click to rename.
+                In the code editor, task and person references highlight together; press F2 to rename or right-click to
+                find and navigate references.
               </li>
             </ul>
           </section>
