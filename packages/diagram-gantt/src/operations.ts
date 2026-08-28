@@ -153,13 +153,19 @@ export function moveDependentTasksByDays(
   return { edits, affectedTaskIds, affectedLabels };
 }
 
-export function createDependency(source: string, predecessor: GanttTask, successor: GanttTask): MoveTaskResult {
+export function createDependency(
+  source: string,
+  predecessor: GanttTask,
+  successor: GanttTask,
+  predecessorAnchor: "start" | "end" = "end",
+  successorAnchor: "start" | "end" = "start",
+): MoveTaskResult {
   if (predecessor.id === successor.id) return { edits: [], unavailableReason: "A task cannot depend on itself" };
   const predecessorReference = predecessor.alias?.value ?? predecessor.label;
   const successorReference = successor.alias?.value ?? successor.label;
   const dependencyStatement = (declarationSource = "") => {
     const resources = declarationSource.match(/\bon\s+((?:\{[^}\r\n]+}\s*)+)/i)?.[1]?.trim();
-    return `[${successorReference}]${resources ? ` on ${resources}` : ""} starts at [${predecessorReference}]'s end`;
+    return `[${successorReference}]${resources ? ` on ${resources}` : ""} ${successorAnchor}s at [${predecessorReference}]'s ${predecessorAnchor}`;
   };
   const statement = dependencyStatement();
   const endMarker = /(^|\r?\n)([ \t]*)@endgantt\b/i.exec(source);
@@ -172,6 +178,39 @@ export function createDependency(source: string, predecessor: GanttTask, success
       text: `${needsLeadingNewline ? newline : ""}${text}${newline}`,
     };
   };
+  if (successorAnchor === "end") {
+    const explicitEnd = successor.end
+      ? successor.declarations.find(
+          (item) =>
+            item.kind === "end" &&
+            item.range.from <= successor.end!.range.from &&
+            item.range.to >= successor.end!.range.to,
+        )
+      : undefined;
+    if (!explicitEnd) return { edits: [dependencyInsertion()] };
+    if (explicitEnd.inline) {
+      const lineFrom = source.lastIndexOf("\n", explicitEnd.range.from - 1) + 1;
+      const nextLineBreak = source.indexOf("\n", explicitEnd.range.to);
+      const lineTo = nextLineBreak < 0 ? source.length : nextLineBreak;
+      const originalLine = source.slice(lineFrom, lineTo);
+      const clauseFrom = explicitEnd.range.from - lineFrom;
+      const clauseTo = explicitEnd.range.to - lineFrom;
+      const before = originalLine.slice(0, clauseFrom);
+      const after = originalLine.slice(clauseTo);
+      const remainingLine = after.match(/^\s+and\s+/i)
+        ? before + after.replace(/^\s+and\s+/i, "")
+        : before.replace(/\s+and\s+$/i, "") + after;
+      const indentation = originalLine.match(/^\s*/)?.[0] ?? "";
+      return {
+        edits: [
+          { range: { from: lineFrom, to: lineTo }, text: `${indentation}${remainingLine.trimStart()}` },
+          dependencyInsertion(),
+        ],
+      };
+    }
+    const original = source.slice(explicitEnd.range.from, explicitEnd.range.to);
+    return { edits: [{ range: explicitEnd.range, text: "" }, dependencyInsertion(dependencyStatement(original))] };
+  }
   const explicitStart = successor.start
     ? successor.declarations.find(
         (item) =>

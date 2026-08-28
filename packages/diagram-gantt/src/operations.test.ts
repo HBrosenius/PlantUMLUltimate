@@ -335,6 +335,28 @@ describe("task inspector operations", () => {
 });
 
 describe("dependency operations", () => {
+  it.each([
+    ["end", "start", "[B] starts at [A]'s end", "start-after-end"],
+    ["start", "start", "[B] starts at [A]'s start", "start-after-start"],
+    ["end", "end", "[B] ends at [A]'s end", "end-after-end"],
+    ["start", "end", "[B] ends at [A]'s start", "end-after-start"],
+  ] as const)("creates a %s-to-%s dependency", (predecessorAnchor, successorAnchor, syntax, relation) => {
+    const source = "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      createDependency(
+        source,
+        document.symbols.tasks.get("a")!,
+        document.symbols.tasks.get("b")!,
+        predecessorAnchor,
+        successorAnchor,
+      ).edits,
+    );
+    expect(changed).toContain(syntax);
+    expect(parseGantt(changed).document.dependencies[0]?.relation).toBe(relation);
+  });
+
   it("moves a new constraint after all task declarations", () => {
     const source =
       "@startgantt\n' keep\n[Design] lasts 2 days\n  [Build] starts 2026-09-05\n[Build] lasts 4 days\n@endgantt";

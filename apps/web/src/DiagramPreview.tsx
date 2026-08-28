@@ -36,7 +36,12 @@ interface Props {
   onVerticalSeparatorSelect(separatorIndex: number): void;
   onDividerSelect(dividerIndex: number): void;
   onTaskResize(taskId: string, durationDays: number, calendarDays: number): void;
-  onDependencyCreate(predecessorTaskId: string, successorTaskId: string): void;
+  onDependencyCreate(
+    predecessorTaskId: string,
+    successorTaskId: string,
+    predecessorAnchor: "start" | "end",
+    successorAnchor: "start" | "end",
+  ): void;
   selectedDependencyIndex?: number | undefined;
   onDependencySelect(index: number | undefined): void;
   onDependencyDelete(): void;
@@ -497,8 +502,9 @@ export function DiagramPreview({
     const id = task?.getAttribute("data-task-id");
     pointerTaskIdRef.current = id ?? undefined;
     if (!task || !id) return;
-    const dependencyHandle = target.closest("[data-dependency-handle]");
+    const dependencyHandle = target.closest<SVGGraphicsElement>("[data-dependency-handle]");
     if (dependencyHandle) {
+      const predecessorAnchor = dependencyHandle.getAttribute("data-dependency-handle") === "start" ? "start" : "end";
       event.preventDefault();
       safelyCapturePointer(event.currentTarget, event.pointerId);
       const previewRect = previewRef.current?.getBoundingClientRect();
@@ -507,22 +513,29 @@ export function DiagramPreview({
       const x1 = handleRect.left + handleRect.width / 2 - previewRect.left;
       const y1 = handleRect.top + handleRect.height / 2 - previewRect.top;
       setConnection({ x1, y1, x2: x1, y2: y1 });
-      onInteractionMessage(`Connect ${id} to a successor task`);
-      let highlightedTargetId: string | undefined;
+      const connectionSvg = dependencyHandle.ownerSVGElement;
+      connectionSvg?.classList.add("connection-active");
+      onInteractionMessage(`Connect ${id}'s ${predecessorAnchor} to another task anchor`);
+      let highlightedTarget: { taskId: string; anchor: "start" | "end" } | undefined;
       const moveConnection = (moveEvent: PointerEvent) => {
         const liveSvg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
-        const candidateId = taskIdAtPoint(liveSvg, moveEvent.clientX, moveEvent.clientY);
-        const nextTargetId = candidateId && candidateId !== id ? candidateId : undefined;
-        if (nextTargetId !== highlightedTargetId) {
-          highlightConnectionTarget(liveSvg, nextTargetId);
-          highlightedTargetId = nextTargetId;
+        const exactTarget = dependencyAnchorAtPoint(liveSvg, moveEvent.clientX, moveEvent.clientY, id);
+        const fallbackId = exactTarget ? undefined : taskIdAtPoint(liveSvg, moveEvent.clientX, moveEvent.clientY);
+        const nextTarget =
+          exactTarget ??
+          (fallbackId && fallbackId !== id ? { taskId: fallbackId, anchor: "start" as const } : undefined);
+        if (nextTarget?.taskId !== highlightedTarget?.taskId || nextTarget?.anchor !== highlightedTarget?.anchor) {
+          highlightConnectionTarget(liveSvg, nextTarget?.taskId, nextTarget?.anchor);
+          highlightedTarget = nextTarget;
         }
-        const targetGroup = nextTargetId
+        const targetGroup = nextTarget
           ? [...(liveSvg?.querySelectorAll<SVGGElement>("[data-task-id]") ?? [])].find(
-              (group) => group.getAttribute("data-task-id") === nextTargetId,
+              (group) => group.getAttribute("data-task-id") === nextTarget.taskId,
             )
           : undefined;
-        const targetHandleRect = targetGroup?.querySelector("[data-dependency-target-handle]")?.getBoundingClientRect();
+        const targetHandleRect = targetGroup
+          ?.querySelector(`[data-dependency-target-handle="${nextTarget?.anchor ?? "start"}"]`)
+          ?.getBoundingClientRect();
         setConnection({
           x1,
           y1,
@@ -539,15 +552,22 @@ export function DiagramPreview({
         window.removeEventListener("pointerup", endConnection);
         setConnection(undefined);
         const liveSvg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
-        const successorId = taskIdAtPoint(liveSvg, upEvent.clientX, upEvent.clientY);
+        const exactTarget = dependencyAnchorAtPoint(liveSvg, upEvent.clientX, upEvent.clientY, id);
+        const fallbackId = exactTarget ? undefined : taskIdAtPoint(liveSvg, upEvent.clientX, upEvent.clientY);
+        const dependencyTarget =
+          exactTarget ??
+          (fallbackId && fallbackId !== id ? { taskId: fallbackId, anchor: "start" as const } : undefined);
         highlightConnectionTarget(liveSvg, undefined);
-        if (successorId && successorId !== id) {
+        liveSvg?.classList.remove("connection-active");
+        if (dependencyTarget) {
           suppressGestureClick();
           onInteractionMessage(undefined);
-          onDependencyCreate(id, successorId);
+          onDependencyCreate(id, dependencyTarget.taskId, predecessorAnchor, dependencyTarget.anchor);
         } else
           onInteractionMessage(
-            successorId === id ? "A task cannot depend on itself" : "Drop the connection on another task bar or label",
+            fallbackId === id
+              ? "A task cannot depend on itself"
+              : "Drop the connection on another task's start or end anchor",
           );
       };
       window.addEventListener("pointermove", moveConnection);
@@ -1323,10 +1343,42 @@ function taskIdAtPoint(svg: SVGSVGElement | null, clientX: number, clientY: numb
   return undefined;
 }
 
-function highlightConnectionTarget(svg: SVGSVGElement | null, taskId: string | undefined): void {
+function dependencyAnchorAtPoint(
+  svg: SVGSVGElement | null,
+  clientX: number,
+  clientY: number,
+  excludedTaskId: string,
+): { taskId: string; anchor: "start" | "end" } | undefined {
+  if (!svg) return undefined;
+  for (const handle of svg.querySelectorAll<SVGGraphicsElement>("[data-dependency-target-handle]")) {
+    const group = handle.closest<SVGGElement>("[data-task-id]");
+    const taskId = group?.getAttribute("data-task-id");
+    if (!taskId || taskId === excludedTaskId) continue;
+    const rect = handle.getBoundingClientRect();
+    if (clientX < rect.left - 5 || clientX > rect.right + 5 || clientY < rect.top - 5 || clientY > rect.bottom + 5)
+      continue;
+    return {
+      taskId,
+      anchor: handle.getAttribute("data-dependency-target-handle") === "end" ? "end" : "start",
+    };
+  }
+  return undefined;
+}
+
+function highlightConnectionTarget(
+  svg: SVGSVGElement | null,
+  taskId: string | undefined,
+  anchor?: "start" | "end",
+): void {
   if (!svg) return;
   for (const group of svg.querySelectorAll<SVGGElement>("[data-task-id]")) {
     group.classList.toggle("connection-target", group.getAttribute("data-task-id") === taskId);
+    for (const handle of group.querySelectorAll("[data-dependency-target-handle]"))
+      handle.classList.toggle(
+        "connection-target",
+        group.getAttribute("data-task-id") === taskId &&
+          handle.getAttribute("data-dependency-target-handle") === anchor,
+      );
   }
 }
 

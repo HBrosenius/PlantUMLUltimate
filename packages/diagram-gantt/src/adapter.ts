@@ -15,7 +15,13 @@ export type GanttVisualOperation = VisualOperation &
     | { kind: "move-task"; taskId: string; days: number }
     | { kind: "resize-task"; taskId: string; days: number }
     | { kind: "reorder-task"; taskId: string; beforeTaskId?: string }
-    | { kind: "create-dependency"; predecessorTaskId: string; successorTaskId: string }
+    | {
+        kind: "create-dependency";
+        predecessorTaskId: string;
+        successorTaskId: string;
+        predecessorAnchor?: "start" | "end";
+        successorAnchor?: "start" | "end";
+      }
     | { kind: "remove-dependency"; dependencyIndex: number }
   );
 
@@ -76,7 +82,7 @@ export const ganttAdapter: DiagramAdapter<GanttDocument, GanttVisualOperation> =
       const predecessor = model.symbols.tasks.get(operation.predecessorTaskId);
       const successor = model.symbols.tasks.get(operation.successorTaskId);
       return predecessor && successor
-        ? createDependency(source, predecessor, successor)
+        ? createDependency(source, predecessor, successor, operation.predecessorAnchor, operation.successorAnchor)
         : { edits: [], unavailableReason: "Task not found" };
     }
     const dependency = model.dependencies[operation.dependencyIndex];

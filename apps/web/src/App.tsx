@@ -927,12 +927,17 @@ export function App() {
     localStorage.setItem("plantuml-studio.schedule-mode", scheduleMode);
   }, [scheduleMode]);
 
-  const connectTasks = (predecessorTaskId: string, successorTaskId: string) => {
+  const connectTasks = (
+    predecessorTaskId: string,
+    successorTaskId: string,
+    predecessorAnchor: "start" | "end",
+    successorAnchor: "start" | "end",
+  ) => {
     const predecessor = parseResult.document.symbols.tasks.get(predecessorTaskId);
     const successor = parseResult.document.symbols.tasks.get(successorTaskId);
     if (!predecessor || !successor) return;
     const operation = ganttAdapter.applyVisualOperation(
-      { kind: "create-dependency", predecessorTaskId, successorTaskId },
+      { kind: "create-dependency", predecessorTaskId, successorTaskId, predecessorAnchor, successorAnchor },
       parseResult.document,
       workspace.source,
     );
@@ -942,7 +947,7 @@ export function App() {
     }
     commitGeneratedSource(
       applySourceEdits(workspace.source, operation.edits),
-      `Connect ${predecessor.label} to ${successor.label}`,
+      `Connect ${predecessor.label}'s ${predecessorAnchor} to ${successor.label}'s ${successorAnchor}`,
     );
   };
 

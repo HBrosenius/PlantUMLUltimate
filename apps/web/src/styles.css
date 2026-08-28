@@ -589,12 +589,13 @@ input {
   stroke-width: 2;
   pointer-events: all;
 }
-.diagram svg .dependency-target-handle {
-  fill: transparent;
-  stroke: transparent;
-  pointer-events: none;
+.diagram svg.connection-active .dependency-handle {
+  fill: color-mix(in srgb, var(--accent) 35%, var(--panel));
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: all;
 }
-.diagram svg .task.connection-target .dependency-target-handle {
+.diagram svg.connection-active .dependency-handle.connection-target {
   fill: #22c55e;
   stroke: #fff;
   stroke-width: 2;

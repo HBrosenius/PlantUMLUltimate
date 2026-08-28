@@ -2334,7 +2334,7 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
     ),
   );
   await page.locator("[data-task-id=a] .bar").click();
-  const handle = await page.locator("[data-task-id=a] [data-dependency-handle]").boundingBox();
+  const handle = await page.locator('[data-task-id=a] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator("[data-task-id=b] .bar").boundingBox();
   expect(handle).not.toBeNull();
   expect(target).not.toBeNull();
@@ -2350,9 +2350,31 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-05");
 });
 
+test("connects task end anchors to create an end-to-end dependency", async ({ page }) => {
+  await setSource(page, source("[A] lasts 2 days\n[B] lasts 4 days"));
+  await page.locator('[data-task-id="a"] .bar').click();
+  await expect(page.locator('[data-task-id="a"] [data-dependency-handle]')).toHaveCount(2);
+  const sourceHandle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
+  const targetHandle = await page.locator('[data-task-id="b"] [data-dependency-target-handle="end"]').boundingBox();
+  expect(sourceHandle).not.toBeNull();
+  expect(targetHandle).not.toBeNull();
+
+  await page.mouse.move(sourceHandle!.x + sourceHandle!.width / 2, sourceHandle!.y + sourceHandle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetHandle!.x + targetHandle!.width / 2, targetHandle!.y + targetHandle!.height / 2, {
+    steps: 5,
+  });
+  await expect(page.locator('[data-task-id="b"] [data-dependency-target-handle="end"]')).toHaveClass(
+    /connection-target/,
+  );
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-content")).toContainText("[B] ends at [A]'s end");
+});
+
 test("connects a later default task to an earlier task without breaking PlantUML rendering", async ({ page }) => {
   await page.locator("[data-task-id=testing] .bar").click();
-  const handle = await page.locator("[data-task-id=testing] [data-dependency-handle]").boundingBox();
+  const handle = await page.locator('[data-task-id=testing] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator("[data-task-id=frontend] .bar").boundingBox();
   expect(handle).not.toBeNull();
   expect(target).not.toBeNull();
@@ -2574,7 +2596,7 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
     .toBeLessThan(10);
 
   await page.locator('[data-task-id="a"] .bar').click();
-  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle]').boundingBox();
+  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
   expect(handle).not.toBeNull();
   expect(target).not.toBeNull();

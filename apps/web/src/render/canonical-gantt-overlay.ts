@@ -427,21 +427,20 @@ export function addCanonicalGanttOverlay(
       group.append(resize);
     }
 
-    const dependency = document.createElementNS(SVG_NS, "circle");
-    dependency.setAttribute("data-dependency-handle", "end");
-    dependency.setAttribute("class", "dependency-handle");
-    dependency.setAttribute("cx", String(x + width + 8));
-    dependency.setAttribute("cy", String(y + height / 2));
-    dependency.setAttribute("r", "5");
-    group.append(dependency);
-
-    const dependencyTarget = document.createElementNS(SVG_NS, "circle");
-    dependencyTarget.setAttribute("data-dependency-target-handle", "start");
-    dependencyTarget.setAttribute("class", "dependency-target-handle");
-    dependencyTarget.setAttribute("cx", String(x - 8));
-    dependencyTarget.setAttribute("cy", String(y + height / 2));
-    dependencyTarget.setAttribute("r", "6");
-    group.append(dependencyTarget);
+    for (const anchor of ["start", "end"] as const) {
+      const dependency = document.createElementNS(SVG_NS, "circle");
+      dependency.setAttribute("data-dependency-handle", anchor);
+      dependency.setAttribute("data-dependency-target-handle", anchor);
+      dependency.setAttribute("class", `dependency-handle dependency-handle-${anchor}`);
+      dependency.setAttribute("cx", String(anchor === "start" ? x - 8 : x + width + 8));
+      dependency.setAttribute("cy", String(y + height / 2));
+      dependency.setAttribute("r", "5");
+      dependency.setAttribute(
+        "aria-label",
+        `${anchor === "start" ? "Start" : "End"} dependency anchor for ${task.label}`,
+      );
+      group.append(dependency);
+    }
     root.append(group);
   }
 
