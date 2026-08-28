@@ -9,6 +9,7 @@ export interface TaskInspectorValue {
   endDate: string;
   duration: string;
   durationUnit: "day" | "week" | "month";
+  scheduleMode: "duration" | "end";
   completion: string;
   color: string;
   pauses: Array<{ id: string; value: string }>;
@@ -59,6 +60,7 @@ export function TaskInspector({
     endDate: task.end?.value ?? (dependencyRelation.startsWith("end-") ? effectiveEnd : ""),
     duration: task.duration ? String(task.duration.value) : "",
     durationUnit: task.duration?.unit ?? "day",
+    scheduleMode: task.end || dependencyRelation.startsWith("end-") ? "end" : "duration",
     completion: task.completion ? String(task.completion.value) : "",
     color: task.color?.value ?? "",
     pauses: (task.pauses ?? []).map((pause, index) => ({ id: `pause-${index}`, value: pause.value })),
@@ -79,6 +81,7 @@ export function TaskInspector({
   const parsedEndDate = task.end?.value ?? (dependencyRelation.startsWith("end-") ? effectiveEnd : "");
   const parsedDuration = task.duration ? String(task.duration.value) : "";
   const parsedDurationUnit = task.duration?.unit ?? "day";
+  const parsedScheduleMode = task.end || dependencyRelation.startsWith("end-") ? "end" : "duration";
   useEffect(() => {
     setValue((current) => ({
       ...current,
@@ -86,8 +89,9 @@ export function TaskInspector({
       endDate: parsedEndDate,
       duration: parsedDuration,
       durationUnit: parsedDurationUnit,
+      scheduleMode: parsedScheduleMode,
     }));
-  }, [parsedDuration, parsedDurationUnit, parsedEndDate, parsedStartDate]);
+  }, [parsedDuration, parsedDurationUnit, parsedEndDate, parsedScheduleMode, parsedStartDate]);
   useEffect(() => {
     if (!focusNote) return;
     const note = noteRef.current;
@@ -99,7 +103,7 @@ export function TaskInspector({
   const apply = (next = value) => {
     const serialized = JSON.stringify(next);
     if (serialized === lastAppliedValue.current) return;
-    const duration = next.duration === "" ? undefined : Number(next.duration);
+    const duration = next.scheduleMode === "duration" && next.duration !== "" ? Number(next.duration) : undefined;
     const completion = next.completion === "" ? undefined : Number(next.completion);
     const validResources = next.resources.every((resource) => {
       const allocation = Number(resource.allocation);
@@ -128,6 +132,8 @@ export function TaskInspector({
     value.duration && Number.isInteger(durationDays)
       ? workingEndDate(conversionStart, durationDays, calendar)
       : undefined;
+  const endDisplayValue = value.scheduleMode === "duration" ? (convertedEnd ?? "") : value.endDate;
+  const durationDisplayValue = value.scheduleMode === "end" ? String(convertedDuration ?? "") : value.duration;
   return (
     <aside className="task-inspector" aria-label="Task inspector">
       <header>
@@ -194,11 +200,13 @@ export function TaskInspector({
         {value.predecessorId && value.startDate === effectiveStart && (
           <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
         )}
-        <label>
+        <label className={value.scheduleMode === "duration" ? "derived-schedule-field" : undefined}>
           End
           <input
             type="date"
-            value={value.endDate}
+            readOnly={value.scheduleMode === "duration"}
+            aria-readonly={value.scheduleMode === "duration"}
+            value={endDisplayValue}
             onChange={(event) => update("endDate", event.target.value)}
             onBlur={() => apply()}
           />
@@ -209,45 +217,44 @@ export function TaskInspector({
         <div className="schedule-conversion" role="group" aria-label="Convert task schedule">
           <button
             type="button"
-            disabled={!convertedDuration}
+            disabled={value.scheduleMode === "end" ? !convertedDuration : !convertedEnd}
             onClick={() => {
-              const next = {
-                ...value,
-                endDate: "",
-                duration: String(convertedDuration),
-                durationUnit: "day",
-              } satisfies TaskInspectorValue;
+              const next =
+                value.scheduleMode === "end"
+                  ? ({
+                      ...value,
+                      scheduleMode: "duration",
+                      duration: String(convertedDuration),
+                      durationUnit: "day",
+                    } satisfies TaskInspectorValue)
+                  : ({
+                      ...value,
+                      scheduleMode: "end",
+                      endDate: convertedEnd ?? "",
+                    } satisfies TaskInspectorValue);
               setValue(next);
               apply(next);
             }}
           >
-            End → duration
-          </button>
-          <button
-            type="button"
-            disabled={!convertedEnd}
-            onClick={() => {
-              const next = { ...value, endDate: convertedEnd ?? "", duration: "" };
-              setValue(next);
-              apply(next);
-            }}
-          >
-            Duration → end
+            {value.scheduleMode === "end" ? "Switch to duration ⇄" : "Switch to end date ⇄"}
           </button>
         </div>
-        <label>
+        <label className={value.scheduleMode === "end" ? "derived-schedule-field" : undefined}>
           Duration
           <span className="compound">
             <input
               type="number"
               min="1"
               step="1"
-              value={value.duration}
+              readOnly={value.scheduleMode === "end"}
+              aria-readonly={value.scheduleMode === "end"}
+              value={durationDisplayValue}
               onChange={(event) => update("duration", event.target.value)}
               onBlur={() => apply()}
             />
             <select
-              value={value.durationUnit}
+              disabled={value.scheduleMode === "end"}
+              value={value.scheduleMode === "end" ? "day" : value.durationUnit}
               onChange={(event) => update("durationUnit", event.target.value as "day" | "week" | "month", true)}
             >
               <option value="day">days</option>

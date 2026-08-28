@@ -2707,18 +2707,52 @@ test("converts task end dates and durations in both directions", async ({ page }
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-04 and ends 2026-09-08"));
   await page.locator("[data-task-id=a] .bar").click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
-  await inspector.getByRole("button", { name: "End → duration" }).click();
-  await expect(inspector.getByRole("textbox", { name: "End", exact: true })).toHaveValue("");
-  await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).toHaveValue("3");
-  await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
-  await expect(page.locator(".cm-content")).not.toContainText("ends 2026-09-08");
+  const end = inspector.getByRole("textbox", { name: "End", exact: true });
+  const duration = inspector.locator("label").filter({ hasText: "Duration" }).locator('input[type="number"]');
 
-  await page.locator("[data-task-id=a] .bar").click();
-  await inspector.getByRole("button", { name: "Duration → end" }).click();
-  await expect(inspector.getByRole("textbox", { name: "End", exact: true })).toHaveValue("2026-09-08");
-  await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).toHaveValue("");
+  await expect(duration).toHaveValue("3");
+  await expect(duration).toHaveAttribute("readonly", "");
+  await end.fill("2026-09-09");
+  await expect(duration).toHaveValue("4");
+  await end.blur();
+
+  await inspector.getByRole("button", { name: "Switch to duration ⇄" }).click();
+  await expect(end).toHaveValue("2026-09-09");
+  await expect(end).toHaveAttribute("readonly", "");
+  await expect(duration).toHaveValue("4");
+  await expect(duration).not.toHaveAttribute("readonly", "");
+  await expect(page.locator(".cm-content")).toContainText("[A] lasts 4 days");
+  await expect(page.locator(".cm-content")).not.toContainText("ends 2026-09-09");
+
+  await duration.fill("3");
+  await expect(end).toHaveValue("2026-09-08");
+
+  await inspector.getByRole("button", { name: "Switch to end date ⇄" }).click();
+  await expect(end).toHaveValue("2026-09-08");
+  await expect(end).not.toHaveAttribute("readonly", "");
+  await expect(duration).toHaveValue("3");
+  await expect(duration).toHaveAttribute("readonly", "");
   await expect(page.locator(".cm-content")).toContainText("[A] ends 2026-09-08");
   await expect(page.locator(".cm-content")).not.toContainText("lasts 3 days");
+});
+
+test("converts a dependent task from duration to an editable explicit end", async ({ page }) => {
+  await setSource(page, source("[A] starts 2026-09-01 and lasts 2 days\n[B] starts at [A]'s end and lasts 3 days"));
+  await page.locator('[data-task-id="b"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  const end = inspector.getByRole("textbox", { name: "End", exact: true });
+  const duration = inspector.locator("label").filter({ hasText: "Duration" }).locator('input[type="number"]');
+  const derivedEnd = await end.inputValue();
+  expect(derivedEnd).not.toBe("");
+
+  await inspector.getByRole("button", { name: "Switch to end date ⇄" }).click();
+
+  await expect(end).toHaveValue(derivedEnd);
+  await expect(end).not.toHaveAttribute("readonly", "");
+  await expect(duration).toHaveValue("3");
+  await expect(duration).toHaveAttribute("readonly", "");
+  await expect(page.locator(".cm-content")).toContainText(`[B] ends ${derivedEnd}`);
+  await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 3 days");
 });
 
 test("suggests PlantUML color names in the task inspector", async ({ page }) => {

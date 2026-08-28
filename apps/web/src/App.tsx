@@ -2289,7 +2289,7 @@ export function App() {
   const applyTaskInspector = useCallback(
     (value: TaskInspectorValue) => {
       if (!selectedTaskId) return;
-      const duration = value.duration === "" ? undefined : Number(value.duration);
+      const duration = value.scheduleMode === "duration" && value.duration !== "" ? Number(value.duration) : undefined;
       const completion = value.completion === "" ? undefined : Number(value.completion);
       if (duration !== undefined && (!Number.isInteger(duration) || duration < 1)) {
         setInteractionMessage("Duration must be a positive whole number");
@@ -2324,7 +2324,6 @@ export function App() {
         ? parseGantt(source).document.symbols.tasks.get(value.predecessorId)
         : undefined;
       const derivedStart = resolvedTaskDates.get(selectedTaskId)?.start ?? "";
-      const derivedEnd = resolvedTaskDates.get(selectedTaskId)?.end ?? "";
       if (predecessor) {
         const endsTask = value.dependencyRelation.startsWith("end-");
         const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
@@ -2341,13 +2340,13 @@ export function App() {
           "end",
           endsTask
             ? linkedStatement
-            : value.endDate && value.endDate !== derivedEnd
+            : value.scheduleMode === "end" && value.endDate
               ? `ends ${value.endDate}`
               : undefined,
         );
       } else {
         applyDeclaration("start", value.startDate ? `starts ${value.startDate}` : undefined);
-        applyDeclaration("end", value.endDate ? `ends ${value.endDate}` : undefined);
+        applyDeclaration("end", value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined);
       }
       applyDeclaration(
         "duration",
