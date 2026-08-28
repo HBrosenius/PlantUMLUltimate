@@ -26,6 +26,9 @@ export const plantUmlGanttMode: StreamParser<GanttModeState> = {
     if (/\bis\s+colou?red\s+in\s*$/i.test(prefix) && stream.match(/^(?:#[0-9a-f]+|[a-z][\w-]*)/i)) return "string";
     if (stream.match(KEYWORDS)) return "keyword";
     if (stream.match(/^(?:true|false)\b/i)) return "bool";
+    // Consume identifiers as a unit so the tokenizer cannot restart in the
+    // middle of a name and mistake a suffix such as the "as" in "Elias" for a keyword.
+    if (stream.match(/^[\p{L}_][\p{L}\p{N}_-]*/u)) return null;
     if (stream.match(/^[()[\]{},:]/)) return "punctuation";
     stream.next();
     return null;

@@ -40,4 +40,14 @@ describe("PlantUML Gantt syntax mode", () => {
     expect(tokens("  ' explanation")).toEqual([["' explanation", "comment"]]);
     expect(tokens("[Test] starts at [Build]'s end")).toContainEqual(["'s", "operator"]);
   });
+
+  it("does not highlight keywords embedded in person names", () => {
+    expect(tokens("[Build] on {Elias}")).toEqual([
+      ["[Build]", "variableName"],
+      ["on", "keyword"],
+      ["{", "punctuation"],
+      ["}", "punctuation"],
+    ]);
+    expect(tokens("[Build] on {Åsas:50%}")).not.toContainEqual(["as", "keyword"]);
+  });
 });
