@@ -124,6 +124,12 @@ export function ClassDiagramPreview({
         const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
         if (id) selectRef.current(id);
       });
+      hit.addEventListener("click", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
+        if (id) selectRef.current(id);
+      });
       rendered.append(hit);
       if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
       if (!entity) continue;

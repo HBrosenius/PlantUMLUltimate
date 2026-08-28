@@ -344,8 +344,8 @@ export function WbsDiagramPreview({
             const handle = target.closest<SVGCircleElement>("[data-wbs-connect-from]");
             const id =
               handle?.dataset.wbsConnectFrom ??
-              nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId ??
-              target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
+              target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId ??
+              nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
             if (id) {
               event.preventDefault();
               let line: SVGLineElement | undefined;

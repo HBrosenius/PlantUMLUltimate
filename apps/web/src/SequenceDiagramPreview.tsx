@@ -194,7 +194,25 @@ export function SequenceDiagramPreview({
       suppressClickRef.current = false;
       return;
     }
-    const text = (event.target as Element).closest("text")?.textContent?.trim();
+    const target = event.target as Element;
+    const participantId = target
+      .closest("[data-sequence-participant-id]")
+      ?.getAttribute("data-sequence-participant-id");
+    if (participantId) {
+      onParticipantSelect(participantId);
+      return;
+    }
+    const messageId = target.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id");
+    if (messageId) {
+      onMessageSelect(messageId);
+      return;
+    }
+    const structureId = target.closest("[data-sequence-structure-id]")?.getAttribute("data-sequence-structure-id");
+    if (structureId) {
+      onStructureSelect(structureId);
+      return;
+    }
+    const text = target.closest("text")?.textContent?.trim();
     if (!text) return;
     const participant = participants.find((item) => text === item.label || text === (item.alias ?? item.label));
     if (participant) {
@@ -209,6 +227,21 @@ export function SequenceDiagramPreview({
       );
       if (structure) onStructureSelect(structure.id);
     }
+  };
+
+  const selectRenderedObjectByKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target as Element;
+    const participantId = target
+      .closest("[data-sequence-participant-id]")
+      ?.getAttribute("data-sequence-participant-id");
+    const messageId = target.closest("[data-sequence-message-id]")?.getAttribute("data-sequence-message-id");
+    const structureId = target.closest("[data-sequence-structure-id]")?.getAttribute("data-sequence-structure-id");
+    if (!participantId && !messageId && !structureId) return;
+    event.preventDefault();
+    if (participantId) onParticipantSelect(participantId);
+    else if (messageId) onMessageSelect(messageId);
+    else if (structureId) onStructureSelect(structureId);
   };
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -541,6 +574,7 @@ export function SequenceDiagramPreview({
             ref={diagramRef}
             style={{ transform: `scale(${zoom})` }}
             onClick={selectRenderedObject}
+            onKeyDown={selectRenderedObjectByKeyboard}
             onPointerDown={startDrag}
             onPointerMove={moveDrag}
             onPointerUp={endDrag}
@@ -1188,6 +1222,8 @@ function addDragHitTarget(
     rect.setAttribute(attribute, id);
     rect.setAttribute("data-draggable", "true");
     rect.setAttribute("aria-label", label);
+    rect.setAttribute("tabindex", "0");
+    rect.setAttribute("role", "button");
     const transform = text.getAttribute("transform");
     if (transform) rect.setAttribute("transform", transform);
     // Appending makes the transparent target the topmost SVG hit surface while leaving the diagram visible.

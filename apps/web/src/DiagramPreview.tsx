@@ -434,7 +434,7 @@ export function DiagramPreview({
       if (!Number.isInteger(index)) return;
       event.preventDefault();
       draggingRef.current = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
+      safelyCapturePointer(event.currentTarget, event.pointerId);
       const startY = event.clientY;
       const scale = svgScreenScale(divider.ownerSVGElement);
       const visuals = [
@@ -478,7 +478,7 @@ export function DiagramPreview({
     const dependencyHandle = target.closest("[data-dependency-handle]");
     if (dependencyHandle) {
       event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
+      safelyCapturePointer(event.currentTarget, event.pointerId);
       const previewRect = previewRef.current?.getBoundingClientRect();
       const handleRect = dependencyHandle.getBoundingClientRect();
       if (!previewRect) return;
@@ -536,7 +536,7 @@ export function DiagramPreview({
     if (resizeHandle) {
       event.preventDefault();
       draggingRef.current = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
+      safelyCapturePointer(event.currentTarget, event.pointerId);
       const bar = task.querySelector<SVGRectElement>(".bar");
       const visualBar = visualTaskElements(task.ownerSVGElement, id).find(
         (item): item is SVGRectElement => item instanceof SVGRectElement,
@@ -603,7 +603,7 @@ export function DiagramPreview({
     const canMoveDates = task.getAttribute("data-draggable") === "true";
     event.preventDefault();
     draggingRef.current = true;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    safelyCapturePointer(event.currentTarget, event.pointerId);
     const interactionHost = event.currentTarget;
     const startX = event.clientX;
     const startY = event.clientY;
@@ -1323,6 +1323,14 @@ function timelineColumnScreenWidth(svg: SVGSVGElement | null): number | undefine
     .filter((gap) => gap > 0.5)
     .sort((a, b) => a - b);
   return gaps.length ? gaps[Math.floor(gaps.length / 2)] : undefined;
+}
+
+function safelyCapturePointer(element: Element, pointerId: number) {
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    // Window-level pointer listeners keep the interaction alive when capture is unavailable or was already lost.
+  }
 }
 
 function timelineScreenColumns(svg: SVGSVGElement | null): Array<{ date: string; center: number }> {
