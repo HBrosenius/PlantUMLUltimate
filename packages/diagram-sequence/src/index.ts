@@ -109,6 +109,14 @@ export interface SequenceDocument {
   durations: SequenceDuration[];
 }
 
+export interface SequenceParticipantOccurrence {
+  kind: "participant";
+  key: string;
+  value: string;
+  range: { from: number; to: number };
+  role: "declaration" | "reference";
+}
+
 const PARTICIPANT =
   /^\s*(participant|actor|boundary|control|entity|database|collections|queue)\s+(?:"([^"]+)"|([^\s#<]+))(?:\s+as\s+(?:"([^"]+)"|([^\s#<]+)))?(.*)$/i;
 const MESSAGE =
@@ -440,6 +448,67 @@ function insertionPoint(source: string): number {
 
 function participantReference(participant: SequenceParticipant): string {
   return participant.alias ?? participant.label;
+}
+
+function nextValueRange(source: string, range: { from: number; to: number }, value: string, after = range.from) {
+  const text = source.slice(Math.max(range.from, after), range.to);
+  const quoted = `"${value}"`;
+  const quotedAt = text.indexOf(quoted);
+  const rawAt = text.indexOf(value);
+  const relative = quotedAt >= 0 && (rawAt < 0 || quotedAt <= rawAt) ? quotedAt + 1 : rawAt;
+  if (relative < 0) return undefined;
+  const from = Math.max(range.from, after) + relative;
+  return { from, to: from + value.length };
+}
+
+export function sequenceParticipantOccurrences(
+  source: string,
+  document: SequenceDocument,
+): SequenceParticipantOccurrence[] {
+  const occurrences: SequenceParticipantOccurrence[] = [];
+  const add = (
+    participant: SequenceParticipant | undefined,
+    value: string,
+    range: { from: number; to: number },
+    role: SequenceParticipantOccurrence["role"],
+    after?: number,
+  ) => {
+    if (!participant) return undefined;
+    const valueRange = nextValueRange(source, range, value, after);
+    if (!valueRange) return undefined;
+    occurrences.push({ kind: "participant", key: participant.id, value, range: valueRange, role });
+    return valueRange.to;
+  };
+  const byReference = new Map(document.participants.map((item) => [participantReference(item), item]));
+
+  for (const participant of document.participants) {
+    const after = add(participant, participant.label, participant.sourceRange, "declaration");
+    if (participant.alias) add(participant, participant.alias, participant.sourceRange, "declaration", after);
+  }
+  for (const message of document.messages) {
+    const after = add(byReference.get(message.from), message.from, message.sourceRange, "reference");
+    add(byReference.get(message.to), message.to, message.sourceRange, "reference", after);
+  }
+  for (const activation of document.activations)
+    add(byReference.get(activation.participant), activation.participant, activation.sourceRange, "reference");
+  for (const note of document.notes) {
+    const headerEnd = source.indexOf("\n", note.sourceRange.from);
+    const headerRange = { from: note.sourceRange.from, to: headerEnd < 0 ? note.sourceRange.to : headerEnd };
+    let after: number | undefined;
+    for (const value of note.participants)
+      after = add(byReference.get(value), value, headerRange, "reference", after) ?? after;
+  }
+  for (const reference of document.references) {
+    const headerEnd = source.indexOf("\n", reference.sourceRange.from);
+    const headerRange = { from: reference.sourceRange.from, to: headerEnd < 0 ? reference.sourceRange.to : headerEnd };
+    let after: number | undefined;
+    for (const value of reference.participants)
+      after = add(byReference.get(value), value, headerRange, "reference", after) ?? after;
+  }
+  for (const creation of document.creations)
+    add(byReference.get(creation.participant), creation.participant, creation.sourceRange, "reference");
+
+  return occurrences.sort((left, right) => left.range.from - right.range.from);
 }
 
 function participantStatement(value: {

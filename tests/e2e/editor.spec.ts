@@ -176,6 +176,36 @@ test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await expect(sequenceChoice.getByText("Beta", { exact: true })).toHaveCount(0);
 });
 
+test("highlights, finds, and renames Sequence participant references", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await setSource(
+    page,
+    '@startuml\nactor "API User" as User\ndatabase Store\nUser -> Store: User requests data\nactivate User\nnote right of User: User is waiting\n@enduml',
+  );
+
+  const aliasReference = await pointInText(page, 3, "User");
+  await page.mouse.click(aliasReference.x, aliasReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(5);
+  await expect(page.getByRole("complementary", { name: "Participant inspector" })).toHaveCount(0);
+
+  await page.mouse.click(aliasReference.x, aliasReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for User" });
+  await expect(references).toContainText("5 occurrences");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await page.mouse.click(aliasReference.x, aliasReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename participant alias" });
+  await expect(rename).toContainText("4 semantic occurrences");
+  await rename.getByLabel("New name").fill("Client");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText('actor "API User" as Client');
+  await expect(page.locator(".cm-content")).toContainText("Client -> Store: User requests data");
+  await expect(page.locator(".cm-content")).toContainText("note right of Client: User is waiting");
+});
+
 test("creates and visually edits a WBS diagram", async ({ page, browserName }) => {
   test.skip(
     browserName === "webkit",

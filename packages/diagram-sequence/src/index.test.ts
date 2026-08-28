@@ -10,6 +10,7 @@ import {
   parseSequence,
   reconnectSequenceStructure,
   reorderSequenceStatement,
+  sequenceParticipantOccurrences,
   updateSequenceMessage,
   updateSequenceParticipant,
   updateSequenceStructure,
@@ -48,6 +49,26 @@ describe("parseSequence", () => {
 });
 
 describe("Sequence source operations", () => {
+  it("finds semantic participant declarations and references without matching message text", () => {
+    const source =
+      '@startuml\nactor "API User" as User\ndatabase Store\nUser -> Store: User sees Store\nactivate User\nnote right of User: Store is ready\nref over User, Store: Review\ncreate participant User\n@enduml';
+    const occurrences = sequenceParticipantOccurrences(source, parseSequence(source));
+
+    expect(occurrences.filter((item) => item.key === "user").map((item) => item.value)).toEqual([
+      "API User",
+      "User",
+      "User",
+      "User",
+      "User",
+      "User",
+      "User",
+    ]);
+    expect(occurrences.filter((item) => item.key === "store")).toHaveLength(3);
+    expect(occurrences.map((item) => source.slice(item.range.from, item.range.to))).toEqual(
+      occurrences.map((item) => item.value),
+    );
+  });
+
   it("inserts participants and messages before @enduml", () => {
     let source = "@startuml\n@enduml";
     source = insertSequenceParticipant(source, { kind: "boundary", label: "Web UI", alias: "UI" });

@@ -1,4 +1,8 @@
-import type { GanttSymbolOccurrence } from "@plantuml-studio/diagram-gantt";
+export interface SymbolReferenceOccurrence {
+  value: string;
+  range: { from: number; to: number };
+  role: "declaration" | "reference";
+}
 
 export function SymbolReferencesPanel({
   label,
@@ -9,8 +13,8 @@ export function SymbolReferencesPanel({
 }: {
   label: string;
   source: string;
-  occurrences: readonly GanttSymbolOccurrence[];
-  onSelect(occurrence: GanttSymbolOccurrence): void;
+  occurrences: readonly SymbolReferenceOccurrence[];
+  onSelect(occurrence: SymbolReferenceOccurrence): void;
   onClose(): void;
 }) {
   const lines = source.split(/\r?\n/);
