@@ -257,6 +257,7 @@ import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspac
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
+  const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
   const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
@@ -495,6 +496,8 @@ export function App() {
     () => tabs.documents.reduce((total, document) => total + document.source.length * 2, 0),
     [tabs.documents],
   );
+
+  useEffect(() => setSourceHighlightedTaskId(undefined), [tabs.activeId, workspace.diagramKind]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -2716,7 +2719,8 @@ export function App() {
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (moveEvent: PointerEvent) => {
       const rect = root.getBoundingClientRect();
-      update("splitPercent", Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / rect.width) * 100)));
+      const viewportWidth = document.documentElement.clientWidth;
+      update("splitPercent", Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / viewportWidth) * 100)));
     };
     const end = () => {
       window.removeEventListener("pointermove", move);
@@ -2973,7 +2977,10 @@ export function App() {
       <main
         className={`workspace mode-${workspace.viewMode}`}
         style={{
-          gridTemplateColumns: workspace.viewMode === "split" ? `${workspace.splitPercent}% 5px 1fr` : undefined,
+          gridTemplateColumns:
+            workspace.viewMode === "split"
+              ? `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
+              : undefined,
         }}
       >
         {workspace.viewMode !== "diagram" && (
@@ -2985,7 +2992,7 @@ export function App() {
             onCursorChange={(line, column, position) => {
               update("cursor", { line, column });
               if (workspace.diagramKind === "gantt") {
-                setSelectedTaskId(findTaskAt(parseResult.document, position)?.id);
+                setSourceHighlightedTaskId(findTaskAt(parseResult.document, position)?.id);
               } else if (workspace.diagramKind === "sequence") {
                 const object = findSequenceObjectAt(sequenceDocument, position);
                 if (
@@ -3028,6 +3035,7 @@ export function App() {
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               selectedTaskId={selectedTaskId}
+              highlightedTaskId={sourceHighlightedTaskId}
               onTaskSelect={selectTask}
               onNoteSelect={(taskId) => {
                 selectTask(taskId);

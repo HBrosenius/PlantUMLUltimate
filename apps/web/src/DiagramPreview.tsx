@@ -25,6 +25,7 @@ interface Props {
   zoom: number;
   onZoomChange(zoom: number): void;
   selectedTaskId?: string | undefined;
+  highlightedTaskId?: string | undefined;
   onTaskSelect(taskId: string): void;
   onNoteSelect(taskId: string): void;
   onBackgroundSelect(): void;
@@ -71,6 +72,7 @@ export function DiagramPreview({
   zoom,
   onZoomChange,
   selectedTaskId,
+  highlightedTaskId,
   onTaskSelect,
   onNoteSelect,
   onBackgroundSelect,
@@ -214,8 +216,9 @@ export function DiagramPreview({
   const selectedSvg = useMemo(() => {
     if (!interactiveSvg) return interactiveSvg;
     let marked = interactiveSvg;
-    if (selectedTaskId) {
-      const escapedId = selectedTaskId
+    const markedTaskId = highlightedTaskId ?? selectedTaskId;
+    if (markedTaskId) {
+      const escapedId = markedTaskId
         .replaceAll("&", "&amp;")
         .replaceAll('"', "&quot;")
         .replaceAll("<", "&lt;")
@@ -239,6 +242,7 @@ export function DiagramPreview({
   }, [
     interactiveSvg,
     selectedTaskId,
+    highlightedTaskId,
     selectedDependencyIndex,
     criticalIds,
     variance,
@@ -334,7 +338,7 @@ export function DiagramPreview({
   };
   useEffect(() => {
     if (selectedTaskId) window.setTimeout(() => revealTask(selectedTaskId), 0);
-  }, [revealTask, selectedTaskId, selectedSvg, zoom]);
+  }, [revealTask, selectedTaskId, interactiveSvg, zoom]);
   useEffect(() => {
     if (selectedTaskId) setHoveredTask(undefined);
   }, [selectedTaskId]);

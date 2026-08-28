@@ -60,6 +60,31 @@ test("zooms with the mouse wheel and pans with the middle mouse button", async (
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(before);
 });
 
+test("keeps the split divider fixed while source selection highlights tasks", async ({ page }) => {
+  await setSource(page, source("[Design] lasts 3 days\n[Build] starts at [Design]'s end and lasts 4 days"));
+  const divider = page.getByRole("separator");
+  const editor = page.locator(".cm-content");
+  const initialX = (await divider.boundingBox())!.x;
+
+  const designLine = (await editor.locator(".cm-line").nth(2).boundingBox())!;
+  const buildLine = (await editor.locator(".cm-line").nth(3).boundingBox())!;
+  await page.mouse.move(designLine.x + 4, designLine.y + designLine.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(buildLine.x + Math.min(180, buildLine.width - 4), buildLine.y + buildLine.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-selectionBackground").first()).toBeVisible();
+  await expect(page.locator('[data-task-id="build"][data-selected="true"]')).toHaveCount(1);
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toHaveCount(0);
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialX, 0);
+
+  await page.locator('[data-task-id="build"] .bar').click();
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialX, 0);
+});
+
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
