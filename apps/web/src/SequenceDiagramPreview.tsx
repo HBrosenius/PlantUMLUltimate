@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 export function SequenceDiagramPreview({
   svg,
@@ -49,6 +50,7 @@ export function SequenceDiagramPreview({
   onMessageCreate(fromParticipantId: string, toParticipantId: string): void;
   onMessageExternalize(messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?"): void;
 }) {
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
   const diagramRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<
     | {
@@ -567,7 +569,13 @@ export function SequenceDiagramPreview({
           />
         </aside>
       )}
-      <div className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}>
+      <div
+        className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}
+        ref={navigation.viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
         {svg ? (
           <div
             className="diagram sequence-diagram"

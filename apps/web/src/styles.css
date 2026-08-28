@@ -392,6 +392,11 @@ input {
   overflow: auto;
   padding: 48px 24px 42px;
 }
+.preview-viewport.diagram-pan-active,
+.preview-viewport.diagram-pan-active * {
+  cursor: grabbing !important;
+  user-select: none;
+}
 .preview-viewport.stale-preview .diagram {
   opacity: 0.3;
   filter: grayscale(0.45);

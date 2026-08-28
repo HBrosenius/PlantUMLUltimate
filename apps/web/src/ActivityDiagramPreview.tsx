@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type MutableRefObject, type PointerEvent } from "react";
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 export function ActivityDiagramPreview({
   svg,
@@ -27,6 +28,7 @@ export function ActivityDiagramPreview({
   onBackgroundSelect(): void;
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number } | undefined>(undefined);
   const suppressClick = useRef(false);
@@ -203,7 +205,13 @@ export function ActivityDiagramPreview({
         )}
         <span className="usecase-keyboard-help">Click an action to inspect it</span>
       </div>
-      <div className="preview-viewport">
+      <div
+        className="preview-viewport"
+        ref={navigation.viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
         {svg ? (
           <div
             ref={root}

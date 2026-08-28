@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
@@ -13,6 +13,7 @@ import {
   extractRenderedTaskGeometry,
 } from "./schedule-analysis";
 import { useRenderer } from "./render/use-renderer";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 interface Props {
   svg: string | undefined;
@@ -106,7 +107,8 @@ export function DiagramPreview({
   onClearBaseline,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const viewportRef = navigation.viewportRef;
   const feedbackRef = useRef<HTMLOutputElement>(null);
   const pointerTaskIdRef = useRef<string | undefined>(undefined);
   const draggingRef = useRef(false);
@@ -275,25 +277,28 @@ export function DiagramPreview({
       )
     : undefined;
 
-  const revealTask = (taskId: string | undefined) => {
-    if (!taskId) return;
-    const viewport = viewportRef.current;
-    const visual = [...(previewRef.current?.querySelectorAll<SVGGraphicsElement>("[data-visual-task-id]") ?? [])].find(
-      (item) => item.getAttribute("data-visual-task-id") === taskId,
-    );
-    if (!viewport || !visual) return;
-    const viewportRect = viewport.getBoundingClientRect();
-    const rect = visual.getBoundingClientRect();
-    const horizontal =
-      rect.width <= viewportRect.width - 48
-        ? rect.left + rect.width / 2 - (viewportRect.left + viewportRect.width / 2)
-        : rect.right - (viewportRect.right - 24);
-    viewport.scrollBy({
-      left: horizontal,
-      top: rect.top + rect.height / 2 - (viewportRect.top + viewportRect.height / 2),
-      behavior: "auto",
-    });
-  };
+  const revealTask = useCallback(
+    (taskId: string | undefined) => {
+      if (!taskId) return;
+      const viewport = viewportRef.current;
+      const visual = [
+        ...(previewRef.current?.querySelectorAll<SVGGraphicsElement>("[data-visual-task-id]") ?? []),
+      ].find((item) => item.getAttribute("data-visual-task-id") === taskId);
+      if (!viewport || !visual) return;
+      const viewportRect = viewport.getBoundingClientRect();
+      const rect = visual.getBoundingClientRect();
+      const horizontal =
+        rect.width <= viewportRect.width - 48
+          ? rect.left + rect.width / 2 - (viewportRect.left + viewportRect.width / 2)
+          : rect.right - (viewportRect.right - 24);
+      viewport.scrollBy({
+        left: horizontal,
+        top: rect.top + rect.height / 2 - (viewportRect.top + viewportRect.height / 2),
+        behavior: "auto",
+      });
+    },
+    [viewportRef],
+  );
   const jumpToday = () => {
     const viewport = viewportRef.current;
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
@@ -329,7 +334,7 @@ export function DiagramPreview({
   };
   useEffect(() => {
     if (selectedTaskId) window.setTimeout(() => revealTask(selectedTaskId), 0);
-  }, [selectedTaskId, selectedSvg, zoom]);
+  }, [revealTask, selectedTaskId, selectedSvg, zoom]);
   useEffect(() => {
     if (selectedTaskId) setHoveredTask(undefined);
   }, [selectedTaskId]);
@@ -803,6 +808,9 @@ export function DiagramPreview({
       <div
         className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
         onScroll={(event) => {
           const element = event.currentTarget;
           setScrollPercent(

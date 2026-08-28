@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
 import type { RenderStatus } from "./model";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 interface Props {
   svg: string | undefined;
@@ -35,6 +36,7 @@ export function WbsDiagramPreview({
   onRelationshipCreate,
   onRelationshipReconnect,
 }: Props) {
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
     | {
@@ -279,118 +281,128 @@ export function WbsDiagramPreview({
           +
         </button>
       </div>
-      {renderError && (
-        <div className="render-error" role="alert">
-          <span>{renderError}</span>
-          <button onClick={onRenderRetry}>Retry</button>
-        </div>
-      )}
-      {!svg && !renderError && (
-        <div className="render-loading">{renderStatus === "rendering" ? "Rendering WBS…" : "No WBS preview"}</div>
-      )}
-      {svg && (
-        <div
-          ref={root}
-          className="diagram wbs-diagram"
-          style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
-          dangerouslySetInnerHTML={{ __html: svg }}
-          onClick={(event) => {
-            const target = event.target as Element;
-            const relationshipId = target.closest<SVGElement>("[data-wbs-relationship-id]")?.dataset.wbsRelationshipId;
-            if (relationshipId) {
-              onRelationshipSelect(relationshipId);
-              return;
-            }
-            const id =
-              target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId ??
-              nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
-            if (id) onSelect(id);
-          }}
-          onPointerDown={(event) => {
-            if (event.button !== 0) return;
-            const target = event.target as Element;
-            const endpointHandle = target.closest<SVGCircleElement>("[data-wbs-relationship-endpoint]");
-            const endpoint = endpointHandle?.dataset.wbsRelationshipEndpoint as "from" | "to" | undefined;
-            const endpointRelationshipId = endpointHandle?.dataset.wbsRelationshipId;
-            if (endpointHandle && endpoint && endpointRelationshipId && endpointHandle.ownerSVGElement) {
-              event.preventDefault();
-              const line = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "line");
-              const x = endpointHandle.dataset.wbsRelationshipFixedX ?? endpointHandle.getAttribute("cx") ?? "0";
-              const y = endpointHandle.dataset.wbsRelationshipFixedY ?? endpointHandle.getAttribute("cy") ?? "0";
-              line.setAttribute("x1", x);
-              line.setAttribute("y1", y);
-              line.setAttribute("x2", x);
-              line.setAttribute("y2", y);
-              line.setAttribute("class", "wbs-connection-preview");
-              endpointHandle.ownerSVGElement.append(line);
-              drag.current = {
-                id: endpointRelationshipId,
-                kind: "reconnect",
-                endpoint,
-                pointerId: event.pointerId,
-                x: event.clientX,
-                y: event.clientY,
-                active: false,
-                line,
-              };
-              return;
-            }
-            const relationshipId = target.closest<SVGElement>("[data-wbs-relationship-id]")?.dataset.wbsRelationshipId;
-            if (relationshipId) {
-              event.preventDefault();
-              onRelationshipSelect(relationshipId);
-              return;
-            }
-            const handle = target.closest<SVGCircleElement>("[data-wbs-connect-from]");
-            const id =
-              handle?.dataset.wbsConnectFrom ??
-              target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId ??
-              nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
-            if (id) {
-              event.preventDefault();
-              let line: SVGLineElement | undefined;
-              if (handle?.ownerSVGElement) {
-                line = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "line");
-                const x = handle.getAttribute("cx") ?? "0";
-                const y = handle.getAttribute("cy") ?? "0";
+      <div
+        className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}
+        ref={navigation.viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
+        {renderError && (
+          <div className="render-error" role="alert">
+            <span>{renderError}</span>
+            <button onClick={onRenderRetry}>Retry</button>
+          </div>
+        )}
+        {!svg && !renderError && (
+          <div className="render-loading">{renderStatus === "rendering" ? "Rendering WBS…" : "No WBS preview"}</div>
+        )}
+        {svg && (
+          <div
+            ref={root}
+            className="diagram wbs-diagram"
+            style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
+            dangerouslySetInnerHTML={{ __html: svg }}
+            onClick={(event) => {
+              const target = event.target as Element;
+              const relationshipId =
+                target.closest<SVGElement>("[data-wbs-relationship-id]")?.dataset.wbsRelationshipId;
+              if (relationshipId) {
+                onRelationshipSelect(relationshipId);
+                return;
+              }
+              const id =
+                target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId ??
+                nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
+              if (id) onSelect(id);
+            }}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              const target = event.target as Element;
+              const endpointHandle = target.closest<SVGCircleElement>("[data-wbs-relationship-endpoint]");
+              const endpoint = endpointHandle?.dataset.wbsRelationshipEndpoint as "from" | "to" | undefined;
+              const endpointRelationshipId = endpointHandle?.dataset.wbsRelationshipId;
+              if (endpointHandle && endpoint && endpointRelationshipId && endpointHandle.ownerSVGElement) {
+                event.preventDefault();
+                const line = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "line");
+                const x = endpointHandle.dataset.wbsRelationshipFixedX ?? endpointHandle.getAttribute("cx") ?? "0";
+                const y = endpointHandle.dataset.wbsRelationshipFixedY ?? endpointHandle.getAttribute("cy") ?? "0";
                 line.setAttribute("x1", x);
                 line.setAttribute("y1", y);
                 line.setAttribute("x2", x);
                 line.setAttribute("y2", y);
                 line.setAttribute("class", "wbs-connection-preview");
-                handle.ownerSVGElement.append(line);
+                endpointHandle.ownerSVGElement.append(line);
+                drag.current = {
+                  id: endpointRelationshipId,
+                  kind: "reconnect",
+                  endpoint,
+                  pointerId: event.pointerId,
+                  x: event.clientX,
+                  y: event.clientY,
+                  active: false,
+                  line,
+                };
+                return;
               }
-              drag.current = {
-                id,
-                kind: handle ? "connect" : "move",
-                pointerId: event.pointerId,
-                x: event.clientX,
-                y: event.clientY,
-                active: false,
-                ...(line ? { line } : {}),
-              };
-              if (!handle) onSelect(id);
-            } else {
-              onSelect(undefined);
-              onRelationshipSelect(undefined);
-            }
-          }}
-          onKeyDown={(event) => {
-            const id = (event.target as Element).closest<SVGTextElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
-            const relationshipId = (event.target as Element).closest<SVGElement>("[data-wbs-relationship-id]")?.dataset
-              .wbsRelationshipId;
-            if (relationshipId && (event.key === "Enter" || event.key === " ")) {
-              event.preventDefault();
-              onRelationshipSelect(relationshipId);
-              return;
-            }
-            if (id && (event.key === "Enter" || event.key === " ")) {
-              event.preventDefault();
-              onSelect(id);
-            }
-          }}
-        />
-      )}
+              const relationshipId =
+                target.closest<SVGElement>("[data-wbs-relationship-id]")?.dataset.wbsRelationshipId;
+              if (relationshipId) {
+                event.preventDefault();
+                onRelationshipSelect(relationshipId);
+                return;
+              }
+              const handle = target.closest<SVGCircleElement>("[data-wbs-connect-from]");
+              const id =
+                handle?.dataset.wbsConnectFrom ??
+                target.closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId ??
+                nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
+              if (id) {
+                event.preventDefault();
+                let line: SVGLineElement | undefined;
+                if (handle?.ownerSVGElement) {
+                  line = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "line");
+                  const x = handle.getAttribute("cx") ?? "0";
+                  const y = handle.getAttribute("cy") ?? "0";
+                  line.setAttribute("x1", x);
+                  line.setAttribute("y1", y);
+                  line.setAttribute("x2", x);
+                  line.setAttribute("y2", y);
+                  line.setAttribute("class", "wbs-connection-preview");
+                  handle.ownerSVGElement.append(line);
+                }
+                drag.current = {
+                  id,
+                  kind: handle ? "connect" : "move",
+                  pointerId: event.pointerId,
+                  x: event.clientX,
+                  y: event.clientY,
+                  active: false,
+                  ...(line ? { line } : {}),
+                };
+                if (!handle) onSelect(id);
+              } else {
+                onSelect(undefined);
+                onRelationshipSelect(undefined);
+              }
+            }}
+            onKeyDown={(event) => {
+              const id = (event.target as Element).closest<SVGTextElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
+              const relationshipId = (event.target as Element).closest<SVGElement>("[data-wbs-relationship-id]")
+                ?.dataset.wbsRelationshipId;
+              if (relationshipId && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onRelationshipSelect(relationshipId);
+                return;
+              }
+              if (id && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onSelect(id);
+              }
+            }}
+          />
+        )}
+      </div>
       {dragPreview && (
         <div
           className="wbs-drag-preview"

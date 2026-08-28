@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { UseCaseDocument } from "@plantuml-studio/diagram-usecase";
 import type { RenderStatus } from "./model";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 export function UseCaseDiagramPreview({
   svg,
@@ -41,6 +42,7 @@ export function UseCaseDiagramPreview({
   onMoveToPackage(elementId: string, packageId: string): void;
   onReorder(elementId: string, targetId: string, placement: "before" | "after"): void;
 }) {
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
     | {
@@ -386,7 +388,13 @@ export function UseCaseDiagramPreview({
             : "Focus an object and press C to connect"}
         </span>
       </div>
-      <div className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}>
+      <div
+        className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}
+        ref={navigation.viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
         {svg ? (
           <div
             ref={root}

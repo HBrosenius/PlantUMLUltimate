@@ -38,6 +38,28 @@ test("shows the diagram splash after closing the final tab", async ({ page }) =>
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(1);
 });
 
+test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page }) => {
+  await setSource(page, source("[Large task] lasts 40 days"));
+  const viewport = page.locator(".preview-viewport");
+  const box = await viewport.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, -500);
+  await expect(page.getByRole("button", { name: /Reset zoom/ })).not.toHaveText("100%");
+
+  await viewport.evaluate((element) => {
+    element.scrollLeft = 120;
+  });
+  const before = await viewport.evaluate((element) => element.scrollLeft);
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down({ button: "middle" });
+  await page.mouse.move(box!.x + box!.width / 2 - 100, box!.y + box!.height / 2);
+  await expect(viewport).toHaveClass(/diagram-pan-active/);
+  await page.mouse.up({ button: "middle" });
+  await expect(viewport).not.toHaveClass(/diagram-pan-active/);
+  await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(before);
+});
+
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });

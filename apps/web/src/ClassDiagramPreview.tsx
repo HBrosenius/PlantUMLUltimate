@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 export function ClassDiagramPreview({
   svg,
   zoom,
@@ -40,6 +41,7 @@ export function ClassDiagramPreview({
   onMoveToPackage(id: string, packageId?: string): void;
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
+  const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
@@ -341,7 +343,13 @@ export function ClassDiagramPreview({
             : "Drag an anchor or press C to connect"}
         </span>
       </div>
-      <div className="preview-viewport">
+      <div
+        className="preview-viewport"
+        ref={navigation.viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
         {svg ? (
           <div
             ref={root}
