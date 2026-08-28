@@ -609,6 +609,13 @@ input {
   cursor: grabbing;
   fill: rgb(249 115 22 / 10%);
 }
+.diagram svg .divider-drop-indicator {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 8 4;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 28%));
+}
 .diagram svg .vertical-separator-guide {
   stroke: var(--accent);
   stroke-width: 1.5;

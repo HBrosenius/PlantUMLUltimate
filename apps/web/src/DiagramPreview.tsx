@@ -453,10 +453,21 @@ export function DiagramPreview({
         const deltaY = moveEvent.clientY - startY;
         if (Math.abs(deltaY) > 5) moved = true;
         [divider, ...visuals].forEach((item) => item.setAttribute("transform", `translate(0 ${deltaY / scale})`));
-        targetId = dividerTargetAtY(divider.ownerSVGElement, moveEvent.clientY);
+        const drop = dividerDropAtY(divider.ownerSVGElement, moveEvent.clientY);
+        targetId = drop?.beforeTaskId;
         highlightReorderTarget(divider.ownerSVGElement, targetId);
-        const task = tasks.find((item) => item.id === targetId);
-        showFeedback(task ? `Place divider before ${task.label}` : "Move below all tasks");
+        showDividerDropIndicator(divider.ownerSVGElement, drop?.screenY);
+        const before = tasks.find((item) => item.id === drop?.beforeTaskId);
+        const after = tasks.find((item) => item.id === drop?.afterTaskId);
+        showFeedback(
+          before && after
+            ? `Place ${dividers[index]?.label ?? "divider"} between ${after.label} and ${before.label}`
+            : before
+              ? `Place ${dividers[index]?.label ?? "divider"} before ${before.label}`
+              : after
+                ? `Place ${dividers[index]?.label ?? "divider"} after ${after.label}`
+                : "Choose a task boundary",
+        );
       };
       const endDivider = () => {
         window.removeEventListener("pointermove", moveDivider);
@@ -467,10 +478,12 @@ export function DiagramPreview({
           else item.setAttribute("transform", original);
         });
         highlightReorderTarget(divider.ownerSVGElement, undefined);
+        showDividerDropIndicator(divider.ownerSVGElement, undefined);
         showFeedback();
         draggingRef.current = false;
         setHoveredTask(undefined);
         if (moved) onDividerReorder(index, targetId);
+        else onDividerSelect(index);
       };
       window.addEventListener("pointermove", moveDivider);
       window.addEventListener("pointerup", endDivider, true);
@@ -1213,15 +1226,47 @@ function taskIdAtY(svg: SVGSVGElement | null, clientY: number, excludeId: string
   return nearest?.id;
 }
 
-function dividerTargetAtY(svg: SVGSVGElement | null, clientY: number): string | undefined {
+function dividerDropAtY(
+  svg: SVGSVGElement | null,
+  clientY: number,
+): { beforeTaskId?: string; afterTaskId?: string; screenY: number } | undefined {
   if (!svg) return undefined;
+  const seen = new Set<string>();
   const rows = [...svg.querySelectorAll<SVGGElement>("[data-task-id]")].flatMap((group) => {
     const rect = group.querySelector<SVGGraphicsElement>(".bar")?.getBoundingClientRect();
     const id = group.getAttribute("data-task-id");
-    return rect && id ? [{ id, top: rect.top, bottom: rect.bottom, center: rect.top + rect.height / 2 }] : [];
+    if (!rect || !id || seen.has(id)) return [];
+    seen.add(id);
+    return [{ id, top: rect.top, bottom: rect.bottom }];
   });
-  if (!rows.length || clientY > Math.max(...rows.map((row) => row.bottom)) + 8) return undefined;
-  return rows.sort((a, b) => Math.abs(clientY - a.center) - Math.abs(clientY - b.center))[0]?.id;
+  rows.sort((a, b) => a.top - b.top);
+  if (!rows.length) return undefined;
+  const slots: Array<{ beforeTaskId?: string; afterTaskId?: string; screenY: number }> = rows.map((row, index) => ({
+    beforeTaskId: row.id,
+    ...(index ? { afterTaskId: rows[index - 1]!.id } : {}),
+    screenY: index ? (rows[index - 1]!.bottom + row.top) / 2 : row.top - 10,
+  }));
+  slots.push({ afterTaskId: rows.at(-1)!.id, screenY: rows.at(-1)!.bottom + 10 });
+  return slots.sort((a, b) => Math.abs(clientY - a.screenY) - Math.abs(clientY - b.screenY))[0];
+}
+
+function showDividerDropIndicator(svg: SVGSVGElement | null, screenY: number | undefined): void {
+  if (!svg) return;
+  svg.querySelector(".divider-drop-indicator")?.remove();
+  if (screenY === undefined) return;
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return;
+  const point = svg.createSVGPoint();
+  point.x = 0;
+  point.y = screenY;
+  const localY = point.matrixTransform(matrix.inverse()).y;
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("class", "divider-drop-indicator");
+  line.setAttribute("x1", String(svg.viewBox.baseVal.x));
+  line.setAttribute("x2", String(svg.viewBox.baseVal.x + svg.viewBox.baseVal.width));
+  line.setAttribute("y1", String(localY));
+  line.setAttribute("y2", String(localY));
+  svg.append(line);
 }
 
 function highlightReorderTarget(svg: SVGSVGElement | null, taskId: string | undefined): void {

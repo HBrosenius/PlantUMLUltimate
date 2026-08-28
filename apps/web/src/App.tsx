@@ -764,7 +764,7 @@ export function App() {
     const divider = parseResult.document.dividers[dividerIndex];
     const beforeTask = beforeTaskId ? parseResult.document.symbols.tasks.get(beforeTaskId) : undefined;
     if (!divider) return;
-    const beforeRange = beforeTask?.declarations.map((item) => item.range).sort((a, b) => a.from - b.from)[0];
+    const beforeRange = beforeTask?.sourceRange;
     const operation = moveDivider(workspace.source, divider.sourceRange, beforeRange);
     if (operation.unavailableReason) {
       setInteractionMessage(operation.unavailableReason);
@@ -3064,6 +3064,8 @@ export function App() {
                 setSelectedTaskId(undefined);
                 setSelectedDependencyIndex(undefined);
                 setSelectedDividerIndex(index);
+                const divider = parseResult.document.dividers[index];
+                if (divider) setSelectionRequest({ ...divider.sourceRange });
               }}
               onTaskResize={resizeTask}
               onDependencyCreate={connectTasks}

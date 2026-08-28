@@ -1739,6 +1739,141 @@ test("drags a vertical separator and closes its inspector on an outside click", 
   await expect(page.getByRole("complementary", { name: "Vertical separator inspector" })).toBeHidden();
 });
 
+test("highlights a horizontal separator in the source editor when selected", async ({ page }) => {
+  await setSource(page, source("[Planning] lasts 2 days\n-- Delivery --\n[Build] lasts 3 days"));
+  const separator = page.getByRole("button", { name: "Move divider Delivery" });
+  await expect(separator).toBeVisible();
+  await separator.dispatchEvent("click");
+  await expect(page.getByRole("complementary", { name: "Divider inspector" })).toBeVisible();
+  await expect(page.locator(".cm-selectionBackground")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("-- Delivery --");
+});
+
+test("previews and uses every horizontal separator insertion boundary", async ({ page }) => {
+  await setSource(page, source("[Planning] lasts 2 days\n[Build] lasts 3 days\n[Review] lasts 1 day\n-- Delivery --"));
+  const separator = page.getByRole("button", { name: "Move divider Delivery" });
+  const planning = await page.locator('[data-task-id="planning"] .bar').boundingBox();
+  const build = await page.locator('[data-task-id="build"] .bar').boundingBox();
+  const separatorBox = await separator.boundingBox();
+  expect(planning).not.toBeNull();
+  expect(build).not.toBeNull();
+  expect(separatorBox).not.toBeNull();
+  const targetY = (planning!.y + planning!.height + build!.y) / 2;
+  const pointerX = separatorBox!.x + separatorBox!.width / 2;
+  const pointerY = separatorBox!.y + separatorBox!.height / 2;
+  await separator.dispatchEvent("pointerdown", {
+    pointerId: 7,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    clientX: pointerX,
+    clientY: pointerY,
+  });
+  await page.evaluate(
+    ({ clientX, clientY }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          pointerId: 7,
+          pointerType: "mouse",
+          buttons: 1,
+          clientX,
+          clientY,
+        }),
+      ),
+    { clientX: pointerX, clientY: targetY },
+  );
+  await expect(page.locator(".divider-drop-indicator")).toHaveCount(1);
+  await expect(page.locator(".interaction-feedback")).toContainText("between Planning and Build");
+  await page.evaluate(
+    ({ clientX, clientY }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          pointerId: 7,
+          pointerType: "mouse",
+          button: 0,
+          clientX,
+          clientY,
+        }),
+      ),
+    { clientX: pointerX, clientY: targetY },
+  );
+  await expect(page.locator(".divider-drop-indicator")).toHaveCount(0);
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toMatch(/\[Planning][\s\S]*-- Delivery --[\s\S]*\[Build]/);
+});
+
+test("moves the Automated Web Testing separator below Unified End To End Testing", async ({ page }) => {
+  await setSource(
+    page,
+    source(
+      "-- Automated Web Testing --\n" +
+        "[Unified UnMasked Messaging Download Report Testing] is colored in Orange\n" +
+        "[Unified UnMasked Messaging Download Report Testing] lasts 10 days\n" +
+        "[Unified End To End Testing] lasts 10 days\n" +
+        "[Unified End To End Testing] is colored in Orange\n" +
+        "[Automated Rating Data Web Test Plan] starts 2026-08-25 and lasts 7 days\n" +
+        "[Automated Rating Data Web Test Plan] is colored in lightOrange\n" +
+        "[Automated Unmasked Data Web Test Plan] starts 2026-08-25 and lasts 7 days\n" +
+        "[Unified End To End Testing] starts at [Unified UnMasked Messaging Download Report Testing]'s end",
+    ),
+  );
+  const separator = page.getByRole("button", { name: "Move divider Automated Web Testing" });
+  const unified = await page.locator('[data-task-id="unified end to end testing"] .bar').boundingBox();
+  const automated = await page.locator('[data-task-id="automated rating data web test plan"] .bar').boundingBox();
+  const separatorBox = await separator.boundingBox();
+  expect(unified).not.toBeNull();
+  expect(automated).not.toBeNull();
+  expect(separatorBox).not.toBeNull();
+  const targetY = (unified!.y + unified!.height + automated!.y) / 2;
+  const pointerX = separatorBox!.x + separatorBox!.width / 2;
+  await separator.dispatchEvent("pointerdown", {
+    pointerId: 8,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    clientX: pointerX,
+    clientY: separatorBox!.y + separatorBox!.height / 2,
+  });
+  await page.evaluate(
+    ({ clientX, clientY }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          pointerId: 8,
+          pointerType: "mouse",
+          buttons: 1,
+          clientX,
+          clientY,
+        }),
+      ),
+    { clientX: pointerX, clientY: targetY },
+  );
+  await expect(page.locator(".interaction-feedback")).toContainText(
+    "between Unified End To End Testing and Automated Rating Data Web Test Plan",
+  );
+  await page.evaluate(
+    ({ clientX, clientY }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          pointerId: 8,
+          pointerType: "mouse",
+          clientX,
+          clientY,
+        }),
+      ),
+    { clientX: pointerX, clientY: targetY },
+  );
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toMatch(
+      /\[Unified End To End Testing] is colored in Orange[\s\S]*-- Automated Web Testing --[\s\S]*\[Automated Rating Data Web Test Plan]/,
+    );
+});
+
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {
   await setSource(page, source("skinparam handwritten true\n[A] starts 2026-09-01\n[A] lasts 2 days"));
   const count = page.getByRole("button", { name: "1 preserved line" });
