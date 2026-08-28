@@ -16,8 +16,7 @@ import { collectWbsSymbolOccurrences } from "./symbols";
 describe("WBS operations", () => {
   const source = "@startwbs\n* Project\n** Plan\n*** Scope\n** Deliver\n@endwbs";
   it("finds node labels, aliases, and explicit relationship references semantically", () => {
-    const connected =
-      "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver\n@endwbs";
+    const connected = "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver\n@endwbs";
     const occurrences = collectWbsSymbolOccurrences(connected, parseWbs(connected));
     expect(occurrences.filter((item) => item.key === "wbs-1").map((item) => item.value)).toEqual([
       "plan",

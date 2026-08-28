@@ -9,7 +9,10 @@ export interface ActivitySymbolOccurrence {
   role: "declaration";
 }
 
-export function collectActivitySymbolOccurrences(source: string, document: ActivityDocument): ActivitySymbolOccurrence[] {
+export function collectActivitySymbolOccurrences(
+  source: string,
+  document: ActivityDocument,
+): ActivitySymbolOccurrence[] {
   const occurrences: ActivitySymbolOccurrence[] = [];
   for (const node of document.nodes) {
     if (node.kind !== "action") continue;

@@ -5,6 +5,7 @@ export function RenameSymbolDialog({
   kind,
   value,
   occurrenceCount,
+  validate,
   onRename,
   onClose,
 }: {
@@ -26,10 +27,12 @@ export function RenameSymbolDialog({
     | "WBS node alias";
   value: string;
   occurrenceCount: number;
+  validate?(value: string): string | undefined;
   onRename(value: string): void;
   onClose(): void;
 }) {
   const [nextValue, setNextValue] = useState(value);
+  const validationMessage = validate?.(nextValue);
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   return (
@@ -48,6 +51,7 @@ export function RenameSymbolDialog({
         aria-labelledby="rename-symbol-title"
         onSubmit={(event) => {
           event.preventDefault();
+          if (validationMessage) return;
           onRename(nextValue);
         }}
       >
@@ -58,13 +62,27 @@ export function RenameSymbolDialog({
         </p>
         <label>
           New name
-          <input autoFocus required value={nextValue} onChange={(event) => setNextValue(event.target.value)} />
+          <input
+            autoFocus
+            required
+            value={nextValue}
+            aria-invalid={Boolean(validationMessage)}
+            aria-describedby={validationMessage ? "rename-symbol-error" : undefined}
+            onChange={(event) => setNextValue(event.target.value)}
+          />
         </label>
+        {validationMessage && (
+          <p id="rename-symbol-error" className="field-error" role="alert">
+            {validationMessage}
+          </p>
+        )}
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit">Rename</button>
+          <button type="submit" disabled={Boolean(validationMessage)}>
+            Rename
+          </button>
         </div>
       </form>
     </div>

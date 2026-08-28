@@ -1368,6 +1368,14 @@ textarea:focus-visible,
   background: var(--bg);
   color: inherit;
 }
+.task-dialog input[aria-invalid="true"] {
+  border-color: #d84a4a;
+}
+.field-error {
+  margin: 4px 0 10px 140px;
+  color: #d84a4a;
+  font-size: 12px;
+}
 .dialog-hint {
   margin: 8px 0 16px 140px;
   color: var(--muted);

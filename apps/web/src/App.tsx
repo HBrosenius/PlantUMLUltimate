@@ -268,6 +268,7 @@ import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useResourceCapacities } from "./use-resource-capacities";
 import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
+import { validateRenameValue } from "./rename-symbol-validation";
 
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
@@ -486,7 +487,10 @@ export function App() {
         const element = useCaseDocument.elements.find((item) => item.id === occurrence.key);
         if (!element) return false;
         const kind = element.kind === "usecase" ? "use case" : "actor";
-        setRenameSymbol({ occurrence, mode: !element.alias || occurrence.declaration === "label" ? kind : `${kind} alias` });
+        setRenameSymbol({
+          occurrence,
+          mode: !element.alias || occurrence.declaration === "label" ? kind : `${kind} alias`,
+        });
         return true;
       }
       if (occurrence.kind === "class-entity") {
@@ -546,8 +550,7 @@ export function App() {
         | "activity-partition"
         | "wbs-node";
       key: string;
-    }) =>
-      symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
+    }) => symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
     [symbolOccurrences],
   );
   const navigateSymbolReference = useCallback(
@@ -632,6 +635,149 @@ export function App() {
   const selectedUseCaseRelationship = useCaseDocument.relationships.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCasePackage = useCaseDocument.packages.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCaseNote = useCaseDocument.notes.find((item) => item.id === selectedUseCaseObjectId);
+  const validateSymbolRename = useCallback(
+    (nextValue: string): string | undefined => {
+      if (!renameSymbol) return undefined;
+      const target = renameSymbol.occurrence;
+      const mode = renameSymbol.mode;
+      if (target.kind === "task") {
+        const task = parseResult.document.symbols.tasks.get(target.key);
+        if (!task) return "Task not found";
+        const result =
+          mode === "task alias"
+            ? renameTaskAlias(workspace.source, parseResult.document, task, nextValue)
+            : renameTask(workspace.source, parseResult.document, task, nextValue);
+        return result.unavailableReason;
+      }
+      if (target.kind === "person")
+        return validateRenameValue(nextValue, {
+          label: "Person name",
+          currentIdentity: target.value,
+          identities: symbolOccurrences
+            .filter((item) => item.kind === "person" && item.key !== target.key)
+            .map((item) => item.value),
+          forbidden: /[{},:]/,
+          forbiddenMessage: "Person name cannot contain braces, commas, or colons",
+        });
+      if (target.kind === "participant") {
+        const participant = sequenceDocument.participants.find((item) => item.id === target.key);
+        if (!participant) return "Participant not found";
+        const aliasMode = mode === "participant alias";
+        const changesIdentity = aliasMode || !participant.alias;
+        return validateRenameValue(nextValue, {
+          label: aliasMode ? "Participant alias" : "Participant name",
+          ...(changesIdentity ? { currentIdentity: participant.alias ?? participant.label } : {}),
+          ...(changesIdentity
+            ? {
+                identities: sequenceDocument.participants
+                  .filter((item) => item.id !== participant.id)
+                  .map((item) => item.alias ?? item.label),
+              }
+            : {}),
+          forbidden: /["\r\n]/,
+          forbiddenMessage: "Participant names cannot contain quotes or line breaks",
+        });
+      }
+      if (target.kind === "actor" || target.kind === "usecase") {
+        const element = useCaseDocument.elements.find((item) => item.id === target.key);
+        if (!element) return "Use Case element not found";
+        const aliasMode = mode === "actor alias" || mode === "use case alias";
+        const changesIdentity = aliasMode || !element.alias;
+        return validateRenameValue(nextValue, {
+          label: aliasMode ? "Alias" : "Name",
+          ...(aliasMode
+            ? {
+                identifier: /^[\w.$-]+$/,
+                identifierMessage: "Alias can only contain letters, numbers, underscores, dots, dollars, or dashes",
+              }
+            : { forbidden: /["\r\n]/, forbiddenMessage: "Name cannot contain quotes or line breaks" }),
+          ...(changesIdentity ? { currentIdentity: element.alias ?? element.label } : {}),
+          ...(changesIdentity
+            ? {
+                identities: useCaseDocument.elements
+                  .filter((item) => item.id !== element.id)
+                  .map((item) => item.alias ?? item.label),
+              }
+            : {}),
+        });
+      }
+      if (target.kind === "class-entity") {
+        const entity = classDocument.entities.find((item) => item.id === target.key);
+        if (!entity) return "Class entity not found";
+        const aliasMode = mode === "class entity alias";
+        const changesIdentity = aliasMode || !entity.alias;
+        return validateRenameValue(nextValue, {
+          label: aliasMode ? "Alias" : "Name",
+          ...(aliasMode
+            ? {
+                identifier: /^[\w.$-]+$/,
+                identifierMessage: "Alias can only contain letters, numbers, underscores, dots, dollars, or dashes",
+              }
+            : { forbidden: /["\r\n]/, forbiddenMessage: "Name cannot contain quotes or line breaks" }),
+          ...(changesIdentity ? { currentIdentity: entity.alias ?? entity.label } : {}),
+          ...(changesIdentity
+            ? {
+                identities: classDocument.entities
+                  .filter((item) => item.id !== entity.id)
+                  .map((item) => item.alias ?? item.label),
+              }
+            : {}),
+        });
+      }
+      if (target.kind === "activity-action")
+        return validateRenameValue(nextValue, {
+          label: "Action name",
+          forbidden: /[;\r\n]/,
+          forbiddenMessage: "Action names cannot contain semicolons or line breaks",
+        });
+      if (target.kind === "activity-partition") {
+        const partition = activityDocument.partitions.find((item) => item.id === target.key);
+        if (!partition) return "Activity partition not found";
+        const normalize = (value: string) =>
+          value
+            .trim()
+            .toLocaleLowerCase()
+            .replace(/[^\w.-]+/g, "-");
+        return validateRenameValue(nextValue, {
+          label: "Partition name",
+          currentIdentity: partition.label,
+          identities: activityDocument.partitions.filter((item) => item.id !== partition.id).map((item) => item.label),
+          normalize,
+          forbidden: /["\r\n]/,
+          forbiddenMessage: "Partition names cannot contain quotes or line breaks",
+        });
+      }
+      const node = wbsDocument.nodes.find((item) => item.id === target.key);
+      if (!node) return "WBS node not found";
+      if (mode === "WBS node alias")
+        return validateRenameValue(nextValue, {
+          label: "WBS alias",
+          currentIdentity: node.alias ?? target.value,
+          identities: wbsDocument.nodes
+            .filter((item) => item.id !== node.id)
+            .flatMap((item) => (item.alias ? [item.alias] : [])),
+          identifier: /^[A-Za-z_][\w-]*$/,
+          identifierMessage:
+            "WBS alias must start with a letter or underscore and contain only letters, numbers, underscores, or dashes",
+        });
+      return validateRenameValue(nextValue, {
+        label: "WBS node name",
+        forbidden: /[\r\n]/,
+        forbiddenMessage: "WBS node names cannot contain line breaks",
+      });
+    },
+    [
+      activityDocument.partitions,
+      classDocument.entities,
+      parseResult.document,
+      renameSymbol,
+      sequenceDocument.participants,
+      symbolOccurrences,
+      useCaseDocument.elements,
+      wbsDocument.nodes,
+      workspace.source,
+    ],
+  );
   const sequenceParticipantNames = sequenceDocument.participants.map(
     (participant) => participant.alias ?? participant.label,
   );
@@ -4238,6 +4384,7 @@ export function App() {
         <RenameSymbolDialog
           kind={renameSymbol.mode}
           value={renameSymbol.occurrence.value}
+          validate={validateSymbolRename}
           occurrenceCount={
             symbolOccurrences.filter((item) => {
               if (item.kind !== renameSymbol.occurrence.kind || item.key !== renameSymbol.occurrence.key) return false;
@@ -4302,7 +4449,11 @@ export function App() {
                     ...(node.side !== "root" ? { side: node.side } : {}),
                   });
               if (next === workspace.source) {
-                setInteractionMessage(aliasMode ? "Alias must be unique and use letters, numbers, underscores, or dashes" : "Rename made no changes");
+                setInteractionMessage(
+                  aliasMode
+                    ? "Alias must be unique and use letters, numbers, underscores, or dashes"
+                    : "Rename made no changes",
+                );
                 return;
               }
               commitSource(next, `Rename ${target.mode}`);
@@ -4367,7 +4518,7 @@ export function App() {
                 members: entity.members.map((item) => item.text),
               });
               commitSource(next, `Rename ${target.mode}`);
-              const nextId = (aliasMode ? trimmed : entity.alias ?? trimmed).toLowerCase();
+              const nextId = (aliasMode ? trimmed : (entity.alias ?? trimmed)).toLowerCase();
               setSourceHighlightedClassEntityId(nextId);
               setRenameSymbol(undefined);
               setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
@@ -4390,7 +4541,7 @@ export function App() {
                 ...(element.color ? { color: element.color } : {}),
               });
               commitSource(next, `Rename ${target.mode}`);
-              const nextId = (aliasMode ? trimmed : element.alias ?? trimmed).toLowerCase();
+              const nextId = (aliasMode ? trimmed : (element.alias ?? trimmed)).toLowerCase();
               setSourceHighlightedUseCaseId(nextId);
               setRenameSymbol(undefined);
               setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
@@ -4418,7 +4569,9 @@ export function App() {
                 ...(participant.order !== undefined ? { order: participant.order } : {}),
               });
               commitSource(next, `Rename ${target.mode}`);
-              const nextId = (target.mode === "participant alias" ? trimmed : participant.alias ?? trimmed).toLowerCase();
+              const nextId = (
+                target.mode === "participant alias" ? trimmed : (participant.alias ?? trimmed)
+              ).toLowerCase();
               setSourceHighlightedSequenceParticipantId(nextId);
               setRenameSymbol(undefined);
               setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);

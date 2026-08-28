@@ -178,7 +178,10 @@ test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
 
 test("highlights, finds, and renames Sequence participant references", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Sequence diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
   await setSource(
     page,
     '@startuml\nactor "API User" as User\ndatabase Store\nUser -> Store: User requests data\nactivate User\nnote right of User: User is waiting\n@enduml',
@@ -208,7 +211,10 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
 
 test("highlights, finds, and renames Use Case actor references", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Use Case diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
   await setSource(
     page,
     '@startuml\nactor "Customer" as C\nusecase "Place order" as Order\nC --> Order : Customer places Order\nnote right of C : Customer note\n@enduml',
@@ -229,7 +235,14 @@ test("highlights, finds, and renames Use Case actor references", async ({ page }
   await page.getByRole("menuitem", { name: "Rename…" }).click();
   const rename = page.getByRole("dialog", { name: "Rename actor alias" });
   await expect(rename).toContainText("3 semantic occurrences");
+  await rename.getByLabel("New name").fill("order");
+  await expect(rename.getByRole("alert")).toHaveText("Alias “order” is already used");
+  await expect(rename.getByRole("button", { name: "Rename" })).toBeDisabled();
+  await rename.getByLabel("New name").fill("Buyer Alias");
+  await expect(rename.getByRole("alert")).toContainText("Alias can only contain");
+  await expect(rename.getByRole("button", { name: "Rename" })).toBeDisabled();
   await rename.getByLabel("New name").fill("Buyer");
+  await expect(rename.getByRole("alert")).toHaveCount(0);
   await rename.getByRole("button", { name: "Rename" }).click();
   await expect(page.locator(".cm-content")).toContainText('actor "Customer" as Buyer');
   await expect(page.locator(".cm-content")).toContainText("Buyer --> Order : Customer places Order");
@@ -238,7 +251,10 @@ test("highlights, finds, and renames Use Case actor references", async ({ page }
 
 test("highlights, finds, and renames Class entity references", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: /Class diagram/ }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Class diagram/ })
+    .click();
   await setSource(
     page,
     '@startuml\nclass "Customer account" as Account {\n  +owner: Account\n}\ninterface Customer\nAccount --> Customer : Account serves Customer\nnote right of Account : Account note\n@enduml',
@@ -269,7 +285,10 @@ test("highlights, finds, and renames Class entity references", async ({ page }) 
 
 test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: /Activity diagram/ }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Activity diagram/ })
+    .click();
   await setSource(
     page,
     '@startuml\npartition "Operations" {\n:Review order;\nnote right\nReview order note\nend note\n:Review order;\n}\n@enduml',
@@ -292,7 +311,9 @@ test("highlights and renames distinct Activity actions and partitions", async ({
   await actionRename.getByRole("button", { name: "Rename" }).click();
   await expect(page.locator(".cm-content")).toContainText(":Approve order;");
   await expect(page.locator(".cm-content")).toContainText("Review order note");
-  await expect.poll(async () => ((await page.locator(".cm-content").innerText()).match(/:Review order;/g) ?? []).length).toBe(1);
+  await expect
+    .poll(async () => ((await page.locator(".cm-content").innerText()).match(/:Review order;/g) ?? []).length)
+    .toBe(1);
 
   const partition = await pointInText(page, 1, "Operations");
   await page.mouse.click(partition.x, partition.y);
@@ -305,7 +326,10 @@ test("highlights and renames distinct Activity actions and partitions", async ({
 
 test("highlights, finds, and renames WBS node aliases", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "WBS diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
   await setSource(
     page,
     "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver #Blue\n@endwbs",

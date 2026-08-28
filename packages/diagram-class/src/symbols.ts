@@ -52,9 +52,7 @@ export function collectClassSymbolOccurrences(source: string, document: ClassDoc
   }
   for (const relationship of document.relationships) {
     const text = source.slice(relationship.sourceRange.from, relationship.sourceRange.to);
-    const match = text.match(
-      /^\s*("[^"]+"|[\w.$-]+)(?:\s+"[^"]+")?\s+[^\s]+\s+(?:"[^"]+"\s+)?("[^"]+"|[\w.$-]+)/,
-    );
+    const match = text.match(/^\s*("[^"]+"|[\w.$-]+)(?:\s+"[^"]+")?\s+[^\s]+\s+(?:"[^"]+"\s+)?("[^"]+"|[\w.$-]+)/);
     if (!match?.[1] || !match[2]) continue;
     const fromValue = tokenValue(match[1]);
     const toValue = tokenValue(match[2]);
