@@ -22,6 +22,7 @@ const shortcuts = () => [
   ["Alt + ← / →", "Move focused task one day"],
   ["Alt + Shift + ← / →", "Resize focused task one day"],
   ["Ctrl + ↑ / ↓", "Reorder focused task"],
+  ["F2", "Rename task or person under the code cursor"],
   ["Shift while dragging", "Snap movement to weeks"],
   ["?", "Open Help"],
   ["Escape", "Close a dialog"],
@@ -84,6 +85,9 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
               <li>Drag the round right anchor to another task to create a dependency.</li>
               <li>Hover a task for dates, people, and dependency navigation.</li>
               <li>Click a dependency line to inspect or delete it.</li>
+              <li>
+                In the code editor, task and person references highlight together; press F2 or right-click to rename.
+              </li>
             </ul>
           </section>
           <section>

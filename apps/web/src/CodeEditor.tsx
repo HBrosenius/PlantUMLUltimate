@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { basicSetup } from "codemirror";
 import { autocompletion } from "@codemirror/autocomplete";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { Compartment, EditorState, StateEffect, StateField, type Extension } from "@codemirror/state";
+import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { linter, lintGutter } from "@codemirror/lint";
@@ -26,7 +26,31 @@ interface Props {
   onChange(value: string): void;
   onCursorChange(line: number, column: number, position: number): void;
   selectedRange?: { from: number; to: number } | undefined;
+  symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
+  onRenameRequest?: ((position: number) => boolean) | undefined;
+  onSymbolContextMenu?: ((position: number, x: number, y: number) => boolean) | undefined;
 }
+
+const setSymbolHighlights = StateEffect.define<Array<{ from: number; to: number; active?: boolean }>>();
+const symbolHighlightField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    value = value.map(transaction.changes);
+    for (const effect of transaction.effects) {
+      if (!effect.is(setSymbolHighlights)) continue;
+      return Decoration.set(
+        effect.value.map((range) =>
+          Decoration.mark({
+            class: range.active ? "cm-symbol-reference cm-symbol-reference-active" : "cm-symbol-reference",
+          }).range(range.from, range.to),
+        ),
+        true,
+      );
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 function languageExtensions(kind: DiagramKind): Extension {
   const mode =
@@ -98,11 +122,22 @@ const quickFixesFor = (kind: DiagramKind, source: string): GanttQuickFix[] =>
             ? activityQuickFixes(source)
             : wbsQuickFixes(source);
 
-export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selectedRange }: Props) {
+export function CodeEditor({
+  diagramKind,
+  value,
+  onChange,
+  onCursorChange,
+  selectedRange,
+  symbolHighlights,
+  onRenameRequest,
+  onSymbolContextMenu,
+}: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onCursorRef = useRef(onCursorChange);
+  const onRenameRef = useRef(onRenameRequest);
+  const onSymbolContextMenuRef = useRef(onSymbolContextMenu);
   const synchronizingValue = useRef(false);
   const initialValue = useRef(value);
   const initialKind = useRef(diagramKind);
@@ -112,6 +147,8 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
   const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => quickFixesFor(diagramKind, value));
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
+  onRenameRef.current = onRenameRequest;
+  onSymbolContextMenuRef.current = onSymbolContextMenu;
   kindRef.current = diagramKind;
 
   useEffect(() => {
@@ -122,7 +159,14 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
         doc: initialValue.current,
         extensions: [
           basicSetup,
-          keymap.of([indentWithTab]),
+          keymap.of([
+            indentWithTab,
+            {
+              key: "F2",
+              run: (currentView) => onRenameRef.current?.(currentView.state.selection.main.head) ?? false,
+            },
+          ]),
+          symbolHighlightField,
           language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
           EditorView.lineWrapping,
@@ -133,6 +177,13 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
               const line = currentView.state.doc.lineAt(position);
               onCursorRef.current(line.number, position - line.from + 1, position);
               return false;
+            },
+            contextmenu: (event, currentView) => {
+              const position = currentView.posAtCoords({ x: event.clientX, y: event.clientY });
+              if (position === null || !onSymbolContextMenuRef.current?.(position, event.clientX, event.clientY))
+                return false;
+              event.preventDefault();
+              return true;
             },
           }),
           EditorView.updateListener.of((update) => {
@@ -183,6 +234,12 @@ export function CodeEditor({ diagramKind, value, onChange, onCursorChange, selec
     });
     editor.focus();
   }, [selectedRange]);
+
+  useEffect(() => {
+    const editor = view.current;
+    if (!editor) return;
+    editor.dispatch({ effects: setSymbolHighlights.of(symbolHighlights ?? []) });
+  }, [symbolHighlights]);
 
   const copySource = async () => {
     try {

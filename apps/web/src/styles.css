@@ -298,6 +298,15 @@ input {
   overflow: hidden;
   background: var(--panel);
 }
+.cm-symbol-reference {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.cm-symbol-reference-active {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
 .editor-actions {
   position: absolute;
   z-index: 5;

@@ -96,6 +96,7 @@ import {
   deleteDivider,
   deleteVerticalSeparator,
   findTaskAt,
+  ganttSymbolOccurrences,
   ganttAdapter,
   insertDivider,
   insertVerticalSeparator,
@@ -108,6 +109,7 @@ import {
   parseGantt,
   renameResource,
   renameTask,
+  renameTaskAlias,
   setNote,
   setTaskDeclaration,
   setTaskPauses,
@@ -117,6 +119,8 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
+import type { GanttSymbolOccurrence } from "@plantuml-studio/diagram-gantt";
+import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import type { Command } from "@plantuml-studio/editor-core";
 import {
   downloadSvgAsPng,
@@ -258,6 +262,13 @@ export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
+  const [sourceSymbol, setSourceSymbol] = useState<{ kind: "task" | "person"; key: string }>();
+  const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
+  const [renameSymbol, setRenameSymbol] = useState<{
+    occurrence: GanttSymbolOccurrence;
+    mode: "task" | "task alias" | "person";
+  }>();
+  const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
@@ -345,6 +356,45 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
+  const symbolOccurrences = useMemo(
+    () => (workspace.diagramKind === "gantt" ? ganttSymbolOccurrences(workspace.source, parseResult.document) : []),
+    [parseResult.document, workspace.diagramKind, workspace.source],
+  );
+  const symbolHighlights = useMemo(
+    () =>
+      sourceSymbol
+        ? symbolOccurrences
+            .filter((item) => item.kind === sourceSymbol.kind && item.key === sourceSymbol.key)
+            .map((item) => ({
+              ...item.range,
+              active:
+                sourceSymbolPosition !== undefined &&
+                sourceSymbolPosition >= item.range.from &&
+                sourceSymbolPosition <= item.range.to,
+            }))
+        : [],
+    [sourceSymbol, sourceSymbolPosition, symbolOccurrences],
+  );
+  const symbolAt = useCallback(
+    (position: number) => symbolOccurrences.find((item) => position >= item.range.from && position <= item.range.to),
+    [symbolOccurrences],
+  );
+  const requestSymbolRename = useCallback(
+    (position: number) => {
+      const occurrence = symbolAt(position);
+      if (!occurrence) return false;
+      const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
+      const mode =
+        task?.alias && normalizeTaskId(occurrence.value) === task.id
+          ? "task alias"
+          : occurrence.kind === "task"
+            ? "task"
+            : "person";
+      setRenameSymbol({ occurrence, mode });
+      return true;
+    },
+    [parseResult.document.symbols.tasks, symbolAt],
+  );
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   useEffect(() => {
     if (!hydrated || startupSplashShown.current) return;
@@ -497,7 +547,12 @@ export function App() {
     [tabs.documents],
   );
 
-  useEffect(() => setSourceHighlightedTaskId(undefined), [tabs.activeId, workspace.diagramKind]);
+  useEffect(() => {
+    setSourceHighlightedTaskId(undefined);
+    setSourceSymbol(undefined);
+    setSourceSymbolPosition(undefined);
+    setRenameSymbol(undefined);
+  }, [tabs.activeId, workspace.diagramKind]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -597,6 +652,17 @@ export function App() {
       window.removeEventListener("blur", dismiss);
     };
   }, [tabMenu]);
+
+  useEffect(() => {
+    if (!symbolMenu) return;
+    const dismiss = () => setSymbolMenu(undefined);
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("blur", dismiss);
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("blur", dismiss);
+    };
+  }, [symbolMenu]);
 
   useEffect(() => {
     if (
@@ -2989,10 +3055,26 @@ export function App() {
             value={workspace.source}
             onChange={(source) => commitSource(source, "Edit source")}
             selectedRange={selectionRequest}
+            symbolHighlights={symbolHighlights}
+            onRenameRequest={workspace.diagramKind === "gantt" ? requestSymbolRename : undefined}
+            onSymbolContextMenu={
+              workspace.diagramKind === "gantt"
+                ? (position, x, y) => {
+                    if (!symbolAt(position)) return false;
+                    setSymbolMenu({ position, x, y });
+                    return true;
+                  }
+                : undefined
+            }
             onCursorChange={(line, column, position) => {
               update("cursor", { line, column });
               if (workspace.diagramKind === "gantt") {
-                setSourceHighlightedTaskId(findTaskAt(parseResult.document, position)?.id);
+                const occurrence = symbolAt(position);
+                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+                setSourceSymbolPosition(occurrence ? position : undefined);
+                setSourceHighlightedTaskId(
+                  occurrence?.kind === "task" ? occurrence.key : findTaskAt(parseResult.document, position)?.id,
+                );
               } else if (workspace.diagramKind === "sequence") {
                 const object = findSequenceObjectAt(sequenceDocument, position);
                 if (
@@ -3844,7 +3926,7 @@ export function App() {
             }))
           }
           onRename={(currentName, nextName) => {
-            const operation = renameResource(parseResult.document, currentName, nextName);
+            const operation = renameResource(parseResult.document, currentName, nextName, workspace.source);
             if (operation.unavailableReason) {
               setInteractionMessage(operation.unavailableReason);
               return;
@@ -3890,6 +3972,80 @@ export function App() {
         />
       )}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {symbolMenu && (
+        <div
+          className="tab-menu"
+          role="menu"
+          aria-label="Symbol actions"
+          style={{ left: symbolMenu.x, top: symbolMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setSymbolMenu(undefined);
+          }}
+        >
+          <button
+            autoFocus
+            role="menuitem"
+            onClick={() => {
+              requestSymbolRename(symbolMenu.position);
+              setSymbolMenu(undefined);
+            }}
+          >
+            Rename…
+          </button>
+        </div>
+      )}
+      {renameSymbol && (
+        <RenameSymbolDialog
+          kind={renameSymbol.mode}
+          value={renameSymbol.occurrence.value}
+          occurrenceCount={
+            symbolOccurrences.filter((item) => {
+              if (item.kind !== renameSymbol.occurrence.kind || item.key !== renameSymbol.occurrence.key) return false;
+              const task =
+                renameSymbol.occurrence.kind === "task"
+                  ? parseResult.document.symbols.tasks.get(renameSymbol.occurrence.key)
+                  : undefined;
+              if (renameSymbol.mode === "task alias")
+                return normalizeTaskId(item.value) === renameSymbol.occurrence.key;
+              if (renameSymbol.mode === "task" && task?.alias) return item.range.from === task.labelRange.from;
+              return true;
+            }).length
+          }
+          onRename={(nextValue) => {
+            const target = renameSymbol;
+            const task =
+              target.occurrence.kind === "task"
+                ? parseResult.document.symbols.tasks.get(target.occurrence.key)
+                : undefined;
+            const operation =
+              target.mode === "person"
+                ? renameResource(parseResult.document, target.occurrence.value, nextValue, workspace.source)
+                : target.mode === "task alias" && task
+                  ? renameTaskAlias(workspace.source, parseResult.document, task, nextValue)
+                  : task
+                    ? renameTask(workspace.source, parseResult.document, task, nextValue)
+                    : { edits: [], unavailableReason: "Task not found" };
+            if (operation.unavailableReason) {
+              setInteractionMessage(operation.unavailableReason);
+              return;
+            }
+            if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Rename ${target.mode}`))
+              return;
+            if (target.mode === "person") {
+              renameCapacity(target.occurrence.value, nextValue.trim());
+              setResourceFilter((current) =>
+                current.toLocaleLowerCase() === target.occurrence.value.toLocaleLowerCase()
+                  ? nextValue.trim()
+                  : current,
+              );
+            }
+            setRenameSymbol(undefined);
+            setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
+          }}
+          onClose={() => setRenameSymbol(undefined)}
+        />
+      )}
     </div>
   );
 }

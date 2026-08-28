@@ -14,6 +14,7 @@ import {
   removeDependency,
   renameResource,
   renameTask,
+  renameTaskAlias,
   reorderTask,
   resizeTaskByDays,
   setNote,
@@ -307,6 +308,29 @@ describe("task inspector operations", () => {
     expect(changed).toContain("[Design] as [P1]");
     expect(changed).toContain("[P1] is colored in Blue");
     expect(changed).toContain("[Test] starts at [P1]'s end");
+  });
+
+  it("renames an alias and every semantic alias reference", () => {
+    const source =
+      "@startgantt\n[Prototype] as [P1] requires 2 days\n[P1] is colored in Blue\n[Test] starts at [P1]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      renameTaskAlias(source, document, document.symbols.tasks.get("p1")!, "DesignId").edits,
+    );
+    expect(changed).toContain("[Prototype] as [DesignId]");
+    expect(changed).toContain("[DesignId] is colored in Blue");
+    expect(changed).toContain("[Test] starts at [DesignId]'s end");
+  });
+
+  it("renames every repeated person assignment without touching comments", () => {
+    const source =
+      "@startgantt\n' {Alice} in a comment\n[A] on {Alice:50%} lasts 2 days\n[B] on {Alice} lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(source, renameResource(document, "Alice", "Alicia", source).edits);
+    expect(changed).toContain("' {Alice} in a comment");
+    expect(changed).toContain("{Alicia:50%}");
+    expect(changed).toContain("{Alicia}");
   });
 });
 

@@ -20,6 +20,33 @@ async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Div
   await page.getByRole("menu", { name: "Add" }).getByRole("menuitem", { name: item }).click();
 }
 
+async function pointInText(page: Page, lineIndex: number, needle: string) {
+  return page
+    .locator(".cm-content .cm-line")
+    .nth(lineIndex)
+    .evaluate((line, searched) => {
+      const fullText = line.textContent ?? "";
+      const target = fullText.indexOf(searched);
+      if (target < 0) throw new Error(`Could not find ${searched}`);
+      const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+      let offset = target + Math.max(1, Math.floor(searched.length / 2));
+      let node: Node | null = walker.nextNode();
+      while (node) {
+        const length = node.textContent?.length ?? 0;
+        if (offset <= length) {
+          const range = document.createRange();
+          range.setStart(node, offset);
+          range.setEnd(node, Math.min(length, offset + 1));
+          const rect = range.getBoundingClientRect();
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+        offset -= length;
+        node = walker.nextNode();
+      }
+      throw new Error(`Could not locate ${searched}`);
+    }, needle);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
@@ -76,13 +103,46 @@ test("keeps the split divider fixed while source selection highlights tasks", as
   await page.mouse.up();
 
   await expect(page.locator(".cm-selectionBackground").first()).toBeVisible();
-  await expect(page.locator('[data-task-id="build"][data-selected="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-task-id="design"][data-selected="true"]')).toHaveCount(1);
   await expect(page.getByRole("complementary", { name: "Task inspector" })).toHaveCount(0);
   await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialX, 0);
 
   await page.locator('[data-task-id="build"] .bar').click();
   await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
   await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialX, 0);
+});
+
+test("highlights and renames task and person references from the editor", async ({ page }) => {
+  await setSource(
+    page,
+    source("[Build] on {Alice} lasts 3 days\n[Test] on {Alice:50%} starts at [Build]'s end and lasts 2 days"),
+  );
+
+  const taskReference = await pointInText(page, 3, "Build");
+  await page.mouse.click(taskReference.x, taskReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(2);
+  await expect(page.locator(".cm-symbol-reference-active")).toHaveText("Build");
+  await page.keyboard.press("F2");
+  const taskRename = page.getByRole("dialog", { name: "Rename task" });
+  await expect(taskRename).toContainText("2 semantic occurrences");
+  await taskRename.getByLabel("New name").fill("Compile");
+  await taskRename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Compile] on {Alice}");
+  await expect(page.locator(".cm-content")).toContainText("starts at [Compile]'s end");
+
+  const personReference = await pointInText(page, 2, "Alice");
+  await page.mouse.click(personReference.x, personReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(2);
+  await page.mouse.click(personReference.x, personReference.y, { button: "right" });
+  const symbolMenu = page.getByRole("menu", { name: "Symbol actions" });
+  await expect(symbolMenu).toBeVisible();
+  await symbolMenu.getByRole("menuitem", { name: "Rename…" }).click();
+  const personRename = page.getByRole("dialog", { name: "Rename person" });
+  await expect(personRename).toContainText("2 semantic occurrences");
+  await personRename.getByLabel("New name").fill("Alicia");
+  await personRename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("{Alicia}");
+  await expect(page.locator(".cm-content")).toContainText("{Alicia:50%}");
 });
 
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {

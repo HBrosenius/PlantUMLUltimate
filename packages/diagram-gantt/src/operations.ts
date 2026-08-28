@@ -1,5 +1,6 @@
 import type { GanttDependency, GanttDocument, GanttNote, GanttTask, TaskDeclaration } from "./model";
 import type { SourceEdit } from "./source-edits";
+import { ganttSymbolOccurrences, taskOccurrences } from "./symbols";
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -546,24 +547,32 @@ export function renameTask(
     return { edits: [], unavailableReason: "A task with that name already exists" };
   if (nextLabel === task.label) return { edits: [] };
 
-  const ranges = new Map<string, { from: number; to: number }>();
-  ranges.set(`${task.labelRange.from}:${task.labelRange.to}`, task.labelRange);
-  for (const item of task.declarations) {
-    const text = source.slice(item.range.from, item.range.to);
-    const match = /\[([^\]]+)]/.exec(text);
-    if (match?.[1] === task.label && match.index !== undefined) {
-      const from = item.range.from + match.index + 1;
-      ranges.set(`${from}:${from + task.label.length}`, { from, to: from + task.label.length });
-    }
-  }
-  for (const dependency of document.dependencies) {
-    if (dependency.predecessorTaskId === task.id && dependency.predecessor.value === task.label)
-      ranges.set(
-        `${dependency.predecessor.range.from}:${dependency.predecessor.range.to}`,
-        dependency.predecessor.range,
-      );
-  }
-  return { edits: [...ranges.values()].map((range) => ({ range, text: nextLabel })) };
+  const occurrences = taskOccurrences(source, document, task).filter((item) =>
+    task.alias ? item.range.from === task.labelRange.from : true,
+  );
+  return { edits: occurrences.map((item) => ({ range: item.range, text: nextLabel })) };
+}
+
+export function renameTaskAlias(
+  source: string,
+  document: GanttDocument,
+  task: GanttTask,
+  nextAliasValue: string,
+): MoveTaskResult {
+  if (!task.alias) return { edits: [], unavailableReason: "Task has no alias" };
+  const nextAlias = nextAliasValue.trim();
+  if (!nextAlias) return { edits: [], unavailableReason: "Task alias is required" };
+  if (nextAlias.includes("[") || nextAlias.includes("]"))
+    return { edits: [], unavailableReason: "Task alias cannot contain brackets" };
+  const nextId = nextAlias.toLocaleLowerCase().replace(/\s+/g, " ");
+  const existingId = document.symbols.references.get(nextId) ?? nextId;
+  if (document.symbols.tasks.has(existingId) && existingId !== task.id)
+    return { edits: [], unavailableReason: "A task with that alias already exists" };
+  return {
+    edits: taskOccurrences(source, document, task)
+      .filter((item) => item.value.toLocaleLowerCase().replace(/\s+/g, " ") === task.id)
+      .map((item) => ({ range: item.range, text: nextAlias })),
+  };
 }
 
 export function setTaskDeclaration(
@@ -760,16 +769,25 @@ export function reorderTask(
   return { edits: [{ range: { from: 0, to: source.length }, text: reordered }] };
 }
 
-export function renameResource(document: GanttDocument, currentName: string, nextNameValue: string): MoveTaskResult {
+export function renameResource(
+  document: GanttDocument,
+  currentName: string,
+  nextNameValue: string,
+  source?: string,
+): MoveTaskResult {
   const nextName = nextNameValue.trim();
   if (!nextName) return { edits: [], unavailableReason: "Person name is required" };
   if (/[{},:]/.test(nextName))
     return { edits: [], unavailableReason: "Person name cannot contain braces, commas, or colons" };
-  const edits: SourceEdit[] = [];
-  for (const task of document.tasks)
-    for (const resource of task.resources ?? [])
-      if (resource.value.toLocaleLowerCase() === currentName.toLocaleLowerCase())
-        edits.push({ range: resource.range, text: nextName });
+  const edits: SourceEdit[] = source
+    ? ganttSymbolOccurrences(source, document)
+        .filter((item) => item.kind === "person" && item.key === currentName.toLocaleLowerCase())
+        .map((item) => ({ range: item.range, text: nextName }))
+    : document.tasks.flatMap((task) =>
+        (task.resources ?? [])
+          .filter((resource) => resource.value.toLocaleLowerCase() === currentName.toLocaleLowerCase())
+          .map((resource) => ({ range: resource.range, text: nextName })),
+      );
   if (!edits.length) return { edits: [], unavailableReason: `No assignments found for ${currentName}` };
   return { edits };
 }
