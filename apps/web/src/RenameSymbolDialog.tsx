@@ -21,7 +21,9 @@ export function RenameSymbolDialog({
     | "class entity"
     | "class entity alias"
     | "activity action"
-    | "activity partition";
+    | "activity partition"
+    | "WBS node"
+    | "WBS node alias";
   value: string;
   occurrenceCount: number;
   onRename(value: string): void;

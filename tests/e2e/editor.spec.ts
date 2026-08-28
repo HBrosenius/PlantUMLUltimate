@@ -303,6 +303,34 @@ test("highlights and renames distinct Activity actions and partitions", async ({
   await expect(page.locator(".cm-content")).toContainText('partition "Fulfilment"');
 });
 
+test("highlights, finds, and renames WBS node aliases", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "WBS diagram" }).click();
+  await setSource(
+    page,
+    "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver #Blue\n@endwbs",
+  );
+
+  const aliasReference = await pointInText(page, 4, "plan");
+  await page.mouse.click(aliasReference.x, aliasReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(3);
+  await expect(page.getByRole("complementary", { name: "WBS node inspector" })).toHaveCount(0);
+  await page.mouse.click(aliasReference.x, aliasReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for plan" });
+  await expect(references).toContainText("3 occurrences");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await page.mouse.click(aliasReference.x, aliasReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename WBS node alias" });
+  await expect(rename).toContainText("2 semantic occurrences");
+  await rename.getByLabel("New name").fill("planning");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("**(planning) Plan");
+  await expect(page.locator(".cm-content")).toContainText("planning -> deliver #Blue");
+});
+
 test("creates and visually edits a WBS diagram", async ({ page, browserName }) => {
   test.skip(
     browserName === "webkit",

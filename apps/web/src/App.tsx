@@ -149,11 +149,14 @@ import {
   insertWbsRelationship,
   moveWbsSubtree,
   parseWbs,
+  collectWbsSymbolOccurrences,
   reconnectWbsRelationship,
+  renameWbsNodeAlias,
   updateWbsNode,
   updateWbsRelationshipColor,
   type WbsNodeInput,
 } from "@plantuml-studio/diagram-wbs";
+import type { WbsSymbolOccurrence } from "@plantuml-studio/diagram-wbs";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -274,6 +277,7 @@ export function App() {
   const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
   const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
   const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
+  const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
   const [sourceSymbol, setSourceSymbol] = useState<{
     kind:
       | "task"
@@ -283,7 +287,8 @@ export function App() {
       | "usecase"
       | "class-entity"
       | "activity-action"
-      | "activity-partition";
+      | "activity-partition"
+      | "wbs-node";
     key: string;
   }>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
@@ -293,7 +298,8 @@ export function App() {
       | SequenceParticipantOccurrence
       | UseCaseSymbolOccurrence
       | ClassSymbolOccurrence
-      | ActivitySymbolOccurrence;
+      | ActivitySymbolOccurrence
+      | WbsSymbolOccurrence;
     mode:
       | "task"
       | "task alias"
@@ -307,7 +313,9 @@ export function App() {
       | "class entity"
       | "class entity alias"
       | "activity action"
-      | "activity partition";
+      | "activity partition"
+      | "WBS node"
+      | "WBS node alias";
   }>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
@@ -319,7 +327,8 @@ export function App() {
       | "usecase"
       | "class-entity"
       | "activity-action"
-      | "activity-partition";
+      | "activity-partition"
+      | "wbs-node";
     key: string;
     label: string;
   }>();
@@ -414,6 +423,7 @@ export function App() {
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
+  const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
   const symbolOccurrences = useMemo(
     () =>
       workspace.diagramKind === "gantt"
@@ -426,13 +436,16 @@ export function App() {
               ? collectClassSymbolOccurrences(workspace.source, classDocument)
               : workspace.diagramKind === "activity"
                 ? collectActivitySymbolOccurrences(workspace.source, activityDocument)
-                : [],
+                : workspace.diagramKind === "wbs"
+                  ? collectWbsSymbolOccurrences(workspace.source, wbsDocument)
+                  : [],
     [
       activityDocument,
       classDocument,
       parseResult.document,
       sequenceDocument,
       useCaseDocument,
+      wbsDocument,
       workspace.diagramKind,
       workspace.source,
     ],
@@ -492,6 +505,15 @@ export function App() {
         });
         return true;
       }
+      if (occurrence.kind === "wbs-node") {
+        const node = wbsDocument.nodes.find((item) => item.id === occurrence.key);
+        if (!node) return false;
+        setRenameSymbol({
+          occurrence,
+          mode: node.alias && occurrence.declaration !== "label" ? "WBS node alias" : "WBS node",
+        });
+        return true;
+      }
       const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
       const mode =
         task?.alias && normalizeTaskId(occurrence.value) === task.id
@@ -502,7 +524,14 @@ export function App() {
       setRenameSymbol({ occurrence, mode });
       return true;
     },
-    [classDocument.entities, parseResult.document.symbols.tasks, sequenceDocument.participants, symbolAt, useCaseDocument.elements],
+    [
+      classDocument.entities,
+      parseResult.document.symbols.tasks,
+      sequenceDocument.participants,
+      symbolAt,
+      useCaseDocument.elements,
+      wbsDocument.nodes,
+    ],
   );
   const occurrencesFor = useCallback(
     (symbol: {
@@ -514,7 +543,8 @@ export function App() {
         | "usecase"
         | "class-entity"
         | "activity-action"
-        | "activity-partition";
+        | "activity-partition"
+        | "wbs-node";
       key: string;
     }) =>
       symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
@@ -555,7 +585,6 @@ export function App() {
     () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
     [baselineVersion],
   );
-  const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
   const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
   const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
   useEffect(() => {
@@ -3198,7 +3227,8 @@ export function App() {
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
               workspace.diagramKind === "class" ||
-              workspace.diagramKind === "activity"
+              workspace.diagramKind === "activity" ||
+              workspace.diagramKind === "wbs"
                 ? requestSymbolRename
                 : undefined
             }
@@ -3207,7 +3237,8 @@ export function App() {
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
               workspace.diagramKind === "class" ||
-              workspace.diagramKind === "activity"
+              workspace.diagramKind === "activity" ||
+              workspace.diagramKind === "wbs"
                 ? (position, x, y) => {
                     if (!symbolAt(position)) return false;
                     setSymbolMenu({ position, x, y });
@@ -3261,10 +3292,13 @@ export function App() {
                 setSourceSymbolPosition(occurrence ? position : undefined);
                 setSourceHighlightedActivityId(occurrence?.key);
                 if (!occurrence) setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
-              }
-              else {
+              } else {
+                const occurrence = symbolAt(position);
+                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+                setSourceSymbolPosition(occurrence ? position : undefined);
+                setSourceHighlightedWbsNodeId(occurrence?.key);
                 setWbsSettingsOpen(false);
-                setSelectedWbsNodeId(findWbsNodeAt(wbsDocument, position)?.id);
+                if (!occurrence) setSelectedWbsNodeId(findWbsNodeAt(wbsDocument, position)?.id);
               }
             }}
           />
@@ -3479,7 +3513,7 @@ export function App() {
             <WbsDiagramPreview
               svg={result?.svg}
               document={wbsDocument}
-              selectedId={selectedWbsNodeId}
+              selectedId={sourceHighlightedWbsNodeId ?? selectedWbsNodeId}
               selectedRelationshipId={selectedWbsRelationshipId}
               zoom={workspace.zoom}
               renderStatus={status}
@@ -4223,6 +4257,10 @@ export function App() {
                 renameSymbol.occurrence.kind === "class-entity"
                   ? classDocument.entities.find((item) => item.id === renameSymbol.occurrence.key)
                   : undefined;
+              const wbsNode =
+                renameSymbol.occurrence.kind === "wbs-node"
+                  ? wbsDocument.nodes.find((item) => item.id === renameSymbol.occurrence.key)
+                  : undefined;
               if (renameSymbol.mode === "task alias")
                 return normalizeTaskId(item.value) === renameSymbol.occurrence.key;
               if (renameSymbol.mode === "task" && task?.alias) return item.range.from === task.labelRange.from;
@@ -4237,11 +4275,42 @@ export function App() {
                 return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
               if (renameSymbol.mode === "class entity" && classEntity?.alias)
                 return "declaration" in item && item.declaration === "label";
+              if (renameSymbol.mode === "WBS node alias")
+                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
+              if (renameSymbol.mode === "WBS node" && wbsNode?.alias)
+                return "declaration" in item && item.declaration === "label";
               return true;
             }).length
           }
           onRename={(nextValue) => {
             const target = renameSymbol;
+            if (target.occurrence.kind === "wbs-node") {
+              const node = wbsDocument.nodes.find((item) => item.id === target.occurrence.key);
+              if (!node) {
+                setInteractionMessage("WBS node not found");
+                return;
+              }
+              const trimmed = nextValue.trim();
+              const aliasMode = target.mode === "WBS node alias";
+              const next = aliasMode
+                ? renameWbsNodeAlias(workspace.source, wbsDocument, node, trimmed)
+                : updateWbsNode(workspace.source, node, {
+                    label: trimmed,
+                    ...(node.color ? { color: node.color } : {}),
+                    ...(node.textColor ? { textColor: node.textColor } : {}),
+                    ...(node.stereotype ? { stereotype: node.stereotype } : {}),
+                    ...(node.side !== "root" ? { side: node.side } : {}),
+                  });
+              if (next === workspace.source) {
+                setInteractionMessage(aliasMode ? "Alias must be unique and use letters, numbers, underscores, or dashes" : "Rename made no changes");
+                return;
+              }
+              commitSource(next, `Rename ${target.mode}`);
+              setSourceHighlightedWbsNodeId(node.id);
+              setRenameSymbol(undefined);
+              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+              return;
+            }
             if (target.occurrence.kind === "activity-action") {
               const node = activityDocument.nodes.find((item) => item.id === target.occurrence.key);
               if (!node || node.kind !== "action") {

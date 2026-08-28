@@ -6,13 +6,28 @@ import {
   insertWbsRelationship,
   moveWbsSubtree,
   reconnectWbsRelationship,
+  renameWbsNodeAlias,
   updateWbsNode,
   updateWbsRelationshipColor,
 } from "./operations";
 import { parseWbs } from "./parser";
+import { collectWbsSymbolOccurrences } from "./symbols";
 
 describe("WBS operations", () => {
   const source = "@startwbs\n* Project\n** Plan\n*** Scope\n** Deliver\n@endwbs";
+  it("finds node labels, aliases, and explicit relationship references semantically", () => {
+    const connected =
+      "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver\n@endwbs";
+    const occurrences = collectWbsSymbolOccurrences(connected, parseWbs(connected));
+    expect(occurrences.filter((item) => item.key === "wbs-1").map((item) => item.value)).toEqual([
+      "plan",
+      "Plan",
+      "plan",
+    ]);
+    expect(occurrences.map((item) => connected.slice(item.range.from, item.range.to))).toEqual(
+      occurrences.map((item) => item.value),
+    );
+  });
   it("adds, updates, and removes complete subtrees", () => {
     const document = parseWbs(source);
     expect(insertWbsNode(source, document, { label: "Budget" }, document.nodes[1])).toContain("*** Budget");
@@ -42,6 +57,9 @@ describe("WBS operations", () => {
     const parsed = parseWbs(connected);
     expect(parsed.relationships).toMatchObject([{ from: "plan", to: "deliver", arrow: "->" }]);
     expect(updateWbsNode(connected, parsed.nodes[1]!, { label: "Planning" })).toContain("**(plan) Planning");
+    const renamedAlias = renameWbsNodeAlias(connected, parsed, parsed.nodes[1]!, "planning");
+    expect(renamedAlias).toContain("**(planning) Plan");
+    expect(renamedAlias).toContain("planning -> deliver");
     const blue = updateWbsRelationshipColor(connected, parsed.relationships[0]!, "blue");
     expect(blue).toContain("plan -> deliver #blue");
     expect(deleteWbsRelationship(blue, parseWbs(blue).relationships[0]!)).not.toContain("plan -> deliver");

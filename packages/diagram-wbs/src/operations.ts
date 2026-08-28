@@ -49,6 +49,28 @@ export function updateWbsNode(source: string, node: WbsNode, value: WbsNodeInput
   return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${changedTail}${source.slice(node.subtreeRange.to)}`;
 }
 
+export function renameWbsNodeAlias(source: string, document: WbsDocument, node: WbsNode, alias: string): string {
+  const next = alias.trim();
+  if (!node.alias || !/^[A-Za-z_][\w-]*$/.test(next)) return source;
+  if (document.nodes.some((item) => item.id !== node.id && item.alias === next)) return source;
+  const replacements = [
+    {
+      ...node.sourceRange,
+      text: source.slice(node.sourceRange.from, node.sourceRange.to).replace(`(${node.alias})`, `(${next})`),
+    },
+    ...document.relationships
+      .filter((item) => item.from === node.alias || item.to === node.alias)
+      .map((item) => ({
+        ...item.sourceRange,
+        text: `${item.from === node.alias ? next : item.from} ${item.arrow} ${item.to === node.alias ? next : item.to}${item.color ? ` ${item.color}` : ""}`,
+      })),
+  ].sort((left, right) => right.from - left.from);
+  return replacements.reduce(
+    (current, item) => `${current.slice(0, item.from)}${item.text}${current.slice(item.to)}`,
+    source,
+  );
+}
+
 const aliasFor = (node: WbsNode, used: Set<string>) => {
   const raw =
     node.label
