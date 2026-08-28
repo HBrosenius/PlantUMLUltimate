@@ -206,6 +206,36 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
   await expect(page.locator(".cm-content")).toContainText("note right of Client: User is waiting");
 });
 
+test("highlights, finds, and renames Use Case actor references", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Use Case diagram" }).click();
+  await setSource(
+    page,
+    '@startuml\nactor "Customer" as C\nusecase "Place order" as Order\nC --> Order : Customer places Order\nnote right of C : Customer note\n@enduml',
+  );
+
+  const actorReference = await pointInText(page, 3, "C");
+  await page.mouse.click(actorReference.x, actorReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(4);
+  await expect(page.getByRole("complementary", { name: "Use Case object inspector" })).toHaveCount(0);
+
+  await page.mouse.click(actorReference.x, actorReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for C" });
+  await expect(references).toContainText("4 occurrences");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await page.mouse.click(actorReference.x, actorReference.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename actor alias" });
+  await expect(rename).toContainText("3 semantic occurrences");
+  await rename.getByLabel("New name").fill("Buyer");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText('actor "Customer" as Buyer');
+  await expect(page.locator(".cm-content")).toContainText("Buyer --> Order : Customer places Order");
+  await expect(page.locator(".cm-content")).toContainText("note right of Buyer : Customer note");
+});
+
 test("creates and visually edits a WBS diagram", async ({ page, browserName }) => {
   test.skip(
     browserName === "webkit",

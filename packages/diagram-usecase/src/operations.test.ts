@@ -9,11 +9,33 @@ import {
   moveUseCaseElementToPackage,
   reorderUseCaseElement,
   parseUseCase,
+  collectUseCaseSymbolOccurrences,
   updateUseCaseElement,
   updateUseCaseRelationship,
 } from "./index";
 
 describe("Use Case source operations", () => {
+  it("finds semantic actor and use case references without matching relationship or note text", () => {
+    const source =
+      '@startuml\nactor "Customer" as C\nusecase "Place order" as Order\nC --> Order : Customer places Order\nnote right of C : Customer note\n@enduml';
+    const occurrences = collectUseCaseSymbolOccurrences(source, parseUseCase(source));
+
+    expect(occurrences.filter((item) => item.key === "c").map((item) => item.value)).toEqual([
+      "Customer",
+      "C",
+      "C",
+      "C",
+    ]);
+    expect(occurrences.filter((item) => item.key === "order").map((item) => item.value)).toEqual([
+      "Place order",
+      "Order",
+      "Order",
+    ]);
+    expect(occurrences.map((item) => source.slice(item.range.from, item.range.to))).toEqual(
+      occurrences.map((item) => item.value),
+    );
+  });
+
   it("inserts an element before the end directive", () => {
     expect(insertUseCaseElement("@startuml\n@enduml", { kind: "actor", label: "Customer", color: "LightBlue" })).toBe(
       '@startuml\nactor "Customer" #LightBlue\n@enduml',

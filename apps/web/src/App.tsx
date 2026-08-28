@@ -172,7 +172,8 @@ import {
   updateSequenceStructure,
 } from "@plantuml-studio/diagram-sequence";
 import type { SequenceParticipantOccurrence } from "@plantuml-studio/diagram-sequence";
-import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
+import { collectUseCaseSymbolOccurrences, findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
+import type { UseCaseSymbolOccurrence } from "@plantuml-studio/diagram-usecase";
 import {
   deleteClassEntity,
   deleteClassPackage,
@@ -266,15 +267,28 @@ export function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
   const [sourceHighlightedSequenceParticipantId, setSourceHighlightedSequenceParticipantId] = useState<string>();
-  const [sourceSymbol, setSourceSymbol] = useState<{ kind: "task" | "person" | "participant"; key: string }>();
+  const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
+  const [sourceSymbol, setSourceSymbol] = useState<{
+    kind: "task" | "person" | "participant" | "actor" | "usecase";
+    key: string;
+  }>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<{
-    occurrence: GanttSymbolOccurrence | SequenceParticipantOccurrence;
-    mode: "task" | "task alias" | "person" | "participant" | "participant alias";
+    occurrence: GanttSymbolOccurrence | SequenceParticipantOccurrence | UseCaseSymbolOccurrence;
+    mode:
+      | "task"
+      | "task alias"
+      | "person"
+      | "participant"
+      | "participant alias"
+      | "actor"
+      | "actor alias"
+      | "use case"
+      | "use case alias";
   }>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
-    kind: "task" | "person" | "participant";
+    kind: "task" | "person" | "participant" | "actor" | "usecase";
     key: string;
     label: string;
   }>();
@@ -366,14 +380,17 @@ export function App() {
   }, [workspace.source]);
   const parseResult = parsed.value;
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
+  const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const symbolOccurrences = useMemo(
     () =>
       workspace.diagramKind === "gantt"
         ? ganttSymbolOccurrences(workspace.source, parseResult.document)
         : workspace.diagramKind === "sequence"
           ? sequenceParticipantOccurrences(workspace.source, sequenceDocument)
-          : [],
-    [parseResult.document, sequenceDocument, workspace.diagramKind, workspace.source],
+          : workspace.diagramKind === "usecase"
+            ? collectUseCaseSymbolOccurrences(workspace.source, useCaseDocument)
+            : [],
+    [parseResult.document, sequenceDocument, useCaseDocument, workspace.diagramKind, workspace.source],
   );
   const symbolHighlights = useMemo(
     () =>
@@ -407,6 +424,13 @@ export function App() {
         });
         return true;
       }
+      if (occurrence.kind === "actor" || occurrence.kind === "usecase") {
+        const element = useCaseDocument.elements.find((item) => item.id === occurrence.key);
+        if (!element) return false;
+        const kind = element.kind === "usecase" ? "use case" : "actor";
+        setRenameSymbol({ occurrence, mode: !element.alias || occurrence.declaration === "label" ? kind : `${kind} alias` });
+        return true;
+      }
       const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
       const mode =
         task?.alias && normalizeTaskId(occurrence.value) === task.id
@@ -417,10 +441,10 @@ export function App() {
       setRenameSymbol({ occurrence, mode });
       return true;
     },
-    [parseResult.document.symbols.tasks, sequenceDocument.participants, symbolAt],
+    [parseResult.document.symbols.tasks, sequenceDocument.participants, symbolAt, useCaseDocument.elements],
   );
   const occurrencesFor = useCallback(
-    (symbol: { kind: "task" | "person" | "participant"; key: string }) =>
+    (symbol: { kind: "task" | "person" | "participant" | "actor" | "usecase"; key: string }) =>
       symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
     [symbolOccurrences],
   );
@@ -459,7 +483,6 @@ export function App() {
     () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
     [baselineVersion],
   );
-  const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
@@ -3101,12 +3124,16 @@ export function App() {
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
             onRenameRequest={
-              workspace.diagramKind === "gantt" || workspace.diagramKind === "sequence"
+              workspace.diagramKind === "gantt" ||
+              workspace.diagramKind === "sequence" ||
+              workspace.diagramKind === "usecase"
                 ? requestSymbolRename
                 : undefined
             }
             onSymbolContextMenu={
-              workspace.diagramKind === "gantt" || workspace.diagramKind === "sequence"
+              workspace.diagramKind === "gantt" ||
+              workspace.diagramKind === "sequence" ||
+              workspace.diagramKind === "usecase"
                 ? (position, x, y) => {
                     if (!symbolAt(position)) return false;
                     setSymbolMenu({ position, x, y });
@@ -3143,7 +3170,11 @@ export function App() {
                   setSelectedSequenceStructureId(undefined);
                 }
               } else if (workspace.diagramKind === "usecase") {
-                setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
+                const occurrence = symbolAt(position);
+                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+                setSourceSymbolPosition(occurrence ? position : undefined);
+                setSourceHighlightedUseCaseId(occurrence?.key);
+                if (!occurrence) setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
               } else if (workspace.diagramKind === "class") {
                 setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
               } else if (workspace.diagramKind === "activity")
@@ -3287,7 +3318,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={useCaseDocument}
-              selectedId={selectedUseCaseObjectId}
+              selectedId={sourceHighlightedUseCaseId ?? selectedUseCaseObjectId}
               onSelect={(id) => {
                 setUseCaseSettingsOpen(false);
                 setSelectedUseCaseObjectId(id);
@@ -4101,17 +4132,48 @@ export function App() {
                 renameSymbol.occurrence.kind === "participant"
                   ? sequenceDocument.participants.find((item) => item.id === renameSymbol.occurrence.key)
                   : undefined;
+              const useCaseElement =
+                renameSymbol.occurrence.kind === "actor" || renameSymbol.occurrence.kind === "usecase"
+                  ? useCaseDocument.elements.find((item) => item.id === renameSymbol.occurrence.key)
+                  : undefined;
               if (renameSymbol.mode === "task alias")
                 return normalizeTaskId(item.value) === renameSymbol.occurrence.key;
               if (renameSymbol.mode === "task" && task?.alias) return item.range.from === task.labelRange.from;
               if (renameSymbol.mode === "participant alias") return item.value === participant?.alias;
               if (renameSymbol.mode === "participant" && participant?.alias)
                 return item.range.from >= participant.sourceRange.from && item.value === participant.label;
+              if (renameSymbol.mode === "actor alias" || renameSymbol.mode === "use case alias")
+                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
+              if ((renameSymbol.mode === "actor" || renameSymbol.mode === "use case") && useCaseElement?.alias)
+                return "declaration" in item && item.declaration === "label";
               return true;
             }).length
           }
           onRename={(nextValue) => {
             const target = renameSymbol;
+            if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase") {
+              const element = useCaseDocument.elements.find((item) => item.id === target.occurrence.key);
+              if (!element) {
+                setInteractionMessage("Use Case element not found");
+                return;
+              }
+              const trimmed = nextValue.trim();
+              const aliasMode = target.mode === "actor alias" || target.mode === "use case alias";
+              const next = updateUseCaseElement(workspace.source, useCaseDocument, element, {
+                kind: element.kind,
+                label: aliasMode ? element.label : trimmed,
+                ...(aliasMode ? { alias: trimmed } : element.alias ? { alias: element.alias } : {}),
+                business: element.business,
+                ...(element.stereotype ? { stereotype: element.stereotype } : {}),
+                ...(element.color ? { color: element.color } : {}),
+              });
+              commitSource(next, `Rename ${target.mode}`);
+              const nextId = (aliasMode ? trimmed : element.alias ?? trimmed).toLowerCase();
+              setSourceHighlightedUseCaseId(nextId);
+              setRenameSymbol(undefined);
+              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+              return;
+            }
             if (target.occurrence.kind === "participant") {
               const participant = sequenceDocument.participants.find((item) => item.id === target.occurrence.key);
               if (!participant) {

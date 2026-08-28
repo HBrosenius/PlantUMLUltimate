@@ -8,7 +8,16 @@ export function RenameSymbolDialog({
   onRename,
   onClose,
 }: {
-  kind: "task" | "task alias" | "person" | "participant" | "participant alias";
+  kind:
+    | "task"
+    | "task alias"
+    | "person"
+    | "participant"
+    | "participant alias"
+    | "actor"
+    | "actor alias"
+    | "use case"
+    | "use case alias";
   value: string;
   occurrenceCount: number;
   onRename(value: string): void;
