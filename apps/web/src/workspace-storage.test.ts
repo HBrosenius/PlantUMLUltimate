@@ -10,6 +10,7 @@ import {
   loadDocumentVersions,
   loadWorkspace,
   migrateGanttDependencyPlacement,
+  migrateInvalidWbsDirection,
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
@@ -69,6 +70,15 @@ describe("normalizeSession", () => {
     expect(activeWorkspace(session).source).toBe("B");
   });
 
+  it("restores WBS documents as a first-class diagram kind", () => {
+    const session = normalizeSession({
+      version: 5,
+      documents: [{ id: "wbs", source: "@startwbs\n* Project\n@endwbs", fileName: "plan.puml" }],
+      activeDocumentId: "wbs",
+    });
+    expect(session.documents[0]?.diagramKind).toBe("wbs");
+  });
+
   it("migrates dependencies in every open Gantt document once", () => {
     const first =
       "@startgantt\n[Frontend] starts at [Testing]'s end\n[Frontend] lasts 3 days\n[Testing] lasts 2 days\n@endgantt";
@@ -83,7 +93,7 @@ describe("normalizeSession", () => {
       activeDocumentId: "first",
     });
 
-    expect(session.version).toBe(5);
+    expect(session.version).toBe(6);
     expect(session.documents[0]?.source.indexOf("[Frontend] starts at [Testing]'s end")).toBeGreaterThan(
       session.documents[0]?.source.indexOf("[Testing] lasts 2 days") ?? -1,
     );
@@ -92,6 +102,28 @@ describe("normalizeSession", () => {
     );
     expect(session.documents.map((document) => document.dirty)).toEqual([true, true, false]);
     expect(normalizeSession(session)).toEqual(session);
+  });
+
+  it("removes invalid diagram-wide direction commands from every open WBS document", () => {
+    const session = normalizeSession({
+      version: 5,
+      documents: [
+        { id: "left", source: "@startwbs\nleft side\n* Project\n@endwbs", fileName: "left.puml" },
+        {
+          id: "legacy",
+          source: "@startwbs\nleft to right direction\n* Project\n@endwbs",
+          fileName: "legacy.puml",
+        },
+      ],
+      activeDocumentId: "left",
+    });
+
+    expect(session.documents.map((document) => document.source)).toEqual([
+      "@startwbs\n* Project\n@endwbs",
+      "@startwbs\n* Project\n@endwbs",
+    ]);
+    expect(session.documents.every((document) => document.dirty)).toBe(true);
+    expect(migrateInvalidWbsDirection(session.documents[0]!.source)).toBe(session.documents[0]!.source);
   });
 });
 
@@ -126,7 +158,7 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 5,
+      version: 6,
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,

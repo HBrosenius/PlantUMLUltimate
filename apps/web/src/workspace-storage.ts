@@ -27,7 +27,7 @@ export interface DocumentSnapshot {
 }
 
 export interface WorkspaceSession {
-  version: 5;
+  version: 6;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
   viewMode: ViewMode;
@@ -48,7 +48,7 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
 };
 
 export const DEFAULT_SESSION: WorkspaceSession = {
-  version: 5,
+  version: 6,
   documents: [
     {
       id: "welcome",
@@ -103,6 +103,10 @@ export function migrateGanttDependencyPlacement(source: string): string {
   return applySourceEdits(source, edits);
 }
 
+export function migrateInvalidWbsDirection(source: string): string {
+  return source.replace(/^\s*(?:left side|right side|(?:left to right|top to bottom) direction)\s*(?:\r?\n)?/gim, "");
+}
+
 export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
   if (!value || typeof value !== "object") return DEFAULT_WORKSPACE;
   const candidate = value as Partial<WorkspaceSnapshot>;
@@ -123,14 +127,16 @@ export function normalizeSession(value: unknown): WorkspaceSession {
   if (value && typeof value === "object" && Array.isArray((value as Partial<WorkspaceSession>).documents)) {
     const candidate = value as Partial<WorkspaceSession>;
     const migrateDependencies = Number(candidate.version ?? 0) < 5;
+    const migrateWbsDirection = Number(candidate.version ?? 0) < 6;
     const documents = candidate
       .documents!.filter((item): item is DocumentSnapshot =>
         Boolean(item && typeof item.id === "string" && typeof item.source === "string"),
       )
       .map((item) => {
         const diagramKind = normalizeDiagramKind((item as Partial<DocumentSnapshot>).diagramKind, item.source);
-        const source =
+        let source =
           migrateDependencies && diagramKind === "gantt" ? migrateGanttDependencyPlacement(item.source) : item.source;
+        if (migrateWbsDirection && diagramKind === "wbs") source = migrateInvalidWbsDirection(source);
         return {
           id: item.id,
           historyId: item.historyId || `history-${item.id}`,
@@ -151,7 +157,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       ? candidate.activeDocumentId!
       : documents[0]!.id;
     return {
-      version: 5,
+      version: 6,
       documents,
       activeDocumentId,
       viewMode: candidate.viewMode ?? "split",
@@ -164,9 +170,14 @@ export function normalizeSession(value: unknown): WorkspaceSession {
     (value as Partial<WorkspaceSnapshot> | undefined)?.diagramKind,
     legacy.source,
   );
-  const source = diagramKind === "gantt" ? migrateGanttDependencyPlacement(legacy.source) : legacy.source;
+  const source =
+    diagramKind === "gantt"
+      ? migrateGanttDependencyPlacement(legacy.source)
+      : diagramKind === "wbs"
+        ? migrateInvalidWbsDirection(legacy.source)
+        : legacy.source;
   return {
-    version: 5,
+    version: 6,
     documents: [
       {
         id: "migrated",

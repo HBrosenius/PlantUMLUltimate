@@ -2960,3 +2960,110 @@ textarea:focus-visible,
     width: min(380px, calc(100vw - 16px));
   }
 }
+.wbs-diagram svg text[data-wbs-node-id] {
+  cursor: grab;
+  pointer-events: all;
+  user-select: none;
+  touch-action: none;
+}
+
+.wbs-diagram svg .wbs-node-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2px;
+  cursor: grab;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.wbs-diagram svg .wbs-connect-handle {
+  fill: var(--accent, #2563eb);
+  stroke: white;
+  stroke-width: 2px;
+  cursor: crosshair;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.wbs-diagram svg .wbs-connection-preview {
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.wbs-diagram svg .wbs-relationship-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.wbs-diagram svg .wbs-relationship-hit:hover,
+.wbs-diagram svg .wbs-relationship-hit.wbs-selected-relationship {
+  stroke: color-mix(in srgb, var(--accent, #2563eb) 35%, transparent);
+}
+
+.wbs-diagram svg .wbs-relationship-endpoint {
+  fill: white;
+  stroke: var(--accent, #2563eb);
+  stroke-width: 3px;
+  cursor: crosshair;
+  pointer-events: all;
+  touch-action: none;
+}
+
+@media (pointer: coarse) {
+  .wbs-diagram svg .wbs-connect-handle {
+    stroke-width: 7px;
+  }
+}
+
+.wbs-diagram svg .wbs-node-hit.wbs-drop-target,
+.wbs-diagram svg text.wbs-drop-target {
+  fill: color-mix(in srgb, var(--accent, #2563eb) 15%, transparent);
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-dasharray: 5 3;
+}
+
+.wbs-diagram svg text[data-wbs-node-id]:focus,
+.wbs-diagram svg text.wbs-selected-node {
+  paint-order: stroke;
+  stroke: var(--accent, #2563eb);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.wbs-preview .preview-hint {
+  position: absolute;
+  inset: auto 1rem 0.75rem 1rem;
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.wbs-drag-preview {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 2px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  background: var(--panel, #fff);
+  color: var(--text, #172033);
+  box-shadow: 0 12px 30px rgb(15 23 42 / 24%);
+  pointer-events: none;
+  transform: rotate(1deg);
+}
+
+.wbs-drag-preview span {
+  color: var(--muted-text, #64748b);
+  font-size: 0.75rem;
+}

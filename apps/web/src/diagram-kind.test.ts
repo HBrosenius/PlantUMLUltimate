@@ -4,6 +4,7 @@ import { detectDiagramKind, normalizeDiagramKind } from "./diagram-kind";
 describe("diagram kind detection", () => {
   it("detects Gantt, Sequence, Use Case, and Class sources", () => {
     expect(detectDiagramKind("@startgantt\n@endgantt")).toBe("gantt");
+    expect(detectDiagramKind("@startwbs\n* Project\n@endwbs")).toBe("wbs");
     expect(detectDiagramKind("@startuml\nactor User\nUser -> API: Request\n@enduml")).toBe("sequence");
     expect(detectDiagramKind("@startuml\nactor User\nusecase Login\nUser --> Login\n@enduml")).toBe("usecase");
     expect(detectDiagramKind("@startuml\n:User: --> (Log in)\n@enduml")).toBe("usecase");
@@ -17,5 +18,6 @@ describe("diagram kind detection", () => {
     expect(normalizeDiagramKind("usecase", "@startuml\nactor User\n@enduml")).toBe("usecase");
     expect(normalizeDiagramKind("class", "@startuml\n@enduml")).toBe("class");
     expect(normalizeDiagramKind("activity", "@startuml\n@enduml")).toBe("activity");
+    expect(normalizeDiagramKind("wbs", "@startwbs\n@endwbs")).toBe("wbs");
   });
 });

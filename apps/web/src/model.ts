@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "activity";
+export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "activity" | "wbs";
 
 export interface RenderRequest {
   requestId: number;
@@ -99,3 +99,16 @@ partition "Order processing" {
 
 stop
 @enduml`;
+
+export const DEFAULT_WBS_SOURCE = `@startwbs
+* Website redesign
+** Discovery
+*** Stakeholder interviews
+*** Content inventory
+** Design
+*** Information architecture
+*** Visual design
+** Delivery
+*** Frontend implementation
+*** Quality assurance
+@endwbs`;

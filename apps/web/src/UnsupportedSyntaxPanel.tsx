@@ -1,12 +1,15 @@
-import type { UnknownSyntaxNode } from "@plantuml-studio/diagram-gantt";
+interface PreservedSyntaxItem {
+  text: string;
+  range: { from: number; to: number };
+}
 
 export function UnsupportedSyntaxPanel({
   items,
   onReveal,
   onClose,
 }: {
-  items: readonly UnknownSyntaxNode[];
-  onReveal(item: UnknownSyntaxNode): void;
+  items: readonly PreservedSyntaxItem[];
+  onReveal(item: PreservedSyntaxItem): void;
   onClose(): void;
 }) {
   return (

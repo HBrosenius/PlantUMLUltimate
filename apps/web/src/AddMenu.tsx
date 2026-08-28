@@ -30,6 +30,7 @@ export function AddMenu({
   onActivityStructure,
   onActivityTerminal,
   onActivityArrow,
+  onWbsNode,
 }: {
   diagramKind: DiagramKind;
   onTask(): void;
@@ -58,6 +59,7 @@ export function AddMenu({
   onActivityStructure(): void;
   onActivityTerminal(): void;
   onActivityArrow(): void;
+  onWbsNode(): void;
 }) {
   const taskShortcut = optionShortcut("T");
   const milestoneShortcut = optionShortcut("M");
@@ -211,7 +213,7 @@ export function AddMenu({
                 <span>Note…</span>
               </button>
             </>
-          ) : (
+          ) : diagramKind === "activity" ? (
             <>
               <button role="menuitem" onClick={() => run(onActivityAction)}>
                 <span>Action…</span>
@@ -232,6 +234,11 @@ export function AddMenu({
                 <span>Note…</span>
               </button>
             </>
+          ) : (
+            <button role="menuitem" onClick={() => run(onWbsNode)}>
+              <span>WBS node…</span>
+              <kbd>{optionShortcut("N")}</kbd>
+            </button>
           )}
         </div>
       )}

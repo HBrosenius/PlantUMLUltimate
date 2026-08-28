@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ganttAdapter } from "@plantuml-studio/diagram-gantt";
+import { wbsAdapter } from "@plantuml-studio/diagram-wbs";
 import { detectPlantUmlDiagramType, DiagramAdapterRegistry } from "@plantuml-studio/language-plantuml";
 
 describe("diagram adapter architecture", () => {
@@ -7,7 +8,19 @@ describe("diagram adapter architecture", () => {
     expect(detectPlantUmlDiagramType("@startgantt\n@endgantt")).toBe("gantt");
     expect(detectPlantUmlDiagramType("@startuml\n@enduml")).toBe("uml");
     expect(detectPlantUmlDiagramType("@startmindmap\n@endmindmap")).toBe("mindmap");
+    expect(detectPlantUmlDiagramType("@startwbs\n@endwbs")).toBe("wbs");
     expect(detectPlantUmlDiagramType("plain text")).toBe("unknown");
+  });
+
+  it("registers WBS and exposes hierarchy objects", () => {
+    const registry = new DiagramAdapterRegistry().register(ganttAdapter).register(wbsAdapter);
+    const source = "@startwbs\n* Project\n** Delivery\n@endwbs";
+    expect(registry.detect(source)?.id).toBe("wbs");
+    const parsed = wbsAdapter.parse(source);
+    expect(wbsAdapter.interactiveObjects(parsed.document)).toEqual([
+      expect.objectContaining({ kind: "wbs-node", label: "Project" }),
+      expect.objectContaining({ kind: "wbs-node", label: "Delivery" }),
+    ]);
   });
 
   it("registers and selects the Gantt adapter", () => {

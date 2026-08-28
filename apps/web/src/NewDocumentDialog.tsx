@@ -20,6 +20,7 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     title: "Activity diagram",
     description: "Model workflows, decisions, parallel work, loops, partitions, and outcomes.",
   },
+  { kind: "wbs", title: "WBS diagram", description: "Break a project into visual work packages and deliverables." },
 ];
 
 export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
@@ -57,7 +58,9 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
           <div className="diagram-kind-options">
             {OPTIONS.map((option, index) => (
               <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
-                {option.kind === "activity" && <span className="diagram-kind-beta">Beta</span>}
+                {(option.kind === "activity" || option.kind === "wbs") && (
+                  <span className="diagram-kind-beta">Beta</span>
+                )}
                 <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>
@@ -115,6 +118,31 @@ function PlantUmlUltimateLogo() {
 }
 
 function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
+  if (kind === "wbs")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <g fill="none" stroke="#64748b" strokeWidth="1.5">
+          <path d="M120 28V48M120 48H58V68M120 48H182V68M58 86V96M182 86V96" />
+        </g>
+        <g fill="#2563eb">
+          <rect x="86" y="10" width="68" height="20" rx="6" />
+          <rect x="28" y="67" width="60" height="20" rx="6" />
+          <rect x="152" y="67" width="60" height="20" rx="6" />
+        </g>
+        <g fill="#fff" textAnchor="middle">
+          <text x="120" y="24">
+            Project
+          </text>
+          <text x="58" y="81">
+            Plan
+          </text>
+          <text x="182" y="81">
+            Deliver
+          </text>
+        </g>
+      </svg>
+    );
   if (kind === "gantt")
     return (
       <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">

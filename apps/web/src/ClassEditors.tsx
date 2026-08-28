@@ -19,15 +19,17 @@ export function ColorField({
   value,
   onChange,
   onBlur,
+  label = "Color",
 }: {
   value: string;
   onChange(value: string): void;
   onBlur?(): void;
+  label?: string;
 }) {
   const id = useId();
   return (
     <label>
-      Color
+      {label}
       <input list={id} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />
       <datalist id={id}>
         {PLANTUML_COLOR_NAMES.map((color) => (

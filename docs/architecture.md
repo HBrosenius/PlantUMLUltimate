@@ -12,6 +12,8 @@ Canonical SVG is produced by the official `@plantuml/core` TeaVM build. The engi
 
 `@plantuml-studio/diagram-gantt` supplies the first concrete adapter. The web application parses the active source through this adapter and routes core task movement, resizing, reordering, and dependency creation/deletion through its typed visual-operation API. React and CodeMirror types do not cross the adapter boundary.
 
+`@plantuml-studio/diagram-wbs` models hierarchical work-breakdown nodes, diagnostics, completions, and source-preserving subtree operations. Its preview uses the canonical PlantUML SVG with a semantic node interaction layer; the hierarchy model is derived from source and is never persisted separately.
+
 To add a diagram type:
 
 1. Add detection for its `@start…` directive if it is not already known.

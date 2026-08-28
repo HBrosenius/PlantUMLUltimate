@@ -5,6 +5,14 @@ import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
+import { WbsDiagramPreview } from "./WbsDiagramPreview";
+import {
+  AddWbsNodeDialog,
+  WbsNodeInspector,
+  WbsRelationshipInspector,
+  WbsSettingsInspector,
+  type WbsInsertPosition,
+} from "./WbsEditors";
 import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
 import {
@@ -126,7 +134,21 @@ import {
   DEFAULT_SEQUENCE_SOURCE,
   DEFAULT_SOURCE,
   DEFAULT_USECASE_SOURCE,
+  DEFAULT_WBS_SOURCE,
 } from "./model";
+import {
+  deleteWbsNode,
+  deleteWbsRelationship,
+  findWbsNodeAt,
+  insertWbsNode,
+  insertWbsRelationship,
+  moveWbsSubtree,
+  parseWbs,
+  reconnectWbsRelationship,
+  updateWbsNode,
+  updateWbsRelationshipColor,
+  type WbsNodeInput,
+} from "@plantuml-studio/diagram-wbs";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -256,6 +278,10 @@ export function App() {
   const [selectedUseCaseObjectId, setSelectedUseCaseObjectId] = useState<string>();
   const [selectedClassObjectId, setSelectedClassObjectId] = useState<string>();
   const [selectedActivityObjectId, setSelectedActivityObjectId] = useState<string>();
+  const [selectedWbsNodeId, setSelectedWbsNodeId] = useState<string>();
+  const [selectedWbsRelationshipId, setSelectedWbsRelationshipId] = useState<string>();
+  const [addWbsNodeOpen, setAddWbsNodeOpen] = useState(false);
+  const [wbsSettingsOpen, setWbsSettingsOpen] = useState(false);
   const [addActivityActionOpen, setAddActivityActionOpen] = useState(false);
   const [addActivityPartitionOpen, setAddActivityPartitionOpen] = useState(false);
   const [addActivityNoteOpen, setAddActivityNoteOpen] = useState(false);
@@ -346,6 +372,17 @@ export function App() {
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
+  const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
+  const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
+  const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
+  useEffect(() => {
+    if (workspace.diagramKind !== "wbs") {
+      setSelectedWbsNodeId(undefined);
+      setSelectedWbsRelationshipId(undefined);
+      setWbsSettingsOpen(false);
+      setAddWbsNodeOpen(false);
+    }
+  }, [workspace.diagramKind]);
   const selectedActivityAction = activityDocument.nodes.find(
     (item) => item.id === selectedActivityObjectId && item.kind === "action",
   );
@@ -389,8 +426,15 @@ export function App() {
   const diagnosticCount =
     workspace.diagramKind === "gantt"
       ? parseResult.diagnostics.filter((item) => item.code !== "unsupported-syntax").length
-      : 0;
-  const unsupportedCount = workspace.diagramKind === "gantt" ? parseResult.document.unknown.length : 0;
+      : workspace.diagramKind === "wbs"
+        ? wbsDocument.diagnostics.length
+        : 0;
+  const unsupportedCount =
+    workspace.diagramKind === "gantt"
+      ? parseResult.document.unknown.length
+      : workspace.diagramKind === "wbs"
+        ? wbsDocument.unknown.length
+        : 0;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
   const selectedTaskDependency = selectedTask
     ? parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)
@@ -1235,7 +1279,9 @@ export function App() {
                 ? DEFAULT_CLASS_SOURCE
                 : diagramKind === "activity"
                   ? DEFAULT_ACTIVITY_SOURCE
-                  : DEFAULT_SOURCE,
+                  : diagramKind === "wbs"
+                    ? DEFAULT_WBS_SOURCE
+                    : DEFAULT_SOURCE,
         fileName: "untitled.puml",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -1259,7 +1305,9 @@ export function App() {
               ? "Class"
               : diagramKind === "activity"
                 ? "Activity"
-                : "Gantt";
+                : diagramKind === "wbs"
+                  ? "WBS"
+                  : "Gantt";
       setInteractionMessage(`Created a new ${displayName} diagram`);
     },
     [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
@@ -1269,6 +1317,139 @@ export function App() {
     setReplaceActiveDocumentOnCreate(false);
     setNewDocumentOpen(true);
   }, []);
+
+  const addWbsNode = useCallback(
+    (value: WbsNodeInput, position: WbsInsertPosition) => {
+      const selected = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
+      const parent = position === "child" ? selected : undefined;
+      const after = position === "sibling" ? selected : undefined;
+      const source = insertWbsNode(workspace.source, wbsDocument, value, parent, after);
+      commitSource(source, `Add WBS node ${value.label}`);
+      setAddWbsNodeOpen(false);
+      setInteractionMessage(`Added WBS node ${value.label}`);
+    },
+    [commitSource, selectedWbsNodeId, wbsDocument, workspace.source],
+  );
+
+  const applyWbsNode = useCallback(
+    (value: WbsNodeInput) => {
+      if (!selectedWbsNode) return;
+      commitSource(updateWbsNode(workspace.source, selectedWbsNode, value), `Update WBS node ${selectedWbsNode.label}`);
+      setInteractionMessage(`Updated WBS node ${value.label}`);
+    },
+    [commitSource, selectedWbsNode, workspace.source],
+  );
+
+  const removeWbsNode = useCallback(() => {
+    if (!selectedWbsNode) return;
+    const descendants = wbsDocument.nodes.filter(
+      (item) =>
+        item.sourceRange.from > selectedWbsNode.sourceRange.from &&
+        item.sourceRange.to <= selectedWbsNode.subtreeRange.to,
+    ).length;
+    if (
+      !window.confirm(
+        `Delete “${selectedWbsNode.label}”${descendants ? ` and its ${descendants} descendant${descendants === 1 ? "" : "s"}` : ""}?`,
+      )
+    )
+      return;
+    commitSource(
+      deleteWbsNode(workspace.source, wbsDocument, selectedWbsNode),
+      `Delete WBS subtree ${selectedWbsNode.label}`,
+    );
+    setSelectedWbsNodeId(undefined);
+    setSelectedWbsRelationshipId(undefined);
+    setInteractionMessage(`Deleted WBS subtree ${selectedWbsNode.label}`);
+  }, [commitSource, selectedWbsNode, wbsDocument, workspace.source]);
+
+  const moveWbsNode = useCallback(
+    (nodeId: string, parentId?: string, beforeId?: string) => {
+      const node = wbsDocument.nodes.find((item) => item.id === nodeId);
+      const parent = parentId ? wbsDocument.nodes.find((item) => item.id === parentId) : undefined;
+      const before = beforeId ? wbsDocument.nodes.find((item) => item.id === beforeId) : undefined;
+      if (!node) return;
+      const source = moveWbsSubtree(workspace.source, wbsDocument, node, parent, before);
+      if (source === workspace.source) {
+        setInteractionMessage("That WBS subtree cannot be moved there");
+        return;
+      }
+      commitSource(source, `Move WBS subtree ${node.label}`);
+      setInteractionMessage(
+        before ? `Reordered ${node.label}` : `Moved ${node.label}${parent ? ` under ${parent.label}` : " to the root"}`,
+      );
+    },
+    [commitSource, wbsDocument, workspace.source],
+  );
+
+  const createWbsRelationship = useCallback(
+    (fromId: string, toId: string) => {
+      const from = wbsDocument.nodes.find((node) => node.id === fromId);
+      const to = wbsDocument.nodes.find((node) => node.id === toId);
+      if (!from || !to || from.id === to.id) return;
+      const source = insertWbsRelationship(workspace.source, wbsDocument, from, to);
+      if (source === workspace.source) {
+        setInteractionMessage("That WBS arrow already exists");
+        return;
+      }
+      commitSource(source, `Connect ${from.label} to ${to.label}`);
+      setInteractionMessage(`Connected ${from.label} to ${to.label}`);
+    },
+    [commitSource, wbsDocument, workspace.source],
+  );
+
+  const applyWbsRelationshipColor = useCallback(
+    (color: string) => {
+      if (!selectedWbsRelationship) return;
+      commitSource(
+        updateWbsRelationshipColor(workspace.source, selectedWbsRelationship, color),
+        `Update WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
+      );
+      setInteractionMessage("Updated WBS arrow color");
+    },
+    [commitSource, selectedWbsRelationship, workspace.source],
+  );
+
+  const reconnectWbsArrow = useCallback(
+    (relationshipId: string, endpoint: "from" | "to", targetId: string) => {
+      const relationship = wbsDocument.relationships.find((item) => item.id === relationshipId);
+      const target = wbsDocument.nodes.find((item) => item.id === targetId);
+      if (!relationship || !target) return;
+      const source = reconnectWbsRelationship(workspace.source, wbsDocument, relationship, endpoint, target);
+      if (source === workspace.source) {
+        setInteractionMessage("That WBS arrow cannot be reconnected there");
+        return;
+      }
+      commitSource(source, `Reconnect ${endpoint} end of WBS arrow`);
+      setInteractionMessage(`Reconnected WBS arrow to ${target.label}`);
+    },
+    [commitSource, wbsDocument, workspace.source],
+  );
+
+  const removeWbsRelationship = useCallback(() => {
+    if (!selectedWbsRelationship) return;
+    commitSource(
+      deleteWbsRelationship(workspace.source, selectedWbsRelationship),
+      `Delete WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
+    );
+    setSelectedWbsRelationshipId(undefined);
+    setInteractionMessage("Deleted WBS arrow");
+  }, [commitSource, selectedWbsRelationship, workspace.source]);
+
+  const applyWbsSettings = useCallback(
+    (value: { title: string }) => {
+      let source = workspace.source
+        .replace(/^\s*title\s+.*(?:\r?\n)?/im, "")
+        .replace(/^\s*(?:left side|right side|(?:left to right|top to bottom) direction)\s*(?:\r?\n)?/im, "");
+      const start = /^\s*@startwbs\b.*$/im.exec(source);
+      if (!start) return;
+      const at = start.index + start[0].length;
+      const settings = value.title.trim() ? `\ntitle ${value.title.trim()}` : "";
+      source = `${source.slice(0, at)}${settings}${source.slice(at)}`;
+      commitSource(source, "Update WBS settings");
+      setInteractionMessage("Updated WBS settings");
+    },
+    [commitSource, workspace.source],
+  );
 
   const addSequenceParticipant = useCallback(
     (value: AddSequenceParticipantValue) => {
@@ -2318,40 +2499,56 @@ export function App() {
             { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
             { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
           ]
-        : [
-            {
-              id: "edit.add-participant",
-              label: "Add participant…",
-              category: "Edit",
-              shortcut: optionShortcut("P"),
-              run: () => setAddSequenceParticipantOpen(true),
-            },
-            {
-              id: "edit.add-message",
-              label: "Add message…",
-              category: "Edit",
-              shortcut: optionShortcut("M"),
-              run: () => setAddSequenceMessageOpen(true),
-            },
-            {
-              id: "edit.add-fragment",
-              label: "Add combined fragment…",
-              category: "Edit",
-              run: () => setAddSequenceStructureKind("fragment"),
-            },
-            {
-              id: "edit.add-activation",
-              label: "Add activation…",
-              category: "Edit",
-              run: () => setAddSequenceStructureKind("activation"),
-            },
-            {
-              id: "edit.add-note",
-              label: "Add Sequence note…",
-              category: "Edit",
-              run: () => setAddSequenceStructureKind("note"),
-            },
-          ];
+        : workspace.diagramKind === "wbs"
+          ? [
+              {
+                id: "edit.add-wbs-node",
+                label: "Add WBS node…",
+                category: "Edit",
+                shortcut: optionShortcut("N"),
+                run: () => setAddWbsNodeOpen(true),
+              },
+              {
+                id: "edit.wbs-settings",
+                label: "WBS settings…",
+                category: "Edit",
+                run: () => setWbsSettingsOpen(true),
+              },
+            ]
+          : [
+              {
+                id: "edit.add-participant",
+                label: "Add participant…",
+                category: "Edit",
+                shortcut: optionShortcut("P"),
+                run: () => setAddSequenceParticipantOpen(true),
+              },
+              {
+                id: "edit.add-message",
+                label: "Add message…",
+                category: "Edit",
+                shortcut: optionShortcut("M"),
+                run: () => setAddSequenceMessageOpen(true),
+              },
+              {
+                id: "edit.add-fragment",
+                label: "Add combined fragment…",
+                category: "Edit",
+                run: () => setAddSequenceStructureKind("fragment"),
+              },
+              {
+                id: "edit.add-activation",
+                label: "Add activation…",
+                category: "Edit",
+                run: () => setAddSequenceStructureKind("activation"),
+              },
+              {
+                id: "edit.add-note",
+                label: "Add Sequence note…",
+                category: "Edit",
+                run: () => setAddSequenceStructureKind("note"),
+              },
+            ];
     return [
       { id: "file.new", label: "New document", category: "File", shortcut: "⌘N", run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
@@ -2448,7 +2645,14 @@ export function App() {
                 ? "d"
                 : event.code === "KeyP"
                   ? "p"
-                  : "";
+                  : event.code === "KeyN"
+                    ? "n"
+                    : "";
+        if (workspace.diagramKind === "wbs" && creation === "n") {
+          event.preventDefault();
+          setAddWbsNodeOpen(true);
+          return;
+        }
         if (workspace.diagramKind === "sequence" && (creation === "p" || creation === "m")) {
           event.preventDefault();
           if (creation === "p") setAddSequenceParticipantOpen(true);
@@ -2524,7 +2728,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || selectedWbsNodeId || selectedWbsRelationshipId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || wbsSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -2571,6 +2775,7 @@ export function App() {
             onActivityStructure={() => setAddActivityStructureOpen(true)}
             onActivityTerminal={() => setAddActivityTerminalOpen(true)}
             onActivityArrow={() => setAddActivityArrowOpen(true)}
+            onWbsNode={() => setAddWbsNodeOpen(true)}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -2618,6 +2823,17 @@ export function App() {
               }}
             >
               Activity
+            </button>
+          )}
+          {workspace.diagramKind === "wbs" && (
+            <button
+              data-inspector-trigger
+              onClick={() => {
+                setSelectedWbsNodeId(undefined);
+                setWbsSettingsOpen(true);
+              }}
+            >
+              WBS
             </button>
           )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
@@ -2788,7 +3004,12 @@ export function App() {
                 setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
               } else if (workspace.diagramKind === "class") {
                 setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
-              } else setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
+              } else if (workspace.diagramKind === "activity")
+                setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
+              else {
+                setWbsSettingsOpen(false);
+                setSelectedWbsNodeId(findWbsNodeAt(wbsDocument, position)?.id);
+              }
             }}
           />
         )}
@@ -2971,7 +3192,7 @@ export function App() {
               onMoveToPackage={moveClassEntityByDrag}
               onReorder={reorderClassEntityByDrag}
             />
-          ) : (
+          ) : workspace.diagramKind === "activity" ? (
             <ActivityDiagramPreview
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -2994,6 +3215,35 @@ export function App() {
               }}
               onBackgroundSelect={() => setSelectedActivityObjectId(undefined)}
               onReorder={reorderActivityActionByDrag}
+            />
+          ) : (
+            <WbsDiagramPreview
+              svg={result?.svg}
+              document={wbsDocument}
+              selectedId={selectedWbsNodeId}
+              selectedRelationshipId={selectedWbsRelationshipId}
+              zoom={workspace.zoom}
+              renderStatus={status}
+              renderError={result?.error}
+              onRenderRetry={retryRender}
+              onZoomChange={(zoom) => update("zoom", zoom)}
+              onSelect={(id) => {
+                setWbsSettingsOpen(false);
+                setSelectedWbsNodeId(id);
+                if (id) setSelectedWbsRelationshipId(undefined);
+                const node = wbsDocument.nodes.find((item) => item.id === id);
+                if (node) setSelectionRequest({ ...node.sourceRange });
+              }}
+              onRelationshipSelect={(id) => {
+                setWbsSettingsOpen(false);
+                setSelectedWbsRelationshipId(id);
+                if (id) setSelectedWbsNodeId(undefined);
+                const relationship = wbsDocument.relationships.find((item) => item.id === id);
+                if (relationship) setSelectionRequest({ ...relationship.sourceRange });
+              }}
+              onMove={moveWbsNode}
+              onRelationshipCreate={createWbsRelationship}
+              onRelationshipReconnect={reconnectWbsArrow}
             />
           ))}
       </main>
@@ -3030,7 +3280,9 @@ export function App() {
                 ? "Class"
                 : workspace.diagramKind === "activity"
                   ? "Activity"
-                  : "Gantt"}
+                  : workspace.diagramKind === "wbs"
+                    ? "WBS"
+                    : "Gantt"}
         </span>
         <span>
           {workspace.viewMode === "code"
@@ -3046,6 +3298,41 @@ export function App() {
       </footer>
       {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={() => setNewDocumentOpen(false)} />}
+      {addWbsNodeOpen && (
+        <AddWbsNodeDialog
+          selected={selectedWbsNode}
+          hasRoot={wbsDocument.roots.length > 0}
+          onAdd={addWbsNode}
+          onClose={() => setAddWbsNodeOpen(false)}
+        />
+      )}
+      {wbsSettingsOpen && (
+        <WbsSettingsInspector
+          source={workspace.source}
+          onApply={applyWbsSettings}
+          onClose={() => setWbsSettingsOpen(false)}
+        />
+      )}
+      {selectedWbsNode && (
+        <WbsNodeInspector
+          key={`${selectedWbsNode.id}:${selectedWbsNode.sourceRange.to}`}
+          node={selectedWbsNode}
+          onApply={applyWbsNode}
+          onDelete={removeWbsNode}
+          onAddChild={() => setAddWbsNodeOpen(true)}
+          onClose={() => setSelectedWbsNodeId(undefined)}
+        />
+      )}
+      {selectedWbsRelationship && (
+        <WbsRelationshipInspector
+          key={`${selectedWbsRelationship.id}:${selectedWbsRelationship.sourceRange.to}`}
+          relationship={selectedWbsRelationship}
+          document={wbsDocument}
+          onApply={applyWbsRelationshipColor}
+          onDelete={removeWbsRelationship}
+          onClose={() => setSelectedWbsRelationshipId(undefined)}
+        />
+      )}
       {addActivityActionOpen && (
         <AddActivityActionDialog
           document={activityDocument}
@@ -3568,7 +3855,7 @@ export function App() {
       )}
       {unsupportedOpen && (
         <UnsupportedSyntaxPanel
-          items={parseResult.document.unknown}
+          items={workspace.diagramKind === "wbs" ? wbsDocument.unknown : parseResult.document.unknown}
           onReveal={(item) => {
             if (workspace.viewMode === "diagram") update("viewMode", "split");
             setSelectionRequest({ ...item.range });

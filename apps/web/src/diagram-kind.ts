@@ -14,6 +14,7 @@ const ACTIVITY_STATEMENT =
 
 export function detectDiagramKind(source: string): DiagramKind | undefined {
   if (/^\s*@startgantt\b/im.test(source)) return "gantt";
+  if (/^\s*@startwbs\b/im.test(source)) return "wbs";
   if (!/^\s*@startuml\b/im.test(source)) return undefined;
   if (ACTIVITY_STATEMENT.test(source)) return "activity";
   if (CLASS_DECLARATION.test(source)) return "class";
@@ -25,7 +26,14 @@ export function detectDiagramKind(source: string): DiagramKind | undefined {
 }
 
 export function normalizeDiagramKind(value: unknown, source: string): DiagramKind {
-  if (value === "gantt" || value === "sequence" || value === "usecase" || value === "class" || value === "activity")
+  if (
+    value === "gantt" ||
+    value === "sequence" ||
+    value === "usecase" ||
+    value === "class" ||
+    value === "activity" ||
+    value === "wbs"
+  )
     return value;
   return detectDiagramKind(source) ?? "gantt";
 }

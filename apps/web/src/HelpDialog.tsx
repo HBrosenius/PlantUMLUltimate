@@ -10,6 +10,7 @@ const shortcuts = () => [
   [optionShortcut("T"), "Add task"],
   [optionShortcut("M"), "Add milestone"],
   [optionShortcut("D"), "Add divider"],
+  [optionShortcut("N"), "Add WBS node"],
   ["⌘/Ctrl + Z", "Undo"],
   ["⇧ + ⌘/Ctrl + Z", "Redo"],
   ["⌘/Ctrl + 1", "Code view"],
@@ -55,7 +56,7 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
         <header>
           <div>
             <h2 id="help-title">PlantUML Ultimate Help</h2>
-            <p>Keyboard, diagram interaction, and Gantt syntax reference</p>
+            <p>Keyboard, diagram interaction, and PlantUML editing reference</p>
           </div>
           <button onClick={onClose} aria-label="Close Help">
             ×
@@ -88,6 +89,19 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
           <section>
             <h3>Common syntax</h3>
             <pre>{example}</pre>
+          </section>
+          <section>
+            <h3>WBS diagrams</h3>
+            <ul>
+              <li>
+                Use repeated <code>*</code> markers to define hierarchy.
+              </li>
+              <li>
+                Use repeated <code>+</code> or <code>-</code> markers for right and left branches.
+              </li>
+              <li>Select a rendered node to edit it, or drag it onto another node to move its complete subtree.</li>
+              <li>The node inspector controls its label, branch side, color, and stereotype.</li>
+            </ul>
           </section>
           <section>
             <h3>Editor assistance</h3>
