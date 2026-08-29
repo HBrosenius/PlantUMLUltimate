@@ -1902,6 +1902,43 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
   await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
 });
 
+test("reorders Sequence fragment branches without detaching nested bodies", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(
+    page,
+    "@startuml\nparticipant A\nparticipant B\nalt#Gold #LightBlue Primary\nA -> B: Main\nelse #Pink Failure\nloop Retry\nB -> A: Nested failure\nend\nelse #Orange Timeout\nA -> B: Final attempt\nend\nA -> B: After fragment\n@enduml",
+  );
+
+  await page.getByRole("button", { name: "Drag Fragment: Primary vertically", exact: true }).click();
+  const inspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
+  await expect(inspector.getByLabel("Branch 2 label")).toHaveValue("Failure");
+  await expect(inspector.getByLabel("Branch 3 label")).toHaveValue("Timeout");
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toContain("alt#Gold #LightBlue Primary\nA -> B: Main\nelse #Pink Failure\nloop Retry");
+
+  await inspector.getByRole("button", { name: "Move branch 3 up" }).click();
+  await expect(inspector.getByLabel("Branch 2 label")).toHaveValue("Timeout");
+  await expect(inspector.getByLabel("Branch 3 label")).toHaveValue("Failure");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return (
+        text.indexOf("else #Orange Timeout") < text.indexOf("A -> B: Final attempt") &&
+        text.indexOf("A -> B: Final attempt") < text.indexOf("else #Pink Failure") &&
+        text.indexOf("else #Pink Failure") < text.indexOf("loop Retry") &&
+        text.indexOf("loop Retry") < text.indexOf("B -> A: Nested failure")
+      );
+    })
+    .toBe(true);
+  await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
+
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
   await page.getByRole("button", { name: "Add", exact: true }).focus();
   await page.keyboard.press("Alt+t");

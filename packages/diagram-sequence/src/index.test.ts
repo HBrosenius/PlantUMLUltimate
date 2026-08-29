@@ -277,6 +277,15 @@ describe("Sequence source operations", () => {
     expect(withoutNested).toContain("else Failure");
   });
 
+  it("moves a nested fragment as one complete timeline block", () => {
+    const source =
+      "@startuml\nalt Primary\nA -> B: Main\nelse Failure\nloop Retry\nB -> A: Nested\nend\nend\nA -> B: After\n@enduml";
+    const document = parseSequence(source);
+    const moved = reorderSequenceStatement(source, document.fragments[0]!, document.messages.at(-1)!, "after");
+    expect(moved.indexOf("A -> B: After")).toBeLessThan(moved.indexOf("alt Primary"));
+    expect(moved).toContain("alt Primary\nA -> B: Main\nelse Failure\nloop Retry\nB -> A: Nested\nend\nend");
+  });
+
   it("parses and edits fragment colors, branch colors, and secondary group labels without losing bodies", () => {
     const source =
       "@startuml\nalt#Gold #LightBlue Success\nA -> B: Primary\nelse #Pink Failure\nloop Retry\nB -> A: Nested\nend\nelse #Orange Timeout\nA -> B: Final\nend\ngroup Processing [Internal work]\nA -> B: Grouped\nend\n@enduml";
@@ -310,6 +319,30 @@ describe("Sequence source operations", () => {
     expect(updated).toContain("A -> B: Primary");
     expect(updated).toContain("B -> A: Nested");
     expect(updated).toContain("A -> B: Final");
+
+    const reordered = updateSequenceStructure(source, document.fragments[0]!, {
+      kind: "fragment",
+      fragmentKind: "alt",
+      label: "Success",
+      branches: [
+        { label: "Timeout", color: "#Orange", originalIndex: 1 },
+        { label: "Failure", color: "#Pink", originalIndex: 0 },
+      ],
+    });
+    expect(reordered.indexOf("else #Orange Timeout")).toBeLessThan(reordered.indexOf("A -> B: Final"));
+    expect(reordered.indexOf("A -> B: Final")).toBeLessThan(reordered.indexOf("else #Pink Failure"));
+    expect(reordered.indexOf("else #Pink Failure")).toBeLessThan(reordered.indexOf("loop Retry"));
+    expect(reordered.indexOf("loop Retry")).toBeLessThan(reordered.indexOf("B -> A: Nested"));
+
+    const removedMiddle = updateSequenceStructure(source, document.fragments[0]!, {
+      kind: "fragment",
+      fragmentKind: "alt",
+      label: "Success",
+      branches: [{ label: "Timeout", color: "#Orange", originalIndex: 1 }],
+    });
+    expect(removedMiddle).not.toContain("else #Pink Failure");
+    expect(removedMiddle).toContain("B -> A: Nested");
+    expect(removedMiddle).toContain("A -> B: Final");
   });
 
   it("parses references, participant boxes, and autonumber commands", () => {

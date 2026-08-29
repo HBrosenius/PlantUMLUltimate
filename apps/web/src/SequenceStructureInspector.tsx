@@ -325,7 +325,9 @@ function FragmentForm({
   const [secondaryLabel, setSecondaryLabel] = useState(structure.secondaryLabel ?? "");
   const [headerColor, setHeaderColor] = useState(structure.headerColor ?? "");
   const [backgroundColor, setBackgroundColor] = useState(structure.backgroundColor ?? "");
-  const [branches, setBranches] = useState(structure.branches);
+  const [branches, setBranches] = useState<Array<{ label: string; color?: string; originalIndex?: number }>>(
+    structure.branches.map((branch, originalIndex) => ({ ...branch, originalIndex })),
+  );
   return (
     <form
       onSubmit={(event) => {
@@ -408,6 +410,34 @@ function FragmentForm({
                 onClick={() => setBranches((current) => current.filter((_, itemIndex) => itemIndex !== index))}
               >
                 ×
+              </button>
+              <button
+                type="button"
+                aria-label={`Move branch ${index + 2} up`}
+                disabled={index === 0}
+                onClick={() =>
+                  setBranches((current) => {
+                    const next = [...current];
+                    [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
+                    return next;
+                  })
+                }
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                aria-label={`Move branch ${index + 2} down`}
+                disabled={index === branches.length - 1}
+                onClick={() =>
+                  setBranches((current) => {
+                    const next = [...current];
+                    [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
+                    return next;
+                  })
+                }
+              >
+                ↓
               </button>
             </div>
           ))}

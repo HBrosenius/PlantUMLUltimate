@@ -790,7 +790,7 @@ export type SequenceStructureInput =
       secondaryLabel?: string;
       headerColor?: string;
       backgroundColor?: string;
-      branches?: Array<{ label: string; color?: string }>;
+      branches?: Array<{ label: string; color?: string; originalIndex?: number }>;
       elseLabel?: string;
     }
   | { kind: "activation"; action: SequenceActivation["kind"]; participant: string; color?: string }
@@ -1013,9 +1013,16 @@ export function updateSequenceStructure(
       if (/^\s*end\s*$/i.test(line)) depth -= 1;
     }
     const alternatives = branching ? (value.branches ?? [{ label: "alternative" }]) : [];
-    const retained = chunks.slice(0, alternatives.length + 1);
-    while (retained.length < alternatives.length + 1) retained.push([]);
-    for (const extra of chunks.slice(alternatives.length + 1)) retained.at(-1)!.push(...extra);
+    const claimed = new Set(
+      alternatives.flatMap((branch) => (branch.originalIndex === undefined ? [] : [branch.originalIndex + 1])),
+    );
+    const retained = [chunks[0] ?? []];
+    for (const branch of alternatives)
+      retained.push(branch.originalIndex === undefined ? [] : (chunks[branch.originalIndex + 1] ?? []));
+    for (const [index, extra] of chunks.entries()) {
+      if (index === 0 || claimed.has(index)) continue;
+      retained.at(-1)!.push(...extra);
+    }
     const rebuilt = [structureStatement(value), ...retained[0]!];
     alternatives.forEach((branch, index) => {
       rebuilt.push(
