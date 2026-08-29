@@ -305,7 +305,7 @@ describe("Sequence source operations", () => {
 
   it("parses references, participant boxes, and autonumber commands", () => {
     const source =
-      '@startuml\nbox "Backend" #LightBlue\nparticipant API\ndatabase DB\nend box\nref #Yellow over API, DB: Persist\nautonumber 10 10 "000"\nautonumber stop\n@enduml';
+      '@startuml\nbox "Backend" #LightBlue\nparticipant API\ndatabase DB\nend box\nref#Yellow over API, DB: Persist\nautonumber 10 10 "000"\nautonumber stop\n@enduml';
     const document = parseSequence(source);
     expect(document.boxes).toMatchObject([{ label: "Backend", color: "#LightBlue", participants: ["API", "DB"] }]);
     expect(document.references).toMatchObject([{ participants: ["API", "DB"], color: "#Yellow", text: "Persist" }]);
@@ -329,7 +329,7 @@ describe("Sequence source operations", () => {
 
   it("round-trips note shapes, aligned notes, formatting, and multiline references", () => {
     const source =
-      "@startuml\nparticipant A\nparticipant B\nhnote right of A #Yellow: **Important** [[https://example.com link]]\n/ rnote over A, B\nLine one\n<i>Line two</i>\nend note\nref #LightBlue over A, B\nExternal flow\nwith details\nend ref\n@enduml";
+      "@startuml\nparticipant A\nparticipant B\nhnote right of A #Yellow: **Important** [[https://example.com link]]\n/ rnote over A, B\nLine one\n<i>Line two</i>\nend note\nref#LightBlue over A, B\nExternal flow\nwith details\nend ref\n@enduml";
     const document = parseSequence(source);
     expect(document.notes).toMatchObject([
       { shape: "hnote", aligned: false, placement: "right of", text: "**Important** [[https://example.com link]]" },
@@ -347,6 +347,7 @@ describe("Sequence source operations", () => {
       text: "[[https://openai.com OpenAI]]",
     });
     expect(noteUpdated).toContain("/ rnote left: [[https://openai.com OpenAI]]");
+    expect(noteUpdated).not.toContain("rnote left A");
     const refUpdated = updateSequenceStructure(source, parseSequence(source).references[0]!, {
       kind: "reference",
       participants: ["B"],
@@ -439,7 +440,7 @@ describe("Sequence source operations", () => {
       increment: 5,
       format: "000",
     });
-    expect(source).toContain("ref #Yellow over A, B: Other flow");
+    expect(source).toContain("ref#Yellow over A, B: Other flow");
     expect(source).toContain('autonumber 10 5 "000"');
     const document = parseSequence(source);
     const changed = updateSequenceStructure(source, document.references[0]!, {
@@ -462,7 +463,7 @@ describe("Sequence source operations", () => {
     document = parseSequence(source);
     source = reconnectSequenceStructure(source, document.creations[0]!, 0, "C");
     expect(source).toContain("note over A, C #Yellow: Shared");
-    expect(source).toContain("ref #LightBlue over C, B: Other flow");
+    expect(source).toContain("ref#LightBlue over C, B: Other flow");
     expect(source).toContain("activate B #Red");
     expect(source).toContain("create control C");
   });

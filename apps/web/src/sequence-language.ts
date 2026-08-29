@@ -27,7 +27,7 @@ const KEYWORDS = [
   "group",
   "end",
   "ref over",
-  "ref #LightBlue over",
+  "ref#LightBlue over",
   "note over",
   "note across",
   "note left",

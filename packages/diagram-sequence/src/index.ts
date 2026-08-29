@@ -160,9 +160,7 @@ export function parseSequence(source: string): SequenceDocument {
       sourceRange: { from, to: from + match[0].length },
     });
   }
-  for (const match of source.matchAll(
-    /^\s*ref(?:\s+(#[\w]+))?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim,
-  )) {
+  for (const match of source.matchAll(/^\s*ref\s*(#[\w]+)?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim)) {
     const from = match.index!;
     references.push({
       id: `reference-${references.length}`,
@@ -264,7 +262,7 @@ export function parseSequence(source: string): SequenceDocument {
         const separator = line.match(/^\s*==\s*(.*?)\s*==\s*$/);
         const delay = line.match(/^\s*\.\.\.(?:(.*?)\.\.\.)?\s*$/);
         const space = line.match(/^\s*\|\|(\d*)\|\|\s*$/);
-        const reference = line.match(/^\s*ref(?:\s+(#[\w]+))?\s+over\s+([^:]+)\s*:\s*(.*)$/i);
+        const reference = line.match(/^\s*ref\s*(#[\w]+)?\s+over\s+([^:]+)\s*:\s*(.*)$/i);
         const box = line.match(/^\s*box(?:\s+"([^"]*)"|\s+([^#]*?))?(?:\s+(#[\w]+))?\s*$/i);
         const autonumber = line.match(/^\s*autonumber(?:\s+(stop|resume|inc\s+[ABC]|inc))?(?:\s+(.*))?$/i);
         const creation = line.match(
@@ -839,7 +837,7 @@ export function insertSequenceStructure(source: string, value: SequenceStructure
       ? `${header}\n${value.text.trim()}\nend note`
       : `${header}: ${value.text.trim()}`;
   } else if (value.kind === "reference") {
-    const header = `ref${value.color?.trim() ? ` ${value.color.trim()}` : ""} over ${value.participants.map(quote).join(", ")}`;
+    const header = `ref${value.color?.trim() ?? ""} over ${value.participants.map(quote).join(", ")}`;
     statement =
       value.multiline || value.text.includes("\n")
         ? `${header}\n${value.text.trim()}\nend ref`
@@ -882,7 +880,7 @@ function structureStatement(value: SequenceStructureInput): string {
     return value.text.includes("\n") ? `${header}\n${value.text.trim()}\nend note` : `${header}: ${value.text.trim()}`;
   }
   if (value.kind === "reference") {
-    const header = `ref${value.color?.trim() ? ` ${value.color.trim()}` : ""} over ${value.participants.map(quote).join(", ")}`;
+    const header = `ref${value.color?.trim() ?? ""} over ${value.participants.map(quote).join(", ")}`;
     return value.multiline || value.text.includes("\n")
       ? `${header}\n${value.text.trim()}\nend ref`
       : `${header}: ${value.text.trim()}`;

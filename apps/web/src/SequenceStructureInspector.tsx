@@ -455,6 +455,7 @@ function NoteForm({
   const [color, setColor] = useState(structure.color ?? "");
   const [shape, setShape] = useState(structure.shape);
   const [aligned, setAligned] = useState(structure.aligned);
+  const hasParticipant = placement === "over" || placement === "left of" || placement === "right of";
   return (
     <form
       onSubmit={(event) => {
@@ -464,7 +465,7 @@ function NoteForm({
           shape,
           aligned,
           placement,
-          participants: placement === "across" ? [] : [first, second].filter(Boolean),
+          participants: hasParticipant ? [first, ...(placement === "over" ? [second] : [])].filter(Boolean) : [],
           text,
           ...(color.trim() ? { color } : {}),
         });
@@ -490,7 +491,7 @@ function NoteForm({
           ))}
         </select>
       </label>
-      {placement !== "across" && (
+      {hasParticipant && (
         <label>
           Participant
           <select value={first} onChange={(event) => setFirst(event.target.value)}>

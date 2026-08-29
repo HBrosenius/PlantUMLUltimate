@@ -1811,6 +1811,46 @@ test("drags Sequence structures and reconnects their participant attachments", a
     .toBe(true);
 });
 
+test("selects and edits Sequence notes and references from the diagram", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(
+    page,
+    "@startuml\nparticipant User\nparticipant System\nparticipant Orders\nnote over User, System: Important note\nref#LightBlue over User, System: External flow\n@enduml",
+  );
+
+  await page.getByRole("button", { name: "Drag Note: Important note", exact: true }).click();
+  const inspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
+  await expect(inspector).toBeVisible();
+  await expect(inspector.getByLabel("Placement")).toHaveValue("over");
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toContain("note over User, System: Important note");
+  await inspector.getByLabel("Shape").selectOption("rnote");
+  await inspector.getByLabel("Placement").selectOption("right of");
+  await inspector.getByLabel("Participant").selectOption("Orders");
+  await inspector.getByLabel("Text").fill("Review order");
+  await inspector.getByLabel("Color").fill("#Yellow");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("rnote right of Orders #Yellow: Review order");
+
+  await page.getByRole("button", { name: "Drag Reference: External flow", exact: true }).click();
+  await expect(inspector.getByLabel("First participant")).toHaveValue("User");
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toContain("ref#LightBlue over User, System: External flow");
+  await inspector.getByLabel("First participant").selectOption("System");
+  await inspector.getByLabel("Second participant").selectOption("Orders");
+  await inspector.getByLabel("Text").fill("Updated external flow");
+  await inspector.getByLabel("Color").fill("#Lavender");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("ref#Lavender over System, Orders: Updated external flow");
+  await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
+
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
   await page.getByRole("button", { name: "Add", exact: true }).focus();
   await page.keyboard.press("Alt+t");
