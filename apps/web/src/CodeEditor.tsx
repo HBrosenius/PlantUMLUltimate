@@ -6,19 +6,20 @@ import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/
 import { indentWithTab } from "@codemirror/commands";
 import { StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { linter, lintGutter } from "@codemirror/lint";
-import { ganttCompletions, ganttDiagnostics, ganttQuickFixes, type GanttQuickFix } from "./gantt-language";
+import { ganttCompletions } from "./gantt-language";
 import { plantUmlGanttHighlightStyle, plantUmlGanttMode } from "./plantuml-gantt-mode";
 import { plantUmlSequenceHighlightStyle, plantUmlSequenceMode } from "./plantuml-sequence-mode";
-import { sequenceCompletions, sequenceDiagnostics, sequenceQuickFixes } from "./sequence-language";
+import { sequenceCompletions } from "./sequence-language";
 import { plantUmlUseCaseHighlightStyle, plantUmlUseCaseMode } from "./plantuml-usecase-mode";
-import { getUseCaseQuickFixes, useCaseCompletions, useCaseDiagnostics } from "./usecase-language";
+import { useCaseCompletions } from "./usecase-language";
 import { plantUmlClassHighlightStyle, plantUmlClassMode } from "./plantuml-class-mode";
-import { classCompletions, classDiagnostics, classQuickFixes } from "./class-language";
+import { classCompletions } from "./class-language";
 import { plantUmlActivityHighlightStyle, plantUmlActivityMode } from "./plantuml-activity-mode";
-import { activityCompletions, activityDiagnostics, activityQuickFixes } from "./activity-language";
+import { activityCompletions } from "./activity-language";
 import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode";
-import { wbsCompletions, wbsDiagnostics, wbsQuickFixes } from "./wbs-language";
+import { wbsCompletions } from "./wbs-language";
 import type { DiagramKind } from "./model";
+import { diagnosticsForDiagram, quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
 
 interface Props {
   diagramKind: DiagramKind;
@@ -89,38 +90,13 @@ function languageExtensions(kind: DiagramKind): Extension {
             : kind === "activity"
               ? activityCompletions
               : wbsCompletions;
-  const diagnostics =
-    kind === "gantt"
-      ? ganttDiagnostics
-      : kind === "sequence"
-        ? sequenceDiagnostics
-        : kind === "usecase"
-          ? useCaseDiagnostics
-          : kind === "class"
-            ? classDiagnostics
-            : kind === "activity"
-              ? activityDiagnostics
-              : wbsDiagnostics;
   return [
     StreamLanguage.define(mode),
     syntaxHighlighting(highlights),
     autocompletion({ override: [completions] }),
-    linter((current) => diagnostics(current.state.doc.toString()), { delay: 120 }),
+    linter((current) => diagnosticsForDiagram(kind, current.state.doc.toString()), { delay: 120 }),
   ];
 }
-
-const quickFixesFor = (kind: DiagramKind, source: string): GanttQuickFix[] =>
-  kind === "gantt"
-    ? ganttQuickFixes(source)
-    : kind === "sequence"
-      ? sequenceQuickFixes(source)
-      : kind === "usecase"
-        ? getUseCaseQuickFixes(source)
-        : kind === "class"
-          ? classQuickFixes(source)
-          : kind === "activity"
-            ? activityQuickFixes(source)
-            : wbsQuickFixes(source);
 
 export function CodeEditor({
   diagramKind,
@@ -144,7 +120,7 @@ export function CodeEditor({
   const kindRef = useRef(diagramKind);
   const language = useRef(new Compartment());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [quickFixes, setQuickFixes] = useState<GanttQuickFix[]>(() => quickFixesFor(diagramKind, value));
+  const [quickFixes, setQuickFixes] = useState<DiagramQuickFix[]>(() => quickFixesForDiagram(diagramKind, value));
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
   onRenameRef.current = onRenameRequest;
@@ -191,7 +167,7 @@ export function CodeEditor({
             if (update.docChanged) {
               const source = update.state.doc.toString();
               onChangeRef.current(source);
-              setQuickFixes(quickFixesFor(kindRef.current, source));
+              setQuickFixes(quickFixesForDiagram(kindRef.current, source));
             }
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;
@@ -209,7 +185,7 @@ export function CodeEditor({
   useEffect(() => {
     if (!view.current) return;
     view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
-    setQuickFixes(quickFixesFor(diagramKind, view.current.state.doc.toString()));
+    setQuickFixes(quickFixesForDiagram(diagramKind, view.current.state.doc.toString()));
   }, [diagramKind]);
 
   useEffect(() => {

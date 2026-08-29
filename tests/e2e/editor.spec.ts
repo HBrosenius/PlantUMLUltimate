@@ -361,6 +361,28 @@ test("edits structured Class members and reveals rendered members", async ({ pag
   await expect(page.locator(".cm-content")).toContainText("close(): void");
 });
 
+test("shows parser problems and applies a safe quick fix", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Class diagram/ })
+    .click();
+  const editor = page.locator(".cm-content");
+  await editor.fill("@startuml\nclass Order {\n  +id: UUID\n@enduml");
+
+  const problemCount = page.getByRole("button", { name: "⚠ 1 problem" });
+  await expect(problemCount).toBeVisible();
+  await problemCount.click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  await expect(problems.getByRole("listitem")).toContainText("missing }");
+  await problems.getByRole("listitem").click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 2");
+  await problems.getByRole("button", { name: "Close class member block" }).click();
+  await expect.poll(() => editor.innerText()).toContain("+id: UUID\n}\n@enduml");
+  await expect(problemCount).toHaveCount(0);
+  await expect(page.getByRole("status")).toHaveText(/Close class member block|✓ Valid/);
+});
+
 test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

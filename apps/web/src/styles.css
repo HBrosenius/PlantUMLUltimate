@@ -1462,6 +1462,58 @@ textarea:focus-visible,
 .class-member-add button {
   grid-column: 1 / -1;
 }
+
+.problem-results,
+.problem-fixes {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.problem-results button,
+.problem-fixes button {
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+}
+
+.problem-results button:hover,
+.problem-fixes button:hover {
+  border-color: var(--accent);
+}
+
+.problem-results span,
+.problem-results code {
+  display: block;
+}
+
+.problem-results code {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.problem-severity {
+  width: fit-content;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.problem-severity.error {
+  color: #dc2626;
+}
+
+.problem-severity.warning {
+  color: #d97706;
+}
+
+.problem-fixes {
+  margin-top: 1rem;
+}
 .dialog-hint {
   margin: 8px 0 16px 140px;
   color: var(--muted);

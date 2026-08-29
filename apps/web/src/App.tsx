@@ -56,6 +56,8 @@ import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
+import { ProblemsPanel } from "./ProblemsPanel";
+import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
@@ -300,6 +302,7 @@ export function App() {
   const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
+  const [problemsOpen, setProblemsOpen] = useState(false);
   const [selectedDependencyIndex, setSelectedDependencyIndex] = useState<number>();
   const [selectedDividerIndex, setSelectedDividerIndex] = useState<number>();
   const [selectedVerticalSeparatorIndex, setSelectedVerticalSeparatorIndex] = useState<number>();
@@ -606,18 +609,27 @@ export function App() {
   const sequenceParticipantNames = sequenceDocument.participants.map(
     (participant) => participant.alias ?? participant.label,
   );
-  const diagnosticCount =
-    workspace.diagramKind === "gantt"
-      ? parseResult.diagnostics.filter((item) => item.code !== "unsupported-syntax").length
-      : workspace.diagramKind === "wbs"
-        ? wbsDocument.diagnostics.length
-        : 0;
+  const activeDiagnostics = useMemo(
+    () => diagnosticsForDiagram(workspace.diagramKind, workspace.source),
+    [workspace.diagramKind, workspace.source],
+  );
+  const activeQuickFixes = useMemo(
+    () => quickFixesForDiagram(workspace.diagramKind, workspace.source),
+    [workspace.diagramKind, workspace.source],
+  );
+  const diagnosticCount = activeDiagnostics.length;
   const unsupportedCount =
     workspace.diagramKind === "gantt"
       ? parseResult.document.unknown.length
-      : workspace.diagramKind === "wbs"
-        ? wbsDocument.unknown.length
-        : 0;
+      : workspace.diagramKind === "usecase"
+        ? useCaseDocument.unknown.length
+        : workspace.diagramKind === "class"
+          ? classDocument.unknown.length
+          : workspace.diagramKind === "activity"
+            ? activityDocument.unknown.length
+            : workspace.diagramKind === "wbs"
+              ? wbsDocument.unknown.length
+              : 0;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
   const selectedTaskDependency = selectedTask
     ? parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)
@@ -2951,7 +2963,7 @@ export function App() {
 
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || selectedWbsNodeId || selectedWbsRelationshipId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || wbsSettingsOpen || resourcePanelOpen || unsupportedOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || selectedWbsNodeId || selectedWbsRelationshipId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || wbsSettingsOpen || resourcePanelOpen || unsupportedOpen || problemsOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
     >
       <header className="toolbar">
@@ -3569,12 +3581,20 @@ export function App() {
       <footer className="statusbar">
         <span role="status" aria-live="polite">
           {interactionMessage ??
-            (result?.error
-              ? `⚠ ${result.error}`
-              : diagnosticCount
-                ? `⚠ ${diagnosticCount} problem${diagnosticCount === 1 ? "" : "s"}`
-                : "✓ Valid")}
+            (result?.error ? `⚠ ${result.error}` : diagnosticCount ? "Source has problems" : "✓ Valid")}
         </span>
+        {diagnosticCount > 0 && (
+          <button
+            type="button"
+            className="problem-count"
+            onClick={() => {
+              setProblemsOpen(true);
+              setUnsupportedOpen(false);
+            }}
+          >
+            ⚠ {diagnosticCount} problem{diagnosticCount === 1 ? "" : "s"}
+          </button>
+        )}
         {unsupportedCount > 0 && (
           <button
             type="button"
@@ -4189,6 +4209,23 @@ export function App() {
             setUnsupportedOpen(false);
           }}
           onClose={() => setUnsupportedOpen(false)}
+        />
+      )}
+      {problemsOpen && (
+        <ProblemsPanel
+          source={workspace.source}
+          diagnostics={activeDiagnostics}
+          quickFixes={activeQuickFixes}
+          onReveal={(diagnostic) => {
+            if (workspace.viewMode === "diagram") update("viewMode", "split");
+            setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
+          }}
+          onApplyFix={(fix) => {
+            const source = `${workspace.source.slice(0, fix.from)}${fix.replacement}${workspace.source.slice(fix.to)}`;
+            commitSource(source, fix.message);
+            setInteractionMessage(fix.message);
+          }}
+          onClose={() => setProblemsOpen(false)}
         />
       )}
       {schedulePreview && (
