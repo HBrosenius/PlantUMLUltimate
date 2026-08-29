@@ -303,6 +303,11 @@ export function App() {
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [problemPreview, setProblemPreview] = useState<{
+    source: string;
+    diagnostics: ReturnType<typeof diagnosticsForDiagram>;
+    message: string;
+  }>();
   const [selectedDependencyIndex, setSelectedDependencyIndex] = useState<number>();
   const [selectedDividerIndex, setSelectedDividerIndex] = useState<number>();
   const [selectedVerticalSeparatorIndex, setSelectedVerticalSeparatorIndex] = useState<number>();
@@ -1156,28 +1161,35 @@ export function App() {
   );
 
   const commitSource = useCallback(
-    (source: string, description: string) => {
-      if (source === workspace.source) return;
+    (source: string, description: string, validate = true): boolean => {
+      if (source === workspace.source) return true;
+      if (validate) {
+        const validation = validateGeneratedSource(workspace.diagramKind, workspace.source, source);
+        if (!validation.valid) {
+          setInteractionMessage(
+            `Cancelled ${description.toLowerCase()}: ${validation.message ?? "the operation would produce invalid PlantUML"}`,
+          );
+          setProblemPreview({
+            source,
+            diagnostics: validation.introduced,
+            message: validation.message ?? "The operation would produce invalid PlantUML.",
+          });
+          setProblemsOpen(true);
+          return false;
+        }
+      }
+      setProblemPreview(undefined);
       activeHistory.record(workspace.source, source, description);
       setWorkspace((current) => ({ ...current, source, dirty: true }));
       refreshHistoryControls();
+      return true;
     },
-    [activeHistory, refreshHistoryControls, setWorkspace, workspace.source],
+    [activeHistory, refreshHistoryControls, setWorkspace, workspace.diagramKind, workspace.source],
   );
 
   const commitGeneratedSource = useCallback(
-    (source: string, description: string): boolean => {
-      const validation = validateGeneratedSource(workspace.source, source);
-      if (!validation.valid) {
-        setInteractionMessage(
-          `Cancelled ${description.toLowerCase()}: ${validation.message ?? "the operation would produce invalid PlantUML"}`,
-        );
-        return false;
-      }
-      commitSource(source, description);
-      return true;
-    },
-    [commitSource, workspace.source],
+    (source: string, description: string): boolean => commitSource(source, description),
+    [commitSource],
   );
 
   const applyTimelineDateHighlight = useCallback(
@@ -1411,7 +1423,7 @@ export function App() {
     async (version: DocumentVersion) => {
       try {
         await recordDocumentVersion("before-restore", "Before restore");
-        commitSource(version.source, `Restore version from ${new Date(version.createdAt).toLocaleString()}`);
+        commitSource(version.source, `Restore version from ${new Date(version.createdAt).toLocaleString()}`, false);
         setInteractionMessage(`Restored ${version.label || new Date(version.createdAt).toLocaleString()}`);
         setVersionHistoryOpen(false);
       } catch (error) {
@@ -3238,7 +3250,7 @@ export function App() {
           <CodeEditor
             diagramKind={workspace.diagramKind}
             value={workspace.source}
-            onChange={(source) => commitSource(source, "Edit source")}
+            onChange={(source) => commitSource(source, "Edit source", false)}
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
             onRenameRequest={
@@ -4213,9 +4225,10 @@ export function App() {
       )}
       {problemsOpen && (
         <ProblemsPanel
-          source={workspace.source}
-          diagnostics={activeDiagnostics}
-          quickFixes={activeQuickFixes}
+          source={problemPreview?.source ?? workspace.source}
+          diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
+          quickFixes={problemPreview ? [] : activeQuickFixes}
+          notice={problemPreview?.message}
           onReveal={(diagnostic) => {
             if (workspace.viewMode === "diagram") update("viewMode", "split");
             setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
@@ -4225,7 +4238,10 @@ export function App() {
             commitSource(source, fix.message);
             setInteractionMessage(fix.message);
           }}
-          onClose={() => setProblemsOpen(false)}
+          onClose={() => {
+            setProblemsOpen(false);
+            setProblemPreview(undefined);
+          }}
         />
       )}
       {schedulePreview && (

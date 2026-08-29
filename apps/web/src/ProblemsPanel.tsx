@@ -5,6 +5,7 @@ export function ProblemsPanel({
   source,
   diagnostics,
   quickFixes,
+  notice,
   onReveal,
   onApplyFix,
   onClose,
@@ -12,6 +13,7 @@ export function ProblemsPanel({
   source: string;
   diagnostics: readonly Diagnostic[];
   quickFixes: readonly DiagramQuickFix[];
+  notice?: string | undefined;
   onReveal(diagnostic: Diagnostic): void;
   onApplyFix(fix: DiagramQuickFix): void;
   onClose(): void;
@@ -30,6 +32,7 @@ export function ProblemsPanel({
           ×
         </button>
       </header>
+      {notice && <p className="problem-notice">{notice}</p>}
       <div className="problem-results" role="list">
         {diagnostics.map((diagnostic, index) => {
           const line = source.slice(0, diagnostic.from).split(/\r?\n/).length;
