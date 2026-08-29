@@ -383,6 +383,33 @@ test("shows parser problems and applies a safe quick fix", async ({ page }) => {
   await expect(page.getByRole("status")).toHaveText(/Close class member block|✓ Valid/);
 });
 
+test("rejects an invalid visual edit without adding it to undo history", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  const original = '@startuml\nactor "Alpha" as A\nusecase "Beta" as B\n@enduml';
+  await setSource(page, original);
+
+  await page.locator('[data-usecase-object-id="a"]').first().dispatchEvent("click");
+  const inspector = page.getByRole("complementary", { name: "Use Case object inspector" });
+  await expect(inspector).toBeVisible();
+  await inspector.getByLabel("Alias").fill("B");
+  await inspector.getByLabel("Alias").blur();
+
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  await expect(problems).toBeVisible();
+  await expect(problems).toContainText("Duplicate alias: B");
+  await expect(problems).toContainText("The operation would introduce duplicate alias: b");
+  await expect.poll(() => page.locator(".cm-content").innerText()).toBe(original);
+  await expect(page.locator(".statusbar").getByRole("status")).toContainText("Cancelled update actor alpha");
+
+  await problems.getByRole("button", { name: "Close problems" }).click();
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => page.locator(".cm-content").innerText()).not.toBe(original);
+});
+
 test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page
