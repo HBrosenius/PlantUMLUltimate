@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   collectClassSymbolOccurrences,
   deleteClassEntity,
+  deleteClassMember,
   deleteClassNote,
   deleteClassRelationship,
   insertClassEntity,
+  insertClassMember,
   insertClassNote,
   insertClassPackage,
   insertClassRelationship,
@@ -12,7 +14,9 @@ import {
   moveClassPackageToPackage,
   parseClassDiagram,
   reorderClassEntity,
+  reorderClassMember,
   updateClassEntity,
+  updateClassMember,
   updateClassNote,
   updateClassRelationship,
 } from "./index";
@@ -54,6 +58,37 @@ describe("class operations", () => {
       members: ["+submit(): void"],
     });
     expect(updated).toContain('class "Purchase" as Order');
+  });
+  it("edits individual structured members without rewriting surrounding source", () => {
+    let source =
+      "@startuml\nclass Account {\n  -id: UUID\n  {static} +open(owner: User): Account\n  custom member syntax\n}\n@enduml";
+    let document = parseClassDiagram(source);
+    expect(document.entities[0]!.members).toMatchObject([
+      { kind: "field", name: "id", type: "UUID", visibility: "-" },
+      { kind: "method", name: "open", parameters: "owner: User", type: "Account", isStatic: true },
+      { kind: "raw", text: "custom member syntax" },
+    ]);
+    source = updateClassMember(source, document.entities[0]!.members[0]!, {
+      kind: "field",
+      name: "identifier",
+      type: "UUID",
+      visibility: "-",
+    });
+    expect(source).toContain("  -identifier: UUID\n  {static} +open");
+    document = parseClassDiagram(source);
+    source = insertClassMember(source, document.entities[0]!, { kind: "method", name: "close", type: "void" });
+    expect(source).toContain("  close(): void\n}");
+    document = parseClassDiagram(source);
+    source = reorderClassMember(source, document.entities[0]!.members[3]!, document.entities[0]!.members[2]!);
+    document = parseClassDiagram(source);
+    expect(document.entities[0]!.members.map((item) => item.name ?? item.text)).toEqual([
+      "identifier",
+      "open",
+      "close",
+      "custom member syntax",
+    ]);
+    source = deleteClassMember(source, document.entities[0]!, document.entities[0]!.members[3]!);
+    expect(source).not.toContain("custom member syntax");
   });
   it("round-trips packages, notes, colors, and source ordering", () => {
     let source = '@startuml\nclass "A" as A\nclass "B" as B\n@enduml';

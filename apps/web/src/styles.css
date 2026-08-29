@@ -1410,6 +1410,58 @@ textarea:focus-visible,
 .rename-preview code:last-child {
   color: var(--accent, #2563eb);
 }
+
+.class-member-list,
+.class-member-add {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.class-member-row {
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+}
+
+.class-member-heading,
+.class-member-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.class-member-heading strong {
+  margin-right: auto;
+  text-transform: capitalize;
+}
+
+.class-member-fields {
+  margin-top: 0.45rem;
+}
+
+.class-member-fields input[aria-label="Member name"],
+.class-member-fields input[aria-label="Member type"],
+.class-member-fields input[aria-label="Parameters"] {
+  min-width: 0;
+  flex: 1 1 7rem;
+}
+
+.class-member-fields label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.class-member-add {
+  margin-top: 0.7rem;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.class-member-add button {
+  grid-column: 1 / -1;
+}
 .dialog-hint {
   margin: 8px 0 16px 140px;
   color: var(--muted);

@@ -4,6 +4,8 @@ import type {
   ClassEntity,
   ClassEntityInput,
   ClassEntityKind,
+  ClassMember,
+  ClassMemberInput,
   ClassPackage,
   ClassPackageInput,
   ClassRelationship,
@@ -140,6 +142,11 @@ export function ClassEntityInspector({
   onChange,
   onPackageChange,
   onDelete,
+  onMemberAdd,
+  onMemberChange,
+  onMemberDelete,
+  onMemberMove,
+  onMemberReveal,
   onClose,
 }: {
   entity: ClassEntity;
@@ -147,9 +154,17 @@ export function ClassEntityInspector({
   onChange(v: ClassEntityInput): void;
   onPackageChange(id?: string): void;
   onDelete(): void;
+  onMemberAdd(value: ClassMemberInput): void;
+  onMemberChange(member: ClassMember, value: ClassMemberInput): void;
+  onMemberDelete(member: ClassMember): void;
+  onMemberMove(member: ClassMember, direction: -1 | 1): void;
+  onMemberReveal(member: ClassMember): void;
   onClose(): void;
 }) {
   const [v, setV] = useState(() => entityValue(entity));
+  const [newMemberKind, setNewMemberKind] = useState<ClassMemberInput["kind"]>("field");
+  const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberType, setNewMemberType] = useState("");
   useEffect(() => setV(entityValue(entity)), [entity]);
   const save = () => v.label.trim() && onChange(v);
   return (
@@ -194,15 +209,60 @@ export function ClassEntityInspector({
         </fieldset>
         <fieldset>
           <legend>Members</legend>
-          <label>
-            Fields and methods
-            <textarea
-              rows={9}
-              value={v.members.join("\n")}
-              onChange={(e) => setV({ ...v, members: e.target.value.split("\n") })}
-              onBlur={save}
+          <div className="class-member-list" role="list" aria-label="Class members">
+            {entity.members.map((member, index) => (
+              <ClassMemberRow
+                key={`${member.id}:${member.text}`}
+                member={member}
+                first={index === 0}
+                last={index === entity.members.length - 1}
+                onChange={(value) => onMemberChange(member, value)}
+                onDelete={() => onMemberDelete(member)}
+                onMove={(direction) => onMemberMove(member, direction)}
+                onReveal={() => onMemberReveal(member)}
+              />
+            ))}
+          </div>
+          <div className="class-member-add" role="group" aria-label="Add class member">
+            <select
+              aria-label="New member kind"
+              value={newMemberKind}
+              onChange={(event) => setNewMemberKind(event.target.value as ClassMemberInput["kind"])}
+            >
+              <option value="field">Field</option>
+              <option value="method">Method</option>
+              <option value="raw">Raw declaration</option>
+            </select>
+            <input
+              aria-label={newMemberKind === "raw" ? "New raw declaration" : "New member name"}
+              value={newMemberName}
+              onChange={(event) => setNewMemberName(event.target.value)}
+              placeholder={newMemberKind === "raw" ? "{static} +value: Type" : "name"}
             />
-          </label>
+            {newMemberKind !== "raw" && (
+              <input
+                aria-label="New member type"
+                value={newMemberType}
+                onChange={(event) => setNewMemberType(event.target.value)}
+                placeholder="type"
+              />
+            )}
+            <button
+              type="button"
+              disabled={!newMemberName.trim()}
+              onClick={() => {
+                onMemberAdd(
+                  newMemberKind === "raw"
+                    ? { kind: "raw", text: newMemberName }
+                    : { kind: newMemberKind, name: newMemberName, type: newMemberType },
+                );
+                setNewMemberName("");
+                setNewMemberType("");
+              }}
+            >
+              Add member
+            </button>
+          </div>
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
@@ -237,6 +297,128 @@ export function ClassEntityInspector({
         </div>
       </form>
     </aside>
+  );
+}
+
+function memberValue(member: ClassMember): ClassMemberInput {
+  return member.kind === "raw"
+    ? { kind: "raw", text: member.text }
+    : {
+        kind: member.kind,
+        name: member.name ?? "",
+        type: member.type ?? "",
+        ...(member.kind === "method" ? { parameters: member.parameters ?? "" } : {}),
+        ...(member.visibility ? { visibility: member.visibility } : {}),
+        isStatic: member.isStatic,
+        isAbstract: member.isAbstract,
+      };
+}
+
+function ClassMemberRow({
+  member,
+  first,
+  last,
+  onChange,
+  onDelete,
+  onMove,
+  onReveal,
+}: {
+  member: ClassMember;
+  first: boolean;
+  last: boolean;
+  onChange(value: ClassMemberInput): void;
+  onDelete(): void;
+  onMove(direction: -1 | 1): void;
+  onReveal(): void;
+}) {
+  const [value, setValue] = useState(() => memberValue(member));
+  const apply = (next: ClassMemberInput) => {
+    setValue(next);
+    onChange(next);
+  };
+  return (
+    <div className="class-member-row" role="listitem">
+      <div className="class-member-heading">
+        <strong>{member.kind === "raw" ? "Raw member" : member.kind}</strong>
+        <button type="button" onClick={onReveal}>
+          Reveal
+        </button>
+        <button type="button" aria-label={`Move ${member.text} up`} disabled={first} onClick={() => onMove(-1)}>
+          ↑
+        </button>
+        <button type="button" aria-label={`Move ${member.text} down`} disabled={last} onClick={() => onMove(1)}>
+          ↓
+        </button>
+        <button type="button" className="danger" aria-label={`Delete ${member.text}`} onClick={onDelete}>
+          ×
+        </button>
+      </div>
+      {value.kind === "raw" ? (
+        <input
+          aria-label="Raw member declaration"
+          value={value.text ?? ""}
+          onChange={(event) => setValue({ kind: "raw", text: event.target.value })}
+          onBlur={() => onChange(value)}
+        />
+      ) : (
+        <div className="class-member-fields">
+          <select
+            aria-label="Visibility"
+            value={value.visibility ?? ""}
+            onChange={(event) => {
+              const { visibility: _visibility, ...rest } = value;
+              apply(
+                event.target.value
+                  ? { ...rest, visibility: event.target.value as Exclude<ClassMemberInput["visibility"], undefined> }
+                  : rest,
+              );
+            }}
+          >
+            <option value="">Default</option>
+            <option value="+">Public</option>
+            <option value="-">Private</option>
+            <option value="#">Protected</option>
+            <option value="~">Package</option>
+          </select>
+          <input
+            aria-label="Member name"
+            value={value.name ?? ""}
+            onChange={(event) => setValue({ ...value, name: event.target.value })}
+            onBlur={() => onChange(value)}
+          />
+          {value.kind === "method" && (
+            <input
+              aria-label="Parameters"
+              value={value.parameters ?? ""}
+              onChange={(event) => setValue({ ...value, parameters: event.target.value })}
+              onBlur={() => onChange(value)}
+            />
+          )}
+          <input
+            aria-label="Member type"
+            value={value.type ?? ""}
+            onChange={(event) => setValue({ ...value, type: event.target.value })}
+            onBlur={() => onChange(value)}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={value.isStatic ?? false}
+              onChange={(event) => apply({ ...value, isStatic: event.target.checked })}
+            />
+            Static
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={value.isAbstract ?? false}
+              onChange={(event) => apply({ ...value, isAbstract: event.target.checked })}
+            />
+            Abstract
+          </label>
+        </div>
+      )}
+    </div>
   );
 }
 export function AddClassRelationshipDialog({

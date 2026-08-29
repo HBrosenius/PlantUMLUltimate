@@ -173,19 +173,25 @@ import {
   deleteClassPackage,
   deleteClassRelationship,
   deleteClassNote,
+  deleteClassMember,
   findClassObjectAt,
   insertClassEntity,
   insertClassPackage,
   insertClassRelationship,
   insertClassNote,
+  insertClassMember,
   moveClassEntityToPackage,
   moveClassPackageToPackage,
   parseClassDiagram,
   reorderClassEntity,
+  reorderClassMember,
   updateClassEntity,
   updateClassPackage,
   updateClassRelationship,
   updateClassNote,
+  updateClassMember,
+  type ClassMember,
+  type ClassMemberInput,
   type ClassEntityInput,
   type ClassPackageInput,
   type ClassRelationshipInput,
@@ -268,6 +274,7 @@ export function App() {
   const [sourceHighlightedSequenceParticipantId, setSourceHighlightedSequenceParticipantId] = useState<string>();
   const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
   const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
+  const [sourceHighlightedClassMemberId, setSourceHighlightedClassMemberId] = useState<string>();
   const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
   const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
@@ -276,6 +283,12 @@ export function App() {
   const [symbolMenu, setSymbolMenu] = useState<{
     position?: number;
     occurrence?: SemanticSymbolOccurrence;
+    x: number;
+    y: number;
+  }>();
+  const [classMemberMenu, setClassMemberMenu] = useState<{
+    entityId: string;
+    memberId: string;
     x: number;
     y: number;
   }>();
@@ -505,6 +518,20 @@ export function App() {
     },
     [diagramOccurrenceForTarget],
   );
+  const openClassMemberMenu = useCallback((target: Element, x: number, y: number) => {
+    const element = target.closest("[data-class-member-id]");
+    const memberId = element?.getAttribute("data-class-member-id");
+    const entityId = element?.getAttribute("data-class-object-id");
+    if (!element || !memberId || !entityId) return false;
+    const bounds = element.getBoundingClientRect();
+    setClassMemberMenu({
+      entityId,
+      memberId,
+      x: x || bounds.left + Math.min(24, bounds.width / 2),
+      y: y || bounds.top + Math.min(24, bounds.height),
+    });
+    return true;
+  }, []);
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   useEffect(() => {
     if (!hydrated || startupSplashShown.current) return;
@@ -1835,6 +1862,22 @@ export function App() {
       setSelectedClassObjectId(undefined);
     }
   };
+  const addClassMember = (value: ClassMemberInput) => {
+    if (selectedClassEntity)
+      commitSource(insertClassMember(workspace.source, selectedClassEntity, value), "Add Class member");
+  };
+  const applyClassMember = (member: ClassMember, value: ClassMemberInput) =>
+    commitSource(updateClassMember(workspace.source, member, value), "Update Class member");
+  const removeClassMember = (member: ClassMember) => {
+    if (selectedClassEntity)
+      commitSource(deleteClassMember(workspace.source, selectedClassEntity, member), "Delete Class member");
+  };
+  const moveClassMember = (member: ClassMember, direction: -1 | 1) => {
+    if (!selectedClassEntity) return;
+    const index = selectedClassEntity.members.findIndex((candidate) => candidate.id === member.id);
+    const target = selectedClassEntity.members[index + direction];
+    if (target) commitSource(reorderClassMember(workspace.source, member, target), "Reorder Class members");
+  };
   const addClassRelationship = (v: ClassRelationshipInput) => {
     commitSource(insertClassRelationship(workspace.source, classDocument, v), "Add Class relationship");
     setAddClassRelationshipOpen(false);
@@ -3154,7 +3197,11 @@ export function App() {
         className={`workspace mode-${workspace.viewMode}`}
         onContextMenu={(event) => {
           if (!(event.target instanceof Element) || event.target.closest(".cm-editor")) return;
-          if (!openDiagramSymbolMenu(event.target, event.clientX, event.clientY)) return;
+          if (
+            !openClassMemberMenu(event.target, event.clientX, event.clientY) &&
+            !openDiagramSymbolMenu(event.target, event.clientX, event.clientY)
+          )
+            return;
           event.preventDefault();
           event.stopPropagation();
         }}
@@ -3164,7 +3211,7 @@ export function App() {
             !(event.target instanceof Element)
           )
             return;
-          if (!openDiagramSymbolMenu(event.target, 0, 0)) return;
+          if (!openClassMemberMenu(event.target, 0, 0) && !openDiagramSymbolMenu(event.target, 0, 0)) return;
           event.preventDefault();
           event.stopPropagation();
         }}
@@ -3244,8 +3291,12 @@ export function App() {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedClassEntityId(occurrence?.key);
-                if (!occurrence) setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
+                const member = classDocument.entities
+                  .flatMap((entity) => entity.members.map((item) => ({ entity, item })))
+                  .find(({ item }) => position >= item.sourceRange.from && position <= item.sourceRange.to);
+                setSourceHighlightedClassMemberId(member?.item.id);
+                setSourceHighlightedClassEntityId(occurrence?.key ?? member?.entity.id);
+                if (!occurrence && !member) setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
               } else if (workspace.diagramKind === "activity") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -3424,9 +3475,15 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={classDocument}
-              selectedId={sourceHighlightedClassEntityId ?? selectedClassObjectId}
+              selectedId={
+                selectedClassRelationship
+                  ? selectedClassObjectId
+                  : (sourceHighlightedClassEntityId ?? selectedClassObjectId)
+              }
+              highlightedMemberId={sourceHighlightedClassMemberId}
               onSelect={(id) => {
                 setClassSettingsOpen(false);
+                setSourceHighlightedClassMemberId(undefined);
                 setSelectedClassObjectId(id);
                 const x = [
                   ...classDocument.entities,
@@ -3435,6 +3492,15 @@ export function App() {
                   ...classDocument.notes,
                 ].find((x) => x.id === id);
                 if (x) setSelectionRequest({ ...x.sourceRange });
+              }}
+              onMemberSelect={(entityId, memberId) => {
+                setClassSettingsOpen(false);
+                setSelectedClassObjectId(entityId);
+                setSourceHighlightedClassMemberId(memberId);
+                const member = classDocument.entities
+                  .find((item) => item.id === entityId)
+                  ?.members.find((item) => item.id === memberId);
+                if (member) setSelectionRequest({ ...member.sourceRange });
               }}
               onBackgroundSelect={() => {
                 setSelectedClassObjectId(undefined);
@@ -3834,6 +3900,14 @@ export function App() {
           onChange={applyClassEntity}
           onPackageChange={moveSelectedClassEntity}
           onDelete={removeClassEntity}
+          onMemberAdd={addClassMember}
+          onMemberChange={applyClassMember}
+          onMemberDelete={removeClassMember}
+          onMemberMove={moveClassMember}
+          onMemberReveal={(member) => {
+            if (workspace.viewMode === "diagram") update("viewMode", "split");
+            setSelectionRequest({ ...member.sourceRange });
+          }}
           onClose={() => setSelectedClassObjectId(undefined)}
         />
       )}
@@ -4133,6 +4207,44 @@ export function App() {
         />
       )}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {classMemberMenu && (
+        <div
+          className="tab-menu"
+          role="menu"
+          aria-label="Class member actions"
+          style={{ left: classMemberMenu.x, top: classMemberMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setClassMemberMenu(undefined);
+          }}
+        >
+          <button
+            autoFocus
+            role="menuitem"
+            onClick={() => {
+              setSelectedClassObjectId(classMemberMenu.entityId);
+              setClassMemberMenu(undefined);
+            }}
+          >
+            Edit member
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              const member = classDocument.entities
+                .find((item) => item.id === classMemberMenu.entityId)
+                ?.members.find((item) => item.id === classMemberMenu.memberId);
+              if (member) {
+                if (workspace.viewMode === "diagram") update("viewMode", "split");
+                setSelectionRequest({ ...member.sourceRange });
+              }
+              setClassMemberMenu(undefined);
+            }}
+          >
+            Reveal in code
+          </button>
+        </div>
+      )}
       {symbolMenu && (
         <div
           className="tab-menu"

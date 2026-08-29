@@ -10,6 +10,12 @@ import {
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+
+function classMemberRenderedText(member: ClassDocument["entities"][number]["members"][number]) {
+  if (member.kind === "raw") return member.text;
+  const body = member.kind === "method" ? `${member.name ?? ""}(${member.parameters ?? ""})` : (member.name ?? "");
+  return `${body}${member.type ? `: ${member.type}` : ""}`;
+}
 export function ClassDiagramPreview({
   svg,
   zoom,
@@ -19,7 +25,9 @@ export function ClassDiagramPreview({
   onRenderRetry,
   document,
   selectedId,
+  highlightedMemberId,
   onSelect,
+  onMemberSelect,
   onBackgroundSelect,
   onRelationshipCreate,
   onRelationshipReconnect,
@@ -34,7 +42,9 @@ export function ClassDiagramPreview({
   onRenderRetry(): void;
   document: ClassDocument;
   selectedId?: string | undefined;
+  highlightedMemberId?: string | undefined;
   onSelect(id: string): void;
+  onMemberSelect(entityId: string, memberId: string): void;
   onBackgroundSelect(): void;
   onRelationshipCreate(from: string, to: string): void;
   onRelationshipReconnect(id: string, endpoint: "from" | "to", targetId: string): void;
@@ -45,6 +55,8 @@ export function ClassDiagramPreview({
   const root = useRef<HTMLDivElement>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const memberSelectRef = useRef(onMemberSelect);
+  memberSelectRef.current = onMemberSelect;
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
@@ -101,16 +113,29 @@ export function ClassDiagramPreview({
       const entity = entitiesByText.get(key);
       const note = notesByText.get(key);
       const pkg = packagesByText.get(key);
+      const renderedOwner = text.closest<SVGGElement>("g.entity[data-qualified-name]");
+      const ownerName = norm(renderedOwner?.getAttribute("data-qualified-name") ?? "");
+      const memberOwner = document.entities.find(
+        (item) =>
+          (item.id === ownerName || norm(item.label) === ownerName || norm(item.alias ?? "") === ownerName) &&
+          item.members.some((member) => classMemberRenderedText(member) === value),
+      );
+      const member = memberOwner?.members.find((item) => classMemberRenderedText(item) === value);
       const object = entity ?? note ?? pkg;
-      if (!object) continue;
+      if (!object && !member) continue;
       const group = text.closest<SVGGElement>("g.entity[data-qualified-name]");
       if (group?.id && entity) entityMap.set(group.id, entity.id);
       const b = text.getBBox(),
         hit = documentNode("rect");
-      hit.setAttribute("class", `class-semantic-hit${selectedId === object.id ? " class-selected-object" : ""}`);
+      const objectId = memberOwner?.id ?? object!.id;
+      hit.setAttribute(
+        "class",
+        `class-semantic-hit${member ? (highlightedMemberId === member.id ? " class-selected-object" : "") : selectedId === objectId ? " class-selected-object" : ""}`,
+      );
       attrs(hit, {
-        "data-class-object-id": object.id,
-        "data-class-object-type": entity ? "entity" : note ? "note" : "package",
+        "data-class-object-id": objectId,
+        "data-class-object-type": member ? "member" : entity ? "entity" : note ? "note" : "package",
+        ...(member ? { "data-class-member-id": member.id } : {}),
         x: b.x - 8,
         y: b.y - 6,
         width: Math.max(30, b.width + 16),
@@ -118,22 +143,30 @@ export function ClassDiagramPreview({
         rx: 5,
         tabindex: 0,
         role: "button",
-        "aria-label": `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
+        "aria-label": member
+          ? `Edit member ${member.text}`
+          : `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
       });
       hit.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
         event.stopPropagation();
         event.preventDefault();
         const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
-        if (id) selectRef.current(id);
+        const memberId = (event.currentTarget as Element).getAttribute("data-class-member-id");
+        if (id && memberId) memberSelectRef.current(id, memberId);
+        else if (id) selectRef.current(id);
       });
       hit.addEventListener("click", (event) => {
         event.stopPropagation();
         event.preventDefault();
         const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
-        if (id) selectRef.current(id);
+        const memberId = (event.currentTarget as Element).getAttribute("data-class-member-id");
+        if (id && memberId) memberSelectRef.current(id, memberId);
+        else if (id) selectRef.current(id);
       });
       rendered.append(hit);
       if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
+      if (member) continue;
       if (!entity) continue;
       const h = documentNode("circle");
       h.setAttribute("class", "class-connect-handle");
@@ -196,7 +229,7 @@ export function ClassDiagramPreview({
         addEndpoint(rendered, end, relation.id, firstIsFrom ? "to" : "from");
       }
     }
-  }, [document, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
+  }, [document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const id = (e.target as Element).closest("[data-class-object-id]")?.getAttribute("data-class-object-id");
     if (id) onSelect(id);

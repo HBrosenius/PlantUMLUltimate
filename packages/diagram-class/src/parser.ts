@@ -2,12 +2,35 @@ import type { ClassDocument, ClassEntity, ClassMember, ClassPackage, ClassRelati
 
 const normalize = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
 const unquote = (v: string) => v.trim().replace(/^"(.*)"$/, "$1");
-const member = (text: string): ClassMember => ({
-  text: text.trim(),
-  ...(/^([+\-#~])/.test(text.trim()) ? { visibility: text.trim()[0] as "+" | "-" | "#" | "~" } : {}),
-  isStatic: /^\s*\{static\}/i.test(text),
-  isAbstract: /^\s*\{abstract\}/i.test(text),
-});
+const member = (text: string, sourceRange: { from: number; to: number }, id: string): ClassMember => {
+  const trimmed = text.trim();
+  const modifiers = [...trimmed.matchAll(/\{(static|abstract)\}/gi)].map((match) => match[1]!.toLowerCase());
+  const withoutModifiers = trimmed.replace(/\{(?:static|abstract)\}\s*/gi, "");
+  const visibility = /^[+\-#~]/.test(withoutModifiers) ? (withoutModifiers[0] as "+" | "-" | "#" | "~") : undefined;
+  const body = visibility ? withoutModifiers.slice(1).trim() : withoutModifiers.trim();
+  const methodMatch = /^([^():]+?)\s*\((.*)\)\s*(?::\s*(.+))?$/.exec(body);
+  const fieldMatch = /^([^:()]+?)\s*:\s*(.+)$/.exec(body);
+  return {
+    id,
+    text: trimmed,
+    kind: methodMatch ? "method" : fieldMatch ? "field" : "raw",
+    ...(methodMatch?.[1]?.trim()
+      ? { name: methodMatch[1].trim() }
+      : fieldMatch?.[1]?.trim()
+        ? { name: fieldMatch[1].trim() }
+        : {}),
+    ...(methodMatch?.[3]?.trim()
+      ? { type: methodMatch[3].trim() }
+      : fieldMatch?.[2]?.trim()
+        ? { type: fieldMatch[2].trim() }
+        : {}),
+    ...(methodMatch ? { parameters: methodMatch[2] ?? "" } : {}),
+    ...(visibility ? { visibility } : {}),
+    isStatic: modifiers.includes("static"),
+    isAbstract: modifiers.includes("abstract"),
+    sourceRange,
+  };
+};
 export function parseClassDiagram(source: string): ClassDocument {
   const entities: ClassEntity[] = [];
   const packages: ClassPackage[] = [];
@@ -160,16 +183,23 @@ export function parseClassDiagram(source: string): ClassDocument {
       const members: ClassMember[] = [];
       const inlineMembers = line.text.match(/\{\s*(.*?)\s*}\s*$/)?.[1];
       if (inlineMembers !== undefined) {
-        members.push(
-          ...inlineMembers
-            .split(";")
-            .map((value) => value.trim())
-            .filter(Boolean)
-            .map(member),
-        );
+        const contentAt = line.text.indexOf(inlineMembers);
+        for (const match of inlineMembers.matchAll(/[^;]+/g)) {
+          const value = match[0].trim();
+          if (!value || match.index === undefined) continue;
+          const leading = match[0].indexOf(value);
+          const from = line.from + contentAt + match.index + leading;
+          members.push(member(value, { from, to: from + value.length }, `${id}:member-${members.length}`));
+        }
       } else if (decl[6]) {
         end = i + 1;
-        while (end < lines.length && !/^\s*}\s*$/.test(lines[end]!.text)) members.push(member(lines[end++]!.text));
+        while (end < lines.length && !/^\s*}\s*$/.test(lines[end]!.text)) {
+          const memberLine = lines[end++]!;
+          const value = memberLine.text.trim();
+          if (!value) continue;
+          const from = memberLine.from + memberLine.text.indexOf(value);
+          members.push(member(value, { from, to: from + value.length }, `${id}:member-${members.length}`));
+        }
         if (end >= lines.length) {
           diagnostics.push({ severity: "error", message: `${label} is missing }`, range, code: "unterminated-class" });
           end = i;

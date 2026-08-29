@@ -322,6 +322,45 @@ test("highlights, finds, and renames Class entity references", async ({ page }) 
   await expect(page.locator(".cm-content")).toContainText("note right of Profile : Account note");
 });
 
+test("edits structured Class members and reveals rendered members", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Class diagram/ })
+    .click();
+  await setSource(
+    page,
+    "@startuml\nclass Account {\n  -id: UUID\n  {static} +open(owner: User): Account\n  custom member syntax\n}\n@enduml",
+  );
+
+  const renderedMember = page.locator('[data-class-member-id="account:member-0"]');
+  await expect(renderedMember).toBeVisible({ timeout: 20_000 });
+  const methodSource = await pointInText(page, 3, "open");
+  await page.mouse.click(methodSource.x, methodSource.y);
+  await expect(page.locator('[data-class-member-id="account:member-1"].class-selected-object')).toBeVisible();
+  await renderedMember.click({ button: "right" });
+  const actions = page.getByRole("menu", { name: "Class member actions" });
+  await expect(actions.getByRole("menuitem")).toHaveCount(2);
+  await actions.getByRole("menuitem", { name: "Reveal in code" }).click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 3");
+
+  await renderedMember.click();
+  const inspector = page.getByRole("complementary", { name: "Class object inspector" });
+  const firstMember = inspector.getByRole("listitem").first();
+  await expect(firstMember.getByLabel("Member name")).toHaveValue("id");
+  await expect(firstMember.getByLabel("Member type")).toHaveValue("UUID");
+  await firstMember.getByLabel("Member name").fill("identifier");
+  await firstMember.getByLabel("Member name").blur();
+  await expect(page.locator(".cm-content")).toContainText("-identifier: UUID");
+  await expect(page.locator(".cm-content")).toContainText("custom member syntax");
+
+  await inspector.getByLabel("New member kind").selectOption("method");
+  await inspector.getByLabel("New member name").fill("close");
+  await inspector.getByLabel("New member type").fill("void");
+  await inspector.getByRole("button", { name: "Add member" }).click();
+  await expect(page.locator(".cm-content")).toContainText("close(): void");
+});
+
 test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

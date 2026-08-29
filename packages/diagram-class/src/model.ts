@@ -2,10 +2,16 @@ import type { LanguageDiagnostic, TextRange } from "@plantuml-studio/language-co
 
 export type ClassEntityKind = "class" | "abstract" | "interface" | "enum" | "annotation";
 export interface ClassMember {
+  id: string;
   text: string;
+  kind: "field" | "method" | "raw";
+  name?: string;
+  type?: string;
+  parameters?: string;
   visibility?: "+" | "-" | "#" | "~";
   isStatic: boolean;
   isAbstract: boolean;
+  sourceRange: TextRange;
 }
 export interface ClassEntity {
   id: string;

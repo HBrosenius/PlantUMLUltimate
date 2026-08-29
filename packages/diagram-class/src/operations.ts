@@ -2,6 +2,7 @@ import type {
   ClassDocument,
   ClassEntity,
   ClassEntityKind,
+  ClassMember,
   ClassPackage,
   ClassNote,
   ClassRelationship,
@@ -15,6 +16,16 @@ export interface ClassEntityInput {
   stereotype?: string;
   color?: string;
   members: string[];
+}
+export interface ClassMemberInput {
+  kind: "field" | "method" | "raw";
+  name?: string;
+  type?: string;
+  parameters?: string;
+  visibility?: "+" | "-" | "#" | "~";
+  isStatic?: boolean;
+  isAbstract?: boolean;
+  text?: string;
 }
 export interface ClassPackageInput {
   kind: ClassPackage["kind"];
@@ -51,6 +62,15 @@ const point = (s: string) => {
 };
 const entityLine = (v: ClassEntityInput) =>
   `${v.kind === "abstract" ? "abstract class" : v.kind} ${quote(v.label.trim())}${v.alias?.trim() ? ` as ${v.alias.trim()}` : ""}${v.generic?.trim() ? `<${v.generic.trim()}>` : ""}${v.stereotype?.trim() ? ` <<${v.stereotype.trim()}>>` : ""}${v.color?.trim() ? ` ${v.color.startsWith("#") ? v.color : `#${v.color}`}` : ""}${v.members.length ? ` {\n${v.members.map((x) => `  ${x.trim()}`).join("\n")}\n}` : ""}`;
+export const classMemberText = (value: ClassMemberInput) => {
+  if (value.kind === "raw") return value.text?.trim() ?? "";
+  const modifiers = `${value.isStatic ? "{static} " : ""}${value.isAbstract ? "{abstract} " : ""}`;
+  const visibility = value.visibility ?? "";
+  const name = value.name?.trim() ?? "";
+  const type = value.type?.trim();
+  const body = value.kind === "method" ? `${name}(${value.parameters?.trim() ?? ""})` : name;
+  return `${modifiers}${visibility}${body}${type ? `: ${type}` : ""}`;
+};
 const arrow = (v: ClassRelationshipInput) => {
   if (v.arrow) return v.arrow;
   const color = v.color?.trim();
@@ -111,6 +131,46 @@ export function deleteClassEntity(s: string, d: ClassDocument, e: ClassEntity) {
     s,
     ranges.map((x) => ({ from: x.from, to: s[x.to] === "\n" ? x.to + 1 : x.to, text: "" })),
   );
+}
+export function insertClassMember(source: string, entity: ClassEntity, value: ClassMemberInput) {
+  const text = classMemberText(value);
+  if (!text) return source;
+  const authored = source.slice(entity.sourceRange.from, entity.sourceRange.to);
+  const closing = authored.lastIndexOf("}");
+  if (closing >= 0) {
+    const at = entity.sourceRange.from + closing;
+    const inline = !authored.slice(0, closing).includes("\n");
+    return `${source.slice(0, at)}${inline && entity.members.length ? "; " : inline ? " " : `  `}${text}${inline ? " " : "\n"}${source.slice(at)}`;
+  }
+  return `${source.slice(0, entity.openRange.to)} {\n  ${text}\n}${source.slice(entity.openRange.to)}`;
+}
+export const updateClassMember = (source: string, member: ClassMember, value: ClassMemberInput) =>
+  replace(source, [{ ...member.sourceRange, text: classMemberText(value) }]);
+export function deleteClassMember(source: string, entity: ClassEntity, member: ClassMember) {
+  const lineStart = source.lastIndexOf("\n", Math.max(entity.sourceRange.from, member.sourceRange.from - 1)) + 1;
+  const lineEnd = source.indexOf("\n", member.sourceRange.to);
+  const isOwnLine =
+    source.slice(lineStart, member.sourceRange.from).trim() === "" &&
+    source.slice(member.sourceRange.to, lineEnd < 0 ? source.length : lineEnd).trim() === "";
+  if (isOwnLine) return replace(source, [{ from: lineStart, to: lineEnd < 0 ? source.length : lineEnd + 1, text: "" }]);
+  let from = member.sourceRange.from;
+  let to = member.sourceRange.to;
+  const after = source.slice(to, entity.sourceRange.to).match(/^\s*;/);
+  const before = source.slice(entity.sourceRange.from, from).match(/;\s*$/);
+  if (after) to += after[0].length;
+  else if (before) from -= before[0].length;
+  return replace(source, [{ from, to, text: "" }]);
+}
+export function reorderClassMember(source: string, member: ClassMember, target: ClassMember) {
+  if (member.id === target.id) return source;
+  const first = member.sourceRange.from < target.sourceRange.from ? member : target;
+  const second = first === member ? target : member;
+  const firstText = source.slice(first.sourceRange.from, first.sourceRange.to);
+  const secondText = source.slice(second.sourceRange.from, second.sourceRange.to);
+  return replace(source, [
+    { ...first.sourceRange, text: secondText },
+    { ...second.sourceRange, text: firstText },
+  ]);
 }
 export const insertClassRelationship = (s: string, d: ClassDocument, v: ClassRelationshipInput) =>
   insert(s, relationLine(d, v));
