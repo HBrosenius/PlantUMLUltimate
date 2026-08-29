@@ -96,7 +96,6 @@ import {
   deleteDivider,
   deleteVerticalSeparator,
   findTaskAt,
-  ganttSymbolOccurrences,
   ganttAdapter,
   insertDivider,
   insertVerticalSeparator,
@@ -109,7 +108,6 @@ import {
   parseGantt,
   renameResource,
   renameTask,
-  renameTaskAlias,
   setNote,
   setTaskDeclaration,
   setTaskPauses,
@@ -119,7 +117,6 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
-import type { GanttSymbolOccurrence } from "@plantuml-studio/diagram-gantt";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import type { Command } from "@plantuml-studio/editor-core";
@@ -149,14 +146,11 @@ import {
   insertWbsRelationship,
   moveWbsSubtree,
   parseWbs,
-  collectWbsSymbolOccurrences,
   reconnectWbsRelationship,
-  renameWbsNodeAlias,
   updateWbsNode,
   updateWbsRelationshipColor,
   type WbsNodeInput,
 } from "@plantuml-studio/diagram-wbs";
-import type { WbsSymbolOccurrence } from "@plantuml-studio/diagram-wbs";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -169,14 +163,11 @@ import {
   parseSequence,
   reconnectSequenceStructure,
   reorderSequenceStatement,
-  sequenceParticipantOccurrences,
   updateSequenceMessage,
   updateSequenceParticipant,
   updateSequenceStructure,
 } from "@plantuml-studio/diagram-sequence";
-import type { SequenceParticipantOccurrence } from "@plantuml-studio/diagram-sequence";
-import { collectUseCaseSymbolOccurrences, findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
-import type { UseCaseSymbolOccurrence } from "@plantuml-studio/diagram-usecase";
+import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
 import {
   deleteClassEntity,
   deleteClassPackage,
@@ -199,9 +190,7 @@ import {
   type ClassPackageInput,
   type ClassRelationshipInput,
   type ClassNoteInput,
-  collectClassSymbolOccurrences,
 } from "@plantuml-studio/diagram-class";
-import type { ClassSymbolOccurrence } from "@plantuml-studio/diagram-class";
 import {
   deleteActivityArrow,
   deleteActivityControlBlock,
@@ -225,7 +214,6 @@ import {
   updateActivityControl,
   updateActivityNoteWithTarget,
   updateActivityPartition,
-  collectActivitySymbolOccurrences,
   type ActivityActionInput,
   type ActivityArrowInput,
   type ActivityControlInput,
@@ -233,7 +221,6 @@ import {
   type ActivityPartitionInput,
   type ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
-import type { ActivitySymbolOccurrence } from "@plantuml-studio/diagram-activity";
 import {
   deleteUseCaseElement,
   deleteUseCaseNote,
@@ -268,7 +255,11 @@ import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useResourceCapacities } from "./use-resource-capacities";
 import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
-import { validateRenameValue } from "./rename-symbol-validation";
+import {
+  createSemanticSymbolProvider,
+  type SemanticRenameRequest,
+  type SemanticSymbolOccurrence,
+} from "./semantic-symbol-provider";
 
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
@@ -293,31 +284,7 @@ export function App() {
     key: string;
   }>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
-  const [renameSymbol, setRenameSymbol] = useState<{
-    occurrence:
-      | GanttSymbolOccurrence
-      | SequenceParticipantOccurrence
-      | UseCaseSymbolOccurrence
-      | ClassSymbolOccurrence
-      | ActivitySymbolOccurrence
-      | WbsSymbolOccurrence;
-    mode:
-      | "task"
-      | "task alias"
-      | "person"
-      | "participant"
-      | "participant alias"
-      | "actor"
-      | "actor alias"
-      | "use case"
-      | "use case alias"
-      | "class entity"
-      | "class entity alias"
-      | "activity action"
-      | "activity partition"
-      | "WBS node"
-      | "WBS node alias";
-  }>();
+  const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
     kind:
@@ -425,21 +392,18 @@ export function App() {
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
-  const symbolOccurrences = useMemo(
+  const symbolProvider = useMemo(
     () =>
-      workspace.diagramKind === "gantt"
-        ? ganttSymbolOccurrences(workspace.source, parseResult.document)
-        : workspace.diagramKind === "sequence"
-          ? sequenceParticipantOccurrences(workspace.source, sequenceDocument)
-          : workspace.diagramKind === "usecase"
-            ? collectUseCaseSymbolOccurrences(workspace.source, useCaseDocument)
-            : workspace.diagramKind === "class"
-              ? collectClassSymbolOccurrences(workspace.source, classDocument)
-              : workspace.diagramKind === "activity"
-                ? collectActivitySymbolOccurrences(workspace.source, activityDocument)
-                : workspace.diagramKind === "wbs"
-                  ? collectWbsSymbolOccurrences(workspace.source, wbsDocument)
-                  : [],
+      createSemanticSymbolProvider({
+        diagramKind: workspace.diagramKind,
+        source: workspace.source,
+        gantt: parseResult.document,
+        sequence: sequenceDocument,
+        useCase: useCaseDocument,
+        classDiagram: classDocument,
+        activity: activityDocument,
+        wbs: wbsDocument,
+      }),
     [
       activityDocument,
       classDocument,
@@ -451,6 +415,7 @@ export function App() {
       workspace.source,
     ],
   );
+  const symbolOccurrences = symbolProvider.occurrences;
   const symbolHighlights = useMemo(
     () =>
       sourceSymbol
@@ -466,92 +431,21 @@ export function App() {
         : [],
     [sourceSymbol, sourceSymbolPosition, symbolOccurrences],
   );
-  const symbolAt = useCallback(
-    (position: number) => symbolOccurrences.find((item) => position >= item.range.from && position <= item.range.to),
-    [symbolOccurrences],
-  );
+  const symbolAt = symbolProvider.occurrenceAt;
   const requestSymbolRename = useCallback(
     (position: number) => {
       const occurrence = symbolAt(position);
       if (!occurrence) return false;
-      if (occurrence.kind === "participant") {
-        const participant = sequenceDocument.participants.find((item) => item.id === occurrence.key);
-        if (!participant) return false;
-        setRenameSymbol({
-          occurrence,
-          mode: participant.alias && occurrence.value === participant.alias ? "participant alias" : "participant",
-        });
-        return true;
-      }
-      if (occurrence.kind === "actor" || occurrence.kind === "usecase") {
-        const element = useCaseDocument.elements.find((item) => item.id === occurrence.key);
-        if (!element) return false;
-        const kind = element.kind === "usecase" ? "use case" : "actor";
-        setRenameSymbol({
-          occurrence,
-          mode: !element.alias || occurrence.declaration === "label" ? kind : `${kind} alias`,
-        });
-        return true;
-      }
-      if (occurrence.kind === "class-entity") {
-        const entity = classDocument.entities.find((item) => item.id === occurrence.key);
-        if (!entity) return false;
-        setRenameSymbol({
-          occurrence,
-          mode: !entity.alias || occurrence.declaration === "label" ? "class entity" : "class entity alias",
-        });
-        return true;
-      }
-      if (occurrence.kind === "activity-action" || occurrence.kind === "activity-partition") {
-        setRenameSymbol({
-          occurrence,
-          mode: occurrence.kind === "activity-action" ? "activity action" : "activity partition",
-        });
-        return true;
-      }
-      if (occurrence.kind === "wbs-node") {
-        const node = wbsDocument.nodes.find((item) => item.id === occurrence.key);
-        if (!node) return false;
-        setRenameSymbol({
-          occurrence,
-          mode: node.alias && occurrence.declaration !== "label" ? "WBS node alias" : "WBS node",
-        });
-        return true;
-      }
-      const task = occurrence.kind === "task" ? parseResult.document.symbols.tasks.get(occurrence.key) : undefined;
-      const mode =
-        task?.alias && normalizeTaskId(occurrence.value) === task.id
-          ? "task alias"
-          : occurrence.kind === "task"
-            ? "task"
-            : "person";
-      setRenameSymbol({ occurrence, mode });
+      const request = symbolProvider.renameRequest(occurrence);
+      if (!request) return false;
+      setRenameSymbol(request);
       return true;
     },
-    [
-      classDocument.entities,
-      parseResult.document.symbols.tasks,
-      sequenceDocument.participants,
-      symbolAt,
-      useCaseDocument.elements,
-      wbsDocument.nodes,
-    ],
+    [symbolAt, symbolProvider],
   );
   const occurrencesFor = useCallback(
-    (symbol: {
-      kind:
-        | "task"
-        | "person"
-        | "participant"
-        | "actor"
-        | "usecase"
-        | "class-entity"
-        | "activity-action"
-        | "activity-partition"
-        | "wbs-node";
-      key: string;
-    }) => symbolOccurrences.filter((item) => item.kind === symbol.kind && item.key === symbol.key),
-    [symbolOccurrences],
+    (symbol: Pick<SemanticSymbolOccurrence, "kind" | "key">) => symbolProvider.occurrencesFor(symbol),
+    [symbolProvider],
   );
   const navigateSymbolReference = useCallback(
     (position: number, direction: -1 | 1) => {
@@ -635,149 +529,6 @@ export function App() {
   const selectedUseCaseRelationship = useCaseDocument.relationships.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCasePackage = useCaseDocument.packages.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCaseNote = useCaseDocument.notes.find((item) => item.id === selectedUseCaseObjectId);
-  const validateSymbolRename = useCallback(
-    (nextValue: string): string | undefined => {
-      if (!renameSymbol) return undefined;
-      const target = renameSymbol.occurrence;
-      const mode = renameSymbol.mode;
-      if (target.kind === "task") {
-        const task = parseResult.document.symbols.tasks.get(target.key);
-        if (!task) return "Task not found";
-        const result =
-          mode === "task alias"
-            ? renameTaskAlias(workspace.source, parseResult.document, task, nextValue)
-            : renameTask(workspace.source, parseResult.document, task, nextValue);
-        return result.unavailableReason;
-      }
-      if (target.kind === "person")
-        return validateRenameValue(nextValue, {
-          label: "Person name",
-          currentIdentity: target.value,
-          identities: symbolOccurrences
-            .filter((item) => item.kind === "person" && item.key !== target.key)
-            .map((item) => item.value),
-          forbidden: /[{},:]/,
-          forbiddenMessage: "Person name cannot contain braces, commas, or colons",
-        });
-      if (target.kind === "participant") {
-        const participant = sequenceDocument.participants.find((item) => item.id === target.key);
-        if (!participant) return "Participant not found";
-        const aliasMode = mode === "participant alias";
-        const changesIdentity = aliasMode || !participant.alias;
-        return validateRenameValue(nextValue, {
-          label: aliasMode ? "Participant alias" : "Participant name",
-          ...(changesIdentity ? { currentIdentity: participant.alias ?? participant.label } : {}),
-          ...(changesIdentity
-            ? {
-                identities: sequenceDocument.participants
-                  .filter((item) => item.id !== participant.id)
-                  .map((item) => item.alias ?? item.label),
-              }
-            : {}),
-          forbidden: /["\r\n]/,
-          forbiddenMessage: "Participant names cannot contain quotes or line breaks",
-        });
-      }
-      if (target.kind === "actor" || target.kind === "usecase") {
-        const element = useCaseDocument.elements.find((item) => item.id === target.key);
-        if (!element) return "Use Case element not found";
-        const aliasMode = mode === "actor alias" || mode === "use case alias";
-        const changesIdentity = aliasMode || !element.alias;
-        return validateRenameValue(nextValue, {
-          label: aliasMode ? "Alias" : "Name",
-          ...(aliasMode
-            ? {
-                identifier: /^[\w.$-]+$/,
-                identifierMessage: "Alias can only contain letters, numbers, underscores, dots, dollars, or dashes",
-              }
-            : { forbidden: /["\r\n]/, forbiddenMessage: "Name cannot contain quotes or line breaks" }),
-          ...(changesIdentity ? { currentIdentity: element.alias ?? element.label } : {}),
-          ...(changesIdentity
-            ? {
-                identities: useCaseDocument.elements
-                  .filter((item) => item.id !== element.id)
-                  .map((item) => item.alias ?? item.label),
-              }
-            : {}),
-        });
-      }
-      if (target.kind === "class-entity") {
-        const entity = classDocument.entities.find((item) => item.id === target.key);
-        if (!entity) return "Class entity not found";
-        const aliasMode = mode === "class entity alias";
-        const changesIdentity = aliasMode || !entity.alias;
-        return validateRenameValue(nextValue, {
-          label: aliasMode ? "Alias" : "Name",
-          ...(aliasMode
-            ? {
-                identifier: /^[\w.$-]+$/,
-                identifierMessage: "Alias can only contain letters, numbers, underscores, dots, dollars, or dashes",
-              }
-            : { forbidden: /["\r\n]/, forbiddenMessage: "Name cannot contain quotes or line breaks" }),
-          ...(changesIdentity ? { currentIdentity: entity.alias ?? entity.label } : {}),
-          ...(changesIdentity
-            ? {
-                identities: classDocument.entities
-                  .filter((item) => item.id !== entity.id)
-                  .map((item) => item.alias ?? item.label),
-              }
-            : {}),
-        });
-      }
-      if (target.kind === "activity-action")
-        return validateRenameValue(nextValue, {
-          label: "Action name",
-          forbidden: /[;\r\n]/,
-          forbiddenMessage: "Action names cannot contain semicolons or line breaks",
-        });
-      if (target.kind === "activity-partition") {
-        const partition = activityDocument.partitions.find((item) => item.id === target.key);
-        if (!partition) return "Activity partition not found";
-        const normalize = (value: string) =>
-          value
-            .trim()
-            .toLocaleLowerCase()
-            .replace(/[^\w.-]+/g, "-");
-        return validateRenameValue(nextValue, {
-          label: "Partition name",
-          currentIdentity: partition.label,
-          identities: activityDocument.partitions.filter((item) => item.id !== partition.id).map((item) => item.label),
-          normalize,
-          forbidden: /["\r\n]/,
-          forbiddenMessage: "Partition names cannot contain quotes or line breaks",
-        });
-      }
-      const node = wbsDocument.nodes.find((item) => item.id === target.key);
-      if (!node) return "WBS node not found";
-      if (mode === "WBS node alias")
-        return validateRenameValue(nextValue, {
-          label: "WBS alias",
-          currentIdentity: node.alias ?? target.value,
-          identities: wbsDocument.nodes
-            .filter((item) => item.id !== node.id)
-            .flatMap((item) => (item.alias ? [item.alias] : [])),
-          identifier: /^[A-Za-z_][\w-]*$/,
-          identifierMessage:
-            "WBS alias must start with a letter or underscore and contain only letters, numbers, underscores, or dashes",
-        });
-      return validateRenameValue(nextValue, {
-        label: "WBS node name",
-        forbidden: /[\r\n]/,
-        forbiddenMessage: "WBS node names cannot contain line breaks",
-      });
-    },
-    [
-      activityDocument.partitions,
-      classDocument.entities,
-      parseResult.document,
-      renameSymbol,
-      sequenceDocument.participants,
-      symbolOccurrences,
-      useCaseDocument.elements,
-      wbsDocument.nodes,
-      workspace.source,
-    ],
-  );
   const sequenceParticipantNames = sequenceDocument.participants.map(
     (participant) => participant.alias ?? participant.label,
   );
@@ -4384,224 +4135,34 @@ export function App() {
         <RenameSymbolDialog
           kind={renameSymbol.mode}
           value={renameSymbol.occurrence.value}
-          validate={validateSymbolRename}
-          occurrenceCount={
-            symbolOccurrences.filter((item) => {
-              if (item.kind !== renameSymbol.occurrence.kind || item.key !== renameSymbol.occurrence.key) return false;
-              const task =
-                renameSymbol.occurrence.kind === "task"
-                  ? parseResult.document.symbols.tasks.get(renameSymbol.occurrence.key)
-                  : undefined;
-              const participant =
-                renameSymbol.occurrence.kind === "participant"
-                  ? sequenceDocument.participants.find((item) => item.id === renameSymbol.occurrence.key)
-                  : undefined;
-              const useCaseElement =
-                renameSymbol.occurrence.kind === "actor" || renameSymbol.occurrence.kind === "usecase"
-                  ? useCaseDocument.elements.find((item) => item.id === renameSymbol.occurrence.key)
-                  : undefined;
-              const classEntity =
-                renameSymbol.occurrence.kind === "class-entity"
-                  ? classDocument.entities.find((item) => item.id === renameSymbol.occurrence.key)
-                  : undefined;
-              const wbsNode =
-                renameSymbol.occurrence.kind === "wbs-node"
-                  ? wbsDocument.nodes.find((item) => item.id === renameSymbol.occurrence.key)
-                  : undefined;
-              if (renameSymbol.mode === "task alias")
-                return normalizeTaskId(item.value) === renameSymbol.occurrence.key;
-              if (renameSymbol.mode === "task" && task?.alias) return item.range.from === task.labelRange.from;
-              if (renameSymbol.mode === "participant alias") return item.value === participant?.alias;
-              if (renameSymbol.mode === "participant" && participant?.alias)
-                return item.range.from >= participant.sourceRange.from && item.value === participant.label;
-              if (renameSymbol.mode === "actor alias" || renameSymbol.mode === "use case alias")
-                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
-              if ((renameSymbol.mode === "actor" || renameSymbol.mode === "use case") && useCaseElement?.alias)
-                return "declaration" in item && item.declaration === "label";
-              if (renameSymbol.mode === "class entity alias")
-                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
-              if (renameSymbol.mode === "class entity" && classEntity?.alias)
-                return "declaration" in item && item.declaration === "label";
-              if (renameSymbol.mode === "WBS node alias")
-                return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
-              if (renameSymbol.mode === "WBS node" && wbsNode?.alias)
-                return "declaration" in item && item.declaration === "label";
-              return true;
-            }).length
-          }
+          validate={(value) => symbolProvider.validateRename(renameSymbol, value)}
+          occurrenceCount={symbolProvider.renameOccurrenceCount(renameSymbol)}
           onRename={(nextValue) => {
             const target = renameSymbol;
-            if (target.occurrence.kind === "wbs-node") {
-              const node = wbsDocument.nodes.find((item) => item.id === target.occurrence.key);
-              if (!node) {
-                setInteractionMessage("WBS node not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const aliasMode = target.mode === "WBS node alias";
-              const next = aliasMode
-                ? renameWbsNodeAlias(workspace.source, wbsDocument, node, trimmed)
-                : updateWbsNode(workspace.source, node, {
-                    label: trimmed,
-                    ...(node.color ? { color: node.color } : {}),
-                    ...(node.textColor ? { textColor: node.textColor } : {}),
-                    ...(node.stereotype ? { stereotype: node.stereotype } : {}),
-                    ...(node.side !== "root" ? { side: node.side } : {}),
-                  });
-              if (next === workspace.source) {
-                setInteractionMessage(
-                  aliasMode
-                    ? "Alias must be unique and use letters, numbers, underscores, or dashes"
-                    : "Rename made no changes",
-                );
-                return;
-              }
-              commitSource(next, `Rename ${target.mode}`);
-              setSourceHighlightedWbsNodeId(node.id);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
+            const result = symbolProvider.rename(target, nextValue);
+            if (result.error || !result.source) {
+              setInteractionMessage(result.error ?? "Rename made no changes");
               return;
             }
-            if (target.occurrence.kind === "activity-action") {
-              const node = activityDocument.nodes.find((item) => item.id === target.occurrence.key);
-              if (!node || node.kind !== "action") {
-                setInteractionMessage("Activity action not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const next = updateActivityAction(workspace.source, node, {
-                label: trimmed,
-                ...(node.color ? { color: node.color } : {}),
-                ...(node.stereotype ? { stereotype: node.stereotype } : {}),
-                ...(node.partitionId ? { partitionId: node.partitionId } : {}),
-              });
-              commitSource(next, "Rename activity action");
-              setSourceHighlightedActivityId(node.id);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
-              return;
-            }
-            if (target.occurrence.kind === "activity-partition") {
-              const partition = activityDocument.partitions.find((item) => item.id === target.occurrence.key);
-              if (!partition) {
-                setInteractionMessage("Activity partition not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const next = updateActivityPartition(workspace.source, partition, {
-                label: trimmed,
-                ...(partition.color ? { color: partition.color } : {}),
-                ...(partition.parentId ? { parentId: partition.parentId } : {}),
-              });
-              commitSource(next, "Rename activity partition");
-              const renamed = parseActivity(next).partitions.find((item) => item.label === trimmed);
-              setSourceHighlightedActivityId(renamed?.id);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
-              return;
-            }
-            if (target.occurrence.kind === "class-entity") {
-              const entity = classDocument.entities.find((item) => item.id === target.occurrence.key);
-              if (!entity) {
-                setInteractionMessage("Class entity not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const aliasMode = target.mode === "class entity alias";
-              const next = updateClassEntity(workspace.source, classDocument, entity, {
-                kind: entity.kind,
-                label: aliasMode ? entity.label : trimmed,
-                ...(aliasMode ? { alias: trimmed } : entity.alias ? { alias: entity.alias } : {}),
-                ...(entity.generic ? { generic: entity.generic } : {}),
-                ...(entity.stereotype ? { stereotype: entity.stereotype } : {}),
-                ...(entity.color ? { color: entity.color } : {}),
-                members: entity.members.map((item) => item.text),
-              });
-              commitSource(next, `Rename ${target.mode}`);
-              const nextId = (aliasMode ? trimmed : (entity.alias ?? trimmed)).toLowerCase();
-              setSourceHighlightedClassEntityId(nextId);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
-              return;
-            }
-            if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase") {
-              const element = useCaseDocument.elements.find((item) => item.id === target.occurrence.key);
-              if (!element) {
-                setInteractionMessage("Use Case element not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const aliasMode = target.mode === "actor alias" || target.mode === "use case alias";
-              const next = updateUseCaseElement(workspace.source, useCaseDocument, element, {
-                kind: element.kind,
-                label: aliasMode ? element.label : trimmed,
-                ...(aliasMode ? { alias: trimmed } : element.alias ? { alias: element.alias } : {}),
-                business: element.business,
-                ...(element.stereotype ? { stereotype: element.stereotype } : {}),
-                ...(element.color ? { color: element.color } : {}),
-              });
-              commitSource(next, `Rename ${target.mode}`);
-              const nextId = (aliasMode ? trimmed : (element.alias ?? trimmed)).toLowerCase();
-              setSourceHighlightedUseCaseId(nextId);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
-              return;
-            }
-            if (target.occurrence.kind === "participant") {
-              const participant = sequenceDocument.participants.find((item) => item.id === target.occurrence.key);
-              if (!participant) {
-                setInteractionMessage("Participant not found");
-                return;
-              }
-              const trimmed = nextValue.trim();
-              const next = updateSequenceParticipant(workspace.source, sequenceDocument, participant, {
-                kind: participant.kind,
-                label: target.mode === "participant" ? trimmed : participant.label,
-                ...(target.mode === "participant alias"
-                  ? { alias: trimmed }
-                  : participant.alias
-                    ? { alias: participant.alias }
-                    : {}),
-                ...(participant.color ? { color: participant.color } : {}),
-                ...(participant.stereotype ? { stereotype: participant.stereotype } : {}),
-                ...(participant.spotCharacter ? { spotCharacter: participant.spotCharacter } : {}),
-                ...(participant.spotColor ? { spotColor: participant.spotColor } : {}),
-                ...(participant.order !== undefined ? { order: participant.order } : {}),
-              });
-              commitSource(next, `Rename ${target.mode}`);
-              const nextId = (
-                target.mode === "participant alias" ? trimmed : (participant.alias ?? trimmed)
-              ).toLowerCase();
-              setSourceHighlightedSequenceParticipantId(nextId);
-              setRenameSymbol(undefined);
-              setInteractionMessage(`Renamed ${target.occurrence.value} to ${trimmed}`);
-              return;
-            }
-            const task =
-              target.occurrence.kind === "task"
-                ? parseResult.document.symbols.tasks.get(target.occurrence.key)
-                : undefined;
-            const operation =
-              target.mode === "person"
-                ? renameResource(parseResult.document, target.occurrence.value, nextValue, workspace.source)
-                : target.mode === "task alias" && task
-                  ? renameTaskAlias(workspace.source, parseResult.document, task, nextValue)
-                  : task
-                    ? renameTask(workspace.source, parseResult.document, task, nextValue)
-                    : { edits: [], unavailableReason: "Task not found" };
-            if (operation.unavailableReason) {
-              setInteractionMessage(operation.unavailableReason);
-              return;
-            }
-            if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Rename ${target.mode}`))
-              return;
-            if (target.mode === "person") {
-              renameCapacity(target.occurrence.value, nextValue.trim());
+            if (result.validateGenerated) {
+              if (!commitGeneratedSource(result.source, `Rename ${target.mode}`)) return;
+            } else commitSource(result.source, `Rename ${target.mode}`);
+            if (result.personRename) {
+              renameCapacity(result.personRename.from, result.personRename.to);
               setResourceFilter((current) =>
-                current.toLocaleLowerCase() === target.occurrence.value.toLocaleLowerCase()
-                  ? nextValue.trim()
+                current.toLocaleLowerCase() === result.personRename!.from.toLocaleLowerCase()
+                  ? result.personRename!.to
                   : current,
               );
+            }
+            if (result.nextKey) {
+              if (target.occurrence.kind === "participant") setSourceHighlightedSequenceParticipantId(result.nextKey);
+              else if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase")
+                setSourceHighlightedUseCaseId(result.nextKey);
+              else if (target.occurrence.kind === "class-entity") setSourceHighlightedClassEntityId(result.nextKey);
+              else if (target.occurrence.kind === "activity-action" || target.occurrence.kind === "activity-partition")
+                setSourceHighlightedActivityId(result.nextKey);
+              else if (target.occurrence.kind === "wbs-node") setSourceHighlightedWbsNodeId(result.nextKey);
             }
             setRenameSymbol(undefined);
             setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
