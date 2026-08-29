@@ -150,7 +150,7 @@ test("finds and navigates semantic task references", async ({ page }) => {
   const taskReference = await pointInText(page, 3, "Build");
   await page.mouse.click(taskReference.x, taskReference.y, { button: "right" });
   const symbolMenu = page.getByRole("menu", { name: "Symbol actions" });
-  await expect(symbolMenu.getByRole("menuitem")).toHaveCount(4);
+  await expect(symbolMenu.getByRole("menuitem")).toHaveCount(5);
   await symbolMenu.getByRole("menuitem", { name: "Find references" }).click();
 
   const references = page.getByRole("complementary", { name: "References for Build" });
@@ -179,6 +179,32 @@ test("finds and navigates semantic task references", async ({ page }) => {
   await page.mouse.click(taskDeclaration.x, taskDeclaration.y, { button: "right" });
   await page.getByRole("menuitem", { name: "Next reference" }).click();
   await expect(page.locator(".statusbar")).toContainText("Ln 4");
+});
+
+test("opens semantic actions from a diagram task", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 3 days\n[Test] starts at [Build]'s end and lasts 2 days"));
+  const task = page.locator('[data-task-id="build"]').first();
+  await expect(task).toBeVisible();
+  await task.click({ button: "right" });
+  const menu = page.getByRole("menu", { name: "Symbol actions" });
+  await expect(menu.getByRole("menuitem")).toHaveCount(5);
+  await menu.getByRole("menuitem", { name: "Find references" }).click();
+  const references = page.getByRole("complementary", { name: "References for Build" });
+  await expect(references).toContainText("2 occurrences");
+  await references.getByRole("button", { name: "Close references" }).click();
+
+  await task.click({ button: "right" });
+  await menu.getByRole("menuitem", { name: "Reveal declaration" }).click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 3");
+
+  await task.focus();
+  await page.keyboard.press("Shift+F10");
+  await menu.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename task" });
+  await rename.getByLabel("New name").fill("Compile");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Compile] lasts 3 days");
+  await expect(page.locator(".cm-content")).toContainText("[Compile]'s end");
 });
 
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {

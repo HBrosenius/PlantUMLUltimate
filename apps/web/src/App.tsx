@@ -273,7 +273,12 @@ export function App() {
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
-  const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
+  const [symbolMenu, setSymbolMenu] = useState<{
+    position?: number;
+    occurrence?: SemanticSymbolOccurrence;
+    x: number;
+    y: number;
+  }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
     kind: SemanticSymbolOccurrence["kind"];
     key: string;
@@ -426,16 +431,79 @@ export function App() {
     (symbol: Pick<SemanticSymbolOccurrence, "kind" | "key">) => symbolProvider.occurrencesFor(symbol),
     [symbolProvider],
   );
-  const navigateSymbolReference = useCallback(
-    (position: number, direction: -1 | 1) => {
-      const occurrence = symbolAt(position);
-      if (!occurrence) return;
+  const navigateOccurrence = useCallback(
+    (occurrence: SemanticSymbolOccurrence, direction: -1 | 1) => {
       const occurrences = occurrencesFor(occurrence);
-      const currentIndex = occurrences.findIndex((item) => position >= item.range.from && position <= item.range.to);
+      const currentIndex = occurrences.findIndex(
+        (item) => item.range.from === occurrence.range.from && item.range.to === occurrence.range.to,
+      );
       const next = occurrences[(Math.max(0, currentIndex) + direction + occurrences.length) % occurrences.length];
-      if (next) setSelectionRequest({ ...next.range });
+      if (next) {
+        if (workspace.viewMode === "diagram") setWorkspace((current) => ({ ...current, viewMode: "split" }));
+        setSelectionRequest({ ...next.range });
+      }
     },
-    [occurrencesFor, symbolAt],
+    [occurrencesFor, setWorkspace, workspace.viewMode],
+  );
+  const diagramOccurrenceForTarget = useCallback(
+    (target: Element): SemanticSymbolOccurrence | undefined => {
+      const closestValue = (attribute: string) => target.closest(`[${attribute}]`)?.getAttribute(attribute);
+      if (target instanceof SVGTextElement) {
+        const text = target.textContent?.trim().replace(/^\{|\}$/g, "");
+        const person = text
+          ? symbolOccurrences.find(
+              (item) => item.kind === "person" && item.value.toLocaleLowerCase() === text.toLocaleLowerCase(),
+            )
+          : undefined;
+        if (person) return person;
+      }
+      const candidates: Array<{ kind: SemanticSymbolOccurrence["kind"]; key: string | null | undefined }> = [
+        { kind: "task", key: closestValue("data-task-id") ?? closestValue("data-visual-task-id") },
+        { kind: "participant", key: closestValue("data-sequence-participant-id") },
+        {
+          kind:
+            closestValue("data-usecase-object-type") === "package" ||
+            closestValue("data-usecase-object-type") === "rectangle"
+              ? "usecase-package"
+              : closestValue("data-usecase-object-type") === "actor"
+                ? "actor"
+                : "usecase",
+          key: closestValue("data-usecase-object-id"),
+        },
+        {
+          kind: closestValue("data-class-object-type") === "package" ? "class-package" : "class-entity",
+          key: closestValue("data-class-object-id"),
+        },
+        {
+          kind: closestValue("data-activity-object-type") === "action" ? "activity-action" : "activity-partition",
+          key: closestValue("data-activity-object-id"),
+        },
+        { kind: "wbs-node", key: closestValue("data-wbs-node-id") },
+      ];
+      for (const candidate of candidates) {
+        if (!candidate.key) continue;
+        const occurrence = symbolOccurrences.find(
+          (item) => item.kind === candidate.kind && item.key === candidate.key && item.role === "declaration",
+        );
+        if (occurrence) return occurrence;
+      }
+      return undefined;
+    },
+    [symbolOccurrences],
+  );
+  const openDiagramSymbolMenu = useCallback(
+    (target: Element, x: number, y: number) => {
+      const occurrence = diagramOccurrenceForTarget(target);
+      if (!occurrence) return false;
+      const bounds = target.getBoundingClientRect();
+      setSymbolMenu({
+        occurrence,
+        x: x || bounds.left + Math.min(24, bounds.width / 2),
+        y: y || bounds.top + Math.min(24, bounds.height),
+      });
+      return true;
+    },
+    [diagramOccurrenceForTarget],
   );
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   useEffect(() => {
@@ -3084,6 +3152,22 @@ export function App() {
       )}
       <main
         className={`workspace mode-${workspace.viewMode}`}
+        onContextMenu={(event) => {
+          if (!(event.target instanceof Element) || event.target.closest(".cm-editor")) return;
+          if (!openDiagramSymbolMenu(event.target, event.clientX, event.clientY)) return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onKeyDown={(event) => {
+          if (
+            (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) ||
+            !(event.target instanceof Element)
+          )
+            return;
+          if (!openDiagramSymbolMenu(event.target, 0, 0)) return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
         style={{
           gridTemplateColumns:
             workspace.viewMode === "split"
@@ -4064,7 +4148,11 @@ export function App() {
             autoFocus
             role="menuitem"
             onClick={() => {
-              requestSymbolRename(symbolMenu.position);
+              const occurrence =
+                symbolMenu.occurrence ??
+                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+              const request = occurrence ? symbolProvider.renameRequest(occurrence) : undefined;
+              if (request) setRenameSymbol(request);
               setSymbolMenu(undefined);
             }}
           >
@@ -4073,7 +4161,9 @@ export function App() {
           <button
             role="menuitem"
             onClick={() => {
-              const occurrence = symbolAt(symbolMenu.position);
+              const occurrence =
+                symbolMenu.occurrence ??
+                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
               if (occurrence)
                 setReferenceSymbol({ kind: occurrence.kind, key: occurrence.key, label: occurrence.value });
               setSymbolMenu(undefined);
@@ -4084,7 +4174,28 @@ export function App() {
           <button
             role="menuitem"
             onClick={() => {
-              navigateSymbolReference(symbolMenu.position, -1);
+              const occurrence =
+                symbolMenu.occurrence ??
+                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+              const declaration = occurrence
+                ? (occurrencesFor(occurrence).find((item) => item.role === "declaration") ?? occurrence)
+                : undefined;
+              if (declaration) {
+                if (workspace.viewMode === "diagram") update("viewMode", "split");
+                setSelectionRequest({ ...declaration.range });
+              }
+              setSymbolMenu(undefined);
+            }}
+          >
+            Reveal declaration
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              const occurrence =
+                symbolMenu.occurrence ??
+                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+              if (occurrence) navigateOccurrence(occurrence, -1);
               setSymbolMenu(undefined);
             }}
           >
@@ -4093,7 +4204,10 @@ export function App() {
           <button
             role="menuitem"
             onClick={() => {
-              navigateSymbolReference(symbolMenu.position, 1);
+              const occurrence =
+                symbolMenu.occurrence ??
+                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+              if (occurrence) navigateOccurrence(occurrence, 1);
               setSymbolMenu(undefined);
             }}
           >
@@ -4106,7 +4220,10 @@ export function App() {
           label={referenceSymbol.label}
           source={workspace.source}
           occurrences={occurrencesFor(referenceSymbol)}
-          onSelect={(occurrence) => setSelectionRequest({ ...occurrence.range })}
+          onSelect={(occurrence) => {
+            if (workspace.viewMode === "diagram") update("viewMode", "split");
+            setSelectionRequest({ ...occurrence.range });
+          }}
           onClose={() => setReferenceSymbol(undefined)}
         />
       )}
