@@ -17,12 +17,14 @@ import type {
 export function SequenceStructureInspector({
   structure,
   participants,
+  anchors,
   onApply,
   onDelete,
   onClose,
 }: {
   structure: SequenceStructure;
   participants: string[];
+  anchors: string[];
   onApply(value: SequenceStructureInput): void;
   onDelete(): void;
   onClose(): void;
@@ -62,7 +64,7 @@ export function SequenceStructureInspector({
       ) : isCreation(structure) ? (
         <CreationForm structure={structure} onApply={onApply} onDelete={onDelete} />
       ) : isDuration(structure) ? (
-        <DurationForm structure={structure} onApply={onApply} onDelete={onDelete} />
+        <DurationForm structure={structure} anchors={anchors} onApply={onApply} onDelete={onDelete} />
       ) : (
         <TimelineForm key={structure.id} structure={structure} onApply={onApply} onDelete={onDelete} />
       )}
@@ -72,10 +74,12 @@ export function SequenceStructureInspector({
 
 function DurationForm({
   structure,
+  anchors,
   onApply,
   onDelete,
 }: {
   structure: SequenceDuration;
+  anchors: string[];
   onApply(value: SequenceStructureInput): void;
   onDelete(): void;
 }) {
@@ -92,12 +96,21 @@ function DurationForm({
     >
       <label>
         Start anchor
-        <input value={fromAnchor} onChange={(event) => setFromAnchor(event.target.value)} />
+        <input
+          list="sequence-anchor-options"
+          value={fromAnchor}
+          onChange={(event) => setFromAnchor(event.target.value)}
+        />
       </label>
       <label>
         End anchor
-        <input value={toAnchor} onChange={(event) => setToAnchor(event.target.value)} />
+        <input list="sequence-anchor-options" value={toAnchor} onChange={(event) => setToAnchor(event.target.value)} />
       </label>
+      <datalist id="sequence-anchor-options">
+        {anchors.map((anchor) => (
+          <option key={anchor} value={anchor} />
+        ))}
+      </datalist>
       <label>
         Arrow
         <input value={arrow} onChange={(event) => setArrow(event.target.value)} />

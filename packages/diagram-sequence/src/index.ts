@@ -479,12 +479,22 @@ export function sequenceParticipantOccurrences(
     occurrences.push({ kind: "participant", key: participant.id, value, range: valueRange, role });
     return valueRange.to;
   };
-  const byReference = new Map(document.participants.map((item) => [participantReference(item), item]));
+  const createdParticipants = document.creations.map((creation): SequenceParticipant => ({
+    id: creation.participant.toLocaleLowerCase(),
+    kind: creation.participantKind,
+    label: creation.participant,
+    sourceRange: creation.sourceRange,
+  }));
+  const byReference = new Map(
+    [...createdParticipants, ...document.participants].map((item) => [participantReference(item), item]),
+  );
 
   for (const participant of document.participants) {
     const after = add(participant, participant.label, participant.sourceRange, "declaration");
     if (participant.alias) add(participant, participant.alias, participant.sourceRange, "declaration", after);
   }
+  for (const participant of createdParticipants)
+    add(participant, participant.label, participant.sourceRange, "declaration");
   for (const message of document.messages) {
     const after = add(byReference.get(message.from), message.from, message.sourceRange, "reference");
     add(byReference.get(message.to), message.to, message.sourceRange, "reference", after);
@@ -505,9 +515,6 @@ export function sequenceParticipantOccurrences(
     for (const value of reference.participants)
       after = add(byReference.get(value), value, headerRange, "reference", after) ?? after;
   }
-  for (const creation of document.creations)
-    add(byReference.get(creation.participant), creation.participant, creation.sourceRange, "reference");
-
   const anchors = new Map<string, SequenceMessage>();
   for (const message of document.messages) {
     if (!message.anchor) continue;
@@ -999,6 +1006,23 @@ export function updateSequenceStructure(
       ]);
     }
     return updated;
+  }
+  if (value.kind === "create" && structure.id.startsWith("creation-")) {
+    const creation = structure as SequenceCreation;
+    const replacements = sequenceParticipantOccurrences(source, parseSequence(source))
+      .filter((item) => item.kind === "participant" && item.key === creation.participant.toLocaleLowerCase())
+      .map((item) => ({
+        ...item.range,
+        text:
+          source[item.range.from - 1] === '"' && source[item.range.to] === '"'
+            ? value.participant
+            : quote(value.participant),
+      }));
+    const declaration = replacements.find(
+      (item) => item.from >= creation.sourceRange.from && item.to <= creation.sourceRange.to,
+    );
+    const remaining = declaration ? replacements.filter((item) => item !== declaration) : replacements;
+    return applyReplacements(source, [...remaining, { ...creation.sourceRange, text: structureStatement(value) }]);
   }
   if ("fragmentKind" in value) {
     const block = source.slice(structure.sourceRange.from, structure.sourceRange.to);

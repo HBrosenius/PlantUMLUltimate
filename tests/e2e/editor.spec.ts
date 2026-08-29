@@ -248,6 +248,49 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
   await expect(page.locator(".cm-content")).toContainText("note right of Client: User is waiting");
 });
 
+test("renames created Sequence lifelines and suggests duration anchors", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(
+    page,
+    "@startuml\n!pragma teoz true\nparticipant API\ncreate database Store\n{start} API -> Store: Save\n{finish} Store --> API: Saved\nnote right of Store: Ready\n{start} <-> {finish}: elapsed\n@enduml",
+  );
+
+  const createdReference = await pointInText(page, 4, "Store");
+  await page.mouse.click(createdReference.x, createdReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(4);
+  await page.keyboard.press("F2");
+  const rename = page.getByRole("dialog", { name: "Rename participant" });
+  await expect(rename).toContainText("4 semantic occurrences");
+  await rename.getByLabel("New name").fill("Orders");
+  await rename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("create database Orders");
+  await expect(page.locator(".cm-content")).toContainText("API -> Orders: Save");
+  await expect(page.locator(".cm-content")).toContainText("Orders --> API: Saved");
+  await expect(page.locator(".cm-content")).toContainText("note right of Orders: Ready");
+
+  await page.getByRole("button", { name: "Drag Duration: elapsed vertically", exact: true }).click();
+  const inspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
+  await expect(inspector.getByLabel("Start anchor")).toHaveAttribute("list", "sequence-anchor-options");
+  await expect(inspector.locator("#sequence-anchor-options option")).toHaveCount(2);
+  await expect(inspector.locator('#sequence-anchor-options option[value="start"]')).toHaveCount(1);
+  await expect(inspector.locator('#sequence-anchor-options option[value="finish"]')).toHaveCount(1);
+
+  const anchorReference = await pointInText(page, 7, "finish");
+  await page.mouse.click(anchorReference.x, anchorReference.y);
+  await expect(page.locator(".cm-symbol-reference")).toHaveCount(2);
+  await page.keyboard.press("F2");
+  const anchorRename = page.getByRole("dialog", { name: "Rename sequence anchor" });
+  await anchorRename.getByLabel("New name").fill("done");
+  await anchorRename.getByRole("button", { name: "Rename" }).click();
+  await expect(page.locator(".cm-content")).toContainText("{done} Orders --> API: Saved");
+  await expect(page.locator(".cm-content")).toContainText("{start} <-> {done}: elapsed");
+  await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
+
 test("highlights, finds, and renames Use Case actor references", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

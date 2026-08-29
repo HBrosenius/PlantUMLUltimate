@@ -11,6 +11,7 @@ import {
 import {
   sequenceParticipantOccurrences,
   renameSequenceAnchor,
+  updateSequenceStructure,
   updateSequenceParticipant,
   type SequenceDocument,
   type SequenceParticipantOccurrence,
@@ -161,10 +162,11 @@ function renameRequest(
   if (occurrence.kind === "person") return { occurrence, mode: "person" };
   if (occurrence.kind === "participant") {
     const participant = context.sequence.participants.find((item) => item.id === occurrence.key);
-    if (!participant) return undefined;
+    const creation = context.sequence.creations.find((item) => item.participant.toLocaleLowerCase() === occurrence.key);
+    if (!participant && !creation) return undefined;
     return {
       occurrence,
-      mode: participant.alias && occurrence.value === participant.alias ? "participant alias" : "participant",
+      mode: participant?.alias && occurrence.value === participant.alias ? "participant alias" : "participant",
     };
   }
   if (occurrence.kind === "sequence-anchor") return { occurrence, mode: "sequence anchor" };
@@ -269,6 +271,23 @@ function validateRename(
     });
   if (target.kind === "participant") {
     const item = context.sequence.participants.find((candidate) => candidate.id === target.key);
+    const creation = context.sequence.creations.find(
+      (candidate) => candidate.participant.toLocaleLowerCase() === target.key,
+    );
+    if (!item && !creation) return "Participant not found";
+    if (creation)
+      return validateRenameValue(value, {
+        label: "Participant name",
+        currentIdentity: creation.participant,
+        identities: [
+          ...context.sequence.participants.map((candidate) => candidate.alias ?? candidate.label),
+          ...context.sequence.creations
+            .filter((candidate) => candidate !== creation)
+            .map((candidate) => candidate.participant),
+        ],
+        forbidden: /["\r\n]/,
+        forbiddenMessage: "Participant names cannot contain quotes or line breaks",
+      });
     if (!item) return "Participant not found";
     return validateNamedIdentity(
       value,
@@ -444,6 +463,19 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
   }
   if (target.kind === "participant") {
     const item = context.sequence.participants.find((candidate) => candidate.id === target.key);
+    const creation = context.sequence.creations.find(
+      (candidate) => candidate.participant.toLocaleLowerCase() === target.key,
+    );
+    if (creation) {
+      const source = updateSequenceStructure(context.source, creation, {
+        kind: "create",
+        participantKind: creation.participantKind,
+        participant: trimmed,
+      });
+      return source === context.source
+        ? { error: "Rename made no changes" }
+        : { source, nextKey: trimmed.toLocaleLowerCase(), validateGenerated: true };
+    }
     if (!item) return { error: "Participant not found" };
     const aliasMode = request.mode === "participant alias";
     return {

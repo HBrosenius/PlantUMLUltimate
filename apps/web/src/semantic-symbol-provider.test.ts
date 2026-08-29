@@ -12,6 +12,11 @@ describe("semantic symbol provider contract", () => {
   const cases: Array<{ kind: DiagramKind; source: string; next: string }> = [
     { kind: "gantt", source: "@startgantt\n[Build] lasts 2 days\n@endgantt", next: "Compile" },
     { kind: "sequence", source: '@startuml\nparticipant "API User" as User\n@enduml', next: "Client" },
+    {
+      kind: "sequence",
+      source: "@startuml\ncreate database Store\nAPI -> Store: Save\n@enduml",
+      next: "Orders",
+    },
     { kind: "usecase", source: '@startuml\nactor "Customer" as C\n@enduml', next: "Buyer" },
     { kind: "class", source: '@startuml\nclass "Order" as O\n@enduml', next: "Purchase" },
     { kind: "activity", source: "@startuml\n:Review order;\n@enduml", next: "Approve order" },

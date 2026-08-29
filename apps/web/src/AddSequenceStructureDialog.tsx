@@ -12,11 +12,13 @@ export type SequenceStructureKind = SequenceStructureInput["kind"];
 export function AddSequenceStructureDialog({
   initialKind,
   participants,
+  anchors,
   onAdd,
   onClose,
 }: {
   initialKind: SequenceStructureKind;
   participants: string[];
+  anchors: string[];
   onAdd(value: SequenceStructureInput): void;
   onClose(): void;
 }) {
@@ -38,6 +40,8 @@ export function AddSequenceStructureDialog({
   const [noteShape, setNoteShape] = useState<SequenceNote["shape"]>("note");
   const [aligned, setAligned] = useState(false);
   const [durationArrow, setDurationArrow] = useState("<->");
+  const [fromAnchor, setFromAnchor] = useState(anchors[0] ?? "");
+  const [toAnchor, setToAnchor] = useState(anchors[1] ?? anchors[0] ?? "");
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   const submit = (): SequenceStructureInput => {
@@ -92,8 +96,7 @@ export function AddSequenceStructureDialog({
         ...(secondary.trim() ? { format: secondary } : {}),
       };
     if (kind === "create") return { kind, participantKind, participant: label };
-    if (kind === "duration")
-      return { kind, fromAnchor: participant, toAnchor: secondParticipant, arrow: durationArrow, label };
+    if (kind === "duration") return { kind, fromAnchor, toAnchor, arrow: durationArrow, label };
     return { kind, label };
   };
   return (
@@ -391,8 +394,9 @@ export function AddSequenceStructureDialog({
               Start anchor
               <input
                 required
-                value={participant}
-                onChange={(event) => setParticipant(event.target.value)}
+                list="add-sequence-anchor-options"
+                value={fromAnchor}
+                onChange={(event) => setFromAnchor(event.target.value)}
                 placeholder="start"
               />
             </label>
@@ -400,11 +404,17 @@ export function AddSequenceStructureDialog({
               End anchor
               <input
                 required
-                value={secondParticipant}
-                onChange={(event) => setSecondParticipant(event.target.value)}
+                list="add-sequence-anchor-options"
+                value={toAnchor}
+                onChange={(event) => setToAnchor(event.target.value)}
                 placeholder="end"
               />
             </label>
+            <datalist id="add-sequence-anchor-options">
+              {anchors.map((anchor) => (
+                <option key={anchor} value={anchor} />
+              ))}
+            </datalist>
             <label>
               Arrow
               <input required value={durationArrow} onChange={(event) => setDurationArrow(event.target.value)} />

@@ -85,12 +85,19 @@ export interface SequenceQuickFix {
 export function sequenceCompletions(context: CompletionContext): CompletionResult | null {
   const line = context.state.doc.lineAt(context.pos);
   const before = context.state.sliceDoc(line.from, context.pos);
-  const participants = parseSequence(context.state.doc.toString()).participants;
-  const names = participants.map((participant) => ({
-    label: participant.alias ?? participant.label,
-    type: "variable",
-    detail: participant.kind,
-  }));
+  const document = parseSequence(context.state.doc.toString());
+  const names = [
+    ...document.participants.map((participant) => ({
+      label: participant.alias ?? participant.label,
+      type: "variable",
+      detail: participant.kind,
+    })),
+    ...document.creations.map((creation) => ({
+      label: creation.participant,
+      type: "variable",
+      detail: `created ${creation.participantKind}`,
+    })),
+  ];
   const color = before.match(/#([A-Za-z]*)$/);
   if (color)
     return { from: context.pos - color[1]!.length, options: COLORS.map((label) => ({ label, type: "constant" })) };
@@ -103,7 +110,7 @@ export function sequenceCompletions(context: CompletionContext): CompletionResul
     };
   }
   const owner = before.match(
-    /(?:activate|deactivate|destroy|create(?:\s+\w+)?|(?:note|hnote|rnote)\s+(?:left of|right of|over)|ref(?:\s+#[\w]+)?\s+over)\s+(?:[^,]*,\s*)?("?[\w.$: ]*)$/i,
+    /(?:activate|deactivate|destroy|create(?:\s+\w+)?|(?:note|hnote|rnote)\s+(?:left of|right of|over)|ref\s*#[\w]+\s+over|ref\s+over)\s+(?:[^,]*,\s*)?("?[\w.$: ]*)$/i,
   );
   if (owner) return { from: context.pos - owner[1]!.length, options: names };
   const word = context.matchBefore(/[\w ]*/);
@@ -153,6 +160,65 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       message: `Unclosed ${open.kind} block`,
       source: "PlantUML Sequence",
     });
+  const document = parseSequence(source);
+  const identities = new Map<string, { from: number; to: number }>();
+  for (const item of [
+    ...document.participants.map((participant) => ({
+      name: participant.alias ?? participant.label,
+      range: participant.sourceRange,
+    })),
+    ...document.creations.map((creation) => ({ name: creation.participant, range: creation.sourceRange })),
+  ]) {
+    const key = item.name.toLocaleLowerCase();
+    if (identities.has(key))
+      diagnostics.push({
+        ...item.range,
+        severity: "error",
+        message: `Duplicate participant name ${item.name}`,
+        source: "PlantUML Sequence",
+      });
+    else identities.set(key, item.range);
+  }
+  const knownParticipants = new Set([
+    ...identities.keys(),
+    ...document.messages.flatMap((message) => [message.from, message.to]).map((name) => name.toLocaleLowerCase()),
+  ]);
+  for (const item of [
+    ...document.activations.map((activation) => ({ names: [activation.participant], range: activation.sourceRange })),
+    ...document.notes.map((note) => ({ names: note.participants, range: note.sourceRange })),
+    ...document.references.map((reference) => ({ names: reference.participants, range: reference.sourceRange })),
+  ])
+    for (const name of item.names)
+      if (!knownParticipants.has(name.toLocaleLowerCase()))
+        diagnostics.push({
+          ...item.range,
+          severity: "error",
+          message: `Unknown Sequence participant ${name}`,
+          source: "PlantUML Sequence",
+        });
+  const anchors = new Set(document.messages.flatMap((message) => (message.anchor ? [message.anchor] : [])));
+  for (const duration of document.durations)
+    for (const anchor of [duration.fromAnchor, duration.toAnchor])
+      if (!anchors.has(anchor))
+        diagnostics.push({
+          ...duration.sourceRange,
+          severity: "error",
+          message: `Unknown Sequence anchor ${anchor}`,
+          source: "PlantUML Sequence",
+        });
+  offset = 0;
+  for (const line of source.split("\n")) {
+    const durationLike = line.match(/^\s*\{[^}]+\}\s+(\S+)\s+\{[^}]+\}/);
+    if (durationLike && !/^(?:<[-.]+>|<->|<-->)$/.test(durationLike[1]!))
+      diagnostics.push({
+        from: offset,
+        to: offset + line.length,
+        severity: "error",
+        message: `Invalid duration arrow ${durationLike[1]}`,
+        source: "PlantUML Sequence",
+      });
+    offset += line.length + 1;
+  }
   return diagnostics;
 }
 

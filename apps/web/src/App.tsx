@@ -611,9 +611,12 @@ export function App() {
   const selectedUseCaseRelationship = useCaseDocument.relationships.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCasePackage = useCaseDocument.packages.find((item) => item.id === selectedUseCaseObjectId);
   const selectedUseCaseNote = useCaseDocument.notes.find((item) => item.id === selectedUseCaseObjectId);
-  const sequenceParticipantNames = sequenceDocument.participants.map(
-    (participant) => participant.alias ?? participant.label,
-  );
+  const sequenceParticipantNames = [
+    ...new Set([
+      ...sequenceDocument.participants.map((participant) => participant.alias ?? participant.label),
+      ...sequenceDocument.creations.map((creation) => creation.participant),
+    ]),
+  ];
   const activeDiagnostics = useMemo(
     () => diagnosticsForDiagram(workspace.diagramKind, workspace.source),
     [workspace.diagramKind, workspace.source],
@@ -3766,6 +3769,7 @@ export function App() {
         <AddSequenceStructureDialog
           initialKind={addSequenceStructureKind}
           participants={sequenceParticipantNames}
+          anchors={sequenceDocument.messages.flatMap((message) => (message.anchor ? [message.anchor] : []))}
           onAdd={addSequenceStructure}
           onClose={() => setAddSequenceStructureKind(undefined)}
         />
@@ -4068,6 +4072,7 @@ export function App() {
           key={`${selectedSequenceStructure.id}:${selectedSequenceStructure.sourceRange.to}`}
           structure={selectedSequenceStructure}
           participants={sequenceParticipantNames}
+          anchors={sequenceDocument.messages.flatMap((message) => (message.anchor ? [message.anchor] : []))}
           onApply={applySequenceStructure}
           onDelete={removeSequenceStructure}
           onClose={() => setSelectedSequenceStructureId(undefined)}

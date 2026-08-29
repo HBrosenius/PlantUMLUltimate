@@ -80,6 +80,24 @@ describe("Sequence source operations", () => {
     );
   });
 
+  it("treats created lifelines as declarations and renames every use", () => {
+    const source =
+      "@startuml\nparticipant API\ncreate database Store\nAPI -> Store: Save\nactivate Store\nnote right of Store: Ready\n@enduml";
+    const document = parseSequence(source);
+    const occurrences = sequenceParticipantOccurrences(source, document).filter((item) => item.key === "store");
+    expect(occurrences.map((item) => item.role)).toEqual(["declaration", "reference", "reference", "reference"]);
+    const renamed = updateSequenceStructure(source, document.creations[0]!, {
+      kind: "create",
+      participantKind: "database",
+      participant: "Order Store",
+    });
+    expect(renamed).toContain('create database "Order Store"');
+    expect(renamed).toContain('API -> "Order Store": Save');
+    expect(renamed).toContain('activate "Order Store"');
+    expect(renamed).toContain('note right of "Order Store": Ready');
+    expect(renamed).not.toMatch(/\bStore\b(?!")/);
+  });
+
   it("inserts participants and messages before @enduml", () => {
     let source = "@startuml\n@enduml";
     source = insertSequenceParticipant(source, { kind: "boundary", label: "Web UI", alias: "UI" });
@@ -520,7 +538,7 @@ describe("Sequence source operations", () => {
 
   it("reconnects participant-bound structures without losing their presentation", () => {
     let source =
-      "@startuml\nparticipant A\nparticipant B\nparticipant C\nnote over A, B #Yellow: Shared\nref #LightBlue over A, B: Other flow\nactivate A #Red\ncreate control B\n@enduml";
+      "@startuml\nparticipant A\nparticipant B\nparticipant C\nnote over A, B #Yellow: Shared\nref #LightBlue over A, B: Other flow\nactivate A #Red\ncreate control D\n@enduml";
     let document = parseSequence(source);
     source = reconnectSequenceStructure(source, document.notes[0]!, 1, "C");
     document = parseSequence(source);
