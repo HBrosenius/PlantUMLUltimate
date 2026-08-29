@@ -1851,6 +1851,57 @@ test("selects and edits Sequence notes and references from the diagram", async (
   await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
 });
 
+test("selects and edits the remaining Sequence timeline structures", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(
+    page,
+    '@startuml\n!pragma teoz true\nactor User\nbox "Backend" #LightBlue\nparticipant API\nend box\nparticipant Orders\nautonumber 10 5 "000"\n{begin} User -> API: Start\nactivate API #Yellow\ncreate database Store\n{finish} API -> Store: Save\ndeactivate API\n{begin} <-> {finish}: elapsed\n== Later ==\n...wait...\n||20||\nreturn Done\nnewpage Next\n@enduml',
+  );
+
+  const inspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
+  await page.getByRole("button", { name: "Drag Participant box: Backend", exact: true }).click();
+  await expect(inspector.getByLabel("Label")).toHaveValue("Backend");
+  await inspector.getByLabel("User").check();
+  await inspector.getByLabel("Orders").check();
+  await inspector.getByLabel("API").uncheck();
+  await inspector.getByLabel("Label").fill("Services");
+  await inspector.getByLabel("Color").fill("#Lavender");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toContain("participant API\nbox Services #Lavender\nactor User\nparticipant Orders\nend box");
+
+  await page.getByRole("button", { name: "Drag Autonumber vertically", exact: true }).click();
+  await expect(inspector.getByLabel("Parameters")).toHaveValue('10 5 "000"');
+  await inspector.getByLabel("Parameters").fill('20 10 "0000"');
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText('autonumber 20 10 "0000"');
+
+  await page.getByRole("button", { name: "Drag Activation: API vertically", exact: true }).first().click();
+  await inspector.getByLabel("Action").selectOption("destroy");
+  await inspector.getByLabel("Participant").selectOption("Orders");
+  await expect(inspector.getByLabel("Color")).toHaveCount(0);
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("destroy Orders");
+
+  await page.getByRole("button", { name: "Drag Duration: elapsed vertically", exact: true }).click();
+  await inspector.getByLabel("Arrow").fill("<->");
+  await inspector.getByLabel("Label").fill("total time");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("{begin} <-> {finish}: total time");
+  await expect(page.getByRole("button", { name: "Drag Create Store vertically", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drag separator: Later vertically", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drag delay: wait vertically", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drag space: 20 vertically", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drag return: Done vertically", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drag newpage: Next vertically", exact: true })).toBeVisible();
+  await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
+
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
   await page.getByRole("button", { name: "Add", exact: true }).focus();
   await page.keyboard.press("Alt+t");

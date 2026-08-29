@@ -366,7 +366,9 @@ export function parseSequence(source: string): SequenceDocument {
                   : operation.startsWith("inc")
                     ? "increment"
                     : "start",
-            value: [autonumber[1], autonumber[2]].filter(Boolean).join(" "),
+            value: operation.startsWith("inc")
+              ? [operation.slice(3).trim(), autonumber[2]].filter(Boolean).join(" ")
+              : (autonumber[2]?.trim() ?? ""),
             sourceRange: range,
           });
         } else if (creation)
@@ -806,16 +808,26 @@ export type SequenceStructureInput =
   | { kind: "space"; pixels?: number }
   | { kind: "reference"; participants: string[]; text: string; color?: string; multiline?: boolean }
   | { kind: "box"; label: string; participants: string[]; color?: string }
-  | { kind: "autonumber"; command: SequenceAutonumber["command"]; start?: number; increment?: number; format?: string }
+  | {
+      kind: "autonumber";
+      command: SequenceAutonumber["command"];
+      value?: string;
+      start?: number;
+      increment?: number;
+      format?: string;
+    }
   | { kind: "create"; participantKind: SequenceParticipantKind; participant: string }
   | { kind: "return"; label: string }
   | { kind: "newpage"; label: string }
   | { kind: "duration"; fromAnchor: string; toAnchor: string; arrow: string; label: string };
 
 function autonumberStatement(value: Extract<SequenceStructureInput, { kind: "autonumber" }>): string {
+  const parameters = value.value?.trim();
   if (value.command === "stop") return "autonumber stop";
-  if (value.command === "resume") return "autonumber resume";
-  if (value.command === "increment") return `autonumber inc${value.increment ? ` ${value.increment}` : ""}`;
+  if (value.command === "resume") return `autonumber resume${parameters ? ` ${parameters}` : ""}`;
+  if (value.command === "increment")
+    return `autonumber inc${parameters ? ` ${parameters}` : value.increment ? ` ${value.increment}` : ""}`;
+  if (parameters) return `autonumber ${parameters}`;
   return `autonumber${value.start !== undefined ? ` ${value.start}` : ""}${value.increment !== undefined ? ` ${value.increment}` : ""}${value.format?.trim() ? ` "${value.format.trim().replaceAll('"', '\\"')}"` : ""}`;
 }
 
@@ -829,7 +841,7 @@ export function insertSequenceStructure(source: string, value: SequenceStructure
         : []);
     statement = `${fragmentHeader(value)}\n${alternatives.map((branch) => `else${branch.color?.trim() ? ` ${branch.color.trim()}` : ""}${branch.label.trim() ? ` ${branch.label.trim()}` : ""}\n`).join("")}end`;
   } else if (value.kind === "activation") {
-    statement = `${value.action} ${quote(value.participant)}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
+    statement = `${value.action} ${quote(value.participant)}${value.action === "activate" && value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
   } else if (value.kind === "note") {
     const owners = value.participants.map(quote).join(", ");
     const header = `${value.aligned ? "/ " : ""}${value.shape ?? "note"} ${value.placement}${owners ? ` ${owners}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
@@ -873,7 +885,7 @@ export type SequenceStructure =
 function structureStatement(value: SequenceStructureInput): string {
   if (value.kind === "fragment") return fragmentHeader(value);
   if (value.kind === "activation")
-    return `${value.action} ${quote(value.participant)}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
+    return `${value.action} ${quote(value.participant)}${value.action === "activate" && value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
   if (value.kind === "note") {
     const owners = value.participants.map(quote).join(", ");
     const header = `${value.aligned ? "/ " : ""}${value.shape ?? "note"} ${value.placement}${owners ? ` ${owners}` : ""}${value.color?.trim() ? ` ${value.color.trim()}` : ""}`;
@@ -938,10 +950,55 @@ export function updateSequenceStructure(
   value: SequenceStructureInput,
 ): string {
   if (value.kind === "box") {
+    const boxIndex = parseSequence(source).boxes.findIndex(
+      (item) => item.sourceRange.from === structure.sourceRange.from,
+    );
     const block = source.slice(structure.sourceRange.from, structure.sourceRange.to);
     const newline = block.indexOf("\n");
     const body = newline >= 0 ? block.slice(newline) : "\nend box";
-    return applyReplacements(source, [{ ...structure.sourceRange, text: `${structureStatement(value)}${body}` }]);
+    let updated = applyReplacements(source, [
+      { ...structure.sourceRange, text: `${structureStatement(value)}${body}` },
+    ]);
+    const desired = new Set(value.participants);
+    const current = new Set("participants" in structure ? structure.participants : []);
+    for (const reference of [...current].filter((name) => !desired.has(name)).reverse()) {
+      const document = parseSequence(updated);
+      const box = document.boxes[boxIndex];
+      const participant = document.participants.find(
+        (item) =>
+          participantReference(item) === reference &&
+          box &&
+          item.sourceRange.from > box.sourceRange.from &&
+          item.sourceRange.to < box.sourceRange.to,
+      );
+      if (!box || !participant) continue;
+      const declaration = updated.slice(participant.sourceRange.from, participant.sourceRange.to);
+      const to = participant.sourceRange.to + (updated[participant.sourceRange.to] === "\n" ? 1 : 0);
+      updated = applyReplacements(updated, [
+        { from: participant.sourceRange.from, to, text: "" },
+        { from: box.sourceRange.from, to: box.sourceRange.from, text: `${declaration}\n` },
+      ]);
+    }
+    for (const reference of [...desired].filter((name) => !current.has(name))) {
+      const document = parseSequence(updated);
+      const box = document.boxes[boxIndex];
+      const participant = document.participants.find(
+        (item) =>
+          participantReference(item) === reference &&
+          box &&
+          !(item.sourceRange.from > box.sourceRange.from && item.sourceRange.to < box.sourceRange.to),
+      );
+      if (!box || !participant) continue;
+      const declaration = updated.slice(participant.sourceRange.from, participant.sourceRange.to);
+      const to = participant.sourceRange.to + (updated[participant.sourceRange.to] === "\n" ? 1 : 0);
+      const boxBlock = updated.slice(box.sourceRange.from, box.sourceRange.to);
+      const endLine = box.sourceRange.from + Math.max(0, boxBlock.lastIndexOf("\n") + 1);
+      updated = applyReplacements(updated, [
+        { from: participant.sourceRange.from, to, text: "" },
+        { from: endLine, to: endLine, text: `${declaration}\n` },
+      ]);
+    }
+    return updated;
   }
   if ("fragmentKind" in value) {
     const block = source.slice(structure.sourceRange.from, structure.sourceRange.to);

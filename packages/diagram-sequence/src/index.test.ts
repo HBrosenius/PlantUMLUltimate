@@ -247,6 +247,15 @@ describe("Sequence source operations", () => {
     expect(source).toContain("alt Success\nelse Failure\nend");
     expect(source).toContain("activate API #red");
     expect(source).toContain("note over User, API: Working");
+    const activation = parseSequence(source).activations[0]!;
+    expect(
+      updateSequenceStructure(source, activation, {
+        kind: "activation",
+        action: "destroy",
+        participant: "API",
+        color: "#red",
+      }),
+    ).toContain("destroy API\n");
   });
 
   it("tracks balanced fragment ranges and edits or deletes the complete block safely", () => {
@@ -425,6 +434,23 @@ describe("Sequence source operations", () => {
     expect(updated).toContain("User -> API: Call");
   });
 
+  it("edits participant box membership while preserving declarations and body text", () => {
+    const source =
+      '@startuml\nactor User\nbox "Backend" #LightBlue\nparticipant API\ndatabase DB\nend box\nUser -> API: Call\n@enduml';
+    const document = parseSequence(source);
+    const updated = updateSequenceStructure(source, document.boxes[0]!, {
+      kind: "box",
+      label: "Services",
+      participants: ["User", "API"],
+      color: "#Lavender",
+    });
+    expect(updated).toContain("box Services #Lavender\nparticipant API\nactor User\nend box");
+    expect(updated).toContain("database DB\nbox Services");
+    expect(updated.match(/actor User/g)).toHaveLength(1);
+    expect(updated.match(/database DB/g)).toHaveLength(1);
+    expect(updated).toContain("User -> API: Call");
+  });
+
   it("inserts and updates references and autonumber commands", () => {
     let source = "@startuml\nparticipant A\nparticipant B\n@enduml";
     source = insertSequenceStructure(source, {
@@ -449,6 +475,14 @@ describe("Sequence source operations", () => {
       text: "Changed",
     });
     expect(changed).toContain("ref over B: Changed");
+    const autonumber = parseSequence(source).autonumbers[0]!;
+    expect(autonumber).toMatchObject({ command: "start", value: '10 5 "000"' });
+    const renumbered = updateSequenceStructure(source, autonumber, {
+      kind: "autonumber",
+      command: "start",
+      value: '20 10 "0000"',
+    });
+    expect(renumbered).toContain('autonumber 20 10 "0000"');
   });
 
   it("reconnects participant-bound structures without losing their presentation", () => {

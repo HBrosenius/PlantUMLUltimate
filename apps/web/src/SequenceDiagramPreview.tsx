@@ -889,6 +889,8 @@ function addStructureTimelineGrips(
     grip.setAttribute("class", `sequence-structure-grip${structure.id === selectedStructureId ? " selected" : ""}`);
     grip.setAttribute("data-sequence-drag-hit", "true");
     grip.setAttribute("data-sequence-structure-id", structure.id);
+    grip.setAttribute("tabindex", "0");
+    grip.setAttribute("role", "button");
     grip.setAttribute("aria-label", `Drag ${structureLabel(structure)} vertically`);
     svg.appendChild(grip);
   });

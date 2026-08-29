@@ -57,14 +57,20 @@ export function AddSequenceStructureDialog({
             }
           : {}),
       };
-    if (kind === "activation") return { kind, action, participant, ...(color.trim() ? { color } : {}) };
+    if (kind === "activation")
+      return { kind, action, participant, ...(action === "activate" && color.trim() ? { color } : {}) };
     if (kind === "note")
       return {
         kind,
         shape: noteShape,
         aligned,
         placement,
-        participants: [participant, secondParticipant].filter(Boolean),
+        participants:
+          placement === "over"
+            ? [participant, secondParticipant].filter(Boolean)
+            : placement === "left of" || placement === "right of"
+              ? [participant].filter(Boolean)
+              : [],
         text: label,
         ...(color.trim() ? { color } : {}),
       };
@@ -192,10 +198,12 @@ export function AddSequenceStructureDialog({
               participants={participants}
               onChange={setParticipant}
             />
-            <label>
-              Color
-              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
-            </label>
+            {action === "activate" && (
+              <label>
+                Color
+                <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
+              </label>
+            )}
           </>
         )}
         {kind === "note" && (
@@ -223,7 +231,7 @@ export function AddSequenceStructureDialog({
                 ))}
               </select>
             </label>
-            {placement !== "across" && (
+            {(placement === "over" || placement === "left of" || placement === "right of") && (
               <ParticipantField
                 label="Participant"
                 value={participant}

@@ -56,7 +56,7 @@ export function SequenceStructureInspector({
       ) : isReference(structure) ? (
         <ReferenceForm structure={structure} participants={participants} onApply={onApply} onDelete={onDelete} />
       ) : isBox(structure) ? (
-        <BoxForm structure={structure} onApply={onApply} onDelete={onDelete} />
+        <BoxForm structure={structure} participants={participants} onApply={onApply} onDelete={onDelete} />
       ) : isAutonumber(structure) ? (
         <AutonumberForm structure={structure} onApply={onApply} onDelete={onDelete} />
       ) : isCreation(structure) ? (
@@ -209,20 +209,23 @@ function ReferenceForm({
 
 function BoxForm({
   structure,
+  participants,
   onApply,
   onDelete,
 }: {
   structure: SequenceParticipantBox;
+  participants: string[];
   onApply(value: SequenceStructureInput): void;
   onDelete(): void;
 }) {
   const [label, setLabel] = useState(structure.label);
   const [color, setColor] = useState(structure.color ?? "");
+  const [selectedParticipants, setSelectedParticipants] = useState(structure.participants);
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        onApply({ kind: "box", label, participants: structure.participants, ...(color.trim() ? { color } : {}) });
+        onApply({ kind: "box", label, participants: selectedParticipants, ...(color.trim() ? { color } : {}) });
       }}
     >
       <label>
@@ -233,7 +236,23 @@ function BoxForm({
         Color
         <input value={color} onChange={(event) => setColor(event.target.value)} />
       </label>
-      <p>{structure.participants.join(", ") || "No participants"}</p>
+      <fieldset>
+        <legend>Participants</legend>
+        {participants.map((name) => (
+          <label key={name} className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={selectedParticipants.includes(name)}
+              onChange={() =>
+                setSelectedParticipants((current) =>
+                  current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
+                )
+              }
+            />
+            {name}
+          </label>
+        ))}
+      </fieldset>
       <Actions onDelete={onDelete} />
     </form>
   );
@@ -249,11 +268,12 @@ function AutonumberForm({
   onDelete(): void;
 }) {
   const [command, setCommand] = useState(structure.command);
+  const [value, setValue] = useState(structure.value.replace(/^inc\s*/i, ""));
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        onApply({ kind: "autonumber", command });
+        onApply({ kind: "autonumber", command, ...(value.trim() ? { value } : {}) });
       }}
     >
       <label>
@@ -265,6 +285,16 @@ function AutonumberForm({
           <option value="increment">Increment</option>
         </select>
       </label>
+      {command !== "stop" && (
+        <label>
+          Parameters
+          <input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder={command === "start" ? '10 5 "000"' : command === "increment" ? "A" : "Optional"}
+          />
+        </label>
+      )}
       <Actions onDelete={onDelete} />
     </form>
   );
@@ -409,7 +439,12 @@ function ActivationForm({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        onApply({ kind: "activation", action, participant, ...(color.trim() ? { color } : {}) });
+        onApply({
+          kind: "activation",
+          action,
+          participant,
+          ...(action === "activate" && color.trim() ? { color } : {}),
+        });
       }}
     >
       <label>
@@ -428,10 +463,12 @@ function ActivationForm({
           ))}
         </select>
       </label>
-      <label>
-        Color
-        <input value={color} onChange={(event) => setColor(event.target.value)} />
-      </label>
+      {action === "activate" && (
+        <label>
+          Color
+          <input value={color} onChange={(event) => setColor(event.target.value)} />
+        </label>
+      )}
       <Actions onDelete={onDelete} />
     </form>
   );
