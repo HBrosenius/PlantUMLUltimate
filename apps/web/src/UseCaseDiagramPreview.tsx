@@ -21,7 +21,6 @@ export function UseCaseDiagramPreview({
   document,
   selectedId,
   onSelect,
-  onBackgroundSelect,
   onRelationshipCreate,
   onRelationshipReconnect,
   onMoveToPackage,
@@ -36,7 +35,6 @@ export function UseCaseDiagramPreview({
   document: UseCaseDocument;
   selectedId?: string | undefined;
   onSelect(id: string): void;
-  onBackgroundSelect(): void;
   onRelationshipCreate(fromId: string, toId: string): void;
   onRelationshipReconnect(relationshipId: string, endpoint: "from" | "to", targetId: string): void;
   onMoveToPackage(elementId: string, packageId: string): void;
@@ -211,7 +209,6 @@ export function UseCaseDiagramPreview({
       event.target instanceof Element ? event.target.closest<SVGElement>("[data-usecase-object-id]") : null;
     const id = target?.getAttribute("data-usecase-object-id");
     if (id) onSelect(id);
-    else onBackgroundSelect();
   };
 
   const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -263,6 +260,7 @@ export function UseCaseDiagramPreview({
     const id = reconnectId ?? connection ?? moveHandle ?? hit?.getAttribute("data-usecase-object-id");
     const type = hit?.getAttribute("data-usecase-object-type");
     if (!id || (!reconnectId && !connection && !moveHandle && type !== "actor" && type !== "usecase")) return;
+    event.stopPropagation();
     const kind = reconnectId ? "reconnect" : connection ? "connect" : "move";
     const preview =
       kind === "connect" || kind === "reconnect" ? createConnectionPreview(target as SVGGraphicsElement) : undefined;
@@ -399,6 +397,7 @@ export function UseCaseDiagramPreview({
           <div
             ref={root}
             className="diagram usecase-diagram"
+            data-inspector-trigger
             style={{ transform: `scale(${zoom})` }}
             onClick={select}
             onKeyDown={keyboardSelect}

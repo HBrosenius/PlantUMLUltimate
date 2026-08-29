@@ -161,16 +161,7 @@ export function SequenceDiagramPreview({
     addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
     addStructureReconnectAnchors(root, participants, structures, selectedStructureId);
     restoreActiveReconnectPreview(root);
-    const frame = window.requestAnimationFrame(() => {
-      root
-        .querySelectorAll(
-          ".sequence-selected-message-line, .sequence-selected-message-head, .sequence-selected-structure, .sequence-participant-anchor, .sequence-message-endpoint, .sequence-structure-endpoint",
-        )
-        .forEach((element) => element.remove());
-      addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
-      addStructureReconnectAnchors(root, participants, structures, selectedStructureId);
-      restoreActiveReconnectPreview(root);
-    });
+    const frame = window.requestAnimationFrame(() => restoreActiveReconnectPreview(root));
     return () => window.cancelAnimationFrame(frame);
 
     function restoreActiveReconnectPreview(currentRoot: HTMLDivElement) {
@@ -262,6 +253,7 @@ export function SequenceDiagramPreview({
     const structureId = target.closest("[data-sequence-structure-id]")?.getAttribute("data-sequence-structure-id");
     if (!participantId && !messageId && !endpointMessageId && !structureId && !endpointStructureId) return;
     event.preventDefault();
+    event.stopPropagation();
     window.getSelection()?.removeAllRanges();
     const element = structureEndpointHandle ?? endpointHandle ?? target.closest("text") ?? target;
     const reconnectPreview =
@@ -317,6 +309,34 @@ export function SequenceDiagramPreview({
       ...(movePreview ? { movePreview } : {}),
       ...(structureMovePreview ? { structureMovePreview } : {}),
     };
+    const activeDrag = dragRef.current;
+    if (activeDrag.kind === "message-endpoint" && activeDrag.endpoint) {
+      const keepPreviewAttached = () => {
+        if (dragRef.current !== activeDrag || !activeDrag.endpoint) return;
+        if (!activeDrag.reconnectPreview?.line.isConnected) {
+          const handle = diagramRef.current?.querySelector<SVGCircleElement>(
+            `[data-sequence-message-id="${CSS.escape(activeDrag.id)}"][data-sequence-message-endpoint="${activeDrag.endpoint}"]`,
+          );
+          if (handle) {
+            const preview = createReconnectPreview(
+              diagramRef.current,
+              handle,
+              activeDrag.endpoint,
+              activeDrag.id,
+              participants,
+              messages,
+            );
+            activeDrag.element = handle;
+            if (preview) {
+              activeDrag.reconnectPreview = preview;
+              updateReconnectPreview(preview, activeDrag.currentX, activeDrag.currentY);
+            }
+          } else onMessageSelect(activeDrag.id);
+        }
+        window.requestAnimationFrame(keepPreviewAttached);
+      };
+      window.requestAnimationFrame(keepPreviewAttached);
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -330,6 +350,23 @@ export function SequenceDiagramPreview({
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 5) return;
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
+    if (drag.kind === "message-endpoint" && drag.endpoint && !drag.reconnectPreview?.line.isConnected) {
+      const handle = diagramRef.current?.querySelector<SVGCircleElement>(
+        `[data-sequence-message-id="${CSS.escape(drag.id)}"][data-sequence-message-endpoint="${drag.endpoint}"]`,
+      );
+      if (handle) {
+        const preview = createReconnectPreview(
+          diagramRef.current,
+          handle,
+          drag.endpoint,
+          drag.id,
+          participants,
+          messages,
+        );
+        drag.element = handle;
+        if (preview) drag.reconnectPreview = preview;
+      }
+    }
     if (drag.reconnectPreview) updateReconnectPreview(drag.reconnectPreview, event.clientX, event.clientY);
     if (drag.movePreview) updateMessageMovePreview(drag.movePreview, event.clientX, event.clientY);
     if (drag.structureMovePreview) updateStructureMovePreview(drag.structureMovePreview, event.clientX, event.clientY);
@@ -463,10 +500,8 @@ export function SequenceDiagramPreview({
         const target = diagramRef.current?.querySelector<SVGGraphicsElement>(
           `[data-sequence-drag-hit][data-sequence-participant-id="${CSS.escape(participantId)}"]`,
         );
-        const placement =
-          target && event.clientX > target.getBoundingClientRect().left + target.getBoundingClientRect().width / 2
-            ? "after"
-            : "before";
+        const targetBox = target?.getBoundingClientRect();
+        const placement = targetBox && event.clientX > targetBox.left + targetBox.width / 2 + 4 ? "after" : "before";
         onParticipantReorder(drag.id, participantId, placement);
       }
       return;
@@ -580,6 +615,7 @@ export function SequenceDiagramPreview({
           <div
             className="diagram sequence-diagram"
             ref={diagramRef}
+            data-inspector-trigger
             style={{ transform: `scale(${zoom})` }}
             onClick={selectRenderedObject}
             onKeyDown={selectRenderedObjectByKeyboard}

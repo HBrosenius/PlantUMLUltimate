@@ -833,16 +833,14 @@ export function App() {
     )
       return;
     const dismissInspector = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(".task-inspector"))) return;
-      if (
-        target instanceof Element &&
-        target.closest(
-          "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]",
-        )
-      )
-        return;
+      const inspectorTrigger =
+        "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
+      if (target instanceof Element && target.closest(inspectorTrigger)) return;
+      if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       setSelectedDividerIndex(undefined);
@@ -1742,10 +1740,14 @@ export function App() {
   const applyUseCaseRelationship = useCallback(
     (value: UseCaseRelationshipInput) => {
       if (!selectedUseCaseRelationship) return;
-      commitSource(
-        updateUseCaseRelationship(workspace.source, useCaseDocument, selectedUseCaseRelationship, value),
-        "Update Use Case relationship",
-      );
+      if (
+        !commitSource(
+          updateUseCaseRelationship(workspace.source, useCaseDocument, selectedUseCaseRelationship, value),
+          "Update Use Case relationship",
+        )
+      )
+        return;
+      setSelectedUseCaseObjectId(selectedUseCaseRelationship.id);
     },
     [commitSource, selectedUseCaseRelationship, useCaseDocument, workspace.source],
   );
@@ -2256,7 +2258,14 @@ export function App() {
   const applySequenceMessage = useCallback(
     (value: SequenceMessageInspectorValue) => {
       if (!selectedSequenceMessage) return;
-      commitSource(updateSequenceMessage(workspace.source, selectedSequenceMessage, value), "Update Sequence message");
+      if (
+        !commitSource(
+          updateSequenceMessage(workspace.source, selectedSequenceMessage, value),
+          "Update Sequence message",
+        )
+      )
+        return;
+      setSelectedSequenceMessageId(selectedSequenceMessage.id);
       setInteractionMessage("Updated message");
     },
     [commitSource, selectedSequenceMessage, workspace.source],
@@ -2962,8 +2971,7 @@ export function App() {
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (moveEvent: PointerEvent) => {
       const rect = root.getBoundingClientRect();
-      const viewportWidth = document.documentElement.clientWidth;
-      update("splitPercent", Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / viewportWidth) * 100)));
+      update("splitPercent", Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / rect.width) * 100)));
     };
     const end = () => {
       window.removeEventListener("pointermove", move);
@@ -3242,7 +3250,7 @@ export function App() {
         style={{
           gridTemplateColumns:
             workspace.viewMode === "split"
-              ? `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
+              ? `min(${workspace.splitPercent}%, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
@@ -3291,7 +3299,6 @@ export function App() {
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
                 setSourceHighlightedSequenceParticipantId(occurrence?.key);
-                if (occurrence) return;
                 const object = findSequenceObjectAt(sequenceDocument, position);
                 if (
                   object &&
@@ -3300,7 +3307,7 @@ export function App() {
                   selectSequenceParticipant(object.id, false);
                 else if (object && "from" in object) selectSequenceMessage(object.id, false);
                 else if (object) selectSequenceStructure(object.id, false);
-                else {
+                else if (!occurrence) {
                   setSelectedSequenceParticipantId(undefined);
                   setSelectedSequenceMessageId(undefined);
                   setSelectedSequenceStructureId(undefined);
@@ -3470,7 +3477,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={useCaseDocument}
-              selectedId={sourceHighlightedUseCaseId ?? selectedUseCaseObjectId}
+              selectedId={selectedUseCaseObjectId ?? sourceHighlightedUseCaseId}
               onSelect={(id) => {
                 setUseCaseSettingsOpen(false);
                 setSelectedUseCaseObjectId(id);
@@ -3480,10 +3487,6 @@ export function App() {
                   ...useCaseDocument.notes,
                 ].find((item) => item.id === id);
                 if (object) setSelectionRequest({ ...object.sourceRange });
-              }}
-              onBackgroundSelect={() => {
-                setSelectedUseCaseObjectId(undefined);
-                setUseCaseSettingsOpen(false);
               }}
               onRelationshipCreate={createUseCaseRelationshipByDrag}
               onRelationshipReconnect={reconnectUseCaseRelationshipByDrag}
