@@ -2,7 +2,7 @@ import type { TextRange } from "@plantuml-studio/language-core";
 import type { ClassDocument, ClassEntity } from "./model";
 
 export interface ClassSymbolOccurrence {
-  kind: "class-entity";
+  kind: "class-entity" | "class-package";
   key: string;
   value: string;
   range: TextRange;
@@ -49,6 +49,23 @@ export function collectClassSymbolOccurrences(source: string, document: ClassDoc
   for (const entity of document.entities) {
     const after = add(entity, entity.label, entity.openRange, "declaration", undefined, "label");
     if (entity.alias) add(entity, entity.alias, entity.openRange, "declaration", after, "alias");
+  }
+  for (const item of document.packages) {
+    const addPackage = (value: string, after?: number, declaration?: "label" | "alias") => {
+      const valueRange = nextValueRange(source, item.openRange, value, after);
+      if (!valueRange) return undefined;
+      occurrences.push({
+        kind: "class-package",
+        key: item.id,
+        value,
+        range: valueRange,
+        role: "declaration",
+        ...(declaration ? { declaration } : {}),
+      });
+      return valueRange.to;
+    };
+    const after = addPackage(item.label, undefined, "label");
+    if (item.alias) addPackage(item.alias, after, "alias");
   }
   for (const relationship of document.relationships) {
     const text = source.slice(relationship.sourceRange.from, relationship.sourceRange.to);

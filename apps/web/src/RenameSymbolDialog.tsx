@@ -5,6 +5,8 @@ export function RenameSymbolDialog({
   kind,
   value,
   occurrenceCount,
+  occurrences,
+  source,
   validate,
   onRename,
   onClose,
@@ -15,18 +17,25 @@ export function RenameSymbolDialog({
     | "person"
     | "participant"
     | "participant alias"
+    | "sequence anchor"
     | "actor"
     | "actor alias"
     | "use case"
     | "use case alias"
+    | "use case package"
+    | "use case package alias"
     | "class entity"
     | "class entity alias"
+    | "class package"
+    | "class package alias"
     | "activity action"
     | "activity partition"
     | "WBS node"
     | "WBS node alias";
   value: string;
   occurrenceCount: number;
+  occurrences: Array<{ range: { from: number; to: number }; role: "declaration" | "reference" }>;
+  source: string;
   validate?(value: string): string | undefined;
   onRename(value: string): void;
   onClose(): void;
@@ -34,6 +43,21 @@ export function RenameSymbolDialog({
   const [nextValue, setNextValue] = useState(value);
   const validationMessage = validate?.(nextValue);
   const dialog = useRef<HTMLFormElement>(null);
+  const preview = occurrences.map((occurrence) => {
+    const before = source.slice(0, occurrence.range.from);
+    const line = before.split("\n").length;
+    const lineStart = before.lastIndexOf("\n") + 1;
+    const lineEnd = source.indexOf("\n", occurrence.range.to);
+    const originalLine = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
+    const from = occurrence.range.from - lineStart;
+    const to = occurrence.range.to - lineStart;
+    return {
+      line,
+      role: occurrence.role,
+      before: originalLine,
+      after: `${originalLine.slice(0, from)}${nextValue.trim()}${originalLine.slice(to)}`,
+    };
+  });
   useDialogFocus(dialog, onClose);
   return (
     <div
@@ -76,6 +100,22 @@ export function RenameSymbolDialog({
             {validationMessage}
           </p>
         )}
+        <details className="rename-preview">
+          <summary>
+            Preview {preview.length} edit{preview.length === 1 ? "" : "s"}
+          </summary>
+          <ol>
+            {preview.map((item, index) => (
+              <li key={`${item.line}-${index}`}>
+                <span>
+                  Line {item.line} · {item.role}
+                </span>
+                <code>{item.before}</code>
+                <code>{item.after}</code>
+              </li>
+            ))}
+          </ol>
+        </details>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

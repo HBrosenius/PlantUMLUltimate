@@ -110,7 +110,7 @@ export interface SequenceDocument {
 }
 
 export interface SequenceParticipantOccurrence {
-  kind: "participant";
+  kind: "participant" | "sequence-anchor";
   key: string;
   value: string;
   range: { from: number; to: number };
@@ -508,7 +508,39 @@ export function sequenceParticipantOccurrences(
   for (const creation of document.creations)
     add(byReference.get(creation.participant), creation.participant, creation.sourceRange, "reference");
 
+  const anchors = new Map<string, SequenceMessage>();
+  for (const message of document.messages) {
+    if (!message.anchor) continue;
+    anchors.set(message.anchor, message);
+    const range = nextValueRange(source, message.sourceRange, message.anchor);
+    if (range)
+      occurrences.push({
+        kind: "sequence-anchor",
+        key: message.anchor,
+        value: message.anchor,
+        range,
+        role: "declaration",
+      });
+  }
+  for (const duration of document.durations) {
+    let after: number | undefined;
+    for (const anchor of [duration.fromAnchor, duration.toAnchor]) {
+      if (!anchors.has(anchor)) continue;
+      const range = nextValueRange(source, duration.sourceRange, anchor, after);
+      if (!range) continue;
+      occurrences.push({ kind: "sequence-anchor", key: anchor, value: anchor, range, role: "reference" });
+      after = range.to;
+    }
+  }
+
   return occurrences.sort((left, right) => left.range.from - right.range.from);
+}
+
+export function renameSequenceAnchor(source: string, document: SequenceDocument, anchor: string, next: string): string {
+  const replacements = sequenceParticipantOccurrences(source, document)
+    .filter((item) => item.kind === "sequence-anchor" && item.key === anchor)
+    .map((item) => ({ ...item.range, text: next }));
+  return applyReplacements(source, replacements);
 }
 
 function participantStatement(value: {

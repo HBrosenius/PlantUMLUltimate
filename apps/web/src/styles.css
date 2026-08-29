@@ -1376,6 +1376,40 @@ textarea:focus-visible,
   color: #d84a4a;
   font-size: 12px;
 }
+
+.rename-preview {
+  max-height: 15rem;
+  overflow: auto;
+}
+
+.rename-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rename-preview ol {
+  margin: 0.65rem 0 0;
+  padding-left: 1.5rem;
+}
+
+.rename-preview li {
+  margin-bottom: 0.75rem;
+}
+
+.rename-preview li span,
+.rename-preview code {
+  display: block;
+}
+
+.rename-preview code {
+  margin-top: 0.2rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.rename-preview code:last-child {
+  color: var(--accent, #2563eb);
+}
 .dialog-hint {
   margin: 8px 0 16px 140px;
   color: var(--muted);

@@ -160,9 +160,22 @@ test("finds and navigates semantic task references", async ({ page }) => {
   await expect(references.getByRole("listitem").last()).toContainText("Line 4 · reference");
   await references.getByRole("listitem").first().click();
   await expect(page.locator(".statusbar")).toContainText("Ln 3");
-  await references.getByRole("button", { name: "Close references" }).click();
+  const referenceAgain = await pointInText(page, 3, "Build");
+  await page.mouse.click(referenceAgain.x, referenceAgain.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const rename = page.getByRole("dialog", { name: "Rename task" });
+  await rename.getByLabel("New name").fill("Compile");
+  await rename.getByText("Preview 2 edits").click();
+  await expect(rename.locator(".rename-preview code")).toContainText([
+    "[Build] lasts 3 days",
+    "[Compile] lasts 3 days",
+  ]);
+  await rename.getByRole("button", { name: "Rename" }).click();
+  const renamedReferences = page.getByRole("complementary", { name: "References for Compile" });
+  await expect(renamedReferences).toContainText("2 occurrences");
+  await renamedReferences.getByRole("button", { name: "Close references" }).click();
 
-  const taskDeclaration = await pointInText(page, 2, "Build");
+  const taskDeclaration = await pointInText(page, 2, "Compile");
   await page.mouse.click(taskDeclaration.x, taskDeclaration.y, { button: "right" });
   await page.getByRole("menuitem", { name: "Next reference" }).click();
   await expect(page.locator(".statusbar")).toContainText("Ln 4");

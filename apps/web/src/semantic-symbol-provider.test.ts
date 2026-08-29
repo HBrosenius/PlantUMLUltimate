@@ -16,6 +16,14 @@ describe("semantic symbol provider contract", () => {
     { kind: "class", source: '@startuml\nclass "Order" as O\n@enduml', next: "Purchase" },
     { kind: "activity", source: "@startuml\n:Review order;\n@enduml", next: "Approve order" },
     { kind: "wbs", source: "@startwbs\n*(project) Project\n@endwbs", next: "initiative" },
+    {
+      kind: "sequence",
+      source:
+        "@startuml\n{request} Alice -> Bob: Call\n{request} <-> {response}: 1s\n{response} Bob --> Alice: Done\n@enduml",
+      next: "call-start",
+    },
+    { kind: "usecase", source: '@startuml\npackage "Sales" as sales {\n}\n@enduml', next: "Commerce" },
+    { kind: "class", source: '@startuml\nnamespace "Domain" as domain {\n}\n@enduml', next: "Core" },
   ];
 
   for (const item of cases)

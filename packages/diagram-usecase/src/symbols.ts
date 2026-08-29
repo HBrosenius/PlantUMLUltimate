@@ -2,7 +2,7 @@ import type { TextRange } from "@plantuml-studio/language-core";
 import type { UseCaseDocument, UseCaseElement } from "./model";
 
 export interface UseCaseSymbolOccurrence {
-  kind: "actor" | "usecase";
+  kind: "actor" | "usecase" | "usecase-package";
   key: string;
   value: string;
   range: TextRange;
@@ -57,6 +57,23 @@ export function collectUseCaseSymbolOccurrences(source: string, document: UseCas
   for (const element of document.elements) {
     const after = add(element, element.label, element.sourceRange, "declaration", undefined, "label");
     if (element.alias) add(element, element.alias, element.sourceRange, "declaration", after, "alias");
+  }
+  for (const item of document.packages) {
+    const addPackage = (value: string, after?: number, declaration?: "label" | "alias") => {
+      const valueRange = nextValueRange(source, item.openRange, value, after);
+      if (!valueRange) return undefined;
+      occurrences.push({
+        kind: "usecase-package",
+        key: item.id,
+        value,
+        range: valueRange,
+        role: "declaration",
+        ...(declaration ? { declaration } : {}),
+      });
+      return valueRange.to;
+    };
+    const after = addPackage(item.label, undefined, "label");
+    if (item.alias) addPackage(item.alias, after, "alias");
   }
   for (const relationship of document.relationships) {
     const text = source.slice(relationship.sourceRange.from, relationship.sourceRange.to);

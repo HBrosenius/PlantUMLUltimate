@@ -10,6 +10,7 @@ import {
 } from "@plantuml-studio/diagram-gantt";
 import {
   sequenceParticipantOccurrences,
+  renameSequenceAnchor,
   updateSequenceParticipant,
   type SequenceDocument,
   type SequenceParticipantOccurrence,
@@ -17,12 +18,14 @@ import {
 import {
   collectUseCaseSymbolOccurrences,
   updateUseCaseElement,
+  updateUseCasePackage,
   type UseCaseDocument,
   type UseCaseSymbolOccurrence,
 } from "@plantuml-studio/diagram-usecase";
 import {
   collectClassSymbolOccurrences,
   updateClassEntity,
+  updateClassPackage,
   type ClassDocument,
   type ClassSymbolOccurrence,
 } from "@plantuml-studio/diagram-class";
@@ -58,12 +61,17 @@ export type SemanticRenameMode =
   | "person"
   | "participant"
   | "participant alias"
+  | "sequence anchor"
   | "actor"
   | "actor alias"
   | "use case"
   | "use case alias"
+  | "use case package"
+  | "use case package alias"
   | "class entity"
   | "class entity alias"
+  | "class package"
+  | "class package alias"
   | "activity action"
   | "activity partition"
   | "WBS node"
@@ -99,6 +107,7 @@ export interface SemanticSymbolProvider {
   occurrencesFor(symbol: Pick<SemanticSymbolOccurrence, "kind" | "key">): SemanticSymbolOccurrence[];
   renameRequest(occurrence: SemanticSymbolOccurrence): SemanticRenameRequest | undefined;
   renameOccurrenceCount(request: SemanticRenameRequest): number;
+  renameOccurrences(request: SemanticRenameRequest): SemanticSymbolOccurrence[];
   validateRename(request: SemanticRenameRequest, value: string): string | undefined;
   rename(request: SemanticRenameRequest, value: string): SemanticRenameResult;
 }
@@ -115,6 +124,7 @@ export function createSemanticSymbolProvider(context: ProviderContext): Semantic
     occurrencesFor,
     renameRequest: (occurrence) => renameRequest(context, occurrence),
     renameOccurrenceCount: (request) => renameOccurrences(context, occurrences, request).length,
+    renameOccurrences: (request) => renameOccurrences(context, occurrences, request),
     validateRename: (request, value) => validateRename(context, occurrences, request, value),
     rename: (request, value) => rename(context, request, value),
   };
@@ -157,6 +167,7 @@ function renameRequest(
       mode: participant.alias && occurrence.value === participant.alias ? "participant alias" : "participant",
     };
   }
+  if (occurrence.kind === "sequence-anchor") return { occurrence, mode: "sequence anchor" };
   if (occurrence.kind === "actor" || occurrence.kind === "usecase") {
     const element = context.useCase.elements.find((item) => item.id === occurrence.key);
     if (!element) return undefined;
@@ -169,6 +180,22 @@ function renameRequest(
     return {
       occurrence,
       mode: !entity.alias || occurrence.declaration === "label" ? "class entity" : "class entity alias",
+    };
+  }
+  if (occurrence.kind === "usecase-package") {
+    const item = context.useCase.packages.find((candidate) => candidate.id === occurrence.key);
+    if (!item) return undefined;
+    return {
+      occurrence,
+      mode: item.alias && occurrence.declaration === "alias" ? "use case package alias" : "use case package",
+    };
+  }
+  if (occurrence.kind === "class-package") {
+    const item = context.classDiagram.packages.find((candidate) => candidate.id === occurrence.key);
+    if (!item) return undefined;
+    return {
+      occurrence,
+      mode: item.alias && occurrence.declaration === "alias" ? "class package alias" : "class package",
     };
   }
   if (occurrence.kind === "activity-action" || occurrence.kind === "activity-partition")
@@ -195,6 +222,8 @@ function renameOccurrences(
     if (request.mode === "participant alias") return item.value === participant?.alias;
     if (request.mode === "participant" && participant?.alias)
       return item.range.from >= participant.sourceRange.from && item.value === participant.label;
+    if (request.mode.endsWith("package alias")) return "declaration" in item && item.declaration === "alias";
+    if (request.mode.endsWith("package")) return "declaration" in item && item.declaration === "label";
     if (["actor alias", "use case alias", "class entity alias", "WBS node alias"].includes(request.mode))
       return item.role === "reference" || ("declaration" in item && item.declaration === "alias");
     if (["actor", "use case", "class entity", "WBS node"].includes(request.mode)) {
@@ -255,6 +284,17 @@ function validateRename(
       false,
     );
   }
+  if (target.kind === "sequence-anchor")
+    return validateRenameValue(value, {
+      label: "Sequence anchor",
+      currentIdentity: target.value,
+      identities: context.sequence.messages
+        .map((item) => item.anchor)
+        .filter((item): item is string => Boolean(item) && item !== target.value),
+      identifier: /^[A-Za-z_][\w.-]*$/,
+      identifierMessage:
+        "Sequence anchors must start with a letter or underscore and contain only letters, numbers, dots, underscores, or dashes",
+    });
   if (target.kind === "actor" || target.kind === "usecase") {
     const item = context.useCase.elements.find((candidate) => candidate.id === target.key);
     if (!item) return "Use Case element not found";
@@ -283,6 +323,22 @@ function validateRename(
         identity: candidate.alias ?? candidate.label,
       })),
       request.mode.endsWith(" alias") ? "Alias" : "Name",
+      true,
+    );
+  }
+  if (target.kind === "usecase-package" || target.kind === "class-package") {
+    const packages = target.kind === "usecase-package" ? context.useCase.packages : context.classDiagram.packages;
+    const item = packages.find((candidate) => candidate.id === target.key);
+    if (!item) return "Package not found";
+    const aliasMode = request.mode.endsWith(" alias");
+    return validateNamedIdentity(
+      value,
+      aliasMode,
+      item.alias,
+      item.label,
+      item.id,
+      packages.map((candidate) => ({ id: candidate.id, identity: candidate.alias ?? candidate.label })),
+      aliasMode ? "Alias" : "Package",
       true,
     );
   }
@@ -375,6 +431,14 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
     return {
       source: applySourceEdits(context.source, operation.edits),
       validateGenerated: true,
+      nextKey:
+        request.mode === "person"
+          ? trimmed.toLocaleLowerCase()
+          : request.mode === "task alias"
+            ? normalizeTaskId(trimmed)
+            : task?.alias?.value
+              ? task.id
+              : normalizeTaskId(trimmed),
       ...(request.mode === "person" ? { personRename: { from: target.value, to: trimmed } } : {}),
     };
   }
@@ -395,6 +459,10 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
       }),
       nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLowerCase(),
     };
+  }
+  if (target.kind === "sequence-anchor") {
+    const source = renameSequenceAnchor(context.source, context.sequence, target.key, trimmed);
+    return source === context.source ? { error: "Rename made no changes" } : { source, nextKey: trimmed };
   }
   if (target.kind === "actor" || target.kind === "usecase") {
     const item = context.useCase.elements.find((candidate) => candidate.id === target.key);
@@ -428,6 +496,33 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
       }),
       nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLowerCase(),
     };
+  }
+  if (target.kind === "usecase-package") {
+    const item = context.useCase.packages.find((candidate) => candidate.id === target.key);
+    if (!item) return { error: "Use Case package not found" };
+    const aliasMode = request.mode.endsWith(" alias");
+    const source = updateUseCasePackage(context.source, item, {
+      kind: item.kind,
+      label: aliasMode ? item.label : trimmed,
+      ...(aliasMode ? { alias: trimmed } : item.alias ? { alias: item.alias } : {}),
+      ...(item.color ? { color: item.color } : {}),
+      ...(item.stereotype ? { stereotype: item.stereotype } : {}),
+      ...(item.parentId ? { parentId: item.parentId } : {}),
+    });
+    return { source, nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLocaleLowerCase() };
+  }
+  if (target.kind === "class-package") {
+    const item = context.classDiagram.packages.find((candidate) => candidate.id === target.key);
+    if (!item) return { error: "Class package not found" };
+    const aliasMode = request.mode.endsWith(" alias");
+    const source = updateClassPackage(context.source, item, {
+      kind: item.kind,
+      label: aliasMode ? item.label : trimmed,
+      ...(aliasMode ? { alias: trimmed } : item.alias ? { alias: item.alias } : {}),
+      ...(item.color ? { color: item.color } : {}),
+      ...(item.parentId ? { parentId: item.parentId } : {}),
+    });
+    return { source, nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLocaleLowerCase() };
   }
   if (target.kind === "activity-action") {
     const item = context.activity.nodes.find((candidate) => candidate.id === target.key);

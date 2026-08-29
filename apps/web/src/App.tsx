@@ -270,33 +270,12 @@ export function App() {
   const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
   const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
   const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
-  const [sourceSymbol, setSourceSymbol] = useState<{
-    kind:
-      | "task"
-      | "person"
-      | "participant"
-      | "actor"
-      | "usecase"
-      | "class-entity"
-      | "activity-action"
-      | "activity-partition"
-      | "wbs-node";
-    key: string;
-  }>();
+  const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
   const [symbolMenu, setSymbolMenu] = useState<{ position: number; x: number; y: number }>();
   const [referenceSymbol, setReferenceSymbol] = useState<{
-    kind:
-      | "task"
-      | "person"
-      | "participant"
-      | "actor"
-      | "usecase"
-      | "class-entity"
-      | "activity-action"
-      | "activity-partition"
-      | "wbs-node";
+    kind: SemanticSymbolOccurrence["kind"];
     key: string;
     label: string;
   }>();
@@ -4137,6 +4116,8 @@ export function App() {
           value={renameSymbol.occurrence.value}
           validate={(value) => symbolProvider.validateRename(renameSymbol, value)}
           occurrenceCount={symbolProvider.renameOccurrenceCount(renameSymbol)}
+          occurrences={symbolProvider.renameOccurrences(renameSymbol)}
+          source={workspace.source}
           onRename={(nextValue) => {
             const target = renameSymbol;
             const result = symbolProvider.rename(target, nextValue);
@@ -4164,6 +4145,12 @@ export function App() {
                 setSourceHighlightedActivityId(result.nextKey);
               else if (target.occurrence.kind === "wbs-node") setSourceHighlightedWbsNodeId(result.nextKey);
             }
+            if (referenceSymbol?.kind === target.occurrence.kind && referenceSymbol.key === target.occurrence.key)
+              setReferenceSymbol({
+                kind: target.occurrence.kind,
+                key: result.nextKey ?? target.occurrence.key,
+                label: nextValue.trim(),
+              });
             setRenameSymbol(undefined);
             setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
           }}

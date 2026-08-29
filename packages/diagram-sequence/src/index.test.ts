@@ -8,6 +8,7 @@ import {
   insertSequenceParticipantBox,
   insertSequenceStructure,
   parseSequence,
+  renameSequenceAnchor,
   reconnectSequenceStructure,
   reorderSequenceStatement,
   sequenceParticipantOccurrences,
@@ -17,6 +18,16 @@ import {
 } from "./index";
 
 describe("parseSequence", () => {
+  it("collects and renames message anchor declarations and duration references", () => {
+    const source =
+      "@startuml\n{request} Alice -> Bob: Call\n{request} <-> {response}: 1s\n{response} Bob --> Alice: Done\n@enduml";
+    const document = parseSequence(source);
+    const occurrences = sequenceParticipantOccurrences(source, document).filter(
+      (item) => item.kind === "sequence-anchor" && item.key === "request",
+    );
+    expect(occurrences.map((item) => item.role)).toEqual(["declaration", "reference"]);
+    expect(renameSequenceAnchor(source, document, "request", "call-start")).toContain("{call-start} <-> {response}");
+  });
   it("parses typed participants and messages with source ranges", () => {
     const source = '@startuml\nactor "API User" as User #red\ndatabase Store\nUser --> Store: Load\n@enduml';
     const document = parseSequence(source);
