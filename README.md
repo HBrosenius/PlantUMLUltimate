@@ -25,7 +25,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - Automatic local workspace recovery and portable workspace backups
 - Installable desktop and mobile app with offline startup after the first visit
 - Keyboard-accessible menus, dialogs, diagram objects, and commands
-- Automated validation plus Chromium, Firefox, and WebKit end-to-end testing before deployment
+- Automated validation and a production offline smoke test before deployment, with full Chromium, Firefox, and WebKit coverage in CI
 - Light, dark, and system themes
 
 ## Requirements

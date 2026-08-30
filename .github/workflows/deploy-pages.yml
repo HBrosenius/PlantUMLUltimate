@@ -25,16 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run validate
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e:chromium
-      - run: npm run test:e2e:firefox
-      - run: npm run test:e2e:webkit
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e:pwa
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results-browser-tests
+          name: playwright-results-deployment-smoke-test
           path: test-results
           if-no-files-found: ignore
           retention-days: 7
