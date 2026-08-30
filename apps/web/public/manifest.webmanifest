@@ -1,12 +1,20 @@
 {
   "name": "PlantUML Ultimate",
   "short_name": "PlantUML",
+  "id": "/",
   "description": "Create and edit PlantUML diagrams visually while keeping the source in sync.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#111318",
   "theme_color": "#2563eb",
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": { "text/plain": [".puml", ".plantuml"] },
+      "launch_type": "single-client"
+    }
+  ],
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

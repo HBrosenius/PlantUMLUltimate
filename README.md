@@ -66,6 +66,8 @@ Open the hosted application in a browser that supports app installation. When th
 
 After the first successful visit, the editor shell and local PlantUML renderer are cached for offline startup. The status bar reports when the browser is offline; edits, history, and workspace recovery continue to use local storage. Reconnect before opening uncached external links or downloading browser updates.
 
+On desktop browsers that support PWA file handling, the installed app registers for `.puml` and `.plantuml` files. Opening one from the operating system loads it in a new tab and keeps its file handle, so **Save** writes back to the same file after the browser grants access.
+
 When a new deployed version has finished downloading, the status bar shows **Update available**. Selecting it activates the new version and reloads the editor while preserving the locally saved workspace.
 
 ## Getting started

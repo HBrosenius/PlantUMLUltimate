@@ -128,6 +128,7 @@ import {
   downloadText,
   openPlantUmlDocument,
   openWorkspaceBackupFile,
+  registerLaunchFileConsumer,
   savePlantUmlDocumentAs,
   svgFileName,
   writePlantUmlDocument,
@@ -1420,14 +1421,14 @@ export function App() {
     }
   }, [activeDocument.historyId, recordDocumentVersion, reportFileError]);
 
-  const openDocument = useCallback(async () => {
-    try {
-      const opened = await openPlantUmlDocument();
+  const addOpenedDocument = useCallback(
+    async (opened: Awaited<ReturnType<typeof openPlantUmlDocument>>) => {
       if (!opened) return;
       const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const diagramKind = detectDiagramKind(opened.source) ?? "gantt";
       const id = tabs.addDocument({
         historyId,
-        diagramKind: detectDiagramKind(opened.source) ?? "gantt",
+        diagramKind,
         source: opened.source,
         fileName: opened.fileName,
         dirty: false,
@@ -1438,16 +1439,28 @@ export function App() {
         historyId,
         source: opened.source,
         fileName: opened.fileName,
-        diagramKind: detectDiagramKind(opened.source) ?? "gantt",
+        diagramKind,
       });
       refreshHistoryControls();
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       setInteractionMessage(`Opened ${opened.fileName}`);
+    },
+    [recordDocumentVersion, refreshHistoryControls, tabs],
+  );
+
+  const openDocument = useCallback(async () => {
+    try {
+      await addOpenedDocument(await openPlantUmlDocument());
     } catch (error) {
       reportFileError(error);
     }
-  }, [recordDocumentVersion, refreshHistoryControls, reportFileError, tabs]);
+  }, [addOpenedDocument, reportFileError]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    registerLaunchFileConsumer(addOpenedDocument, reportFileError);
+  }, [addOpenedDocument, hydrated, reportFileError]);
 
   const saveDocumentAs = useCallback(async () => {
     try {

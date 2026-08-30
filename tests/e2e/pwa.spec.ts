@@ -1,5 +1,46 @@
 import { expect, test } from "@playwright/test";
 
+test("opens a PlantUML file delivered by the installed app launch queue", async ({ page }) => {
+  test.skip(!process.env.PWA_E2E, "Requires the production preview server");
+  await page.addInitScript(() => {
+    const launchWindow = window as Window & {
+      testLaunchConsumer?: (params: { files: unknown[] }) => void;
+      launchQueue?: { setConsumer(consumer: (params: { files: unknown[] }) => void): void };
+    };
+    Object.defineProperty(launchWindow, "launchQueue", {
+      configurable: true,
+      value: {
+        setConsumer: (consumer: (params: { files: unknown[] }) => void) => {
+          launchWindow.testLaunchConsumer = consumer;
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await page.waitForFunction(() =>
+    Boolean((window as Window & { testLaunchConsumer?: (params: { files: unknown[] }) => void }).testLaunchConsumer),
+  );
+  await page.evaluate(() => {
+    const launchWindow = window as Window & {
+      testLaunchConsumer?: (params: { files: unknown[] }) => void;
+    };
+    launchWindow.testLaunchConsumer!({
+      files: [
+        {
+          name: "launched.plantuml",
+          getFile: async () => ({
+            name: "launched.plantuml",
+            text: async () => "@startuml\nAlice -> Bob: Opened from Windows\n@enduml",
+          }),
+          createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
+        },
+      ],
+    });
+  });
+  await expect(page.locator('.document-tabs > button[title="launched.plantuml"]')).toBeVisible();
+  await expect(page.locator(".cm-content")).toContainText("Opened from Windows");
+});
+
 test("does not offer installation from an installed app window", async ({ page }) => {
   test.skip(!process.env.PWA_E2E, "Requires the production preview server");
   await page.addInitScript(() => {

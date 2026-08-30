@@ -7,12 +7,32 @@ export interface WritableFileHandle {
 interface FilePickerWindow extends Window {
   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>;
   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>;
+  launchQueue?: {
+    setConsumer(consumer: (params: { files: WritableFileHandle[] }) => void): void;
+  };
 }
 
 export interface OpenedDocument {
   source: string;
   fileName: string;
   handle?: WritableFileHandle;
+}
+
+export async function readPlantUmlDocument(handle: WritableFileHandle): Promise<OpenedDocument> {
+  const file = await handle.getFile();
+  return { source: await file.text(), fileName: file.name, handle };
+}
+
+export function registerLaunchFileConsumer(
+  onOpen: (document: OpenedDocument) => void | Promise<void>,
+  onError: (error: unknown) => void,
+): boolean {
+  const launchQueue = (window as FilePickerWindow).launchQueue;
+  if (!launchQueue) return false;
+  launchQueue.setConsumer((params) => {
+    for (const handle of params.files) void readPlantUmlDocument(handle).then(onOpen).catch(onError);
+  });
+  return true;
 }
 
 const pickerTypes = [
@@ -52,8 +72,7 @@ export async function openPlantUmlDocument(): Promise<OpenedDocument | undefined
   try {
     const [handle] = await pickerWindow.showOpenFilePicker({ multiple: false, types: pickerTypes });
     if (!handle) return undefined;
-    const file = await handle.getFile();
-    return { source: await file.text(), fileName: file.name, handle };
+    return await readPlantUmlDocument(handle);
   } catch (error) {
     if (cancelled(error)) return undefined;
     throw error;

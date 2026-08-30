@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   openPlantUmlDocument,
+  registerLaunchFileConsumer,
   savePlantUmlDocumentAs,
   svgFileName,
   pngFileName,
@@ -30,6 +31,31 @@ describe("PlantUML file integration", () => {
       fileName: "plan.puml",
       handle: file.value,
     });
+  });
+
+  it("opens files delivered to an installed PWA launch queue", async () => {
+    const file = handle("launched.plantuml", "@startuml\nAlice -> Bob\n@enduml");
+    const onOpen = vi.fn();
+    const onError = vi.fn();
+    let consumer: ((params: { files: WritableFileHandle[] }) => void) | undefined;
+    vi.stubGlobal("window", {
+      launchQueue: {
+        setConsumer: vi.fn((next) => {
+          consumer = next;
+        }),
+      },
+    });
+
+    expect(registerLaunchFileConsumer(onOpen, onError)).toBe(true);
+    consumer!({ files: [file.value] });
+    await vi.waitFor(() =>
+      expect(onOpen).toHaveBeenCalledWith({
+        source: "@startuml\nAlice -> Bob\n@enduml",
+        fileName: "launched.plantuml",
+        handle: file.value,
+      }),
+    );
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it("writes and closes before reporting a successful Save As", async () => {
