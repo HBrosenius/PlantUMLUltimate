@@ -2413,8 +2413,10 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
   const assertAligned = (items: Awaited<ReturnType<typeof measure>>) => {
     expect(items.length).toBeGreaterThan(4);
     for (const item of items) {
-      expect(Math.abs(item.left - item.expectedLeft), JSON.stringify(item)).toBeLessThan(0.05);
-      expect(Math.abs(item.right - item.expectedRight), JSON.stringify(item)).toBeLessThan(0.05);
+      // Browser font metrics can shift the calculated column center by a sub-pixel,
+      // especially on Linux runners. A real column error is roughly 16 SVG units.
+      expect(Math.abs(item.left - item.expectedLeft), JSON.stringify(item)).toBeLessThan(0.75);
+      expect(Math.abs(item.right - item.expectedRight), JSON.stringify(item)).toBeLessThan(0.75);
       // SVG font metrics can settle a fraction of a unit after the overlay effect runs.
       // The important invariant is that hatching ends at the top of the lower header
       // and never extends through its date labels.

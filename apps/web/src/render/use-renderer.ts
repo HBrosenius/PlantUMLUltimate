@@ -27,8 +27,8 @@ function frameDocument(
   layoutEngine: RendererLayoutEngine,
 ): string {
   const { plantUmlEngineUrl, graphvizUrl } = assets;
-  const engine = JSON.stringify(plantUmlEngineUrl);
-  const graphviz = graphvizUrl.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
+  const engine = JSON.stringify(new URL(plantUmlEngineUrl, window.location.href).href);
+  const graphviz = new URL(graphvizUrl, window.location.href).href.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
   const frameChannel = JSON.stringify(channel);
   const graphvizScript = layoutEngine === "graphviz" ? `<script src="${graphviz}"></script>` : "";
   return `<!doctype html><html><head><meta charset="utf-8">${graphvizScript}</head><body><script type="module">

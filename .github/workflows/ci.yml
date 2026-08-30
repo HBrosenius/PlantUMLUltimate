@@ -24,16 +24,51 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run validate
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e:chromium
-      - run: npm run test:e2e:firefox
-      - run: npm run test:e2e:webkit
+
+  browser:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: ${{ matrix.browser }} · shard ${{ matrix.shard }}/4
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.browser }}-${{ matrix.shard }}-of-4
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pwa:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e:pwa
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results-browser-tests
+          name: playwright-pwa
           path: test-results
           if-no-files-found: ignore
           retention-days: 7

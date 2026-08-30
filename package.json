@@ -13,7 +13,7 @@
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:webkit": "playwright test --project=webkit",
-    "test:e2e:pwa": "npm run build && PWA_E2E=1 PLAYWRIGHT_WEB_SERVER_COMMAND='npm --workspace @plantuml-studio/web run preview -- --host 127.0.0.1 --port 5173' playwright test tests/e2e/pwa.spec.ts --project=chromium",
+    "test:e2e:pwa": "npm run build && PWA_E2E=1 PLAYWRIGHT_WEB_SERVER_COMMAND='npm --workspace @plantuml-studio/web run preview -- --host 127.0.0.1 --port 5173' playwright test tests/e2e/pwa.spec.ts --project=chromium --project=webkit",
     "bench": "vitest bench --run",
     "lint": "eslint .",
     "format": "prettier --write .",
