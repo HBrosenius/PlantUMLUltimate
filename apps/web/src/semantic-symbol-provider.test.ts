@@ -51,4 +51,31 @@ describe("semantic symbol provider contract", () => {
       expect(provider.validateRename(request, item.next)).toBeUndefined();
       expect(provider.rename(request, item.next).source).not.toBe(item.source);
     });
+
+  it("renames Class aliases inside member type signatures without changing prose", () => {
+    const source =
+      '@startuml\nclass "Customer account" as Account\nclass Service {\n  +owner: Account\n  +load(fallback: List<Account>): Map<String, Account>\n}\nService --> Account : Account prose\n@enduml';
+    const provider = createSemanticSymbolProvider({
+      diagramKind: "class",
+      source,
+      gantt: parseGantt(source).document,
+      sequence: parseSequence(source),
+      useCase: parseUseCase(source),
+      classDiagram: parseClassDiagram(source),
+      activity: parseActivity(source),
+      wbs: parseWbs(source),
+    });
+    const occurrence = provider.occurrences.find(
+      (item) => item.kind === "class-entity" && item.key === "account" && item.role === "reference",
+    )!;
+    const request = provider.renameRequest(occurrence)!;
+    const renamed = provider.rename(request, "Profile").source!;
+
+    expect(provider.renameOccurrenceCount(request)).toBe(5);
+    expect(renamed).toContain('class "Customer account" as Profile');
+    expect(renamed).toContain("+owner: Profile");
+    expect(renamed).toContain("List<Profile>");
+    expect(renamed).toContain("Map<String, Profile>");
+    expect(renamed).toContain("Service --> Profile : Account prose");
+  });
 });

@@ -21,7 +21,7 @@ import {
   updateClassRelationship,
 } from "./index";
 describe("class operations", () => {
-  it("finds semantic entity references without matching members, relationship labels, or note text", () => {
+  it("finds semantic entity references in member types without matching relationship labels or note text", () => {
     const source =
       '@startuml\nclass "Customer account" as Account {\n  +owner: Customer\n}\ninterface Customer\nAccount --> Customer : Account serves Customer\nnote right of Account : Account note\n@enduml';
     const occurrences = collectClassSymbolOccurrences(source, parseClassDiagram(source));
@@ -35,10 +35,32 @@ describe("class operations", () => {
     expect(occurrences.filter((item) => item.key === "customer").map((item) => item.value)).toEqual([
       "Customer",
       "Customer",
+      "Customer",
     ]);
     expect(occurrences.map((item) => source.slice(item.range.from, item.range.to))).toEqual(
       occurrences.map((item) => item.value),
     );
+  });
+
+  it("finds class references in parameter, return, and generic types", () => {
+    const source =
+      "@startuml\nclass Order\nclass Customer\nclass Batch<T extends Order>\nclass Service {\n  +customer: Customer\n  +load(order: Order, fallback: List<Customer>): Map<Order, Customer>\n}\n@enduml";
+    const occurrences = collectClassSymbolOccurrences(source, parseClassDiagram(source));
+
+    expect(occurrences.filter((item) => item.key === "order").map((item) => item.value)).toEqual([
+      "Order",
+      "Order",
+      "Order",
+      "Order",
+    ]);
+    expect(occurrences.filter((item) => item.key === "customer").map((item) => item.value)).toEqual([
+      "Customer",
+      "Customer",
+      "Customer",
+      "Customer",
+    ]);
+    expect(occurrences.some((item) => item.value === "order")).toBe(false);
+    expect(occurrences.some((item) => item.value === "fallback")).toBe(false);
   });
 
   it("inserts and edits member blocks", () => {

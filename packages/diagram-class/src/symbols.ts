@@ -24,6 +24,12 @@ function nextValueRange(source: string, range: TextRange, value: string, after =
 export function collectClassSymbolOccurrences(source: string, document: ClassDocument): ClassSymbolOccurrence[] {
   const occurrences: ClassSymbolOccurrence[] = [];
   const entities = new Map(document.entities.map((item) => [item.id, item]));
+  const identities = new Map<string, ClassEntity>();
+  for (const entity of document.entities) {
+    identities.set(entity.id.toLocaleLowerCase(), entity);
+    identities.set(entity.label.toLocaleLowerCase(), entity);
+    if (entity.alias) identities.set(entity.alias.toLocaleLowerCase(), entity);
+  }
   const add = (
     entity: ClassEntity | undefined,
     value: string,
@@ -49,6 +55,62 @@ export function collectClassSymbolOccurrences(source: string, document: ClassDoc
   for (const entity of document.entities) {
     const after = add(entity, entity.label, entity.openRange, "declaration", undefined, "label");
     if (entity.alias) add(entity, entity.alias, entity.openRange, "declaration", after, "alias");
+  }
+  const addTypeReferences = (text: string, from: number) => {
+    for (const match of text.matchAll(/[A-Za-z_$][\w.$-]*/g)) {
+      const value = match[0];
+      const entity = identities.get(value.toLocaleLowerCase());
+      if (!entity || match.index === undefined) continue;
+      occurrences.push({
+        kind: "class-entity",
+        key: entity.id,
+        value,
+        range: { from: from + match.index, to: from + match.index + value.length },
+        role: "reference",
+      });
+    }
+  };
+  const parameterTypeSegments = (parameters: string) => {
+    const segments: Array<{ text: string; from: number }> = [];
+    let start = 0;
+    let genericDepth = 0;
+    for (let index = 0; index <= parameters.length; index += 1) {
+      const character = parameters[index];
+      if (character === "<") genericDepth += 1;
+      else if (character === ">") genericDepth = Math.max(0, genericDepth - 1);
+      if (index !== parameters.length && (character !== "," || genericDepth > 0)) continue;
+      const part = parameters.slice(start, index);
+      const colon = part.indexOf(":");
+      if (colon >= 0) {
+        const rawType = part.slice(colon + 1);
+        const leading = rawType.length - rawType.trimStart().length;
+        segments.push({ text: rawType.trim(), from: start + colon + 1 + leading });
+      }
+      start = index + 1;
+    }
+    return segments;
+  };
+  for (const owner of document.entities) {
+    if (owner.generic) {
+      const authored = source.slice(owner.openRange.from, owner.openRange.to);
+      const genericFrom = authored.indexOf(owner.generic);
+      if (genericFrom >= 0) addTypeReferences(owner.generic, owner.openRange.from + genericFrom);
+    }
+    for (const member of owner.members) {
+      const authored = source.slice(member.sourceRange.from, member.sourceRange.to);
+      const memberFrom = authored.indexOf(member.text);
+      if (memberFrom < 0) continue;
+      const absoluteMemberFrom = member.sourceRange.from + memberFrom;
+      if (member.type) {
+        const typeFrom = member.text.lastIndexOf(member.type);
+        if (typeFrom >= 0) addTypeReferences(member.type, absoluteMemberFrom + typeFrom);
+      }
+      if (member.parameters !== undefined) {
+        const parametersFrom = member.text.indexOf("(") + 1;
+        for (const segment of parameterTypeSegments(member.parameters))
+          addTypeReferences(segment.text, absoluteMemberFrom + parametersFrom + segment.from);
+      }
+    }
   }
   for (const item of document.packages) {
     const addPackage = (value: string, after?: number, declaration?: "label" | "alias") => {

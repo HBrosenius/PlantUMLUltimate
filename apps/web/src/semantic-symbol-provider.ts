@@ -25,7 +25,6 @@ import {
 } from "@plantuml-studio/diagram-usecase";
 import {
   collectClassSymbolOccurrences,
-  updateClassEntity,
   updateClassPackage,
   type ClassDocument,
   type ClassSymbolOccurrence,
@@ -516,16 +515,16 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
     const item = context.classDiagram.entities.find((candidate) => candidate.id === target.key);
     if (!item) return { error: "Class entity not found" };
     const aliasMode = request.mode === "class entity alias";
+    const occurrences = renameOccurrences(
+      context,
+      collectClassSymbolOccurrences(context.source, context.classDiagram),
+      request,
+    );
     return {
-      source: updateClassEntity(context.source, context.classDiagram, item, {
-        kind: item.kind,
-        label: aliasMode ? item.label : trimmed,
-        ...(aliasMode ? { alias: trimmed } : item.alias ? { alias: item.alias } : {}),
-        ...(item.generic ? { generic: item.generic } : {}),
-        ...(item.stereotype ? { stereotype: item.stereotype } : {}),
-        ...(item.color ? { color: item.color } : {}),
-        members: item.members.map((member) => member.text),
-      }),
+      source: applySourceEdits(
+        context.source,
+        occurrences.map((occurrence) => ({ range: occurrence.range, text: trimmed })),
+      ),
       nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLowerCase(),
     };
   }
