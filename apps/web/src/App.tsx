@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
@@ -269,6 +269,35 @@ import {
   type SemanticSymbolOccurrence,
 } from "./semantic-symbol-provider";
 
+type InspectorFocusSnapshot = {
+  inspectorLabel: string;
+  controlIndex: number;
+  selectionStart?: number;
+  selectionEnd?: number;
+};
+
+function captureInspectorFocus(): InspectorFocusSnapshot | undefined {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return undefined;
+  const inspector = active.closest<HTMLElement>(".task-inspector");
+  const inspectorLabel = inspector?.getAttribute("aria-label");
+  if (!inspector || !inspectorLabel) return undefined;
+  const controls = [...inspector.querySelectorAll<HTMLElement>("input, select, textarea, button")];
+  const controlIndex = controls.indexOf(active);
+  if (controlIndex < 0) return undefined;
+  const selectionControl =
+    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : undefined;
+  const snapshot: InspectorFocusSnapshot = {
+    inspectorLabel,
+    controlIndex,
+  };
+  if (selectionControl?.selectionStart !== null && selectionControl?.selectionStart !== undefined)
+    snapshot.selectionStart = selectionControl.selectionStart;
+  if (selectionControl?.selectionEnd !== null && selectionControl?.selectionEnd !== undefined)
+    snapshot.selectionEnd = selectionControl.selectionEnd;
+  return snapshot;
+}
+
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
@@ -367,6 +396,8 @@ export function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
+  const workspaceElement = useRef<HTMLElement>(null);
+  const pendingInspectorFocus = useRef<InspectorFocusSnapshot | undefined>(undefined);
   const startupSplashShown = useRef(false);
   const selectedTasksByDocument = useRef(new Map<string, string>());
   const { activeHistory, refreshHistoryControls, removeHistory, retainHistories } = useDocumentHistory(tabs.activeId);
@@ -1179,6 +1210,7 @@ export function App() {
           return false;
         }
       }
+      pendingInspectorFocus.current = captureInspectorFocus();
       setProblemPreview(undefined);
       activeHistory.record(workspace.source, source, description);
       setWorkspace((current) => ({ ...current, source, dirty: true }));
@@ -1187,6 +1219,28 @@ export function App() {
     },
     [activeHistory, refreshHistoryControls, setWorkspace, workspace.diagramKind, workspace.source],
   );
+
+  useLayoutEffect(() => {
+    const snapshot = pendingInspectorFocus.current;
+    if (!snapshot) return;
+    pendingInspectorFocus.current = undefined;
+    const inspector = [...document.querySelectorAll<HTMLElement>(".task-inspector")].find(
+      (item) => item.getAttribute("aria-label") === snapshot.inspectorLabel,
+    );
+    const control = inspector?.querySelectorAll<HTMLElement>("input, select, textarea, button")[snapshot.controlIndex];
+    if (!control) {
+      workspaceElement.current?.focus({ preventScroll: true });
+      return;
+    }
+    control.focus({ preventScroll: true });
+    if (
+      snapshot.selectionStart !== undefined &&
+      snapshot.selectionEnd !== undefined &&
+      (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)
+    ) {
+      control.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    }
+  }, [workspace.source]);
 
   const commitGeneratedSource = useCallback(
     (source: string, description: string): boolean => commitSource(source, description),
@@ -3229,6 +3283,8 @@ export function App() {
         </div>
       )}
       <main
+        ref={workspaceElement}
+        tabIndex={-1}
         className={`workspace mode-${workspace.viewMode}`}
         onContextMenu={(event) => {
           if (!(event.target instanceof Element) || event.target.closest(".cm-editor")) return;

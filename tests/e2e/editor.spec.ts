@@ -248,6 +248,38 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
   await expect(page.locator(".cm-content")).toContainText("note right of Client: User is waiting");
 });
 
+test("keeps inspector focus, zoom, and split position after applying a source edit", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(page, "@startuml\nparticipant API\nparticipant Store\nAPI -> Store: Save\n@enduml");
+
+  const divider = page.getByRole("separator");
+  const initialDividerX = (await divider.boundingBox())!.x;
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  const resetZoom = page.getByRole("button", { name: /Reset zoom/ });
+  const zoomLabel = await resetZoom.textContent();
+  expect(zoomLabel).not.toBe("100%");
+
+  const participant = page.locator('[data-sequence-drag-hit][aria-label="Drag participant API"]').first();
+  await participant.click();
+  const inspector = page.getByRole("complementary", { name: "Participant inspector" });
+  await inspector.getByLabel("Name").fill("");
+  await expect(inspector.getByRole("alert")).toHaveText("Enter a participant name.");
+  await expect(inspector.getByRole("button", { name: "Apply" })).toBeDisabled();
+  await inspector.getByLabel("Name").fill("API");
+  await inspector.getByLabel("Color", { exact: true }).fill("LightBlue");
+  const apply = inspector.getByRole("button", { name: "Apply" });
+  await apply.click();
+
+  await expect(page.locator(".cm-content")).toContainText("participant API LightBlue");
+  await expect(inspector.getByRole("button", { name: "Apply" })).toBeFocused();
+  await expect(resetZoom).toHaveText(zoomLabel!);
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialDividerX, 0);
+});
+
 test("renames created Sequence lifelines and suggests duration anchors", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

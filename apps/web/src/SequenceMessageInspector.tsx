@@ -62,6 +62,8 @@ export function SequenceMessageInspector({
   useEffect(() => setValue(messageValue(message)), [message]);
   const update = <K extends keyof SequenceMessageInspectorValue>(key: K, next: SequenceMessageInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
+  const fromMissing = !value.from.trim();
+  const toMissing = !value.to.trim();
   return (
     <aside className="task-inspector sequence-message-inspector" aria-label="Message inspector">
       <header>
@@ -85,19 +87,33 @@ export function SequenceMessageInspector({
           From
           <input
             required
+            aria-invalid={fromMissing}
+            aria-describedby={fromMissing ? "message-from-error" : undefined}
             list="message-inspector-participants"
             value={value.from}
             onChange={(event) => update("from", event.target.value)}
           />
+          {fromMissing && (
+            <span id="message-from-error" className="field-error" role="alert">
+              Choose or enter a sender.
+            </span>
+          )}
         </label>
         <label>
           To
           <input
             required
+            aria-invalid={toMissing}
+            aria-describedby={toMissing ? "message-to-error" : undefined}
             list="message-inspector-participants"
             value={value.to}
             onChange={(event) => update("to", event.target.value)}
           />
+          {toMissing && (
+            <span id="message-to-error" className="field-error" role="alert">
+              Choose or enter a recipient.
+            </span>
+          )}
         </label>
         <label>
           Arrow
@@ -135,7 +151,7 @@ export function SequenceMessageInspector({
           <button type="button" className="danger" onClick={onDelete}>
             Delete message
           </button>
-          <button type="submit" className="primary">
+          <button type="submit" className="primary" disabled={fromMissing || toMissing}>
             Apply
           </button>
         </div>

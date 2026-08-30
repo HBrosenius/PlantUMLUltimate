@@ -45,6 +45,7 @@ export function SequenceParticipantInspector({
     key: K,
     next: SequenceParticipantInspectorValue[K],
   ) => setValue((current) => ({ ...current, [key]: next }));
+  const nameMissing = !value.label.trim();
   return (
     <aside className="task-inspector sequence-participant-inspector" aria-label="Participant inspector">
       <header>
@@ -65,7 +66,18 @@ export function SequenceParticipantInspector({
         </label>
         <label>
           Name
-          <input required value={value.label} onChange={(event) => update("label", event.target.value)} />
+          <input
+            required
+            aria-invalid={nameMissing}
+            aria-describedby={nameMissing ? "participant-name-error" : undefined}
+            value={value.label}
+            onChange={(event) => update("label", event.target.value)}
+          />
+          {nameMissing && (
+            <span id="participant-name-error" className="field-error" role="alert">
+              Enter a participant name.
+            </span>
+          )}
         </label>
         <label>
           Alias
@@ -125,7 +137,7 @@ export function SequenceParticipantInspector({
           <button type="button" className="danger" onClick={onDelete}>
             Delete participant
           </button>
-          <button type="submit" className="primary">
+          <button type="submit" className="primary" disabled={nameMissing}>
             Apply
           </button>
         </div>
