@@ -23,6 +23,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - Native file access where supported, with upload/download fallbacks
 - SVG and PNG export
 - Automatic local workspace recovery and portable workspace backups
+- Installable desktop and mobile app with offline startup after the first visit
 - Keyboard-accessible menus, dialogs, diagram objects, and commands
 - Automated validation plus Chromium, Firefox, and WebKit end-to-end testing before deployment
 - Light, dark, and system themes
@@ -58,6 +59,14 @@ npm run build
 ```
 
 The static production files are written to `apps/web/dist`.
+
+## Install and use offline
+
+Open the hosted application in a browser that supports app installation. When the browser offers installation, an **Install app** button appears in the status bar. The installed app opens in its own window and continues to store documents locally in the same browser profile.
+
+After the first successful visit, the editor shell and local PlantUML renderer are cached for offline startup. The status bar reports when the browser is offline; edits, history, and workspace recovery continue to use local storage. Reconnect before opening uncached external links or downloading browser updates.
+
+When a new deployed version has finished downloading, the status bar shows **Update available**. Selecting it activates the new version and reloads the editor while preserving the locally saved workspace.
 
 ## Getting started
 

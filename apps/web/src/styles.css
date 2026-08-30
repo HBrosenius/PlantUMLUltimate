@@ -40,6 +40,17 @@ input {
   background: var(--bg);
   color: var(--text);
 }
+.statusbar .connection-offline {
+  color: #b45309;
+}
+.statusbar .status-action {
+  padding: 1px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
 .app[data-theme="dark"] {
   --bg: #111318;
   --panel: #191c23;
@@ -1245,6 +1256,7 @@ input {
   color: var(--muted);
   font-size: 12px;
   white-space: nowrap;
+  overflow-x: auto;
 }
 .statusbar span:first-child {
   color: var(--text);

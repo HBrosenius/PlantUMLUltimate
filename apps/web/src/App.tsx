@@ -121,6 +121,7 @@ import {
 } from "@plantuml-studio/diagram-gantt";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
+import { usePwa } from "./pwa";
 import type { Command } from "@plantuml-studio/editor-core";
 import {
   downloadSvgAsPng,
@@ -316,6 +317,7 @@ function diagramFocusSelector(target: Element): string | undefined {
 }
 
 export function App() {
+  const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
@@ -3841,6 +3843,19 @@ export function App() {
           Ln {workspace.cursor.line}, Col {workspace.cursor.column}
         </span>
         <span>{hydrated ? "IndexedDB" : "Restoring…"}</span>
+        <span className={pwa.online ? "connection-online" : "connection-offline"}>
+          {pwa.online ? "Online" : "Offline · changes stay local"}
+        </span>
+        {pwa.canInstall && (
+          <button type="button" className="status-action" onClick={() => void pwa.install()}>
+            Install app
+          </button>
+        )}
+        {pwa.updateAvailable && (
+          <button type="button" className="status-action" onClick={pwa.update}>
+            Update available
+          </button>
+        )}
       </footer>
       {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={() => setNewDocumentOpen(false)} />}

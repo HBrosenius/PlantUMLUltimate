@@ -28,6 +28,7 @@ jobs:
       - run: npm run test:e2e:chromium
       - run: npm run test:e2e:firefox
       - run: npm run test:e2e:webkit
+      - run: npm run test:e2e:pwa
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4

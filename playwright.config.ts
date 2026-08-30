@@ -19,7 +19,8 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
+    command:
+      process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? "npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: true,
     timeout: 30_000,
