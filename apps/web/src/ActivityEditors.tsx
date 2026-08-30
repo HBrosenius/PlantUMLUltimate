@@ -492,6 +492,7 @@ export function ActivityActionInspector({
       }),
     [item],
   );
+  const labelMissing = !value.label.trim();
   return (
     <aside className="task-inspector usecase-element-inspector" aria-label="Activity action inspector">
       <header>
@@ -507,10 +508,18 @@ export function ActivityActionInspector({
           <label>
             Text
             <input
+              required
+              aria-invalid={labelMissing}
+              aria-describedby={labelMissing ? "activity-action-error" : undefined}
               value={value.label}
               onChange={(event) => setValue({ ...value, label: event.target.value })}
               onBlur={() => onChange(value)}
             />
+            {labelMissing && (
+              <span id="activity-action-error" className="field-error" role="alert">
+                Enter action text.
+              </span>
+            )}
           </label>
           <label>
             Partition
@@ -718,6 +727,7 @@ export function ActivityPartitionInspector({
       partition.id !== item.id &&
       !(partition.sourceRange.from > item.sourceRange.from && partition.sourceRange.to < item.sourceRange.to),
   );
+  const labelMissing = !value.label.trim();
   return (
     <aside className="task-inspector usecase-package-inspector" aria-label="Activity partition inspector">
       <header>
@@ -733,10 +743,18 @@ export function ActivityPartitionInspector({
           <label>
             Name
             <input
+              required
+              aria-invalid={labelMissing}
+              aria-describedby={labelMissing ? "activity-partition-error" : undefined}
               value={value.label}
               onChange={(event) => setValue({ ...value, label: event.target.value })}
               onBlur={() => onChange(value)}
             />
+            {labelMissing && (
+              <span id="activity-partition-error" className="field-error" role="alert">
+                Enter a partition name.
+              </span>
+            )}
           </label>
           <label>
             Parent partition

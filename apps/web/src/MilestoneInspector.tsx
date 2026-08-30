@@ -41,6 +41,8 @@ export function MilestoneInspector({
     };
   };
   const [value, setValue] = useState(initial);
+  const labelMissing = !value.label.trim();
+  const scheduleMissing = value.mode === "fixed" ? !value.date : !value.referenceLabel;
   const update = <K extends keyof MilestoneInspectorValue>(key: K, next: MilestoneInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
 
@@ -60,7 +62,18 @@ export function MilestoneInspector({
       >
         <label>
           Name
-          <input required value={value.label} onChange={(event) => update("label", event.target.value)} />
+          <input
+            required
+            aria-invalid={labelMissing}
+            aria-describedby={labelMissing ? "milestone-name-error" : undefined}
+            value={value.label}
+            onChange={(event) => update("label", event.target.value)}
+          />
+          {labelMissing && (
+            <span id="milestone-name-error" className="field-error" role="alert">
+              Enter a milestone name.
+            </span>
+          )}
         </label>
         <label>
           Date type
@@ -72,7 +85,19 @@ export function MilestoneInspector({
         {value.mode === "fixed" ? (
           <label>
             Date
-            <input required type="date" value={value.date} onChange={(event) => update("date", event.target.value)} />
+            <input
+              required
+              type="date"
+              aria-invalid={!value.date}
+              aria-describedby={!value.date ? "milestone-date-error" : undefined}
+              value={value.date}
+              onChange={(event) => update("date", event.target.value)}
+            />
+            {!value.date && (
+              <span id="milestone-date-error" className="field-error" role="alert">
+                Choose a milestone date.
+              </span>
+            )}
           </label>
         ) : (
           <>
@@ -80,6 +105,8 @@ export function MilestoneInspector({
               Relative to
               <select
                 required
+                aria-invalid={!value.referenceLabel}
+                aria-describedby={!value.referenceLabel ? "milestone-reference-error" : undefined}
                 value={value.referenceLabel}
                 onChange={(event) => update("referenceLabel", event.target.value)}
               >
@@ -94,6 +121,11 @@ export function MilestoneInspector({
                     </option>
                   ))}
               </select>
+              {!value.referenceLabel && (
+                <span id="milestone-reference-error" className="field-error" role="alert">
+                  Choose a task or milestone.
+                </span>
+              )}
             </label>
             <label>
               At its
@@ -134,7 +166,7 @@ export function MilestoneInspector({
           <button type="button" className="danger" onClick={onDelete}>
             Delete
           </button>
-          <button type="submit" className="primary">
+          <button type="submit" className="primary" disabled={labelMissing || scheduleMissing}>
             Apply
           </button>
         </div>

@@ -205,6 +205,7 @@ test("opens semantic actions from a diagram task", async ({ page }) => {
   await rename.getByRole("button", { name: "Rename" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Compile] lasts 3 days");
   await expect(page.locator(".cm-content")).toContainText("[Compile]'s end");
+  await expect(page.locator('[data-task-id="compile"][tabindex="0"]').first()).toBeFocused();
 });
 
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
@@ -3240,6 +3241,23 @@ test("closes inspectors on any outside click and switches directly to another ta
   await page.locator('[data-task-id="a"] .bar').click();
   await page.locator('[data-task-id="b"] .bar').click();
   await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue("B");
+});
+
+test("restores diagram focus after closing and workspace focus after deleting", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 2 days"));
+  const task = page.locator('[data-task-id="build"][tabindex="0"]').first();
+  await task.click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByLabel("Name").fill("");
+  await expect(inspector.getByRole("alert")).toHaveText("Enter a task name.");
+  await inspector.getByLabel("Name").fill("Build");
+  await inspector.getByRole("button", { name: "Close task inspector" }).click();
+  await expect(page.locator('[data-task-id="build"]:focus')).toHaveCount(1);
+
+  await task.click();
+  page.once("dialog", (dialog) => void dialog.accept());
+  await inspector.getByRole("button", { name: /Delete/ }).click();
+  await expect(page.locator("main.workspace")).toBeFocused();
 });
 
 test("navigates between task inspectors with the preview arrows", async ({ page }) => {

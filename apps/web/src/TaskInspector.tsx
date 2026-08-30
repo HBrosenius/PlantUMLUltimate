@@ -134,6 +134,7 @@ export function TaskInspector({
       : undefined;
   const endDisplayValue = value.scheduleMode === "duration" ? (convertedEnd ?? "") : value.endDate;
   const durationDisplayValue = value.scheduleMode === "end" ? String(convertedDuration ?? "") : value.duration;
+  const labelMissing = !value.label.trim();
   return (
     <aside className="task-inspector" aria-label="Task inspector">
       <header>
@@ -147,10 +148,17 @@ export function TaskInspector({
           Name
           <input
             required
+            aria-invalid={labelMissing}
+            aria-describedby={labelMissing ? "task-name-error" : undefined}
             value={value.label}
             onChange={(event) => update("label", event.target.value)}
             onBlur={() => apply()}
           />
+          {labelMissing && (
+            <span id="task-name-error" className="field-error" role="alert">
+              Enter a task name.
+            </span>
+          )}
         </label>
         <label>
           Linked task

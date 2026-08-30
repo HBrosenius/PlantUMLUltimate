@@ -165,6 +165,7 @@ export function ClassEntityInspector({
   const [newMemberKind, setNewMemberKind] = useState<ClassMemberInput["kind"]>("field");
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberType, setNewMemberType] = useState("");
+  const labelMissing = !v.label.trim();
   useEffect(() => setV(entityValue(entity)), [entity]);
   const save = () => v.label.trim() && onChange(v);
   return (
@@ -196,7 +197,19 @@ export function ClassEntityInspector({
           </label>
           <label>
             Name
-            <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} onBlur={save} />
+            <input
+              required
+              aria-invalid={labelMissing}
+              aria-describedby={labelMissing ? "class-name-error" : undefined}
+              value={v.label}
+              onChange={(e) => setV({ ...v, label: e.target.value })}
+              onBlur={save}
+            />
+            {labelMissing && (
+              <span id="class-name-error" className="field-error" role="alert">
+                Enter an object name.
+              </span>
+            )}
           </label>
           <label>
             Alias

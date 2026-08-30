@@ -298,6 +298,23 @@ function captureInspectorFocus(): InspectorFocusSnapshot | undefined {
   return snapshot;
 }
 
+function diagramFocusSelector(target: Element): string | undefined {
+  for (const attribute of [
+    "data-task-id",
+    "data-sequence-participant-id",
+    "data-usecase-object-id",
+    "data-class-object-id",
+    "data-activity-object-id",
+    "data-wbs-node-id",
+  ]) {
+    const owner = target.closest(`[${attribute}]`);
+    const value = owner?.getAttribute(attribute);
+    if (value)
+      return `[${attribute}="${CSS.escape(value)}"][tabindex], [${attribute}="${CSS.escape(value)}"] [tabindex]`;
+  }
+  return undefined;
+}
+
 export function App() {
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
@@ -398,6 +415,10 @@ export function App() {
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const workspaceElement = useRef<HTMLElement>(null);
   const pendingInspectorFocus = useRef<InspectorFocusSnapshot | undefined>(undefined);
+  const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
+  const lastDiagramFocusSelector = useRef<string | undefined>(undefined);
+  const renameReturnFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
+  const pendingDiagramFocusSelector = useRef<string | undefined>(undefined);
   const startupSplashShown = useRef(false);
   const selectedTasksByDocument = useRef(new Map<string, string>());
   const { activeHistory, refreshHistoryControls, removeHistory, retainHistories } = useDocumentHistory(tabs.activeId);
@@ -417,6 +438,15 @@ export function App() {
       ? "graphviz"
       : "native",
   );
+  useEffect(() => {
+    const selector = pendingDiagramFocusSelector.current;
+    if (!selector || !result?.svg) return;
+    const target = document.querySelector<HTMLElement | SVGElement>(selector);
+    if (!target) return;
+    pendingDiagramFocusSelector.current = undefined;
+    lastDiagramFocus.current = target;
+    target.focus({ preventScroll: true });
+  }, [result?.svg]);
   const parsed = useMemo(() => {
     const started = performance.now();
     const value = ganttAdapter.parse(workspace.source);
@@ -474,6 +504,8 @@ export function App() {
       if (!occurrence) return false;
       const request = symbolProvider.renameRequest(occurrence);
       if (!request) return false;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement || active instanceof SVGElement) renameReturnFocus.current = active;
       setRenameSymbol(request);
       return true;
     },
@@ -547,6 +579,12 @@ export function App() {
     (target: Element, x: number, y: number) => {
       const occurrence = diagramOccurrenceForTarget(target);
       if (!occurrence) return false;
+      const focusTarget = target.closest<HTMLElement | SVGElement>("[tabindex], button");
+      if (focusTarget) {
+        lastDiagramFocus.current = focusTarget;
+        lastDiagramFocusSelector.current = diagramFocusSelector(target);
+        renameReturnFocus.current = focusTarget;
+      }
       const bounds = target.getBoundingClientRect();
       setSymbolMenu({
         occurrence,
@@ -3038,10 +3076,66 @@ export function App() {
     window.addEventListener("pointerup", end);
   };
 
+  const restorePreviousFocus = useCallback((preferred?: HTMLElement | SVGElement) => {
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        const remembered = lastDiagramFocusSelector.current
+          ? document.querySelector<HTMLElement | SVGElement>(lastDiagramFocusSelector.current)
+          : undefined;
+        const target = preferred?.isConnected ? preferred : (remembered ?? lastDiagramFocus.current);
+        if (target?.isConnected) target.focus({ preventScroll: true });
+        else workspaceElement.current?.focus({ preventScroll: true });
+      }),
+    );
+  }, []);
+  const restoreRenamedDiagramFocus = useCallback(
+    (kind: SemanticSymbolOccurrence["kind"], key: string | undefined) => {
+      if (!key || !renameReturnFocus.current?.closest(".diagram")) {
+        restorePreviousFocus(renameReturnFocus.current);
+        return;
+      }
+      const attribute =
+        kind === "task"
+          ? "data-task-id"
+          : kind === "participant"
+            ? "data-sequence-participant-id"
+            : kind === "actor" || kind === "usecase" || kind === "usecase-package"
+              ? "data-usecase-object-id"
+              : kind === "class-entity" || kind === "class-package"
+                ? "data-class-object-id"
+                : kind === "activity-action" || kind === "activity-partition"
+                  ? "data-activity-object-id"
+                  : kind === "wbs-node"
+                    ? "data-wbs-node-id"
+                    : undefined;
+      const selector = attribute
+        ? `[${attribute}="${CSS.escape(key)}"][tabindex], [${attribute}="${CSS.escape(key)}"] [tabindex]`
+        : undefined;
+      pendingDiagramFocusSelector.current = selector;
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() => {
+          const target = selector ? document.querySelector<HTMLElement | SVGElement>(selector) : undefined;
+          if (target) {
+            pendingDiagramFocusSelector.current = undefined;
+            lastDiagramFocus.current = target;
+            lastDiagramFocusSelector.current = selector;
+            target.focus({ preventScroll: true });
+          } else restorePreviousFocus();
+        }),
+      );
+    },
+    [restorePreviousFocus],
+  );
+
   return (
     <div
       className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || selectedWbsNodeId || selectedWbsRelationshipId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || wbsSettingsOpen || resourcePanelOpen || unsupportedOpen || problemsOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
+      onClickCapture={(event) => {
+        if (!(event.target instanceof Element)) return;
+        const close = event.target.closest<HTMLButtonElement>(".task-inspector > header button");
+        if (close) restorePreviousFocus(lastDiagramFocus.current);
+      }}
     >
       <header className="toolbar">
         <strong>PlantUML Ultimate</strong>
@@ -3286,6 +3380,22 @@ export function App() {
         ref={workspaceElement}
         tabIndex={-1}
         className={`workspace mode-${workspace.viewMode}`}
+        onPointerDownCapture={(event) => {
+          if (!(event.target instanceof Element) || !event.target.closest(".diagram")) return;
+          const target = event.target.closest<HTMLElement | SVGElement>("[tabindex], button");
+          if (target) {
+            lastDiagramFocus.current = target;
+            lastDiagramFocusSelector.current = diagramFocusSelector(event.target);
+          }
+        }}
+        onFocusCapture={(event) => {
+          if (!(event.target instanceof Element) || !event.target.closest(".diagram")) return;
+          const target = event.target.closest<HTMLElement | SVGElement>("[tabindex], button");
+          if (target) {
+            lastDiagramFocus.current = target;
+            lastDiagramFocusSelector.current = diagramFocusSelector(event.target);
+          }
+        }}
         onContextMenu={(event) => {
           if (!(event.target instanceof Element) || event.target.closest(".cm-editor")) return;
           if (
@@ -4499,8 +4609,12 @@ export function App() {
               });
             setRenameSymbol(undefined);
             setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
+            restoreRenamedDiagramFocus(target.occurrence.kind, result.nextKey);
           }}
-          onClose={() => setRenameSymbol(undefined)}
+          onClose={() => {
+            setRenameSymbol(undefined);
+            restorePreviousFocus(renameReturnFocus.current);
+          }}
         />
       )}
     </div>

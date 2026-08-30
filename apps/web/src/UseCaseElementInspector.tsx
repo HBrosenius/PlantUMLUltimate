@@ -34,6 +34,7 @@ export function UseCaseElementInspector({
   const save = () => {
     if (value.label.trim()) onChange(value);
   };
+  const labelMissing = !value.label.trim();
   return (
     <aside className="task-inspector usecase-element-inspector" aria-label="Use Case object inspector">
       <header>
@@ -66,10 +67,17 @@ export function UseCaseElementInspector({
             Name
             <input
               required
+              aria-invalid={labelMissing}
+              aria-describedby={labelMissing ? "usecase-name-error" : undefined}
               value={value.label}
               onChange={(event) => update("label", event.target.value)}
               onBlur={save}
             />
+            {labelMissing && (
+              <span id="usecase-name-error" className="field-error" role="alert">
+                Enter a name.
+              </span>
+            )}
           </label>
           <label>
             Alias

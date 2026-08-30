@@ -92,6 +92,7 @@ export function WbsNodeInspector({
   const [textColor, setTextColor] = useState(node.textColor ?? "");
   const [stereotype, setStereotype] = useState(node.stereotype ?? "");
   const [side, setSide] = useState<"left" | "right">(node.side === "left" ? "left" : "right");
+  const labelMissing = !label.trim();
   return (
     <aside className="task-inspector wbs-node-inspector" aria-label="WBS node inspector">
       <header>
@@ -102,7 +103,18 @@ export function WbsNodeInspector({
       </header>
       <label>
         Label
-        <input value={label} onChange={(event) => setLabel(event.target.value)} />
+        <input
+          required
+          aria-invalid={labelMissing}
+          aria-describedby={labelMissing ? "wbs-label-error" : undefined}
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+        />
+        {labelMissing && (
+          <span id="wbs-label-error" className="field-error" role="alert">
+            Enter a node label.
+          </span>
+        )}
       </label>
       <label>
         Branch side
@@ -123,7 +135,9 @@ export function WbsNodeInspector({
       </label>
       <div className="inspector-actions">
         <button onClick={onAddChild}>Add child…</button>
-        <button onClick={() => onApply({ label, color, textColor, stereotype, side })}>Apply</button>
+        <button disabled={labelMissing} onClick={() => onApply({ label, color, textColor, stereotype, side })}>
+          Apply
+        </button>
         <button className="danger" onClick={onDelete}>
           Delete subtree
         </button>
