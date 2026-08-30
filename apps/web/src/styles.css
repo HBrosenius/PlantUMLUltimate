@@ -3195,7 +3195,8 @@ textarea:focus-visible,
 @media (max-width: 850px) {
   .app.has-side-inspector .workspace,
   .app.has-project-inspector .workspace {
-    margin-right: 0;
+    width: 100%;
+    max-width: 100%;
   }
   .task-inspector {
     width: min(300px, calc(100vw - 16px));

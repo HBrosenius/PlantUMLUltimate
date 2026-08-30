@@ -3127,9 +3127,30 @@ export function App() {
     [restorePreviousFocus],
   );
 
+  const sideInspectorOpen = Boolean(
+    selectedTask ||
+    selectedDependency ||
+    selectedSequenceParticipant ||
+    selectedSequenceMessage ||
+    selectedSequenceStructure ||
+    selectedUseCaseObjectId ||
+    selectedClassObjectId ||
+    selectedActivityObjectId ||
+    selectedWbsNodeId ||
+    selectedWbsRelationshipId ||
+    sequenceSettingsOpen ||
+    useCaseSettingsOpen ||
+    classSettingsOpen ||
+    activitySettingsOpen ||
+    wbsSettingsOpen ||
+    resourcePanelOpen ||
+    unsupportedOpen ||
+    problemsOpen,
+  );
+
   return (
     <div
-      className={`app${selectedTask || selectedDependency || selectedSequenceParticipant || selectedSequenceMessage || selectedSequenceStructure || selectedUseCaseObjectId || selectedClassObjectId || selectedActivityObjectId || selectedWbsNodeId || selectedWbsRelationshipId || sequenceSettingsOpen || useCaseSettingsOpen || classSettingsOpen || activitySettingsOpen || wbsSettingsOpen || resourcePanelOpen || unsupportedOpen || problemsOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
       data-theme={workspace.theme}
       onClickCapture={(event) => {
         if (!(event.target instanceof Element)) return;
@@ -3419,7 +3440,7 @@ export function App() {
         style={{
           gridTemplateColumns:
             workspace.viewMode === "split"
-              ? `min(${workspace.splitPercent}%, calc(100% - 205px)) 5px minmax(0, 1fr)`
+              ? `min(${workspace.splitPercent}${sideInspectorOpen || projectInspectorOpen ? "vw" : "%"}, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
