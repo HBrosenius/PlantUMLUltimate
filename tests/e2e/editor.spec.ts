@@ -430,6 +430,26 @@ test("edits structured Class members and reveals rendered members", async ({ pag
   await expect(page.locator(".cm-content")).toContainText("-identifier: UUID");
   await expect(page.locator(".cm-content")).toContainText("custom member syntax");
 
+  let methodMember = inspector.getByRole("listitem").nth(1);
+  await expect(methodMember.getByLabel("Parameter 1 name")).toHaveValue("owner");
+  await expect(methodMember.getByLabel("Parameter 1 type")).toHaveValue("User");
+  await methodMember.getByRole("button", { name: "Add parameter" }).click();
+  await methodMember.getByLabel("Parameter 2 name").fill("options");
+  await methodMember.getByLabel("Parameter 2 type").fill("Map<String, Account>");
+  await methodMember.getByLabel("Parameter 2 type").blur();
+  await expect(page.locator(".cm-content")).toContainText("open(owner: User, options: Map<String, Account>): Account");
+
+  methodMember = inspector.getByRole("listitem").nth(1);
+  await methodMember.getByRole("button", { name: "Move parameter 2 up" }).click();
+  await expect(page.locator(".cm-content")).toContainText("open(options: Map<String, Account>, owner: User): Account");
+  methodMember = inspector.getByRole("listitem").nth(1);
+  await methodMember.getByRole("button", { name: "Edit as raw text" }).click();
+  await methodMember.getByLabel("Raw parameters").fill("Account account, User owner");
+  await methodMember.getByLabel("Raw parameters").blur();
+  await expect(page.locator(".cm-content")).toContainText("open(Account account, User owner): Account");
+  methodMember = inspector.getByRole("listitem").nth(1);
+  await expect(methodMember.getByRole("button", { name: "Use structured fields" })).toBeDisabled();
+
   await inspector.getByLabel("New member kind").selectOption("method");
   await inspector.getByLabel("New member name").fill("close");
   await inspector.getByLabel("New member type").fill("void");
@@ -469,14 +489,7 @@ test("completes Class aliases in member type signatures", async ({ page }) => {
     inspector.locator(`datalist[id="${typeListId}"] option[value="Customer"][label="Customer account"]`),
   ).toHaveCount(1);
 
-  const parameters = inspector.getByLabel("Parameters");
-  const parameterListId = await parameters.getAttribute("list");
-  expect(parameterListId).toBeTruthy();
-  await expect(
-    inspector.locator(
-      `datalist[id="${parameterListId}"] option[value="customerAccount: Customer"][label="Customer account"]`,
-    ),
-  ).toHaveCount(1);
+  await expect(inspector.getByLabel("Parameter 1 type")).toHaveAttribute("list", typeListId!);
 });
 
 test("shows parser problems and applies a safe quick fix", async ({ page }) => {

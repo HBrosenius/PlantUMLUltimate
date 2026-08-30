@@ -16,6 +16,11 @@ import type {
 } from "@plantuml-studio/diagram-class";
 import { useDialogFocus } from "./use-dialog-focus";
 import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import {
+  parseStructuredClassParameters,
+  serializeStructuredClassParameters,
+  type StructuredClassParameter,
+} from "./class-parameters";
 
 export function ColorField({
   value,
@@ -382,9 +387,26 @@ function ClassMemberRow({
   onReveal(): void;
 }) {
   const [value, setValue] = useState(() => memberValue(member));
+  const [rawParameterMode, setRawParameterMode] = useState(
+    () => member.kind === "method" && parseStructuredClassParameters(member.parameters ?? "") === undefined,
+  );
+  const [parameters, setParameters] = useState<StructuredClassParameter[]>(
+    () => parseStructuredClassParameters(member.parameters ?? "") ?? [],
+  );
   const apply = (next: ClassMemberInput) => {
     setValue(next);
     onChange(next);
+  };
+  const updateParameters = (next: StructuredClassParameter[], commit = false) => {
+    const nextValue = { ...value, parameters: serializeStructuredClassParameters(next) };
+    setParameters(next);
+    setValue(nextValue);
+    if (commit) onChange(nextValue);
+  };
+  const commitParametersOnExit = (event: React.FocusEvent<HTMLInputElement>) => {
+    const editor = event.currentTarget.closest(".class-parameter-editor");
+    if (event.relatedTarget instanceof Node && editor?.contains(event.relatedTarget)) return;
+    onChange({ ...value, parameters: serializeStructuredClassParameters(parameters) });
   };
   return (
     <div className="class-member-row" role="listitem">
@@ -437,13 +459,115 @@ function ClassMemberRow({
             onBlur={() => onChange(value)}
           />
           {value.kind === "method" && (
-            <input
-              aria-label="Parameters"
-              list={parameterListId}
-              value={value.parameters ?? ""}
-              onChange={(event) => setValue({ ...value, parameters: event.target.value })}
-              onBlur={() => onChange(value)}
-            />
+            <div className="class-parameter-editor" aria-label="Method parameters">
+              {rawParameterMode ? (
+                <>
+                  <input
+                    aria-label="Raw parameters"
+                    list={parameterListId}
+                    value={value.parameters ?? ""}
+                    onChange={(event) => setValue({ ...value, parameters: event.target.value })}
+                    onBlur={() => onChange(value)}
+                  />
+                  <button
+                    type="button"
+                    disabled={parseStructuredClassParameters(value.parameters ?? "") === undefined}
+                    onClick={() => {
+                      const parsed = parseStructuredClassParameters(value.parameters ?? "");
+                      if (parsed) {
+                        setParameters(parsed);
+                        setRawParameterMode(false);
+                      }
+                    }}
+                  >
+                    Use structured fields
+                  </button>
+                </>
+              ) : (
+                <>
+                  {parameters.map((parameter, index) => (
+                    <div className="class-parameter-row" key={index}>
+                      <input
+                        aria-label={`Parameter ${index + 1} name`}
+                        value={parameter.name}
+                        onChange={(event) =>
+                          updateParameters(
+                            parameters.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, name: event.target.value } : item,
+                            ),
+                          )
+                        }
+                        onBlur={commitParametersOnExit}
+                      />
+                      <input
+                        aria-label={`Parameter ${index + 1} type`}
+                        list={typeListId}
+                        value={parameter.type}
+                        onChange={(event) =>
+                          updateParameters(
+                            parameters.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, type: event.target.value } : item,
+                            ),
+                          )
+                        }
+                        onBlur={commitParametersOnExit}
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Move parameter ${index + 1} up`}
+                        disabled={index === 0}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          const next = [...parameters];
+                          [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
+                          updateParameters(next, true);
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move parameter ${index + 1} down`}
+                        disabled={index === parameters.length - 1}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          const next = [...parameters];
+                          [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
+                          updateParameters(next, true);
+                        }}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Remove parameter ${index + 1}`}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() =>
+                          updateParameters(
+                            parameters.filter((_, itemIndex) => itemIndex !== index),
+                            true,
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <div className="class-parameter-actions">
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => updateParameters([...parameters, { name: "parameter", type: "" }])}
+                    >
+                      + Add parameter
+                    </button>
+                    <button type="button" onClick={() => setRawParameterMode(true)}>
+                      Edit as raw text
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           <input
             aria-label="Member type"
