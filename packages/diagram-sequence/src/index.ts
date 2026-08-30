@@ -130,6 +130,28 @@ function unquote(value: string): string {
   return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
 }
 
+function singleLineReference(line: string): { color?: string; participants: string; text: string } | undefined {
+  let rest = line.trim();
+  if (rest.slice(0, 3).toLowerCase() !== "ref" || (rest.length > 3 && rest[3] !== "#" && !/\s/.test(rest[3]!)))
+    return undefined;
+  rest = rest.slice(3).trimStart();
+
+  let color: string | undefined;
+  if (rest.startsWith("#")) {
+    const colorEnd = rest.search(/\s/);
+    color = colorEnd < 0 ? rest : rest.slice(0, colorEnd);
+    rest = colorEnd < 0 ? "" : rest.slice(colorEnd).trimStart();
+  }
+
+  if (rest.slice(0, 4).toLowerCase() !== "over" || (rest.length > 4 && !/\s/.test(rest[4]!))) return undefined;
+  rest = rest.slice(4).trimStart();
+  const colon = rest.indexOf(":");
+  if (colon < 0) return undefined;
+  const participants = rest.slice(0, colon).trim();
+  if (!participants) return undefined;
+  return { ...(color ? { color } : {}), participants, text: rest.slice(colon + 1).trimStart() };
+}
+
 export function parseSequence(source: string): SequenceDocument {
   const participants: SequenceParticipant[] = [];
   const messages: SequenceMessage[] = [];
@@ -262,7 +284,7 @@ export function parseSequence(source: string): SequenceDocument {
         const separator = line.match(/^\s*==\s*(.*?)\s*==\s*$/);
         const delay = line.match(/^\s*\.\.\.(?:(.*?)\.\.\.)?\s*$/);
         const space = line.match(/^\s*\|\|(\d*)\|\|\s*$/);
-        const reference = line.match(/^\s*ref\s*(#[\w]+)?\s+over\s+([^:]+)\s*:\s*(.*)$/i);
+        const reference = singleLineReference(line);
         const box = line.match(/^\s*box(?:\s+"([^"]*)"|\s+([^#]*?))?(?:\s+(#[\w]+))?\s*$/i);
         const autonumber = line.match(/^\s*autonumber(?:\s+(stop|resume|inc\s+[ABC]|inc))?(?:\s+(.*))?$/i);
         const creation = line.match(
@@ -332,12 +354,12 @@ export function parseSequence(source: string): SequenceDocument {
         else if (reference)
           references.push({
             id: `reference-${references.length}`,
-            participants: reference[2]!
+            participants: reference.participants
               .split(",")
               .map((item) => unquote(item.trim()))
               .filter(Boolean),
-            text: reference[3] ?? "",
-            ...(reference[1] ? { color: reference[1] } : {}),
+            text: reference.text,
+            ...(reference.color ? { color: reference.color } : {}),
             multiline: false,
             sourceRange: range,
           });

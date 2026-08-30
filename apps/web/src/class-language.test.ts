@@ -16,7 +16,7 @@ describe("Class language support", () => {
     (authored) => {
       const marked = `@startuml\nclass "Customer account" as Customer\nclass Service {\n  ${authored}\n}\n@enduml`;
       const position = marked.indexOf("|");
-      const source = marked.replace("|", "");
+      const source = `${marked.slice(0, position)}${marked.slice(position + 1)}`;
       const result = classCompletions(new CompletionContext(EditorState.create({ doc: source }), position, false));
       expect(result).toMatchObject({ from: position - 3 });
       expect(result?.options).toEqual(
