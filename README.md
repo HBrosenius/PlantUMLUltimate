@@ -24,7 +24,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - SVG and PNG export
 - Automatic local workspace recovery and portable workspace backups
 - Keyboard-accessible menus, dialogs, diagram objects, and commands
-- Automated validation and Chromium end-to-end testing before deployment
+- Automated validation plus Chromium and Firefox end-to-end testing before deployment
 - Light, dark, and system themes
 
 ## Requirements
@@ -326,7 +326,7 @@ See [Architecture](docs/architecture.md) and [Rendering](docs/rendering.md) for 
 
 ## Browser behavior
 
-The committed Playwright suite defines Chromium, Firefox, and WebKit projects. Chromium is the current CI quality gate and is run before GitHub Pages deployment. Firefox and WebKit can be run locally and are the next targets for CI hardening; a small number of browser-specific pointer and clipboard scenarios are skipped where automation support differs.
+The committed Playwright suite defines Chromium, Firefox, and WebKit projects. Chromium and Firefox are CI quality gates and run before GitHub Pages deployment. WebKit can be run locally and is the next target for CI hardening; a small number of browser-specific pointer and clipboard scenarios are skipped where automation support differs.
 
 The File System Access API is currently available only in some browsers. When it is unavailable:
 
@@ -366,11 +366,14 @@ npm run test:e2e
 # Run only Chromium browser tests
 npm run test:e2e:chromium
 
+# Run only Firefox browser tests
+npm run test:e2e:firefox
+
 # Run benchmarks
 npm run bench
 ```
 
-`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium suite. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
+`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium and Firefox suites. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
 
 Install Playwright's browser runtimes before the first end-to-end run if necessary:
 

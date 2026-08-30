@@ -1711,6 +1711,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     .first();
   const systemBox = await systemParticipant.boundingBox();
   const refreshedUserBox = await refreshedUserParticipant.boundingBox();
+  const sequenceSvgBeforeParticipantReorder = await page.locator(".sequence-diagram svg").innerHTML();
   expect(systemBox).not.toBeNull();
   expect(refreshedUserBox).not.toBeNull();
   await page.mouse.move(systemBox!.x + systemBox!.width / 2, systemBox!.y + systemBox!.height / 2);
@@ -1727,6 +1728,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
       return text.indexOf("participant System") < text.indexOf("participant User");
     })
     .toBe(true);
+  await expect
+    .poll(() => page.locator(".sequence-diagram svg").innerHTML())
+    .not.toBe(sequenceSvgBeforeParticipantReorder);
 
   const responseMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-1"]');
   const firstMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-0"]');
@@ -1738,7 +1742,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await page.mouse.down();
   await page.mouse.move(
     firstMessageBox!.x + firstMessageBox!.width / 2,
-    firstMessageBox!.y + firstMessageBox!.height / 2,
+    firstMessageBox!.y + firstMessageBox!.height / 4,
     { steps: 6 },
   );
   await expect(page.locator(".sequence-message-move-preview")).toHaveCount(1);

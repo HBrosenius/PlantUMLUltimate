@@ -34,7 +34,7 @@ export function ActivitySettingsInspector({
             <input
               value={value.title}
               onChange={(event) => update("title", event.target.value)}
-              onBlur={() => onChange(value)}
+              onBlur={(event) => update("title", event.currentTarget.value, true)}
             />
           </label>
           <div className="sequence-settings-grid">
@@ -43,7 +43,7 @@ export function ActivitySettingsInspector({
               <input
                 value={value.header}
                 onChange={(event) => update("header", event.target.value)}
-                onBlur={() => onChange(value)}
+                onBlur={(event) => update("header", event.currentTarget.value, true)}
               />
             </label>
             <label>
@@ -51,7 +51,7 @@ export function ActivitySettingsInspector({
               <input
                 value={value.footer}
                 onChange={(event) => update("footer", event.target.value)}
-                onBlur={() => onChange(value)}
+                onBlur={(event) => update("footer", event.currentTarget.value, true)}
               />
             </label>
           </div>
@@ -79,7 +79,7 @@ export function ActivitySettingsInspector({
               <input
                 value={value[key as keyof ActivitySettings] as string}
                 onChange={(event) => update(key as keyof ActivitySettings, event.target.value as never)}
-                onBlur={() => onChange(value)}
+                onBlur={(event) => update(key as keyof ActivitySettings, event.currentTarget.value as never, true)}
               />
             </label>
           ))}

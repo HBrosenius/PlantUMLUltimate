@@ -53,10 +53,6 @@ export function ClassDiagramPreview({
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
-  const selectRef = useRef(onSelect);
-  selectRef.current = onSelect;
-  const memberSelectRef = useRef(onMemberSelect);
-  memberSelectRef.current = onMemberSelect;
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
@@ -147,23 +143,6 @@ export function ClassDiagramPreview({
           ? `Edit member ${member.text}`
           : `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
       });
-      hit.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        event.stopPropagation();
-        event.preventDefault();
-        const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
-        const memberId = (event.currentTarget as Element).getAttribute("data-class-member-id");
-        if (id && memberId) memberSelectRef.current(id, memberId);
-        else if (id) selectRef.current(id);
-      });
-      hit.addEventListener("click", (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        const id = (event.currentTarget as Element).getAttribute("data-class-object-id");
-        const memberId = (event.currentTarget as Element).getAttribute("data-class-member-id");
-        if (id && memberId) memberSelectRef.current(id, memberId);
-        else if (id) selectRef.current(id);
-      });
       rendered.append(hit);
       if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
       if (member) continue;
@@ -231,8 +210,11 @@ export function ClassDiagramPreview({
     }
   }, [document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
-    const id = (e.target as Element).closest("[data-class-object-id]")?.getAttribute("data-class-object-id");
-    if (id) onSelect(id);
+    const target = (e.target as Element).closest("[data-class-object-id]");
+    const id = target?.getAttribute("data-class-object-id");
+    const memberId = target?.getAttribute("data-class-member-id");
+    if (id && memberId) onMemberSelect(id, memberId);
+    else if (id) onSelect(id);
     else onBackgroundSelect();
   };
   const down = (e: PointerEvent<HTMLDivElement>) => {
@@ -271,6 +253,7 @@ export function ClassDiagramPreview({
     const target = (event.target as Element).closest<SVGElement>("[data-class-object-id]");
     const id = target?.getAttribute("data-class-object-id");
     const type = target?.getAttribute("data-class-object-type");
+    const memberId = target?.getAttribute("data-class-member-id");
     if (!id) return;
     if (event.key.toLowerCase() === "c" && type === "entity") {
       event.preventDefault();
@@ -283,7 +266,8 @@ export function ClassDiagramPreview({
       if (keyboardConnectFrom && type === "entity" && keyboardConnectFrom !== id) {
         onRelationshipCreate(keyboardConnectFrom, id);
         setKeyboardConnectFrom(undefined);
-      } else onSelect(id);
+      } else if (memberId) onMemberSelect(id, memberId);
+      else onSelect(id);
       return;
     }
     if (!event.altKey || type !== "entity" || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;

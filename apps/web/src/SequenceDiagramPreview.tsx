@@ -166,19 +166,30 @@ export function SequenceDiagramPreview({
 
     function restoreActiveReconnectPreview(currentRoot: HTMLDivElement) {
       const drag = dragRef.current;
-      if (drag?.kind !== "message-endpoint" || !drag.endpoint) return;
-      const handle = currentRoot.querySelector<SVGCircleElement>(
-        `[data-sequence-message-id="${CSS.escape(drag.id)}"][data-sequence-message-endpoint="${drag.endpoint}"]`,
-      );
-      if (!handle) return;
-      drag.reconnectPreview?.line.remove();
-      drag.reconnectPreview?.head.remove();
-      const preview = createReconnectPreview(currentRoot, handle, drag.endpoint, drag.id, participants, messages);
-      drag.element = handle;
-      if (preview) {
-        drag.reconnectPreview = preview;
-        updateReconnectPreview(preview, drag.currentX, drag.currentY);
-      } else delete drag.reconnectPreview;
+      if (drag?.kind === "message-endpoint" && drag.endpoint) {
+        const handle = currentRoot.querySelector<SVGCircleElement>(
+          `[data-sequence-message-id="${CSS.escape(drag.id)}"][data-sequence-message-endpoint="${drag.endpoint}"]`,
+        );
+        if (!handle) return;
+        drag.reconnectPreview?.line.remove();
+        drag.reconnectPreview?.head.remove();
+        const preview = createReconnectPreview(currentRoot, handle, drag.endpoint, drag.id, participants, messages);
+        drag.element = handle;
+        if (preview) {
+          drag.reconnectPreview = preview;
+          updateReconnectPreview(preview, drag.currentX, drag.currentY);
+        } else delete drag.reconnectPreview;
+      } else if (drag?.kind === "message" && !drag.movePreview?.line.isConnected) {
+        const preview = createMessageMovePreview(currentRoot, drag.id, participants, messages);
+        const hit = currentRoot.querySelector<SVGGraphicsElement>(
+          `[data-sequence-drag-hit][data-sequence-message-id="${CSS.escape(drag.id)}"]`,
+        );
+        if (hit) drag.element = hit;
+        if (preview) {
+          drag.movePreview = preview;
+          updateMessageMovePreview(preview, drag.currentX, drag.currentY);
+        } else delete drag.movePreview;
+      }
     }
   });
 
@@ -1119,9 +1130,13 @@ function createMessageMovePreview(
   messages: readonly SequenceMessage[],
 ) {
   const message = messages.find((item) => item.id === messageId);
-  const messageText = root?.querySelector<SVGTextElement>(`text[data-sequence-message-id="${CSS.escape(messageId)}"]`);
-  const svg = messageText?.ownerSVGElement;
-  if (!message || !messageText || !svg) return undefined;
+  const messageElement =
+    root?.querySelector<SVGTextElement>(`text[data-sequence-message-id="${CSS.escape(messageId)}"]`) ??
+    root?.querySelector<SVGGraphicsElement>(
+      `[data-sequence-drag-hit][data-sequence-message-id="${CSS.escape(messageId)}"]`,
+    );
+  const svg = messageElement?.ownerSVGElement;
+  if (!message || !messageElement || !svg) return undefined;
   const viewBox = svg.viewBox.baseVal;
   const participantX = (reference: string, edge: "from" | "to") => {
     const participant = participants.find((item) => (item.alias ?? item.label) === reference);
@@ -1136,7 +1151,7 @@ function createMessageMovePreview(
   };
   const x1 = participantX(message.from, "from");
   const x2 = participantX(message.to, "to");
-  const box = messageText.getBBox();
+  const box = messageElement.getBBox();
   const y = box.y + box.height + 6;
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", String(x1));

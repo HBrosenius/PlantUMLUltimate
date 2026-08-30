@@ -41,6 +41,7 @@ export function VersionHistoryDialog({
   const [changesOnly, setChangesOnly] = useState(false);
   const [changeIndex, setChangeIndex] = useState(0);
   const [comparisonView, setComparisonView] = useState<"source" | "rendered">("source");
+  const [creating, setCreating] = useState(false);
   const selected = versions.find((version) => version.id === selectedId) ?? versions[0];
   const compare = versions.find((version) => version.id === compareId);
   const rightSource = compare?.source ?? currentSource;
@@ -82,7 +83,7 @@ export function VersionHistoryDialog({
             <h2>Version history</h2>
             <p>Saved checkpoints are separate from Undo and remain available after restoring.</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close version history">
+          <button type="button" onClick={onClose} aria-label="Close version history" disabled={creating}>
             ×
           </button>
         </header>
@@ -93,8 +94,17 @@ export function VersionHistoryDialog({
             value={label}
             onChange={(event) => setLabel(event.target.value)}
           />
-          <button type="button" onClick={() => void onCreate(label).then(() => setLabel(""))}>
-            Create version
+          <button
+            type="button"
+            disabled={creating}
+            onClick={() => {
+              setCreating(true);
+              void onCreate(label)
+                .then(() => setLabel(""))
+                .finally(() => setCreating(false));
+            }}
+          >
+            {creating ? "Creating version…" : "Create version"}
           </button>
         </div>
         <div className="version-history-body">
@@ -249,7 +259,7 @@ export function VersionHistoryDialog({
               <button type="button" disabled={!selected} onClick={() => selected && void onRestore(selected)}>
                 Restore this version
               </button>
-              <button type="button" onClick={onClose}>
+              <button type="button" onClick={onClose} disabled={creating}>
                 Close
               </button>
             </div>
