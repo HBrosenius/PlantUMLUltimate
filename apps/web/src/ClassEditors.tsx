@@ -138,6 +138,7 @@ const entityValue = (x: ClassEntity): ClassEntityInput => ({
 });
 export function ClassEntityInspector({
   entity,
+  entities,
   packages,
   onChange,
   onPackageChange,
@@ -150,6 +151,7 @@ export function ClassEntityInspector({
   onClose,
 }: {
   entity: ClassEntity;
+  entities: ClassEntity[];
   packages: ClassPackage[];
   onChange(v: ClassEntityInput): void;
   onPackageChange(id?: string): void;
@@ -165,9 +167,18 @@ export function ClassEntityInspector({
   const [newMemberKind, setNewMemberKind] = useState<ClassMemberInput["kind"]>("field");
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberType, setNewMemberType] = useState("");
+  const typeListId = useId();
+  const parameterListId = useId();
   const labelMissing = !v.label.trim();
   useEffect(() => setV(entityValue(entity)), [entity]);
   const save = () => v.label.trim() && onChange(v);
+  const typeSuggestions = entities.map((item) => ({
+    identity: item.alias ?? item.label,
+    label: item.alias ? item.label : undefined,
+    parameterName: item.label
+      .replace(/[^A-Za-z0-9]+(.)/g, (_match, character: string) => character.toUpperCase())
+      .replace(/^[A-Z]/, (character) => character.toLowerCase()),
+  }));
   return (
     <aside className="task-inspector usecase-element-inspector" aria-label="Class object inspector">
       <header>
@@ -217,7 +228,12 @@ export function ClassEntityInspector({
           </label>
           <label>
             Generic type
-            <input value={v.generic ?? ""} onChange={(e) => setV({ ...v, generic: e.target.value })} onBlur={save} />
+            <input
+              list={typeListId}
+              value={v.generic ?? ""}
+              onChange={(e) => setV({ ...v, generic: e.target.value })}
+              onBlur={save}
+            />
           </label>
         </fieldset>
         <fieldset>
@@ -227,6 +243,8 @@ export function ClassEntityInspector({
               <ClassMemberRow
                 key={`${member.id}:${member.text}`}
                 member={member}
+                typeListId={typeListId}
+                parameterListId={parameterListId}
                 first={index === 0}
                 last={index === entity.members.length - 1}
                 onChange={(value) => onMemberChange(member, value)}
@@ -255,6 +273,7 @@ export function ClassEntityInspector({
             {newMemberKind !== "raw" && (
               <input
                 aria-label="New member type"
+                list={typeListId}
                 value={newMemberType}
                 onChange={(event) => setNewMemberType(event.target.value)}
                 placeholder="type"
@@ -276,6 +295,20 @@ export function ClassEntityInspector({
               Add member
             </button>
           </div>
+          <datalist id={typeListId}>
+            {typeSuggestions.map((item) => (
+              <option key={item.identity} value={item.identity} label={item.label} />
+            ))}
+          </datalist>
+          <datalist id={parameterListId}>
+            {typeSuggestions.map((item) => (
+              <option
+                key={item.identity}
+                value={`${item.parameterName || "value"}: ${item.identity}`}
+                label={item.label}
+              />
+            ))}
+          </datalist>
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
@@ -329,6 +362,8 @@ function memberValue(member: ClassMember): ClassMemberInput {
 
 function ClassMemberRow({
   member,
+  typeListId,
+  parameterListId,
   first,
   last,
   onChange,
@@ -337,6 +372,8 @@ function ClassMemberRow({
   onReveal,
 }: {
   member: ClassMember;
+  typeListId: string;
+  parameterListId: string;
   first: boolean;
   last: boolean;
   onChange(value: ClassMemberInput): void;
@@ -402,6 +439,7 @@ function ClassMemberRow({
           {value.kind === "method" && (
             <input
               aria-label="Parameters"
+              list={parameterListId}
               value={value.parameters ?? ""}
               onChange={(event) => setValue({ ...value, parameters: event.target.value })}
               onBlur={() => onChange(value)}
@@ -409,6 +447,7 @@ function ClassMemberRow({
           )}
           <input
             aria-label="Member type"
+            list={typeListId}
             value={value.type ?? ""}
             onChange={(event) => setValue({ ...value, type: event.target.value })}
             onBlur={() => onChange(value)}

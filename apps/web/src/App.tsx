@@ -4101,6 +4101,7 @@ export function App() {
       {selectedClassEntity && (
         <ClassEntityInspector
           entity={selectedClassEntity}
+          entities={classDocument.entities}
           packages={classDocument.packages}
           onChange={applyClassEntity}
           onPackageChange={moveSelectedClassEntity}

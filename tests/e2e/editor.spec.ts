@@ -443,7 +443,10 @@ test("completes Class aliases in member type signatures", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
-  await setSource(page, '@startuml\nclass "Customer account" as Customer\nclass Service {\n  +owner: Cus\n}\n@enduml');
+  await setSource(
+    page,
+    '@startuml\nclass "Customer account" as Customer\nclass Service {\n  +owner: Cus\n  +load(customer: Customer): Customer\n}\n@enduml',
+  );
 
   const memberLine = page.locator(".cm-line").filter({ hasText: "+owner: Cus" });
   await memberLine.click();
@@ -454,6 +457,26 @@ test("completes Class aliases in member type signatures", async ({ page }) => {
   await expect(completions).toContainText("alias Customer");
   await completions.locator(".cm-completionLabel", { hasText: "Customer account" }).click();
   await expect(page.locator(".cm-content")).toContainText("+owner: Customer");
+
+  await page.locator('[data-class-object-id="service"]').first().click();
+  const inspector = page.getByRole("complementary", { name: "Class object inspector" });
+  const memberType = inspector.getByLabel("Member type").first();
+  const typeListId = await memberType.getAttribute("list");
+  expect(typeListId).toBeTruthy();
+  await expect(inspector.getByLabel("Generic type")).toHaveAttribute("list", typeListId!);
+  await expect(inspector.getByLabel("New member type")).toHaveAttribute("list", typeListId!);
+  await expect(
+    inspector.locator(`datalist[id="${typeListId}"] option[value="Customer"][label="Customer account"]`),
+  ).toHaveCount(1);
+
+  const parameters = inspector.getByLabel("Parameters");
+  const parameterListId = await parameters.getAttribute("list");
+  expect(parameterListId).toBeTruthy();
+  await expect(
+    inspector.locator(
+      `datalist[id="${parameterListId}"] option[value="customerAccount: Customer"][label="Customer account"]`,
+    ),
+  ).toHaveCount(1);
 });
 
 test("shows parser problems and applies a safe quick fix", async ({ page }) => {
