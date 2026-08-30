@@ -1,5 +1,25 @@
 import { expect, test } from "@playwright/test";
 
+test("does not offer installation from an installed app window", async ({ page }) => {
+  test.skip(!process.env.PWA_E2E, "Requires the production preview server");
+  await page.addInitScript(() => {
+    const browserMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (query) =>
+      query === "(display-mode: standalone)" ? ({ matches: true } as MediaQueryList) : browserMatchMedia(query);
+  });
+  await page.goto("/");
+  await expect(page.locator(".toolbar")).toContainText("PlantUML Ultimate");
+  await page.evaluate(() => {
+    const prompt = new Event("beforeinstallprompt", { cancelable: true });
+    Object.assign(prompt, {
+      prompt: () => Promise.resolve(),
+      userChoice: Promise.resolve({ outcome: "dismissed" }),
+    });
+    window.dispatchEvent(prompt);
+  });
+  await expect(page.getByRole("button", { name: "Install app" })).toHaveCount(0);
+});
+
 test("starts its production renderer and cached offline shell", async ({ page, context, browserName }) => {
   test.skip(!process.env.PWA_E2E, "Requires the production preview server");
   const dismissOnboarding = async () => {

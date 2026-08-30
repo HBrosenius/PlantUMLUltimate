@@ -5,21 +5,36 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+export function isInstalledDisplayMode(
+  matchesStandalone = window.matchMedia("(display-mode: standalone)").matches,
+  navigatorStandalone = Boolean((navigator as NavigatorWithStandalone).standalone),
+) {
+  return matchesStandalone || navigatorStandalone;
+}
+
 export function usePwa() {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent>();
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker>();
+  const installed = isInstalledDisplayMode();
 
   useEffect(() => {
     const connected = () => setOnline(true);
     const disconnected = () => setOnline(false);
     const beforeInstall = (event: Event) => {
       event.preventDefault();
+      if (isInstalledDisplayMode()) return;
       setInstallPrompt(event as InstallPromptEvent);
     };
+    const installedApp = () => setInstallPrompt(undefined);
     window.addEventListener("online", connected);
     window.addEventListener("offline", disconnected);
     window.addEventListener("beforeinstallprompt", beforeInstall);
+    window.addEventListener("appinstalled", installedApp);
 
     if (import.meta.env.PROD && "serviceWorker" in navigator) {
       const register = async () => {
@@ -39,6 +54,7 @@ export function usePwa() {
       window.removeEventListener("online", connected);
       window.removeEventListener("offline", disconnected);
       window.removeEventListener("beforeinstallprompt", beforeInstall);
+      window.removeEventListener("appinstalled", installedApp);
     };
   }, []);
 
@@ -62,5 +78,11 @@ export function usePwa() {
 
   const update = useCallback(() => waitingWorker?.postMessage("SKIP_WAITING"), [waitingWorker]);
 
-  return { online, canInstall: Boolean(installPrompt), updateAvailable: Boolean(waitingWorker), install, update };
+  return {
+    online,
+    canInstall: !installed && Boolean(installPrompt),
+    updateAvailable: Boolean(waitingWorker),
+    install,
+    update,
+  };
 }
