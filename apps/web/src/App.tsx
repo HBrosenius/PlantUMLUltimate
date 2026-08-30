@@ -2973,6 +2973,7 @@ export function App() {
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLSelectElement ||
         (target?.isContentEditable && !target.closest(".cm-editor"));
+      const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !editing) {
         event.preventDefault();
         setHelpOpen(true);
@@ -2984,6 +2985,7 @@ export function App() {
         !event.ctrlKey &&
         !event.shiftKey &&
         !editingOutsideCodeEditor &&
+        !modalOpen &&
         !event.repeat
       ) {
         const creation =
