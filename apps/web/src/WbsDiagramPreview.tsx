@@ -52,12 +52,14 @@ export function WbsDiagramPreview({
     | undefined
   >(undefined);
   const dropTarget = useRef<Element | undefined>(undefined);
+  const focusAfterRender = useRef<string | undefined>(undefined);
   const [dragPreview, setDragPreview] = useState<{
     label: string;
     x: number;
     y: number;
     destination?: string;
   }>();
+  const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const clearDropTarget = () => {
     dropTarget.current?.classList.remove("wbs-drop-target");
     dropTarget.current = undefined;
@@ -189,6 +191,18 @@ export function WbsDiagramPreview({
         }
       }
     }
+    if (focusAfterRender.current && renderStatus === "idle") {
+      const label = focusAfterRender.current;
+      const target = [...host.querySelectorAll<SVGElement>("[aria-label]")].find(
+        (item) => item.getAttribute("aria-label") === label,
+      );
+      if (target)
+        window.setTimeout(() => {
+          if (!target.isConnected) return;
+          target.focus();
+          focusAfterRender.current = undefined;
+        }, 100);
+    }
   });
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -267,7 +281,7 @@ export function WbsDiagramPreview({
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", cancel, true);
     };
-  }, [document, onMove, onRelationshipCreate, onRelationshipReconnect]);
+  }, [document, onMove, onRelationshipCreate, onRelationshipReconnect, renderStatus]);
   return (
     <section className="preview wbs-preview" aria-label="WBS diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
@@ -395,10 +409,42 @@ export function WbsDiagramPreview({
                 onRelationshipSelect(relationshipId);
                 return;
               }
+              if (event.key === "Escape" && keyboardConnectFrom) {
+                event.preventDefault();
+                setKeyboardConnectFrom(undefined);
+                return;
+              }
+              if (id && event.key.toLocaleLowerCase() === "c") {
+                event.preventDefault();
+                setKeyboardConnectFrom(id);
+                onSelect(id);
+                return;
+              }
               if (id && (event.key === "Enter" || event.key === " ")) {
                 event.preventDefault();
-                onSelect(id);
+                if (keyboardConnectFrom && keyboardConnectFrom !== id) {
+                  focusAfterRender.current =
+                    (event.target as Element).closest("[aria-label]")?.getAttribute("aria-label") ?? undefined;
+                  onRelationshipCreate(keyboardConnectFrom, id);
+                  setKeyboardConnectFrom(undefined);
+                } else onSelect(id);
+                return;
               }
+              if (!id || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+              const node = document.nodes.find((item) => item.id === id);
+              if (!node) return;
+              const siblings = document.nodes.filter(
+                (item) => item.parentId === node.parentId && item.side === node.side && item.depth === node.depth,
+              );
+              const index = siblings.findIndex((item) => item.id === id);
+              const direction = event.key === "ArrowUp" ? -1 : 1;
+              const sibling = siblings[index + direction];
+              if (!sibling) return;
+              event.preventDefault();
+              focusAfterRender.current =
+                (event.target as Element).closest("[aria-label]")?.getAttribute("aria-label") ?? undefined;
+              const before = direction < 0 ? sibling : siblings[index + 2];
+              onMove(id, node.parentId, before?.id);
             }}
           />
         )}
@@ -414,7 +460,11 @@ export function WbsDiagramPreview({
           <span>{dragPreview.destination ?? "Choose a destination"}</span>
         </div>
       )}
-      <p className="preview-hint">Drag a node to move it. Select a node and drag its blue anchor to create an arrow.</p>
+      <p className="preview-hint">
+        {keyboardConnectFrom
+          ? "Choose a target and press Enter · Esc cancels"
+          : "Drag a node to move it · Alt+↑/↓ reorders · focus a node and press C to connect"}
+      </p>
     </section>
   );
 }

@@ -32,6 +32,7 @@ export function ActivityDiagramPreview({
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number } | undefined>(undefined);
   const suppressClick = useRef(false);
+  const focusAfterRender = useRef<string | undefined>(undefined);
   useLayoutEffect(() => {
     const rendered = root.current?.querySelector("svg");
     if (!rendered) return;
@@ -93,7 +94,19 @@ export function ActivityDiagramPreview({
       handle.setAttribute("aria-label", `Drag to reorder ${activityText(object)[0] ?? "flow item"}`);
       rendered.append(handle);
     }
-  }, [document, selectedId, svg]);
+    if (focusAfterRender.current && renderStatus === "idle") {
+      const label = focusAfterRender.current;
+      const target = [...rendered.querySelectorAll<SVGElement>("[aria-label]")].find(
+        (item) => item.getAttribute("aria-label") === label,
+      );
+      if (target)
+        window.setTimeout(() => {
+          if (!target.isConnected) return;
+          target.focus();
+          focusAfterRender.current = undefined;
+        }, 100);
+    }
+  }, [document, renderStatus, selectedId, svg]);
   return (
     <section className="preview activity-preview" aria-label="Activity diagram preview">
       <div className="preview-tools">
@@ -243,13 +256,26 @@ export function ActivityDiagramPreview({
               root.current?.classList.remove("activity-dragging-move");
             }}
             onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
               const id = (event.target as Element)
                 .closest("[data-activity-object-id]")
                 ?.getAttribute("data-activity-object-id");
               if (!id) return;
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect(id);
+                return;
+              }
+              if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+              const timeline = [...document.nodes, ...document.controls, ...document.notes, ...document.arrows].sort(
+                (left, right) => left.sourceRange.from - right.sourceRange.from,
+              );
+              const index = timeline.findIndex((item) => item.id === id);
+              const target = timeline[index + (event.key === "ArrowUp" ? -1 : 1)];
+              if (!target) return;
               event.preventDefault();
-              onSelect(id);
+              focusAfterRender.current =
+                (event.target as Element).closest("[aria-label]")?.getAttribute("aria-label") ?? undefined;
+              onReorder(id, target.id, event.key === "ArrowUp" ? "before" : "after");
             }}
             onClick={(event) => {
               if (suppressClick.current) {
@@ -278,6 +304,7 @@ export function ActivityDiagramPreview({
           </div>
         )}
       </div>
+      <p className="preview-hint">Enter selects · Alt+↑/↓ reorders focused flow items</p>
     </section>
   );
 }
