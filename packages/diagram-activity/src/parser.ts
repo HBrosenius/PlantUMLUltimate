@@ -8,8 +8,10 @@ const id = (value: string) =>
     .toLowerCase()
     .replace(/[^\w.-]+/g, "-");
 const unquote = (value: string) => value.trim().replace(/^"([\s\S]*)"$/, "$1");
+const MAX_SOURCE_LENGTH = 100_000;
 
 export function parseActivity(source: string): ActivityDocument {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Activity source exceeds the 100,000 character limit");
   const nodes: ActivityNode[] = [];
   const controls: ActivityControl[] = [];
   const partitions: ActivityPartition[] = [];

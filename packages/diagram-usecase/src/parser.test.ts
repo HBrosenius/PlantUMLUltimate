@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseUseCase } from "./parser";
 
 describe("parseUseCase", () => {
+  it("rejects oversized input before applying grammar expressions", () => {
+    expect(() => parseUseCase(" ".repeat(100_001))).toThrow(/100,000 character limit/);
+  });
+
   it("parses actors, use cases, packages, relationships, notes, styles, and stereotypes", () => {
     const source = `@startuml
 left to right direction

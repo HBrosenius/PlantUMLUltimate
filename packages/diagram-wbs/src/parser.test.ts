@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseWbs } from "./parser";
 
 describe("WBS parser", () => {
+  it("rejects oversized input before applying grammar expressions", () => {
+    expect(() => parseWbs(" ".repeat(100_001))).toThrow(/100,000 character limit/);
+  });
+
   it("parses hierarchy, sides, styles, and source ranges", () => {
     const document = parseWbs(
       "@startwbs\n* Project\n**[#LightBlue] <color:#DarkBlue>Planning</color> <<phase>>\n-- Risk\n@endwbs",

@@ -2,6 +2,7 @@ import type { ClassDocument, ClassEntity, ClassMember, ClassPackage, ClassRelati
 
 const normalize = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
 const unquote = (v: string) => v.trim().replace(/^"(.*)"$/, "$1");
+const MAX_SOURCE_LENGTH = 100_000;
 const member = (text: string, sourceRange: { from: number; to: number }, id: string): ClassMember => {
   const trimmed = text.trim();
   const modifiers = [...trimmed.matchAll(/\{(static|abstract)\}/gi)].map((match) => match[1]!.toLowerCase());
@@ -32,6 +33,7 @@ const member = (text: string, sourceRange: { from: number; to: number }, id: str
   };
 };
 export function parseClassDiagram(source: string): ClassDocument {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Class source exceeds the 100,000 character limit");
   const entities: ClassEntity[] = [];
   const packages: ClassPackage[] = [];
   const relationships: ClassDocument["relationships"] = [];

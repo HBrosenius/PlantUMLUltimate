@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { findClassObjectAt, parseClassDiagram } from "./parser";
 describe("parseClassDiagram", () => {
+  it("rejects oversized input before applying grammar expressions", () => {
+    expect(() => parseClassDiagram(" ".repeat(100_001))).toThrow(/100,000 character limit/);
+  });
+
   it("keeps nested package aliases distinct", () => {
     const document = parseClassDiagram(
       '@startuml\npackage "Ordering" {\npackage "Reporting" as Reports #Lavender {\nclass Order\n}\n}\n@enduml',

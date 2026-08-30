@@ -42,7 +42,11 @@ export interface ActivityStructureInput {
   partitionId?: string;
 }
 
-const point = (source: string) => /(?:^|\n)\s*@enduml\b/i.exec(source)?.index ?? source.length;
+const MAX_SOURCE_LENGTH = 100_000;
+const point = (source: string) => {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Activity source exceeds the 100,000 character limit");
+  return /(?:^|\n)\s*@enduml\b/i.exec(source)?.index ?? source.length;
+};
 const insert = (source: string, text: string, at = point(source)) =>
   `${source.slice(0, at)}${at && source[at - 1] !== "\n" ? "\n" : ""}${text}\n${source.slice(at)}`;
 const replace = (source: string, range: { from: number; to: number }, text: string) =>

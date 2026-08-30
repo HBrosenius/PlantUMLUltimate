@@ -5,6 +5,7 @@ const NODE = /^(\s*)([*+-]+)\s*(.*?)\s*$/;
 const RELATIONSHIP = /^\s*([A-Za-z_][\w-]*)\s+(-+>|\.+>)\s+([A-Za-z_][\w-]*)(?:\s+(#[\w-]+))?\s*$/;
 const CONTROL =
   /^(?:@startwbs|@endwbs|title\b|caption\b|header\b|footer\b|legend\b|endlegend\b|skinparam\b|style\b|<style>|<\/style>)\b/i;
+const MAX_SOURCE_LENGTH = 100_000;
 
 function nodeDetails(value: string) {
   const alias = value.match(/^\s*\(([A-Za-z_][\w-]*)\)\s*/)?.[1];
@@ -37,6 +38,7 @@ function nodeDetails(value: string) {
 }
 
 export function parseWbs(source: string): WbsDocument {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("WBS source exceeds the 100,000 character limit");
   const nodes: WbsNode[] = [];
   const relationships: WbsDocument["relationships"] = [];
   const unknown: WbsDocument["unknown"] = [];

@@ -43,11 +43,13 @@ export interface UseCaseNoteInput {
   alias?: string;
   color?: string;
 }
+const MAX_SOURCE_LENGTH = 100_000;
 
 const quote = (value: string) => `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 const reference = (element: UseCaseElement) => element.alias ?? element.label;
 
 function insertionPoint(source: string): number {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Use Case source exceeds the 100,000 character limit");
   const match = /(?:^|\n)\s*@enduml\b/i.exec(source);
   return match ? match.index + (match[0].startsWith("\n") ? 1 : 0) : source.length;
 }

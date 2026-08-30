@@ -125,6 +125,7 @@ const INCOMING_MESSAGE =
   /^\s*([?[])\s*([^\s:]*[-.=\\/][^\s:]*)\s+("[^"]+"|[\w.$:]+)(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/i;
 const OUTGOING_MESSAGE =
   /^\s*("[^"]+"|[\w.$:]+)\s+([^\s:]*[-.=\\/][^\s:]*)\s*([?\]])(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/i;
+const MAX_SOURCE_LENGTH = 100_000;
 
 function unquote(value: string): string {
   return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
@@ -153,6 +154,7 @@ function singleLineReference(line: string): { color?: string; participants: stri
 }
 
 export function parseSequence(source: string): SequenceDocument {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Sequence source exceeds the 100,000 character limit");
   const participants: SequenceParticipant[] = [];
   const messages: SequenceMessage[] = [];
   const fragments: SequenceFragment[] = [];

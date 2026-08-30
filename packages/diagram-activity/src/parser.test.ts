@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { findActivityObjectAt, parseActivity } from "./index";
 
 describe("activity parser", () => {
+  it("rejects oversized input before applying grammar expressions", () => {
+    expect(() => parseActivity(" ".repeat(100_001))).toThrow(/100,000 character limit/);
+  });
+
   it("parses actions, decisions, loops, forks, partitions, arrows, and notes", () => {
     const source = `@startuml
 start

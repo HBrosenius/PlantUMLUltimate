@@ -4,6 +4,7 @@ const lineEnd = (source: string, to: number) => (source[to] === "\n" ? to + 1 : 
 const markerFor = (depth: number, side: WbsSide) =>
   (side === "left" ? "-" : side === "right" ? "+" : "*").repeat(depth);
 const plantUmlColor = (value: string) => (value.startsWith("#") ? value : `#${value}`);
+const MAX_SOURCE_LENGTH = 100_000;
 const statement = (marker: string, value: WbsNodeInput, alias?: string) => {
   const label = value.textColor?.trim()
     ? `<color:${plantUmlColor(value.textColor.trim())}>${value.label.trim()}</color>`
@@ -11,6 +12,7 @@ const statement = (marker: string, value: WbsNodeInput, alias?: string) => {
   return `${marker}${alias ? `(${alias})` : ""}${value.color?.trim() ? `[${plantUmlColor(value.color.trim())}]` : ""} ${label}${value.stereotype?.trim() ? ` <<${value.stereotype.trim()}>>` : ""}`;
 };
 const insertionPoint = (source: string) => {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("WBS source exceeds the 100,000 character limit");
   const match = /(?:^|\n)\s*@endwbs\b/i.exec(source);
   return match ? match.index + (match[0].startsWith("\n") ? 1 : 0) : source.length;
 };

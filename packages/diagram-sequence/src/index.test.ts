@@ -18,6 +18,10 @@ import {
 } from "./index";
 
 describe("parseSequence", () => {
+  it("rejects oversized input before applying grammar expressions", () => {
+    expect(() => parseSequence(" ".repeat(100_001))).toThrow(/100,000 character limit/);
+  });
+
   it("collects and renames message anchor declarations and duration references", () => {
     const source =
       "@startuml\n{request} Alice -> Bob: Call\n{request} <-> {response}: 1s\n{response} Bob --> Alice: Done\n@enduml";

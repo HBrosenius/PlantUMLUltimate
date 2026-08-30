@@ -51,12 +51,14 @@ export interface ClassNoteInput {
   targetId: string;
   color?: string;
 }
+const MAX_SOURCE_LENGTH = 100_000;
 const quote = (v: string) => `"${v.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 const ref = (d: ClassDocument, id: string) => {
   const x = d.entities.find((e) => e.id === id);
   return x?.alias ?? x?.label ?? id;
 };
 const point = (s: string) => {
+  if (s.length > MAX_SOURCE_LENGTH) throw new RangeError("Class source exceeds the 100,000 character limit");
   const m = /(?:^|\n)\s*@enduml\b/i.exec(s);
   return m ? m.index + (m[0].startsWith("\n") ? 1 : 0) : s.length;
 };

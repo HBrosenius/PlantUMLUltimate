@@ -15,6 +15,7 @@ const normalizeId = (value: string) =>
     .replace(/^"|"$/g, "")
     .toLowerCase();
 const unquote = (value: string) => value.trim().replace(/^"([\s\S]*)"$/, "$1");
+const MAX_SOURCE_LENGTH = 100_000;
 const details = (value: string) => {
   const stereotype = value.match(/<<\s*(.*?)\s*>>/)?.[1];
   const color = value.match(/(?:^|\s)(#[\w]+)(?=\s|$)/)?.[1];
@@ -32,6 +33,7 @@ function endpointId(value: string, aliases: ReadonlyMap<string, string>): string
 }
 
 export function parseUseCase(source: string): UseCaseDocument {
+  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Use Case source exceeds the 100,000 character limit");
   const elements: UseCaseElement[] = [];
   const packages: UseCasePackage[] = [];
   const relationships: UseCaseRelationship[] = [];
