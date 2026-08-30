@@ -4,10 +4,13 @@ PlantUML Ultimate is a local-first, browser-based editor for creating and mainta
 
 The application runs entirely in the browser. Diagram rendering, editing, workspace recovery, and exports do not require a PlantUML server.
 
+Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius.se).
+
 ## Highlights
 
 - Diagram-type chooser for Gantt, Sequence, Use Case, Class, Activity, and WBS documents
 - CodeMirror editor with diagram-specific syntax highlighting, diagnostics, quick fixes, and context-aware completion
+- Semantic reference highlighting, navigation, and document-wide rename actions
 - Official PlantUML rendering through the browser-local `@plantuml/core` engine
 - Code, split, and diagram-only views
 - Multiple open documents with reorderable tabs and independent per-document settings
@@ -21,6 +24,7 @@ The application runs entirely in the browser. Diagram rendering, editing, worksp
 - SVG and PNG export
 - Automatic local workspace recovery and portable workspace backups
 - Keyboard-accessible menus, dialogs, diagram objects, and commands
+- Automated validation and Chromium end-to-end testing before deployment
 - Light, dark, and system themes
 
 ## Requirements
@@ -96,6 +100,17 @@ Sequence documents support the common PlantUML object and interaction families t
 
 The Add menu creates participants, messages, fragments, activations, notes, references, participant boxes, and timeline controls. Clicking supported diagram objects opens their inspector; participants and messages can also be reordered or reconnected by dragging. The code editor remains the authoritative escape hatch for valid PlantUML syntax that does not need a dedicated visual control.
 
+## Use Case, Class, Activity, and WBS diagrams
+
+The other diagram editors provide the same source-first workflow with diagram-specific creation tools and inspectors:
+
+- **Use Case** supports actors, use cases, packages, notes, relationships, endpoint reconnection, reordering, and general diagram settings.
+- **Class** supports classes and related entity kinds, packages, notes, relationships, structured fields and methods, member parameters, type completion, and general diagram settings.
+- **Activity** supports actions, partitions, notes, control structures, terminals, arrows, visual reordering, and connection workflows.
+- **WBS** supports node creation, structured branch editing, subtree movement, relationships, colors, and keyboard or pointer reordering.
+
+Supported objects can be selected directly in the preview. Visual edits generate minimal PlantUML source changes and participate in the same undo history as code edits.
+
 Use the view buttons in the toolbar to switch between:
 
 - `1 · code` — editor only; the heavy renderer is unloaded
@@ -116,9 +131,7 @@ Use the view buttons in the toolbar to switch between:
 
 ### Add
 
-- **Task…** creates a task with a duration and either a fixed start or predecessor.
-- **Milestone…** creates a milestone with a fixed date or a date relative to another task.
-- **Divider…** inserts a labeled section divider.
+The menu adapts to the active diagram type. For example, Gantt documents offer tasks, milestones, and dividers; Sequence documents offer participants, messages, fragments, and timeline structures; and the remaining editors expose their supported objects, relationships, notes, and containers.
 
 The command palette, opened with `Cmd/Ctrl + Shift + P`, also exposes file, editing, view, project, resource, and export commands.
 
@@ -248,16 +261,20 @@ Moving and resizing tasks respects configured closed weekdays and date exception
 
 The editor provides:
 
-- Syntax coloring for directives, tasks, keywords, dates, colors, comments, and operators
-- Completion for PlantUML Gantt statements
+- Diagram-aware syntax coloring that respects complete identifiers rather than highlighting keywords inside names
+- Context-aware completion for supported PlantUML diagram statements
 - Completion of existing task names when starting a new task statement with `[`
-- Completion of people, colors, and dependency targets already present in the document
+- Completion of people, colors, dependency targets, Sequence participants, and Class member types already present in the document
+- Semantic highlighting of every reference to the symbol under the cursor
+- **Find references**, previous/next reference navigation, and document-wide **Rename** from the editor or diagram context menu
 - Diagnostics for malformed or unsupported statements
 - Persistent quick-fix controls for repairable source problems
 - A preserved-syntax panel for valid PlantUML lines that Studio does not yet edit visually
 - A **Copy code** button for copying the full current source
 
 PlantUML syntax that is not understood by the visual Gantt adapter is preserved whenever possible. It may still be rendered by PlantUML even if no visual editing control is available.
+
+Semantic reference and rename support currently covers Gantt tasks and people, Sequence participants, Use Case actors, use cases and packages, Class entities and packages, Activity actions and partitions, and WBS nodes. Renames are syntax-aware and update declarations and references without replacing unrelated text.
 
 ## Tabs, persistence, and document safety
 
@@ -309,7 +326,7 @@ See [Architecture](docs/architecture.md) and [Rendering](docs/rendering.md) for 
 
 ## Browser behavior
 
-The application is tested with Playwright against Chromium, Firefox, and WebKit.
+The committed Playwright suite defines Chromium, Firefox, and WebKit projects. Chromium is the current CI quality gate and is run before GitHub Pages deployment. Firefox and WebKit can be run locally and are the next targets for CI hardening; a small number of browser-specific pointer and clipboard scenarios are skipped where automation support differs.
 
 The File System Access API is currently available only in some browsers. When it is unavailable:
 
@@ -353,7 +370,7 @@ npm run test:e2e:chromium
 npm run bench
 ```
 
-`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. Browser tests are separate because they start a local development server.
+`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium suite. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
 
 Install Playwright's browser runtimes before the first end-to-end run if necessary:
 
@@ -367,6 +384,10 @@ npx playwright install chromium firefox webkit
 apps/web/                    React application and browser integration
 packages/diagram-gantt/      Gantt parser, model, and source transformations
 packages/diagram-sequence/   Sequence parser, model, and source transformations
+packages/diagram-usecase/    Use Case parser, model, and source transformations
+packages/diagram-class/      Class parser, model, and source transformations
+packages/diagram-activity/   Activity parser, model, and source transformations
+packages/diagram-wbs/        WBS parser, model, and source transformations
 packages/editor-core/        Framework-independent command and history logic
 packages/language-core/      Diagram adapter contracts
 packages/language-plantuml/  PlantUML detection and adapter registry
