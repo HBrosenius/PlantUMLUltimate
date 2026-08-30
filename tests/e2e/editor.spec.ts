@@ -437,6 +437,25 @@ test("edits structured Class members and reveals rendered members", async ({ pag
   await expect(page.locator(".cm-content")).toContainText("close(): void");
 });
 
+test("completes Class aliases in member type signatures", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Class diagram/ })
+    .click();
+  await setSource(page, '@startuml\nclass "Customer account" as Customer\nclass Service {\n  +owner: Cus\n}\n@enduml');
+
+  const memberLine = page.locator(".cm-line").filter({ hasText: "+owner: Cus" });
+  await memberLine.click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Control+Space");
+  const completions = page.locator(".cm-tooltip-autocomplete");
+  await expect(completions).toContainText("Customer account");
+  await expect(completions).toContainText("alias Customer");
+  await completions.locator(".cm-completionLabel", { hasText: "Customer account" }).click();
+  await expect(page.locator(".cm-content")).toContainText("+owner: Customer");
+});
+
 test("shows parser problems and applies a safe quick fix", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

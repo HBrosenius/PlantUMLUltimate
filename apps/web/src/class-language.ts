@@ -35,6 +35,27 @@ export function classCompletions(c: CompletionContext): CompletionResult | null 
       options: d.entities.map((x) => ({ label: x.alias ?? x.label, type: "class", detail: x.kind })),
     };
   }
+  const typeWord = before.match(/[A-Za-z_$][\w.$-]*$/);
+  const relationshipLine = /(?:<\|)?[o*]?[-.]+(?:left|right|up|down)?[-.]*[|>]?/i.test(before);
+  const memberTypeContext = !relationshipLine && before.includes(":");
+  const classGenericContext = /^\s*(?:(?:abstract\s+)?class|abstract|interface|enum|annotation)\b[^{}]*<[^>]*$/i.test(
+    before,
+  );
+  if (memberTypeContext || classGenericContext) {
+    const from = typeWord ? c.pos - typeWord[0].length : c.pos;
+    return {
+      from,
+      options: d.entities.map((entity) => {
+        const identity = entity.alias ?? entity.label;
+        return {
+          label: entity.label,
+          ...(identity !== entity.label ? { apply: identity, filterText: `${entity.label} ${identity}` } : {}),
+          type: "class",
+          detail: entity.alias ? `${entity.kind} · alias ${entity.alias}` : entity.kind,
+        };
+      }),
+    };
+  }
   const word = c.matchBefore(/[\w ]*/);
   if (!c.explicit && (!word || word.from === word.to)) return null;
   return {
