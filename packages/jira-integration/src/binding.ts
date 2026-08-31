@@ -28,6 +28,9 @@ function validBinding(value: unknown): value is JiraDocumentBinding {
     (candidate.startFieldId === undefined || /^[a-zA-Z0-9_:-]+$/.test(candidate.startFieldId)) &&
     (candidate.includeAssignee === undefined || typeof candidate.includeAssignee === "boolean") &&
     (candidate.includeDependencies === undefined || typeof candidate.includeDependencies === "boolean") &&
+    (candidate.managedDependencyKeys === undefined ||
+      (Array.isArray(candidate.managedDependencyKeys) &&
+        candidate.managedDependencyKeys.every((key) => /^jira_[1-9]\d*>jira_[1-9]\d*$/.test(key)))) &&
     validBaselines(candidate.baselines)
   );
 }

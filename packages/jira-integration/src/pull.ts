@@ -1,6 +1,7 @@
 import {
   applySourceEdits,
   createDependency,
+  removeDependency,
   parseGantt,
   renameTask,
   setTaskDeclaration,
@@ -24,7 +25,9 @@ export function summarizeJiraPullPlan(plan: Pick<JiraPullPlan, "changes" | "warn
     issues: new Set(plan.changes.map((change) => change.issueId)).size,
     created: plan.changes.filter((change) => change.kind === "created").length,
     updated: plan.changes.filter((change) => change.kind === "updated").length,
-    dependencies: plan.changes.filter((change) => change.kind === "dependency-created").length,
+    dependencies: plan.changes.filter(
+      (change) => change.kind === "dependency-created" || change.kind === "dependency-removed",
+    ).length,
     unchanged: plan.changes.filter((change) => change.kind === "unchanged").length,
     warnings: plan.warnings.length,
   };
@@ -113,9 +116,13 @@ function updateIssue(
   task = findTask(source, issue.id)!;
   if (validDate(issue.startDate) && task.start?.value !== issue.startDate)
     run("startDate", (current) => setTaskDeclaration(source, current, "start", `starts ${issue.startDate}`));
+  else if (options.manageStartDate && issue.startDate === undefined && task.start)
+    run("startDate", (current) => setTaskDeclaration(source, current, "start"));
   task = findTask(source, issue.id)!;
   if (validDate(issue.dueDate) && task.end?.value !== issue.dueDate)
     run("dueDate", (current) => setTaskDeclaration(source, current, "end", `ends ${issue.dueDate}`));
+  else if (options.manageDueDate && issue.dueDate === undefined && task.end)
+    run("dueDate", (current) => setTaskDeclaration(source, current, "end", "lasts 1 day"));
   task = findTask(source, issue.id)!;
   if (issue.completion !== undefined && task.completion?.value !== issue.completion)
     run("completion", (current) =>
@@ -158,6 +165,7 @@ export function buildJiraPullPlan(
   const changes: JiraPullChange[] = [];
   const warnings: string[] = [];
   const validIssues: JiraIssueSnapshot[] = [];
+  const managedDependencyKeys = new Set(options.managedDependencyKeys ?? []);
   const seen = new Set<string>();
   for (const issue of issues) {
     const invalid = validateIssue(issue);
@@ -192,6 +200,34 @@ export function buildJiraPullPlan(
   }
 
   if (options.includeDependencies) {
+    const desiredDependencyKeys = new Set(
+      validIssues.flatMap((issue) =>
+        (issue.blockedByIssueIds ?? []).flatMap((predecessorId) =>
+          /^[1-9]\d*$/.test(predecessorId) ? [`${jiraTaskAlias(predecessorId)}>${jiraTaskAlias(issue.id)}`] : [],
+        ),
+      ),
+    );
+    for (const key of [...managedDependencyKeys]) {
+      if (desiredDependencyKeys.has(key)) continue;
+      const [predecessorId, successorId] = key.split(">");
+      const document = parseGantt(source).document;
+      const dependency = document.dependencies.find(
+        (candidate) =>
+          candidate.predecessorTaskId === predecessorId?.toLowerCase() &&
+          candidate.successorTaskId === successorId?.toLowerCase(),
+      );
+      if (dependency) {
+        source = applyOperation(source, removeDependency(source, dependency.sourceRange, dependency.notes));
+        const issue = validIssues.find((candidate) => jiraTaskAlias(candidate.id) === successorId);
+        changes.push({
+          issueId: issue?.id ?? successorId?.replace(/^jira_/, "") ?? "0",
+          issueKey: issue?.key ?? successorId ?? key,
+          kind: "dependency-removed",
+          fields: [],
+        });
+      }
+      managedDependencyKeys.delete(key);
+    }
     for (const issue of validIssues) {
       for (const predecessorId of issue.blockedByIssueIds ?? []) {
         if (!/^[1-9]\d*$/.test(predecessorId)) {
@@ -211,6 +247,7 @@ export function buildJiraPullPlan(
           continue;
         try {
           source = applyOperation(source, createDependency(source, predecessor, successor));
+          managedDependencyKeys.add(`${predecessor.id}>${successor.id}`);
           changes.push({ issueId: issue.id, issueKey: issue.key, kind: "dependency-created", fields: [] });
         } catch (error) {
           warnings.push(`${issue.key}: ${error instanceof Error ? error.message : "could not create dependency"}`);
@@ -218,5 +255,5 @@ export function buildJiraPullPlan(
       }
     }
   }
-  return { source, changes, warnings };
+  return { source, changes, warnings, managedDependencyKeys: [...managedDependencyKeys].sort() };
 }

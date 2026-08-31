@@ -9,6 +9,7 @@ export interface JiraDocumentBinding {
   includeAssignee?: boolean;
   includeDependencies?: boolean;
   baselines?: Record<string, JiraIssueBaseline>;
+  managedDependencyKeys?: readonly string[];
 }
 
 export interface JiraUserSnapshot {
@@ -32,6 +33,9 @@ export interface JiraIssueSnapshot {
 export interface JiraPullOptions {
   includeAssignee?: boolean;
   includeDependencies?: boolean;
+  manageStartDate?: boolean;
+  manageDueDate?: boolean;
+  managedDependencyKeys?: readonly string[];
 }
 
 export type JiraMappedField = "key" | "summary" | "startDate" | "dueDate" | "completion" | "assigneeAccountId";
@@ -86,7 +90,7 @@ export interface JiraReconciliation {
 export interface JiraPullChange {
   issueId: string;
   issueKey: string;
-  kind: "created" | "updated" | "dependency-created" | "unchanged";
+  kind: "created" | "updated" | "dependency-created" | "dependency-removed" | "unchanged";
   fields: JiraMappedField[];
 }
 
@@ -94,6 +98,7 @@ export interface JiraPullPlan {
   source: string;
   changes: JiraPullChange[];
   warnings: string[];
+  managedDependencyKeys: string[];
 }
 
 export interface JiraPullSummary {

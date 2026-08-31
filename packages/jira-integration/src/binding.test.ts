@@ -15,6 +15,7 @@ const binding = {
   jql: "project = APP ORDER BY Rank",
   mode: "pull",
   includeDependencies: true,
+  managedDependencyKeys: ["jira_10041>jira_10042"],
   baselines: {
     "10042": {
       updated: "2026-08-31T10:00:00Z",

@@ -53,6 +53,39 @@ describe("buildJiraPullPlan", () => {
     expect(document.dependencies).toContainEqual(
       expect.objectContaining({ predecessorTaskId: "jira_10042", successorTaskId: "jira_10043" }),
     );
+    expect(result.managedDependencyKeys).toEqual(["jira_10042>jira_10043"]);
+  });
+
+  it("removes dates cleared in managed Jira fields", () => {
+    const imported = buildJiraPullPlan("@startgantt\n@endgantt", "https://acme.atlassian.net", [issue]);
+    const { startDate: _start, dueDate: _due, ...cleared } = issue;
+    const refreshed = buildJiraPullPlan(imported.source, "https://acme.atlassian.net", [cleared], {
+      manageStartDate: true,
+      manageDueDate: true,
+    });
+    const task = parseGantt(refreshed.source).document.symbols.tasks.get("jira_10042");
+    expect(task?.start).toBeUndefined();
+    expect(task?.end).toBeUndefined();
+    expect(task?.duration?.value).toBe(1);
+    expect(refreshed.changes[0]?.fields).toEqual(["startDate", "dueDate"]);
+  });
+
+  it("removes only stale dependencies recorded as Jira-managed", () => {
+    const imported = buildJiraPullPlan(
+      "@startgantt\n@endgantt",
+      "https://acme.atlassian.net",
+      [issue, { ...issue, id: "10043", key: "APP-124", summary: "Test", blockedByIssueIds: ["10042"] }],
+      { includeDependencies: true },
+    );
+    const refreshed = buildJiraPullPlan(
+      imported.source,
+      "https://acme.atlassian.net",
+      [issue, { ...issue, id: "10043", key: "APP-124", summary: "Test", blockedByIssueIds: [] }],
+      { includeDependencies: true, managedDependencyKeys: imported.managedDependencyKeys },
+    );
+    expect(parseGantt(refreshed.source).document.dependencies).toEqual([]);
+    expect(refreshed.changes).toContainEqual(expect.objectContaining({ issueId: "10043", kind: "dependency-removed" }));
+    expect(refreshed.managedDependencyKeys).toEqual([]);
   });
 
   it("updates a renamed Jira key without changing the stable task alias", () => {

@@ -190,7 +190,14 @@ export function JiraDialog({
         nextPageToken = result.nextPageToken;
         if (page === 49) throw new Error("The Jira query returned more than 5,000 issues; narrow the JQL query");
       }
-      const plan = buildJiraPullPlan(source, selectedSite.url, issues, { includeAssignee, includeDependencies });
+      const options: JiraPullOptions = {
+        includeAssignee,
+        includeDependencies,
+        manageStartDate: Boolean(startFieldId),
+        manageDueDate: true,
+        ...(binding?.managedDependencyKeys ? { managedDependencyKeys: binding.managedDependencyKeys } : {}),
+      };
+      const plan = buildJiraPullPlan(source, selectedSite.url, issues, options);
       const divergences = findJiraTaskDivergences(source, issues, binding?.baselines);
       const missingTasks = findMissingJiraTasks(source, issues, binding?.baselines);
       const nextBinding: JiraDocumentBinding = {
@@ -204,12 +211,13 @@ export function JiraDialog({
         ...(includeAssignee ? { includeAssignee: true } : {}),
         ...(includeDependencies ? { includeDependencies: true } : {}),
         baselines: createJiraBaselines(issues),
+        managedDependencyKeys: plan.managedDependencyKeys,
       };
       setReview({
         baseSource: source,
         issues,
         siteUrl: selectedSite.url,
-        options: { includeAssignee, includeDependencies },
+        options,
         binding: nextBinding,
         previousBaselines: binding?.baselines,
         summary: summarizeJiraPullPlan(plan),
@@ -251,6 +259,7 @@ export function JiraDialog({
     const nextBinding = {
       ...review.binding,
       baselines: { ...review.binding.baselines, ...keptBaselines },
+      managedDependencyKeys: plan.managedDependencyKeys,
     };
     const nextSource = setJiraDocumentBinding(removeJiraTasks(plan.source, removedIssueIds), nextBinding);
     const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
@@ -338,7 +347,13 @@ export function JiraDialog({
                 {review.changes.slice(0, 100).map((change, index) => (
                   <li key={`${change.issueId}-${change.kind}-${index}`}>
                     <strong>{change.issueKey}</strong>
-                    <span>{change.kind === "dependency-created" ? "dependency added" : change.kind}</span>
+                    <span>
+                      {change.kind === "dependency-created"
+                        ? "dependency added"
+                        : change.kind === "dependency-removed"
+                          ? "dependency removed"
+                          : change.kind}
+                    </span>
                     {change.fields.length > 0 && <small>{change.fields.join(", ")}</small>}
                   </li>
                 ))}
