@@ -64,6 +64,7 @@ import { FileMenu } from "./FileMenu";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
+import { JiraDialog } from "./JiraDialog";
 import {
   CollaborationSession,
   collaborationLinkDetails,
@@ -133,6 +134,7 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
+import { parseJiraDocumentBinding } from "@plantuml-studio/jira-integration";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import { usePwa } from "./pwa";
@@ -439,6 +441,7 @@ export function App() {
     external: FileSnapshot;
   }>();
   const [collaborationDialogOpen, setCollaborationDialogOpen] = useState(false);
+  const [jiraDialogOpen, setJiraDialogOpen] = useState(false);
   const [pendingCollaboration, setPendingCollaboration] = useState<{
     roomId: string;
     endpoint: string;
@@ -1807,6 +1810,27 @@ export function App() {
     localStorage.getItem("plantuml-studio.collaboration-server") ??
     import.meta.env.VITE_COLLABORATION_URL ??
     "https://collaboration.plantuml.brosenius.se";
+  const defaultJiraEndpoint =
+    localStorage.getItem("plantuml-studio.jira-integration-server") ??
+    import.meta.env.VITE_JIRA_INTEGRATION_URL ??
+    "https://integrations.plantuml.brosenius.se";
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get("jira");
+    if (!result) return;
+    const popup = url.searchParams.get("jira_popup") === "1";
+    url.searchParams.delete("jira");
+    url.searchParams.delete("jira_popup");
+    window.history.replaceState(window.history.state, "", url);
+    if (popup && window.opener) {
+      window.opener.postMessage({ type: "plantuml-studio:jira-oauth", result }, window.location.origin);
+      window.close();
+      return;
+    }
+    if (result === "connected") setJiraDialogOpen(true);
+    else setInteractionMessage("Jira authorization was not completed");
+  }, []);
 
   const savePendingCollaborationVersion = useCallback(
     (pending: Omit<NonNullable<typeof pendingCollaborationVersion.current>, "timer">) => {
@@ -3728,6 +3752,9 @@ export function App() {
               <button data-inspector-trigger onClick={openResourcePanel}>
                 Resources
               </button>
+              <button data-inspector-trigger onClick={() => setJiraDialogOpen(true)}>
+                Jira
+              </button>
             </>
           )}
           {workspace.diagramKind === "sequence" && (
@@ -4632,6 +4659,18 @@ export function App() {
           onRotate={rotateCollaborationRoom}
           onLeave={leaveCollaboration}
           onClose={() => setCollaborationDialogOpen(false)}
+        />
+      )}
+      {jiraDialogOpen && workspace.diagramKind === "gantt" && (
+        <JiraDialog
+          endpoint={defaultJiraEndpoint}
+          source={workspace.source}
+          binding={parseJiraDocumentBinding(workspace.source)}
+          readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
+          onApply={(source, message) => {
+            if (commitGeneratedSource(source, "Synchronize Jira")) setInteractionMessage(message);
+          }}
+          onClose={() => setJiraDialogOpen(false)}
         />
       )}
       {highlightDate && (

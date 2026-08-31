@@ -29,6 +29,7 @@
     "@plantuml-studio/editor-core": "*",
     "@plantuml-studio/language-core": "*",
     "@plantuml-studio/language-plantuml": "*",
+    "@plantuml-studio/jira-integration": "*",
     "@plantuml/core": "1.2026.6",
     "codemirror": "^6.0.2",
     "dompurify": "^3.4.14",

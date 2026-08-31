@@ -1646,13 +1646,73 @@ textarea:focus-visible,
   margin: 10px 0;
 }
 .task-dialog input,
-.task-dialog select {
+.task-dialog select,
+.task-dialog textarea {
   min-width: 0;
   padding: 7px 9px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--bg);
   color: inherit;
+}
+.jira-dialog {
+  width: min(660px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+}
+.jira-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.jira-dialog > header h2,
+.jira-dialog > header p {
+  margin: 0;
+}
+.jira-dialog > header p,
+.jira-disclosure {
+  color: var(--muted);
+  font-size: 12px;
+}
+.jira-dialog > header button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+}
+.jira-dialog textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.jira-dialog > label.jira-check {
+  display: flex;
+  grid-template-columns: none;
+  justify-content: flex-start;
+  margin-left: 140px;
+}
+.jira-check input {
+  flex: 0 0 auto;
+}
+.jira-disclosure {
+  margin: 16px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+}
+.jira-dialog .dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.jira-dialog .dialog-actions > span {
+  flex: 1;
+}
+.jira-error {
+  margin: 12px 0 0;
 }
 .task-dialog input[aria-invalid="true"] {
   border-color: #d84a4a;

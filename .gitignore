@@ -4,6 +4,8 @@ coverage
 playwright-report
 test-results
 .wrangler
+.dev.vars*
+.env*
 .DS_Store
 *.local
 *.tsbuildinfo

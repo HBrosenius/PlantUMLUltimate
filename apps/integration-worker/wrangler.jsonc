@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "plantuml-ultimate-integrations",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "integrations.plantuml.brosenius.se", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "JIRA_DB",
+      "database_name": "plantuml-ultimate-jira",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "secrets": {
+    "required": ["ATLASSIAN_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"],
+  },
+  "vars": {
+    "ATLASSIAN_CLIENT_ID": "configure-in-atlassian-developer-console",
+    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+  },
+}
