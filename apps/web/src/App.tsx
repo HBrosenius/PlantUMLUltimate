@@ -1980,10 +1980,11 @@ export function App() {
     setCollaborationDialogOpen(true);
   }, [collaboration, defaultCollaborationEndpoint, hydrated]);
 
+  const collaborationDocumentId = collaboration?.documentId;
   useEffect(() => {
-    if (!collaboration || collaboration.documentId !== tabs.activeId) return;
+    if (!collaborationDocumentId || collaborationDocumentId !== tabs.activeId) return;
     collaborationSession.current?.applySource(workspace.source);
-  }, [collaboration, tabs.activeId, workspace.source]);
+  }, [collaborationDocumentId, tabs.activeId, workspace.source]);
 
   useEffect(() => {
     if (!collaboration || tabs.documents.some((document) => document.id === collaboration.documentId)) return;

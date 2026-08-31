@@ -168,7 +168,8 @@ export class CollaborationSession {
         this.synchronized = true;
         this.hasSynchronized = true;
         if (this.role === "editor") {
-          if (!this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
+          const maySeedRoom = Boolean(this.credentials.ownerToken || !this.credentials.accessToken);
+          if (maySeedRoom && !this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
           socket.send(Y.encodeStateAsUpdate(this.document));
         }
         this.reconnectAttempt = 0;
@@ -195,6 +196,7 @@ export class CollaborationSession {
 
   applySource(source: string): void {
     if (this.role === "viewer") return;
+    if (!this.hasSynchronized && this.credentials.accessToken && !this.credentials.ownerToken) return;
     const current = this.sourceText.toString();
     if (current === source) return;
     let prefix = 0;

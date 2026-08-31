@@ -404,11 +404,14 @@ npm run test:e2e:firefox
 # Run only WebKit browser tests
 npm run test:e2e:webkit
 
+# Run Chromium against the real local collaboration Worker and Durable Object
+npm run test:e2e:collaboration
+
 # Run benchmarks
 npm run bench
 ```
 
-`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium, Firefox, and WebKit suites. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
+`npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium, Firefox, and WebKit suites, plus a real local Worker/Durable Object collaboration security test. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
 
 Install Playwright's browser runtimes before the first end-to-end run if necessary:
 

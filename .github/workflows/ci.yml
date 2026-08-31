@@ -72,3 +72,24 @@ jobs:
           path: test-results
           if-no-files-found: ignore
           retention-days: 7
+
+  collaboration-e2e:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:collaboration
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-collaboration
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
