@@ -51,6 +51,8 @@ function messageBytes(message: string | ArrayBuffer): Uint8Array {
 
 export class CollaborationRoom extends DurableObject<Env> {
   private document = new Y.Doc();
+  private ownerToken: string | undefined;
+  private revoked = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -63,6 +65,20 @@ export class CollaborationRoom extends DurableObject<Env> {
           updated_at INTEGER NOT NULL
         )
       `);
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS room_access (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          owner_token TEXT NOT NULL,
+          revoked INTEGER NOT NULL DEFAULT 0
+        )
+      `);
+      const access = this.ctx.storage.sql
+        .exec<{ owner_token: string; revoked: number }>(
+          "SELECT owner_token, revoked FROM room_access WHERE singleton = 1",
+        )
+        .toArray()[0];
+      this.ownerToken = access?.owner_token;
+      this.revoked = access?.revoked === 1;
       const stored = this.ctx.storage.sql
         .exec<{ state: ArrayBuffer }>("SELECT state FROM room_state WHERE singleton = 1")
         .toArray()[0];
@@ -92,17 +108,33 @@ export class CollaborationRoom extends DurableObject<Env> {
   }
 
   private broadcastPresence(): void {
+    if (this.revoked) return;
     const message = JSON.stringify({ type: "presence", participants: this.participants() });
-    for (const socket of this.ctx.getWebSockets()) socket.send(message);
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        socket.send(message);
+      } catch {
+        // A hibernating socket may already be closing while presence is recomputed.
+      }
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
+    if (this.revoked) return Response.json({ error: "Room revoked" }, { status: 410 });
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return Response.json({ error: "WebSocket upgrade required" }, { status: 426 });
     }
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
+    const requestedOwnerToken = new URL(request.url).searchParams.get("owner");
+    if (!this.ownerToken && requestedOwnerToken && /^[A-Za-z0-9_-]{43}$/.test(requestedOwnerToken)) {
+      this.ownerToken = requestedOwnerToken;
+      this.ctx.storage.sql.exec(
+        "INSERT INTO room_access (singleton, owner_token, revoked) VALUES (1, ?, 0)",
+        requestedOwnerToken,
+      );
+    }
     const participant = participantFrom(
       {
         id: new URL(request.url).searchParams.get("participant"),
@@ -123,7 +155,16 @@ export class CollaborationRoom extends DurableObject<Env> {
       if (message.length > 4_096) return socket.close(1009, "Presence message too large");
       try {
         const parsed: unknown = JSON.parse(message);
-        if (!parsed || typeof parsed !== "object" || (parsed as { type?: unknown }).type !== "presence") return;
+        if (!parsed || typeof parsed !== "object") return;
+        if ((parsed as { type?: unknown }).type === "revoke-room") {
+          if (!this.ownerToken || (parsed as { ownerToken?: unknown }).ownerToken !== this.ownerToken) return;
+          this.revoked = true;
+          this.ctx.storage.sql.exec("UPDATE room_access SET revoked = 1 WHERE singleton = 1");
+          this.ctx.storage.sql.exec("DELETE FROM room_state WHERE singleton = 1");
+          for (const peer of this.ctx.getWebSockets()) peer.close(4001, "Room link revoked");
+          return;
+        }
+        if ((parsed as { type?: unknown }).type !== "presence") return;
         const current = participantFrom(socket.deserializeAttachment(), crypto.randomUUID())!;
         const participant = participantFrom((parsed as { participant?: unknown }).participant, current.id);
         if (!participant) return;
@@ -151,8 +192,12 @@ export class CollaborationRoom extends DurableObject<Env> {
       const authorMessage = JSON.stringify({ type: "update-author", participant: author });
       for (const peer of this.ctx.getWebSockets()) {
         if (peer === socket) continue;
-        peer.send(authorMessage);
-        peer.send(update);
+        try {
+          peer.send(authorMessage);
+          peer.send(update);
+        } catch {
+          // Ignore peers that closed between enumeration and delivery.
+        }
       }
     } catch {
       socket.close(1007, "Invalid document update");

@@ -68,6 +68,7 @@ import {
   CollaborationSession,
   collaborationLinkDetails,
   collaborationShareUrl,
+  createCollaborationOwnerToken,
   createCollaborationRoomId,
   withoutCollaborationLink,
   type CollaborationConnection,
@@ -444,6 +445,8 @@ export function App() {
     endpoint: string;
     shareUrl: string;
     participantId: string;
+    participantName: string;
+    owner: boolean;
     connection: CollaborationConnection;
     participants: CollaborationParticipant[];
   }>();
@@ -1846,6 +1849,7 @@ export function App() {
         return;
       }
       const roomId = requestedRoomId ?? createCollaborationRoomId();
+      const ownerToken = requestedRoomId ? undefined : createCollaborationOwnerToken();
       if (!/^[A-Za-z0-9_-]{43}$/.test(roomId)) {
         setInteractionMessage("The collaboration link contains an invalid room credential");
         return;
@@ -1879,6 +1883,7 @@ export function App() {
             fileName: collaborationDocument.fileName,
             diagramKind: detectDiagramKind(source) ?? collaborationDocument.diagramKind,
           }),
+        ownerToken,
       );
       collaborationSession.current = session;
       setCollaboration({
@@ -1887,6 +1892,8 @@ export function App() {
         endpoint: normalizedEndpoint,
         shareUrl,
         participantId,
+        participantName: name,
+        owner: Boolean(ownerToken),
         connection: "connecting",
         participants: [],
       });
@@ -1898,6 +1905,15 @@ export function App() {
     },
     [recordDocumentVersion, reportFileError, scheduleCollaborationVersion, tabs, workspace.cursor, workspace.source],
   );
+
+  const rotateCollaborationRoom = useCallback(() => {
+    if (!collaboration?.owner) return;
+    collaborationSession.current?.revokeRoom();
+    collaborationSession.current?.stop();
+    collaborationSession.current = undefined;
+    startCollaboration(collaboration.participantName, collaboration.endpoint);
+    setInteractionMessage("Old collaboration link revoked; created a new private room");
+  }, [collaboration, startCollaboration]);
 
   useEffect(() => {
     if (!hydrated || collaboration) return;
@@ -4551,6 +4567,7 @@ export function App() {
           defaultEndpoint={pendingCollaboration?.endpoint ?? defaultCollaborationEndpoint}
           active={collaboration}
           onStart={startCollaboration}
+          onRotate={rotateCollaborationRoom}
           onLeave={leaveCollaboration}
           onClose={() => setCollaborationDialogOpen(false)}
         />

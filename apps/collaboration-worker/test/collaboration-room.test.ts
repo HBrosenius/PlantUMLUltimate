@@ -4,9 +4,11 @@ import * as Y from "yjs";
 
 const room = "a".repeat(43);
 
-async function connect(roomId: string): Promise<WebSocket> {
+async function connect(roomId: string, ownerToken?: string): Promise<WebSocket> {
+  const url = new URL(`https://collaboration.example/rooms/${roomId}`);
+  if (ownerToken) url.searchParams.set("owner", ownerToken);
   const response = await exports.default.fetch(
-    new Request(`https://collaboration.example/rooms/${roomId}`, {
+    new Request(url, {
       headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
     }),
   );
@@ -15,6 +17,14 @@ async function connect(roomId: string): Promise<WebSocket> {
   expect(socket).toBeDefined();
   socket!.accept();
   return socket!;
+}
+
+async function roomResponse(roomId: string): Promise<Response> {
+  return exports.default.fetch(
+    new Request(`https://collaboration.example/rooms/${roomId}`, {
+      headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
+    }),
+  );
 }
 
 function nextBinary(socket: WebSocket): Promise<Uint8Array> {
@@ -92,5 +102,23 @@ describe("collaboration Worker", () => {
     Y.applyUpdate(persisted, await nextBinary(reconnected));
     expect(persisted.getText("source").toString()).toContain("Alice -> Bob");
     reconnected.close(1000, "test complete");
+  });
+
+  it("only lets the room owner revoke a collaboration link", async () => {
+    const roomId = "d".repeat(43);
+    const ownerToken = "o".repeat(43);
+    const owner = await connect(roomId, ownerToken);
+    await nextBinary(owner);
+    const participant = await connect(roomId);
+    await nextBinary(participant);
+
+    participant.send(JSON.stringify({ type: "revoke-room", ownerToken: "x".repeat(43) }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((await roomResponse(roomId)).status).toBe(101);
+
+    const closed = new Promise<CloseEvent>((resolve) => participant.addEventListener("close", resolve, { once: true }));
+    owner.send(JSON.stringify({ type: "revoke-room", ownerToken }));
+    await expect(closed).resolves.toMatchObject({ code: 4001 });
+    expect((await roomResponse(roomId)).status).toBe(410);
   });
 });

@@ -12,11 +12,14 @@ export type CollaborationConnection = "connecting" | "connected" | "offline";
 
 const REMOTE_ORIGIN = Symbol("remote-collaboration-update");
 
-function websocketUrl(endpoint: string, roomId: string, participantId: string): string {
+function websocketUrl(endpoint: string, roomId: string, participantId: string, ownerToken?: string): string {
   const url = new URL(endpoint);
   url.protocol = url.protocol === "https:" ? "wss:" : url.protocol === "http:" ? "ws:" : url.protocol;
   url.pathname = `${url.pathname.replace(/\/$/, "")}/rooms/${roomId}`;
-  url.search = new URLSearchParams({ participant: participantId }).toString();
+  url.search = new URLSearchParams({
+    participant: participantId,
+    ...(ownerToken ? { owner: ownerToken } : {}),
+  }).toString();
   return url.toString();
 }
 
@@ -26,6 +29,10 @@ export function createCollaborationRoomId(): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+export function createCollaborationOwnerToken(): string {
+  return createCollaborationRoomId();
 }
 
 export function collaborationShareUrl(pageUrl: string, endpoint: string, roomId: string): string {
@@ -80,6 +87,7 @@ export class CollaborationSession {
     private readonly onConnection: (state: CollaborationConnection) => void,
     private readonly onParticipants: (participants: CollaborationParticipant[]) => void,
     private readonly onEdit: (participant: CollaborationParticipant, source: string) => void,
+    private readonly ownerToken?: string,
   ) {
     this.participant = participant;
     this.sourceText.observe(() => this.onSource(this.sourceText.toString()));
@@ -94,7 +102,7 @@ export class CollaborationSession {
     if (this.stopped) return;
     this.synchronized = false;
     this.onConnection(this.reconnectAttempt ? "offline" : "connecting");
-    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId, this.participant.id));
+    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId, this.participant.id, this.ownerToken));
     socket.binaryType = "arraybuffer";
     this.socket = socket;
     socket.onopen = () => this.sendPresence();
@@ -177,6 +185,11 @@ export class CollaborationSession {
       this.presenceTimer = undefined;
       this.sendPresence();
     }, 50);
+  }
+
+  revokeRoom(): void {
+    if (!this.ownerToken || this.socket?.readyState !== WebSocket.OPEN) return;
+    this.socket.send(JSON.stringify({ type: "revoke-room", ownerToken: this.ownerToken }));
   }
 
   stop(): void {

@@ -7,6 +7,7 @@ export function CollaborationDialog({
   defaultEndpoint,
   active,
   onStart,
+  onRotate,
   onLeave,
   onClose,
 }: {
@@ -16,11 +17,13 @@ export function CollaborationDialog({
     | {
         roomId: string;
         shareUrl: string;
+        owner: boolean;
         connection: CollaborationConnection;
         participants: CollaborationParticipant[];
       }
     | undefined;
   onStart(name: string, endpoint: string, roomId?: string): void;
+  onRotate(): void;
   onLeave(): void;
   onClose(): void;
 }) {
@@ -96,6 +99,11 @@ export function CollaborationDialog({
               ))}
             </section>
             <div className="dialog-actions">
+              {active.owner && (
+                <button type="button" onClick={onRotate}>
+                  Revoke link and create new
+                </button>
+              )}
               <button type="button" onClick={onClose}>
                 Close
               </button>

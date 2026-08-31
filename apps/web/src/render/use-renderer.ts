@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RenderResult, RenderStatus } from "../model";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
+import { sanitizeSvg } from "./sanitize-svg";
 
 export type RendererLayoutEngine = "native" | "graphviz";
 
@@ -31,14 +32,16 @@ function frameDocument(
   const graphviz = new URL(graphvizUrl, window.location.href).href.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
   const frameChannel = JSON.stringify(channel);
   const graphvizScript = layoutEngine === "graphviz" ? `<script src="${graphviz}"></script>` : "";
+  const appOrigin = JSON.stringify(window.location.origin);
   return `<!doctype html><html><head><meta charset="utf-8">${graphvizScript}</head><body><script type="module">
     const channel = ${frameChannel};
-    const send = (message) => parent.postMessage({ channel, ...message }, "*");
+    const appOrigin = ${appOrigin};
+    const send = (message) => parent.postMessage({ channel, ...message }, appOrigin);
     try {
       const { renderToString } = await import(${engine});
       addEventListener("message", (event) => {
         const request = event.data;
-        if (!request || request.channel !== channel || request.type !== "render") return;
+        if (event.origin !== appOrigin || event.source !== parent || !request || request.channel !== channel || request.type !== "render") return;
         const started = performance.now();
         renderToString(
           request.renderSource.split(/\\r\\n|\\r|\\n/),
@@ -88,7 +91,10 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       const request = pending.current;
       pending.current = undefined;
       busy.current = true;
-      instance.contentWindow.postMessage({ channel: channel.current, type: "render", ...request }, "*");
+      instance.contentWindow.postMessage(
+        { channel: channel.current, type: "render", ...request },
+        window.location.origin,
+      );
       window.clearTimeout(renderTimeout.current);
       renderTimeout.current = window.setTimeout(() => {
         if (!busy.current) return;
@@ -109,7 +115,13 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
 
     const receive = (event: MessageEvent<FrameMessage>) => {
       const message = event.data;
-      if (!message || message.channel !== channel.current || event.source !== instance?.contentWindow) return;
+      if (
+        event.origin !== window.location.origin ||
+        !message ||
+        message.channel !== channel.current ||
+        event.source !== instance?.contentWindow
+      )
+        return;
       if (message.type === "ready") {
         ready.current = true;
         sendPending();
@@ -143,7 +155,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       const completed: RenderResult = {
         requestId: message.requestId,
         durationMs: message.durationMs ?? 0,
-        ...(message.svg ? { svg: message.svg } : {}),
+        ...(message.svg ? { svg: sanitizeSvg(message.svg) } : {}),
         ...(message.error ? { error: message.error } : {}),
       };
       if (!completed.error && completed.svg && message.source) {
@@ -215,7 +227,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
         const request = pending.current;
         pending.current = undefined;
         busy.current = true;
-        contentWindow.postMessage({ channel: channel.current, type: "render", ...request }, "*");
+        contentWindow.postMessage({ channel: channel.current, type: "render", ...request }, window.location.origin);
         window.clearTimeout(renderTimeout.current);
         renderTimeout.current = window.setTimeout(() => {
           if (!busy.current) return;

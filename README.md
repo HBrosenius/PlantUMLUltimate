@@ -79,7 +79,7 @@ Select **Collaborate** in the toolbar, enter your name, and choose **Create priv
 
 After a participant pauses typing, Studio creates an automatic Version History checkpoint attributed to that person. Selecting the checkpoint shows who made it and uses the normal source or rendered comparison to show exactly what changed. A `Collaboration started` checkpoint preserves the source from before the shared session as the comparison baseline.
 
-The room link is the editing credential. Its 256-bit room token is stored in the URL fragment so it is not sent to the static site host or included in normal referrer data. Anyone who has the complete link can edit the room, so share it only with intended collaborators.
+The room link is the editing credential. Its 256-bit room token is stored in the URL fragment so it is not sent to the static site host or included in normal referrer data. Anyone who has the complete link can edit the room, so share it only with intended collaborators. The room creator can select **Revoke link and create new** to permanently close the old room, disconnect its participants, and continue the current document with a fresh private link.
 
 If the connection drops, edits continue in the browser and synchronize through Yjs after reconnection. Each browser also retains its normal local workspace recovery copy. Collaboration is attached to one open document; leaving the room or closing that document stops the live session.
 

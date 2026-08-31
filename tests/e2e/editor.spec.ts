@@ -78,15 +78,24 @@ test("creates a private collaboration link without exposing its credential in th
       onclose: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      constructor() {
-        (window as Window & { __collaborationSocket?: CollaborationWebSocket }).__collaborationSocket = this;
+      constructor(url: string) {
+        const collaborationWindow = window as Window & {
+          __collaborationSocket?: CollaborationWebSocket;
+          __collaborationSocketUrls?: string[];
+          __collaborationMessages?: string[];
+        };
+        collaborationWindow.__collaborationSocket = this;
+        (collaborationWindow.__collaborationSocketUrls ??= []).push(url);
         window.setTimeout(() => {
           this.onopen?.();
           this.onmessage?.(new MessageEvent("message", { data: new Uint8Array([0, 0]).buffer }));
         });
       }
 
-      send() {}
+      send(message: string | ArrayBuffer) {
+        if (typeof message === "string")
+          ((window as Window & { __collaborationMessages?: string[] }).__collaborationMessages ??= []).push(message);
+      }
       close() {
         this.readyState = 3;
       }
@@ -156,6 +165,23 @@ test("creates a private collaboration link without exposing its credential in th
   await expect(history.locator(".version-list-item").first()).toContainText("Changes by Alice");
   await expect(history.locator(".version-list-item").first()).toContainText("by Alice");
   await expect(history.locator(".version-list-item").filter({ hasText: "Changes by Bob" })).toHaveCount(1);
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.getByRole("button", { name: /online/ }).click();
+  const rotatedDialog = page.getByRole("dialog", { name: "Collaboration" });
+  const oldLink = await rotatedDialog.getByLabel("Private collaboration link").inputValue();
+  await rotatedDialog.getByRole("button", { name: "Revoke link and create new" }).click();
+  await expect(rotatedDialog).toContainText("Connected");
+  const newLink = await rotatedDialog.getByLabel("Private collaboration link").inputValue();
+  expect(newLink).not.toBe(oldLink);
+  const rotation = await page.evaluate(() => ({
+    urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
+    messages: (window as Window & { __collaborationMessages?: string[] }).__collaborationMessages,
+  }));
+  expect(rotation.urls).toHaveLength(2);
+  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("owner"))).toBe(true);
+  expect(new URL(oldLink).hash).not.toContain("owner");
+  expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).toBe(true);
 });
 
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
