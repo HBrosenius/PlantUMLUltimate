@@ -62,6 +62,7 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
+import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
@@ -128,11 +129,13 @@ import {
   downloadText,
   openPlantUmlDocument,
   openWorkspaceBackupFile,
+  readFileSnapshot,
   registerLaunchFileConsumer,
   savePlantUmlDocumentAs,
   svgFileName,
   writePlantUmlDocument,
   type WritableFileHandle,
+  type FileSnapshot,
 } from "./file-service";
 import {
   DEFAULT_ACTIVITY_SOURCE,
@@ -415,7 +418,16 @@ export function App() {
   const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
+  const [externalConflict, setExternalConflict] = useState<{
+    documentId: string;
+    fileName: string;
+    localSource: string;
+    external: FileSnapshot;
+  }>();
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
+  const fileSnapshots = useRef(new Map<string, FileSnapshot>());
+  const externalCheckSnoozedUntil = useRef(new Map<string, number>());
+  const checkingExternalFiles = useRef(false);
   const workspaceElement = useRef<HTMLElement>(null);
   const pendingInspectorFocus = useRef<InspectorFocusSnapshot | undefined>(undefined);
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
@@ -823,6 +835,8 @@ export function App() {
       tabs.closeDocument(id);
       removeHistory(id);
       fileHandles.current.delete(id);
+      fileSnapshots.current.delete(id);
+      externalCheckSnoozedUntil.current.delete(id);
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
       if (closingLastDocument) {
@@ -856,8 +870,12 @@ export function App() {
         return;
       tabs.closeOtherDocuments(id);
       retainHistories([id]);
-      for (const documentId of [...fileHandles.current.keys()])
-        if (documentId !== id) fileHandles.current.delete(documentId);
+      for (const documentId of [...fileHandles.current.keys()]) {
+        if (documentId === id) continue;
+        fileHandles.current.delete(documentId);
+        fileSnapshots.current.delete(documentId);
+        externalCheckSnoozedUntil.current.delete(documentId);
+      }
       setTabMenu(undefined);
     },
     [retainHistories, tabs],
@@ -1401,7 +1419,7 @@ export function App() {
         ...(label?.trim() ? { label: label.trim() } : {}),
         pinned: reason === "manual" || reason === "before-restore",
       });
-      setDocumentVersions(await loadDocumentVersions(historyId));
+      if (historyId === activeDocument.historyId) setDocumentVersions(await loadDocumentVersions(historyId));
       return version;
     },
     [activeDocument.historyId, workspace.diagramKind, workspace.fileName, workspace.source],
@@ -1434,7 +1452,14 @@ export function App() {
         dirty: false,
         cursor: { line: 1, column: 1 },
       });
-      if (opened.handle) fileHandles.current.set(id, opened.handle);
+      if (opened.handle) {
+        fileHandles.current.set(id, opened.handle);
+        fileSnapshots.current.set(id, {
+          source: opened.source,
+          lastModified: opened.lastModified ?? 0,
+          size: opened.size ?? new Blob([opened.source]).size,
+        });
+      }
       await recordDocumentVersion("opened", "Opened file", {
         historyId,
         source: opened.source,
@@ -1468,6 +1493,8 @@ export function App() {
       if (!saved) return;
       if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
       else fileHandles.current.delete(tabs.activeId);
+      if (saved.handle) fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(saved.handle));
+      else fileSnapshots.current.delete(tabs.activeId);
       const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       tabs.setDocumentHistoryId(tabs.activeId, historyId);
       tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
@@ -1518,14 +1545,167 @@ export function App() {
       return;
     }
     try {
+      const previous = fileSnapshots.current.get(tabs.activeId);
+      const external = await readFileSnapshot(handle);
+      if (previous && external.source !== previous.source) {
+        if (workspace.dirty) {
+          setExternalConflict({
+            documentId: tabs.activeId,
+            fileName: handle.name,
+            localSource: workspace.source,
+            external,
+          });
+        } else {
+          await recordDocumentVersion("before-restore", "Before external reload");
+          tabs.replaceDocumentFromFile(tabs.activeId, {
+            source: external.source,
+            fileName: handle.name,
+            diagramKind: detectDiagramKind(external.source) ?? "gantt",
+          });
+          fileSnapshots.current.set(tabs.activeId, external);
+          setInteractionMessage(`Reloaded external changes from ${handle.name}`);
+        }
+        return;
+      }
       await writePlantUmlDocument(handle, workspace.source);
+      fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(handle));
       setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
       await recordDocumentVersion("saved", undefined, { fileName: handle.name });
       setInteractionMessage(`Saved ${handle.name}`);
     } catch (error) {
       reportFileError(error);
     }
-  }, [recordDocumentVersion, reportFileError, saveDocumentAs, setWorkspace, tabs.activeId, workspace.source]);
+  }, [recordDocumentVersion, reportFileError, saveDocumentAs, setWorkspace, tabs, workspace.dirty, workspace.source]);
+
+  const checkExternalFiles = useCallback(async () => {
+    if (checkingExternalFiles.current || document.visibilityState === "hidden") return;
+    checkingExternalFiles.current = true;
+    try {
+      for (const [documentId, handle] of fileHandles.current) {
+        const previous = fileSnapshots.current.get(documentId);
+        if (!previous) continue;
+        const external = await readFileSnapshot(handle);
+        if (external.source === previous.source) {
+          fileSnapshots.current.set(documentId, external);
+          continue;
+        }
+        const documentSnapshot = tabs.documents.find((item) => item.id === documentId);
+        if (!documentSnapshot) continue;
+        if (documentSnapshot.dirty) {
+          if ((externalCheckSnoozedUntil.current.get(documentId) ?? 0) > Date.now()) continue;
+          setExternalConflict((current) =>
+            current
+              ? current
+              : {
+                  documentId,
+                  fileName: documentSnapshot.fileName,
+                  localSource: documentSnapshot.source,
+                  external,
+                },
+          );
+          continue;
+        }
+        await recordDocumentVersion("before-restore", "Before external reload", {
+          historyId: documentSnapshot.historyId,
+          source: documentSnapshot.source,
+          fileName: documentSnapshot.fileName,
+          diagramKind: documentSnapshot.diagramKind,
+        });
+        tabs.replaceDocumentFromFile(documentId, {
+          source: external.source,
+          fileName: handle.name,
+          diagramKind: detectDiagramKind(external.source) ?? "gantt",
+        });
+        fileSnapshots.current.set(documentId, external);
+        setInteractionMessage(`Reloaded external changes from ${handle.name}`);
+      }
+    } catch (error) {
+      reportFileError(error);
+    } finally {
+      checkingExternalFiles.current = false;
+    }
+  }, [recordDocumentVersion, reportFileError, tabs]);
+
+  const dismissExternalConflict = useCallback(() => {
+    if (externalConflict) externalCheckSnoozedUntil.current.set(externalConflict.documentId, Date.now() + 60_000);
+    setExternalConflict(undefined);
+  }, [externalConflict]);
+
+  const keepLocalExternalConflict = useCallback(() => {
+    if (!externalConflict) return;
+    fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
+    externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
+    setExternalConflict(undefined);
+    setInteractionMessage(`Kept local changes for ${externalConflict.fileName}`);
+  }, [externalConflict]);
+
+  const reloadExternalConflict = useCallback(async () => {
+    if (!externalConflict) return;
+    const documentSnapshot = tabs.documents.find((item) => item.id === externalConflict.documentId);
+    if (!documentSnapshot) {
+      setExternalConflict(undefined);
+      return;
+    }
+    try {
+      await recordDocumentVersion("before-restore", "Before external reload", {
+        historyId: documentSnapshot.historyId,
+        source: documentSnapshot.source,
+        fileName: documentSnapshot.fileName,
+        diagramKind: documentSnapshot.diagramKind,
+      });
+      tabs.replaceDocumentFromFile(externalConflict.documentId, {
+        source: externalConflict.external.source,
+        fileName: externalConflict.fileName,
+        diagramKind: detectDiagramKind(externalConflict.external.source) ?? "gantt",
+      });
+      fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
+      externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
+      setExternalConflict(undefined);
+      setInteractionMessage(`Reloaded external changes from ${externalConflict.fileName}`);
+    } catch (error) {
+      reportFileError(error);
+    }
+  }, [externalConflict, recordDocumentVersion, reportFileError, tabs]);
+
+  const openExternalConflictCopy = useCallback(async () => {
+    if (!externalConflict) return;
+    const diagramKind = detectDiagramKind(externalConflict.external.source) ?? "gantt";
+    const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const fileName = `External copy of ${externalConflict.fileName}`;
+    tabs.addDocument({
+      historyId,
+      diagramKind,
+      source: externalConflict.external.source,
+      fileName,
+      dirty: true,
+      cursor: { line: 1, column: 1 },
+    });
+    await recordDocumentVersion("opened", "External conflict copy", {
+      historyId,
+      source: externalConflict.external.source,
+      fileName,
+      diagramKind,
+    });
+    fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
+    externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
+    setExternalConflict(undefined);
+    setInteractionMessage(`Opened external changes from ${externalConflict.fileName} as a copy`);
+  }, [externalConflict, recordDocumentVersion, tabs]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const checkWhenVisible = () => {
+      if (document.visibilityState === "visible") void checkExternalFiles();
+    };
+    const timer = window.setInterval(() => void checkExternalFiles(), 5_000);
+    window.addEventListener("focus", checkWhenVisible);
+    document.addEventListener("visibilitychange", checkWhenVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", checkWhenVisible);
+      document.removeEventListener("visibilitychange", checkWhenVisible);
+    };
+  }, [checkExternalFiles, hydrated]);
 
   const restoreDocumentVersion = useCallback(
     async (version: DocumentVersion) => {
@@ -1575,6 +1755,8 @@ export function App() {
       tabs.restoreSession(restored.session);
       await importDocumentVersions(restored.versions);
       fileHandles.current.clear();
+      fileSnapshots.current.clear();
+      externalCheckSnoozedUntil.current.clear();
       retainHistories(restored.session.documents.map((document) => document.id));
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
@@ -1629,6 +1811,8 @@ export function App() {
         tabs.closeDocument(replacedDocumentId);
         removeHistory(replacedDocumentId);
         fileHandles.current.delete(replacedDocumentId);
+        fileSnapshots.current.delete(replacedDocumentId);
+        externalCheckSnoozedUntil.current.delete(replacedDocumentId);
       }
       setSelectedTaskId(undefined);
       setSelectedDependencyIndex(undefined);
@@ -4082,6 +4266,17 @@ export function App() {
             setInteractionMessage(version ? "Baseline version selected" : "Baseline cleared");
           }}
           onClose={() => setVersionHistoryOpen(false)}
+        />
+      )}
+      {externalConflict && (
+        <ExternalFileConflictDialog
+          fileName={externalConflict.fileName}
+          localSource={externalConflict.localSource}
+          externalSource={externalConflict.external.source}
+          onReload={() => void reloadExternalConflict()}
+          onKeepLocal={keepLocalExternalConflict}
+          onOpenCopy={() => void openExternalConflictCopy()}
+          onClose={dismissExternalConflict}
         />
       )}
       {highlightDate && (

@@ -155,6 +155,17 @@ export function usePersistedWorkspace() {
       ),
     }));
   }, []);
+  const replaceDocumentFromFile = useCallback(
+    (id: string, input: Pick<DocumentSnapshot, "source" | "fileName" | "diagramKind">) => {
+      setSession((current) => ({
+        ...current,
+        documents: current.documents.map((document) =>
+          document.id === id ? { ...document, ...input, dirty: false, cursor: { line: 1, column: 1 } } : document,
+        ),
+      }));
+    },
+    [],
+  );
 
   const controls = useMemo(
     () => ({
@@ -169,6 +180,7 @@ export function usePersistedWorkspace() {
       restoreSession,
       setDocumentHistoryId,
       setDocumentBaselineVersionId,
+      replaceDocumentFromFile,
       session,
     }),
     [
@@ -181,6 +193,7 @@ export function usePersistedWorkspace() {
       restoreSession,
       setDocumentHistoryId,
       setDocumentBaselineVersionId,
+      replaceDocumentFromFile,
       session,
     ],
   );

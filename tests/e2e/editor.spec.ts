@@ -2230,6 +2230,65 @@ test("backs up and restores all open documents", async ({ page }) => {
   await expect(history.getByRole("button", { name: "Select version Backup checkpoint" })).toBeVisible();
 });
 
+test("reloads clean external file edits and protects conflicting local changes", async ({ page }) => {
+  const initial = source("[Initial file] lasts 2 days");
+  await page.evaluate((contents) => {
+    const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
+    fileWindow.testExternalFileSource = contents;
+    fileWindow.testExternalModified = 1;
+    const handle = {
+      name: "shared.puml",
+      getFile: async () => ({
+        name: "shared.puml",
+        get lastModified() {
+          return fileWindow.testExternalModified;
+        },
+        get size() {
+          return new Blob([fileWindow.testExternalFileSource ?? ""]).size;
+        },
+        text: async () => fileWindow.testExternalFileSource ?? "",
+      }),
+      createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
+    };
+    Object.defineProperty(window, "showOpenFilePicker", {
+      configurable: true,
+      value: async () => [handle],
+    });
+  }, initial);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Open…" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Initial file");
+
+  await page.evaluate((contents) => {
+    const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
+    fileWindow.testExternalFileSource = contents;
+    fileWindow.testExternalModified = 2;
+    window.dispatchEvent(new Event("focus"));
+  }, source("[Clean external edit] lasts 3 days"));
+  await expect(page.locator(".cm-content")).toContainText("Clean external edit");
+  await expect(page.getByRole("dialog", { name: "External file changes" })).toHaveCount(0);
+
+  await page.locator(".cm-content").fill(source("[Unsaved local edit] lasts 4 days"));
+  await page.evaluate((contents) => {
+    const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
+    fileWindow.testExternalFileSource = contents;
+    fileWindow.testExternalModified = 3;
+  }, source("[Conflicting external edit] lasts 5 days"));
+  await page.keyboard.press("Control+s");
+  const conflict = page.getByRole("dialog", { name: "External file changes" });
+  await expect(conflict).toBeVisible();
+  await expect(conflict.getByRole("table", { name: "External file differences" })).toContainText(
+    "Conflicting external edit",
+  );
+  await conflict.getByRole("button", { name: "Reload external version" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Conflicting external edit");
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(
+    page.getByRole("button", { name: "Select version Before external reload", exact: true }).first(),
+  ).toBeVisible();
+});
+
 test("protects dirty tabs from browser unload", async ({ page }) => {
   await page.locator(".cm-content").fill(source("[Unsaved] lasts 2 days"));
   await expect

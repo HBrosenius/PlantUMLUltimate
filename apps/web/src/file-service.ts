@@ -16,11 +16,30 @@ export interface OpenedDocument {
   source: string;
   fileName: string;
   handle?: WritableFileHandle;
+  lastModified?: number;
+  size?: number;
+}
+
+export interface FileSnapshot {
+  source: string;
+  lastModified: number;
+  size: number;
+}
+
+export async function readFileSnapshot(handle: WritableFileHandle): Promise<FileSnapshot> {
+  const file = await handle.getFile();
+  return { source: await file.text(), lastModified: file.lastModified, size: file.size };
 }
 
 export async function readPlantUmlDocument(handle: WritableFileHandle): Promise<OpenedDocument> {
   const file = await handle.getFile();
-  return { source: await file.text(), fileName: file.name, handle };
+  return {
+    source: await file.text(),
+    fileName: file.name,
+    handle,
+    lastModified: file.lastModified,
+    size: file.size,
+  };
 }
 
 export function registerLaunchFileConsumer(

@@ -1300,6 +1300,62 @@ textarea:focus-visible,
   padding-top: min(18vh, 150px);
   background: rgb(0 0 0 / 35%);
 }
+.external-conflict-backdrop {
+  padding-top: min(8vh, 72px);
+}
+.external-conflict-dialog {
+  width: min(1000px, calc(100vw - 32px));
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 30%);
+}
+.external-conflict-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.external-conflict-dialog h2,
+.external-conflict-dialog p {
+  margin: 0;
+}
+.external-conflict-dialog > header button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+}
+.external-conflict-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 10px 48px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.external-conflict-diff {
+  min-height: 120px;
+  flex: 1;
+  overflow: auto;
+}
+.external-conflict-warning {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.external-conflict-dialog .dialog-actions {
+  padding: 0 20px 18px;
+}
 .command-palette,
 .task-dialog {
   width: min(560px, calc(100vw - 32px));
