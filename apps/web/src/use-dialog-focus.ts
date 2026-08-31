@@ -7,7 +7,7 @@ let lastFocusedOutsideDialog: HTMLElement | undefined;
 if (typeof document !== "undefined")
   document.addEventListener("focusin", (event) => {
     const element = event.target instanceof HTMLElement ? event.target : undefined;
-    if (element && !element.closest('[role="dialog"]')) lastFocusedOutsideDialog = element;
+    if (element && !element.closest('[role="dialog"], [role="alertdialog"]')) lastFocusedOutsideDialog = element;
   });
 
 export function useDialogFocus(container: RefObject<HTMLElement | null>, onClose: () => void): void {
@@ -15,7 +15,8 @@ export function useDialogFocus(container: RefObject<HTMLElement | null>, onClose
   close.current = onClose;
   useEffect(() => {
     const active = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
-    const previous = active && !active.closest('[role="dialog"]') ? active : lastFocusedOutsideDialog;
+    const previous =
+      active && !active.closest('[role="dialog"], [role="alertdialog"]') ? active : lastFocusedOutsideDialog;
     const frame = requestAnimationFrame(() => {
       const preferred = container.current?.querySelector<HTMLElement>("[autofocus]");
       (preferred ?? container.current?.querySelector<HTMLElement>(focusable) ?? container.current)?.focus();

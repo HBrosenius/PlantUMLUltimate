@@ -28,37 +28,75 @@ export function CollaborationDialog({
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
-  useDialogFocus(dialog, onClose);
   const [name, setName] = useState(() => localStorage.getItem("plantuml-studio.collaboration-name") ?? "");
   const [endpoint, setEndpoint] = useState(defaultEndpoint);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const [confirmRotation, setConfirmRotation] = useState(false);
+  const closeDialog = confirmRotation ? () => setConfirmRotation(false) : onClose;
+  useDialogFocus(dialog, closeDialog);
   useEffect(() => setEndpoint(defaultEndpoint), [defaultEndpoint]);
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <div className="modal-backdrop" onMouseDown={closeDialog}>
       <div
         ref={dialog}
         className="collaboration-dialog"
-        role="dialog"
+        role={confirmRotation ? "alertdialog" : "dialog"}
         aria-modal="true"
-        aria-label="Collaboration"
+        aria-label={confirmRotation ? "Revoke collaboration link" : "Collaboration"}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header>
           <div>
-            <h2>{active ? "Collaboration room" : pendingRoom ? "Join collaboration" : "Start collaboration"}</h2>
+            <h2>
+              {confirmRotation
+                ? "Revoke collaboration link?"
+                : active
+                  ? "Collaboration room"
+                  : pendingRoom
+                    ? "Join collaboration"
+                    : "Start collaboration"}
+            </h2>
             <p>
-              {active
-                ? "Anyone with the private room link can edit this document."
-                : "Live edits stay synchronized while each participant keeps an offline local copy."}
+              {confirmRotation
+                ? "This action cannot be undone."
+                : active
+                  ? "Anyone with the private room link can edit this document."
+                  : "Live edits stay synchronized while each participant keeps an offline local copy."}
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close collaboration">
+          <button
+            type="button"
+            onClick={closeDialog}
+            aria-label={confirmRotation ? "Cancel link revocation" : "Close collaboration"}
+          >
             ×
           </button>
         </header>
-        {active ? (
+        {confirmRotation && active ? (
+          <div className="collaboration-confirmation">
+            <p>
+              The current link will stop working immediately and everyone in this room will be disconnected. Your
+              current document will continue in a new room with a new private link.
+            </p>
+            <div className="dialog-actions">
+              <button type="button" autoFocus onClick={() => setConfirmRotation(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => {
+                  setConfirmRotation(false);
+                  onRotate();
+                }}
+              >
+                Revoke and create new link
+              </button>
+            </div>
+          </div>
+        ) : active ? (
           <>
             <div className={`collaboration-state ${active.connection}`}>
               {active.connection === "connected"
@@ -100,7 +138,7 @@ export function CollaborationDialog({
             </section>
             <div className="dialog-actions">
               {active.owner && (
-                <button type="button" onClick={onRotate}>
+                <button type="button" onClick={() => setConfirmRotation(true)}>
                   Revoke link and create new
                 </button>
               )}

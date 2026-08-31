@@ -83,6 +83,7 @@ test("creates a private collaboration link without exposing its credential in th
           __collaborationSocket?: CollaborationWebSocket;
           __collaborationSocketUrls?: string[];
           __collaborationMessages?: string[];
+          __collaborationUpdates?: number[][];
         };
         collaborationWindow.__collaborationSocket = this;
         (collaborationWindow.__collaborationSocketUrls ??= []).push(url);
@@ -92,9 +93,16 @@ test("creates a private collaboration link without exposing its credential in th
         });
       }
 
-      send(message: string | ArrayBuffer) {
+      send(message: string | ArrayBuffer | ArrayBufferView) {
         if (typeof message === "string")
           ((window as Window & { __collaborationMessages?: string[] }).__collaborationMessages ??= []).push(message);
+        else {
+          const bytes =
+            message instanceof ArrayBuffer
+              ? new Uint8Array(message)
+              : new Uint8Array(message.buffer, message.byteOffset, message.byteLength);
+          ((window as Window & { __collaborationUpdates?: number[][] }).__collaborationUpdates ??= []).push([...bytes]);
+        }
       }
       close() {
         this.readyState = 3;
@@ -137,7 +145,12 @@ test("creates a private collaboration link without exposing its credential in th
   await expect(page.locator(".cm-remote-cursor-label")).toHaveText("Bob");
   await expect(page.locator('.cm-remote-selection[data-participant-id="remote-bob"]')).toBeVisible();
 
+  const synchronizedUpdates = await page.evaluate(
+    () => (window as Window & { __collaborationUpdates?: number[][] }).__collaborationUpdates,
+  );
+  expect(synchronizedUpdates?.length).toBeGreaterThan(0);
   const remoteDocument = new Y.Doc();
+  for (const update of synchronizedUpdates!) Y.applyUpdate(remoteDocument, new Uint8Array(update));
   remoteDocument.getText("source").insert(0, "' Bob added this line\n");
   const remoteUpdate = [...Y.encodeStateAsUpdate(remoteDocument)];
   await page.evaluate((update) => {
@@ -153,6 +166,7 @@ test("creates a private collaboration link without exposing its credential in th
       }),
     );
     socket?.onmessage?.(new MessageEvent("message", { data: new Uint8Array(update).buffer }));
+    socket?.onmessage?.(new MessageEvent("message", { data: JSON.stringify({ type: "presence", participants: [] }) }));
   }, remoteUpdate);
   await expect(page.locator(".cm-content")).toContainText("Bob added this line");
 
@@ -171,8 +185,20 @@ test("creates a private collaboration link without exposing its credential in th
   const rotatedDialog = page.getByRole("dialog", { name: "Collaboration" });
   const oldLink = await rotatedDialog.getByLabel("Private collaboration link").inputValue();
   await rotatedDialog.getByRole("button", { name: "Revoke link and create new" }).click();
-  await expect(rotatedDialog).toContainText("Connected");
-  const newLink = await rotatedDialog.getByLabel("Private collaboration link").inputValue();
+  const confirmation = page.getByRole("alertdialog", { name: "Revoke collaboration link" });
+  await expect(confirmation).toContainText("everyone in this room will be disconnected");
+  await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Collaboration" }).getByLabel("Private collaboration link"),
+  ).toHaveValue(oldLink);
+  await page.getByRole("button", { name: "Revoke link and create new" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Revoke collaboration link" })
+    .getByRole("button", { name: "Revoke and create new link", exact: true })
+    .click();
+  const newRoomDialog = page.getByRole("dialog", { name: "Collaboration" });
+  await expect(newRoomDialog).toContainText("Connected");
+  const newLink = await newRoomDialog.getByLabel("Private collaboration link").inputValue();
   expect(newLink).not.toBe(oldLink);
   const rotation = await page.evaluate(() => ({
     urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
