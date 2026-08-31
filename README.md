@@ -31,7 +31,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 22 or newer
 - npm 10 or newer
 - A current version of Chromium, Firefox, or Safari
 
