@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
 import { useDialogFocus } from "./use-dialog-focus";
 import { useRenderer } from "./render/use-renderer";
 
 function versionTitle(version: DocumentVersion): string {
+  if (!version.label?.trim() && version.reason === "collaboration" && version.author)
+    return `Changes by ${version.author.name} · ${new Date(version.createdAt).toLocaleString()}`;
   return (
     version.label?.trim() || `${version.reason.replaceAll("-", " ")} · ${new Date(version.createdAt).toLocaleString()}`
   );
@@ -120,6 +122,7 @@ export function VersionHistoryDialog({
                     <strong>{versionTitle(version)}</strong>
                     <span>
                       {version.source.split("\n").length} lines
+                      {version.author ? ` · by ${version.author.name}` : ""}
                       {version.id === baselineVersionId ? " · baseline" : version.pinned ? " · pinned" : ""}
                     </span>
                   </button>
@@ -176,6 +179,14 @@ export function VersionHistoryDialog({
             </div>
             {selected && (
               <div className="version-edit-controls">
+                {selected.author && (
+                  <span
+                    className="version-author"
+                    style={{ "--version-author-color": selected.author.color } as CSSProperties}
+                  >
+                    Changes by {selected.author.name}
+                  </span>
+                )}
                 <input
                   aria-label="Selected version name"
                   value={editLabel}

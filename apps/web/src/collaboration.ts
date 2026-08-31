@@ -5,6 +5,7 @@ export interface CollaborationParticipant {
   name: string;
   color: string;
   cursor?: { line: number; column: number } | undefined;
+  selection?: { anchor: number; head: number } | undefined;
 }
 
 export type CollaborationConnection = "connecting" | "connected" | "offline";
@@ -65,7 +66,10 @@ export class CollaborationSession {
   private reconnectAttempt = 0;
   private stopped = false;
   private synchronized = false;
+  private hasSynchronized = false;
+  private pendingRemoteAuthor: CollaborationParticipant | undefined;
   private participant: CollaborationParticipant;
+  private presenceTimer: number | undefined;
 
   constructor(
     readonly endpoint: string,
@@ -75,6 +79,7 @@ export class CollaborationSession {
     private readonly onSource: (source: string) => void,
     private readonly onConnection: (state: CollaborationConnection) => void,
     private readonly onParticipants: (participants: CollaborationParticipant[]) => void,
+    private readonly onEdit: (participant: CollaborationParticipant, source: string) => void,
   ) {
     this.participant = participant;
     this.sourceText.observe(() => this.onSource(this.sourceText.toString()));
@@ -104,14 +109,22 @@ export class CollaborationSession {
             Array.isArray((message as { participants?: unknown }).participants)
           )
             this.onParticipants((message as { participants: CollaborationParticipant[] }).participants);
+          else if (message && typeof message === "object" && (message as { type?: unknown }).type === "update-author")
+            this.pendingRemoteAuthor = (message as { participant: CollaborationParticipant }).participant;
         } catch {
           // Ignore malformed presence without interrupting document synchronization.
         }
         return;
       }
+      const sourceBeforeUpdate = this.sourceText.toString();
       Y.applyUpdate(this.document, new Uint8Array(event.data as ArrayBuffer), REMOTE_ORIGIN);
+      const sourceAfterUpdate = this.sourceText.toString();
+      if (this.synchronized && this.pendingRemoteAuthor && sourceAfterUpdate !== sourceBeforeUpdate)
+        this.onEdit(this.pendingRemoteAuthor, sourceAfterUpdate);
+      this.pendingRemoteAuthor = undefined;
       if (!this.synchronized) {
         this.synchronized = true;
+        this.hasSynchronized = true;
         if (!this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
         socket.send(Y.encodeStateAsUpdate(this.document));
         this.reconnectAttempt = 0;
@@ -154,16 +167,22 @@ export class CollaborationSession {
       const inserted = source.slice(prefix, source.length - suffix);
       if (inserted) this.sourceText.insert(prefix, inserted);
     });
+    if (this.hasSynchronized) this.onEdit(this.participant, source);
   }
 
-  updateCursor(line: number, column: number): void {
-    this.participant = { ...this.participant, cursor: { line, column } };
-    this.sendPresence();
+  updateSelection(line: number, column: number, anchor: number, head: number): void {
+    this.participant = { ...this.participant, cursor: { line, column }, selection: { anchor, head } };
+    if (this.presenceTimer) return;
+    this.presenceTimer = window.setTimeout(() => {
+      this.presenceTimer = undefined;
+      this.sendPresence();
+    }, 50);
   }
 
   stop(): void {
     this.stopped = true;
     if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
+    if (this.presenceTimer) window.clearTimeout(this.presenceTimer);
     this.socket?.close(1000, "Left collaboration room");
     this.document.destroy();
   }

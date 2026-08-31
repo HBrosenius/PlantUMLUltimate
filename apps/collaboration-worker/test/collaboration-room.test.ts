@@ -31,6 +31,19 @@ function nextBinary(socket: WebSocket): Promise<Uint8Array> {
   });
 }
 
+function nextJsonMessage<T>(socket: WebSocket, type: string): Promise<T> {
+  return new Promise((resolve) => {
+    const listener = (event: MessageEvent) => {
+      if (typeof event.data !== "string") return;
+      const message = JSON.parse(event.data) as { type?: string };
+      if (message.type !== type) return;
+      socket.removeEventListener("message", listener);
+      resolve(message as T);
+    };
+    socket.addEventListener("message", listener);
+  });
+}
+
 describe("collaboration Worker", () => {
   it("reports health without creating a room", async () => {
     const response = await exports.default.fetch(new Request("https://collaboration.example/health"));
@@ -56,9 +69,17 @@ describe("collaboration Worker", () => {
     const receiver = await connect(roomId);
     await nextBinary(receiver);
     const updateReceived = nextBinary(receiver);
+    const authorReceived = nextJsonMessage<{ participant: { name: string } }>(receiver, "update-author");
+    sender.send(
+      JSON.stringify({
+        type: "presence",
+        participant: { id: "sender", name: "Alice", color: "#2563eb", selection: { anchor: 2, head: 8 } },
+      }),
+    );
     const document = new Y.Doc();
     document.getText("source").insert(0, "@startuml\nAlice -> Bob\n@enduml");
     sender.send(Y.encodeStateAsUpdate(document));
+    await expect(authorReceived).resolves.toMatchObject({ participant: { name: "Alice" } });
     const update = await updateReceived;
     const synchronized = new Y.Doc();
     Y.applyUpdate(synchronized, update);

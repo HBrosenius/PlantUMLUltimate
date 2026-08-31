@@ -198,7 +198,8 @@ describe("document versions", () => {
       source: "first",
       fileName: "a.puml",
       diagramKind: "gantt",
-      reason: "opened",
+      reason: "collaboration",
+      author: { id: "alice-id", name: "Alice", color: "#2563eb" },
     });
     await createDocumentVersion({
       historyId: "history-a",
@@ -217,7 +218,12 @@ describe("document versions", () => {
     });
     const versions = await loadDocumentVersions("history-a");
     expect(versions).toHaveLength(1);
-    expect(versions[0]).toMatchObject({ source: "first", label: "Baseline", pinned: true });
+    expect(versions[0]).toMatchObject({
+      source: "first",
+      label: "Baseline",
+      pinned: true,
+      author: { id: "alice-id", name: "Alice", color: "#2563eb" },
+    });
   });
 
   it("renames, pins, deletes, and retains only the newest automatic versions", async () => {

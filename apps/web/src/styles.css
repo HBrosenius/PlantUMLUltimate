@@ -415,6 +415,34 @@ input {
   background: color-mix(in srgb, var(--accent) 32%, transparent);
   box-shadow: inset 0 -2px 0 var(--accent);
 }
+.cm-remote-selection {
+  border-radius: 2px;
+}
+.cm-remote-cursor {
+  position: relative;
+  display: inline-block;
+  height: 1.25em;
+  margin: 0 -1px;
+  border-left: 2px solid;
+  pointer-events: none;
+  vertical-align: text-bottom;
+  z-index: 3;
+}
+.cm-remote-cursor-label {
+  position: absolute;
+  left: -2px;
+  bottom: calc(100% + 1px);
+  max-width: 140px;
+  padding: 1px 5px;
+  border-radius: 3px 3px 3px 0;
+  color: white;
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .editor-actions {
   position: absolute;
   z-index: 5;
@@ -1907,6 +1935,20 @@ textarea:focus-visible,
 .version-edit-controls input {
   flex: 1;
   min-width: 180px;
+}
+.version-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.version-author::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--version-author-color);
+  content: "";
 }
 .version-edit-controls .danger {
   color: #b91c1c;

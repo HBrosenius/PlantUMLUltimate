@@ -11,6 +11,7 @@ interface Participant {
   name: string;
   color: string;
   cursor?: { line: number; column: number } | undefined;
+  selection?: { anchor: number; head: number } | undefined;
 }
 
 function participantFrom(value: unknown, fallbackId: string): Participant | undefined {
@@ -20,6 +21,7 @@ function participantFrom(value: unknown, fallbackId: string): Participant | unde
   const color =
     typeof candidate.color === "string" && /^#[0-9a-f]{6}$/i.test(candidate.color) ? candidate.color : "#64748b";
   const cursor = candidate.cursor;
+  const selection = candidate.selection;
   return {
     id: typeof candidate.id === "string" && candidate.id.length <= 100 ? candidate.id : fallbackId,
     name: name || "Anonymous",
@@ -29,6 +31,14 @@ function participantFrom(value: unknown, fallbackId: string): Participant | unde
           cursor: {
             line: Math.max(1, Math.floor(cursor.line)),
             column: Math.max(1, Math.floor(cursor.column)),
+          },
+        }
+      : {}),
+    ...(selection && Number.isFinite(selection.anchor) && Number.isFinite(selection.head)
+      ? {
+          selection: {
+            anchor: Math.max(0, Math.floor(selection.anchor)),
+            head: Math.max(0, Math.floor(selection.head)),
           },
         }
       : {}),
@@ -137,7 +147,13 @@ export class CollaborationRoom extends DurableObject<Env> {
         return socket.close(1009, "Document is too large");
       }
       this.persist(state);
-      for (const peer of this.ctx.getWebSockets()) if (peer !== socket) peer.send(update);
+      const author = participantFrom(socket.deserializeAttachment(), crypto.randomUUID())!;
+      const authorMessage = JSON.stringify({ type: "update-author", participant: author });
+      for (const peer of this.ctx.getWebSockets()) {
+        if (peer === socket) continue;
+        peer.send(authorMessage);
+        peer.send(update);
+      }
     } catch {
       socket.close(1007, "Invalid document update");
     }

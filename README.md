@@ -75,7 +75,9 @@ When a new deployed version has finished downloading, the status bar shows **Upd
 
 ## Live collaboration
 
-Select **Collaborate** in the toolbar, enter your name, and choose **Create private room**. Copy the room link and send it to the people who should edit the current document. A recipient opens the link, confirms their name, and selects **Join room**. Source changes merge in real time, while the room panel shows connected participants and their current line and column.
+Select **Collaborate** in the toolbar, enter your name, and choose **Create private room**. Copy the room link and send it to the people who should edit the current document. A recipient opens the link, confirms their name, and selects **Join room**. Source changes merge in real time. Colored selections and name-tagged cursors show where other participants are editing, while the room panel lists everyone connected.
+
+After a participant pauses typing, Studio creates an automatic Version History checkpoint attributed to that person. Selecting the checkpoint shows who made it and uses the normal source or rendered comparison to show exactly what changed. A `Collaboration started` checkpoint preserves the source from before the shared session as the comparison baseline.
 
 The room link is the editing credential. Its 256-bit room token is stored in the URL fragment so it is not sent to the static site host or included in normal referrer data. Anyone who has the complete link can edit the room, so share it only with intended collaborators.
 

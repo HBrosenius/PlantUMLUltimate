@@ -101,6 +101,7 @@ import {
   loadDocumentVersions,
   updateDocumentVersion,
   type DocumentVersion,
+  type DocumentVersionAuthor,
   type DocumentVersionReason,
 } from "./workspace-storage";
 import {
@@ -442,10 +443,23 @@ export function App() {
     roomId: string;
     endpoint: string;
     shareUrl: string;
+    participantId: string;
     connection: CollaborationConnection;
     participants: CollaborationParticipant[];
   }>();
   const collaborationSession = useRef<CollaborationSession | undefined>(undefined);
+  const pendingCollaborationVersion = useRef<
+    | {
+        author: DocumentVersionAuthor;
+        source: string;
+        historyId: string;
+        fileName: string;
+        diagramKind: DiagramKind;
+        timer: number;
+      }
+    | undefined
+  >(undefined);
+  const flushCollaborationVersionRef = useRef<() => void>(() => undefined);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
@@ -1427,7 +1441,13 @@ export function App() {
     async (
       reason: DocumentVersionReason,
       label?: string,
-      override?: { historyId?: string; source?: string; fileName?: string; diagramKind?: DiagramKind },
+      override?: {
+        historyId?: string;
+        source?: string;
+        fileName?: string;
+        diagramKind?: DiagramKind;
+        author?: DocumentVersionAuthor;
+      },
     ) => {
       const historyId = override?.historyId ?? activeDocument.historyId;
       const existing = await loadDocumentVersions(historyId);
@@ -1438,6 +1458,7 @@ export function App() {
         fileName: override?.fileName ?? workspace.fileName,
         diagramKind: override?.diagramKind ?? workspace.diagramKind,
         reason,
+        ...(override?.author ? { author: override.author } : {}),
         ...(label?.trim() ? { label: label.trim() } : {}),
         pinned: reason === "manual" || reason === "before-restore",
       });
@@ -1756,14 +1777,59 @@ export function App() {
     import.meta.env.VITE_COLLABORATION_URL ??
     "https://collaboration.plantuml.brosenius.se";
 
+  const savePendingCollaborationVersion = useCallback(
+    (pending: Omit<NonNullable<typeof pendingCollaborationVersion.current>, "timer">) => {
+      void recordDocumentVersion("collaboration", undefined, pending).catch(reportFileError);
+    },
+    [recordDocumentVersion, reportFileError],
+  );
+
+  const flushCollaborationVersion = useCallback(() => {
+    const pending = pendingCollaborationVersion.current;
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    pendingCollaborationVersion.current = undefined;
+    savePendingCollaborationVersion(pending);
+  }, [savePendingCollaborationVersion]);
+  flushCollaborationVersionRef.current = flushCollaborationVersion;
+
+  const scheduleCollaborationVersion = useCallback(
+    (
+      participant: CollaborationParticipant,
+      source: string,
+      details: { historyId: string; fileName: string; diagramKind: DiagramKind },
+    ) => {
+      const author = { id: participant.id, name: participant.name, color: participant.color };
+      const existing = pendingCollaborationVersion.current;
+      if (existing) {
+        window.clearTimeout(existing.timer);
+        if (existing.author.id !== author.id) savePendingCollaborationVersion(existing);
+      }
+      const pending = {
+        author,
+        source,
+        ...details,
+        timer: 0,
+      };
+      pending.timer = window.setTimeout(() => {
+        if (pendingCollaborationVersion.current !== pending) return;
+        pendingCollaborationVersion.current = undefined;
+        savePendingCollaborationVersion(pending);
+      }, 1_200);
+      pendingCollaborationVersion.current = pending;
+    },
+    [savePendingCollaborationVersion],
+  );
+
   const leaveCollaboration = useCallback(() => {
+    flushCollaborationVersion();
     collaborationSession.current?.stop();
     collaborationSession.current = undefined;
     setCollaboration(undefined);
     setCollaborationDialogOpen(false);
     window.history.replaceState({}, "", withoutCollaborationLink(window.location.href));
     setInteractionMessage("Left collaboration room");
-  }, []);
+  }, [flushCollaborationVersion]);
 
   const startCollaboration = useCallback(
     (name: string, endpoint: string, requestedRoomId?: string) => {
@@ -1786,20 +1852,33 @@ export function App() {
       }
       collaborationSession.current?.stop();
       const documentId = tabs.activeId;
+      const collaborationDocument = tabs.documents.find((document) => document.id === documentId)!;
       const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
       localStorage.setItem("plantuml-studio.collaboration-participant", participantId);
       const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
       const color =
         colors[[...participantId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length]!;
       const shareUrl = collaborationShareUrl(window.location.href, normalizedEndpoint, roomId);
+      void recordDocumentVersion("opened", "Collaboration started", {
+        historyId: collaborationDocument.historyId,
+        source: workspace.source,
+        fileName: collaborationDocument.fileName,
+        diagramKind: collaborationDocument.diagramKind,
+      }).catch(reportFileError);
       const session = new CollaborationSession(
         normalizedEndpoint,
         roomId,
         workspace.source,
-        { id: participantId, name, color, cursor: workspace.cursor },
+        { id: participantId, name, color, cursor: workspace.cursor, selection: { anchor: 0, head: 0 } },
         (source) => tabs.updateDocumentSource(documentId, source, detectDiagramKind(source) ?? "gantt"),
         (connection) => setCollaboration((current) => (current ? { ...current, connection } : current)),
         (participants) => setCollaboration((current) => (current ? { ...current, participants } : current)),
+        (participant, source) =>
+          scheduleCollaborationVersion(participant, source, {
+            historyId: collaborationDocument.historyId,
+            fileName: collaborationDocument.fileName,
+            diagramKind: detectDiagramKind(source) ?? collaborationDocument.diagramKind,
+          }),
       );
       collaborationSession.current = session;
       setCollaboration({
@@ -1807,6 +1886,7 @@ export function App() {
         roomId,
         endpoint: normalizedEndpoint,
         shareUrl,
+        participantId,
         connection: "connecting",
         participants: [],
       });
@@ -1816,7 +1896,7 @@ export function App() {
       window.history.replaceState({}, "", url);
       setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
     },
-    [tabs, workspace.cursor, workspace.source],
+    [recordDocumentVersion, reportFileError, scheduleCollaborationVersion, tabs, workspace.cursor, workspace.source],
   );
 
   useEffect(() => {
@@ -1835,16 +1915,17 @@ export function App() {
   }, [collaboration, tabs.activeId, workspace.source]);
 
   useEffect(() => {
-    if (!collaboration || collaboration.documentId !== tabs.activeId) return;
-    collaborationSession.current?.updateCursor(workspace.cursor.line, workspace.cursor.column);
-  }, [collaboration, tabs.activeId, workspace.cursor.column, workspace.cursor.line]);
-
-  useEffect(() => {
     if (!collaboration || tabs.documents.some((document) => document.id === collaboration.documentId)) return;
     leaveCollaboration();
   }, [collaboration, leaveCollaboration, tabs.documents]);
 
-  useEffect(() => () => collaborationSession.current?.stop(), []);
+  useEffect(
+    () => () => {
+      flushCollaborationVersionRef.current();
+      collaborationSession.current?.stop();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -3819,6 +3900,11 @@ export function App() {
             onChange={(source) => commitSource(source, "Edit source", false)}
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
+            remoteParticipants={
+              collaboration?.documentId === tabs.activeId
+                ? collaboration.participants.filter((participant) => participant.id !== collaboration.participantId)
+                : []
+            }
             onRenameRequest={
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
@@ -3843,8 +3929,10 @@ export function App() {
                   }
                 : undefined
             }
-            onCursorChange={(line, column, position) => {
+            onCursorChange={(line, column, position, anchor, head) => {
               update("cursor", { line, column });
+              if (collaboration?.documentId === tabs.activeId)
+                collaborationSession.current?.updateSelection(line, column, anchor, head);
               if (workspace.diagramKind === "gantt") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);

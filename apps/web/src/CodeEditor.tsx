@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { basicSetup } from "codemirror";
 import { autocompletion } from "@codemirror/autocomplete";
 import { Compartment, EditorState, StateEffect, StateField, type Extension } from "@codemirror/state";
-import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
+import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { linter, lintGutter } from "@codemirror/lint";
@@ -20,19 +20,90 @@ import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode"
 import { wbsCompletions } from "./wbs-language";
 import type { DiagramKind } from "./model";
 import { diagnosticsForDiagram, quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
+import type { CollaborationParticipant } from "./collaboration";
 
 interface Props {
   diagramKind: DiagramKind;
   value: string;
   onChange(value: string): void;
-  onCursorChange(line: number, column: number, position: number): void;
+  onCursorChange(line: number, column: number, position: number, anchor: number, head: number): void;
   selectedRange?: { from: number; to: number } | undefined;
   symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
+  remoteParticipants?: CollaborationParticipant[] | undefined;
   onRenameRequest?: ((position: number) => boolean) | undefined;
   onSymbolContextMenu?: ((position: number, x: number, y: number) => boolean) | undefined;
 }
 
 const setSymbolHighlights = StateEffect.define<Array<{ from: number; to: number; active?: boolean }>>();
+const setRemoteParticipants = StateEffect.define<CollaborationParticipant[]>();
+
+class RemoteCursorWidget extends WidgetType {
+  constructor(
+    private readonly participantId: string,
+    private readonly name: string,
+    private readonly color: string,
+  ) {
+    super();
+  }
+
+  eq(other: RemoteCursorWidget): boolean {
+    return this.participantId === other.participantId && this.name === other.name && this.color === other.color;
+  }
+
+  toDOM(): HTMLElement {
+    const cursor = document.createElement("span");
+    cursor.className = "cm-remote-cursor";
+    cursor.dataset.participantId = this.participantId;
+    cursor.style.borderColor = this.color;
+    const label = document.createElement("span");
+    label.className = "cm-remote-cursor-label";
+    label.style.backgroundColor = this.color;
+    label.textContent = this.name;
+    cursor.append(label);
+    return cursor;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+const remoteParticipantField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    value = value.map(transaction.changes);
+    for (const effect of transaction.effects) {
+      if (!effect.is(setRemoteParticipants)) continue;
+      const ranges: ReturnType<Decoration["range"]>[] = [];
+      for (const participant of effect.value) {
+        if (!participant.selection) continue;
+        const anchor = Math.min(Math.max(0, participant.selection.anchor), transaction.state.doc.length);
+        const head = Math.min(Math.max(0, participant.selection.head), transaction.state.doc.length);
+        const from = Math.min(anchor, head);
+        const to = Math.max(anchor, head);
+        if (from !== to)
+          ranges.push(
+            Decoration.mark({
+              class: "cm-remote-selection",
+              attributes: {
+                "data-participant-id": participant.id,
+                style: `background-color: ${participant.color}33`,
+              },
+            }).range(from, to),
+          );
+        ranges.push(
+          Decoration.widget({
+            widget: new RemoteCursorWidget(participant.id, participant.name, participant.color),
+            side: 1,
+          }).range(head),
+        );
+      }
+      return Decoration.set(ranges, true);
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 const symbolHighlightField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(value, transaction) {
@@ -105,6 +176,7 @@ export function CodeEditor({
   onCursorChange,
   selectedRange,
   symbolHighlights,
+  remoteParticipants,
   onRenameRequest,
   onSymbolContextMenu,
 }: Props) {
@@ -143,6 +215,7 @@ export function CodeEditor({
             },
           ]),
           symbolHighlightField,
+          remoteParticipantField,
           language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
           EditorView.lineWrapping,
@@ -151,7 +224,8 @@ export function CodeEditor({
             click: (_event, currentView) => {
               const position = currentView.state.selection.main.head;
               const line = currentView.state.doc.lineAt(position);
-              onCursorRef.current(line.number, position - line.from + 1, position);
+              const selection = currentView.state.selection.main;
+              onCursorRef.current(line.number, position - line.from + 1, position, selection.anchor, selection.head);
               return false;
             },
             contextmenu: (event, currentView) => {
@@ -172,7 +246,8 @@ export function CodeEditor({
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;
               const line = update.state.doc.lineAt(position);
-              onCursorRef.current(line.number, position - line.from + 1, position);
+              const selection = update.state.selection.main;
+              onCursorRef.current(line.number, position - line.from + 1, position, selection.anchor, selection.head);
             }
           }),
         ],
@@ -216,6 +291,12 @@ export function CodeEditor({
     if (!editor) return;
     editor.dispatch({ effects: setSymbolHighlights.of(symbolHighlights ?? []) });
   }, [symbolHighlights]);
+
+  useEffect(() => {
+    const editor = view.current;
+    if (!editor) return;
+    editor.dispatch({ effects: setRemoteParticipants.of(remoteParticipants ?? []) });
+  }, [remoteParticipants]);
 
   const copySource = async () => {
     try {

@@ -250,7 +250,13 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-export type DocumentVersionReason = "opened" | "saved" | "manual" | "before-restore" | "restored";
+export type DocumentVersionReason = "opened" | "saved" | "manual" | "before-restore" | "restored" | "collaboration";
+
+export interface DocumentVersionAuthor {
+  id: string;
+  name: string;
+  color: string;
+}
 
 export interface DocumentVersion {
   id: string;
@@ -263,6 +269,7 @@ export interface DocumentVersion {
   createdAt: string;
   reason: DocumentVersionReason;
   label?: string;
+  author?: DocumentVersionAuthor;
   pinned: boolean;
 }
 

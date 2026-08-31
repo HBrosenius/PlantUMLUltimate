@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import * as Y from "yjs";
 
 const source = (body: string) => `@startgantt\nProject starts 2026-09-01\n${body}\n@endgantt`;
 
@@ -78,6 +79,7 @@ test("creates a private collaboration link without exposing its credential in th
       onerror: (() => void) | null = null;
 
       constructor() {
+        (window as Window & { __collaborationSocket?: CollaborationWebSocket }).__collaborationSocket = this;
         window.setTimeout(() => {
           this.onopen?.();
           this.onmessage?.(new MessageEvent("message", { data: new Uint8Array([0, 0]).buffer }));
@@ -100,6 +102,60 @@ test("creates a private collaboration link without exposing its credential in th
   const parsed = new URL(link);
   expect(parsed.searchParams.has("collaboration")).toBe(false);
   expect(new URLSearchParams(parsed.hash.slice(1)).get("collaboration")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+  await page.evaluate(() => {
+    const socket = (
+      window as Window & { __collaborationSocket?: { onmessage: ((event: MessageEvent) => void) | null } }
+    ).__collaborationSocket;
+    socket?.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "presence",
+          participants: [
+            {
+              id: "remote-bob",
+              name: "Bob",
+              color: "#db2777",
+              cursor: { line: 1, column: 3 },
+              selection: { anchor: 0, head: 8 },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+  await expect(page.locator('.cm-remote-cursor[data-participant-id="remote-bob"]')).toBeVisible();
+  await expect(page.locator(".cm-remote-cursor-label")).toHaveText("Bob");
+  await expect(page.locator('.cm-remote-selection[data-participant-id="remote-bob"]')).toBeVisible();
+
+  const remoteDocument = new Y.Doc();
+  remoteDocument.getText("source").insert(0, "' Bob added this line\n");
+  const remoteUpdate = [...Y.encodeStateAsUpdate(remoteDocument)];
+  await page.evaluate((update) => {
+    const socket = (
+      window as Window & { __collaborationSocket?: { onmessage: ((event: MessageEvent) => void) | null } }
+    ).__collaborationSocket;
+    socket?.onmessage?.(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          type: "update-author",
+          participant: { id: "remote-bob", name: "Bob", color: "#db2777" },
+        }),
+      }),
+    );
+    socket?.onmessage?.(new MessageEvent("message", { data: new Uint8Array(update).buffer }));
+  }, remoteUpdate);
+  await expect(page.locator(".cm-content")).toContainText("Bob added this line");
+
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.locator(".cm-content").fill(source("[Collaborative edit] lasts 3 days"));
+  await page.waitForTimeout(1_500);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await expect(history.locator(".version-list-item").first()).toContainText("Changes by Alice");
+  await expect(history.locator(".version-list-item").first()).toContainText("by Alice");
+  await expect(history.locator(".version-list-item").filter({ hasText: "Changes by Bob" })).toHaveCount(1);
 });
 
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
