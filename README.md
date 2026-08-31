@@ -21,6 +21,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - Project titles, calendars, closed days, date exceptions, scale controls, and today highlighting
 - Unified undo and redo for code and visual operations
 - Native file access where supported, with upload/download fallbacks
+- Private-link live collaboration with concurrent editing, presence, and reconnect synchronization
 - SVG and PNG export
 - Automatic local workspace recovery and portable workspace backups
 - Installable desktop and mobile app with offline startup after the first visit
@@ -71,6 +72,22 @@ On desktop browsers that support PWA file handling, the installed app registers 
 While a handled file remains open, Studio checks it again when the window regains focus and periodically while visible. External edits reload automatically when the tab is clean. If the tab also has local edits, Studio performs a three-way merge from the last synchronized contents. Independent edits combine automatically; overlapping sections offer local or external choices and an editable merged-source preview. Reloading or merging first creates a recoverable Version History checkpoint.
 
 When a new deployed version has finished downloading, the status bar shows **Update available**. Selecting it activates the new version and reloads the editor while preserving the locally saved workspace.
+
+## Live collaboration
+
+Select **Collaborate** in the toolbar, enter your name, and choose **Create private room**. Copy the room link and send it to the people who should edit the current document. A recipient opens the link, confirms their name, and selects **Join room**. Source changes merge in real time, while the room panel shows connected participants and their current line and column.
+
+The room link is the editing credential. Its 256-bit room token is stored in the URL fragment so it is not sent to the static site host or included in normal referrer data. Anyone who has the complete link can edit the room, so share it only with intended collaborators.
+
+If the connection drops, edits continue in the browser and synchronize through Yjs after reconnection. Each browser also retains its normal local workspace recovery copy. Collaboration is attached to one open document; leaving the room or closing that document stops the live session.
+
+The hosted collaboration service runs as the Cloudflare Worker in `apps/collaboration-worker`. Each room is a Durable Object with SQLite-backed Yjs state and hibernating WebSockets. To run it locally:
+
+```sh
+npx wrangler dev --config apps/collaboration-worker/wrangler.jsonc
+```
+
+Set `VITE_COLLABORATION_URL` when the web app should use an endpoint other than `https://collaboration.plantuml.brosenius.se`. The production Worker deploy workflow requires the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. Its allowed browser origins are configured through `ALLOWED_ORIGINS` in `apps/collaboration-worker/wrangler.jsonc`.
 
 ## Getting started
 

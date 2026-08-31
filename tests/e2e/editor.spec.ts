@@ -65,6 +65,43 @@ test("shows the diagram splash after closing the final tab", async ({ page }) =>
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(1);
 });
 
+test("creates a private collaboration link without exposing its credential in the request URL", async ({ page }) => {
+  await page.evaluate(() => {
+    class CollaborationWebSocket {
+      static readonly OPEN = 1;
+      readonly OPEN = 1;
+      readyState = CollaborationWebSocket.OPEN;
+      binaryType = "arraybuffer";
+      onopen: (() => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onclose: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+
+      constructor() {
+        window.setTimeout(() => {
+          this.onopen?.();
+          this.onmessage?.(new MessageEvent("message", { data: new Uint8Array([0, 0]).buffer }));
+        });
+      }
+
+      send() {}
+      close() {
+        this.readyState = 3;
+      }
+    }
+    Object.defineProperty(window, "WebSocket", { value: CollaborationWebSocket });
+  });
+  await page.getByRole("button", { name: "Collaborate" }).click();
+  const dialog = page.getByRole("dialog", { name: "Collaboration" });
+  await dialog.getByLabel("Your name").fill("Alice");
+  await dialog.getByRole("button", { name: "Create private room" }).click();
+  await expect(dialog).toContainText("Connected");
+  const link = await dialog.getByLabel("Private collaboration link").inputValue();
+  const parsed = new URL(link);
+  expect(parsed.searchParams.has("collaboration")).toBe(false);
+  expect(new URLSearchParams(parsed.hash.slice(1)).get("collaboration")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+});
+
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
   await setSource(page, source("[Large task] lasts 40 days"));
   const viewport = page.locator(".preview-viewport");

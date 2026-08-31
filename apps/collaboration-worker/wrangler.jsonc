@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "plantuml-ultimate-collaboration",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "collaboration.plantuml.brosenius.se", "custom_domain": true }],
+  "durable_objects": {
+    "bindings": [{ "name": "COLLABORATION_ROOM", "class_name": "CollaborationRoom" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CollaborationRoom"] }],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+  },
+}

@@ -3,6 +3,7 @@ dist
 coverage
 playwright-report
 test-results
+.wrangler
 .DS_Store
 *.local
 *.tsbuildinfo

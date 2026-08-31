@@ -1,0 +1,40 @@
+name: Deploy collaboration service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/collaboration-worker/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-collaboration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collaboration-worker
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace @plantuml-studio/collaboration-worker run test
+      - run: npm --workspace @plantuml-studio/collaboration-worker run typecheck
+      - name: Report missing deployment credentials
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning::Collaboration Worker was validated but not deployed because Cloudflare repository secrets are missing."
+      - name: Deploy collaboration Worker
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: npx wrangler deploy --config apps/collaboration-worker/wrangler.jsonc --minify

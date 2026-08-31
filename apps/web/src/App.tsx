@@ -63,6 +63,16 @@ import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
+import { CollaborationDialog } from "./CollaborationDialog";
+import {
+  CollaborationSession,
+  collaborationLinkDetails,
+  collaborationShareUrl,
+  createCollaborationRoomId,
+  withoutCollaborationLink,
+  type CollaborationConnection,
+  type CollaborationParticipant,
+} from "./collaboration";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
@@ -425,6 +435,17 @@ export function App() {
     localSource: string;
     external: FileSnapshot;
   }>();
+  const [collaborationDialogOpen, setCollaborationDialogOpen] = useState(false);
+  const [pendingCollaboration, setPendingCollaboration] = useState<{ roomId: string; endpoint: string }>();
+  const [collaboration, setCollaboration] = useState<{
+    documentId: string;
+    roomId: string;
+    endpoint: string;
+    shareUrl: string;
+    connection: CollaborationConnection;
+    participants: CollaborationParticipant[];
+  }>();
+  const collaborationSession = useRef<CollaborationSession | undefined>(undefined);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
@@ -1729,6 +1750,101 @@ export function App() {
     },
     [externalConflict, recordDocumentVersion, reportFileError, tabs],
   );
+
+  const defaultCollaborationEndpoint =
+    localStorage.getItem("plantuml-studio.collaboration-server") ??
+    import.meta.env.VITE_COLLABORATION_URL ??
+    "https://collaboration.plantuml.brosenius.se";
+
+  const leaveCollaboration = useCallback(() => {
+    collaborationSession.current?.stop();
+    collaborationSession.current = undefined;
+    setCollaboration(undefined);
+    setCollaborationDialogOpen(false);
+    window.history.replaceState({}, "", withoutCollaborationLink(window.location.href));
+    setInteractionMessage("Left collaboration room");
+  }, []);
+
+  const startCollaboration = useCallback(
+    (name: string, endpoint: string, requestedRoomId?: string) => {
+      let normalizedEndpoint: string;
+      try {
+        const parsed = new URL(endpoint);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error();
+        parsed.pathname = parsed.pathname.replace(/\/$/, "");
+        parsed.search = "";
+        parsed.hash = "";
+        normalizedEndpoint = parsed.toString().replace(/\/$/, "");
+      } catch {
+        setInteractionMessage("Collaboration service needs a valid HTTP or HTTPS URL");
+        return;
+      }
+      const roomId = requestedRoomId ?? createCollaborationRoomId();
+      if (!/^[A-Za-z0-9_-]{43}$/.test(roomId)) {
+        setInteractionMessage("The collaboration link contains an invalid room credential");
+        return;
+      }
+      collaborationSession.current?.stop();
+      const documentId = tabs.activeId;
+      const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
+      localStorage.setItem("plantuml-studio.collaboration-participant", participantId);
+      const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
+      const color =
+        colors[[...participantId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length]!;
+      const shareUrl = collaborationShareUrl(window.location.href, normalizedEndpoint, roomId);
+      const session = new CollaborationSession(
+        normalizedEndpoint,
+        roomId,
+        workspace.source,
+        { id: participantId, name, color, cursor: workspace.cursor },
+        (source) => tabs.updateDocumentSource(documentId, source, detectDiagramKind(source) ?? "gantt"),
+        (connection) => setCollaboration((current) => (current ? { ...current, connection } : current)),
+        (participants) => setCollaboration((current) => (current ? { ...current, participants } : current)),
+      );
+      collaborationSession.current = session;
+      setCollaboration({
+        documentId,
+        roomId,
+        endpoint: normalizedEndpoint,
+        shareUrl,
+        connection: "connecting",
+        participants: [],
+      });
+      setPendingCollaboration(undefined);
+      setCollaborationDialogOpen(true);
+      const url = new URL(shareUrl);
+      window.history.replaceState({}, "", url);
+      setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
+    },
+    [tabs, workspace.cursor, workspace.source],
+  );
+
+  useEffect(() => {
+    if (!hydrated || collaboration) return;
+    const details = collaborationLinkDetails(window.location.href);
+    const roomId = details.roomId;
+    const endpoint = details.endpoint ?? defaultCollaborationEndpoint;
+    if (!roomId || !endpoint) return;
+    setPendingCollaboration({ roomId, endpoint });
+    setCollaborationDialogOpen(true);
+  }, [collaboration, defaultCollaborationEndpoint, hydrated]);
+
+  useEffect(() => {
+    if (!collaboration || collaboration.documentId !== tabs.activeId) return;
+    collaborationSession.current?.applySource(workspace.source);
+  }, [collaboration, tabs.activeId, workspace.source]);
+
+  useEffect(() => {
+    if (!collaboration || collaboration.documentId !== tabs.activeId) return;
+    collaborationSession.current?.updateCursor(workspace.cursor.line, workspace.cursor.column);
+  }, [collaboration, tabs.activeId, workspace.cursor.column, workspace.cursor.line]);
+
+  useEffect(() => {
+    if (!collaboration || tabs.documents.some((document) => document.id === collaboration.documentId)) return;
+    leaveCollaboration();
+  }, [collaboration, leaveCollaboration, tabs.documents]);
+
+  useEffect(() => () => collaborationSession.current?.stop(), []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -3143,6 +3259,12 @@ export function App() {
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
       { id: "file.backup", label: "Back up workspace", category: "File", run: backupWorkspace },
       { id: "file.restore", label: "Restore workspace…", category: "File", run: () => void restoreWorkspace() },
+      {
+        id: "collaboration.open",
+        label: collaboration ? "Show collaboration room" : "Start collaboration…",
+        category: "Collaboration",
+        run: () => setCollaborationDialogOpen(true),
+      },
       ...diagramCommands,
       {
         id: "help.reference",
@@ -3179,6 +3301,7 @@ export function App() {
   }, [
     activeHistory,
     backupWorkspace,
+    collaboration,
     exportPng,
     exportSource,
     exportSvg,
@@ -3504,6 +3627,12 @@ export function App() {
           )}
           <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
+          </button>
+          <button
+            className={collaboration ? `collaboration-button ${collaboration.connection}` : "collaboration-button"}
+            onClick={() => setCollaborationDialogOpen(true)}
+          >
+            {collaboration ? `${collaboration.participants.length} online` : "Collaborate"}
           </button>
           <button onClick={() => setHelpOpen(true)}>Help</button>
         </div>
@@ -4081,6 +4210,15 @@ export function App() {
         <span className={pwa.online ? "connection-online" : "connection-offline"}>
           {pwa.online ? "Online" : "Offline · changes stay local"}
         </span>
+        {collaboration && (
+          <span className={`collaboration-status ${collaboration.connection}`}>
+            {collaboration.connection === "connected"
+              ? "Live collaboration"
+              : collaboration.connection === "connecting"
+                ? "Collaboration connecting…"
+                : "Collaboration offline"}
+          </span>
+        )}
         {pwa.canInstall && (
           <button type="button" className="status-action" onClick={() => void pwa.install()}>
             Install app
@@ -4317,6 +4455,16 @@ export function App() {
           onKeepLocal={keepLocalExternalConflict}
           onOpenCopy={() => void openExternalConflictCopy()}
           onClose={dismissExternalConflict}
+        />
+      )}
+      {collaborationDialogOpen && (
+        <CollaborationDialog
+          pendingRoom={pendingCollaboration?.roomId}
+          defaultEndpoint={pendingCollaboration?.endpoint ?? defaultCollaborationEndpoint}
+          active={collaboration}
+          onStart={startCollaboration}
+          onLeave={leaveCollaboration}
+          onClose={() => setCollaborationDialogOpen(false)}
         />
       )}
       {highlightDate && (

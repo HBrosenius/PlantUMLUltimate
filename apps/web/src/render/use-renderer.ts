@@ -175,14 +175,14 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
     };
     const requestIdle = (window as unknown as { requestIdleCallback?: typeof window.requestIdleCallback })
       .requestIdleCallback;
-    const idleId = requestIdle ? requestIdle(boot, { timeout: 400 }) : setTimeout(boot, 50);
+    const idleId = requestIdle ? requestIdle(boot, { timeout: 400 }) : window.setTimeout(boot, 50);
     return () => {
       cancelled = true;
       window.removeEventListener("message", receive);
       const cancelIdle = (window as unknown as { cancelIdleCallback?: typeof window.cancelIdleCallback })
         .cancelIdleCallback;
       if (cancelIdle && requestIdle) cancelIdle(idleId);
-      else clearTimeout(idleId);
+      else window.clearTimeout(idleId);
       instance?.remove();
       frame.current = null;
       ready.current = false;

@@ -1,0 +1,21 @@
+{
+  "name": "@plantuml-studio/collaboration-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -b",
+    "types": "wrangler types src/worker-configuration.d.ts --include-runtime false"
+  },
+  "dependencies": {
+    "yjs": "^13.6.27"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.1.2",
+    "@cloudflare/workers-types": "^5.20260831.1",
+    "@types/node": "^24.3.0",
+    "wrangler": "^4.127.1"
+  }
+}

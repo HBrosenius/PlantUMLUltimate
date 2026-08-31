@@ -166,6 +166,19 @@ export function usePersistedWorkspace() {
     },
     [],
   );
+  const updateDocumentSource = useCallback(
+    (id: string, source: string, diagramKind: DocumentSnapshot["diagramKind"]) => {
+      setSession((current) => ({
+        ...current,
+        documents: current.documents.map((document) =>
+          document.id === id && document.source !== source
+            ? { ...document, source, diagramKind, dirty: true }
+            : document,
+        ),
+      }));
+    },
+    [],
+  );
 
   const controls = useMemo(
     () => ({
@@ -181,6 +194,7 @@ export function usePersistedWorkspace() {
       setDocumentHistoryId,
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
+      updateDocumentSource,
       session,
     }),
     [
@@ -194,6 +208,7 @@ export function usePersistedWorkspace() {
       setDocumentHistoryId,
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
+      updateDocumentSource,
       session,
     ],
   );

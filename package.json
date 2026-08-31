@@ -8,17 +8,20 @@
     "dev": "npm --workspace @plantuml-studio/web run dev",
     "build": "npm --workspace @plantuml-studio/web run build",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "vitest run --exclude 'tests/e2e/**'",
+    "test": "npm run test:unit && npm run test:collaboration",
+    "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'apps/collaboration-worker/**'",
+    "test:collaboration": "npm --workspace @plantuml-studio/collaboration-worker run test",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:webkit": "playwright test --project=webkit",
     "test:e2e:pwa": "npm run build && PWA_E2E=1 PLAYWRIGHT_WEB_SERVER_COMMAND='npm --workspace @plantuml-studio/web run preview -- --host 127.0.0.1 --port 5173' playwright test tests/e2e/pwa.spec.ts --project=chromium --project=webkit",
     "bench": "vitest bench --run",
+    "build:collaboration": "npm --workspace @plantuml-studio/collaboration-worker run build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "validate": "npm run lint && npm run format:check && npm test && npm run typecheck && npm run build"
+    "validate": "npm run lint && npm run format:check && npm test && npm run typecheck && npm run build && npm run build:collaboration"
   },
   "workspaces": [
     "apps/*",
@@ -35,6 +38,6 @@
     "prettier": "^3.9.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.67.0",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   }
 }
