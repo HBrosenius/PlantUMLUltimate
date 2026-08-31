@@ -156,11 +156,11 @@ export function usePersistedWorkspace() {
     }));
   }, []);
   const replaceDocumentFromFile = useCallback(
-    (id: string, input: Pick<DocumentSnapshot, "source" | "fileName" | "diagramKind">) => {
+    (id: string, input: Pick<DocumentSnapshot, "source" | "fileName" | "diagramKind">, dirty = false) => {
       setSession((current) => ({
         ...current,
         documents: current.documents.map((document) =>
-          document.id === id ? { ...document, ...input, dirty: false, cursor: { line: 1, column: 1 } } : document,
+          document.id === id ? { ...document, ...input, dirty, cursor: { line: 1, column: 1 } } : document,
         ),
       }));
     },

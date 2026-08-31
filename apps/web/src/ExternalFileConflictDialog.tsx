@@ -1,19 +1,24 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { resolveThreeWayMerge, threeWayMerge } from "./external-file-merge";
 import { diffVersionSources } from "./version-diff";
 import { useDialogFocus } from "./use-dialog-focus";
 
 export function ExternalFileConflictDialog({
   fileName,
+  baseSource,
   localSource,
   externalSource,
+  onMerge,
   onReload,
   onKeepLocal,
   onOpenCopy,
   onClose,
 }: {
   fileName: string;
+  baseSource: string;
   localSource: string;
   externalSource: string;
+  onMerge(source: string): void;
   onReload(): void;
   onKeepLocal(): void;
   onOpenCopy(): void;
@@ -21,6 +26,17 @@ export function ExternalFileConflictDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   useDialogFocus(dialog, onClose);
+  const merge = useMemo(
+    () => threeWayMerge(baseSource, localSource, externalSource),
+    [baseSource, externalSource, localSource],
+  );
+  const [choices, setChoices] = useState<("local" | "external")[]>(() => merge.conflicts.map(() => "local"));
+  const [editedSource, setEditedSource] = useState<string>();
+  useEffect(() => {
+    setChoices(merge.conflicts.map(() => "local"));
+    setEditedSource(undefined);
+  }, [merge]);
+  const mergedSource = editedSource ?? resolveThreeWayMerge(merge, choices);
   const differences = useMemo(
     () => diffVersionSources(localSource, externalSource).filter((line) => line.kind !== "equal"),
     [externalSource, localSource],
@@ -64,6 +80,65 @@ export function ExternalFileConflictDialog({
             <p>The file contents are now identical.</p>
           )}
         </div>
+        <section className="external-merge" aria-label="Merge external changes">
+          <header>
+            <div>
+              <h3>{merge.conflicts.length ? "Resolve overlapping changes" : "Changes can be merged automatically"}</h3>
+              <p>
+                {merge.conflicts.length
+                  ? `${merge.conflicts.length} overlapping section${merge.conflicts.length === 1 ? "" : "s"} need a choice. You can also edit the final merged source directly.`
+                  : "Local and external edits affect different sections. Review the combined source before applying it."}
+              </p>
+            </div>
+          </header>
+          {merge.conflicts.map((conflict, index) => (
+            <article className="external-merge-conflict" key={index}>
+              <strong>Conflict {index + 1}</strong>
+              <div>
+                <section>
+                  <span>Local</span>
+                  <pre>{conflict.local.join("\n") || "(deleted)"}</pre>
+                  <button
+                    type="button"
+                    aria-pressed={choices[index] === "local"}
+                    onClick={() => {
+                      setChoices((current) => current.map((choice, item) => (item === index ? "local" : choice)));
+                      setEditedSource(undefined);
+                    }}
+                  >
+                    Use local
+                  </button>
+                </section>
+                <section>
+                  <span>External</span>
+                  <pre>{conflict.external.join("\n") || "(deleted)"}</pre>
+                  <button
+                    type="button"
+                    aria-pressed={choices[index] === "external"}
+                    onClick={() => {
+                      setChoices((current) => current.map((choice, item) => (item === index ? "external" : choice)));
+                      setEditedSource(undefined);
+                    }}
+                  >
+                    Use external
+                  </button>
+                </section>
+              </div>
+            </article>
+          ))}
+          <label>
+            Merged source
+            <textarea
+              aria-label="Merged source"
+              spellCheck={false}
+              value={mergedSource}
+              onChange={(event) => setEditedSource(event.target.value)}
+            />
+          </label>
+          <button type="button" className="primary external-merge-apply" onClick={() => onMerge(mergedSource)}>
+            Apply merged version
+          </button>
+        </section>
         <p className="external-conflict-warning">
           Reloading saves the local working copy in Version History first. Keeping local changes means the next Save
           will overwrite the external file.

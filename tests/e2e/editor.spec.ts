@@ -2230,7 +2230,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   await expect(history.getByRole("button", { name: "Select version Backup checkpoint" })).toBeVisible();
 });
 
-test("reloads clean external file edits and protects conflicting local changes", async ({ page }) => {
+test("reloads clean external file edits and merges conflicting local changes", async ({ page }) => {
   const initial = source("[Initial file] lasts 2 days");
   await page.evaluate((contents) => {
     const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
@@ -2280,13 +2280,13 @@ test("reloads clean external file edits and protects conflicting local changes",
   await expect(conflict.getByRole("table", { name: "External file differences" })).toContainText(
     "Conflicting external edit",
   );
-  await conflict.getByRole("button", { name: "Reload external version" }).click();
+  await conflict.getByRole("button", { name: "Use external" }).click();
+  await expect(conflict.getByLabel("Merged source")).toHaveValue(/Conflicting external edit/);
+  await conflict.getByRole("button", { name: "Apply merged version" }).click();
   await expect(page.locator(".cm-content")).toContainText("Conflicting external edit");
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
-  await expect(
-    page.getByRole("button", { name: "Select version Before external reload", exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select version Before external merge", exact: true })).toBeVisible();
 });
 
 test("protects dirty tabs from browser unload", async ({ page }) => {

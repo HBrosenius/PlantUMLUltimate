@@ -421,6 +421,7 @@ export function App() {
   const [externalConflict, setExternalConflict] = useState<{
     documentId: string;
     fileName: string;
+    baseSource: string;
     localSource: string;
     external: FileSnapshot;
   }>();
@@ -1552,6 +1553,7 @@ export function App() {
           setExternalConflict({
             documentId: tabs.activeId,
             fileName: handle.name,
+            baseSource: previous.source,
             localSource: workspace.source,
             external,
           });
@@ -1599,6 +1601,7 @@ export function App() {
               : {
                   documentId,
                   fileName: documentSnapshot.fileName,
+                  baseSource: previous.source,
                   localSource: documentSnapshot.source,
                   external,
                 },
@@ -1691,6 +1694,41 @@ export function App() {
     setExternalConflict(undefined);
     setInteractionMessage(`Opened external changes from ${externalConflict.fileName} as a copy`);
   }, [externalConflict, recordDocumentVersion, tabs]);
+
+  const applyExternalConflictMerge = useCallback(
+    async (source: string) => {
+      if (!externalConflict) return;
+      const documentSnapshot = tabs.documents.find((item) => item.id === externalConflict.documentId);
+      if (!documentSnapshot) {
+        setExternalConflict(undefined);
+        return;
+      }
+      try {
+        await recordDocumentVersion("before-restore", "Before external merge", {
+          historyId: documentSnapshot.historyId,
+          source: documentSnapshot.source,
+          fileName: documentSnapshot.fileName,
+          diagramKind: documentSnapshot.diagramKind,
+        });
+        tabs.replaceDocumentFromFile(
+          externalConflict.documentId,
+          {
+            source,
+            fileName: externalConflict.fileName,
+            diagramKind: detectDiagramKind(source) ?? "gantt",
+          },
+          true,
+        );
+        fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
+        externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
+        setExternalConflict(undefined);
+        setInteractionMessage(`Merged local and external changes from ${externalConflict.fileName}`);
+      } catch (error) {
+        reportFileError(error);
+      }
+    },
+    [externalConflict, recordDocumentVersion, reportFileError, tabs],
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -4271,8 +4309,10 @@ export function App() {
       {externalConflict && (
         <ExternalFileConflictDialog
           fileName={externalConflict.fileName}
+          baseSource={externalConflict.baseSource}
           localSource={externalConflict.localSource}
           externalSource={externalConflict.external.source}
+          onMerge={(source) => void applyExternalConflictMerge(source)}
           onReload={() => void reloadExternalConflict()}
           onKeepLocal={keepLocalExternalConflict}
           onOpenCopy={() => void openExternalConflictCopy()}

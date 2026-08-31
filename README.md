@@ -68,7 +68,7 @@ After the first successful visit, the editor shell and local PlantUML renderer a
 
 On desktop browsers that support PWA file handling, the installed app registers for `.puml` and `.plantuml` files. Opening one from the operating system loads it in a new tab and keeps its file handle, so **Save** writes back to the same file after the browser grants access.
 
-While a handled file remains open, Studio checks it again when the window regains focus and periodically while visible. External edits reload automatically when the tab is clean. If the tab also has local edits, Studio shows a line-by-line comparison and lets you reload, keep the local copy, or open the external contents as a separate tab. Reloading first creates a recoverable Version History checkpoint.
+While a handled file remains open, Studio checks it again when the window regains focus and periodically while visible. External edits reload automatically when the tab is clean. If the tab also has local edits, Studio performs a three-way merge from the last synchronized contents. Independent edits combine automatically; overlapping sections offer local or external choices and an editable merged-source preview. Reloading or merging first creates a recoverable Version History checkpoint.
 
 When a new deployed version has finished downloading, the status bar shows **Update available**. Selecting it activates the new version and reloads the editor while preserving the locally saved workspace.
 
