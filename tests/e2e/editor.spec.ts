@@ -115,10 +115,14 @@ test("creates a private collaboration link without exposing its credential in th
   await dialog.getByLabel("Your name").fill("Alice");
   await dialog.getByRole("button", { name: "Create private room" }).click();
   await expect(dialog).toContainText("Connected");
-  const link = await dialog.getByLabel("Private collaboration link").inputValue();
+  const link = await dialog.getByLabel("Editor link").inputValue();
+  const viewerLink = await dialog.getByLabel("Viewer link").inputValue();
   const parsed = new URL(link);
   expect(parsed.searchParams.has("collaboration")).toBe(false);
   expect(new URLSearchParams(parsed.hash.slice(1)).get("collaboration")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(new URLSearchParams(parsed.hash.slice(1)).get("mode")).toBe("editor");
+  expect(new URLSearchParams(new URL(viewerLink).hash.slice(1)).get("mode")).toBe("viewer");
+  expect(viewerLink).not.toBe(link);
 
   await page.evaluate(() => {
     const socket = (
@@ -183,14 +187,12 @@ test("creates a private collaboration link without exposing its credential in th
 
   await page.getByRole("button", { name: /online/ }).click();
   const rotatedDialog = page.getByRole("dialog", { name: "Collaboration" });
-  const oldLink = await rotatedDialog.getByLabel("Private collaboration link").inputValue();
+  const oldLink = await rotatedDialog.getByLabel("Editor link").inputValue();
   await rotatedDialog.getByRole("button", { name: "Revoke link and create new" }).click();
   const confirmation = page.getByRole("alertdialog", { name: "Revoke collaboration link" });
   await expect(confirmation).toContainText("everyone in this room will be disconnected");
   await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Collaboration" }).getByLabel("Private collaboration link"),
-  ).toHaveValue(oldLink);
+  await expect(page.getByRole("dialog", { name: "Collaboration" }).getByLabel("Editor link")).toHaveValue(oldLink);
   await page.getByRole("button", { name: "Revoke link and create new" }).click();
   await page
     .getByRole("alertdialog", { name: "Revoke collaboration link" })
@@ -198,7 +200,7 @@ test("creates a private collaboration link without exposing its credential in th
     .click();
   const newRoomDialog = page.getByRole("dialog", { name: "Collaboration" });
   await expect(newRoomDialog).toContainText("Connected");
-  const newLink = await newRoomDialog.getByLabel("Private collaboration link").inputValue();
+  const newLink = await newRoomDialog.getByLabel("Editor link").inputValue();
   expect(newLink).not.toBe(oldLink);
   const rotation = await page.evaluate(() => ({
     urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
@@ -206,6 +208,8 @@ test("creates a private collaboration link without exposing its credential in th
   }));
   expect(rotation.urls).toHaveLength(2);
   expect(rotation.urls?.every((url) => new URL(url).searchParams.has("owner"))).toBe(true);
+  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("editor"))).toBe(true);
+  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("viewer"))).toBe(true);
   expect(new URL(oldLink).hash).not.toContain("owner");
   expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).toBe(true);
 });

@@ -6,19 +6,36 @@ export interface CollaborationParticipant {
   color: string;
   cursor?: { line: number; column: number } | undefined;
   selection?: { anchor: number; head: number } | undefined;
+  role?: CollaborationRole | undefined;
 }
 
 export type CollaborationConnection = "connecting" | "connected" | "offline";
+export type CollaborationRole = "editor" | "viewer";
+
+export interface CollaborationCredentials {
+  accessToken?: string | undefined;
+  ownerToken?: string | undefined;
+  editorToken?: string | undefined;
+  viewerToken?: string | undefined;
+}
 
 const REMOTE_ORIGIN = Symbol("remote-collaboration-update");
 
-function websocketUrl(endpoint: string, roomId: string, participantId: string, ownerToken?: string): string {
+function websocketUrl(
+  endpoint: string,
+  roomId: string,
+  participantId: string,
+  credentials: CollaborationCredentials,
+): string {
   const url = new URL(endpoint);
   url.protocol = url.protocol === "https:" ? "wss:" : url.protocol === "http:" ? "ws:" : url.protocol;
   url.pathname = `${url.pathname.replace(/\/$/, "")}/rooms/${roomId}`;
   url.search = new URLSearchParams({
     participant: participantId,
-    ...(ownerToken ? { owner: ownerToken } : {}),
+    ...(credentials.accessToken ? { access: credentials.accessToken } : {}),
+    ...(credentials.ownerToken ? { owner: credentials.ownerToken } : {}),
+    ...(credentials.editorToken ? { editor: credentials.editorToken } : {}),
+    ...(credentials.viewerToken ? { viewer: credentials.viewerToken } : {}),
   }).toString();
   return url.toString();
 }
@@ -35,11 +52,21 @@ export function createCollaborationOwnerToken(): string {
   return createCollaborationRoomId();
 }
 
-export function collaborationShareUrl(pageUrl: string, endpoint: string, roomId: string): string {
+export function collaborationShareUrl(
+  pageUrl: string,
+  endpoint: string,
+  roomId: string,
+  accessToken?: string,
+  role: CollaborationRole = "editor",
+): string {
   const url = new URL(pageUrl);
   const fragment = new URLSearchParams(url.hash.slice(1));
   fragment.set("collaboration", roomId);
   fragment.set("server", endpoint);
+  if (accessToken) {
+    fragment.set("access", accessToken);
+    fragment.set("mode", role);
+  }
   url.hash = fragment.toString();
   return url.toString();
 }
@@ -47,12 +74,16 @@ export function collaborationShareUrl(pageUrl: string, endpoint: string, roomId:
 export function collaborationLinkDetails(pageUrl: string): {
   roomId: string | undefined;
   endpoint: string | undefined;
+  accessToken: string | undefined;
+  role: CollaborationRole;
 } {
   const url = new URL(pageUrl);
   const fragment = new URLSearchParams(url.hash.slice(1));
   return {
     roomId: fragment.get("collaboration") ?? undefined,
     endpoint: fragment.get("server") ?? undefined,
+    accessToken: fragment.get("access") ?? undefined,
+    role: fragment.get("mode") === "viewer" ? "viewer" : "editor",
   };
 }
 
@@ -61,6 +92,8 @@ export function withoutCollaborationLink(pageUrl: string): string {
   const fragment = new URLSearchParams(url.hash.slice(1));
   fragment.delete("collaboration");
   fragment.delete("server");
+  fragment.delete("access");
+  fragment.delete("mode");
   url.hash = fragment.toString();
   return url.toString();
 }
@@ -87,12 +120,13 @@ export class CollaborationSession {
     private readonly onConnection: (state: CollaborationConnection) => void,
     private readonly onParticipants: (participants: CollaborationParticipant[]) => void,
     private readonly onEdit: (participant: CollaborationParticipant, source: string) => void,
-    private readonly ownerToken?: string,
+    readonly role: CollaborationRole = "editor",
+    private readonly credentials: CollaborationCredentials = {},
   ) {
     this.participant = participant;
     this.sourceText.observe(() => this.onSource(this.sourceText.toString()));
     this.document.on("update", (update: Uint8Array, origin: unknown) => {
-      if (origin === REMOTE_ORIGIN || this.socket?.readyState !== WebSocket.OPEN) return;
+      if (this.role === "viewer" || origin === REMOTE_ORIGIN || this.socket?.readyState !== WebSocket.OPEN) return;
       this.socket.send(update);
     });
     this.connect(initialSource);
@@ -102,7 +136,7 @@ export class CollaborationSession {
     if (this.stopped) return;
     this.synchronized = false;
     this.onConnection(this.reconnectAttempt ? "offline" : "connecting");
-    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId, this.participant.id, this.ownerToken));
+    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId, this.participant.id, this.credentials));
     socket.binaryType = "arraybuffer";
     this.socket = socket;
     socket.onopen = () => this.sendPresence();
@@ -133,8 +167,10 @@ export class CollaborationSession {
       if (!this.synchronized) {
         this.synchronized = true;
         this.hasSynchronized = true;
-        if (!this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
-        socket.send(Y.encodeStateAsUpdate(this.document));
+        if (this.role === "editor") {
+          if (!this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
+          socket.send(Y.encodeStateAsUpdate(this.document));
+        }
         this.reconnectAttempt = 0;
         this.onConnection("connected");
         this.sendPresence();
@@ -158,6 +194,7 @@ export class CollaborationSession {
   }
 
   applySource(source: string): void {
+    if (this.role === "viewer") return;
     const current = this.sourceText.toString();
     if (current === source) return;
     let prefix = 0;
@@ -188,8 +225,8 @@ export class CollaborationSession {
   }
 
   revokeRoom(): void {
-    if (!this.ownerToken || this.socket?.readyState !== WebSocket.OPEN) return;
-    this.socket.send(JSON.stringify({ type: "revoke-room", ownerToken: this.ownerToken }));
+    if (!this.credentials.ownerToken || this.socket?.readyState !== WebSocket.OPEN) return;
+    this.socket.send(JSON.stringify({ type: "revoke-room", ownerToken: this.credentials.ownerToken }));
   }
 
   stop(): void {

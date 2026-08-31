@@ -30,6 +30,7 @@ interface Props {
   selectedRange?: { from: number; to: number } | undefined;
   symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
   remoteParticipants?: CollaborationParticipant[] | undefined;
+  readOnly?: boolean | undefined;
   onRenameRequest?: ((position: number) => boolean) | undefined;
   onSymbolContextMenu?: ((position: number, x: number, y: number) => boolean) | undefined;
 }
@@ -177,6 +178,7 @@ export function CodeEditor({
   selectedRange,
   symbolHighlights,
   remoteParticipants,
+  readOnly = false,
   onRenameRequest,
   onSymbolContextMenu,
 }: Props) {
@@ -189,8 +191,10 @@ export function CodeEditor({
   const synchronizingValue = useRef(false);
   const initialValue = useRef(value);
   const initialKind = useRef(diagramKind);
+  const initialReadOnly = useRef(readOnly);
   const kindRef = useRef(diagramKind);
   const language = useRef(new Compartment());
+  const editable = useRef(new Compartment());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [quickFixes, setQuickFixes] = useState<DiagramQuickFix[]>(() => quickFixesForDiagram(diagramKind, value));
   onChangeRef.current = onChange;
@@ -216,6 +220,10 @@ export function CodeEditor({
           ]),
           symbolHighlightField,
           remoteParticipantField,
+          editable.current.of([
+            EditorState.readOnly.of(initialReadOnly.current),
+            EditorView.editable.of(!initialReadOnly.current),
+          ]),
           language.current.of(languageExtensions(initialKind.current)),
           lintGutter(),
           EditorView.lineWrapping,
@@ -262,6 +270,12 @@ export function CodeEditor({
     view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
     setQuickFixes(quickFixesForDiagram(diagramKind, view.current.state.doc.toString()));
   }, [diagramKind]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: editable.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+    });
+  }, [readOnly]);
 
   useEffect(() => {
     const editor = view.current;

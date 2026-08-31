@@ -4,6 +4,7 @@ import type { DiagramKind } from "./model";
 
 export function AddMenu({
   diagramKind,
+  disabled = false,
   onTask,
   onMilestone,
   onDivider,
@@ -33,6 +34,7 @@ export function AddMenu({
   onWbsNode,
 }: {
   diagramKind: DiagramKind;
+  disabled?: boolean | undefined;
   onTask(): void;
   onMilestone(): void;
   onDivider(): void;
@@ -111,6 +113,8 @@ export function AddMenu({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        disabled={disabled}
+        title={disabled ? "Viewing only" : undefined}
         onClick={() => setOpen((value) => !value)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {

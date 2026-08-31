@@ -4,9 +4,12 @@ import * as Y from "yjs";
 
 const room = "a".repeat(43);
 
-async function connect(roomId: string, ownerToken?: string): Promise<WebSocket> {
+async function connect(
+  roomId: string,
+  credentials?: { owner?: string; editor?: string; viewer?: string; access?: string },
+): Promise<WebSocket> {
   const url = new URL(`https://collaboration.example/rooms/${roomId}`);
-  if (ownerToken) url.searchParams.set("owner", ownerToken);
+  for (const [name, value] of Object.entries(credentials ?? {})) if (value) url.searchParams.set(name, value);
   const response = await exports.default.fetch(
     new Request(url, {
       headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
@@ -19,9 +22,11 @@ async function connect(roomId: string, ownerToken?: string): Promise<WebSocket> 
   return socket!;
 }
 
-async function roomResponse(roomId: string): Promise<Response> {
+async function roomResponse(roomId: string, access?: string): Promise<Response> {
+  const url = new URL(`https://collaboration.example/rooms/${roomId}`);
+  if (access) url.searchParams.set("access", access);
   return exports.default.fetch(
-    new Request(`https://collaboration.example/rooms/${roomId}`, {
+    new Request(url, {
       headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
     }),
   );
@@ -107,18 +112,45 @@ describe("collaboration Worker", () => {
   it("only lets the room owner revoke a collaboration link", async () => {
     const roomId = "d".repeat(43);
     const ownerToken = "o".repeat(43);
-    const owner = await connect(roomId, ownerToken);
+    const editorToken = "e".repeat(43);
+    const viewerToken = "v".repeat(43);
+    const owner = await connect(roomId, { owner: ownerToken, editor: editorToken, viewer: viewerToken });
     await nextBinary(owner);
-    const participant = await connect(roomId);
+    const participant = await connect(roomId, { access: editorToken });
     await nextBinary(participant);
 
     participant.send(JSON.stringify({ type: "revoke-room", ownerToken: "x".repeat(43) }));
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect((await roomResponse(roomId)).status).toBe(101);
+    expect((await roomResponse(roomId, editorToken)).status).toBe(101);
 
     const closed = new Promise<CloseEvent>((resolve) => participant.addEventListener("close", resolve, { once: true }));
     owner.send(JSON.stringify({ type: "revoke-room", ownerToken }));
     await expect(closed).resolves.toMatchObject({ code: 4001 });
     expect((await roomResponse(roomId)).status).toBe(410);
+  });
+
+  it("rejects document updates from viewer credentials", async () => {
+    const roomId = "e".repeat(43);
+    const ownerToken = "o".repeat(43);
+    const editorToken = "a".repeat(43);
+    const viewerToken = "v".repeat(43);
+    const owner = await connect(roomId, { owner: ownerToken, editor: editorToken, viewer: viewerToken });
+    await nextBinary(owner);
+    const viewer = await connect(roomId, { access: viewerToken });
+    await nextBinary(viewer);
+    expect((await roomResponse(roomId, "x".repeat(43))).status).toBe(403);
+
+    const closed = new Promise<CloseEvent>((resolve) => viewer.addEventListener("close", resolve, { once: true }));
+    const malicious = new Y.Doc();
+    malicious.getText("source").insert(0, "viewer must not write");
+    viewer.send(Y.encodeStateAsUpdate(malicious));
+    await expect(closed).resolves.toMatchObject({ code: 1008, reason: "Read-only collaboration" });
+
+    const editor = await connect(roomId, { access: editorToken });
+    const persisted = new Y.Doc();
+    Y.applyUpdate(persisted, await nextBinary(editor));
+    expect(persisted.getText("source").toString()).not.toContain("viewer must not write");
+    owner.close(1000, "test complete");
+    editor.close(1000, "test complete");
   });
 });

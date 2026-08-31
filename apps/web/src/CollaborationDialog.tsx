@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { CollaborationConnection, CollaborationParticipant } from "./collaboration";
+import type { CollaborationConnection, CollaborationParticipant, CollaborationRole } from "./collaboration";
 import { useDialogFocus } from "./use-dialog-focus";
 
 export function CollaborationDialog({
   pendingRoom,
+  pendingAccessToken,
+  pendingRole = "editor",
   defaultEndpoint,
   active,
   onStart,
@@ -12,17 +14,21 @@ export function CollaborationDialog({
   onClose,
 }: {
   pendingRoom?: string | undefined;
+  pendingAccessToken?: string | undefined;
+  pendingRole?: CollaborationRole | undefined;
   defaultEndpoint: string;
   active?:
     | {
         roomId: string;
         shareUrl: string;
+        viewerShareUrl?: string | undefined;
         owner: boolean;
+        role: CollaborationRole;
         connection: CollaborationConnection;
         participants: CollaborationParticipant[];
       }
     | undefined;
-  onStart(name: string, endpoint: string, roomId?: string): void;
+  onStart(name: string, endpoint: string, roomId?: string, accessToken?: string, role?: CollaborationRole): void;
   onRotate(): void;
   onLeave(): void;
   onClose(): void;
@@ -30,8 +36,8 @@ export function CollaborationDialog({
   const dialog = useRef<HTMLDivElement>(null);
   const [name, setName] = useState(() => localStorage.getItem("plantuml-studio.collaboration-name") ?? "");
   const [endpoint, setEndpoint] = useState(defaultEndpoint);
-  const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
+  const [copied, setCopied] = useState<CollaborationRole | undefined>();
+  const [copyFailed, setCopyFailed] = useState<CollaborationRole | undefined>();
   const [confirmRotation, setConfirmRotation] = useState(false);
   const closeDialog = confirmRotation ? () => setConfirmRotation(false) : onClose;
   useDialogFocus(dialog, closeDialog);
@@ -62,7 +68,9 @@ export function CollaborationDialog({
               {confirmRotation
                 ? "This action cannot be undone."
                 : active
-                  ? "Anyone with the private room link can edit this document."
+                  ? active.role === "viewer"
+                    ? "You can follow live changes, but only editors can modify this document."
+                    : "Anyone with the private editor link can edit this document."
                   : "Live edits stay synchronized while each participant keeps an offline local copy."}
             </p>
           </div>
@@ -105,29 +113,46 @@ export function CollaborationDialog({
                   ? "Connecting…"
                   : "Offline · edits will synchronize after reconnecting"}
             </div>
-            <div className="collaboration-share">
-              <input readOnly aria-label="Private collaboration link" value={active.shareUrl} />
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(active.shareUrl).then(
+            {active.role === "viewer" && <strong className="collaboration-viewer-badge">Viewing only</strong>}
+            <CollaborationLink
+              label={active.role === "viewer" ? "Viewer link" : "Editor link"}
+              url={active.shareUrl}
+              copied={copied === active.role}
+              failed={copyFailed === active.role}
+              onCopy={() => {
+                void navigator.clipboard.writeText(active.shareUrl).then(
+                  () => {
+                    setCopied(active.role);
+                    setCopyFailed(undefined);
+                  },
+                  () => setCopyFailed(active.role),
+                );
+              }}
+            />
+            {active.owner && active.viewerShareUrl && (
+              <CollaborationLink
+                label="Viewer link"
+                url={active.viewerShareUrl}
+                copied={copied === "viewer"}
+                failed={copyFailed === "viewer"}
+                onCopy={() => {
+                  void navigator.clipboard.writeText(active.viewerShareUrl!).then(
                     () => {
-                      setCopied(true);
-                      setCopyFailed(false);
+                      setCopied("viewer");
+                      setCopyFailed(undefined);
                     },
-                    () => setCopyFailed(true),
+                    () => setCopyFailed("viewer"),
                   );
                 }}
-              >
-                {copied ? "Copied!" : copyFailed ? "Copy failed" : "Copy link"}
-              </button>
-            </div>
+              />
+            )}
             <section className="collaboration-participants" aria-label="Connected participants">
               <h3>{active.participants.length} online</h3>
               {active.participants.map((participant) => (
                 <div key={participant.id}>
                   <span style={{ background: participant.color }} aria-hidden="true" />
                   <strong>{participant.name}</strong>
+                  <small>{participant.role === "viewer" ? "Viewer" : "Editor"}</small>
                   {participant.cursor && (
                     <small>
                       Ln {participant.cursor.line}, Col {participant.cursor.column}
@@ -159,7 +184,7 @@ export function CollaborationDialog({
               if (!trimmedName || !trimmedEndpoint) return;
               localStorage.setItem("plantuml-studio.collaboration-name", trimmedName);
               localStorage.setItem("plantuml-studio.collaboration-server", trimmedEndpoint);
-              onStart(trimmedName, trimmedEndpoint, pendingRoom);
+              onStart(trimmedName, trimmedEndpoint, pendingRoom, pendingAccessToken, pendingRole);
             }}
           >
             <label>
@@ -177,19 +202,47 @@ export function CollaborationDialog({
               />
             </label>
             <p className="collaboration-privacy">
-              The room link is the editing credential. Share it only with people who may change the document.
+              {pendingRole === "viewer"
+                ? "This viewer link follows live changes without permission to edit."
+                : "The editor link is an editing credential. Share it only with people who may change the document."}
             </p>
             <div className="dialog-actions">
               <button type="button" onClick={onClose}>
                 Cancel
               </button>
               <button type="submit" className="primary">
-                {pendingRoom ? "Join room" : "Create private room"}
+                {pendingRoom ? (pendingRole === "viewer" ? "Join as viewer" : "Join as editor") : "Create private room"}
               </button>
             </div>
           </form>
         )}
       </div>
+    </div>
+  );
+}
+
+function CollaborationLink({
+  label,
+  url,
+  copied,
+  failed,
+  onCopy,
+}: {
+  label: string;
+  url: string;
+  copied: boolean;
+  failed: boolean;
+  onCopy(): void;
+}) {
+  return (
+    <div className="collaboration-link-row">
+      <label>
+        {label}
+        <input readOnly aria-label={label} value={url} />
+      </label>
+      <button type="button" onClick={onCopy}>
+        {copied ? "Copied!" : failed ? "Copy failed" : `Copy ${label.toLowerCase()}`}
+      </button>
     </div>
   );
 }

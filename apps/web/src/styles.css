@@ -115,14 +115,31 @@ input {
   padding: 12px 20px 0;
   font-weight: 600;
 }
-.collaboration-share {
+.collaboration-link-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 8px;
-  padding: 14px 20px;
+  padding: 10px 20px 0;
+}
+.collaboration-link-row label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.collaboration-viewer-badge {
+  width: fit-content;
+  margin: 10px 20px 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #2563eb 14%, transparent);
+  color: #2563eb;
+  font-size: 12px;
 }
 .collaboration-participants {
-  margin: 0 20px;
+  margin: 14px 20px 0;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -132,7 +149,7 @@ input {
 }
 .collaboration-participants > div {
   display: grid;
-  grid-template-columns: 12px 1fr auto;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   padding: 5px 0;

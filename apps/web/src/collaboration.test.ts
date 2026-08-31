@@ -27,7 +27,29 @@ describe("collaboration room links", () => {
     expect(collaborationLinkDetails(link)).toEqual({
       roomId: "room-token",
       endpoint: "https://collaboration.example",
+      accessToken: undefined,
+      role: "editor",
     });
     expect(withoutCollaborationLink(link)).toBe("https://plantuml.brosenius.se/?theme=dark");
+  });
+
+  it("creates separate editor and viewer capability links", () => {
+    const editor = collaborationShareUrl(
+      "https://plantuml.brosenius.se/",
+      "https://collaboration.example",
+      "room-token",
+      "editor-token",
+      "editor",
+    );
+    const viewer = collaborationShareUrl(
+      "https://plantuml.brosenius.se/",
+      "https://collaboration.example",
+      "room-token",
+      "viewer-token",
+      "viewer",
+    );
+    expect(collaborationLinkDetails(editor)).toMatchObject({ accessToken: "editor-token", role: "editor" });
+    expect(collaborationLinkDetails(viewer)).toMatchObject({ accessToken: "viewer-token", role: "viewer" });
+    expect(withoutCollaborationLink(viewer)).toBe("https://plantuml.brosenius.se/");
   });
 });

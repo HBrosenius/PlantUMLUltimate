@@ -73,6 +73,7 @@ import {
   withoutCollaborationLink,
   type CollaborationConnection,
   type CollaborationParticipant,
+  type CollaborationRole,
 } from "./collaboration";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
@@ -438,15 +439,22 @@ export function App() {
     external: FileSnapshot;
   }>();
   const [collaborationDialogOpen, setCollaborationDialogOpen] = useState(false);
-  const [pendingCollaboration, setPendingCollaboration] = useState<{ roomId: string; endpoint: string }>();
+  const [pendingCollaboration, setPendingCollaboration] = useState<{
+    roomId: string;
+    endpoint: string;
+    accessToken?: string | undefined;
+    role: CollaborationRole;
+  }>();
   const [collaboration, setCollaboration] = useState<{
     documentId: string;
     roomId: string;
     endpoint: string;
     shareUrl: string;
+    viewerShareUrl?: string | undefined;
     participantId: string;
     participantName: string;
     owner: boolean;
+    role: CollaborationRole;
     connection: CollaborationConnection;
     participants: CollaborationParticipant[];
   }>();
@@ -1292,6 +1300,10 @@ export function App() {
 
   const commitSource = useCallback(
     (source: string, description: string, validate = true): boolean => {
+      if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
+        setInteractionMessage("Viewing only · ask the room owner for an editor link to make changes");
+        return false;
+      }
       if (source === workspace.source) return true;
       if (validate) {
         const validation = validateGeneratedSource(workspace.diagramKind, workspace.source, source);
@@ -1315,7 +1327,15 @@ export function App() {
       refreshHistoryControls();
       return true;
     },
-    [activeHistory, refreshHistoryControls, setWorkspace, workspace.diagramKind, workspace.source],
+    [
+      activeHistory,
+      collaboration,
+      refreshHistoryControls,
+      setWorkspace,
+      tabs.activeId,
+      workspace.diagramKind,
+      workspace.source,
+    ],
   );
 
   useLayoutEffect(() => {
@@ -1423,18 +1443,26 @@ export function App() {
   );
 
   const undo = useCallback(() => {
+    if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
+      setInteractionMessage("Viewing only · undo is available only to editors");
+      return;
+    }
     const source = activeHistory.undo(workspace.source);
     if (source === undefined) return;
     setWorkspace((current) => ({ ...current, source, dirty: true }));
     refreshHistoryControls();
-  }, [activeHistory, refreshHistoryControls, setWorkspace, workspace.source]);
+  }, [activeHistory, collaboration, refreshHistoryControls, setWorkspace, tabs.activeId, workspace.source]);
 
   const redo = useCallback(() => {
+    if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
+      setInteractionMessage("Viewing only · redo is available only to editors");
+      return;
+    }
     const source = activeHistory.redo(workspace.source);
     if (source === undefined) return;
     setWorkspace((current) => ({ ...current, source, dirty: true }));
     refreshHistoryControls();
-  }, [activeHistory, refreshHistoryControls, setWorkspace, workspace.source]);
+  }, [activeHistory, collaboration, refreshHistoryControls, setWorkspace, tabs.activeId, workspace.source]);
 
   const reportFileError = useCallback((error: unknown) => {
     setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
@@ -1835,7 +1863,13 @@ export function App() {
   }, [flushCollaborationVersion]);
 
   const startCollaboration = useCallback(
-    (name: string, endpoint: string, requestedRoomId?: string) => {
+    (
+      name: string,
+      endpoint: string,
+      requestedRoomId?: string,
+      requestedAccessToken?: string,
+      requestedRole: CollaborationRole = "editor",
+    ) => {
       let normalizedEndpoint: string;
       try {
         const parsed = new URL(endpoint);
@@ -1850,8 +1884,15 @@ export function App() {
       }
       const roomId = requestedRoomId ?? createCollaborationRoomId();
       const ownerToken = requestedRoomId ? undefined : createCollaborationOwnerToken();
+      const editorToken = requestedRoomId ? undefined : createCollaborationRoomId();
+      const viewerToken = requestedRoomId ? undefined : createCollaborationRoomId();
+      const role = requestedRoomId ? requestedRole : "editor";
       if (!/^[A-Za-z0-9_-]{43}$/.test(roomId)) {
         setInteractionMessage("The collaboration link contains an invalid room credential");
+        return;
+      }
+      if (requestedAccessToken && !/^[A-Za-z0-9_-]{43}$/.test(requestedAccessToken)) {
+        setInteractionMessage("The collaboration link contains an invalid access credential");
         return;
       }
       collaborationSession.current?.stop();
@@ -1862,7 +1903,16 @@ export function App() {
       const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
       const color =
         colors[[...participantId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length]!;
-      const shareUrl = collaborationShareUrl(window.location.href, normalizedEndpoint, roomId);
+      const shareUrl = collaborationShareUrl(
+        window.location.href,
+        normalizedEndpoint,
+        roomId,
+        editorToken ?? requestedAccessToken,
+        role,
+      );
+      const viewerShareUrl = viewerToken
+        ? collaborationShareUrl(window.location.href, normalizedEndpoint, roomId, viewerToken, "viewer")
+        : undefined;
       void recordDocumentVersion("opened", "Collaboration started", {
         historyId: collaborationDocument.historyId,
         source: workspace.source,
@@ -1883,7 +1933,10 @@ export function App() {
             fileName: collaborationDocument.fileName,
             diagramKind: detectDiagramKind(source) ?? collaborationDocument.diagramKind,
           }),
-        ownerToken,
+        role,
+        ownerToken && editorToken && viewerToken
+          ? { ownerToken, editorToken, viewerToken, accessToken: editorToken }
+          : { accessToken: requestedAccessToken },
       );
       collaborationSession.current = session;
       setCollaboration({
@@ -1891,9 +1944,11 @@ export function App() {
         roomId,
         endpoint: normalizedEndpoint,
         shareUrl,
+        viewerShareUrl,
         participantId,
         participantName: name,
         owner: Boolean(ownerToken),
+        role,
         connection: "connecting",
         participants: [],
       });
@@ -1921,7 +1976,7 @@ export function App() {
     const roomId = details.roomId;
     const endpoint = details.endpoint ?? defaultCollaborationEndpoint;
     if (!roomId || !endpoint) return;
-    setPendingCollaboration({ roomId, endpoint });
+    setPendingCollaboration({ roomId, endpoint, accessToken: details.accessToken, role: details.role });
     setCollaborationDialogOpen(true);
   }, [collaboration, defaultCollaborationEndpoint, hydrated]);
 
@@ -3635,6 +3690,7 @@ export function App() {
           />
           <AddMenu
             diagramKind={workspace.diagramKind}
+            disabled={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
             onTask={() => setAddTaskOpen(true)}
             onMilestone={() => setAddMilestoneOpen(true)}
             onDivider={() => setAddDividerOpen(true)}
@@ -3913,6 +3969,7 @@ export function App() {
           <CodeEditor
             diagramKind={workspace.diagramKind}
             value={workspace.source}
+            readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
             onChange={(source) => commitSource(source, "Edit source", false)}
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
@@ -4317,7 +4374,9 @@ export function App() {
         {collaboration && (
           <span className={`collaboration-status ${collaboration.connection}`}>
             {collaboration.connection === "connected"
-              ? "Live collaboration"
+              ? collaboration.role === "viewer"
+                ? "Viewing only"
+                : "Live collaboration"
               : collaboration.connection === "connecting"
                 ? "Collaboration connecting…"
                 : "Collaboration offline"}
@@ -4564,6 +4623,8 @@ export function App() {
       {collaborationDialogOpen && (
         <CollaborationDialog
           pendingRoom={pendingCollaboration?.roomId}
+          pendingAccessToken={pendingCollaboration?.accessToken}
+          pendingRole={pendingCollaboration?.role}
           defaultEndpoint={pendingCollaboration?.endpoint ?? defaultCollaborationEndpoint}
           active={collaboration}
           onStart={startCollaboration}
