@@ -57,6 +57,19 @@ export interface JiraTaskDivergence {
   conflicts: JiraFieldDifference[];
 }
 
+export interface JiraFieldResolution {
+  issueId: string;
+  field: JiraMappedField;
+  choice: "local" | "jira";
+}
+
+export interface JiraMissingTask {
+  issueId: string;
+  issueKey: string;
+  summary: string;
+  locallyChanged: boolean;
+}
+
 export interface JiraFieldDifference {
   field: JiraMappedField;
   baseline: JiraMappedTaskState[JiraMappedField];

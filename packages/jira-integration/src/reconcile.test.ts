@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createJiraBaselines, findJiraTaskDivergences, reconcileJiraTask } from "./reconcile";
+import {
+  applyJiraFieldResolutions,
+  createJiraBaselines,
+  findMissingJiraTasks,
+  findJiraTaskDivergences,
+  reconcileJiraTask,
+  removeJiraTasks,
+} from "./reconcile";
 
 describe("reconcileJiraTask", () => {
   it("separates safe pulls, pending publishes, and conflicts", () => {
@@ -36,5 +43,29 @@ describe("reconcileJiraTask", () => {
     );
     expect(divergences[0]?.localChanges.map((change) => change.field)).toEqual(["summary"]);
     expect(divergences[0]?.conflicts.map((change) => change.field)).toEqual(["dueDate"]);
+    expect(
+      applyJiraFieldResolutions([{ ...original, dueDate: "2026-09-11" }], divergences, [
+        { issueId: "10042", field: "summary", choice: "local" },
+        { issueId: "10042", field: "dueDate", choice: "jira" },
+      ])[0],
+    ).toMatchObject({ summary: "Build locally", dueDate: "2026-09-11" });
+  });
+
+  it("reviews and removes tasks that leave the Jira query", () => {
+    const source = `@startgantt
+[Build locally] as [jira_10042] starts 2026-09-01
+[jira_10042] ends 2026-09-10
+[jira_10042] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]
+@endgantt`;
+    const baselines = {
+      "10042": {
+        updated: "2026-08-31T10:00:00Z",
+        state: { key: "APP-123", summary: "Build", startDate: "2026-09-01", dueDate: "2026-09-10" },
+      },
+    };
+    expect(findMissingJiraTasks(source, [], baselines)).toEqual([
+      { issueId: "10042", issueKey: "APP-123", summary: "Build locally", locallyChanged: true },
+    ]);
+    expect(removeJiraTasks(source, ["10042"])).not.toContain("jira_10042");
   });
 });

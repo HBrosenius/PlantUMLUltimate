@@ -1769,16 +1769,119 @@ textarea:focus-visible,
 }
 .jira-conflicts {
   margin-top: 14px;
-  padding: 10px;
   border: 1px solid #d84a4a;
   border-radius: 5px;
   background: color-mix(in srgb, #d84a4a 8%, var(--bg));
-  color: #b63838;
   font-size: 12px;
 }
-.jira-conflicts p,
-.jira-conflicts ul {
-  margin: 6px 0 0;
+.jira-conflict-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  color: #b63838;
+}
+.jira-conflict-heading p {
+  margin: 3px 0 0;
+}
+.jira-conflict-heading > div:last-child,
+.jira-conflict-actions {
+  display: flex;
+  gap: 6px;
+}
+.jira-conflict-list {
+  max-height: 320px;
+  overflow: auto;
+  border-top: 1px solid #d84a4a;
+}
+.jira-conflict-list > section {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.jira-conflict-list > section:last-child {
+  border-bottom: 0;
+}
+.jira-conflict-list section > header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.jira-conflict-list section > header span,
+.jira-conflict-list section > header em {
+  color: var(--muted);
+}
+.jira-conflict-list section > header em {
+  margin-left: auto;
+  font-style: normal;
+}
+.jira-conflict-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+.jira-conflict-values small {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--muted);
+}
+.jira-conflict-values strong {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jira-conflict-actions button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.jira-removals {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.jira-removals .jira-conflict-heading {
+  color: var(--text);
+}
+.jira-removal-list {
+  max-height: 260px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+}
+.jira-removal-list > section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.jira-removal-list > section:last-child {
+  border-bottom: 0;
+}
+.jira-removal-list section > div:first-child {
+  display: grid;
+  min-width: 0;
+}
+.jira-removal-list span {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jira-removal-list em {
+  color: #b63838;
+  font-size: 11px;
+  font-style: normal;
+}
+.jira-conflict-actions button.selected.danger {
+  border-color: #b63838;
+  background: #b63838;
 }
 @media (max-width: 620px) {
   .jira-review-summary {

@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  applyJiraFieldResolutions,
   buildJiraPullPlan,
   createJiraBaselines,
+  findMissingJiraTasks,
   findJiraTaskDivergences,
+  removeJiraTasks,
   setJiraDocumentBinding,
   summarizeJiraPullPlan,
   type JiraDocumentBinding,
   type JiraIssueSnapshot,
+  type JiraMissingTask,
+  type JiraFieldDifference,
+  type JiraFieldResolution,
   type JiraPullChange,
+  type JiraPullOptions,
   type JiraPullSummary,
   type JiraTaskDivergence,
 } from "@plantuml-studio/jira-integration";
@@ -25,12 +32,26 @@ import {
 import { useDialogFocus } from "./use-dialog-focus";
 
 interface JiraReview {
-  source: string;
-  message: string;
+  baseSource: string;
+  issues: JiraIssueSnapshot[];
+  siteUrl: string;
+  options: JiraPullOptions;
+  binding: JiraDocumentBinding;
+  previousBaselines: JiraDocumentBinding["baselines"];
   summary: JiraPullSummary;
   changes: JiraPullChange[];
   warnings: string[];
   divergences: JiraTaskDivergence[];
+  missingTasks: JiraMissingTask[];
+}
+
+function resolutionKey(issueId: string, field: JiraFieldDifference["field"]): string {
+  return `${issueId}:${field}`;
+}
+
+function displayJiraValue(value: JiraFieldDifference["local"]): string {
+  if (value === undefined || value === null || value === "") return "Not set";
+  return String(value);
 }
 
 export function JiraDialog({
@@ -61,6 +82,8 @@ export function JiraDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [review, setReview] = useState<JiraReview>();
+  const [resolutions, setResolutions] = useState<Record<string, JiraFieldResolution["choice"]>>({});
+  const [removalChoices, setRemovalChoices] = useState<Record<string, "keep" | "remove">>({});
   const selectedSite = sites.find((site) => site.id === cloudId);
   const dateFields = useMemo(() => fields.filter((field) => field.type === "date"), [fields]);
 
@@ -169,6 +192,7 @@ export function JiraDialog({
       }
       const plan = buildJiraPullPlan(source, selectedSite.url, issues, { includeAssignee, includeDependencies });
       const divergences = findJiraTaskDivergences(source, issues, binding?.baselines);
+      const missingTasks = findMissingJiraTasks(source, issues, binding?.baselines);
       const nextBinding: JiraDocumentBinding = {
         version: 1,
         bindingId: binding?.bindingId ?? crypto.randomUUID(),
@@ -181,16 +205,21 @@ export function JiraDialog({
         ...(includeDependencies ? { includeDependencies: true } : {}),
         baselines: createJiraBaselines(issues),
       };
-      const nextSource = setJiraDocumentBinding(plan.source, nextBinding);
-      const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
       setReview({
-        source: nextSource,
-        message: `Jira synchronized ${issues.length} issues · ${changed} changes`,
+        baseSource: source,
+        issues,
+        siteUrl: selectedSite.url,
+        options: { includeAssignee, includeDependencies },
+        binding: nextBinding,
+        previousBaselines: binding?.baselines,
         summary: summarizeJiraPullPlan(plan),
         changes: plan.changes.filter((change) => change.kind !== "unchanged"),
         warnings: plan.warnings,
         divergences,
+        missingTasks,
       });
+      setResolutions({});
+      setRemovalChoices({});
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not import Jira issues");
     } finally {
@@ -199,10 +228,55 @@ export function JiraDialog({
   };
 
   const applyReview = () => {
-    if (!review || readOnly || review.divergences.length > 0) return;
-    onApply(review.source, review.message);
+    if (!review || readOnly) return;
+    if (unresolvedCount > 0 || unresolvedRemovalCount > 0) return;
+    const selected: JiraFieldResolution[] = review.divergences.flatMap((divergence) =>
+      [...divergence.conflicts, ...divergence.localChanges].map((difference) => ({
+        issueId: divergence.issueId,
+        field: difference.field,
+        choice: resolutions[resolutionKey(divergence.issueId, difference.field)]!,
+      })),
+    );
+    const resolvedIssues = applyJiraFieldResolutions(review.issues, review.divergences, selected);
+    const plan = buildJiraPullPlan(review.baseSource, review.siteUrl, resolvedIssues, review.options);
+    const removedIssueIds = review.missingTasks
+      .filter((task) => removalChoices[task.issueId] === "remove")
+      .map((task) => task.issueId);
+    const keptBaselines = Object.fromEntries(
+      review.missingTasks.flatMap((task) => {
+        const baseline = review.previousBaselines?.[task.issueId];
+        return removalChoices[task.issueId] === "keep" && baseline ? [[task.issueId, baseline] as const] : [];
+      }),
+    );
+    const nextBinding = {
+      ...review.binding,
+      baselines: { ...review.binding.baselines, ...keptBaselines },
+    };
+    const nextSource = setJiraDocumentBinding(removeJiraTasks(plan.source, removedIssueIds), nextBinding);
+    const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
+    onApply(nextSource, `Jira synchronized ${resolvedIssues.length} issues · ${changed} changes`);
     onClose();
   };
+
+  const reviewDifferences = review
+    ? review.divergences.flatMap((divergence) =>
+        [...divergence.conflicts, ...divergence.localChanges].map((difference) => ({ divergence, difference })),
+      )
+    : [];
+  const unresolvedCount = reviewDifferences.filter(
+    ({ divergence, difference }) => !resolutions[resolutionKey(divergence.issueId, difference.field)],
+  ).length;
+  const unresolvedRemovalCount = review?.missingTasks.filter((task) => !removalChoices[task.issueId]).length ?? 0;
+
+  const resolveAll = (choice: JiraFieldResolution["choice"]) =>
+    setResolutions(
+      Object.fromEntries(
+        reviewDifferences.map(({ divergence, difference }) => [
+          resolutionKey(divergence.issueId, difference.field),
+          choice,
+        ]),
+      ),
+    );
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
@@ -282,20 +356,127 @@ export function JiraDialog({
               </details>
             )}
             {review.divergences.length > 0 && (
-              <div className="jira-conflicts" role="alert">
-                <strong>{review.divergences.length} issues need resolution</strong>
-                <p>Local edits would be overwritten. Return to the chart and resolve them before refreshing.</p>
-                <ul>
-                  {review.divergences.map((divergence) => (
-                    <li key={divergence.issueId}>
-                      <strong>{divergence.issueKey}</strong>:{" "}
-                      {[
-                        ...divergence.conflicts.map((change) => `${change.field} changed locally and in Jira`),
-                        ...divergence.localChanges.map((change) => `${change.field} changed locally`),
-                      ].join(", ")}
-                    </li>
-                  ))}
-                </ul>
+              <div className="jira-conflicts">
+                <div className="jira-conflict-heading">
+                  <div>
+                    <strong>{reviewDifferences.length} fields need resolution</strong>
+                    <p>Choose which value the Gantt chart should keep.</p>
+                  </div>
+                  <div>
+                    <button type="button" onClick={() => resolveAll("local")}>
+                      Keep all local
+                    </button>
+                    <button type="button" onClick={() => resolveAll("jira")}>
+                      Use all Jira
+                    </button>
+                  </div>
+                </div>
+                <div className="jira-conflict-list">
+                  {reviewDifferences.map(({ divergence, difference }) => {
+                    const key = resolutionKey(divergence.issueId, difference.field);
+                    const choice = resolutions[key];
+                    return (
+                      <section key={key} aria-label={`${divergence.issueKey} ${difference.field}`}>
+                        <header>
+                          <strong>{divergence.issueKey}</strong>
+                          <span>{difference.field}</span>
+                          {divergence.conflicts.includes(difference) && <em>changed in both</em>}
+                        </header>
+                        <div className="jira-conflict-values">
+                          <small>
+                            Baseline<strong>{displayJiraValue(difference.baseline)}</strong>
+                          </small>
+                          <small>
+                            Local<strong>{displayJiraValue(difference.local)}</strong>
+                          </small>
+                          <small>
+                            Jira<strong>{displayJiraValue(difference.remote)}</strong>
+                          </small>
+                        </div>
+                        <div className="jira-conflict-actions">
+                          <button
+                            type="button"
+                            className={choice === "local" ? "selected" : undefined}
+                            aria-pressed={choice === "local"}
+                            onClick={() => setResolutions((current) => ({ ...current, [key]: "local" }))}
+                          >
+                            Keep local
+                          </button>
+                          <button
+                            type="button"
+                            className={choice === "jira" ? "selected" : undefined}
+                            aria-pressed={choice === "jira"}
+                            onClick={() => setResolutions((current) => ({ ...current, [key]: "jira" }))}
+                          >
+                            Use Jira
+                          </button>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {review.missingTasks.length > 0 && (
+              <div className="jira-removals">
+                <div className="jira-conflict-heading">
+                  <div>
+                    <strong>{review.missingTasks.length} tasks are no longer in the Jira query</strong>
+                    <p>They may have moved, been deleted, or fallen outside the current JQL filter.</p>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRemovalChoices(Object.fromEntries(review.missingTasks.map((task) => [task.issueId, "keep"])))
+                      }
+                    >
+                      Keep all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRemovalChoices(
+                          Object.fromEntries(review.missingTasks.map((task) => [task.issueId, "remove"])),
+                        )
+                      }
+                    >
+                      Remove all
+                    </button>
+                  </div>
+                </div>
+                <div className="jira-removal-list">
+                  {review.missingTasks.map((task) => {
+                    const choice = removalChoices[task.issueId];
+                    return (
+                      <section key={task.issueId}>
+                        <div>
+                          <strong>{task.issueKey}</strong>
+                          <span>{task.summary}</span>
+                          {task.locallyChanged && <em>locally edited</em>}
+                        </div>
+                        <div className="jira-conflict-actions">
+                          <button
+                            type="button"
+                            className={choice === "keep" ? "selected" : undefined}
+                            aria-pressed={choice === "keep"}
+                            onClick={() => setRemovalChoices((current) => ({ ...current, [task.issueId]: "keep" }))}
+                          >
+                            Keep task
+                          </button>
+                          <button
+                            type="button"
+                            className={choice === "remove" ? "selected danger" : undefined}
+                            aria-pressed={choice === "remove"}
+                            onClick={() => setRemovalChoices((current) => ({ ...current, [task.issueId]: "remove" }))}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
               </div>
             )}
             <div className="dialog-actions">
@@ -309,10 +490,12 @@ export function JiraDialog({
               <button
                 type="button"
                 className="primary"
-                disabled={readOnly || review.divergences.length > 0}
+                disabled={readOnly || unresolvedCount > 0 || unresolvedRemovalCount > 0}
                 onClick={applyReview}
               >
-                Apply changes
+                {unresolvedCount + unresolvedRemovalCount > 0
+                  ? `Resolve ${unresolvedCount + unresolvedRemovalCount} items`
+                  : "Apply changes"}
               </button>
             </div>
           </>

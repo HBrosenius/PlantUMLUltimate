@@ -1,11 +1,13 @@
-import { parseGantt } from "@plantuml-studio/diagram-gantt";
+import { applySourceEdits, deleteTask, parseGantt } from "@plantuml-studio/diagram-gantt";
 import { isJiraBrowseUrl, jiraTaskAlias } from "./binding";
 import type {
   JiraFieldDifference,
+  JiraFieldResolution,
   JiraIssueBaseline,
   JiraIssueSnapshot,
   JiraMappedField,
   JiraMappedTaskState,
+  JiraMissingTask,
   JiraReconciliation,
   JiraTaskDivergence,
 } from "./types";
@@ -97,4 +99,70 @@ export function findJiraTaskDivergences(
         ]
       : [];
   });
+}
+
+export function applyJiraFieldResolutions(
+  issues: readonly JiraIssueSnapshot[],
+  divergences: readonly JiraTaskDivergence[],
+  resolutions: readonly JiraFieldResolution[],
+): JiraIssueSnapshot[] {
+  const localValues = new Map<string, JiraFieldDifference>();
+  for (const divergence of divergences) {
+    for (const difference of [...divergence.conflicts, ...divergence.localChanges])
+      localValues.set(`${divergence.issueId}:${difference.field}`, difference);
+  }
+  const selected = new Map(resolutions.map((resolution) => [`${resolution.issueId}:${resolution.field}`, resolution]));
+  return issues.map((issue) => {
+    const next = { ...issue };
+    for (const field of FIELDS) {
+      if (selected.get(`${issue.id}:${field}`)?.choice !== "local") continue;
+      const value = localValues.get(`${issue.id}:${field}`)?.local;
+      if (field === "key" && typeof value === "string") next.key = value;
+      else if (field === "summary" && typeof value === "string") next.summary = value;
+      else if (field === "startDate") {
+        if (typeof value === "string") next.startDate = value;
+        else delete next.startDate;
+      } else if (field === "dueDate") {
+        if (typeof value === "string") next.dueDate = value;
+        else delete next.dueDate;
+      } else if (field === "completion") {
+        if (typeof value === "number") next.completion = value;
+        else delete next.completion;
+      }
+    }
+    return next;
+  });
+}
+
+export function findMissingJiraTasks(
+  source: string,
+  issues: readonly JiraIssueSnapshot[],
+  baselines: Record<string, JiraIssueBaseline> | undefined,
+): JiraMissingTask[] {
+  if (!baselines) return [];
+  const currentIds = new Set(issues.map((issue) => issue.id));
+  return Object.entries(baselines).flatMap(([issueId, baseline]) => {
+    if (currentIds.has(issueId)) return [];
+    const local = mappedStateFromGantt(source, issueId);
+    if (!local) return [];
+    const issueKey = local.key ?? baseline.state.key ?? `JIRA-${issueId}`;
+    return [
+      {
+        issueId,
+        issueKey,
+        summary: local.summary ?? baseline.state.summary ?? issueKey,
+        locallyChanged: FIELDS.some((field) => local[field] !== baseline.state[field]),
+      },
+    ];
+  });
+}
+
+export function removeJiraTasks(source: string, issueIds: readonly string[]): string {
+  let next = source;
+  for (const issueId of issueIds) {
+    const document = parseGantt(next).document;
+    const task = document.symbols.tasks.get(jiraTaskAlias(issueId).toLowerCase());
+    if (task) next = applySourceEdits(next, deleteTask(next, document, task).edits);
+  }
+  return next;
 }
