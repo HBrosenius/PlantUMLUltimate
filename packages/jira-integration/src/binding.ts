@@ -27,7 +27,22 @@ function validBinding(value: unknown): value is JiraDocumentBinding {
     (candidate.mode === "pull" || candidate.mode === "review-publish") &&
     (candidate.startFieldId === undefined || /^[a-zA-Z0-9_:-]+$/.test(candidate.startFieldId)) &&
     (candidate.includeAssignee === undefined || typeof candidate.includeAssignee === "boolean") &&
-    (candidate.includeDependencies === undefined || typeof candidate.includeDependencies === "boolean")
+    (candidate.includeDependencies === undefined || typeof candidate.includeDependencies === "boolean") &&
+    validBaselines(candidate.baselines)
+  );
+}
+
+function validBaselines(value: JiraDocumentBinding["baselines"]): boolean {
+  if (value === undefined) return true;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.entries(value).every(
+    ([issueId, baseline]) =>
+      /^[1-9]\d*$/.test(issueId) &&
+      baseline &&
+      typeof baseline === "object" &&
+      typeof baseline.updated === "string" &&
+      baseline.state &&
+      typeof baseline.state === "object",
   );
 }
 

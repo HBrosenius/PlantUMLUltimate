@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildJiraPullPlan,
+  createJiraBaselines,
+  findJiraTaskDivergences,
   setJiraDocumentBinding,
+  summarizeJiraPullPlan,
   type JiraDocumentBinding,
   type JiraIssueSnapshot,
+  type JiraPullChange,
+  type JiraPullSummary,
+  type JiraTaskDivergence,
 } from "@plantuml-studio/jira-integration";
 import {
   disconnectJira,
@@ -17,6 +23,15 @@ import {
   type JiraSite,
 } from "./jira-client";
 import { useDialogFocus } from "./use-dialog-focus";
+
+interface JiraReview {
+  source: string;
+  message: string;
+  summary: JiraPullSummary;
+  changes: JiraPullChange[];
+  warnings: string[];
+  divergences: JiraTaskDivergence[];
+}
 
 export function JiraDialog({
   endpoint,
@@ -45,6 +60,7 @@ export function JiraDialog({
   const [includeDependencies, setIncludeDependencies] = useState(binding?.includeDependencies ?? true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [review, setReview] = useState<JiraReview>();
   const selectedSite = sites.find((site) => site.id === cloudId);
   const dateFields = useMemo(() => fields.filter((field) => field.type === "date"), [fields]);
 
@@ -124,7 +140,7 @@ export function JiraDialog({
     }
   };
 
-  const importIssues = async () => {
+  const prepareReview = async () => {
     if (!selectedSite || !jql.trim() || busy) return;
     setBusy(true);
     setError(undefined);
@@ -152,6 +168,7 @@ export function JiraDialog({
         if (page === 49) throw new Error("The Jira query returned more than 5,000 issues; narrow the JQL query");
       }
       const plan = buildJiraPullPlan(source, selectedSite.url, issues, { includeAssignee, includeDependencies });
+      const divergences = findJiraTaskDivergences(source, issues, binding?.baselines);
       const nextBinding: JiraDocumentBinding = {
         version: 1,
         bindingId: binding?.bindingId ?? crypto.randomUUID(),
@@ -162,16 +179,29 @@ export function JiraDialog({
         ...(startFieldId ? { startFieldId } : {}),
         ...(includeAssignee ? { includeAssignee: true } : {}),
         ...(includeDependencies ? { includeDependencies: true } : {}),
+        baselines: createJiraBaselines(issues),
       };
       const nextSource = setJiraDocumentBinding(plan.source, nextBinding);
       const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
-      onApply(nextSource, `Jira synchronized ${issues.length} issues · ${changed} changes`);
-      onClose();
+      setReview({
+        source: nextSource,
+        message: `Jira synchronized ${issues.length} issues · ${changed} changes`,
+        summary: summarizeJiraPullPlan(plan),
+        changes: plan.changes.filter((change) => change.kind !== "unchanged"),
+        warnings: plan.warnings,
+        divergences,
+      });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not import Jira issues");
     } finally {
       setBusy(false);
     }
+  };
+
+  const applyReview = () => {
+    if (!review || readOnly || review.divergences.length > 0) return;
+    onApply(review.source, review.message);
+    onClose();
   };
 
   return (
@@ -187,7 +217,11 @@ export function JiraDialog({
         <header>
           <div>
             <h2>Jira</h2>
-            <p>Import a Jira Cloud query into this Gantt chart.</p>
+            <p>
+              {review
+                ? "Review Jira changes before updating the chart."
+                : "Import a Jira Cloud query into this Gantt chart."}
+            </p>
           </div>
           <button type="button" aria-label="Close Jira integration" onClick={onClose}>
             ×
@@ -204,6 +238,81 @@ export function JiraDialog({
               </button>
               <button type="button" className="primary" onClick={connect}>
                 Connect Jira
+              </button>
+            </div>
+          </>
+        ) : review ? (
+          <>
+            <div className="jira-review-summary" aria-label="Jira synchronization summary">
+              <span>
+                <strong>{review.summary.created}</strong> created
+              </span>
+              <span>
+                <strong>{review.summary.updated}</strong> updated
+              </span>
+              <span>
+                <strong>{review.summary.dependencies}</strong> dependencies
+              </span>
+              <span>
+                <strong>{review.summary.unchanged}</strong> unchanged
+              </span>
+            </div>
+            {review.changes.length === 0 ? (
+              <p className="jira-review-empty">The chart is already up to date.</p>
+            ) : (
+              <ul className="jira-review-list">
+                {review.changes.slice(0, 100).map((change, index) => (
+                  <li key={`${change.issueId}-${change.kind}-${index}`}>
+                    <strong>{change.issueKey}</strong>
+                    <span>{change.kind === "dependency-created" ? "dependency added" : change.kind}</span>
+                    {change.fields.length > 0 && <small>{change.fields.join(", ")}</small>}
+                  </li>
+                ))}
+                {review.changes.length > 100 && <li>…and {review.changes.length - 100} more changes</li>}
+              </ul>
+            )}
+            {review.warnings.length > 0 && (
+              <details className="jira-review-warnings">
+                <summary>{review.warnings.length} warnings</summary>
+                <ul>
+                  {review.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {review.divergences.length > 0 && (
+              <div className="jira-conflicts" role="alert">
+                <strong>{review.divergences.length} issues need resolution</strong>
+                <p>Local edits would be overwritten. Return to the chart and resolve them before refreshing.</p>
+                <ul>
+                  {review.divergences.map((divergence) => (
+                    <li key={divergence.issueId}>
+                      <strong>{divergence.issueKey}</strong>:{" "}
+                      {[
+                        ...divergence.conflicts.map((change) => `${change.field} changed locally and in Jira`),
+                        ...divergence.localChanges.map((change) => `${change.field} changed locally`),
+                      ].join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setReview(undefined)}>
+                Back
+              </button>
+              <span />
+              <button type="button" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary"
+                disabled={readOnly || review.divergences.length > 0}
+                onClick={applyReview}
+              >
+                Apply changes
               </button>
             </div>
           </>
@@ -272,9 +381,9 @@ export function JiraDialog({
                 type="button"
                 className="primary"
                 disabled={readOnly || busy || !jql.trim()}
-                onClick={() => void importIssues()}
+                onClick={() => void prepareReview()}
               >
-                {busy ? "Synchronizing…" : binding ? "Refresh from Jira" : "Import from Jira"}
+                {busy ? "Checking Jira…" : binding ? "Review refresh" : "Review import"}
               </button>
             </div>
           </>

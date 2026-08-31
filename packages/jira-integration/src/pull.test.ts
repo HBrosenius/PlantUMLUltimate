@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
-import { buildJiraPullPlan } from "./pull";
+import { buildJiraPullPlan, summarizeJiraPullPlan } from "./pull";
 
 const issue = {
   id: "10042",
@@ -62,5 +62,22 @@ describe("buildJiraPullPlan", () => {
     expect(refreshed.source).toContain("/browse/CORE-123 CORE-123");
     expect(refreshed.source).not.toContain("APP-123");
     expect(refreshed.changes[0]).toEqual(expect.objectContaining({ kind: "updated", fields: ["key"] }));
+  });
+
+  it("summarizes issue changes separately from dependency changes", () => {
+    const plan = buildJiraPullPlan(
+      "@startgantt\n@endgantt",
+      "https://acme.atlassian.net",
+      [issue, { ...issue, id: "10043", key: "APP-124", summary: "Test SSO", blockedByIssueIds: ["10042"] }],
+      { includeDependencies: true },
+    );
+    expect(summarizeJiraPullPlan(plan)).toEqual({
+      issues: 2,
+      created: 2,
+      updated: 0,
+      dependencies: 1,
+      unchanged: 0,
+      warnings: 0,
+    });
   });
 });

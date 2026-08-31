@@ -15,6 +15,12 @@ const binding = {
   jql: "project = APP ORDER BY Rank",
   mode: "pull",
   includeDependencies: true,
+  baselines: {
+    "10042": {
+      updated: "2026-08-31T10:00:00Z",
+      state: { key: "APP-123", summary: "Build", dueDate: "2026-09-10", completion: 0 },
+    },
+  },
 } as const;
 
 describe("Jira document binding", () => {

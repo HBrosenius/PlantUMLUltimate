@@ -8,6 +8,7 @@ export interface JiraDocumentBinding {
   startFieldId?: string;
   includeAssignee?: boolean;
   includeDependencies?: boolean;
+  baselines?: Record<string, JiraIssueBaseline>;
 }
 
 export interface JiraUserSnapshot {
@@ -44,6 +45,18 @@ export interface JiraMappedTaskState {
   assigneeAccountId?: string | null;
 }
 
+export interface JiraIssueBaseline {
+  updated: string;
+  state: JiraMappedTaskState;
+}
+
+export interface JiraTaskDivergence {
+  issueId: string;
+  issueKey: string;
+  localChanges: JiraFieldDifference[];
+  conflicts: JiraFieldDifference[];
+}
+
 export interface JiraFieldDifference {
   field: JiraMappedField;
   baseline: JiraMappedTaskState[JiraMappedField];
@@ -68,4 +81,13 @@ export interface JiraPullPlan {
   source: string;
   changes: JiraPullChange[];
   warnings: string[];
+}
+
+export interface JiraPullSummary {
+  issues: number;
+  created: number;
+  updated: number;
+  dependencies: number;
+  unchanged: number;
+  warnings: number;
 }

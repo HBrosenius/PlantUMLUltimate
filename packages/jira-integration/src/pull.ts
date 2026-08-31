@@ -10,7 +10,25 @@ import {
   type MoveTaskResult,
 } from "@plantuml-studio/diagram-gantt";
 import { isJiraBrowseUrl, jiraBrowseUrl, jiraTaskAlias } from "./binding";
-import type { JiraIssueSnapshot, JiraMappedField, JiraPullChange, JiraPullOptions, JiraPullPlan } from "./types";
+import type {
+  JiraIssueSnapshot,
+  JiraMappedField,
+  JiraPullChange,
+  JiraPullOptions,
+  JiraPullPlan,
+  JiraPullSummary,
+} from "./types";
+
+export function summarizeJiraPullPlan(plan: Pick<JiraPullPlan, "changes" | "warnings">): JiraPullSummary {
+  return {
+    issues: new Set(plan.changes.map((change) => change.issueId)).size,
+    created: plan.changes.filter((change) => change.kind === "created").length,
+    updated: plan.changes.filter((change) => change.kind === "updated").length,
+    dependencies: plan.changes.filter((change) => change.kind === "dependency-created").length,
+    unchanged: plan.changes.filter((change) => change.kind === "unchanged").length,
+    warnings: plan.warnings.length,
+  };
+}
 
 function safeLabel(value: string): string {
   return value
