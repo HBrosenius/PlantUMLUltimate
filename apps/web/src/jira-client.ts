@@ -94,6 +94,19 @@ function record(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
 }
 
+function blockedByIssueIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate) => {
+    const link = record(candidate);
+    const type = record(link?.type);
+    const inwardIssue = record(link?.inwardIssue);
+    const inwardDescription = typeof type?.inward === "string" ? type.inward.toLowerCase() : "";
+    const outwardDescription = typeof type?.outward === "string" ? type.outward.toLowerCase() : "";
+    const isBlocksLink = outwardDescription === "blocks" || inwardDescription === "is blocked by";
+    return isBlocksLink && typeof inwardIssue?.id === "string" && /^\d+$/.test(inwardIssue.id) ? [inwardIssue.id] : [];
+  });
+}
+
 export function normalizeJiraIssue(issue: RawJiraIssue, startFieldId?: string): JiraIssueSnapshot | undefined {
   if (!/^\d+$/.test(issue.id) || !/^[A-Z][A-Z0-9_]*-\d+$/i.test(issue.key)) return undefined;
   const fields = issue.fields ?? {};
@@ -106,6 +119,7 @@ export function normalizeJiraIssue(issue: RawJiraIssue, startFieldId?: string): 
   const status = record(fields.status);
   const statusCategory = record(status?.statusCategory)?.key;
   const completion = statusCategory === "done" ? 100 : statusCategory === "indeterminate" ? 50 : 0;
+  const blockedBy = blockedByIssueIds(fields.issuelinks);
   return {
     id: issue.id,
     key: issue.key,
@@ -114,6 +128,7 @@ export function normalizeJiraIssue(issue: RawJiraIssue, startFieldId?: string): 
     ...(startDate ? { startDate } : {}),
     ...(dueDate ? { dueDate } : {}),
     completion,
+    ...(blockedBy.length > 0 ? { blockedByIssueIds: [...new Set(blockedBy)] } : {}),
     ...(assignee && typeof assignee.accountId === "string" && typeof assignee.displayName === "string"
       ? { assignee: { accountId: assignee.accountId, displayName: assignee.displayName } }
       : { assignee: null }),

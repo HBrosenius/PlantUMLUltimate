@@ -14,6 +14,7 @@ const binding = {
   siteUrl: "https://acme.atlassian.net",
   jql: "project = APP ORDER BY Rank",
   mode: "pull",
+  includeDependencies: true,
 } as const;
 
 describe("Jira document binding", () => {

@@ -15,6 +15,16 @@ describe("Jira client", () => {
             customfield_10042: "2026-09-01",
             status: { statusCategory: { key: "indeterminate" } },
             assignee: { accountId: "abc", displayName: "Ada" },
+            issuelinks: [
+              {
+                type: { inward: "is blocked by", outward: "blocks" },
+                inwardIssue: { id: "10041", key: "APP-122" },
+              },
+              {
+                type: { inward: "is blocked by", outward: "blocks" },
+                outwardIssue: { id: "10043", key: "APP-124" },
+              },
+            ],
           },
         },
         "customfield_10042",
@@ -27,6 +37,7 @@ describe("Jira client", () => {
       startDate: "2026-09-01",
       dueDate: "2026-09-12",
       completion: 50,
+      blockedByIssueIds: ["10041"],
       assignee: { accountId: "abc", displayName: "Ada" },
     });
   });

@@ -26,7 +26,8 @@ function validBinding(value: unknown): value is JiraDocumentBinding {
     Boolean(candidate.jql.trim()) &&
     (candidate.mode === "pull" || candidate.mode === "review-publish") &&
     (candidate.startFieldId === undefined || /^[a-zA-Z0-9_:-]+$/.test(candidate.startFieldId)) &&
-    (candidate.includeAssignee === undefined || typeof candidate.includeAssignee === "boolean")
+    (candidate.includeAssignee === undefined || typeof candidate.includeAssignee === "boolean") &&
+    (candidate.includeDependencies === undefined || typeof candidate.includeDependencies === "boolean")
   );
 }
 

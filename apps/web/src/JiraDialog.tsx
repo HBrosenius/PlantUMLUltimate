@@ -42,6 +42,7 @@ export function JiraDialog({
   const [startFieldId, setStartFieldId] = useState(binding?.startFieldId ?? "");
   const [jql, setJql] = useState(binding?.jql ?? "");
   const [includeAssignee, setIncludeAssignee] = useState(binding?.includeAssignee ?? false);
+  const [includeDependencies, setIncludeDependencies] = useState(binding?.includeDependencies ?? true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const selectedSite = sites.find((site) => site.id === cloudId);
@@ -135,7 +136,7 @@ export function JiraDialog({
         const result = await jiraSearch(endpoint, {
           cloudId,
           jql: jql.trim(),
-          fields: startFieldId ? [startFieldId] : [],
+          fields: [...(startFieldId ? [startFieldId] : []), ...(includeDependencies ? ["issuelinks"] : [])],
           ...(nextPageToken ? { nextPageToken } : {}),
         });
         issues.push(
@@ -150,7 +151,7 @@ export function JiraDialog({
         nextPageToken = result.nextPageToken;
         if (page === 49) throw new Error("The Jira query returned more than 5,000 issues; narrow the JQL query");
       }
-      const plan = buildJiraPullPlan(source, selectedSite.url, issues, { includeAssignee });
+      const plan = buildJiraPullPlan(source, selectedSite.url, issues, { includeAssignee, includeDependencies });
       const nextBinding: JiraDocumentBinding = {
         version: 1,
         bindingId: binding?.bindingId ?? crypto.randomUUID(),
@@ -160,6 +161,7 @@ export function JiraDialog({
         mode: "pull",
         ...(startFieldId ? { startFieldId } : {}),
         ...(includeAssignee ? { includeAssignee: true } : {}),
+        ...(includeDependencies ? { includeDependencies: true } : {}),
       };
       const nextSource = setJiraDocumentBinding(plan.source, nextBinding);
       const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
@@ -245,6 +247,14 @@ export function JiraDialog({
                 onChange={(event) => setIncludeAssignee(event.target.checked)}
               />
               Import assignee as a 100% resource
+            </label>
+            <label className="jira-check">
+              <input
+                type="checkbox"
+                checked={includeDependencies}
+                onChange={(event) => setIncludeDependencies(event.target.checked)}
+              />
+              Import Jira “blocks” links as task dependencies
             </label>
             <p className="jira-disclosure">
               Imported summaries, dates, statuses, and assignees become part of the PlantUML file and may be visible to
