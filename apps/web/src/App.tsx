@@ -46,6 +46,7 @@ import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
 import { CommandPalette } from "./CommandPalette";
 import { TaskInspector, type TaskInspectorValue } from "./TaskInspector";
+import { explicitTaskStartStatement } from "./task-inspector-schedule";
 import { MilestoneInspector, type MilestoneInspectorValue } from "./MilestoneInspector";
 import { DependencyInspector, type DependencyInspectorValue } from "./DependencyInspector";
 import { DividerInspector } from "./DividerInspector";
@@ -3152,7 +3153,7 @@ export function App() {
               : undefined,
         );
       } else {
-        applyDeclaration("start", value.startDate ? `starts ${value.startDate}` : undefined);
+        applyDeclaration("start", explicitTaskStartStatement(value.startDate, derivedStart, Boolean(original.start)));
         applyDeclaration("end", value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined);
       }
       applyDeclaration(
