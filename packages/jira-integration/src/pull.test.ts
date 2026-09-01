@@ -98,6 +98,39 @@ describe("buildJiraPullPlan", () => {
     expect(refreshed.managedDependencyKeys).toEqual([]);
   });
 
+  it("warns when a blocking issue is outside the imported query", () => {
+    const result = buildJiraPullPlan(
+      "@startgantt\n@endgantt",
+      "https://acme.atlassian.net",
+      [{ ...issue, blockedByIssueIds: ["10041"] }],
+      { includeDependencies: true },
+    );
+
+    expect(result.warnings).toEqual(["APP-123: blocking Jira issue 10041 is outside the imported query"]);
+    expect(result.managedDependencyKeys).toEqual([]);
+  });
+
+  it("preserves an equivalent manually created dependency without claiming ownership", () => {
+    const source = `@startgantt
+[Build] as [jira_10042] lasts 1 day
+[Test] as [jira_10043] lasts 1 day
+[jira_10043] starts at [jira_10042]'s end
+@endgantt`;
+    expect(parseGantt(source).document.dependencies).toEqual([
+      expect.objectContaining({ predecessorTaskId: "jira_10042", successorTaskId: "jira_10043" }),
+    ]);
+    const result = buildJiraPullPlan(
+      source,
+      "https://acme.atlassian.net",
+      [issue, { ...issue, id: "10043", key: "APP-124", summary: "Test", blockedByIssueIds: ["10042"] }],
+      { includeDependencies: true },
+    );
+
+    expect(parseGantt(result.source).document.dependencies).toHaveLength(1);
+    expect(result.managedDependencyKeys).toEqual([]);
+    expect(result.changes.filter(({ kind }) => kind === "dependency-created")).toEqual([]);
+  });
+
   it("updates a renamed Jira key without changing the stable task alias", () => {
     const imported = buildJiraPullPlan("@startgantt\n@endgantt", "https://acme.atlassian.net", [issue]);
     const refreshed = buildJiraPullPlan(imported.source, "https://acme.atlassian.net", [{ ...issue, key: "CORE-123" }]);

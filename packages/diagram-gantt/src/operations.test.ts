@@ -291,6 +291,16 @@ describe("task inspector operations", () => {
     expect(parseGantt(changed).document.tasks).toHaveLength(1);
   });
 
+  it("adds an explicit date without replacing a dependency declaration", () => {
+    const source = "@startgantt\n[Build] lasts 2 days\n[Test] starts at [Build]'s end\n[Test] lasts 1 day\n@endgantt";
+    const task = parseGantt(source).document.symbols.tasks.get("test")!;
+    const changed = applySourceEdits(source, setTaskDeclaration(source, task, "start", "starts 2026-09-03").edits);
+
+    expect(changed).toContain("[Test] starts at [Build]'s end");
+    expect(changed).toContain("[Test] starts 2026-09-03");
+    expect(parseGantt(changed).document.dependencies).toHaveLength(1);
+  });
+
   it("deletes task declarations and relationships that point to it", () => {
     const source = "@startgantt\n[Build] lasts 2 days\n[Test] starts at [Build]'s end\n[Test] lasts 1 day\n@endgantt";
     const document = parseGantt(source).document;

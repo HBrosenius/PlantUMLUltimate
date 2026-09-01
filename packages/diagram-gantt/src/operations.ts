@@ -622,7 +622,14 @@ export function setTaskDeclaration(
   kind: Exclude<TaskDeclaration["kind"], "unknown">,
   statement?: string,
 ): MoveTaskResult {
-  const existing = task.declarations.find((item) => item.kind === kind);
+  const dateValue = kind === "start" ? task.start : kind === "end" ? task.end : undefined;
+  const existing = task.declarations.find(
+    (item) =>
+      item.kind === kind &&
+      (kind !== "start" && kind !== "end"
+        ? true
+        : Boolean(dateValue && item.range.from <= dateValue.range.from && item.range.to >= dateValue.range.to)),
+  );
   if (existing) {
     if (existing.inline) {
       if (statement) return { edits: [{ range: existing.range, text: statement }] };

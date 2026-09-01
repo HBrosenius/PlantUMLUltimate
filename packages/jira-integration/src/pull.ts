@@ -242,7 +242,11 @@ export function buildJiraPullPlan(
         const document = parseGantt(source).document;
         const predecessor = document.symbols.tasks.get(jiraTaskAlias(predecessorId).toLowerCase());
         const successor = document.symbols.tasks.get(jiraTaskAlias(issue.id).toLowerCase());
-        if (!predecessor || !successor) continue;
+        if (!predecessor) {
+          warnings.push(`${issue.key}: blocking Jira issue ${predecessorId} is outside the imported query`);
+          continue;
+        }
+        if (!successor) continue;
         if (
           document.dependencies.some(
             (dependency) =>
