@@ -1,4 +1,5 @@
 import type { GanttDependency, GanttDocument, GanttNote, GanttTask, TaskDeclaration } from "./model";
+import { normalizeTaskId } from "./parser";
 import type { SourceEdit } from "./source-edits";
 import { ganttSymbolOccurrences, taskOccurrences } from "./symbols";
 
@@ -586,8 +587,9 @@ export function renameTask(
     return { edits: [], unavailableReason: "A task with that name already exists" };
   if (nextLabel === task.label) return { edits: [] };
 
-  const occurrences = taskOccurrences(source, document, task).filter((item) =>
-    task.alias ? item.range.from === task.labelRange.from : true,
+  const labelKey = normalizeTaskId(task.label);
+  const occurrences = taskOccurrences(source, document, task).filter(
+    (item) => !task.alias || item.role === "declaration" || normalizeTaskId(item.value) === labelKey,
   );
   return { edits: occurrences.map((item) => ({ range: item.range, text: nextLabel })) };
 }

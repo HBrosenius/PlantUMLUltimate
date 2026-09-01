@@ -310,6 +310,21 @@ describe("task inspector operations", () => {
     expect(changed).toContain("[Test] starts at [P1]'s end");
   });
 
+  it("renames visible-label references to an aliased task without creating a second task", () => {
+    const source =
+      "@startgantt\n[Prototype] as [P1] requires 2 days\n[P1] is colored in Blue\n[Prototype] starts 2026-09-01\n@endgantt";
+    const document = parseGantt(source).document;
+    const changed = applySourceEdits(
+      source,
+      renameTask(source, document, document.symbols.tasks.get("p1")!, "Design").edits,
+    );
+    const reparsed = parseGantt(changed);
+    expect(changed).toContain("[Design] as [P1]");
+    expect(changed).toContain("[P1] is colored in Blue");
+    expect(changed).toContain("[Design] starts 2026-09-01");
+    expect(reparsed.document.tasks).toHaveLength(1);
+  });
+
   it("renames an alias and every semantic alias reference", () => {
     const source =
       "@startgantt\n[Prototype] as [P1] requires 2 days\n[P1] is colored in Blue\n[Test] starts at [P1]'s end\n@endgantt";
