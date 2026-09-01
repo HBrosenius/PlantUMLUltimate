@@ -25,6 +25,16 @@ describe("buildJiraPullPlan", () => {
     expect(parseGantt(result.source).diagnostics).toEqual([]);
   });
 
+  it("imports a due-date-only issue without creating an alias-only statement", () => {
+    const { startDate: _startDate, ...dueDateOnlyIssue } = issue;
+    const result = buildJiraPullPlan("@startgantt\n@endgantt", "https://acme.atlassian.net", [
+      { ...dueDateOnlyIssue, summary: "Leaver Updated (Software) - Chennai / India" },
+    ]);
+
+    expect(result.source).toContain("[Leaver Updated (Software) - Chennai / India] as [jira_10042] ends 2026-09-12");
+    expect(parseGantt(result.source).diagnostics).toEqual([]);
+  });
+
   it("refreshes mapped fields while preserving comments and non-Jira links", () => {
     const source = `@startgantt
 ' keep

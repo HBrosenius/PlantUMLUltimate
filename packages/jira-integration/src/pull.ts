@@ -82,11 +82,16 @@ function insertIssue(source: string, siteUrl: string, issue: JiraIssueSnapshot, 
     options.includeAssignee && issue.assignee?.displayName && !/[{}\r\n]/.test(issue.assignee.displayName)
       ? ` on {${issue.assignee.displayName}:100%}`
       : "";
-  const lines = [
-    `[${label}] as [${alias}]${resource}${validDate(issue.startDate) ? ` starts ${issue.startDate}` : ""}`,
-  ];
-  if (validDate(issue.dueDate)) lines.push(`[${alias}] ends ${issue.dueDate}`);
-  else lines.push(`[${alias}] lasts 1 day`);
+  const schedule = validDate(issue.startDate)
+    ? ` starts ${issue.startDate}`
+    : validDate(issue.dueDate)
+      ? ` ends ${issue.dueDate}`
+      : " lasts 1 day";
+  const lines = [`[${label}] as [${alias}]${resource}${schedule}`];
+  if (validDate(issue.startDate)) {
+    if (validDate(issue.dueDate)) lines.push(`[${alias}] ends ${issue.dueDate}`);
+    else lines.push(`[${alias}] lasts 1 day`);
+  }
   if (issue.completion !== undefined) lines.push(`[${alias}] is ${issue.completion}% completed`);
   lines.push(`[${alias}] links to [[${jiraBrowseUrl(siteUrl, issue.key)} ${issue.key.toUpperCase()}]]`);
   const insertionPoint = end.index + (end[1]?.length ?? 0);
