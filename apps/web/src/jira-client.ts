@@ -30,6 +30,19 @@ interface JiraSearchResponse {
   nextPageToken?: string;
 }
 
+export interface JiraIssueUpdate {
+  issueId: string;
+  issueKey: string;
+  fields: Record<string, string | null>;
+}
+
+export interface JiraIssueUpdateResult {
+  issueId: string;
+  issueKey: string;
+  ok: boolean;
+  status?: number;
+}
+
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${endpoint.replace(/\/$/, "")}${path}`, { ...init, credentials: "include" });
   if (!response.ok) {
@@ -80,6 +93,22 @@ export async function jiraSearch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
+}
+
+export async function jiraUpdateIssues(
+  endpoint: string,
+  request: { cloudId: string; updates: JiraIssueUpdate[] },
+): Promise<JiraIssueUpdateResult[]> {
+  const results: JiraIssueUpdateResult[] = [];
+  for (let offset = 0; offset < request.updates.length; offset += 25) {
+    const response = await apiJson<{ results: JiraIssueUpdateResult[] }>(endpoint, "/api/issues/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cloudId: request.cloudId, updates: request.updates.slice(offset, offset + 25) }),
+    });
+    results.push(...response.results);
+  }
+  return results;
 }
 
 export async function disconnectJira(endpoint: string): Promise<void> {

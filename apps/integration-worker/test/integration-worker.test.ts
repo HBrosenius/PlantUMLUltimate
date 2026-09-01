@@ -19,7 +19,7 @@ async function startOAuth(): Promise<{ state: string; temporaryCookie: string }>
   expect(response.status).toBe(302);
   const location = new URL(response.headers.get("Location")!);
   expect(location.origin).toBe("https://auth.atlassian.com");
-  expect(location.searchParams.get("scope")).toBe("read:jira-work offline_access");
+  expect(location.searchParams.get("scope")).toBe("read:jira-work write:jira-work offline_access");
   expect(location.searchParams.get("redirect_uri")).toBe(`${WORKER_ORIGIN}/oauth/callback`);
   return {
     state: location.searchParams.get("state")!,
@@ -147,6 +147,43 @@ describe("Jira integration Worker", () => {
     await expect(search.json()).resolves.toEqual({
       issues: [{ id: "10042", key: "APP-123", fields: { summary: "Implement SSO" } }],
       nextPageToken: "next-page",
+    });
+  });
+
+  it("validates and publishes reviewed Jira issue fields", async () => {
+    const connected = await connect();
+    const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input).endsWith("/rest/api/3/issue/10042")).toBe(true);
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        fields: { summary: "Build locally", duedate: "2026-09-12", customfield_10042: null },
+      });
+      return new Response(null, { status: 204 });
+    });
+    vi.stubGlobal("fetch", outbound);
+    const response = await exports.default.fetch(
+      new Request(`${WORKER_ORIGIN}/api/issues/update`, {
+        method: "POST",
+        headers: {
+          Origin: APP_ORIGIN,
+          Cookie: `jira_session=${connected.sessionCookie}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cloudId: "cloud-1",
+          updates: [
+            {
+              issueId: "10042",
+              issueKey: "APP-123",
+              fields: { summary: "Build locally", duedate: "2026-09-12", customfield_10042: null },
+            },
+          ],
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      results: [{ issueId: "10042", issueKey: "APP-123", ok: true }],
     });
   });
 

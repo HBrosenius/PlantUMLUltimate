@@ -26,8 +26,10 @@ import {
   jiraFields,
   jiraPopupReturnUrl,
   jiraSearch,
+  jiraUpdateIssues,
   normalizeJiraIssue,
   type JiraField,
+  type JiraIssueUpdate,
   type JiraSite,
 } from "./jira-client";
 import { useDialogFocus } from "./use-dialog-focus";
@@ -79,6 +81,7 @@ export function JiraDialog({
   const [jql, setJql] = useState(binding?.jql ?? "");
   const [includeAssignee, setIncludeAssignee] = useState(binding?.includeAssignee ?? false);
   const [includeDependencies, setIncludeDependencies] = useState(binding?.includeDependencies ?? true);
+  const [publishChanges, setPublishChanges] = useState(binding?.mode === "review-publish");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [review, setReview] = useState<JiraReview>();
@@ -206,7 +209,7 @@ export function JiraDialog({
         cloudId,
         siteUrl: selectedSite.url,
         jql: jql.trim(),
-        mode: "pull",
+        mode: publishChanges ? "review-publish" : "pull",
         ...(startFieldId ? { startFieldId } : {}),
         ...(includeAssignee ? { includeAssignee: true } : {}),
         ...(includeDependencies ? { includeDependencies: true } : {}),
@@ -234,8 +237,8 @@ export function JiraDialog({
     }
   };
 
-  const applyReview = () => {
-    if (!review || readOnly) return;
+  const applyReview = async () => {
+    if (!review || readOnly || busy) return;
     if (unresolvedCount > 0 || unresolvedRemovalCount > 0) return;
     const selected: JiraFieldResolution[] = review.divergences.flatMap((divergence) =>
       [...divergence.conflicts, ...divergence.localChanges].map((difference) => ({
@@ -245,6 +248,46 @@ export function JiraDialog({
       })),
     );
     const resolvedIssues = applyJiraFieldResolutions(review.issues, review.divergences, selected);
+    const updatesByIssue = new Map<string, JiraIssueUpdate>();
+    if (review.binding.mode === "review-publish") {
+      for (const { divergence, difference } of reviewDifferences) {
+        if (resolutions[resolutionKey(divergence.issueId, difference.field)] !== "local") continue;
+        const issue = review.issues.find((candidate) => candidate.id === divergence.issueId);
+        if (!issue) continue;
+        const update = updatesByIssue.get(issue.id) ?? { issueId: issue.id, issueKey: issue.key, fields: {} };
+        if (difference.field === "summary" && typeof difference.local === "string")
+          update.fields.summary = difference.local;
+        else if (difference.field === "startDate" && review.binding.startFieldId)
+          update.fields[review.binding.startFieldId] = typeof difference.local === "string" ? difference.local : null;
+        else if (difference.field === "dueDate")
+          update.fields.duedate = typeof difference.local === "string" ? difference.local : null;
+        if (Object.keys(update.fields).length > 0) updatesByIssue.set(issue.id, update);
+      }
+    }
+    let published = 0;
+    if (updatesByIssue.size > 0) {
+      setBusy(true);
+      setError(undefined);
+      try {
+        const results = await jiraUpdateIssues(endpoint, {
+          cloudId: review.binding.cloudId,
+          updates: [...updatesByIssue.values()],
+        });
+        const failures = results.filter((result) => !result.ok);
+        published = results.length - failures.length;
+        if (failures.length > 0) {
+          setError(
+            `Published ${published} issue${published === 1 ? "" : "s"}; ${failures.map((result) => `${result.issueKey} failed${result.status ? ` (${result.status})` : ""}`).join(", ")}. Refresh Jira before retrying.`,
+          );
+          return;
+        }
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "Could not publish Jira changes");
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
     const plan = buildJiraPullPlan(review.baseSource, review.siteUrl, resolvedIssues, review.options);
     const removedIssueIds = review.missingTasks
       .filter((task) => removalChoices[task.issueId] === "remove")
@@ -253,8 +296,10 @@ export function JiraDialog({
       .filter((task) => removalChoices[task.issueId] === "keep")
       .map((task) => task.issueId);
     const handledAliases = new Set(review.missingTasks.map((task) => `jira_${task.issueId}`));
+    const publishedBaselines = createJiraBaselines(resolvedIssues.filter((issue) => updatesByIssue.has(issue.id)));
     const nextBinding = {
       ...review.binding,
+      baselines: { ...review.binding.baselines, ...publishedBaselines },
       managedDependencyKeys: plan.managedDependencyKeys.filter((key) =>
         key.split(">").every((alias) => !handledAliases.has(alias)),
       ),
@@ -264,7 +309,10 @@ export function JiraDialog({
       nextBinding,
     );
     const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
-    onApply(nextSource, `Jira synchronized ${resolvedIssues.length} issues · ${changed} changes`);
+    onApply(
+      nextSource,
+      `Jira synchronized ${resolvedIssues.length} issues · ${changed} chart changes${published ? ` · ${published} published` : ""}`,
+    );
     onClose();
   };
 
@@ -416,7 +464,12 @@ export function JiraDialog({
                             aria-pressed={choice === "local"}
                             onClick={() => setResolutions((current) => ({ ...current, [key]: "local" }))}
                           >
-                            Keep local
+                            {review.binding.mode === "review-publish" &&
+                            (difference.field === "summary" ||
+                              difference.field === "dueDate" ||
+                              (difference.field === "startDate" && review.binding.startFieldId))
+                              ? "Publish local"
+                              : "Keep local"}
                           </button>
                           <button
                             type="button"
@@ -512,12 +565,14 @@ export function JiraDialog({
               <button
                 type="button"
                 className="primary"
-                disabled={readOnly || unresolvedCount > 0 || unresolvedRemovalCount > 0}
-                onClick={applyReview}
+                disabled={readOnly || busy || unresolvedCount > 0 || unresolvedRemovalCount > 0}
+                onClick={() => void applyReview()}
               >
-                {unresolvedCount + unresolvedRemovalCount > 0
-                  ? `Resolve ${unresolvedCount + unresolvedRemovalCount} items`
-                  : "Apply changes"}
+                {busy
+                  ? "Publishing Jira…"
+                  : unresolvedCount + unresolvedRemovalCount > 0
+                    ? `Resolve ${unresolvedCount + unresolvedRemovalCount} items`
+                    : "Apply changes"}
               </button>
             </div>
           </>
@@ -561,6 +616,14 @@ export function JiraDialog({
                 onChange={(event) => setIncludeAssignee(event.target.checked)}
               />
               Import assignee as a 100% resource
+            </label>
+            <label className="jira-check">
+              <input
+                type="checkbox"
+                checked={publishChanges}
+                onChange={(event) => setPublishChanges(event.target.checked)}
+              />
+              Allow reviewed summary and date changes to be published to Jira
             </label>
             <label className="jira-check">
               <input

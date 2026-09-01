@@ -122,7 +122,7 @@ async function oauthStart(request: Request, env: Env): Promise<Response> {
   authorize.search = new URLSearchParams({
     audience: "api.atlassian.com",
     client_id: env.ATLASSIAN_CLIENT_ID,
-    scope: "read:jira-work offline_access",
+    scope: "read:jira-work write:jira-work offline_access",
     redirect_uri: callbackUrl,
     state,
     response_type: "code",
@@ -356,6 +356,59 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
       issues: result.issues ?? [],
       ...(result.nextPageToken ? { nextPageToken: result.nextPageToken } : {}),
     });
+  }
+  if (url.pathname === "/api/issues/update" && request.method === "POST") {
+    let body: {
+      cloudId?: string;
+      updates?: Array<{ issueId?: string; issueKey?: string; fields?: Record<string, unknown> }>;
+    };
+    try {
+      body = await limitedJson(request);
+    } catch {
+      return Response.json({ error: "Request body must be valid JSON" }, { status: 400 });
+    }
+    const cloudId = body.cloudId ?? "";
+    if (!Array.isArray(body.updates) || body.updates.length === 0 || body.updates.length > 25)
+      return Response.json({ error: "Between 1 and 25 issue updates are required" }, { status: 400 });
+    const updates = body.updates.flatMap((update) => {
+      if (!/^\d+$/.test(update.issueId ?? "") || !/^[A-Z][A-Z0-9_]*-\d+$/i.test(update.issueKey ?? "")) return [];
+      const fields = update.fields;
+      if (!fields || typeof fields !== "object" || Array.isArray(fields)) return [];
+      const entries = Object.entries(fields);
+      if (
+        entries.length === 0 ||
+        entries.some(([field, value]) => {
+          if (field === "summary") return typeof value !== "string" || !value.trim() || value.length > 255;
+          if (field === "duedate" || /^customfield_\d+$/.test(field))
+            return value !== null && (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value));
+          return true;
+        })
+      )
+        return [];
+      return [{ issueId: update.issueId!, issueKey: update.issueKey!, fields: Object.fromEntries(entries) }];
+    });
+    if (updates.length !== body.updates.length)
+      return Response.json({ error: "One or more Jira updates are invalid" }, { status: 400 });
+    const results = [];
+    for (const update of updates) {
+      const upstream = await jiraFetch(
+        session.payload,
+        cloudId,
+        `/rest/api/3/issue/${encodeURIComponent(update.issueId)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fields: update.fields }),
+        },
+      );
+      results.push({
+        issueId: update.issueId,
+        issueKey: update.issueKey,
+        ok: upstream.ok,
+        ...(upstream.ok ? {} : { status: upstream.status }),
+      });
+    }
+    return Response.json({ results });
   }
   return Response.json({ error: "Not found" }, { status: 404 });
 }

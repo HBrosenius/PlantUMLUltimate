@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "plantuml-ultimate-integrations",
   "main": "src/index.ts",
-  "compatibility_date": "2026-08-31",
+  "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "jira.plantuml.brosenius.se", "custom_domain": true }],
   "d1_databases": [
