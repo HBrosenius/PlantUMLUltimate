@@ -24,6 +24,8 @@ Cloudflare Worker that keeps Atlassian OAuth tokens out of the browser and proxi
 
 Set `VITE_JIRA_INTEGRATION_URL` in the web deployment to the Worker origin. Keep `ALLOWED_ORIGINS` limited to the production app and explicitly needed local development origins.
 
+Pushes to `main` that change the integration Worker automatically run its tests and type checks, apply pending remote D1 migrations, and deploy it through `.github/workflows/deploy-integration.yml`. The workflow uses the same `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets as the collaboration Worker. The Atlassian client secret and token-encryption key remain Worker secrets and are not stored in GitHub.
+
 ## Verify
 
 ```sh
