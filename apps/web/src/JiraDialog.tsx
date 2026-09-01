@@ -3,6 +3,7 @@ import {
   applyJiraFieldResolutions,
   buildJiraPullPlan,
   createJiraBaselines,
+  detachJiraTasks,
   findMissingJiraTasks,
   findJiraTaskDivergences,
   removeJiraTasks,
@@ -37,7 +38,6 @@ interface JiraReview {
   siteUrl: string;
   options: JiraPullOptions;
   binding: JiraDocumentBinding;
-  previousBaselines: JiraDocumentBinding["baselines"];
   summary: JiraPullSummary;
   changes: JiraPullChange[];
   warnings: string[];
@@ -219,7 +219,6 @@ export function JiraDialog({
         siteUrl: selectedSite.url,
         options,
         binding: nextBinding,
-        previousBaselines: binding?.baselines,
         summary: summarizeJiraPullPlan(plan),
         changes: plan.changes.filter((change) => change.kind !== "unchanged"),
         warnings: plan.warnings,
@@ -250,18 +249,20 @@ export function JiraDialog({
     const removedIssueIds = review.missingTasks
       .filter((task) => removalChoices[task.issueId] === "remove")
       .map((task) => task.issueId);
-    const keptBaselines = Object.fromEntries(
-      review.missingTasks.flatMap((task) => {
-        const baseline = review.previousBaselines?.[task.issueId];
-        return removalChoices[task.issueId] === "keep" && baseline ? [[task.issueId, baseline] as const] : [];
-      }),
-    );
+    const detachedIssueIds = review.missingTasks
+      .filter((task) => removalChoices[task.issueId] === "keep")
+      .map((task) => task.issueId);
+    const handledAliases = new Set(review.missingTasks.map((task) => `jira_${task.issueId}`));
     const nextBinding = {
       ...review.binding,
-      baselines: { ...review.binding.baselines, ...keptBaselines },
-      managedDependencyKeys: plan.managedDependencyKeys,
+      managedDependencyKeys: plan.managedDependencyKeys.filter((key) =>
+        key.split(">").every((alias) => !handledAliases.has(alias)),
+      ),
     };
-    const nextSource = setJiraDocumentBinding(removeJiraTasks(plan.source, removedIssueIds), nextBinding);
+    const nextSource = setJiraDocumentBinding(
+      detachJiraTasks(removeJiraTasks(plan.source, removedIssueIds), detachedIssueIds),
+      nextBinding,
+    );
     const changed = plan.changes.filter((change) => change.kind !== "unchanged").length;
     onApply(nextSource, `Jira synchronized ${resolvedIssues.length} issues · ${changed} changes`);
     onClose();
@@ -469,6 +470,12 @@ export function JiraDialog({
                           <strong>{task.issueKey}</strong>
                           <span>{task.summary}</span>
                           {task.locallyChanged && <em>locally edited</em>}
+                          {task.dependencyLabels.length > 0 && (
+                            <em>
+                              Linked to {task.dependencyLabels.length} task
+                              {task.dependencyLabels.length === 1 ? "" : "s"}: {task.dependencyLabels.join(", ")}
+                            </em>
+                          )}
                         </div>
                         <div className="jira-conflict-actions">
                           <button
@@ -477,7 +484,7 @@ export function JiraDialog({
                             aria-pressed={choice === "keep"}
                             onClick={() => setRemovalChoices((current) => ({ ...current, [task.issueId]: "keep" }))}
                           >
-                            Keep task
+                            Keep local
                           </button>
                           <button
                             type="button"

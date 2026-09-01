@@ -72,6 +72,7 @@ export interface JiraMissingTask {
   issueKey: string;
   summary: string;
   locallyChanged: boolean;
+  dependencyLabels: string[];
 }
 
 export interface JiraFieldDifference {

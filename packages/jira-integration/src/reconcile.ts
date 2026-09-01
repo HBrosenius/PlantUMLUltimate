@@ -1,4 +1,10 @@
-import { applySourceEdits, deleteTask, parseGantt } from "@plantuml-studio/diagram-gantt";
+import {
+  applySourceEdits,
+  deleteTask,
+  parseGantt,
+  renameTaskAlias,
+  setTaskLinks,
+} from "@plantuml-studio/diagram-gantt";
 import { isJiraBrowseUrl, jiraTaskAlias } from "./binding";
 import type {
   JiraFieldDifference,
@@ -157,15 +163,57 @@ export function findMissingJiraTasks(
     const local = mappedStateFromGantt(source, issueId);
     if (!local) return [];
     const issueKey = local.key ?? baseline.state.key ?? `JIRA-${issueId}`;
+    const document = parseGantt(source).document;
+    const task = document.symbols.tasks.get(jiraTaskAlias(issueId).toLowerCase());
+    const dependencyLabels = task
+      ? [
+          ...new Set(
+            document.dependencies.flatMap((dependency) => {
+              if (dependency.predecessorTaskId === task.id)
+                return [document.symbols.tasks.get(dependency.successorTaskId)?.label ?? dependency.successor.value];
+              if (dependency.successorTaskId === task.id)
+                return [
+                  document.symbols.tasks.get(dependency.predecessorTaskId)?.label ?? dependency.predecessor.value,
+                ];
+              return [];
+            }),
+          ),
+        ].sort((a, b) => a.localeCompare(b))
+      : [];
     return [
       {
         issueId,
         issueKey,
         summary: local.summary ?? baseline.state.summary ?? issueKey,
         locallyChanged: FIELDS.some((field) => local[field] !== baseline.state[field]),
+        dependencyLabels,
       },
     ];
   });
+}
+
+export function detachJiraTasks(source: string, issueIds: readonly string[]): string {
+  let next = source;
+  for (const issueId of issueIds) {
+    let document = parseGantt(next).document;
+    let task = document.symbols.tasks.get(jiraTaskAlias(issueId).toLowerCase());
+    if (!task?.alias) continue;
+    const remainingLinks = (task.links ?? [])
+      .filter((link) => !isJiraBrowseUrl(link.url))
+      .map(({ url, label }) => ({ url, ...(label ? { label } : {}) }));
+    next = applySourceEdits(next, setTaskLinks(next, task, remainingLinks).edits);
+
+    document = parseGantt(next).document;
+    task = document.symbols.tasks.get(jiraTaskAlias(issueId).toLowerCase());
+    if (!task?.alias) continue;
+    const baseAlias = `local_jira_${issueId}`;
+    let alias = baseAlias;
+    for (let suffix = 2; document.symbols.tasks.has(alias.toLowerCase()) && suffix < 10_000; suffix += 1)
+      alias = `${baseAlias}_${suffix}`;
+    const renamed = renameTaskAlias(next, document, task, alias);
+    if (!renamed.unavailableReason) next = applySourceEdits(next, renamed.edits);
+  }
+  return next;
 }
 
 export function removeJiraTasks(source: string, issueIds: readonly string[]): string {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import {
   applyJiraFieldResolutions,
   createJiraBaselines,
+  detachJiraTasks,
   findMissingJiraTasks,
   findJiraLocalChangeFields,
   findJiraTaskDivergences,
@@ -78,8 +80,41 @@ describe("reconcileJiraTask", () => {
       },
     };
     expect(findMissingJiraTasks(source, [], baselines)).toEqual([
-      { issueId: "10042", issueKey: "APP-123", summary: "Build locally", locallyChanged: true },
+      {
+        issueId: "10042",
+        issueKey: "APP-123",
+        summary: "Build locally",
+        locallyChanged: true,
+        dependencyLabels: [],
+      },
     ]);
     expect(removeJiraTasks(source, ["10042"])).not.toContain("jira_10042");
+  });
+
+  it("detaches a kept task while preserving its local links and dependencies", () => {
+    const source = `@startgantt
+[Build] as [jira_10042] lasts 2 days
+[jira_10042] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]
+[jira_10042] links to [[https://example.com/spec Local spec]]
+[Test] starts at [jira_10042]'s end
+[Test] lasts 1 day
+@endgantt`;
+    expect(
+      findMissingJiraTasks(source, [], {
+        "10042": {
+          updated: "2026-09-01T10:00:00Z",
+          state: { key: "APP-123", summary: "Build" },
+        },
+      })[0]?.dependencyLabels,
+    ).toEqual(["Test"]);
+    const detached = detachJiraTasks(source, ["10042"]);
+    const document = parseGantt(detached).document;
+
+    expect(detached).not.toContain("[jira_10042]");
+    expect(detached).toContain("as [local_jira_10042]");
+    expect(detached).toContain("https://example.com/spec Local spec");
+    expect(detached).not.toContain("acme.atlassian.net/browse/APP-123");
+    expect(document.dependencies).toHaveLength(1);
+    expect(document.symbols.tasks.get("local_jira_10042")?.label).toBe("Build");
   });
 });
