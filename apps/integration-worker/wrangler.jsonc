@@ -4,12 +4,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [{ "pattern": "integrations.plantuml.brosenius.se", "custom_domain": true }],
+  "routes": [{ "pattern": "jira.plantuml.brosenius.se", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "JIRA_DB",
       "database_name": "plantuml-ultimate-jira",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "cafa34c2-7fb9-4867-acad-b9d408c683cf",
       "migrations_dir": "migrations",
     },
   ],
@@ -17,7 +17,7 @@
     "required": ["ATLASSIAN_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"],
   },
   "vars": {
-    "ATLASSIAN_CLIENT_ID": "configure-in-atlassian-developer-console",
+    "ATLASSIAN_CLIENT_ID": "Ubbo1sh4wffsZBPfafJMPYXV3VfzIFMo",
     "ALLOWED_ORIGINS": "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
   },
   "observability": {

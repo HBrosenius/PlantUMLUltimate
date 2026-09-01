@@ -1813,7 +1813,7 @@ export function App() {
   const defaultJiraEndpoint =
     localStorage.getItem("plantuml-studio.jira-integration-server") ??
     import.meta.env.VITE_JIRA_INTEGRATION_URL ??
-    "https://integrations.plantuml.brosenius.se";
+    "https://jira.plantuml.brosenius.se";
 
   useEffect(() => {
     const url = new URL(window.location.href);
