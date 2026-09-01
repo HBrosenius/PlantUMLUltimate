@@ -1550,6 +1550,46 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await jira.getByRole("button", { name: "Close Jira integration" }).click();
 });
 
+test("marks synchronized and locally changed Jira tasks", async ({ page }) => {
+  const binding = JSON.stringify({
+    version: 1,
+    bindingId: "binding-1",
+    cloudId: "cloud-1",
+    siteUrl: "https://acme.atlassian.net",
+    jql: "key = APP-123",
+    mode: "pull",
+    baselines: {
+      "10042": {
+        updated: "2026-09-01T10:00:00Z",
+        state: { key: "APP-123", summary: "Imported", startDate: "2026-09-01" },
+      },
+    },
+  });
+  const jiraSource = (startDate: string) => `@startgantt
+' @studio-jira ${binding}
+Project starts 2026-09-01
+[Imported] as [jira_10042] starts ${startDate}
+[jira_10042] lasts 2 days
+[jira_10042] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]
+@endgantt`;
+
+  await setSource(page, jiraSource("2026-09-01"));
+  const task = page.locator('[data-task-id="jira_10042"]').first();
+  await expect(task).toHaveAttribute("data-jira-status", "synchronized");
+  await task.click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector).toContainText("Synchronized with Jira");
+  await inspector.getByRole("button", { name: "Close task inspector" }).click();
+
+  await setSource(page, jiraSource("2026-09-03"));
+  await expect(page.locator('[data-task-id="jira_10042"]').first()).toHaveAttribute(
+    "data-jira-status",
+    "local-changes",
+  );
+  await page.locator('[data-task-id="jira_10042"]').first().dispatchEvent("click");
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toContainText("Local changes: startDate");
+});
+
 test("creates, compares, and restores durable document versions", async ({ page }) => {
   const first = source("[A] lasts 2 days");
   const second = source("[B] lasts 4 days");

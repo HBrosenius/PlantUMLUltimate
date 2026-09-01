@@ -3,6 +3,7 @@ import {
   applyJiraFieldResolutions,
   createJiraBaselines,
   findMissingJiraTasks,
+  findJiraLocalChangeFields,
   findJiraTaskDivergences,
   reconcileJiraTask,
   removeJiraTasks,
@@ -49,6 +50,19 @@ describe("reconcileJiraTask", () => {
         { issueId: "10042", field: "dueDate", choice: "jira" },
       ])[0],
     ).toMatchObject({ summary: "Build locally", dueDate: "2026-09-11" });
+  });
+
+  it("reports local fields without requiring a Jira request", () => {
+    const source = `@startgantt
+[Build locally] as [jira_10042] starts 2026-09-03
+[jira_10042] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]
+@endgantt`;
+    expect(
+      findJiraLocalChangeFields(source, "10042", {
+        updated: "2026-09-01T10:00:00Z",
+        state: { key: "APP-123", summary: "Build", startDate: "2026-09-01" },
+      }),
+    ).toEqual(["summary", "startDate"]);
   });
 
   it("reviews and removes tasks that leave the Jira query", () => {

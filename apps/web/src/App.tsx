@@ -135,7 +135,11 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
-import { parseJiraDocumentBinding } from "@plantuml-studio/jira-integration";
+import {
+  findJiraLocalChangeFields,
+  issueIdFromJiraTaskAlias,
+  parseJiraDocumentBinding,
+} from "@plantuml-studio/jira-integration";
 import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
@@ -520,6 +524,33 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
+  const jiraBinding = useMemo(() => parseJiraDocumentBinding(workspace.source), [workspace.source]);
+  const jiraTaskStatuses = useMemo(() => {
+    const statuses = new Map<
+      string,
+      { issueKey: string; fields: import("@plantuml-studio/jira-integration").JiraMappedField[] }
+    >();
+    for (const task of parseResult.document.tasks) {
+      const issueId = issueIdFromJiraTaskAlias(task.alias?.value ?? "");
+      const baseline = issueId ? jiraBinding?.baselines?.[issueId] : undefined;
+      if (!issueId || !baseline) continue;
+      statuses.set(task.id, {
+        issueKey: baseline.state.key ?? `JIRA-${issueId}`,
+        fields: findJiraLocalChangeFields(workspace.source, issueId, baseline),
+      });
+    }
+    return statuses;
+  }, [jiraBinding, parseResult.document.tasks, workspace.source]);
+  const jiraDiagramStatuses = useMemo(
+    () =>
+      new Map<string, "synchronized" | "local-changes">(
+        [...jiraTaskStatuses].map(([taskId, status]) => [
+          taskId,
+          status.fields.length ? "local-changes" : "synchronized",
+        ]),
+      ),
+    [jiraTaskStatuses],
+  );
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
@@ -4213,6 +4244,7 @@ export function App() {
                 setBaselineVersion(undefined);
                 setInteractionMessage("Baseline cleared");
               }}
+              jiraTaskStatuses={jiraDiagramStatuses}
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
@@ -4942,6 +4974,7 @@ export function App() {
           calendar={ganttCalendar}
           resourceNames={resourceNames}
           conflicts={selectedResourceConflicts}
+          jiraStatus={jiraTaskStatuses.get(selectedTask.id)}
           focusNote={focusNoteTaskId === selectedTask.id}
           onApply={applyTaskInspector}
           onDelete={deleteSelectedTask}

@@ -32,6 +32,7 @@ export function TaskInspector({
   calendar,
   resourceNames,
   conflicts,
+  jiraStatus,
   onApply,
   onDelete,
   onClose,
@@ -46,6 +47,7 @@ export function TaskInspector({
   calendar: GanttCalendar;
   resourceNames: readonly string[];
   conflicts: readonly string[];
+  jiraStatus?: { issueKey: string; fields: readonly string[] } | undefined;
   onApply(value: TaskInspectorValue): void;
   onDelete(): void;
   onClose(): void;
@@ -143,6 +145,14 @@ export function TaskInspector({
           ×
         </button>
       </header>
+      {jiraStatus && (
+        <p className="jira-task-status" data-status={jiraStatus.fields.length ? "local-changes" : "synchronized"}>
+          <strong>{jiraStatus.issueKey}</strong>
+          <span>
+            {jiraStatus.fields.length ? `Local changes: ${jiraStatus.fields.join(", ")}` : "Synchronized with Jira"}
+          </span>
+        </p>
+      )}
       <form onSubmit={(event) => event.preventDefault()}>
         <label>
           Name

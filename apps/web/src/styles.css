@@ -1264,6 +1264,15 @@ input {
 .diagram svg [data-resource-match="false"] {
   opacity: 0.18;
 }
+.diagram svg [data-jira-status="synchronized"] .bar {
+  stroke: #0f766e;
+  stroke-width: 1.5;
+}
+.diagram svg [data-jira-status="local-changes"] .bar {
+  stroke: #d97706;
+  stroke-width: 2.5;
+  stroke-dasharray: 5 3;
+}
 .diagram svg .schedule-ghost {
   fill: var(--accent);
   stroke: #fff;
@@ -2935,6 +2944,23 @@ textarea:focus-visible,
   background: transparent;
   color: inherit;
   font-size: 20px;
+}
+.jira-task-status {
+  display: grid;
+  gap: 2px;
+  margin: -4px 0 12px;
+  padding: 7px 9px;
+  border: 1px solid #0f766e;
+  border-radius: 5px;
+  background: rgb(15 118 110 / 9%);
+  font-size: 12px;
+}
+.jira-task-status[data-status="local-changes"] {
+  border-color: #d97706;
+  background: rgb(217 119 6 / 10%);
+}
+.jira-task-status span {
+  color: var(--muted);
 }
 .task-inspector form > label {
   display: grid;

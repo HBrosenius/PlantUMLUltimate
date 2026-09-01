@@ -77,6 +77,17 @@ export function mappedStateFromGantt(source: string, issueId: string): JiraMappe
   };
 }
 
+export function findJiraLocalChangeFields(
+  source: string,
+  issueId: string,
+  baseline: JiraIssueBaseline | undefined,
+): JiraMappedField[] {
+  if (!baseline) return [];
+  const local = mappedStateFromGantt(source, issueId);
+  if (!local) return [];
+  return FIELDS.filter((field) => local[field] !== baseline.state[field]);
+}
+
 export function findJiraTaskDivergences(
   source: string,
   issues: readonly JiraIssueSnapshot[],
