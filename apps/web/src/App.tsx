@@ -136,6 +136,7 @@ import {
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
 import { parseJiraDocumentBinding } from "@plantuml-studio/jira-integration";
+import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import { usePwa } from "./pwa";
@@ -1057,6 +1058,16 @@ export function App() {
   const moveTask = (taskId: string, days: number) => {
     const task = parseResult.document.symbols.tasks.get(taskId);
     if (!task) return;
+    if (isJiraTaskAlias(task.alias?.value)) {
+      const applyRoot = (source: string) => applyJiraScheduleChange(source, taskId, "Move", days).source;
+      const result = applyJiraScheduleChange(workspace.source, taskId, "Move", days);
+      if (result.unavailableReason) {
+        setInteractionMessage(result.unavailableReason);
+        return;
+      }
+      stageScheduleChange(task.id, task.label, days, "Move", [], applyRoot);
+      return;
+    }
     let operation = ganttAdapter.applyVisualOperation(
       { kind: "move-task", taskId, days },
       parseResult.document,
@@ -1089,6 +1100,17 @@ export function App() {
   const resizeTask = (taskId: string, days: number, calendarDays = days) => {
     const task = parseResult.document.symbols.tasks.get(taskId);
     if (!task) return;
+    if (isJiraTaskAlias(task.alias?.value)) {
+      const applyRoot = (source: string) =>
+        applyJiraScheduleChange(source, taskId, "Resize", days, calendarDays).source;
+      const result = applyJiraScheduleChange(workspace.source, taskId, "Resize", days, calendarDays);
+      if (result.unavailableReason) {
+        setInteractionMessage(result.unavailableReason);
+        return;
+      }
+      stageScheduleChange(task.id, task.label, calendarDays, "Resize", [], applyRoot);
+      return;
+    }
     const operation = ganttAdapter.applyVisualOperation(
       { kind: "resize-task", taskId, days },
       parseResult.document,
@@ -1172,9 +1194,10 @@ export function App() {
     days: number,
     action: "Move" | "Resize",
     taskEdits: import("@plantuml-studio/diagram-gantt").SourceEdit[],
+    applyRoot?: (source: string) => string,
   ) => {
     const dependents = moveDependentTasksByDays(parseResult.document, taskId, days);
-    const singleSource = applySourceEdits(workspace.source, taskEdits);
+    const singleSource = applyRoot ? applyRoot(workspace.source) : applySourceEdits(workspace.source, taskEdits);
     if (dependents.unavailableReason) {
       setInteractionMessage(dependents.unavailableReason);
       return;
@@ -1183,7 +1206,9 @@ export function App() {
       commitGeneratedSource(singleSource, `${action} ${taskLabel} ${days} days`);
       return;
     }
-    const cascadeSource = applySourceEdits(workspace.source, [...taskEdits, ...dependents.edits]);
+    const cascadeSource = applyRoot
+      ? applyRoot(applySourceEdits(workspace.source, dependents.edits))
+      : applySourceEdits(workspace.source, [...taskEdits, ...dependents.edits]);
     if (scheduleMode !== "ask") {
       commitGeneratedSource(
         scheduleMode === "cascade" ? cascadeSource : singleSource,
