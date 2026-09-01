@@ -3708,6 +3708,7 @@ export function App() {
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}
+            onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
             onExportSource={exportSource}
@@ -3752,9 +3753,6 @@ export function App() {
               </button>
               <button data-inspector-trigger onClick={openResourcePanel}>
                 Resources
-              </button>
-              <button data-inspector-trigger onClick={() => setJiraDialogOpen(true)}>
-                Jira
               </button>
             </>
           )}

@@ -1531,6 +1531,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Save",
     "Save As…",
     "Version history…",
+    "Jira…",
     "Backup workspace…",
     "Restore workspace…",
     "Export›",
@@ -1541,6 +1542,12 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(file).toBeFocused();
+
+  await file.click();
+  await menu.getByRole("menuitem", { name: "Jira…" }).click();
+  const jira = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(jira).toBeVisible();
+  await jira.getByRole("button", { name: "Close Jira integration" }).click();
 });
 
 test("creates, compares, and restores durable document versions", async ({ page }) => {
