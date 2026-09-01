@@ -644,9 +644,13 @@ export function setTaskDeclaration(
   }
   if (!statement) return { edits: [] };
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const declarationLabel = task.alias?.value ?? task.label;
   return {
     edits: [
-      { range: { from: task.sourceRange.to, to: task.sourceRange.to }, text: `${newline}[${task.label}] ${statement}` },
+      {
+        range: { from: task.sourceRange.to, to: task.sourceRange.to },
+        text: `${newline}[${declarationLabel}] ${statement}`,
+      },
     ],
   };
 }

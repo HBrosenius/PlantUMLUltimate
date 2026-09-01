@@ -282,6 +282,15 @@ describe("task inspector operations", () => {
     expect(applySourceEdits(source, setTaskDeclaration(source, task, "duration").edits)).not.toContain("lasts");
   });
 
+  it("adds declarations to aliased tasks through the stable alias", () => {
+    const source = "@startgantt\n[Prototype] as [P1] lasts 2 days\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    const changed = applySourceEdits(source, setTaskDeclaration(source, task, "start", "starts 2026-09-01").edits);
+    expect(changed).toContain("[P1] starts 2026-09-01");
+    expect(changed).not.toContain("[Prototype] starts 2026-09-01");
+    expect(parseGantt(changed).document.tasks).toHaveLength(1);
+  });
+
   it("deletes task declarations and relationships that point to it", () => {
     const source = "@startgantt\n[Build] lasts 2 days\n[Test] starts at [Build]'s end\n[Test] lasts 1 day\n@endgantt";
     const document = parseGantt(source).document;
