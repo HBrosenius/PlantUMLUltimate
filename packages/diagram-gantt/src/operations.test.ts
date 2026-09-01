@@ -658,6 +658,18 @@ describe("resizeTaskByDays", () => {
     );
   });
 
+  it("does not resize digits in an aliased task or resource allocation", () => {
+    const source = `@startgantt
+[Testing MES project] as [jira_42875] on {Minna Wilkinson:100%} lasts 1 day
+@endgantt`;
+    const task = parseGantt(source).document.tasks[0]!;
+    const changed = applySourceEdits(source, resizeTaskByDays(task, 3).edits);
+
+    expect(changed).toContain("as [jira_42875]");
+    expect(changed).toContain("{Minna Wilkinson:100%}");
+    expect(changed).toContain("lasts 4 day");
+  });
+
   it("preserves week-based expression style", () => {
     const source = "@startgantt\n[Build] lasts 2 weeks\n@endgantt";
     const task = parseGantt(source).document.tasks[0]!;

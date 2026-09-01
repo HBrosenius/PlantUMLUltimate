@@ -301,7 +301,8 @@ export function parseGantt(source: string): ParseResult {
       const simpleStatement = statement.replace(/^as\s+\[[^\]]+]\s*/i, "").replace(/^on\s+(?:\{[^}]+}\s*)+/i, "");
       const duration = simpleStatement.match(/^(?:lasts|requires)\s+(\d+)\s+(days?|weeks?|months?)\s*$/i);
       if (duration?.[1] && duration[2]) {
-        const valueStart = line.text.indexOf(duration[1], labelRange.to - line.from);
+        const clauseStart = line.text.indexOf(simpleStatement, labelRange.to - line.from);
+        const valueStart = clauseStart + simpleStatement.indexOf(duration[1]);
         const unitText = duration[2].toLowerCase();
         task.duration = {
           value: Number(duration[1]),
@@ -309,7 +310,6 @@ export function parseGantt(source: string): ParseResult {
           unit: unitText.startsWith("month") ? "month" : unitText.startsWith("week") ? "week" : "day",
         };
         if (simpleStatement !== statement) {
-          const clauseStart = line.text.indexOf(simpleStatement, labelRange.to - line.from);
           inlineDeclaration(task, "duration", range(line, clauseStart, simpleStatement));
         } else declaration(task, "duration", lineRange);
         continue;
@@ -319,7 +319,8 @@ export function parseGantt(source: string): ParseResult {
       if (compoundDuration?.[1] && compoundDuration[2]) {
         const weeks = Number(compoundDuration[1]);
         const days = Number(compoundDuration[2]);
-        const valueStart = line.text.indexOf(compoundDuration[1], labelRange.to - line.from);
+        const clauseStart = line.text.indexOf(simpleStatement, labelRange.to - line.from);
+        const valueStart = clauseStart + simpleStatement.indexOf(compoundDuration[1]);
         task.duration = {
           value: weeks * 7 + days,
           range: range(line, valueStart, simpleStatement.slice(simpleStatement.indexOf(compoundDuration[1]))),
