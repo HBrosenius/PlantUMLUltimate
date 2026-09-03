@@ -2821,6 +2821,16 @@ textarea:focus-visible,
   gap: 6px;
   margin-bottom: 6px;
 }
+.sequence-branch-color {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.sequence-branch-color input {
+  flex: 1;
+  min-width: 0;
+}
 @media (max-width: 560px) {
   .welcome-splash {
     grid-template-columns: 68px minmax(0, 1fr);
@@ -3005,6 +3015,72 @@ textarea:focus-visible,
   height: 1rem;
   border: 1px solid var(--line);
   border-radius: 3px;
+}
+
+.color-field {
+  display: grid;
+  gap: 4px;
+}
+.color-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.color-field-row input {
+  flex: 1;
+  min-width: 0;
+}
+.color-field-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.color-field-trigger:hover,
+.color-field-trigger:focus-visible {
+  border-color: var(--accent);
+}
+.color-field-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 2px;
+  max-height: 220px;
+  margin-top: 2px;
+  padding: 5px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+}
+.color-field-panel button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.color-field-panel button:hover,
+.color-field-panel button:focus-visible {
+  background: var(--bg);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.color-swatch-preview {
+  flex: none;
 }
 
 .structured-rows .structured-row {
@@ -3754,6 +3830,9 @@ textarea:focus-visible,
   margin: 8px 0 10px 21px;
   color: var(--muted);
   font-size: 12px;
+}
+.project-inspector label.today-color .color-field-panel {
+  grid-column: 1 / -1;
 }
 @media (max-width: 850px) {
   .app.has-side-inspector .workspace,

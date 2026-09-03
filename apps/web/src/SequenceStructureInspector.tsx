@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { ColorField, ColorSwatch, SharedColorDatalist } from "./ColorField";
 import type {
   SequenceActivation,
   SequenceFragment,
@@ -211,10 +212,7 @@ function ReferenceForm({
         Text
         <textarea rows={4} value={text} onChange={(event) => setText(event.target.value)} />
       </label>
-      <label>
-        Color
-        <input value={color} onChange={(event) => setColor(event.target.value)} />
-      </label>
+      <ColorField value={color} onChange={setColor} />
       <Actions onDelete={onDelete} />
     </form>
   );
@@ -245,10 +243,7 @@ function BoxForm({
         Label
         <input value={label} onChange={(event) => setLabel(event.target.value)} />
       </label>
-      <label>
-        Color
-        <input value={color} onChange={(event) => setColor(event.target.value)} />
-      </label>
+      <ColorField value={color} onChange={setColor} />
       <fieldset>
         <legend>Participants</legend>
         {participants.map((name) => (
@@ -341,6 +336,7 @@ function FragmentForm({
   const [branches, setBranches] = useState<Array<{ label: string; color?: string; originalIndex?: number }>>(
     structure.branches.map((branch, originalIndex) => ({ ...branch, originalIndex })),
   );
+  const colorListId = useId();
   return (
     <form
       onSubmit={(event) => {
@@ -374,18 +370,21 @@ function FragmentForm({
           <input value={secondaryLabel} onChange={(event) => setSecondaryLabel(event.target.value)} />
         </label>
       )}
-      <label>
-        Header color
-        <input value={headerColor} onChange={(event) => setHeaderColor(event.target.value)} placeholder="#Gold" />
-      </label>
-      <label>
-        Background color
-        <input
-          value={backgroundColor}
-          onChange={(event) => setBackgroundColor(event.target.value)}
-          placeholder="#LightBlue"
-        />
-      </label>
+      <ColorField
+        label="Header color"
+        value={headerColor}
+        onChange={setHeaderColor}
+        placeholder="#Gold"
+        datalistId={colorListId}
+      />
+      <ColorField
+        label="Background color"
+        value={backgroundColor}
+        onChange={setBackgroundColor}
+        placeholder="#LightBlue"
+        datalistId={colorListId}
+      />
+      <SharedColorDatalist id={colorListId} />
       {(kind === "alt" || kind === "par") && (
         <fieldset>
           <legend>Alternative branches</legend>
@@ -403,20 +402,24 @@ function FragmentForm({
                 }
                 placeholder="Label"
               />
-              <input
-                aria-label={`Branch ${index + 2} color`}
-                value={branch.color ?? ""}
-                onChange={(event) =>
-                  setBranches((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index
-                        ? { label: item.label, ...(event.target.value.trim() ? { color: event.target.value } : {}) }
-                        : item,
-                    ),
-                  )
-                }
-                placeholder="#Pink"
-              />
+              <span className="sequence-branch-color">
+                <ColorSwatch value={branch.color ?? ""} />
+                <input
+                  aria-label={`Branch ${index + 2} color`}
+                  list={colorListId}
+                  value={branch.color ?? ""}
+                  onChange={(event) =>
+                    setBranches((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { label: item.label, ...(event.target.value.trim() ? { color: event.target.value } : {}) }
+                          : item,
+                      ),
+                    )
+                  }
+                  placeholder="#Pink"
+                />
+              </span>
               <button
                 type="button"
                 aria-label={`Remove branch ${index + 2}`}
@@ -506,12 +509,7 @@ function ActivationForm({
           ))}
         </select>
       </label>
-      {action === "activate" && (
-        <label>
-          Color
-          <input value={color} onChange={(event) => setColor(event.target.value)} />
-        </label>
-      )}
+      {action === "activate" && <ColorField value={color} onChange={setColor} />}
       <Actions onDelete={onDelete} />
     </form>
   );
@@ -596,10 +594,7 @@ function NoteForm({
         Text
         <textarea rows={4} value={text} onChange={(event) => setText(event.target.value)} />
       </label>
-      <label>
-        Color
-        <input value={color} onChange={(event) => setColor(event.target.value)} />
-      </label>
+      <ColorField value={color} onChange={setColor} />
       <Actions onDelete={onDelete} />
     </form>
   );

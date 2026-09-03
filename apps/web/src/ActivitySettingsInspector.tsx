@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { ActivitySettings } from "./activity-settings";
 
 export function ActivitySettingsInspector({
@@ -11,6 +12,7 @@ export function ActivitySettingsInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(settings);
+  const colorListId = useId();
   useEffect(() => setValue(settings), [settings]);
   const update = <K extends keyof ActivitySettings>(key: K, content: ActivitySettings[K], save = false) => {
     const next = { ...value, [key]: content };
@@ -65,12 +67,27 @@ export function ActivitySettingsInspector({
           </label>
         </fieldset>
         <fieldset>
-          <legend>Typography and colors</legend>
+          <legend>Colors</legend>
           {[
             ["activityBackgroundColor", "Action fill"],
             ["activityBorderColor", "Action border"],
             ["activityDiamondBackgroundColor", "Decision fill"],
             ["arrowColor", "Arrow color"],
+          ].map(([key, label]) => (
+            <ColorField
+              key={key}
+              label={label as string}
+              value={value[key as keyof ActivitySettings] as string}
+              onChange={(next) => update(key as keyof ActivitySettings, next as never)}
+              onBlur={() => update(key as keyof ActivitySettings, value[key as keyof ActivitySettings] as never, true)}
+              datalistId={colorListId}
+            />
+          ))}
+          <SharedColorDatalist id={colorListId} />
+        </fieldset>
+        <fieldset>
+          <legend>Typography</legend>
+          {[
             ["defaultFontName", "Default font"],
             ["defaultFontSize", "Font size"],
           ].map(([key, label]) => (

@@ -1,6 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import type { UseCaseNote, UseCaseNoteInput } from "@plantuml-studio/diagram-usecase";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 const valueOf = (note: UseCaseNote): UseCaseNoteInput => ({
   text: note.text,
@@ -23,7 +23,6 @@ export function UseCaseNoteInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(() => valueOf(note));
-  const colorListId = useId();
   useEffect(() => setValue(valueOf(note)), [note]);
   const change = <K extends keyof UseCaseNoteInput>(key: K, next: UseCaseNoteInput[K]) => {
     const updated = { ...value, [key]: next };
@@ -92,20 +91,12 @@ export function UseCaseNoteInspector({
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
-          <label>
-            Color
-            <input
-              list={colorListId}
-              value={value.color ?? ""}
-              onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
-              onBlur={() => onChange(value)}
-            />
-          </label>
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => (
-              <option key={name} value={`#${name}`} />
-            ))}
-          </datalist>
+          <ColorField
+            value={value.color ?? ""}
+            namePrefix="#"
+            onChange={(color) => setValue((current) => ({ ...current, color }))}
+            onBlur={() => onChange(value)}
+          />
         </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>

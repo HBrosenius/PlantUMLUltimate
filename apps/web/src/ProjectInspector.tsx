@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { WEEKDAY_NAMES, type ProjectSettings } from "./project-settings";
+import { ColorField, ColorSwatch } from "./ColorField";
 
 export function ProjectInspector({
   settings,
@@ -221,19 +222,22 @@ export function ProjectInspector({
                     )
                   }
                 />
-                <input
-                  aria-label="Highlight color"
-                  placeholder="#ef4444 or Salmon"
-                  value={rule.color ?? ""}
-                  onChange={(event) =>
-                    update(
-                      "dateRules",
-                      value.dateRules.map((item) =>
-                        item.id === rule.id ? { ...item, color: event.target.value } : item,
-                      ),
-                    )
-                  }
-                />
+                <span className="color-field-row">
+                  <input
+                    aria-label="Highlight color"
+                    placeholder="#ef4444 or Salmon"
+                    value={rule.color ?? ""}
+                    onChange={(event) =>
+                      update(
+                        "dateRules",
+                        value.dateRules.map((item) =>
+                          item.id === rule.id ? { ...item, color: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <ColorSwatch value={rule.color ?? ""} />
+                </span>
                 <button
                   type="button"
                   aria-label="Remove highlighted date"
@@ -285,15 +289,13 @@ export function ProjectInspector({
             Highlight today
           </label>
           {value.highlightToday && (
-            <label className="today-color">
-              Today color
-              <input
-                aria-label="Today color"
-                placeholder="#AAF or LightBlue"
-                value={value.todayColor}
-                onChange={(event) => update("todayColor", event.target.value)}
-              />
-            </label>
+            <ColorField
+              label="Today color"
+              className="today-color"
+              placeholder="#AAF or LightBlue"
+              value={value.todayColor}
+              onChange={(color) => update("todayColor", color)}
+            />
           )}
           <label className="check">
             <input

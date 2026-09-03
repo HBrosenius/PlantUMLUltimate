@@ -13,7 +13,7 @@ import type {
   ActivityPartitionInput,
   ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
-import { ColorField } from "./ClassEditors";
+import { ColorField } from "./ColorField";
 
 export function AddActivityActionDialog({
   document,

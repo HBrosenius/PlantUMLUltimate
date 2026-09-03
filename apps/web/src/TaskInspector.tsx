@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 export interface TaskInspectorValue {
   label: string;
@@ -54,7 +54,6 @@ export function TaskInspector({
   focusNote?: boolean;
 }) {
   const resourceListId = useId();
-  const colorListId = useId();
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const initial = (): TaskInspectorValue => ({
     label: task.label,
@@ -294,23 +293,7 @@ export function TaskInspector({
             onBlur={() => apply()}
           />
         </label>
-        <label>
-          Color
-          <input
-            aria-label="Color"
-            list={colorListId}
-            autoComplete="off"
-            placeholder="Orange or #f97316"
-            value={value.color}
-            onChange={(event) => update("color", event.target.value)}
-            onBlur={() => apply()}
-          />
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((color) => (
-              <option key={color} value={color} />
-            ))}
-          </datalist>
-        </label>
+        <ColorField value={value.color} onChange={(color) => update("color", color)} onBlur={() => apply()} />
         <fieldset className="structured-rows">
           <legend>Pauses</legend>
           <p className="fieldset-help">Use a date or weekday supported by PlantUML.</p>

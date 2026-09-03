@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 export interface DependencyInspectorValue {
   predecessorId: string;
@@ -39,7 +39,6 @@ export function DependencyInspector({
     notePosition: "bottom",
   });
   const [value, setValue] = useState(initial);
-  const colorListId = useId();
   const update = <K extends keyof DependencyInspectorValue>(key: K, next: DependencyInspectorValue[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   return (
@@ -120,20 +119,12 @@ export function DependencyInspector({
             <option value="bold">Bold</option>
           </select>
         </label>
-        <label>
-          Line color
-          <input
-            list={colorListId}
-            placeholder="Blue or #2563eb"
-            value={value.color}
-            onChange={(event) => update("color", event.target.value)}
-          />
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((color) => (
-              <option key={color} value={color} />
-            ))}
-          </datalist>
-        </label>
+        <ColorField
+          label="Line color"
+          placeholder="Blue or #2563eb"
+          value={value.color}
+          onChange={(color) => update("color", color)}
+        />
         <label className="inspector-note-field">
           <span className="inspector-field-heading">
             Note

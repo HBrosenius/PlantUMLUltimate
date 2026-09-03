@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsRelationship } from "@plantuml-studio/diagram-wbs";
 import { useDialogFocus } from "./use-dialog-focus";
-import { ColorField } from "./ClassEditors";
+import { ColorField } from "./ColorField";
 
 export type WbsInsertPosition = "root" | "child" | "sibling";
 export function AddWbsNodeDialog({

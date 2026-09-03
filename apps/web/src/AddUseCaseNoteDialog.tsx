@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { UseCaseNoteInput } from "@plantuml-studio/diagram-usecase";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 import { useDialogFocus } from "./use-dialog-focus";
 
 export function AddUseCaseNoteDialog({
@@ -17,7 +17,6 @@ export function AddUseCaseNoteDialog({
   const [placement, setPlacement] = useState<UseCaseNoteInput["placement"]>("right");
   const [text, setText] = useState("");
   const [color, setColor] = useState("");
-  const colorListId = useId();
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   return (
@@ -78,20 +77,7 @@ export function AddUseCaseNoteDialog({
           Text
           <textarea autoFocus required value={text} onChange={(event) => setText(event.target.value)} rows={5} />
         </label>
-        <label>
-          Color
-          <input
-            list={colorListId}
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-            placeholder="#LightYellow"
-          />
-        </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+        <ColorField value={color} onChange={setColor} placeholder="#LightYellow" namePrefix="#" />
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

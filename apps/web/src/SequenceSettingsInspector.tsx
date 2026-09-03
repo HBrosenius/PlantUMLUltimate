@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { SequenceSettings } from "./sequence-settings";
 
 export function SequenceSettingsInspector({
@@ -11,8 +12,18 @@ export function SequenceSettingsInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(settings);
+  const colorListId = useId();
   const update = <K extends keyof SequenceSettings>(key: K, next: SequenceSettings[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
+  const color = (label: string, key: keyof SequenceSettings, placeholder: string) => (
+    <ColorField
+      label={label}
+      value={value[key] as string}
+      onChange={(next) => update(key, next as never)}
+      placeholder={placeholder}
+      datalistId={colorListId}
+    />
+  );
 
   return (
     <aside className="task-inspector sequence-settings-inspector" aria-label="Sequence settings">
@@ -184,63 +195,15 @@ export function SequenceSettingsInspector({
         <fieldset>
           <legend>Colors</legend>
           <div className="sequence-settings-grid">
-            <label>
-              Arrow color
-              <input
-                value={value.arrowColor}
-                onChange={(event) => update("arrowColor", event.target.value)}
-                placeholder="#2563EB"
-              />
-            </label>
-            <label>
-              Lifeline color
-              <input
-                value={value.lifelineColor}
-                onChange={(event) => update("lifelineColor", event.target.value)}
-                placeholder="#64748B"
-              />
-            </label>
-            <label>
-              Participant fill
-              <input
-                value={value.participantBackgroundColor}
-                onChange={(event) => update("participantBackgroundColor", event.target.value)}
-                placeholder="#FFFFFF"
-              />
-            </label>
-            <label>
-              Participant border
-              <input
-                value={value.participantBorderColor}
-                onChange={(event) => update("participantBorderColor", event.target.value)}
-                placeholder="#2563EB"
-              />
-            </label>
-            <label>
-              Note fill
-              <input
-                value={value.noteBackgroundColor}
-                onChange={(event) => update("noteBackgroundColor", event.target.value)}
-                placeholder="#FEF3C7"
-              />
-            </label>
-            <label>
-              Note border
-              <input
-                value={value.noteBorderColor}
-                onChange={(event) => update("noteBorderColor", event.target.value)}
-                placeholder="#D97706"
-              />
-            </label>
+            {color("Arrow color", "arrowColor", "#2563EB")}
+            {color("Lifeline color", "lifelineColor", "#64748B")}
+            {color("Participant fill", "participantBackgroundColor", "#FFFFFF")}
+            {color("Participant border", "participantBorderColor", "#2563EB")}
+            {color("Note fill", "noteBackgroundColor", "#FEF3C7")}
+            {color("Note border", "noteBorderColor", "#D97706")}
           </div>
-          <label>
-            Fragment border
-            <input
-              value={value.groupBorderColor}
-              onChange={(event) => update("groupBorderColor", event.target.value)}
-              placeholder="#64748B"
-            />
-          </label>
+          {color("Fragment border", "groupBorderColor", "#64748B")}
+          <SharedColorDatalist id={colorListId} />
         </fieldset>
 
         <div className="inspector-actions">

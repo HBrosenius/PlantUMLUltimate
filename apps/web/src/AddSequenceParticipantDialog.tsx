@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from "react";
 import type { SequenceParticipantKind } from "@plantuml-studio/diagram-sequence";
 import { useDialogFocus } from "./use-dialog-focus";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 import { SequenceParticipantKindSelect } from "./SequenceParticipantKindSelect";
 
 export interface AddSequenceParticipantValue {
@@ -72,16 +72,13 @@ export function AddSequenceParticipantDialog({
             placeholder="Optional source identifier"
           />
         </label>
-        <label>
-          Color
-          <input
-            list={colorListId}
-            autoComplete="off"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-            placeholder="#LightBlue or #f97316"
-          />
-        </label>
+        <ColorField
+          value={color}
+          onChange={setColor}
+          placeholder="#LightBlue or #f97316"
+          namePrefix="#"
+          datalistId={colorListId}
+        />
         <label>
           Stereotype
           <input value={stereotype} onChange={(event) => setStereotype(event.target.value)} placeholder="Service" />
@@ -95,21 +92,15 @@ export function AddSequenceParticipantDialog({
             placeholder="C"
           />
         </label>
-        <label>
-          Spot color
-          <input
-            list={colorListId}
-            autoComplete="off"
-            value={spotColor}
-            onChange={(event) => setSpotColor(event.target.value)}
-            placeholder="#LightBlue or #ADD1B2"
-          />
-        </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+        <ColorField
+          label="Spot color"
+          value={spotColor}
+          onChange={setSpotColor}
+          placeholder="#LightBlue or #ADD1B2"
+          namePrefix="#"
+          datalistId={colorListId}
+        />
+        <SharedColorDatalist id={colorListId} namePrefix="#" />
         <label>
           Display order
           <input

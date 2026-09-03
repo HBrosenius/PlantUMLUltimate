@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 export interface AddTaskValue {
   label: string;
@@ -26,7 +26,6 @@ export function AddTaskDialog({
   const [startDate, setStartDate] = useState(defaultStartDate ?? "");
   const [predecessor, setPredecessor] = useState("");
   const [color, setColor] = useState("");
-  const colorListId = useId();
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   return (
@@ -53,20 +52,7 @@ export function AddTaskDialog({
           Name
           <input autoFocus required value={label} onChange={(event) => setLabel(event.target.value)} />
         </label>
-        <label>
-          Color
-          <input
-            list={colorListId}
-            placeholder="Start typing a PlantUML color"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-          />
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        </label>
+        <ColorField placeholder="Start typing a PlantUML color" value={color} onChange={setColor} />
         <label>
           Duration (days)
           <input

@@ -1,6 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import type { UseCaseElement, UseCaseElementInput, UseCaseElementKind } from "@plantuml-studio/diagram-usecase";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 const valueOf = (element: UseCaseElement): UseCaseElementInput => ({
   kind: element.kind,
@@ -27,7 +27,6 @@ export function UseCaseElementInspector({
   onPackageChange(packageId?: string): void;
 }) {
   const [value, setValue] = useState(() => valueOf(element));
-  const colorListId = useId();
   useEffect(() => setValue(valueOf(element)), [element]);
   const update = <K extends keyof UseCaseElementInput>(key: K, next: UseCaseElementInput[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
@@ -86,21 +85,12 @@ export function UseCaseElementInspector({
         </fieldset>
         <fieldset>
           <legend>Appearance</legend>
-          <label>
-            Color
-            <input
-              list={colorListId}
-              autoComplete="off"
-              value={value.color ?? ""}
-              onChange={(event) => update("color", event.target.value)}
-              onBlur={save}
-            />
-          </label>
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => (
-              <option key={name} value={`#${name}`} />
-            ))}
-          </datalist>
+          <ColorField
+            value={value.color ?? ""}
+            namePrefix="#"
+            onChange={(color) => update("color", color)}
+            onBlur={save}
+          />
           <label>
             Stereotype
             <input

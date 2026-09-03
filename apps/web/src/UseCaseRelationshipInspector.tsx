@@ -1,10 +1,10 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   UseCaseRelationship,
   UseCaseRelationshipInput,
   UseCaseRelationshipKind,
 } from "@plantuml-studio/diagram-usecase";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 
 const valueOf = (item: UseCaseRelationship): UseCaseRelationshipInput => ({
   from: item.from,
@@ -31,7 +31,6 @@ export function UseCaseRelationshipInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(() => valueOf(relationship));
-  const colorListId = useId();
   useEffect(() => setValue(valueOf(relationship)), [relationship]);
   const change = <K extends keyof UseCaseRelationshipInput>(key: K, next: UseCaseRelationshipInput[K]) => {
     const updated = { ...value, [key]: next };
@@ -138,26 +137,17 @@ export function UseCaseRelationshipInspector({
               <option value="bold">Bold</option>
             </select>
           </label>
-          <label>
-            Color
-            <input
-              list={colorListId}
-              autoComplete="off"
-              value={value.color ?? ""}
-              placeholder="#Blue"
-              onChange={(event) => setValue((current) => ({ ...current, color: event.target.value }))}
-              onBlur={() => {
-                const { arrow: _arrow, ...updated } = value;
-                setValue(updated);
-                onChange(updated);
-              }}
-            />
-          </label>
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => (
-              <option key={name} value={`#${name}`} />
-            ))}
-          </datalist>
+          <ColorField
+            value={value.color ?? ""}
+            placeholder="#Blue"
+            namePrefix="#"
+            onChange={(color) => setValue((current) => ({ ...current, color }))}
+            onBlur={() => {
+              const { arrow: _arrow, ...updated } = value;
+              setValue(updated);
+              onChange(updated);
+            }}
+          />
         </fieldset>
         <details className="usecase-advanced-fields">
           <summary>Advanced PlantUML syntax</summary>

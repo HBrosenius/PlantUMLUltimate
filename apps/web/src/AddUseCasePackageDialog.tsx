@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { UseCasePackageInput } from "@plantuml-studio/diagram-usecase";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField } from "./ColorField";
 import { useDialogFocus } from "./use-dialog-focus";
 
 export function AddUseCasePackageDialog({
@@ -15,7 +15,6 @@ export function AddUseCasePackageDialog({
   const [alias, setAlias] = useState("");
   const [color, setColor] = useState("");
   const [stereotype, setStereotype] = useState("");
-  const colorListId = useId();
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   return (
@@ -58,20 +57,7 @@ export function AddUseCasePackageDialog({
             placeholder="Optional source identifier"
           />
         </label>
-        <label>
-          Color
-          <input
-            list={colorListId}
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-            placeholder="#LightBlue"
-          />
-        </label>
-        <datalist id={colorListId}>
-          {PLANTUML_COLOR_NAMES.map((name) => (
-            <option key={name} value={`#${name}`} />
-          ))}
-        </datalist>
+        <ColorField value={color} onChange={setColor} placeholder="#LightBlue" namePrefix="#" />
         <label>
           Stereotype
           <input value={stereotype} onChange={(event) => setStereotype(event.target.value)} />

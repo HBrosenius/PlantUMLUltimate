@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { ClassSettings } from "./class-settings";
 export function ClassSettingsInspector({
   settings,
@@ -10,6 +11,7 @@ export function ClassSettingsInspector({
   onClose(): void;
 }) {
   const [v, setV] = useState(settings);
+  const colorListId = useId();
   useEffect(() => setV(settings), [settings]);
   const up = <K extends keyof ClassSettings>(k: K, z: ClassSettings[K], save = false) => {
     const n = { ...v, [k]: z };
@@ -74,13 +76,10 @@ export function ClassSettingsInspector({
           ))}
         </fieldset>
         <fieldset>
-          <legend>Typography and colors</legend>
+          <legend>Typography</legend>
           {[
             ["defaultFontName", "Default font"],
             ["defaultFontSize", "Font size"],
-            ["classBackgroundColor", "Class fill"],
-            ["classBorderColor", "Class border"],
-            ["arrowColor", "Arrow color"],
           ].map(([k, l]) => (
             <label key={k}>
               {l}
@@ -91,6 +90,24 @@ export function ClassSettingsInspector({
               />
             </label>
           ))}
+        </fieldset>
+        <fieldset>
+          <legend>Colors</legend>
+          {[
+            ["classBackgroundColor", "Class fill"],
+            ["classBorderColor", "Class border"],
+            ["arrowColor", "Arrow color"],
+          ].map(([k, l]) => (
+            <ColorField
+              key={k}
+              label={l as string}
+              value={v[k as keyof ClassSettings] as string}
+              onChange={(next) => up(k as keyof ClassSettings, next as never)}
+              onBlur={save}
+              datalistId={colorListId}
+            />
+          ))}
+          <SharedColorDatalist id={colorListId} />
         </fieldset>
         <p className="field-hint">Text fields save when you leave the field.</p>
       </form>

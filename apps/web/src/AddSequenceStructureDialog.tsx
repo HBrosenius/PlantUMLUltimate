@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type {
   SequenceFragmentKind,
   SequenceNote,
@@ -6,6 +6,7 @@ import type {
   SequenceStructureInput,
 } from "@plantuml-studio/diagram-sequence";
 import { useDialogFocus } from "./use-dialog-focus";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 
 export type SequenceStructureKind = SequenceStructureInput["kind"];
 
@@ -42,6 +43,7 @@ export function AddSequenceStructureDialog({
   const [durationArrow, setDurationArrow] = useState("<->");
   const [fromAnchor, setFromAnchor] = useState(anchors[0] ?? "");
   const [toAnchor, setToAnchor] = useState(anchors[1] ?? anchors[0] ?? "");
+  const colorListId = useId();
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, onClose);
   const submit = (): SequenceStructureInput => {
@@ -161,27 +163,28 @@ export function AddSequenceStructureDialog({
                 <input value={secondary} onChange={(event) => setSecondary(event.target.value)} />
               </label>
             )}
-            <label>
-              Header color
-              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#Gold" />
-            </label>
-            <label>
-              Background color
-              <input
-                value={backgroundColor}
-                onChange={(event) => setBackgroundColor(event.target.value)}
-                placeholder="#LightBlue"
-              />
-            </label>
+            <ColorField
+              label="Header color"
+              value={color}
+              onChange={setColor}
+              placeholder="#Gold"
+              datalistId={colorListId}
+            />
+            <ColorField
+              label="Background color"
+              value={backgroundColor}
+              onChange={setBackgroundColor}
+              placeholder="#LightBlue"
+              datalistId={colorListId}
+            />
             {(fragmentKind === "alt" || fragmentKind === "par") && (
-              <label>
-                Second branch color
-                <input
-                  value={branchColor}
-                  onChange={(event) => setBranchColor(event.target.value)}
-                  placeholder="#Pink"
-                />
-              </label>
+              <ColorField
+                label="Second branch color"
+                value={branchColor}
+                onChange={setBranchColor}
+                placeholder="#Pink"
+                datalistId={colorListId}
+              />
             )}
           </>
         )}
@@ -202,10 +205,7 @@ export function AddSequenceStructureDialog({
               onChange={setParticipant}
             />
             {action === "activate" && (
-              <label>
-                Color
-                <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
-              </label>
+              <ColorField value={color} onChange={setColor} placeholder="#LightBlue" datalistId={colorListId} />
             )}
           </>
         )}
@@ -255,10 +255,7 @@ export function AddSequenceStructureDialog({
               Text
               <textarea required rows={4} value={label} onChange={(event) => setLabel(event.target.value)} />
             </label>
-            <label>
-              Color
-              <input value={color} onChange={(event) => setColor(event.target.value)} />
-            </label>
+            <ColorField value={color} onChange={setColor} datalistId={colorListId} />
           </>
         )}
         {(kind === "separator" || kind === "delay") && (
@@ -298,10 +295,7 @@ export function AddSequenceStructureDialog({
               Reference text
               <textarea required rows={4} value={label} onChange={(event) => setLabel(event.target.value)} />
             </label>
-            <label>
-              Color
-              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
-            </label>
+            <ColorField value={color} onChange={setColor} placeholder="#LightBlue" datalistId={colorListId} />
           </>
         )}
         {kind === "box" && (
@@ -327,10 +321,7 @@ export function AddSequenceStructureDialog({
                 </label>
               ))}
             </fieldset>
-            <label>
-              Color
-              <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#LightBlue" />
-            </label>
+            <ColorField value={color} onChange={setColor} placeholder="#LightBlue" datalistId={colorListId} />
           </>
         )}
         {kind === "autonumber" && (
@@ -425,6 +416,7 @@ export function AddSequenceStructureDialog({
             </label>
           </>
         )}
+        <SharedColorDatalist id={colorListId} />
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel

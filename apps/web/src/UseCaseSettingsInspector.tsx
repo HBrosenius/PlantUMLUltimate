@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { PLANTUML_COLOR_NAMES } from "./gantt-language";
+import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { UseCaseSettings } from "./usecase-settings";
 
 export function UseCaseSettingsInspector({
@@ -21,17 +21,15 @@ export function UseCaseSettingsInspector({
   };
   const save = () => onChange(value);
   const color = (label: string, key: keyof UseCaseSettings, placeholder: string) => (
-    <label>
-      {label}
-      <input
-        list={colorListId}
-        autoComplete="off"
-        value={String(value[key])}
-        placeholder={placeholder}
-        onChange={(event) => update(key, event.target.value as never)}
-        onBlur={save}
-      />
-    </label>
+    <ColorField
+      label={label}
+      namePrefix="#"
+      value={String(value[key])}
+      placeholder={placeholder}
+      onChange={(next) => update(key, next as never)}
+      onBlur={save}
+      datalistId={colorListId}
+    />
   );
 
   return (
@@ -172,11 +170,7 @@ export function UseCaseSettingsInspector({
             {color("Note fill", "noteBackgroundColor", "#FEF3C7")}
             {color("Note border", "noteBorderColor", "#D97706")}
           </div>
-          <datalist id={colorListId}>
-            {PLANTUML_COLOR_NAMES.map((name) => (
-              <option key={name} value={`#${name}`} />
-            ))}
-          </datalist>
+          <SharedColorDatalist id={colorListId} namePrefix="#" />
         </fieldset>
         <p className="field-hint">Text and color fields are saved when you leave the field.</p>
       </form>
