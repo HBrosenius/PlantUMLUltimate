@@ -124,6 +124,7 @@ export function DependencyInspector({
           placeholder="Blue or #2563eb"
           value={value.color}
           onChange={(color) => update("color", color)}
+          onBlur={() => onApply(value)}
         />
         <label className="inspector-note-field">
           <span className="inspector-field-heading">

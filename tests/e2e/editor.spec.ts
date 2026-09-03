@@ -3590,6 +3590,16 @@ test("applies a color picked from the palette immediately, without a separate bl
   await expect(page.locator(".cm-content")).toContainText("[Build] is colored in Orange");
 });
 
+test("applies a dependency's line color as soon as it's picked from the palette", async ({ page }) => {
+  await setSource(page, source("[A] lasts 2 days\n[B] starts at [A]'s end"));
+  await page.getByRole("button", { name: "Select dependency from A to B" }).click();
+  const inspector = page.getByRole("complementary", { name: "Dependency inspector" });
+  await expect(inspector).toBeVisible();
+  await inspector.getByRole("button", { name: "Choose line color from a palette" }).click();
+  await inspector.getByRole("button", { name: "Red", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("with Red solid link");
+});
+
 test("closes inspectors on any outside click and switches directly to another task", async ({ page }) => {
   await setSource(page, source("[A] lasts 2 days\n[B] lasts 2 days"));
   await page.locator('[data-task-id="a"] .bar').click();
