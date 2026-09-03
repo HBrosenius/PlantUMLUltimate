@@ -506,7 +506,7 @@ export function parseGantt(source: string): ParseResult {
       }
 
       const relativeConstraint = simpleStatement.match(
-        /^(starts|ends)\s+(?:(\d+)\s+(days?|weeks?)\s+)?(after|before)\s+\[([^\]]+)][’']s\s+(start|end)(?:\s+with\s+\S+\s+\S+\s+link)?\s*$/i,
+        /^(starts|ends)\s+(?:(\d+)\s+(days?|weeks?)\s+)?(after|before)\s+\[([^\]]+)][’']s\s+(start|end)(?:\s+with\s+\S+(?:\s+(?:solid|dotted|dashed|bold))?\s+link)?\s*$/i,
       );
       if (relativeConstraint?.[1] && relativeConstraint[5] && relativeConstraint[6]) {
         const predecessorLabel = relativeConstraint[5];
@@ -525,7 +525,11 @@ export function parseGantt(source: string): ParseResult {
         const offsetValue = relativeConstraint[2];
         const offsetStart = offsetValue ? line.text.indexOf(offsetValue, labelRange.to - line.from) : -1;
         const styleMatch = simpleStatement.match(/\s+with\s+(\S+)\s+(solid|dotted|dashed|bold)\s+link\s*$/i);
-        const colorValue = styleMatch?.[1];
+        // The renderer doesn't accept "solid" as a style keyword (see updateDependency), so a
+        // colored default-style link is written as just "with <color> link" with no style word.
+        // Fall back to that form when the explicit-style form above doesn't match.
+        const bareColorMatch = styleMatch ? undefined : simpleStatement.match(/\s+with\s+(\S+)\s+link\s*$/i);
+        const colorValue = styleMatch?.[1] ?? bareColorMatch?.[1];
         const lineStyleValue = styleMatch?.[2]?.toLowerCase() as "solid" | "dotted" | "dashed" | "bold" | undefined;
         dependencies.push({
           predecessorTaskId: taskReferences.get(normalizeTaskId(predecessorLabel)) ?? normalizeTaskId(predecessorLabel),

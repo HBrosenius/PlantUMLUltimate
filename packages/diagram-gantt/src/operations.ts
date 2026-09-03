@@ -476,10 +476,17 @@ export function updateDependency(source: string, dependency: GanttDependency, va
         : value.relation === "end-after-start"
           ? ["ends", "start"]
           : ["starts", "end"];
+  // The bundled PlantUML renderer doesn't recognize "solid" as a link style keyword (only
+  // dotted/dashed/bold are) -- writing "with <color> solid link" makes it silently ignore the
+  // whole clause, so the color never actually shows up in the rendered diagram even though the
+  // source text looks right. Omitting the style word entirely (just "with <color> link") is what
+  // the renderer expects for the default/solid style, so only include a style word when it's one
+  // of the three the renderer honors.
+  const styleSuffix = value.lineStyle === "solid" ? "" : ` ${value.lineStyle}`;
   const relation =
     value.offset === 0 && value.direction === "after" && !value.color && value.lineStyle === "solid"
       ? `${successorVerb} at [${value.predecessorLabel}]'s ${predecessorAnchor}`
-      : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"} ${value.lineStyle} link` : ""}`;
+      : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"}${styleSuffix} link` : ""}`;
   const original = source.slice(dependency.sourceRange.from, dependency.sourceRange.to);
   const indentation = original.match(/^\s*/)?.[0] ?? "";
   const alias = original.match(/\bas\s+\[[^\]]+]/i)?.[0];

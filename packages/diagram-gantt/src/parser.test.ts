@@ -211,6 +211,26 @@ Project starts the 20th of september 2026
     });
   });
 
+  it("reads back a colored dependency link with no style word", () => {
+    // updateDependency deliberately omits the style word for the default/solid style (the
+    // bundled renderer doesn't recognize "solid" as a keyword there), so the parser needs to
+    // accept "with <color> link" -- with nothing between the color and "link" -- as well as the
+    // three-word "with <color> <style> link" form.
+    const result = parseGantt(`@startgantt
+[A] lasts 2 days
+[B] lasts 3 days
+[B] starts 2 days after [A]'s end with Red link
+@endgantt`);
+    const dependency = result.document.dependencies[0]!;
+    expect(dependency).toMatchObject({
+      relation: "start-after-end",
+      direction: "after",
+      offset: { value: 2 },
+      color: { value: "Red" },
+    });
+    expect(dependency.lineStyle).toBeUndefined();
+  });
+
   it("accepts aliases and D-offset date expressions", () => {
     const result = parseGantt(
       "@startgantt\n[Prototype design] as [TASK1] requires 13 days\n[TASK1] is colored in Lavender\n[TASK2] starts D+15\n@endgantt",

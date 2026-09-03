@@ -543,6 +543,29 @@ describe("dependency operations", () => {
     expect(changed).toContain("[Build] starts 3 days after [Design]'s start with Blue dotted link");
   });
 
+  it("omits the style word for a colored solid-style link, since the renderer doesn't recognize it", () => {
+    // The bundled PlantUML renderer silently ignores "with <color> solid link" (it only
+    // recognizes dotted/dashed/bold as style keywords), which would make a picked color never
+    // actually show up in the rendered diagram even though the source text looks correct.
+    const source =
+      "@startgantt\n[Design] lasts 2 days\n[Build] starts at [Design]'s end\n[Build] lasts 4 days\n@endgantt";
+    const dependency = parseGantt(source).document.dependencies[0]!;
+    const changed = applySourceEdits(
+      source,
+      updateDependency(source, dependency, {
+        predecessorLabel: "Design",
+        successorLabel: "Build",
+        relation: "start-after-start",
+        offset: 0,
+        direction: "after",
+        color: "Red",
+        lineStyle: "solid",
+      }).edits,
+    );
+    expect(changed).toContain("[Build] starts 0 days after [Design]'s start with Red link");
+    expect(changed).not.toContain("solid");
+  });
+
   it("preserves a resource assignment on the same line when rewriting the dependency", () => {
     const source =
       "@startgantt\n[Design] lasts 2 days\n[Build] on {Kalle:50%} starts at [Design]'s end\n[Build] lasts 4 days\n@endgantt";
