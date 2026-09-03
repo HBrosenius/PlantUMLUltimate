@@ -875,6 +875,15 @@ export function App() {
   }, [tabs.activeId, workspace.diagramKind]);
 
   useEffect(() => {
+    // The code editor (and its onCursorChange handler) is unmounted in diagram-only view, so
+    // sourceHighlightedTaskId would otherwise stay frozen at whatever task the cursor was in
+    // last time the editor was visible. DiagramPreview prefers that highlight over a task
+    // clicked directly in the diagram, which silently pinned the anchor/selection markers to
+    // a stale task and made connection handles unclickable. Clear it once the editor is gone.
+    if (workspace.viewMode === "diagram") setSourceHighlightedTaskId(undefined);
+  }, [workspace.viewMode]);
+
+  useEffect(() => {
     if (!hydrated) return;
     const lines = workspace.source.split(/\n/);
     const lineIndex = Math.min(Math.max(0, workspace.cursor.line - 1), lines.length - 1);

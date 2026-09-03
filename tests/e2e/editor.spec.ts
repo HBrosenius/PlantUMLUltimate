@@ -3274,6 +3274,34 @@ test("connects task end anchors to create an end-to-end dependency", async ({ pa
   await expect(page.locator(".cm-content")).toContainText("[B] ends at [A]'s end");
 });
 
+test("connects task anchors after switching to diagram-only view", async ({ page }) => {
+  await setSource(page, source("[A] lasts 2 days\n[B] lasts 4 days"));
+  // Put the editor cursor inside task [A] first, so sourceHighlightedTaskId locks onto "a"
+  // while the editor is still visible, then switch to diagram-only view: the editor (and its
+  // onCursorChange handler) unmounts, so that highlight must not survive and shadow a task
+  // clicked directly in the diagram afterward.
+  await page.locator(".cm-line").filter({ hasText: "[A] lasts 2 days" }).click();
+  await page.getByRole("button", { name: "3 · diagram" }).click();
+  await expect(page.locator(".cm-content")).toHaveCount(0);
+
+  await page.locator('[data-task-id="b"] .bar').click();
+  await expect(page.locator('[data-task-id="b"] [data-dependency-handle]')).toHaveCount(2);
+  const sourceHandle = await page.locator('[data-task-id="b"] [data-dependency-handle="end"]').boundingBox();
+  const targetHandle = await page.locator('[data-task-id="a"] [data-dependency-target-handle="end"]').boundingBox();
+  expect(sourceHandle).not.toBeNull();
+  expect(targetHandle).not.toBeNull();
+
+  await page.mouse.move(sourceHandle!.x + sourceHandle!.width / 2, sourceHandle!.y + sourceHandle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetHandle!.x + targetHandle!.width / 2, targetHandle!.y + targetHandle!.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+
+  await page.getByRole("button", { name: "1 · code" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[A] ends at [B]'s end");
+});
+
 test("connects a later default task to an earlier task without breaking PlantUML rendering", async ({ page }) => {
   await page.locator("[data-task-id=testing] .bar").click();
   const handle = await page.locator('[data-task-id=testing] [data-dependency-handle="end"]').boundingBox();
