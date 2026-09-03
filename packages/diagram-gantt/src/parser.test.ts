@@ -319,4 +319,32 @@ end note
       { code: "duplicate-task-prefix", message: "Task name is repeated: remove the second [Build]" },
     ]);
   });
+
+  it("reports conflicting duplicate dependencies on the same predecessor", () => {
+    const result = parseGantt(`@startgantt
+[A] lasts 5 days
+[B] lasts 10 days
+[B] starts 47 days after [A]'s end
+[B] starts at [A]'s end
+[B] starts at [A]'s end
+@endgantt`);
+    expect(result.diagnostics).toHaveLength(3);
+    expect(result.diagnostics).toMatchObject([
+      { code: "conflicting-dependency", severity: "warning" },
+      { code: "conflicting-dependency", severity: "warning" },
+      { code: "conflicting-dependency", severity: "warning" },
+    ]);
+    expect(result.diagnostics[0]?.message).toContain("47 days after");
+  });
+
+  it("does not flag harmless identical duplicate dependencies", () => {
+    const result = parseGantt(`@startgantt
+[A] lasts 5 days
+[B] lasts 10 days
+[B] starts at [A]'s end
+[B] starts at [A]'s end
+[B] starts at [A]'s end
+@endgantt`);
+    expect(result.diagnostics.filter((item) => item.code === "conflicting-dependency")).toEqual([]);
+  });
 });

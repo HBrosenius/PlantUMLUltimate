@@ -16,6 +16,20 @@ import type {
 
 const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
+function dependencySignature(dependency: GanttDependency): string {
+  return `${dependency.relation}|${dependency.offset?.value ?? 0}|${dependency.direction ?? "after"}`;
+}
+
+function describeDependency(dependency: GanttDependency): string {
+  const offset = dependency.offset?.value ?? 0;
+  const direction = dependency.direction === "before" ? "before" : "after";
+  const startsOrEnds = dependency.relation.startsWith("end-") ? "ends" : "starts";
+  const anchor = dependency.relation.endsWith("start") ? "start" : "end";
+  return offset === 0
+    ? `${startsOrEnds} right at the predecessor's ${anchor}`
+    : `${startsOrEnds} ${offset} day${offset === 1 ? "" : "s"} ${direction} the predecessor's ${anchor}`;
+}
+
 interface SourceLine {
   text: string;
   from: number;
@@ -698,6 +712,33 @@ export function parseGantt(source: string): ParseResult {
       });
     }
   }
+  const dependencyGroups = new Map<string, GanttDependency[]>();
+  for (const dependency of dependencies) {
+    // A start-anchored constraint and an end-anchored constraint on the same successor are
+    // independent (a task can legitimately start when a predecessor starts AND separately
+    // end when that predecessor ends), so only group constraints that pin the same end.
+    const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
+    const key = `${dependency.predecessorTaskId} ${dependency.successorTaskId} ${successorAnchor}`;
+    const group = dependencyGroups.get(key);
+    if (group) group.push(dependency);
+    else dependencyGroups.set(key, [dependency]);
+  }
+  for (const group of dependencyGroups.values()) {
+    if (group.length < 2 || new Set(group.map(dependencySignature)).size < 2) continue;
+    const predecessorLabel = group[0]!.predecessor.value;
+    const successorLabel = group[0]!.successor.value;
+    for (const dependency of group)
+      diagnostics.push({
+        severity: "warning",
+        message:
+          `'${successorLabel}' has multiple, disagreeing constraints relative to '${predecessorLabel}' — ` +
+          `this one ${describeDependency(dependency)}. Only the most restrictive constraint takes effect; ` +
+          `remove the ones that don't apply.`,
+        range: dependency.sourceRange,
+        code: "conflicting-dependency",
+      });
+  }
+
   for (const task of taskMap.values()) {
     if (task.sameRowTaskId) {
       task.sameRowTaskId = taskReferences.get(task.sameRowTaskId) ?? task.sameRowTaskId;
