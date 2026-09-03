@@ -1,6 +1,12 @@
 import type { JiraDocumentBinding } from "./types";
 
-const DIRECTIVE = /^[ \t]*'[ \t]*@studio-jira[ \t]+(.+?)[ \t]*\r?$/m;
+// The captured value is matched greedily to end-of-line and trimmed in JS afterward (see
+// callers) rather than trimming trailing spaces/tabs inside the regex itself. A lazy capture
+// followed by an overlapping `[ \t]*` (both can match the same space/tab characters) is a
+// classic polynomial ReDoS shape: for an attacker-controlled line that fails to match, the
+// engine retries the split point between the two quantifiers up to O(n) times, each retry
+// itself doing an O(n) scan, for O(n^2) work. `source` here is untrusted PlantUML text.
+const DIRECTIVE = /^[ \t]*'[ \t]*@studio-jira[ \t]+(.+)\r?$/m;
 
 function isHttpsOrigin(value: string): boolean {
   try {
@@ -50,7 +56,7 @@ function validBaselines(value: JiraDocumentBinding["baselines"]): boolean {
 }
 
 export function parseJiraDocumentBinding(source: string): JiraDocumentBinding | undefined {
-  const encoded = DIRECTIVE.exec(source)?.[1];
+  const encoded = DIRECTIVE.exec(source)?.[1]?.trimEnd();
   if (!encoded) return undefined;
   try {
     const value: unknown = JSON.parse(encoded);

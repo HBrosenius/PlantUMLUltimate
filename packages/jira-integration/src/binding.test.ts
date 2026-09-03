@@ -39,6 +39,24 @@ describe("Jira document binding", () => {
     expect(parseJiraDocumentBinding(changed)?.jql).toBe("filter = 42");
   });
 
+  it("trims trailing whitespace from the directive without regressing on CRLF sources", () => {
+    const withTrailingSpace = `@startgantt\n' @studio-jira ${JSON.stringify(binding)}   \t \n@endgantt`;
+    expect(parseJiraDocumentBinding(withTrailingSpace)).toEqual(binding);
+    const withCRLF = `@startgantt\r\n' @studio-jira ${JSON.stringify(binding)}  \r\n@endgantt\r\n`;
+    expect(parseJiraDocumentBinding(withCRLF)).toEqual(binding);
+  });
+
+  it("parses a pathological directive line in linear time (no ReDoS)", () => {
+    // Regression test for a polynomial regular expression (CodeQL #38/#39): a lazy capture
+    // immediately followed by an overlapping `[ \t]*` used to force O(n^2) backtracking on an
+    // attacker-controlled line shaped like "<non-space><many spaces><non-space>". Untrusted
+    // PlantUML source can contain arbitrarily long lines, so this must stay near-instant.
+    const pathological = `@startgantt\n' @studio-jira Y${" ".repeat(50_000)}X\n@endgantt\n`;
+    const start = performance.now();
+    parseJiraDocumentBinding(pathological);
+    expect(performance.now() - start).toBeLessThan(200);
+  });
+
   it("uses immutable numeric issue IDs for aliases", () => {
     expect(jiraTaskAlias("10042")).toBe("jira_10042");
     expect(issueIdFromJiraTaskAlias("JIRA_10042")).toBe("10042");
