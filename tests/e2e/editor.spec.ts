@@ -3580,6 +3580,16 @@ test("saves task inspector text fields on blur instead of while typing", async (
   await expect(page.locator(".cm-content")).toContainText("[Compile] is colored in Orange");
 });
 
+test("applies a color picked from the palette immediately, without a separate blur", async ({ page }) => {
+  await setSource(page, source("[Build] lasts 2 days"));
+  await page.locator('[data-task-id="build"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByRole("button", { name: "Choose color from a palette" }).click();
+  await expect(inspector.locator('[aria-label="Color palette"]')).toBeVisible();
+  await inspector.getByRole("button", { name: "Orange", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Build] is colored in Orange");
+});
+
 test("closes inspectors on any outside click and switches directly to another task", async ({ page }) => {
   await setSource(page, source("[A] lasts 2 days\n[B] lasts 2 days"));
   await page.locator('[data-task-id="a"] .bar').click();

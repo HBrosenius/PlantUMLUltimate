@@ -78,10 +78,31 @@ export function ColorField({
     };
   }, [open]);
 
-  const pick = (name: string) => {
-    onChange(`${namePrefix}${name}`);
-    setOpen(false);
+  // Most callers only commit `value` to the diagram in `onBlur` (so free-form typing doesn't
+  // reparse the source on every keystroke), and that handler reads the surrounding component's
+  // own state rather than taking the new value as an argument. Calling onChange() then onBlur()
+  // back-to-back here — as picking a color from the palette does — would fire onBlur while it
+  // still closes over the *previous* render's state, since React hasn't re-rendered with the
+  // new value yet. So a palette pick instead flags a pending commit and lets this effect fire
+  // onBlur only once the (now up to date) value has actually reached this component as a prop,
+  // guaranteeing it reads fresh state and the diagram updates immediately.
+  const pendingCommit = useRef(false);
+  useEffect(() => {
+    if (!pendingCommit.current) return;
+    pendingCommit.current = false;
     onBlur?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const pick = (name: string) => {
+    const next = `${namePrefix}${name}`;
+    setOpen(false);
+    if (next === value) {
+      onBlur?.();
+      return;
+    }
+    pendingCommit.current = true;
+    onChange(next);
   };
 
   return (
