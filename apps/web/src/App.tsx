@@ -2229,8 +2229,9 @@ export function App() {
                   ? "WBS"
                   : "Gantt";
       setInteractionMessage(`Created a new ${displayName} diagram`);
+      if (diagramKind === "gantt") setTimeout(openProjectInspector, 0);
     },
-    [refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
+    [openProjectInspector, refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
   );
 
   const newDocument = useCallback(() => {
