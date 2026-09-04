@@ -117,6 +117,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--muted);
   font-size: 12px;
 }
+.collaboration-advanced-toggle {
+  justify-self: start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .collaboration-state {
   padding: 12px 20px 0;
   font-weight: 600;

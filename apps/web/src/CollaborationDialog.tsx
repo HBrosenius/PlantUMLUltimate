@@ -39,6 +39,7 @@ export function CollaborationDialog({
   const [copied, setCopied] = useState<CollaborationRole | undefined>();
   const [copyFailed, setCopyFailed] = useState<CollaborationRole | undefined>();
   const [confirmRotation, setConfirmRotation] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const closeDialog = confirmRotation ? () => setConfirmRotation(false) : onClose;
   useDialogFocus(dialog, closeDialog);
   useEffect(() => setEndpoint(defaultEndpoint), [defaultEndpoint]);
@@ -191,16 +192,22 @@ export function CollaborationDialog({
               Your name
               <input required maxLength={60} value={name} onChange={(event) => setName(event.target.value)} />
             </label>
-            <label>
-              Collaboration service
-              <input
-                required
-                type="url"
-                placeholder="https://collaboration.example.workers.dev"
-                value={endpoint}
-                onChange={(event) => setEndpoint(event.target.value)}
-              />
-            </label>
+            {advancedOpen ? (
+              <label>
+                Collaboration service
+                <input
+                  required
+                  type="url"
+                  placeholder="https://collaboration.example.workers.dev"
+                  value={endpoint}
+                  onChange={(event) => setEndpoint(event.target.value)}
+                />
+              </label>
+            ) : (
+              <button type="button" className="collaboration-advanced-toggle" onClick={() => setAdvancedOpen(true)}>
+                Advanced: use a different collaboration service
+              </button>
+            )}
             <p className="collaboration-privacy">
               {pendingRole === "viewer"
                 ? "This viewer link follows live changes without permission to edit."
