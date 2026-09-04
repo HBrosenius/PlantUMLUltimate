@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  changedRange,
   collaborationLinkDetails,
   collaborationShareUrl,
   createCollaborationRoomId,
@@ -51,5 +52,39 @@ describe("collaboration room links", () => {
     expect(collaborationLinkDetails(editor)).toMatchObject({ accessToken: "editor-token", role: "editor" });
     expect(collaborationLinkDetails(viewer)).toMatchObject({ accessToken: "viewer-token", role: "viewer" });
     expect(withoutCollaborationLink(viewer)).toBe("https://plantuml.brosenius.se/");
+  });
+});
+
+describe("changedRange", () => {
+  it("finds a single changed character", () => {
+    expect(changedRange("abcXdef", "abcYdef")).toEqual({ from: 3, to: 4 });
+  });
+
+  it("finds an inserted span", () => {
+    expect(changedRange("abcdef", "abcXXdef")).toEqual({ from: 3, to: 5 });
+  });
+
+  it("finds a deleted span", () => {
+    expect(changedRange("abcXXdef", "abcdef")).toEqual({ from: 3, to: 3 });
+  });
+
+  it("handles an append at the end", () => {
+    expect(changedRange("hello", "hello world")).toEqual({ from: 5, to: 11 });
+  });
+
+  it("handles a prepend at the start", () => {
+    expect(changedRange("world", "hello world")).toEqual({ from: 0, to: 6 });
+  });
+
+  it("handles inserting into an empty string", () => {
+    expect(changedRange("", "abc")).toEqual({ from: 0, to: 3 });
+  });
+
+  it("handles deleting down to an empty string", () => {
+    expect(changedRange("abc", "")).toEqual({ from: 0, to: 0 });
+  });
+
+  it("handles a full replacement with no shared prefix or suffix", () => {
+    expect(changedRange("abc", "xyz")).toEqual({ from: 0, to: 3 });
   });
 });

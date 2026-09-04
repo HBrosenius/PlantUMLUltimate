@@ -477,6 +477,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cm-remote-edit-flash {
+  border-radius: 2px;
+  animation: remote-edit-flash-fade 2.5s ease-out forwards;
+}
+.cm-remote-edit-label {
+  position: relative;
+  top: -1px;
+  display: inline-block;
+  margin-right: 2px;
+  padding: 1px 5px;
+  border-radius: 3px 3px 3px 0;
+  color: white;
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 15px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: remote-edit-label-fade 2.5s ease-out forwards;
+}
+@keyframes remote-edit-flash-fade {
+  0% {
+    background-color: color-mix(in srgb, var(--remote-edit-color, currentColor) 55%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes remote-edit-label-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 .editor-actions {
   position: absolute;
   z-index: 5;
@@ -740,6 +776,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .diagram svg .task[data-selected="true"] .bar {
   stroke: #f59e0b;
   stroke-width: 3;
+}
+.diagram svg .task[data-remote-edit="true"] .bar {
+  stroke: var(--remote-edit-color, #f59e0b);
+  stroke-width: 3;
+  animation: remote-edit-diagram-flash 2.5s ease-out forwards;
+}
+@keyframes remote-edit-diagram-flash {
+  0% {
+    filter: drop-shadow(0 0 4px var(--remote-edit-color, #f59e0b));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
 }
 .diagram svg .resize-handle {
   fill: transparent;

@@ -21,6 +21,24 @@ export interface CollaborationCredentials {
 
 const REMOTE_ORIGIN = Symbol("remote-collaboration-update");
 
+export interface SourceChangeRange {
+  from: number;
+  to: number;
+}
+
+export function changedRange(before: string, after: string): SourceChangeRange {
+  let prefix = 0;
+  while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < before.length - prefix &&
+    suffix < after.length - prefix &&
+    before[before.length - 1 - suffix] === after[after.length - 1 - suffix]
+  )
+    suffix += 1;
+  return { from: prefix, to: Math.max(prefix, after.length - suffix) };
+}
+
 function websocketUrl(
   endpoint: string,
   roomId: string,
@@ -119,7 +137,7 @@ export class CollaborationSession {
     private readonly onSource: (source: string) => void,
     private readonly onConnection: (state: CollaborationConnection) => void,
     private readonly onParticipants: (participants: CollaborationParticipant[]) => void,
-    private readonly onEdit: (participant: CollaborationParticipant, source: string) => void,
+    private readonly onEdit: (participant: CollaborationParticipant, source: string, range: SourceChangeRange) => void,
     readonly role: CollaborationRole = "editor",
     private readonly credentials: CollaborationCredentials = {},
   ) {
@@ -162,7 +180,7 @@ export class CollaborationSession {
       Y.applyUpdate(this.document, new Uint8Array(event.data as ArrayBuffer), REMOTE_ORIGIN);
       const sourceAfterUpdate = this.sourceText.toString();
       if (this.synchronized && this.pendingRemoteAuthor && sourceAfterUpdate !== sourceBeforeUpdate)
-        this.onEdit(this.pendingRemoteAuthor, sourceAfterUpdate);
+        this.onEdit(this.pendingRemoteAuthor, sourceAfterUpdate, changedRange(sourceBeforeUpdate, sourceAfterUpdate));
       this.pendingRemoteAuthor = undefined;
       if (!this.synchronized) {
         this.synchronized = true;
@@ -199,22 +217,15 @@ export class CollaborationSession {
     if (!this.hasSynchronized && this.credentials.accessToken && !this.credentials.ownerToken) return;
     const current = this.sourceText.toString();
     if (current === source) return;
-    let prefix = 0;
-    while (prefix < current.length && prefix < source.length && current[prefix] === source[prefix]) prefix += 1;
-    let suffix = 0;
-    while (
-      suffix < current.length - prefix &&
-      suffix < source.length - prefix &&
-      current[current.length - 1 - suffix] === source[source.length - 1 - suffix]
-    )
-      suffix += 1;
+    const range = changedRange(current, source);
+    const suffixLength = source.length - range.to;
     this.document.transact(() => {
-      const removed = current.length - prefix - suffix;
-      if (removed) this.sourceText.delete(prefix, removed);
-      const inserted = source.slice(prefix, source.length - suffix);
-      if (inserted) this.sourceText.insert(prefix, inserted);
+      const removed = current.length - range.from - suffixLength;
+      if (removed) this.sourceText.delete(range.from, removed);
+      const inserted = source.slice(range.from, range.to);
+      if (inserted) this.sourceText.insert(range.from, inserted);
     });
-    if (this.hasSynchronized) this.onEdit(this.participant, source);
+    if (this.hasSynchronized) this.onEdit(this.participant, source, range);
   }
 
   updateSelection(line: number, column: number, anchor: number, head: number): void {

@@ -26,6 +26,8 @@ interface Props {
   onZoomChange(zoom: number): void;
   selectedTaskId?: string | undefined;
   highlightedTaskId?: string | undefined;
+  remoteEditTaskId?: string | undefined;
+  remoteEditColor?: string | undefined;
   onTaskSelect(taskId: string): void;
   onNoteSelect(taskId: string): void;
   onBackgroundSelect(): void;
@@ -79,6 +81,8 @@ export function DiagramPreview({
   onZoomChange,
   selectedTaskId,
   highlightedTaskId,
+  remoteEditTaskId,
+  remoteEditColor,
   onTaskSelect,
   onNoteSelect,
   onBackgroundSelect,
@@ -237,6 +241,18 @@ export function DiagramPreview({
       const marker = `data-dependency-index="${selectedDependencyIndex}"`;
       marked = marked.replace(marker, `${marker} data-selected="true"`);
     }
+    if (remoteEditTaskId && remoteEditColor) {
+      const escapedId = remoteEditTaskId
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+      const marker = `data-task-id="${escapedId}"`;
+      marked = marked.replace(
+        marker,
+        `${marker} data-remote-edit="true" style="--remote-edit-color: ${remoteEditColor.replaceAll('"', "&quot;")}"`,
+      );
+    }
     for (const [taskId, status] of jiraTaskStatuses) {
       const escapedId = taskId
         .replaceAll("&", "&amp;")
@@ -259,6 +275,8 @@ export function DiagramPreview({
     interactiveSvg,
     selectedTaskId,
     highlightedTaskId,
+    remoteEditTaskId,
+    remoteEditColor,
     selectedDependencyIndex,
     criticalIds,
     variance,

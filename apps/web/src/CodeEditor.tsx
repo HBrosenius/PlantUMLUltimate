@@ -30,6 +30,8 @@ interface Props {
   selectedRange?: { from: number; to: number } | undefined;
   symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
   remoteParticipants?: CollaborationParticipant[] | undefined;
+  remoteEditFlash?:
+    { participantId: string; name: string; color: string; range: { from: number; to: number } } | undefined;
   readOnly?: boolean | undefined;
   onRenameRequest?: ((position: number) => boolean) | undefined;
   onSymbolContextMenu?: ((position: number, x: number, y: number) => boolean) | undefined;
@@ -37,6 +39,32 @@ interface Props {
 
 const setSymbolHighlights = StateEffect.define<Array<{ from: number; to: number; active?: boolean }>>();
 const setRemoteParticipants = StateEffect.define<CollaborationParticipant[]>();
+const setRemoteEditFlash = StateEffect.define<{ name: string; color: string; from: number; to: number } | undefined>();
+
+class RemoteEditFlashWidget extends WidgetType {
+  constructor(
+    private readonly name: string,
+    private readonly color: string,
+  ) {
+    super();
+  }
+
+  eq(other: RemoteEditFlashWidget): boolean {
+    return this.name === other.name && this.color === other.color;
+  }
+
+  toDOM(): HTMLElement {
+    const label = document.createElement("span");
+    label.className = "cm-remote-edit-label";
+    label.style.backgroundColor = this.color;
+    label.textContent = this.name;
+    return label;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
 
 class RemoteCursorWidget extends WidgetType {
   constructor(
@@ -99,6 +127,34 @@ const remoteParticipantField = StateField.define<DecorationSet>({
           }).range(head),
         );
       }
+      return Decoration.set(ranges, true);
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+const remoteEditFlashField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    value = value.map(transaction.changes);
+    for (const effect of transaction.effects) {
+      if (!effect.is(setRemoteEditFlash)) continue;
+      if (!effect.value) return Decoration.none;
+      const from = Math.min(Math.max(0, effect.value.from), transaction.state.doc.length);
+      const to = Math.min(Math.max(from, effect.value.to), transaction.state.doc.length);
+      const ranges: ReturnType<Decoration["range"]>[] = [
+        Decoration.widget({
+          widget: new RemoteEditFlashWidget(effect.value.name, effect.value.color),
+          side: -1,
+        }).range(from),
+      ];
+      if (from !== to)
+        ranges.push(
+          Decoration.mark({
+            class: "cm-remote-edit-flash",
+            attributes: { style: `--remote-edit-color: ${effect.value.color}` },
+          }).range(from, to),
+        );
       return Decoration.set(ranges, true);
     }
     return value;
@@ -178,6 +234,7 @@ export function CodeEditor({
   selectedRange,
   symbolHighlights,
   remoteParticipants,
+  remoteEditFlash,
   readOnly = false,
   onRenameRequest,
   onSymbolContextMenu,
@@ -220,6 +277,7 @@ export function CodeEditor({
           ]),
           symbolHighlightField,
           remoteParticipantField,
+          remoteEditFlashField,
           editable.current.of([
             EditorState.readOnly.of(initialReadOnly.current),
             EditorView.editable.of(!initialReadOnly.current),
@@ -311,6 +369,23 @@ export function CodeEditor({
     if (!editor) return;
     editor.dispatch({ effects: setRemoteParticipants.of(remoteParticipants ?? []) });
   }, [remoteParticipants]);
+
+  useEffect(() => {
+    const editor = view.current;
+    if (!editor) return;
+    editor.dispatch({
+      effects: setRemoteEditFlash.of(
+        remoteEditFlash
+          ? {
+              name: remoteEditFlash.name,
+              color: remoteEditFlash.color,
+              from: remoteEditFlash.range.from,
+              to: remoteEditFlash.range.to,
+            }
+          : undefined,
+      ),
+    });
+  }, [remoteEditFlash]);
 
   const copySource = async () => {
     try {

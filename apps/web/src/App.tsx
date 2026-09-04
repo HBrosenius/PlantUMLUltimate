@@ -352,6 +352,14 @@ export function App() {
   const [sourceHighlightedClassMemberId, setSourceHighlightedClassMemberId] = useState<string>();
   const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
   const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
+  const [remoteEditFlash, setRemoteEditFlash] = useState<{
+    participantId: string;
+    name: string;
+    color: string;
+    range: { from: number; to: number };
+    taskId?: string | undefined;
+  }>();
+  const remoteEditFlashTimer = useRef<number | undefined>(undefined);
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
@@ -1948,6 +1956,8 @@ export function App() {
     collaborationSession.current = undefined;
     setCollaboration(undefined);
     setCollaborationDialogOpen(false);
+    window.clearTimeout(remoteEditFlashTimer.current);
+    setRemoteEditFlash(undefined);
     window.history.replaceState({}, "", withoutCollaborationLink(window.location.href));
     setInteractionMessage("Left collaboration room");
   }, [flushCollaborationVersion]);
@@ -2017,12 +2027,28 @@ export function App() {
         (source) => tabs.updateDocumentSource(documentId, source, detectDiagramKind(source) ?? "gantt"),
         (connection) => setCollaboration((current) => (current ? { ...current, connection } : current)),
         (participants) => setCollaboration((current) => (current ? { ...current, participants } : current)),
-        (participant, source) =>
+        (participant, source, range) => {
           scheduleCollaborationVersion(participant, source, {
             historyId: collaborationDocument.historyId,
             fileName: collaborationDocument.fileName,
             diagramKind: detectDiagramKind(source) ?? collaborationDocument.diagramKind,
-          }),
+          });
+          if (participant.id === participantId) return;
+          window.clearTimeout(remoteEditFlashTimer.current);
+          const diagramKind = detectDiagramKind(source) ?? collaborationDocument.diagramKind;
+          const taskId =
+            diagramKind === "gantt"
+              ? findTaskAt(parseGantt(source).document, Math.min(range.from, Math.max(0, source.length - 1)))?.id
+              : undefined;
+          setRemoteEditFlash({
+            participantId: participant.id,
+            name: participant.name,
+            color: participant.color,
+            range,
+            taskId,
+          });
+          remoteEditFlashTimer.current = window.setTimeout(() => setRemoteEditFlash(undefined), 2_500);
+        },
         role,
         ownerToken && editorToken && viewerToken
           ? { ownerToken, editorToken, viewerToken, accessToken: editorToken }
@@ -2085,6 +2111,7 @@ export function App() {
     () => () => {
       flushCollaborationVersionRef.current();
       collaborationSession.current?.stop();
+      window.clearTimeout(remoteEditFlashTimer.current);
     },
     [],
   );
@@ -4071,6 +4098,7 @@ export function App() {
                 ? collaboration.participants.filter((participant) => participant.id !== collaboration.participantId)
                 : []
             }
+            remoteEditFlash={collaboration?.documentId === tabs.activeId ? remoteEditFlash : undefined}
             onRenameRequest={
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
@@ -4173,6 +4201,8 @@ export function App() {
               onZoomChange={(zoom) => update("zoom", zoom)}
               selectedTaskId={selectedTaskId}
               highlightedTaskId={sourceHighlightedTaskId}
+              remoteEditTaskId={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.taskId : undefined}
+              remoteEditColor={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.color : undefined}
               onTaskSelect={selectTask}
               onNoteSelect={(taskId) => {
                 selectTask(taskId);
