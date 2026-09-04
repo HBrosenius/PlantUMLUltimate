@@ -73,6 +73,13 @@ export function resolveTaskDates(
     visiting.add(task.id);
     let start = task.start ? resolveDateExpression(task.start.value, projectStart) : undefined;
     let end = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
+    if (!start && !end && task.milestone && "resolved" in task.milestone && task.milestone.resolved) {
+      const milestoneDate = resolveDateExpression(task.milestone.value, projectStart);
+      if (milestoneDate) {
+        start = milestoneDate;
+        end = milestoneDate;
+      }
+    }
     const derived = !start || !end;
     const taskDependencies = dependencies.filter((item) => item.successorTaskId === task.id);
     const dependencyStarts: string[] = [];

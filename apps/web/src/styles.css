@@ -18,6 +18,10 @@ select,
 input {
   font: inherit;
 }
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+}
 .app {
   --bg: #f7f8fa;
   --panel: #fff;
@@ -34,11 +38,13 @@ input {
   --syntax-operator: #475569;
   --syntax-type: #0f766e;
   --syntax-anchor: #be185d;
+  --diagram-bg: var(--bg);
   display: grid;
   grid-template-rows: 42px 32px 1fr 25px;
   height: 100%;
   background: var(--bg);
   color: var(--text);
+  color-scheme: light;
 }
 .statusbar .connection-offline {
   color: #b45309;
@@ -176,6 +182,7 @@ input {
 }
 .app[data-theme="dark"] {
   --bg: #111318;
+  --diagram-bg: #3d4048;
   --panel: #191c23;
   --line: #313640;
   --text: #e7eaf0;
@@ -195,6 +202,7 @@ input {
 @media (prefers-color-scheme: dark) {
   .app[data-theme="system"] {
     --bg: #111318;
+    --diagram-bg: #3d4048;
     --panel: #191c23;
     --line: #313640;
     --text: #e7eaf0;
@@ -531,7 +539,7 @@ input {
 .preview {
   position: relative;
   min-width: 0;
-  background: var(--bg);
+  background: var(--diagram-bg);
   overflow: hidden;
 }
 .preview-tools {
