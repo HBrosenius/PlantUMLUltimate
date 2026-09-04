@@ -192,9 +192,7 @@ describe("Gantt CodeMirror language service", () => {
 
   it("fixes a missing closing bracket after the task name", () => {
     const source = "@startgantt\n[Design starts 2026-09-05\n@endgantt";
-    expect(ganttQuickFixes(source)).toEqual([
-      expect.objectContaining({ replacement: "[Design] starts 2026-09-05" }),
-    ]);
+    expect(ganttQuickFixes(source)).toEqual([expect.objectContaining({ replacement: "[Design] starts 2026-09-05" })]);
   });
 
   it("fixes loosely formatted dates (missing zero-padding, dotted separators)", () => {

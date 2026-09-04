@@ -66,10 +66,7 @@ export function DependencyInspector({
       <form onSubmit={(event) => event.preventDefault()}>
         <label>
           Predecessor
-          <select
-            value={value.predecessorId}
-            onChange={(event) => update("predecessorId", event.target.value, true)}
-          >
+          <select value={value.predecessorId} onChange={(event) => update("predecessorId", event.target.value, true)}>
             {tasks.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.label}
@@ -124,9 +121,7 @@ export function DependencyInspector({
           Line style
           <select
             value={value.lineStyle}
-            onChange={(event) =>
-              update("lineStyle", event.target.value as DependencyInspectorValue["lineStyle"], true)
-            }
+            onChange={(event) => update("lineStyle", event.target.value as DependencyInspectorValue["lineStyle"], true)}
           >
             <option value="solid">Solid</option>
             <option value="dotted">Dotted</option>

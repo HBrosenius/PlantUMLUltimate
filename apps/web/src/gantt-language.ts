@@ -311,9 +311,7 @@ function levenshtein(a: string, b: string): number {
   for (let i = 1; i < rows; i++)
     for (let j = 1; j < cols; j++)
       dp[i]![j] =
-        a[i - 1] === b[j - 1]
-          ? dp[i - 1]![j - 1]!
-          : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
+        a[i - 1] === b[j - 1] ? dp[i - 1]![j - 1]! : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
   return dp[a.length]![b.length]!;
 }
 
@@ -352,9 +350,7 @@ function quickFixesForDiagnostics(
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
-    const missingDurationSpace = text.match(
-      /^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i,
-    );
+    const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
     const invalidDuration = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+).+$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
     const missingCloseBracket =
@@ -394,20 +390,20 @@ function quickFixesForDiagnostics(
           : looseDateStatement && looseDateFix
             ? `${looseDateStatement[1]}${looseDateFix}`
             : duplicateTask
-            ? `${duplicateTask[1]}${duplicateTask[3]}`
-            : color
-              ? `${color[1]}is colored in ${color[2]}`
-              : missingKeywordSpace
-                ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
-                : missingDurationSpace
-                  ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
-                  : missingDurationUnit
-                    ? `${missingDurationUnit[1]} days`
-                    : diagnostic.code === "invalid-duration" && invalidDuration
-                      ? `${invalidDuration[1]}1 day`
-                      : keywordSuggestion && keywordTypo
-                        ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
-                        : undefined;
+              ? `${duplicateTask[1]}${duplicateTask[3]}`
+              : color
+                ? `${color[1]}is colored in ${color[2]}`
+                : missingKeywordSpace
+                  ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
+                  : missingDurationSpace
+                    ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
+                    : missingDurationUnit
+                      ? `${missingDurationUnit[1]} days`
+                      : diagnostic.code === "invalid-duration" && invalidDuration
+                        ? `${invalidDuration[1]}1 day`
+                        : keywordSuggestion && keywordTypo
+                          ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                          : undefined;
     return replacement
       ? [{ from: diagnostic.range.from, to: diagnostic.range.to, replacement, message: diagnostic.message }]
       : [];
