@@ -300,6 +300,50 @@ export function ganttQuickFixes(source: string): GanttQuickFix[] {
   return quickFixesForDiagnostics(source, parseGantt(source).diagnostics);
 }
 
+const GANTT_STATEMENT_KEYWORDS = ["starts", "ends", "lasts", "requires", "happens", "pauses", "links", "displays"];
+
+function levenshtein(a: string, b: string): number {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const dp: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
+  for (let i = 0; i < rows; i++) dp[i]![0] = i;
+  for (let j = 0; j < cols; j++) dp[0]![j] = j;
+  for (let i = 1; i < rows; i++)
+    for (let j = 1; j < cols; j++)
+      dp[i]![j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1]![j - 1]!
+          : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
+  return dp[a.length]![b.length]!;
+}
+
+// Suggests the closest recognized statement keyword for a likely typo (e.g. "star" -> "starts").
+// Only returns a suggestion when it's close (distance <= 2, and shorter than the word itself) and
+// unambiguous (no other keyword is an equally close match), to avoid "fixing" unrelated words.
+function closestKeyword(word: string): string | undefined {
+  const lower = word.toLowerCase();
+  if (GANTT_STATEMENT_KEYWORDS.includes(lower)) return undefined;
+  const ranked = GANTT_STATEMENT_KEYWORDS.map((keyword) => ({ keyword, dist: levenshtein(lower, keyword) })).sort(
+    (a, b) => a.dist - b.dist,
+  );
+  const [best, next] = ranked;
+  if (!best || best.dist > 2 || best.dist >= lower.length) return undefined;
+  if (next && next.dist === best.dist) return undefined;
+  return best.keyword;
+}
+
+// Normalizes common malformed-but-recognizable date shapes to PlantUML's expected YYYY-MM-DD,
+// e.g. missing zero-padding (2026-9-1) or a dotted separator (2026.09.01).
+function normalizeDateGuess(value: string): string | undefined {
+  const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (!match?.[1] || !match[2] || !match[3]) return undefined;
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
+  const normalized = `${match[1]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return normalized === value ? undefined : normalized;
+}
+
 function quickFixesForDiagnostics(
   source: string,
   diagnostics: ReturnType<typeof parseGantt>["diagnostics"],
@@ -308,23 +352,62 @@ function quickFixesForDiagnostics(
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
+    const missingDurationSpace = text.match(
+      /^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i,
+    );
     const invalidDuration = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+).+$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
+    const missingCloseBracket =
+      diagnostic.code === "missing-closing-bracket"
+        ? text.match(
+            /^(\s*(?:then\s+)?\[[^\]]*?)(\s+)(starts|ends|lasts|requires|happens|is|on|pauses|links|displays|as)\b(.*)$/i,
+          )
+        : undefined;
+    const missingKeywordSpace =
+      diagnostic.code === "malformed-statement"
+        ? text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+)(starts|ends|lasts|requires|happens|pauses|is)(\d)(.*)$/i)
+        : undefined;
+    const invalidDateFix = diagnostic.code === "invalid-date" ? normalizeDateGuess(text) : undefined;
+    // A loosely-formatted date (missing zero-padding, dotted separators) after "starts"/"ends"/
+    // "pauses on" doesn't match the parser's strict date shape at all, so it's reported as a
+    // generic malformed statement rather than "invalid-date" -- handle it here too.
+    const looseDateStatement =
+      diagnostic.code === "malformed-statement"
+        ? text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends|pauses\s+on)\s+)(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\s*$/i)
+        : undefined;
+    const looseDateFix = looseDateStatement?.[2] ? normalizeDateGuess(looseDateStatement[2]) : undefined;
+    const keywordTypo =
+      diagnostic.code === "malformed-statement" && !missingKeywordSpace && !looseDateFix
+        ? text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+)(\S+)(.*)$/i)
+        : undefined;
+    const keywordSuggestion = keywordTypo?.[2] ? closestKeyword(keywordTypo[2]) : undefined;
     const unsupportedNotePosition =
       diagnostic.code === "unsupported-gantt-note-position"
         ? text.replace(/^(\s*note\s+)(?:top|left|right)/i, "$1bottom")
         : undefined;
     const replacement = unsupportedNotePosition
       ? unsupportedNotePosition
-      : duplicateTask
-        ? `${duplicateTask[1]}${duplicateTask[3]}`
-        : color
-          ? `${color[1]}is colored in ${color[2]}`
-          : missingDurationUnit
-            ? `${missingDurationUnit[1]} days`
-            : diagnostic.code === "invalid-duration" && invalidDuration
-              ? `${invalidDuration[1]}1 day`
-              : undefined;
+      : missingCloseBracket
+        ? `${missingCloseBracket[1]}]${missingCloseBracket[2]}${missingCloseBracket[3]}${missingCloseBracket[4]}`
+        : invalidDateFix
+          ? invalidDateFix
+          : looseDateStatement && looseDateFix
+            ? `${looseDateStatement[1]}${looseDateFix}`
+            : duplicateTask
+            ? `${duplicateTask[1]}${duplicateTask[3]}`
+            : color
+              ? `${color[1]}is colored in ${color[2]}`
+              : missingKeywordSpace
+                ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
+                : missingDurationSpace
+                  ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
+                  : missingDurationUnit
+                    ? `${missingDurationUnit[1]} days`
+                    : diagnostic.code === "invalid-duration" && invalidDuration
+                      ? `${invalidDuration[1]}1 day`
+                      : keywordSuggestion && keywordTypo
+                        ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                        : undefined;
     return replacement
       ? [{ from: diagnostic.range.from, to: diagnostic.range.to, replacement, message: diagnostic.message }]
       : [];

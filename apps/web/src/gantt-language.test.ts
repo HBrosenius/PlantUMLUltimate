@@ -190,6 +190,41 @@ describe("Gantt CodeMirror language service", () => {
     ).toContain("LightBlue");
   });
 
+  it("fixes a missing closing bracket after the task name", () => {
+    const source = "@startgantt\n[Design starts 2026-09-05\n@endgantt";
+    expect(ganttQuickFixes(source)).toEqual([
+      expect.objectContaining({ replacement: "[Design] starts 2026-09-05" }),
+    ]);
+  });
+
+  it("fixes loosely formatted dates (missing zero-padding, dotted separators)", () => {
+    expect(ganttQuickFixes("@startgantt\n[Design] starts 2026-9-1\n@endgantt")).toEqual([
+      expect.objectContaining({ replacement: "[Design] starts 2026-09-01" }),
+    ]);
+    expect(ganttQuickFixes("@startgantt\n[Design] starts 2026.09.01\n@endgantt")).toEqual([
+      expect.objectContaining({ replacement: "[Design] starts 2026-09-01" }),
+    ]);
+  });
+
+  it("fixes a missing space between a keyword and its value", () => {
+    expect(ganttQuickFixes("@startgantt\n[Design] lasts3 days\n@endgantt")).toEqual([
+      expect.objectContaining({ replacement: "[Design] lasts 3 days" }),
+    ]);
+    expect(ganttQuickFixes("@startgantt\n[Design] lasts 3days\n@endgantt")).toEqual([
+      expect.objectContaining({ replacement: "[Design] lasts 3 days" }),
+    ]);
+  });
+
+  it("suggests the closest keyword for a likely typo", () => {
+    expect(ganttQuickFixes("@startgantt\n[Design] star 2026-09-01\n@endgantt")).toEqual([
+      expect.objectContaining({ replacement: "[Design] starts 2026-09-01" }),
+    ]);
+  });
+
+  it("does not guess a fix for unrecognizable statements", () => {
+    expect(ganttQuickFixes("@startgantt\n[Design] blah blah\n@endgantt")).toEqual([]);
+  });
+
   it("maps parser diagnostics to CodeMirror diagnostics", () => {
     const diagnostics = ganttDiagnostics("@startgantt\n[Build] starts at [Missing]'s end\n@endgantt");
     expect(diagnostics).toHaveLength(1);

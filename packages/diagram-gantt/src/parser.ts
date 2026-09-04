@@ -249,6 +249,17 @@ export function parseGantt(source: string): ParseResult {
     )
       continue;
 
+    if (line.text.includes("[") && !line.text.includes("]")) {
+      diagnostics.push({
+        severity: "error",
+        message: "Missing closing ']' after the task name",
+        range: lineRange,
+        code: "missing-closing-bracket",
+      });
+      unknown.push({ kind: "unknown", text: line.text, range: lineRange });
+      continue;
+    }
+
     const taskMatch = line.text.match(/^(\s*)(?:(then)\s+)?\[([^\]]+)]\s*(.*)$/i);
     if (taskMatch?.[3] !== undefined && taskMatch[4] !== undefined) {
       const chained = Boolean(taskMatch[2]);

@@ -133,6 +133,13 @@ Project starts 2026-09-01
     ]);
   });
 
+  it("reports a missing closing bracket as its own diagnostic", () => {
+    const source = "@startgantt\n[Design starts 2026-09-05\n[Design] lasts 3 days\n@endgantt";
+    const result = parseGantt(source);
+    expect(result.diagnostics.map((item) => item.code)).toContain("missing-closing-bracket");
+    expect(result.document.unknown).toHaveLength(1);
+  });
+
   it("reports unknown references and invalid values", () => {
     const source = "@startgantt\n[Build] starts at [Missing]'s end\n[Build] is 120% completed\n@endgantt";
     const result = parseGantt(source);
