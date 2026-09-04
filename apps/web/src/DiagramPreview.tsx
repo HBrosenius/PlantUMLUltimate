@@ -13,6 +13,7 @@ import {
   extractRenderedTaskGeometry,
 } from "./schedule-analysis";
 import { useRenderer } from "./render/use-renderer";
+import { decorateRemoteEditBadge } from "./render/remote-edit-badge";
 import { useDiagramNavigation } from "./useDiagramNavigation";
 
 interface Props {
@@ -28,6 +29,7 @@ interface Props {
   highlightedTaskId?: string | undefined;
   remoteEditTaskId?: string | undefined;
   remoteEditColor?: string | undefined;
+  remoteEditName?: string | undefined;
   onTaskSelect(taskId: string): void;
   onNoteSelect(taskId: string): void;
   onBackgroundSelect(): void;
@@ -83,6 +85,7 @@ export function DiagramPreview({
   highlightedTaskId,
   remoteEditTaskId,
   remoteEditColor,
+  remoteEditName,
   onTaskSelect,
   onNoteSelect,
   onBackgroundSelect,
@@ -262,7 +265,7 @@ export function DiagramPreview({
       const marker = `data-task-id="${escapedId}"`;
       marked = marked.replace(marker, `${marker} data-jira-status="${status}"`);
     }
-    return decorateScheduleAnalysis(
+    const analyzed = decorateScheduleAnalysis(
       marked,
       criticalIds,
       variance,
@@ -271,12 +274,16 @@ export function DiagramPreview({
       renderedBaselineGeometry,
       baselineLabels,
     );
+    return remoteEditTaskId && remoteEditColor && remoteEditName
+      ? decorateRemoteEditBadge(analyzed, remoteEditTaskId, remoteEditColor, remoteEditName)
+      : analyzed;
   }, [
     interactiveSvg,
     selectedTaskId,
     highlightedTaskId,
     remoteEditTaskId,
     remoteEditColor,
+    remoteEditName,
     selectedDependencyIndex,
     criticalIds,
     variance,

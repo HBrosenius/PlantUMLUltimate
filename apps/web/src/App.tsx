@@ -4208,6 +4208,7 @@ export function App() {
               highlightedTaskId={sourceHighlightedTaskId}
               remoteEditTaskId={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.taskId : undefined}
               remoteEditColor={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.color : undefined}
+              remoteEditName={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.name : undefined}
               onTaskSelect={selectTask}
               onNoteSelect={(taskId) => {
                 selectTask(taskId);

@@ -790,6 +790,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     filter: drop-shadow(0 0 0 transparent);
   }
 }
+.diagram svg .remote-edit-badge {
+  animation: remote-edit-label-fade 2.5s ease-out forwards;
+}
 .diagram svg .resize-handle {
   fill: transparent;
   cursor: ew-resize;
