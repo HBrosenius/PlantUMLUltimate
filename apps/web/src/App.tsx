@@ -2036,9 +2036,14 @@ export function App() {
           if (participant.id === participantId) return;
           window.clearTimeout(remoteEditFlashTimer.current);
           const diagramKind = detectDiagramKind(source) ?? collaborationDocument.diagramKind;
+          const editPosition = Math.min(range.from, Math.max(0, source.length - 1));
           const taskId =
             diagramKind === "gantt"
-              ? findTaskAt(parseGantt(source).document, Math.min(range.from, Math.max(0, source.length - 1)))?.id
+              ? (
+                  parseGantt(source).document.tasks.find(
+                    (task) => editPosition >= task.sourceRange.from && editPosition <= task.sourceRange.to,
+                  ) ?? findTaskAt(parseGantt(source).document, editPosition)
+                )?.id
               : undefined;
           setRemoteEditFlash({
             participantId: participant.id,
