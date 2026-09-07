@@ -4,14 +4,23 @@ import * as Y from "yjs";
 
 const source = (body: string) => `@startgantt\nProject starts 2026-09-01\n${body}\n@endgantt`;
 
-async function setSource(page: Page, value: string) {
+async function fillSource(page: Page, value: string, visibleText = value) {
   const editor = page.locator(".cm-content");
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await editor.fill(value);
-    if ((await editor.innerText()) === value) break;
+    try {
+      await expect.poll(() => editor.innerText(), { timeout: 2_000 }).toContain(visibleText);
+      return;
+    } catch {
+      // CodeMirror can reject a synthetic replacement while it is reconciling a previous transaction.
+    }
     await editor.fill("");
   }
-  await expect.poll(() => page.locator(".cm-content").innerText()).toBe(value);
+  await expect.poll(() => editor.innerText()).toContain(visibleText);
+}
+
+async function setSource(page: Page, value: string) {
+  await fillSource(page, value);
   await expect(page.locator(".diagram svg")).toBeVisible();
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
 }
@@ -55,6 +64,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
+  await expect(page.locator(".statusbar")).toContainText("IndexedDB");
   await page.getByRole("button", { name: "Close project inspector" }).click();
 });
 
@@ -2538,13 +2548,20 @@ test("reloads clean external file edits and merges conflicting local changes", a
 });
 
 test("protects dirty tabs from browser unload", async ({ page }) => {
-  await page.locator(".cm-content").fill(source("[Unsaved] lasts 2 days"));
+  await fillSource(page, source("[Unsaved] lasts 2 days"));
+  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => {
         const event = new Event("beforeunload", { cancelable: true });
+        let preventDefaultCalled = false;
+        const preventDefault = event.preventDefault.bind(event);
+        event.preventDefault = () => {
+          preventDefaultCalled = true;
+          preventDefault();
+        };
         window.dispatchEvent(event);
-        return event.defaultPrevented;
+        return preventDefaultCalled;
       }),
     )
     .toBe(true);
@@ -2965,7 +2982,7 @@ test("lists and reveals syntax that is preserved but not visually editable", asy
 
 test("keeps source fixes available outside the lint tooltip", async ({ page }) => {
   const value = source("[Build] [Build] starts 2026-09-01");
-  await page.locator(".cm-content").fill(value);
+  await fillSource(page, value);
   const fix = page.getByRole("button", { name: "Fix nearest source issue" });
   await expect(fix).toBeVisible();
   await expect(fix).toHaveText("Fix issue");
@@ -2997,7 +3014,8 @@ note right: Days needed = "?" — unscheduled until estimated
 
 test("replaces the preview after pasting the large weekend-aware project", async ({ page }) => {
   const value = readFileSync("tests/fixtures/weekend-aware-large.puml", "utf8");
-  await page.locator(".cm-content").fill(value);
+  await fillSource(page, value, "Project Gantt Chart — Weekend-Aware");
+  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
   await expect(page.locator(".render-notice.rendering")).toContainText("Rendering updated preview");
   await expect(page.locator(".diagram svg")).toContainText("Unified End To End Testing", { timeout: 20_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Architecture");
