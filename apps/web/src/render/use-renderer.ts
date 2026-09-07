@@ -150,7 +150,6 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       }
       if (message.type !== "result" || message.requestId === undefined) return;
       busy.current = false;
-      pending.current = undefined;
       window.clearTimeout(renderTimeout.current);
       const completed: RenderResult = {
         requestId: message.requestId,
