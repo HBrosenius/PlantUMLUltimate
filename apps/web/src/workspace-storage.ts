@@ -160,9 +160,9 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       version: 6,
       documents,
       activeDocumentId,
-      viewMode: candidate.viewMode ?? "split",
+      viewMode: candidate.viewMode === "code" || candidate.viewMode === "diagram" ? candidate.viewMode : "split",
       splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
-      theme: candidate.theme ?? "system",
+      theme: candidate.theme === "light" || candidate.theme === "dark" ? candidate.theme : "system",
     };
   }
   const legacy = normalizeWorkspace(value);

@@ -79,15 +79,17 @@ test("creates a private collaboration link without exposing its credential in th
       onclose: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      constructor(url: string) {
+      constructor(url: string, protocols?: string[]) {
         const collaborationWindow = window as Window & {
           __collaborationSocket?: CollaborationWebSocket;
           __collaborationSocketUrls?: string[];
           __collaborationMessages?: string[];
           __collaborationUpdates?: number[][];
+          __collaborationSocketProtocols?: string[][];
         };
         collaborationWindow.__collaborationSocket = this;
         (collaborationWindow.__collaborationSocketUrls ??= []).push(url);
+        (collaborationWindow.__collaborationSocketProtocols ??= []).push(protocols ?? []);
         window.setTimeout(() => {
           this.onopen?.();
           this.onmessage?.(new MessageEvent("message", { data: new Uint8Array([0, 0]).buffer }));
@@ -110,6 +112,9 @@ test("creates a private collaboration link without exposing its credential in th
       }
     }
     Object.defineProperty(window, "WebSocket", { value: CollaborationWebSocket });
+    Object.defineProperty(window, "fetch", {
+      value: async () => new Response(null, { status: 204 }),
+    });
   });
   await page.getByRole("button", { name: "Collaborate" }).click();
   const dialog = page.getByRole("dialog", { name: "Collaboration" });
@@ -206,13 +211,16 @@ test("creates a private collaboration link without exposing its credential in th
   const rotation = await page.evaluate(() => ({
     urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
     messages: (window as Window & { __collaborationMessages?: string[] }).__collaborationMessages,
+    protocols: (window as Window & { __collaborationSocketProtocols?: string[][] }).__collaborationSocketProtocols,
   }));
   expect(rotation.urls).toHaveLength(2);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("owner"))).toBe(true);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("editor"))).toBe(true);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("viewer"))).toBe(true);
+  expect(rotation.urls?.every((url) => new URL(url).search === "")).toBe(true);
+  expect(rotation.protocols?.every((protocols) => protocols.includes("plantuml-collaboration"))).toBe(true);
+  expect(rotation.protocols?.every((protocols) => protocols.some((protocol) => protocol.startsWith("owner.")))).toBe(
+    true,
+  );
   expect(new URL(oldLink).hash).not.toContain("owner");
-  expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).toBe(true);
+  expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).not.toBe(true);
 });
 
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {

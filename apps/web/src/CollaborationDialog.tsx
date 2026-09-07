@@ -6,6 +6,7 @@ export function CollaborationDialog({
   pendingRoom,
   pendingAccessToken,
   pendingRole = "editor",
+  pendingEndpoint,
   defaultEndpoint,
   active,
   onStart,
@@ -16,6 +17,7 @@ export function CollaborationDialog({
   pendingRoom?: string | undefined;
   pendingAccessToken?: string | undefined;
   pendingRole?: CollaborationRole | undefined;
+  pendingEndpoint?: string | undefined;
   defaultEndpoint: string;
   active?:
     | {
@@ -35,14 +37,14 @@ export function CollaborationDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const [name, setName] = useState(() => localStorage.getItem("plantuml-studio.collaboration-name") ?? "");
-  const [endpoint, setEndpoint] = useState(defaultEndpoint);
+  const [endpoint, setEndpoint] = useState(pendingEndpoint ?? defaultEndpoint);
   const [copied, setCopied] = useState<CollaborationRole | undefined>();
   const [copyFailed, setCopyFailed] = useState<CollaborationRole | undefined>();
   const [confirmRotation, setConfirmRotation] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const closeDialog = confirmRotation ? () => setConfirmRotation(false) : onClose;
   useDialogFocus(dialog, closeDialog);
-  useEffect(() => setEndpoint(defaultEndpoint), [defaultEndpoint]);
+  useEffect(() => setEndpoint(pendingEndpoint ?? defaultEndpoint), [defaultEndpoint, pendingEndpoint]);
 
   return (
     <div className="modal-backdrop" onMouseDown={closeDialog}>
@@ -184,7 +186,7 @@ export function CollaborationDialog({
               const trimmedEndpoint = endpoint.trim();
               if (!trimmedName || !trimmedEndpoint) return;
               localStorage.setItem("plantuml-studio.collaboration-name", trimmedName);
-              localStorage.setItem("plantuml-studio.collaboration-server", trimmedEndpoint);
+              if (!pendingRoom) localStorage.setItem("plantuml-studio.collaboration-server", trimmedEndpoint);
               onStart(trimmedName, trimmedEndpoint, pendingRoom, pendingAccessToken, pendingRole);
             }}
           >
@@ -213,6 +215,11 @@ export function CollaborationDialog({
                 ? "This viewer link follows live changes without permission to edit."
                 : "The editor link is an editing credential. Share it only with people who may change the document."}
             </p>
+            {pendingRoom && pendingEndpoint && pendingEndpoint !== defaultEndpoint && (
+              <p className="collaboration-privacy" role="alert">
+                This link uses a different collaboration service: {pendingEndpoint}
+              </p>
+            )}
             <div className="dialog-actions">
               <button type="button" onClick={onClose}>
                 Cancel

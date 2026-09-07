@@ -5,6 +5,7 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const MAX_UPDATE_BYTES = 1_000_000;
 const MAX_DOCUMENT_BYTES = 5_000_000;
 const MAX_NAME_LENGTH = 60;
+const COLLABORATION_PROTOCOL = "plantuml-collaboration";
 
 interface Participant {
   id: string;
@@ -117,7 +118,6 @@ export class CollaborationRoom extends DurableObject<Env> {
         .exec<{ state: ArrayBuffer }>("SELECT state FROM room_state WHERE singleton = 1")
         .toArray()[0];
       if (stored) Y.applyUpdate(this.document, new Uint8Array(stored.state));
-      else this.persist();
     });
   }
 
@@ -155,16 +155,37 @@ export class CollaborationRoom extends DurableObject<Env> {
 
   async fetch(request: Request): Promise<Response> {
     if (this.revoked) return Response.json({ error: "Room revoked" }, { status: 410 });
+    if (request.method === "POST") {
+      const requestedOwnerToken = await request.text();
+      if (!this.ownerToken || requestedOwnerToken !== this.ownerToken)
+        return Response.json({ error: "Invalid owner credential" }, { status: 403 });
+      this.revoked = true;
+      this.ctx.storage.sql.exec("UPDATE room_access SET revoked = 1 WHERE singleton = 1");
+      this.ctx.storage.sql.exec("DELETE FROM room_state WHERE singleton = 1");
+      for (const peer of this.ctx.getWebSockets()) {
+        try {
+          peer.send(JSON.stringify({ type: "room-revoked" }));
+          peer.close(4001, "Room link revoked");
+        } catch {
+          // The revoked flag still prevents a peer that closed concurrently from reconnecting.
+        }
+      }
+      return new Response(null, { status: 204 });
+    }
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return Response.json({ error: "WebSocket upgrade required" }, { status: 426 });
     }
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
-    const url = new URL(request.url);
-    const requestedOwnerToken = url.searchParams.get("owner");
-    const requestedEditorToken = url.searchParams.get("editor");
-    const requestedViewerToken = url.searchParams.get("viewer");
+    const protocols = (request.headers.get("Sec-WebSocket-Protocol") ?? "").split(",").map((value) => value.trim());
+    if (!protocols.includes(COLLABORATION_PROTOCOL))
+      return Response.json({ error: "Collaboration protocol required" }, { status: 400 });
+    const credential = (kind: string) =>
+      protocols.find((value) => value.startsWith(`${kind}.`))?.slice(kind.length + 1) ?? null;
+    const requestedOwnerToken = credential("owner");
+    const requestedEditorToken = credential("editor");
+    const requestedViewerToken = credential("viewer");
     const validToken = (value: string | null): value is string => Boolean(value && /^[A-Za-z0-9_-]{43}$/.test(value));
     if (
       !this.ownerToken &&
@@ -181,8 +202,9 @@ export class CollaborationRoom extends DurableObject<Env> {
         requestedEditorToken,
         requestedViewerToken,
       );
+      this.persist();
     }
-    const accessToken = url.searchParams.get("access");
+    const accessToken = credential("access");
     const owner = Boolean(this.ownerToken && requestedOwnerToken === this.ownerToken);
     const role: CollaborationRole | undefined = owner
       ? "editor"
@@ -190,13 +212,11 @@ export class CollaborationRoom extends DurableObject<Env> {
         ? "editor"
         : this.viewerToken && accessToken === this.viewerToken
           ? "viewer"
-          : !this.ownerToken || (!this.editorToken && !this.viewerToken)
-            ? "editor"
-            : undefined;
+          : undefined;
     if (!role) return Response.json({ error: "Invalid room credential" }, { status: 403 });
     const participant = participantFrom(
       {
-        id: url.searchParams.get("participant"),
+        id: crypto.randomUUID(),
         name: "Anonymous",
         color: "#64748b",
       },
@@ -206,7 +226,11 @@ export class CollaborationRoom extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server);
     server.send(Y.encodeStateAsUpdate(this.document));
     this.broadcastPresence();
-    return new Response(null, { status: 101, webSocket: client });
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+      headers: { "Sec-WebSocket-Protocol": COLLABORATION_PROTOCOL },
+    });
   }
 
   webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): void {
@@ -215,20 +239,6 @@ export class CollaborationRoom extends DurableObject<Env> {
       try {
         const parsed: unknown = JSON.parse(message);
         if (!parsed || typeof parsed !== "object") return;
-        if ((parsed as { type?: unknown }).type === "revoke-room") {
-          const connection = connectionFrom(socket.deserializeAttachment(), crypto.randomUUID());
-          if (
-            !connection.owner ||
-            !this.ownerToken ||
-            (parsed as { ownerToken?: unknown }).ownerToken !== this.ownerToken
-          )
-            return;
-          this.revoked = true;
-          this.ctx.storage.sql.exec("UPDATE room_access SET revoked = 1 WHERE singleton = 1");
-          this.ctx.storage.sql.exec("DELETE FROM room_state WHERE singleton = 1");
-          for (const peer of this.ctx.getWebSockets()) peer.close(4001, "Room link revoked");
-          return;
-        }
         if ((parsed as { type?: unknown }).type !== "presence") return;
         const current = connectionFrom(socket.deserializeAttachment(), crypto.randomUUID());
         const participant = participantFrom((parsed as { participant?: unknown }).participant, current.participant.id);
@@ -300,8 +310,23 @@ export default {
     const match = /^\/rooms\/([^/]+)$/.exec(url.pathname);
     if (!match || !ROOM_PATTERN.test(match[1]!)) return Response.json({ error: "Not found" }, { status: 404 });
     if (!allowedOrigin(request, env)) return Response.json({ error: "Origin not allowed" }, { status: 403 });
+    if (request.method === "OPTIONS")
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": request.headers.get("Origin")!,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          Vary: "Origin",
+        },
+      });
     try {
-      return await env.COLLABORATION_ROOM.getByName(match[1]!).fetch(request);
+      const response = await env.COLLABORATION_ROOM.getByName(match[1]!).fetch(request);
+      if (request.method !== "POST") return response;
+      const headers = new Headers(response.headers);
+      headers.set("Access-Control-Allow-Origin", request.headers.get("Origin")!);
+      headers.set("Vary", "Origin");
+      return new Response(response.body, { status: response.status, headers });
     } catch (error) {
       console.error(
         JSON.stringify({

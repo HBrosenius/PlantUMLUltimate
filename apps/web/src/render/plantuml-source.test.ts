@@ -16,4 +16,20 @@ describe("sourceForPlantUmlRenderer", () => {
     expect(rendered).not.toContain("note right:");
     expect(rendered.split("\n")).toHaveLength(source.split("\n").length);
   });
+
+  it("blocks directives that can load remote resources", () => {
+    const source = [
+      "@startuml",
+      "!includeurl https://example.test/tracking.puml",
+      "!include https://example.test/other.puml",
+      "!import https://example.test/data.json",
+      "!theme plain from https://example.test/themes",
+      "Alice -> Bob",
+      "@enduml",
+    ].join("\n");
+    const rendered = sourceForPlantUmlRenderer(source);
+    expect(rendered).not.toContain("https://example.test");
+    expect(rendered).toContain("Alice -> Bob");
+    expect(rendered.split("\n")).toHaveLength(source.split("\n").length);
+  });
 });

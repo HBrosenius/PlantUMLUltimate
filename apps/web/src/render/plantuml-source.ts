@@ -3,6 +3,8 @@ export function sourceForPlantUmlRenderer(source: string): string {
   let inNote = false;
   return lines
     .map((line) => {
+      if (/^\s*!(?:include(?:url|_many|_once)?|import)\b/i.test(line) || /^\s*!theme\b.*\bfrom\b/i.test(line))
+        return "' remote resource directive blocked by PlantUML Ultimate";
       if (/^\s*note\s+(?:bottom|top|left|right)\s*:\s*.+$/i.test(line)) return "' note rendered by PlantUML Ultimate";
       if (/^\s*note\s+(?:bottom|top|left|right)\s*$/i.test(line)) {
         inNote = true;

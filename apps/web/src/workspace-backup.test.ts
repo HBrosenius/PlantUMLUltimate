@@ -47,4 +47,21 @@ describe("workspace backups", () => {
     });
     expect(parseWorkspaceBackupBundle(legacy)).toEqual({ session: DEFAULT_SESSION, versions: [] });
   });
+
+  it("rejects malformed or cross-document version history", () => {
+    const invalidVersion = {
+      id: "v1",
+      historyId: "history-from-another-workspace",
+      source: "source",
+      sourceHash: "hash",
+      fileName: "untitled.puml",
+      diagramKind: "gantt",
+      createdAt: "not-a-date",
+      reason: "manual",
+      pinned: "yes",
+    };
+    const backup = JSON.parse(serializeWorkspaceBackup(DEFAULT_SESSION)) as Record<string, unknown>;
+    backup.versions = [invalidVersion];
+    expect(() => parseWorkspaceBackupBundle(JSON.stringify(backup))).toThrow("invalid document history");
+  });
 });

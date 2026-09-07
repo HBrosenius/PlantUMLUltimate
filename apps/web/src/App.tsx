@@ -1974,13 +1974,13 @@ export function App() {
       let normalizedEndpoint: string;
       try {
         const parsed = new URL(endpoint);
-        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error();
+        if (parsed.protocol !== "https:" && !(import.meta.env.DEV && parsed.protocol === "http:")) throw new Error();
         parsed.pathname = parsed.pathname.replace(/\/$/, "");
         parsed.search = "";
         parsed.hash = "";
         normalizedEndpoint = parsed.toString().replace(/\/$/, "");
       } catch {
-        setInteractionMessage("Collaboration service needs a valid HTTP or HTTPS URL");
+        setInteractionMessage("Collaboration service needs a valid HTTPS URL");
         return;
       }
       const roomId = requestedRoomId ?? createCollaborationRoomId();
@@ -2083,9 +2083,16 @@ export function App() {
     [recordDocumentVersion, reportFileError, scheduleCollaborationVersion, tabs, workspace.cursor, workspace.source],
   );
 
-  const rotateCollaborationRoom = useCallback(() => {
+  const rotateCollaborationRoom = useCallback(async () => {
     if (!collaboration?.owner) return;
-    collaborationSession.current?.revokeRoom();
+    const session = collaborationSession.current;
+    if (!session) return;
+    try {
+      await session.revokeRoom();
+    } catch (error) {
+      setInteractionMessage(error instanceof Error ? error.message : "Could not revoke collaboration link");
+      return;
+    }
     collaborationSession.current?.stop();
     collaborationSession.current = undefined;
     startCollaboration(collaboration.participantName, collaboration.endpoint);
@@ -4818,7 +4825,8 @@ export function App() {
           pendingRoom={pendingCollaboration?.roomId}
           pendingAccessToken={pendingCollaboration?.accessToken}
           pendingRole={pendingCollaboration?.role}
-          defaultEndpoint={pendingCollaboration?.endpoint ?? defaultCollaborationEndpoint}
+          pendingEndpoint={pendingCollaboration?.endpoint}
+          defaultEndpoint={defaultCollaborationEndpoint}
           active={collaboration}
           onStart={startCollaboration}
           onRotate={rotateCollaborationRoom}
