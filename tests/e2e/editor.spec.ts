@@ -3619,10 +3619,15 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
       const { x, y, width, height } = element.getBoundingClientRect();
       return { x, y, width, height };
     });
-  const first = await readRect(firstTask);
-  const second = await readRect(secondTask);
-  expect(first.width).toBeGreaterThan(0);
-  expect(second.width).toBeGreaterThan(0);
+  let first = await readRect(firstTask);
+  let second = await readRect(secondTask);
+  await expect
+    .poll(async () => {
+      first = await readRect(firstTask);
+      second = await readRect(secondTask);
+      return Math.min(first.width, second.width);
+    })
+    .toBeGreaterThan(0);
 
   const start = { x: second.x + second.width / 2, y: second.y + second.height / 2 };
   const targetPoint = { x: first.x + first.width / 2, y: start.y };
