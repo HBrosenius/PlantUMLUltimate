@@ -3,6 +3,21 @@ import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
 import { useDialogFocus } from "./use-dialog-focus";
 import { useRenderer } from "./render/use-renderer";
+import { sanitizeSvg } from "./render/sanitize-svg";
+import type { DiagramKind } from "./model";
+import { applyReviewGroups, buildReviewGroups, createUnifiedPatch } from "./semantic-review";
+
+function download(content: string, fileName: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+const escapeHtml = (value: string) =>
+  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
 function versionTitle(version: DocumentVersion): string {
   if (!version.label?.trim() && version.reason === "collaboration" && version.author)
@@ -21,6 +36,9 @@ export function VersionHistoryDialog({
   onDelete,
   baselineVersionId,
   onSetBaseline,
+  diagramKind,
+  fileName,
+  onApplyReview,
   onClose,
 }: {
   versions: readonly DocumentVersion[];
@@ -31,6 +49,9 @@ export function VersionHistoryDialog({
   onDelete(version: DocumentVersion): Promise<void>;
   baselineVersionId?: string | undefined;
   onSetBaseline(version?: DocumentVersion): Promise<void>;
+  diagramKind: DiagramKind;
+  fileName: string;
+  onApplyReview(source: string): Promise<boolean>;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -42,8 +63,12 @@ export function VersionHistoryDialog({
   const [editLabel, setEditLabel] = useState("");
   const [changesOnly, setChangesOnly] = useState(false);
   const [changeIndex, setChangeIndex] = useState(0);
-  const [comparisonView, setComparisonView] = useState<"source" | "rendered">("source");
+  const [comparisonView, setComparisonView] = useState<"semantic" | "source" | "rendered">(
+    diagramKind === "sequence" ? "semantic" : "source",
+  );
   const [creating, setCreating] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const selected = versions.find((version) => version.id === selectedId) ?? versions[0];
   const compare = versions.find((version) => version.id === compareId);
   const rightSource = compare?.source ?? currentSource;
@@ -53,6 +78,14 @@ export function VersionHistoryDialog({
   const leftRendered = useRenderer(leftSource, comparisonView === "rendered", layoutEngine);
   const rightRendered = useRenderer(rightSource, comparisonView === "rendered", layoutEngine);
   const diff = useMemo(() => diffVersionSources(leftSource, rightSource), [leftSource, rightSource]);
+  const reviewGroups = useMemo(
+    () => buildReviewGroups(leftSource, rightSource, diagramKind),
+    [diagramKind, leftSource, rightSource],
+  );
+  const reviewedSource = useMemo(
+    () => applyReviewGroups(leftSource, reviewGroups, selectedGroups),
+    [leftSource, reviewGroups, selectedGroups],
+  );
   const visibleDiff = useMemo(
     () => (changesOnly ? diff.filter((line) => line.kind !== "equal") : diff),
     [changesOnly, diff],
@@ -65,6 +98,7 @@ export function VersionHistoryDialog({
   useEffect(() => {
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
+    setSelectedGroups(new Set());
   }, [compareId, selected?.id, selected?.label]);
   const moveToChange = (direction: -1 | 1) => {
     if (!changeCount) return;
@@ -163,6 +197,13 @@ export function VersionHistoryDialog({
               <div className="version-view-switch" role="group" aria-label="Comparison view">
                 <button
                   type="button"
+                  aria-pressed={comparisonView === "semantic"}
+                  onClick={() => setComparisonView("semantic")}
+                >
+                  Review
+                </button>
+                <button
+                  type="button"
                   aria-pressed={comparisonView === "source"}
                   onClick={() => setComparisonView("source")}
                 >
@@ -231,7 +272,89 @@ export function VersionHistoryDialog({
                 </button>
               </div>
             )}
-            {comparisonView === "source" ? (
+            {comparisonView === "semantic" ? (
+              <div className="semantic-review" aria-label="Semantic changes">
+                <header>
+                  <div>
+                    <strong>Proposed change groups</strong>
+                    <p>Confirmed groups can be applied independently. Unclassified source remains visible in Source.</p>
+                  </div>
+                  <span>
+                    {reviewGroups.length} group{reviewGroups.length === 1 ? "" : "s"}
+                  </span>
+                </header>
+                <div className="semantic-review-groups">
+                  {reviewGroups.length ? (
+                    reviewGroups.map((group) => {
+                      const confirmed = group.confidence === "confirmed";
+                      return (
+                        <label className={`semantic-review-group ${group.confidence}`} key={group.id}>
+                          <input
+                            type="checkbox"
+                            disabled={!confirmed}
+                            checked={selectedGroups.has(group.id)}
+                            onChange={(event) => {
+                              const next = new Set(selectedGroups);
+                              if (event.target.checked) next.add(group.id);
+                              else next.delete(group.id);
+                              setSelectedGroups(next);
+                            }}
+                          />
+                          <span>
+                            <strong>{group.title}</strong>
+                            <small>{group.confidence === "confirmed" ? "Confirmed" : "Unclassified"}</small>
+                            <span>{group.detail}</span>
+                          </span>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <p>No changes between these versions.</p>
+                  )}
+                </div>
+                <div className="semantic-review-actions">
+                  <button
+                    type="button"
+                    disabled={!selectedGroups.size}
+                    onClick={() =>
+                      download(
+                        createUnifiedPatch(fileName, leftSource, reviewedSource),
+                        `${fileName}.patch`,
+                        "text/x-diff",
+                      )
+                    }
+                  >
+                    Export selected patch
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!reviewGroups.length}
+                    onClick={() => {
+                      const rows = reviewGroups
+                        .map(
+                          (group) =>
+                            `<li><strong>${escapeHtml(group.title)}</strong> — ${escapeHtml(group.confidence)}<br>${escapeHtml(group.detail)}</li>`,
+                        )
+                        .join("");
+                      const report = `<!doctype html><meta charset="utf-8"><title>PlantUML review</title><h1>${escapeHtml(fileName)} review</h1><p>Generated locally. ${reviewGroups.length} change groups.</p><ol>${rows}</ol><h2>Source patch</h2><pre>${escapeHtml(createUnifiedPatch(fileName, leftSource, rightSource))}</pre>`;
+                      download(report, `${fileName}-review.html`, "text/html;charset=utf-8");
+                    }}
+                  >
+                    Export review report
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedGroups.size || applying}
+                    onClick={() => {
+                      setApplying(true);
+                      void onApplyReview(reviewedSource).finally(() => setApplying(false));
+                    }}
+                  >
+                    {applying ? "Applying…" : `Apply selected (${selectedGroups.size})`}
+                  </button>
+                </div>
+              </div>
+            ) : comparisonView === "source" ? (
               <div ref={diffElement} className="version-diff" role="table" aria-label="Source differences">
                 {visibleDiff.map((line, index) => {
                   const rowChangeIndex = rowChangeIndices[index];
@@ -298,7 +421,7 @@ function RenderedVersion({
       <div className="version-render-canvas">
         {status === "rendering" && !svg ? <p>Rendering…</p> : null}
         {error ? <p className="version-render-error">{error}</p> : null}
-        {svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : null}
+        {svg ? <div dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} /> : null}
       </div>
     </section>
   );

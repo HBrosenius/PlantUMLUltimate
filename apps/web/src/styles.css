@@ -2381,6 +2381,68 @@ textarea:focus-visible,
 .version-render-error {
   color: #b91c1c;
 }
+.semantic-review {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.semantic-review > header,
+.semantic-review-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.semantic-review > header p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.semantic-review-groups {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+}
+.semantic-review-group {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+.semantic-review-group > span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+}
+.semantic-review-group > span > span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+}
+.semantic-review-group small {
+  color: #15803d;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.semantic-review-group.unclassified small {
+  color: #b45309;
+}
+.semantic-review-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 
 @media (max-width: 760px) {
   .version-history-body {

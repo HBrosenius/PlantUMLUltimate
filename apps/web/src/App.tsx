@@ -4797,6 +4797,22 @@ export function App() {
           onUpdate={editDocumentVersion}
           onDelete={removeDocumentVersion}
           baselineVersionId={activeDocument.baselineVersionId}
+          diagramKind={workspace.diagramKind}
+          fileName={workspace.fileName}
+          onApplyReview={async (source) => {
+            try {
+              await recordDocumentVersion("before-restore", "Before semantic review");
+              const applied = commitSource(source, "Apply semantic review selection");
+              if (applied) {
+                setInteractionMessage("Applied selected review changes");
+                setVersionHistoryOpen(false);
+              }
+              return applied;
+            } catch (error) {
+              reportFileError(error);
+              return false;
+            }
+          }}
           onSetBaseline={async (version) => {
             if (version) await updateDocumentVersion(version.id, { pinned: true });
             tabs.setDocumentBaselineVersionId(tabs.activeId, version?.id);
