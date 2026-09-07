@@ -3614,13 +3614,23 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
   const secondTask = page.locator('[data-task-id="b"] .bar');
   await expect(firstTask).toBeVisible();
   await expect(secondTask).toBeVisible();
-  const first = await firstTask.boundingBox();
-  const second = await secondTask.boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
+  const readRect = (task: typeof firstTask) =>
+    task.evaluate((element) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    });
+  let first = await readRect(firstTask);
+  let second = await readRect(secondTask);
+  await expect
+    .poll(async () => {
+      first = await readRect(firstTask);
+      second = await readRect(secondTask);
+      return Math.min(first.width, second.width);
+    })
+    .toBeGreaterThan(0);
 
-  const start = { x: second!.x + second!.width / 2, y: second!.y + second!.height / 2 };
-  const targetPoint = { x: first!.x + first!.width / 2, y: start.y };
+  const start = { x: second.x + second.width / 2, y: second.y + second.height / 2 };
+  const targetPoint = { x: first.x + first.width / 2, y: start.y };
   await secondTask.dispatchEvent("pointerdown", {
     pointerId: 19,
     pointerType: "mouse",

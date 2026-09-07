@@ -32,6 +32,8 @@ jobs:
       - run: npm ci
       - run: npm --workspace @plantuml-studio/integration-worker run test
       - run: npm --workspace @plantuml-studio/integration-worker run typecheck
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/e2e/jira.spec.ts --project=chromium
       - name: Report missing deployment credentials
         if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
         run: echo "::warning::Jira integration Worker was validated but not deployed because Cloudflare repository secrets are missing."

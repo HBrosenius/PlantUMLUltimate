@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jiraAuthorizationUrl, jiraPopupReturnUrl, jiraUpdateIssues, normalizeJiraIssue } from "./jira-client";
+import {
+  jiraAuthorizationUrl,
+  jiraConnection,
+  jiraPopupReturnUrl,
+  jiraUpdateIssues,
+  normalizeJiraIssue,
+} from "./jira-client";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -54,6 +60,15 @@ describe("Jira client", () => {
     expect(jiraPopupReturnUrl("https://app.example/editor?theme=dark#collaboration-secret")).toBe(
       "https://app.example/editor?theme=dark&jira_popup=1",
     );
+  });
+
+  it("treats a structured 401 response as an expired Jira connection", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "Jira session is invalid" }, { status: 401 })),
+    );
+
+    await expect(jiraConnection("https://integrations.example")).resolves.toEqual({ connected: false });
   });
 
   it("publishes large reviews in bounded batches", async () => {

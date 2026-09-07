@@ -28,15 +28,14 @@ Before merging a release candidate:
    job may mean **validated but not deployed**; inspect the named deploy step rather than
    relying only on the job conclusion.
 
-`main` currently has neither classic branch protection nor a repository ruleset (verified
-through the GitHub API on 2026-09-07). Until protection is configured, treat pull-request
-review and a fully green CI run as a manual release requirement. Recommended protection is:
+`main` has classic branch protection configured (verified through the GitHub API on
+2026-09-07). Its current policy:
 
-- require a pull request before merging;
-- require the `validate`, 12 browser shard, `pwa`, `collaboration-e2e`, and CodeQL checks;
-- require branches to be up to date before merging;
-- block force pushes and branch deletion;
-- do not permit required-check bypass for routine changes.
+- requires a pull request before merging, without requiring a second-person approval;
+- requires `validate`, all 12 browser shards, `pwa`, `collaboration-e2e`, both CodeQL analyze
+  jobs, and the CodeQL result;
+- requires branches to be up to date and conversations to be resolved;
+- applies to administrators and blocks force pushes and branch deletion.
 
 Check the setting again before relying on it:
 
