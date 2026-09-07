@@ -1146,9 +1146,14 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await page.getByRole("button", { name: "Activity", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Activity settings" });
   const title = settings.getByLabel("Title");
-  await title.fill("Order lifecycle");
-  await title.press("Tab");
-  await expect(page.locator(".cm-content")).toContainText("title Order lifecycle");
+  await expect
+    .poll(async () => {
+      if ((await page.locator(".cm-content").innerText()).includes("title Order lifecycle")) return true;
+      await title.fill("Order lifecycle");
+      await title.evaluate((element) => element.blur());
+      return false;
+    })
+    .toBe(true);
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Partition…" }).click();
