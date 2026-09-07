@@ -413,6 +413,8 @@ npm run bench
 
 `npm run validate` runs linting, formatting checks, unit tests, type checking, and the production build. CI runs that validation followed by the complete Chromium, Firefox, and WebKit suites, plus a real local Worker/Durable Object collaboration security test. The GitHub Pages deployment uses the same gate and uploads Playwright traces and screenshots when a browser test fails.
 
+See [Release verification and recovery](docs/release-and-recovery.md) for production smoke checks, client/Worker rollout ordering, deployed-version identification, and rollback procedures.
+
 Install Playwright's browser runtimes before the first end-to-end run if necessary:
 
 ```sh
