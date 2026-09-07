@@ -9,6 +9,7 @@ test("sanitizes active SVG content before DOM insertion", async ({ page }) => {
     return sanitizer.sanitizeSvg(`
       <svg xmlns="http://www.w3.org/2000/svg">
         <script>alert(1)</script>
+        <style>body { display: none }</style>
         <foreignObject><iframe srcdoc="bad"></iframe></foreignObject>
         <a href="javascript:alert(2)"><text onload="alert(3)">Unsafe</text></a>
         <rect id="safe" width="10" height="10" />
@@ -17,6 +18,7 @@ test("sanitizes active SVG content before DOM insertion", async ({ page }) => {
   });
 
   expect(sanitized).not.toContain("<script");
+  expect(sanitized).not.toContain("<style");
   expect(sanitized).not.toContain("foreignObject");
   expect(sanitized).not.toContain("javascript:");
   expect(sanitized).not.toContain("onload");
@@ -46,8 +48,9 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
       onclose: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      constructor(url: string) {
+      constructor(url: string, protocols?: string[]) {
         (window as Window & { viewerSocketUrl?: string }).viewerSocketUrl = url;
+        (window as Window & { viewerSocketProtocols?: string[] }).viewerSocketProtocols = protocols;
         window.setTimeout(() => {
           this.onopen?.();
           this.onmessage?.(new MessageEvent("message", { data: new Uint8Array(update).buffer }));
@@ -82,9 +85,11 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
   await expect(page.locator(".collaboration-status")).toHaveText("Viewing only");
   const transport = await page.evaluate(() => ({
     url: (window as Window & { viewerSocketUrl?: string }).viewerSocketUrl,
+    protocols: (window as Window & { viewerSocketProtocols?: string[] }).viewerSocketProtocols,
     sentKinds: (window as Window & { viewerSentKinds?: string[] }).viewerSentKinds,
   }));
-  expect(new URL(transport.url!).searchParams.get("access")).toBe(accessToken);
+  expect(new URL(transport.url!).search).toBe("");
+  expect(transport.protocols).toContain(`access.${accessToken}`);
   expect(transport.sentKinds?.length).toBeGreaterThan(0);
   expect(transport.sentKinds?.every((kind) => kind === "text")).toBe(true);
 });

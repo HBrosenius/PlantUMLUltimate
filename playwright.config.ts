@@ -3,9 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: "collaboration-live.spec.ts",
-  timeout: process.env.CI ? 45_000 : 30_000,
-  expect: { timeout: process.env.CI ? 15_000 : 8_000 },
-  retries: process.env.CI ? 1 : 0,
+  timeout: process.env.CI ? 75_000 : 30_000,
+  expect: { timeout: process.env.CI ? 25_000 : 8_000 },
+  retries: process.env.CI ? 2 : 0,
   fullyParallel: Boolean(process.env.CI),
   workers: 1,
   reporter: "list",

@@ -79,15 +79,17 @@ test("creates a private collaboration link without exposing its credential in th
       onclose: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      constructor(url: string) {
+      constructor(url: string, protocols?: string[]) {
         const collaborationWindow = window as Window & {
           __collaborationSocket?: CollaborationWebSocket;
           __collaborationSocketUrls?: string[];
           __collaborationMessages?: string[];
           __collaborationUpdates?: number[][];
+          __collaborationSocketProtocols?: string[][];
         };
         collaborationWindow.__collaborationSocket = this;
         (collaborationWindow.__collaborationSocketUrls ??= []).push(url);
+        (collaborationWindow.__collaborationSocketProtocols ??= []).push(protocols ?? []);
         window.setTimeout(() => {
           this.onopen?.();
           this.onmessage?.(new MessageEvent("message", { data: new Uint8Array([0, 0]).buffer }));
@@ -110,6 +112,9 @@ test("creates a private collaboration link without exposing its credential in th
       }
     }
     Object.defineProperty(window, "WebSocket", { value: CollaborationWebSocket });
+    Object.defineProperty(window, "fetch", {
+      value: async () => new Response(null, { status: 204 }),
+    });
   });
   await page.getByRole("button", { name: "Collaborate" }).click();
   const dialog = page.getByRole("dialog", { name: "Collaboration" });
@@ -206,13 +211,16 @@ test("creates a private collaboration link without exposing its credential in th
   const rotation = await page.evaluate(() => ({
     urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
     messages: (window as Window & { __collaborationMessages?: string[] }).__collaborationMessages,
+    protocols: (window as Window & { __collaborationSocketProtocols?: string[][] }).__collaborationSocketProtocols,
   }));
   expect(rotation.urls).toHaveLength(2);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("owner"))).toBe(true);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("editor"))).toBe(true);
-  expect(rotation.urls?.every((url) => new URL(url).searchParams.has("viewer"))).toBe(true);
+  expect(rotation.urls?.every((url) => new URL(url).search === "")).toBe(true);
+  expect(rotation.protocols?.every((protocols) => protocols.includes("plantuml-collaboration"))).toBe(true);
+  expect(rotation.protocols?.every((protocols) => protocols.some((protocol) => protocol.startsWith("owner.")))).toBe(
+    true,
+  );
   expect(new URL(oldLink).hash).not.toContain("owner");
-  expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).toBe(true);
+  expect(rotation.messages?.some((message) => JSON.parse(message).type === "revoke-room")).not.toBe(true);
 });
 
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
@@ -1137,8 +1145,9 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
 
   await page.getByRole("button", { name: "Activity", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Activity settings" });
-  await settings.getByLabel("Title").fill("Order lifecycle");
-  await settings.getByLabel("Title").blur();
+  const title = settings.getByLabel("Title");
+  await title.fill("Order lifecycle");
+  await title.press("Tab");
   await expect(page.locator(".cm-content")).toContainText("title Order lifecycle");
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -1425,14 +1434,38 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   const targetBox = await target.boundingBox();
   expect(endpointBox).not.toBeNull();
   expect(targetBox).not.toBeNull();
-  await page.mouse.move(endpointBox!.x + endpointBox!.width / 2, endpointBox!.y + endpointBox!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move((endpointBox!.x + targetBox!.x) / 2, (endpointBox!.y + targetBox!.y) / 2);
+  const pointerId = 17;
+  const start = { x: endpointBox!.x + endpointBox!.width / 2, y: endpointBox!.y + endpointBox!.height / 2 };
+  const middle = {
+    x: (start.x + targetBox!.x + targetBox!.width / 2) / 2,
+    y: (start.y + targetBox!.y + targetBox!.height / 2) / 2,
+  };
+  await endpoint.dispatchEvent("pointerdown", {
+    pointerId,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    clientX: start.x,
+    clientY: start.y,
+  });
+  await page.locator(".usecase-diagram").dispatchEvent("pointermove", {
+    pointerId,
+    pointerType: "mouse",
+    buttons: 1,
+    clientX: middle.x,
+    clientY: middle.y,
+  });
   await expect(page.locator(".usecase-connection-preview")).toBeVisible();
   await expect(page.locator(".usecase-valid-drop").first()).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".usecase-connection-preview")).toHaveCount(0);
-  await page.mouse.up();
+  await page.locator(".usecase-diagram").dispatchEvent("pointerup", {
+    pointerId,
+    pointerType: "mouse",
+    button: 0,
+    clientX: middle.x,
+    clientY: middle.y,
+  });
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
 
   await expect(endpoint).toBeVisible();
@@ -2729,10 +2762,48 @@ test("drags a vertical separator and closes its inspector on an outside click", 
   const separator = page.locator('[data-vertical-separator-index="0"]');
   const box = await separator.boundingBox();
   expect(box).not.toBeNull();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + box!.width / 2 + 34, box!.y + box!.height / 2, { steps: 4 });
-  await page.mouse.up();
+  const dayWidth = await separator.evaluate((element) => {
+    const svg = element.ownerSVGElement!;
+    const scale = Math.abs(svg.getScreenCTM()?.a ?? 1);
+    return Number(element.getAttribute("data-day-width") ?? 16) * scale;
+  });
+  const start = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+  await separator.dispatchEvent("pointerdown", {
+    pointerId: 18,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    clientX: start.x,
+    clientY: start.y,
+  });
+  await page.evaluate(
+    ({ x, y }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          pointerId: 18,
+          pointerType: "mouse",
+          buttons: 1,
+          clientX: x,
+          clientY: y,
+        }),
+      ),
+    { x: start.x + dayWidth, y: start.y },
+  );
+  await page.evaluate(
+    ({ x, y }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          pointerId: 18,
+          pointerType: "mouse",
+          button: 0,
+          clientX: x,
+          clientY: y,
+        }),
+      ),
+    { x: start.x + dayWidth, y: start.y },
+  );
   await expect(page.locator(".cm-content")).toContainText("Separator just 1 day after [Build]'s end");
   await separator.dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Vertical separator inspector" })).toBeVisible();
@@ -3521,10 +3592,45 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
   expect(first).not.toBeNull();
   expect(second).not.toBeNull();
 
-  await page.mouse.move(second!.x + second!.width / 2, second!.y + second!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(first!.x + first!.width / 2, second!.y + second!.height / 2, { steps: 8 });
-  await page.mouse.up();
+  const start = { x: second!.x + second!.width / 2, y: second!.y + second!.height / 2 };
+  const targetPoint = { x: first!.x + first!.width / 2, y: start.y };
+  const secondTask = page.locator('[data-task-id="b"] .bar');
+  await secondTask.dispatchEvent("pointerdown", {
+    pointerId: 19,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    clientX: start.x,
+    clientY: start.y,
+  });
+  await page.evaluate(
+    ({ x, y }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          pointerId: 19,
+          pointerType: "mouse",
+          buttons: 1,
+          clientX: x,
+          clientY: y,
+        }),
+      ),
+    targetPoint,
+  );
+  await page.evaluate(
+    ({ x, y }) =>
+      window.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          pointerId: 19,
+          pointerType: "mouse",
+          button: 0,
+          clientX: x,
+          clientY: y,
+        }),
+      ),
+    targetPoint,
+  );
 
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-01");
   await expect(warning).toBeVisible();

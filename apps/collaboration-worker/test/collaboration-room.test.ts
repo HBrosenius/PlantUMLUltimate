@@ -9,10 +9,17 @@ async function connect(
   credentials?: { owner?: string; editor?: string; viewer?: string; access?: string },
 ): Promise<WebSocket> {
   const url = new URL(`https://collaboration.example/rooms/${roomId}`);
-  for (const [name, value] of Object.entries(credentials ?? {})) if (value) url.searchParams.set(name, value);
+  const protocols = [
+    "plantuml-collaboration",
+    ...Object.entries(credentials ?? {}).flatMap(([name, value]) => (value ? [`${name}.${value}`] : [])),
+  ];
   const response = await exports.default.fetch(
     new Request(url, {
-      headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
+      headers: {
+        Origin: "http://localhost:5173",
+        Upgrade: "websocket",
+        "Sec-WebSocket-Protocol": protocols.join(", "),
+      },
     }),
   );
   expect(response.status).toBe(101);
@@ -24,10 +31,13 @@ async function connect(
 
 async function roomResponse(roomId: string, access?: string): Promise<Response> {
   const url = new URL(`https://collaboration.example/rooms/${roomId}`);
-  if (access) url.searchParams.set("access", access);
   return exports.default.fetch(
     new Request(url, {
-      headers: { Origin: "http://localhost:5173", Upgrade: "websocket" },
+      headers: {
+        Origin: "http://localhost:5173",
+        Upgrade: "websocket",
+        "Sec-WebSocket-Protocol": ["plantuml-collaboration", ...(access ? [`access.${access}`] : [])].join(", "),
+      },
     }),
   );
 }
@@ -78,10 +88,13 @@ describe("collaboration Worker", () => {
 
   it("synchronizes and persists Yjs document updates", async () => {
     const roomId = "c".repeat(43);
-    const sender = await connect(roomId);
+    const ownerToken = "o".repeat(43);
+    const editorToken = "e".repeat(43);
+    const viewerToken = "v".repeat(43);
+    const sender = await connect(roomId, { owner: ownerToken, editor: editorToken, viewer: viewerToken });
     await nextBinary(sender);
 
-    const receiver = await connect(roomId);
+    const receiver = await connect(roomId, { access: editorToken });
     await nextBinary(receiver);
     const updateReceived = nextBinary(receiver);
     const authorReceived = nextJsonMessage<{ participant: { name: string } }>(receiver, "update-author");
@@ -102,7 +115,7 @@ describe("collaboration Worker", () => {
 
     sender.close(1000, "test complete");
     receiver.close(1000, "test complete");
-    const reconnected = await connect(roomId);
+    const reconnected = await connect(roomId, { access: editorToken });
     const persisted = new Y.Doc();
     Y.applyUpdate(persisted, await nextBinary(reconnected));
     expect(persisted.getText("source").toString()).toContain("Alice -> Bob");
@@ -119,14 +132,46 @@ describe("collaboration Worker", () => {
     const participant = await connect(roomId, { access: editorToken });
     await nextBinary(participant);
 
-    participant.send(JSON.stringify({ type: "revoke-room", ownerToken: "x".repeat(43) }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    const invalidRevocation = await exports.default.fetch(
+      new Request(`https://collaboration.example/rooms/${roomId}`, {
+        method: "POST",
+        headers: { Origin: "http://localhost:5173", "Content-Type": "text/plain" },
+        body: "x".repeat(43),
+      }),
+    );
+    expect(invalidRevocation.status).toBe(403);
     expect((await roomResponse(roomId, editorToken)).status).toBe(101);
 
     const closed = new Promise<CloseEvent>((resolve) => participant.addEventListener("close", resolve, { once: true }));
-    owner.send(JSON.stringify({ type: "revoke-room", ownerToken }));
+    const revocation = await exports.default.fetch(
+      new Request(`https://collaboration.example/rooms/${roomId}`, {
+        method: "POST",
+        headers: { Origin: "http://localhost:5173", "Content-Type": "text/plain" },
+        body: ownerToken,
+      }),
+    );
+    expect(revocation.status).toBe(204);
     await expect(closed).resolves.toMatchObject({ code: 4001 });
     expect((await roomResponse(roomId)).status).toBe(410);
+  });
+
+  it("requires credentials for first connection and never accepts credentials in the URL", async () => {
+    const roomId = "f".repeat(43);
+    expect((await roomResponse(roomId)).status).toBe(403);
+    const url = new URL(`https://collaboration.example/rooms/${roomId}`);
+    url.searchParams.set("owner", "o".repeat(43));
+    url.searchParams.set("editor", "e".repeat(43));
+    url.searchParams.set("viewer", "v".repeat(43));
+    const response = await exports.default.fetch(
+      new Request(url, {
+        headers: {
+          Origin: "http://localhost:5173",
+          Upgrade: "websocket",
+          "Sec-WebSocket-Protocol": "plantuml-collaboration",
+        },
+      }),
+    );
+    expect(response.status).toBe(403);
   });
 
   it("rejects document updates from viewer credentials", async () => {

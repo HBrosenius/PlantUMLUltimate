@@ -73,11 +73,11 @@ function linkCredentials(link: string) {
   };
 }
 
-async function attemptSocket(page: Page, url: string, update?: number[]) {
+async function attemptSocket(page: Page, url: string, access: string, update?: number[]) {
   return page.evaluate(
-    ({ socketUrl, bytes }) =>
+    ({ socketUrl, accessToken, bytes }) =>
       new Promise<{ opened: boolean; code?: number; reason?: string }>((resolve) => {
-        const socket = new WebSocket(socketUrl);
+        const socket = new WebSocket(socketUrl, ["plantuml-collaboration", `access.${accessToken}`]);
         socket.binaryType = "arraybuffer";
         let opened = false;
         const timer = window.setTimeout(() => {
@@ -99,7 +99,7 @@ async function attemptSocket(page: Page, url: string, update?: number[]) {
           resolve({ opened, code: event.code, reason: event.reason });
         };
       }),
-    { socketUrl: url, bytes: update },
+    { socketUrl: url, accessToken: access, bytes: update },
   );
 }
 
@@ -159,9 +159,9 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
   const maliciousUpdate = [...Y.encodeStateAsUpdate(maliciousDocument)];
   const viewerSocket = new URL(`${viewerCredentials.endpoint}/rooms/${viewerCredentials.room}`);
   viewerSocket.protocol = "ws:";
-  viewerSocket.searchParams.set("access", viewerCredentials.access);
-  viewerSocket.searchParams.set("participant", "malicious-viewer");
-  await expect(attemptSocket(viewer.page, viewerSocket.toString(), maliciousUpdate)).resolves.toMatchObject({
+  await expect(
+    attemptSocket(viewer.page, viewerSocket.toString(), viewerCredentials.access, maliciousUpdate),
+  ).resolves.toMatchObject({
     opened: true,
     code: 1008,
     reason: "Read-only collaboration",
@@ -169,8 +169,9 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
   await expect.poll(() => editorSource(page)).not.toContain("viewer must not write");
 
   const invalidSocket = new URL(viewerSocket);
-  invalidSocket.searchParams.set("access", "x".repeat(43));
-  await expect(attemptSocket(viewer.page, invalidSocket.toString())).resolves.toEqual({ opened: false });
+  await expect(attemptSocket(viewer.page, invalidSocket.toString(), "x".repeat(43))).resolves.toEqual({
+    opened: false,
+  });
 
   await editor.context.close();
   const reconnectedEditor = await join(browser, editorLink, "Editor Bob reconnected", "editor");
@@ -185,13 +186,17 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
     .getByRole("alertdialog", { name: "Revoke collaboration link" })
     .getByRole("button", { name: "Revoke and create new link" })
     .click();
-  await expect(page.getByRole("dialog", { name: "Collaboration" })).toContainText("Connected");
-  await expect(reconnectedEditor.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
-  await expect(viewer.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
+  await expect(page.locator(".statusbar")).toContainText("Old collaboration link revoked");
+  const rotatedDialog = page.getByRole("dialog", { name: "Collaboration" });
+  await expect(rotatedDialog.getByLabel("Editor link")).not.toHaveValue(editorLink);
+  await expect(rotatedDialog).toContainText("Connected");
 
   const revokedSocket = new URL(viewerSocket);
-  revokedSocket.searchParams.set("access", editorCredentials.access);
-  await expect(attemptSocket(viewer.page, revokedSocket.toString())).resolves.toEqual({ opened: false });
+  await expect(attemptSocket(viewer.page, revokedSocket.toString(), editorCredentials.access)).resolves.toEqual({
+    opened: false,
+  });
+  await expect(reconnectedEditor.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
+  await expect(viewer.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
 
   await reconnectedEditor.context.close();
   await viewer.context.close();

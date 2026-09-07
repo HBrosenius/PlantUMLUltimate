@@ -99,6 +99,28 @@ describe("Jira integration Worker", () => {
     expect(replay.status).toBe(400);
   });
 
+  it("returns an OAuth denial to the app and consumes its state", async () => {
+    const started = await startOAuth();
+    const callbackUrl = `${WORKER_ORIGIN}/oauth/callback?error=access_denied&state=${started.state}`;
+    const denied = await exports.default.fetch(
+      new Request(callbackUrl, {
+        headers: { Cookie: `jira_oauth_session=${started.temporaryCookie}` },
+        redirect: "manual",
+      }),
+    );
+    expect(denied.status).toBe(302);
+    expect(denied.headers.get("Location")).toBe(`${APP_ORIGIN}/editor?document=1&jira=error`);
+    expect(denied.headers.get("Set-Cookie")).toContain("jira_oauth_session=;");
+
+    const replay = await exports.default.fetch(
+      new Request(callbackUrl, {
+        headers: { Cookie: `jira_oauth_session=${started.temporaryCookie}` },
+        redirect: "manual",
+      }),
+    );
+    expect(replay.status).toBe(400);
+  });
+
   it("proxies field discovery and paginated enhanced JQL search", async () => {
     const connected = await connect();
     const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

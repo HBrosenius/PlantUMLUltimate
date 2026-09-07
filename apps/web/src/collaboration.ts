@@ -20,6 +20,30 @@ export interface CollaborationCredentials {
 }
 
 const REMOTE_ORIGIN = Symbol("remote-collaboration-update");
+const SAFE_PARTICIPANT_COLOR = /^#[0-9a-f]{6}$/i;
+
+function safeParticipant(value: unknown): CollaborationParticipant | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const participant = value as Partial<CollaborationParticipant>;
+  if (typeof participant.id !== "string" || participant.id.length > 100) return undefined;
+  return {
+    id: participant.id,
+    name: typeof participant.name === "string" ? participant.name.slice(0, 60) : "Anonymous",
+    color:
+      typeof participant.color === "string" && SAFE_PARTICIPANT_COLOR.test(participant.color)
+        ? participant.color
+        : "#64748b",
+    ...(participant.role === "viewer" ? { role: "viewer" as const } : { role: "editor" as const }),
+    ...(participant.cursor && Number.isFinite(participant.cursor.line) && Number.isFinite(participant.cursor.column)
+      ? { cursor: participant.cursor }
+      : {}),
+    ...(participant.selection &&
+    Number.isFinite(participant.selection.anchor) &&
+    Number.isFinite(participant.selection.head)
+      ? { selection: participant.selection }
+      : {}),
+  };
+}
 
 export interface SourceChangeRange {
   from: number;
@@ -39,23 +63,24 @@ export function changedRange(before: string, after: string): SourceChangeRange {
   return { from: prefix, to: Math.max(prefix, after.length - suffix) };
 }
 
-function websocketUrl(
-  endpoint: string,
-  roomId: string,
-  participantId: string,
-  credentials: CollaborationCredentials,
-): string {
+function websocketUrl(endpoint: string, roomId: string): string {
   const url = new URL(endpoint);
   url.protocol = url.protocol === "https:" ? "wss:" : url.protocol === "http:" ? "ws:" : url.protocol;
   url.pathname = `${url.pathname.replace(/\/$/, "")}/rooms/${roomId}`;
-  url.search = new URLSearchParams({
-    participant: participantId,
-    ...(credentials.accessToken ? { access: credentials.accessToken } : {}),
-    ...(credentials.ownerToken ? { owner: credentials.ownerToken } : {}),
-    ...(credentials.editorToken ? { editor: credentials.editorToken } : {}),
-    ...(credentials.viewerToken ? { viewer: credentials.viewerToken } : {}),
-  }).toString();
+  url.search = "";
   return url.toString();
+}
+
+const COLLABORATION_PROTOCOL = "plantuml-collaboration";
+
+function websocketProtocols(credentials: CollaborationCredentials): string[] {
+  return [
+    COLLABORATION_PROTOCOL,
+    ...(credentials.accessToken ? [`access.${credentials.accessToken}`] : []),
+    ...(credentials.ownerToken ? [`owner.${credentials.ownerToken}`] : []),
+    ...(credentials.editorToken ? [`editor.${credentials.editorToken}`] : []),
+    ...(credentials.viewerToken ? [`viewer.${credentials.viewerToken}`] : []),
+  ];
 }
 
 export function createCollaborationRoomId(): string {
@@ -154,7 +179,7 @@ export class CollaborationSession {
     if (this.stopped) return;
     this.synchronized = false;
     this.onConnection(this.reconnectAttempt ? "offline" : "connecting");
-    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId, this.participant.id, this.credentials));
+    const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId), websocketProtocols(this.credentials));
     socket.binaryType = "arraybuffer";
     this.socket = socket;
     socket.onopen = () => this.sendPresence();
@@ -168,9 +193,16 @@ export class CollaborationSession {
             (message as { type?: unknown }).type === "presence" &&
             Array.isArray((message as { participants?: unknown }).participants)
           )
-            this.onParticipants((message as { participants: CollaborationParticipant[] }).participants);
+            this.onParticipants(
+              (message as { participants: unknown[] }).participants.flatMap((participant) => {
+                const safe = safeParticipant(participant);
+                return safe ? [safe] : [];
+              }),
+            );
+          else if (message && typeof message === "object" && (message as { type?: unknown }).type === "room-revoked")
+            socket.close(4001, "Room link revoked");
           else if (message && typeof message === "object" && (message as { type?: unknown }).type === "update-author")
-            this.pendingRemoteAuthor = (message as { participant: CollaborationParticipant }).participant;
+            this.pendingRemoteAuthor = safeParticipant((message as { participant?: unknown }).participant);
         } catch {
           // Ignore malformed presence without interrupting document synchronization.
         }
@@ -237,9 +269,14 @@ export class CollaborationSession {
     }, 50);
   }
 
-  revokeRoom(): void {
-    if (!this.credentials.ownerToken || this.socket?.readyState !== WebSocket.OPEN) return;
-    this.socket.send(JSON.stringify({ type: "revoke-room", ownerToken: this.credentials.ownerToken }));
+  async revokeRoom(): Promise<void> {
+    if (!this.credentials.ownerToken) throw new Error("Only the room owner can revoke a collaboration link");
+    const response = await fetch(websocketUrl(this.endpoint, this.roomId).replace(/^ws/, "http"), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: this.credentials.ownerToken,
+    });
+    if (!response.ok) throw new Error(`Could not revoke collaboration link (${response.status})`);
   }
 
   stop(): void {

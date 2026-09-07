@@ -32,6 +32,8 @@ interface StoredSession {
   expires_at: number;
 }
 
+class InvalidSessionError extends Error {}
+
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
@@ -179,13 +181,18 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
   const state = requestUrl.searchParams.get("state");
   const code = requestUrl.searchParams.get("code");
   const browserSession = cookies(request).get(TEMP_COOKIE);
-  if (!state || !code || !browserSession) return Response.json({ error: "Invalid OAuth callback" }, { status: 400 });
+  if (!state || !browserSession) return Response.json({ error: "Invalid OAuth callback" }, { status: 400 });
   const consumed = await env.JIRA_DB.prepare(
     "DELETE FROM oauth_states WHERE state_hash = ? AND session_hash = ? AND expires_at >= ? RETURNING return_url",
   )
     .bind(await tokenHash(state), await tokenHash(browserSession), nowSeconds())
     .first<{ return_url: string }>();
   if (!consumed) return Response.json({ error: "OAuth state is invalid or expired" }, { status: 400 });
+  if (!code || requestUrl.searchParams.has("error")) {
+    const response = redirectResult(consumed.return_url, "error");
+    response.headers.append("Set-Cookie", cookie(TEMP_COOKIE, "", requestUrl, 0));
+    return response;
+  }
   try {
     const payload = await exchangeCode(code, `${requestUrl.origin}/oauth/callback`, env);
     const timestamp = nowSeconds();
@@ -220,7 +227,7 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
 
 async function refreshTokens(payload: SessionPayload, env: Env): Promise<SessionPayload> {
   if (payload.accessExpiresAt > nowSeconds() + 60) return payload;
-  if (!payload.refreshToken) throw new Error("Jira connection needs authorization again");
+  if (!payload.refreshToken) throw new InvalidSessionError("Jira connection needs authorization again");
   const response = await fetch("https://auth.atlassian.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -231,7 +238,11 @@ async function refreshTokens(payload: SessionPayload, env: Env): Promise<Session
       refresh_token: payload.refreshToken,
     }),
   });
-  if (!response.ok) throw new Error(`Jira token refresh failed (${response.status})`);
+  if (!response.ok) {
+    if (response.status >= 400 && response.status < 500)
+      throw new InvalidSessionError(`Jira token refresh failed (${response.status})`);
+    throw new Error(`Jira token refresh failed (${response.status})`);
+  }
   const token = await limitedJson<TokenResponse>(response);
   if (!token.access_token || !Number.isFinite(token.expires_in))
     throw new Error("Jira token refresh response is invalid");
@@ -253,7 +264,12 @@ async function sessionFor(request: Request, env: Env): Promise<{ hash: string; p
     .bind(hash, nowSeconds())
     .first<StoredSession>();
   if (!stored) return undefined;
-  let payload = await decryptJson<SessionPayload>(stored.encrypted_payload, env.TOKEN_ENCRYPTION_KEY);
+  let payload: SessionPayload;
+  try {
+    payload = await decryptJson<SessionPayload>(stored.encrypted_payload, env.TOKEN_ENCRYPTION_KEY);
+  } catch {
+    throw new InvalidSessionError("Jira session can no longer be decrypted");
+  }
   const refreshed = await refreshTokens(payload, env);
   if (refreshed !== payload) {
     payload = refreshed;
@@ -283,9 +299,33 @@ async function jiraFetch(
 
 async function apiRequest(request: Request, env: Env): Promise<Response> {
   if (!requestOriginAllowed(request, env)) return Response.json({ error: "Origin not allowed" }, { status: 403 });
-  const session = await sessionFor(request, env);
-  if (!session) return Response.json({ connected: false }, { status: 401 });
   const url = new URL(request.url);
+  const rawSession = cookies(request).get(SESSION_COOKIE);
+  if (url.pathname === "/api/disconnect" && request.method === "POST") {
+    if (rawSession)
+      await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
+        .bind(await tokenHash(rawSession))
+        .run();
+    return new Response(null, {
+      status: 204,
+      headers: { "Set-Cookie": cookie(SESSION_COOKIE, "", url, 0) },
+    });
+  }
+  let session: Awaited<ReturnType<typeof sessionFor>>;
+  try {
+    session = await sessionFor(request, env);
+  } catch (error) {
+    if (!(error instanceof InvalidSessionError)) throw error;
+    if (rawSession)
+      await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
+        .bind(await tokenHash(rawSession))
+        .run();
+    return Response.json(
+      { connected: false },
+      { status: 401, headers: { "Set-Cookie": cookie(SESSION_COOKIE, "", url, 0) } },
+    );
+  }
+  if (!session) return Response.json({ connected: false }, { status: 401 });
   if (url.pathname === "/api/connection" && request.method === "GET") {
     return Response.json({
       connected: true,
@@ -295,13 +335,6 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
         name,
         ...(avatarUrl ? { avatarUrl } : {}),
       })),
-    });
-  }
-  if (url.pathname === "/api/disconnect" && request.method === "POST") {
-    await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?").bind(session.hash).run();
-    return new Response(null, {
-      status: 204,
-      headers: { "Set-Cookie": cookie(SESSION_COOKIE, "", url, 0) },
     });
   }
   if (url.pathname === "/api/fields" && request.method === "GET") {
