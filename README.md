@@ -11,6 +11,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - Diagram-type chooser for Gantt, Sequence, Use Case, Class, Activity, and WBS documents
 - CodeMirror editor with diagram-specific syntax highlighting, diagnostics, quick fixes, and context-aware completion
 - Semantic reference highlighting, navigation, and document-wide rename actions
+- Conservative Sequence semantic review with grouped acceptance and local patch/report export
 - Official PlantUML rendering through the browser-local `@plantuml/core` engine
 - Code, split, and diagram-only views
 - Multiple open documents with reorderable tabs and independent per-document settings

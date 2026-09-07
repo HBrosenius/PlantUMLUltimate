@@ -72,6 +72,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
   const cache = useRef(new Map<string, Omit<RenderResult, "requestId">>());
   const renderTimeout = useRef<number | undefined>(undefined);
   const flushPending = useRef<(() => void) | undefined>(undefined);
+  const restartFrame = useRef<(() => void) | undefined>(undefined);
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
   const [retryToken, setRetryToken] = useState(0);
@@ -99,6 +100,9 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       renderTimeout.current = window.setTimeout(() => {
         if (!busy.current) return;
         busy.current = false;
+        ready.current = false;
+        instance?.remove();
+        frame.current = null;
         if (latestRequest.current === request.requestId) {
           setStatus("error");
           setResult((previous) => ({
@@ -108,7 +112,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
             ...(previous?.svg ? { svg: previous.svg } : {}),
           }));
         }
-        sendPending();
+        recoveryTimer = window.setTimeout(boot, 100);
       }, 15_000);
     };
     flushPending.current = sendPending;
@@ -184,6 +188,10 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       document.body.append(instance);
       frame.current = instance;
     };
+    restartFrame.current = () => {
+      window.clearTimeout(recoveryTimer);
+      recoveryTimer = window.setTimeout(boot, 100);
+    };
     const requestIdle = (window as unknown as { requestIdleCallback?: typeof window.requestIdleCallback })
       .requestIdleCallback;
     const idleId = requestIdle ? requestIdle(boot, { timeout: 400 }) : window.setTimeout(boot, 50);
@@ -201,6 +209,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       window.clearTimeout(renderTimeout.current);
       window.clearTimeout(recoveryTimer);
       flushPending.current = undefined;
+      restartFrame.current = undefined;
     };
   }, [enabled, layoutEngine]);
 
@@ -231,6 +240,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
         renderTimeout.current = window.setTimeout(() => {
           if (!busy.current) return;
           busy.current = false;
+          ready.current = false;
           if (latestRequest.current === request.requestId) {
             setStatus("error");
             setResult((previous) => ({
@@ -240,7 +250,7 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
               ...(previous?.svg ? { svg: previous.svg } : {}),
             }));
           }
-          flushPending.current?.();
+          restartFrame.current?.();
         }, 15_000);
       }
     }, 150);
