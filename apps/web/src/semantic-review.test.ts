@@ -18,6 +18,24 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("marks an identity-changing participant rename as probable", () => {
+    expect(
+      buildReviewGroups("@startuml\nparticipant Old\n@enduml", "@startuml\nparticipant New\n@enduml", "sequence"),
+    ).toMatchObject([{ title: "Possible participant rename: Old → New", confidence: "probable" }]);
+  });
+
+  it("describes recognized Gantt duration and date changes", () => {
+    const before = "@startgantt\n[A] starts 2026-09-01\n[A] lasts 2 days\n@endgantt";
+    const after = "@startgantt\n[A] starts 2026-09-03\n[A] lasts 4 days\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Change schedule for A",
+        detail: "A single transaction updates start and duration.",
+        confidence: "confirmed",
+      },
+    ]);
+  });
+
   it("applies only selected source groups without rewriting neighbouring lines", () => {
     const before = "@startuml\nparticipant A\n\nA -> B: First\n@enduml";
     const after = "@startuml\nparticipant A\nparticipant B\n\nA -> B: Second\n@enduml";
