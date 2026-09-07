@@ -43,6 +43,16 @@ export interface JiraIssueUpdateResult {
   status?: number;
 }
 
+class JiraRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "JiraRequestError";
+  }
+}
+
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${endpoint.replace(/\/$/, "")}${path}`, { ...init, credentials: "include" });
   if (!response.ok) {
@@ -53,7 +63,7 @@ async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): P
     } catch {
       // Keep the status-based fallback when the service did not return JSON.
     }
-    throw new Error(message);
+    throw new JiraRequestError(message, response.status);
   }
   return response.json() as Promise<T>;
 }
@@ -62,7 +72,7 @@ export async function jiraConnection(endpoint: string): Promise<JiraConnectionRe
   try {
     return await apiJson<JiraConnectionResponse>(endpoint, "/api/connection");
   } catch (error) {
-    if (error instanceof Error && error.message.includes("(401)")) return { connected: false };
+    if (error instanceof JiraRequestError && error.status === 401) return { connected: false };
     throw error;
   }
 }

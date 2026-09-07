@@ -122,6 +122,81 @@ test("disconnects Jira without exposing credentials to the browser", async ({ pa
   expect(requests.every((request) => !JSON.stringify(request).toLowerCase().includes("client_secret"))).toBe(true);
 });
 
+test("recovers from an expired Jira session and reports OAuth denial", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "open", {
+      configurable: true,
+      value: (url: string | URL | undefined) => {
+        (window as Window & { __jiraPopupUrl?: string }).__jiraPopupUrl = String(url ?? "");
+        return window;
+      },
+    });
+  });
+  await page.route(`${integrationOrigin}/**`, async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/connection") {
+      await route.fulfill({ status: 401, json: { error: "Jira session is invalid" } });
+      return;
+    }
+    await route.abort();
+  });
+  await openGantt(page);
+  await openJira(page);
+
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  const connect = dialog.getByRole("button", { name: "Connect Jira" });
+  await expect(connect).toBeVisible();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await connect.click();
+  await expect
+    .poll(() => page.evaluate(() => (window as Window & { __jiraPopupUrl?: string }).__jiraPopupUrl))
+    .toContain("/oauth/start?return_url=");
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: { type: "plantuml-studio:jira-oauth", result: "error" },
+      }),
+    );
+  });
+  await expect(dialog.getByRole("alert")).toContainText("Jira authorization was not completed");
+});
+
+test("keeps disconnect available when loading Jira fields fails", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route(`${integrationOrigin}/**`, async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    requests.push(`${request.method()} ${url.pathname}`);
+    if (url.pathname === "/api/connection") {
+      await route.fulfill({
+        json: {
+          connected: true,
+          sites: [{ id: "cloud-1", name: "Acme Jira", url: "https://acme.atlassian.net" }],
+        },
+      });
+      return;
+    }
+    if (url.pathname === "/api/fields") {
+      await route.fulfill({ status: 503, json: { error: "Atlassian is temporarily unavailable" } });
+      return;
+    }
+    if (url.pathname === "/api/disconnect") {
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    await route.abort();
+  });
+  await openGantt(page);
+  await openJira(page);
+
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog.getByRole("alert")).toContainText("Atlassian is temporarily unavailable");
+  await dialog.getByRole("button", { name: "Disconnect" }).click();
+  await expect(dialog.getByRole("button", { name: "Connect Jira" })).toBeVisible();
+  expect(requests).toContain("POST /api/disconnect");
+});
+
 test("requires an explicit choice when a Jira refresh conflicts with a local edit", async ({ page }) => {
   const issues = { current: [jiraIssue()] };
   await mockJira(page, issues);
