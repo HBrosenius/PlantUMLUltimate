@@ -524,6 +524,14 @@ describe("dependency operations", () => {
     expect(changed).toBe("@startgantt\n[Design] lasts 2 days\n[Build] lasts 4 days\n@endgantt");
   });
 
+  it("removes an inline dependency without removing the task's other clauses", () => {
+    const source = "@startgantt\n[Design] lasts 2 days\n[Build] starts at [Design]'s end and lasts 4 days\n@endgantt";
+    const dependency = parseGantt(source).document.dependencies[0]!;
+    const changed = applySourceEdits(source, removeDependency(source, dependency.sourceRange).edits);
+    expect(changed).toContain("[Build] lasts 4 days");
+    expect(changed).not.toContain("starts at [Design]'s end");
+  });
+
   it("rewrites dependency type, offset, direction, color, and style", () => {
     const source =
       "@startgantt\n[Design] lasts 2 days\n[Build] starts at [Design]'s end\n[Build] lasts 4 days\n@endgantt";
@@ -541,6 +549,36 @@ describe("dependency operations", () => {
       }).edits,
     );
     expect(changed).toContain("[Build] starts 3 days after [Design]'s start with Blue dotted link");
+  });
+
+  it("rewrites an inline dependency without duplicating the task or dropping adjacent clauses", () => {
+    const source = "@startgantt\n[Design] lasts 2 days\n[Build] starts at [Design]'s end and lasts 4 days\n@endgantt";
+    const dependency = parseGantt(source).document.dependencies[0]!;
+    const changed = applySourceEdits(
+      source,
+      updateDependency(source, dependency, {
+        predecessorLabel: "Design",
+        successorLabel: "Build",
+        relation: "end-after-end",
+        offset: 0,
+        direction: "after",
+        lineStyle: "solid",
+      }).edits,
+    );
+    expect(changed).toContain("[Build] ends at [Design]'s end and lasts 4 days");
+    expect(changed).not.toContain("[Build] [Build]");
+  });
+
+  it("preserves an inline dependency when replacing duration with an explicit end", () => {
+    let source =
+      "@startgantt\n[Design] starts 2026-09-01 and lasts 2 days\n[Build] starts at [Design]'s end and lasts 3 days\n@endgantt";
+    let task = parseGantt(source).document.symbols.tasks.get("build")!;
+    source = applySourceEdits(source, setTaskDeclaration(source, task, "end", "ends 2026-09-05").edits);
+    task = parseGantt(source).document.symbols.tasks.get("build")!;
+    source = applySourceEdits(source, setTaskDeclaration(source, task, "duration").edits);
+    expect(source).toContain("[Build] starts at [Design]'s end");
+    expect(source).toContain("[Build] ends 2026-09-05");
+    expect(source).not.toContain("lasts 3 days");
   });
 
   it("omits the style word for a colored solid-style link, since the renderer doesn't recognize it", () => {

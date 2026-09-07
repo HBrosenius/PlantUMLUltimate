@@ -551,11 +551,9 @@ export function addCanonicalGanttOverlay(
     if (arrowhead) {
       arrowhead.setAttribute("data-dependency-index", String(index));
       arrowhead.setAttribute("data-canonical-dependency-arrowhead", "true");
-      arrowhead.setAttribute("role", "button");
-      arrowhead.setAttribute(
-        "aria-label",
-        `Select dependency from ${dependency.predecessor.value} to ${dependency.successor.value}`,
-      );
+      // Keep the larger arrowhead as a pointer target, but expose only the
+      // keyboard-focusable path as the dependency's accessible button.
+      arrowhead.setAttribute("aria-hidden", "true");
     }
     root.append(path);
     dependencyAnchors.set(index, pathMidpoint(path, { x: (x1 + x2) / 2, y: (y1 + y2) / 2 }));

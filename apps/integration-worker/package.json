@@ -1,7 +1,7 @@
 {
   "name": "@plantuml-studio/integration-worker",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "build": "wrangler deploy --dry-run --outdir dist",

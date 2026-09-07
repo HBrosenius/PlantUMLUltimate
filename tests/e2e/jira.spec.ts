@@ -11,6 +11,11 @@ async function openGantt(page: Page) {
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 
+async function openJira(page: Page) {
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Jira…" }).click();
+}
+
 function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:00:00.000Z") {
   return {
     id: "10001",
@@ -72,7 +77,7 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
   const requests = await mockJira(page);
   await openGantt(page);
 
-  await page.getByRole("button", { name: "Jira", exact: true }).click();
+  await openJira(page);
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByLabel("JQL").fill("project = APP ORDER BY Rank");
@@ -107,7 +112,7 @@ test("disconnects Jira without exposing credentials to the browser", async ({ pa
   const requests = await mockJira(page);
   await openGantt(page);
 
-  await page.getByRole("button", { name: "Jira", exact: true }).click();
+  await openJira(page);
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByRole("button", { name: "Disconnect" }).click();
@@ -122,7 +127,7 @@ test("requires an explicit choice when a Jira refresh conflicts with a local edi
   await mockJira(page, issues);
   await openGantt(page);
 
-  await page.getByRole("button", { name: "Jira", exact: true }).click();
+  await openJira(page);
   let dialog = page.getByRole("dialog", { name: "Jira integration" });
   await dialog.getByLabel("JQL").fill("project = APP");
   await dialog.getByLabel("Start date").selectOption("customfield_10042");
@@ -137,7 +142,7 @@ test("requires an explicit choice when a Jira refresh conflicts with a local edi
   await expect(editor).toContainText("Keep my local title");
   issues.current = [jiraIssue("Use the Jira title", "2026-09-01T08:00:00.000Z")];
 
-  await page.getByRole("button", { name: "Jira", exact: true }).click();
+  await openJira(page);
   dialog = page.getByRole("dialog", { name: "Jira integration" });
   await dialog.getByRole("button", { name: "Review refresh" }).click();
   await expect(dialog).toContainText("1 fields need resolution");

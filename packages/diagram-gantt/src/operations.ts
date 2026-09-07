@@ -288,6 +288,19 @@ export function removeDependency(
   dependencyRange: { from: number; to: number },
   notes: readonly GanttNote[] = [],
 ): MoveTaskResult {
+  const lineFrom = source.lastIndexOf("\n", dependencyRange.from - 1) + 1;
+  const prefix = source.slice(lineFrom, dependencyRange.from);
+  if (/\[[^\]]+]\s+(?:as\s+\[[^\]]+]\s+)?(?:on\s+(?:\{[^}]+}\s*)+)?$/i.test(prefix)) {
+    let from = dependencyRange.from;
+    let to = dependencyRange.to;
+    const after = source.slice(to).match(/^\s+and\s+/i)?.[0];
+    if (after) to += after.length;
+    else {
+      const before = source.slice(0, from).match(/\s+and\s+$/i)?.[0];
+      if (before) from -= before.length;
+    }
+    return { edits: [{ range: { from, to }, text: "" }] };
+  }
   let from = dependencyRange.from;
   let to = notes.length
     ? Math.max(dependencyRange.to, ...notes.map((note) => note.sourceRange.to))
@@ -488,6 +501,9 @@ export function updateDependency(source: string, dependency: GanttDependency, va
       ? `${successorVerb} at [${value.predecessorLabel}]'s ${predecessorAnchor}`
       : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"}${styleSuffix} link` : ""}`;
   const original = source.slice(dependency.sourceRange.from, dependency.sourceRange.to);
+  if (!/^\s*\[/.test(original)) {
+    return { edits: [{ range: dependency.sourceRange, text: relation }] };
+  }
   const indentation = original.match(/^\s*/)?.[0] ?? "";
   const alias = original.match(/\bas\s+\[[^\]]+]/i)?.[0];
   const resources = original.match(/\bon\s+(?:\{[^}]+}\s*)+/i)?.[0]?.trim();

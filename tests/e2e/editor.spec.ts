@@ -55,6 +55,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
+  await page.getByRole("button", { name: "Close project inspector" }).click();
 });
 
 test("shows the diagram splash after closing the final tab", async ({ page }) => {
@@ -240,6 +241,8 @@ test("zooms with the mouse wheel and pans with the middle mouse button", async (
 test("keeps the split divider fixed while source selection highlights tasks", async ({ page }) => {
   await setSource(page, source("[Design] lasts 3 days\n[Build] starts at [Design]'s end and lasts 4 days"));
   const divider = page.getByRole("separator");
+  const expectedDividerX = await page.evaluate(() => window.innerWidth / 2);
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(expectedDividerX, 0);
   const editor = page.locator(".cm-content");
   const initialX = (await divider.boundingBox())!.x;
 
@@ -408,6 +411,8 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
   await setSource(page, "@startuml\nparticipant API\nparticipant Store\nAPI -> Store: Save\n@enduml");
 
   const divider = page.getByRole("separator");
+  const expectedDividerX = await page.evaluate(() => window.innerWidth / 2);
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(expectedDividerX, 0);
   const initialDividerX = (await divider.boundingBox())!.x;
   await page.getByRole("button", { name: "Zoom in" }).click();
   const resetZoom = page.getByRole("button", { name: /Reset zoom/ });
@@ -830,8 +835,8 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.keyboard.press("Enter");
   const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
   await inspector.getByLabel("Label").fill("Experience design");
-  await inspector.getByLabel("Background color").fill("LightBlue");
-  await inspector.getByLabel("Text color").fill("DarkBlue");
+  await inspector.getByLabel("Background color", { exact: true }).fill("LightBlue");
+  await inspector.getByLabel("Text color", { exact: true }).fill("DarkBlue");
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("**[#LightBlue] <color:#DarkBlue>Experience design</color>");
   const movedDesign = page.locator("text[data-wbs-node-id]", { hasText: "Experience design" }).first();
@@ -951,7 +956,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("operations -> delivery");
   await expect(wbsPreview).toHaveAttribute("data-render-status", "idle");
-  await arrowInspector.getByLabel("Arrow color").fill("DarkGreen");
+  await arrowInspector.getByLabel("Arrow color", { exact: true }).fill("DarkGreen");
   await arrowInspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("operations -> delivery #DarkGreen");
   await arrowInspector.getByRole("button", { name: "Delete arrow" }).click();
@@ -996,7 +1001,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await rel.getByLabel("Label").fill("state");
   await rel.getByLabel("From multiplicity").fill("1");
   await rel.getByLabel("To multiplicity").fill("many");
-  await rel.getByLabel("Color").fill("DarkGreen");
+  await rel.getByLabel("Color", { exact: true }).fill("DarkGreen");
   await rel.getByRole("button", { name: "Add relationship" }).click();
   await expect(page.locator(".cm-content")).toContainText('Order "1" *-[#DarkGreen]-> "many" Status : state');
 
@@ -1005,7 +1010,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   const classPackage = page.getByRole("dialog", { name: "Add Class package" });
   await classPackage.getByLabel("Package name").fill("Reporting");
   await classPackage.getByLabel("Package alias").fill("Reports");
-  await classPackage.getByLabel("Color").fill("Lavender");
+  await classPackage.getByLabel("Color", { exact: true }).fill("Lavender");
   await classPackage.getByLabel("Parent container").selectOption("ordering");
   await classPackage.getByRole("button", { name: "Add package" }).click();
   await expect(page.locator(".cm-content")).toContainText('package "Reporting" as Reports #Lavender');
@@ -1016,7 +1021,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await classNote.getByLabel("Attached to").selectOption("status");
   await classNote.getByLabel("Position").selectOption("left");
   await classNote.getByLabel("Text").fill("Lifecycle state");
-  await classNote.getByLabel("Color").fill("Wheat");
+  await classNote.getByLabel("Color", { exact: true }).fill("Wheat");
   await classNote.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note left of Status #Wheat : Lifecycle state");
 
@@ -1026,7 +1031,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await relationshipNote.getByLabel("Attached to").selectOption("relationship-2");
   await expect(relationshipNote.getByLabel("Position")).toHaveCount(0);
   await relationshipNote.getByLabel("Text").fill("State ownership");
-  await relationshipNote.getByLabel("Color").fill("LightYellow");
+  await relationshipNote.getByLabel("Color", { exact: true }).fill("LightYellow");
   await relationshipNote.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note on link #LightYellowState ownershipend note");
 
@@ -1140,7 +1145,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await page.getByRole("menuitem", { name: "Partition…" }).click();
   const partition = page.getByRole("dialog", { name: "Add Activity partition" });
   await partition.getByLabel("Name").fill("Operations");
-  await partition.getByLabel("Color").fill("Lavender");
+  await partition.getByLabel("Color", { exact: true }).fill("Lavender");
   await partition.getByRole("button", { name: "Add partition" }).click();
   await expect(page.locator(".cm-content")).toContainText('partition "Operations" #Lavender');
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
@@ -1155,7 +1160,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await action.getByLabel("Text").fill("Archive order");
   await action.getByLabel("Partition").selectOption("operations-team");
   await action.getByLabel("Stereotype").fill("service");
-  await action.getByLabel("Color").fill("PaleGreen");
+  await action.getByLabel("Color", { exact: true }).fill("PaleGreen");
   await action.getByRole("button", { name: "Add action" }).click();
   await expect(page.locator(".cm-content")).toContainText(":Archive order; <<service>> <<#PaleGreen>>");
 
@@ -1219,7 +1224,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await flowArrow.getByLabel("Place after").selectOption({ label: "Archive completed order" });
   await flowArrow.getByLabel("Label").fill("continue");
   await flowArrow.getByLabel("Line style").selectOption("dashed");
-  await flowArrow.getByLabel("Color").fill("Blue");
+  await flowArrow.getByLabel("Color", { exact: true }).fill("Blue");
   await flowArrow.getByRole("button", { name: "Add arrow" }).click();
   await expect(page.locator(".cm-content")).toContainText("-[#Blue,dashed]-> [continue]");
 
@@ -1270,7 +1275,7 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   const actorDialog = page.getByRole("dialog", { name: "Add Use Case object" });
   await actorDialog.getByLabel("Name").fill("Administrator");
   await actorDialog.getByLabel("Alias").fill("Admin");
-  await actorDialog.getByLabel("Color").fill("#LightBlue");
+  await actorDialog.getByLabel("Color", { exact: true }).fill("#LightBlue");
   await actorDialog.getByRole("button", { name: "Add actor" }).click();
   await expect(page.locator(".cm-content")).toContainText('actor "Administrator" as Admin #LightBlue');
   await page.locator('[data-usecase-object-id="admin"]').first().click();
@@ -1385,8 +1390,8 @@ test("edits general Use Case settings without rewriting diagram objects", async 
   await settings.getByLabel("Diagram title").fill("Customer portal");
   await settings.getByLabel("Caption").click();
   await expect(page.locator(".cm-content")).toContainText("title Customer portal");
-  await settings.getByLabel("Actor fill").fill("#LightBlue");
-  await settings.getByLabel("Actor border").click();
+  await settings.getByLabel("Actor fill", { exact: true }).fill("#LightBlue");
+  await settings.getByLabel("Actor border", { exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("skinparam actorBackgroundColor #LightBlue");
   await expect(page.locator(".cm-content")).toContainText("actor Customer");
   await expect(page.locator(".cm-content")).toContainText('usecase "Browse products" as Browse');
@@ -1654,6 +1659,11 @@ test("starts a new version lineage after Save As", async ({ page }) => {
       value: async () => ({
         name: "forked-plan.puml",
         createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
+        getFile: async () =>
+          new File(
+            ["@startgantt\nProject starts 2026-09-01\n[Original lineage] lasts 2 days\n@endgantt"],
+            "forked-plan.puml",
+          ),
       }),
     });
   });
@@ -1783,13 +1793,13 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const participant = page.getByRole("dialog", { name: "Add participant" });
   await expect(participant.locator('datalist option[value="#LightBlue"]')).toHaveCount(1);
   await expect(participant.getByLabel("Color", { exact: true })).toHaveAttribute("list", /.+/);
-  await expect(participant.getByLabel("Spot color")).toHaveAttribute("list", /.+/);
+  await expect(participant.getByLabel("Spot color", { exact: true })).toHaveAttribute("list", /.+/);
   await participant.getByRole("combobox", { name: "Participant kind" }).click();
   await participant.getByRole("option", { name: /Database/ }).click();
   await participant.getByLabel("Name").fill("Orders");
   await participant.getByLabel("Stereotype").fill("Store");
   await participant.getByLabel("Spot character").fill("D");
-  await participant.getByLabel("Spot color").fill("#FDE68A");
+  await participant.getByLabel("Spot color", { exact: true }).fill("#FDE68A");
   await participant.getByLabel("Display order").fill("30");
   await participant.getByRole("button", { name: "Add participant" }).click();
   await expect(page.locator(".cm-content")).toContainText("database Orders <<(D,#FDE68A) Store>> order 30");
@@ -1859,6 +1869,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const requestText = page.locator('[data-sequence-message-endpoint="to"][data-sequence-message-id="message-0"]');
   const ordersParticipant = page.locator('.sequence-participant-anchor[data-sequence-participant-id="orders"]');
   const senderParticipant = page.locator('.sequence-participant-anchor[data-sequence-participant-id="user"]');
+  await expect(requestText).toBeVisible();
+  await expect(ordersParticipant).toBeVisible();
   const requestBox = await requestText.boundingBox();
   const ordersBox = await ordersParticipant.boundingBox();
   expect(requestBox).not.toBeNull();
@@ -1881,6 +1893,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
 
   const senderHandle = page.locator('[data-sequence-message-endpoint="from"][data-sequence-message-id="message-0"]');
   const systemAnchor = page.locator('.sequence-participant-anchor[data-sequence-participant-id="system"]');
+  await expect(senderHandle).toBeVisible();
+  await expect(systemAnchor).toBeVisible();
   const senderBox = await senderHandle.boundingBox();
   const systemAnchorBox = await systemAnchor.boundingBox();
   expect(senderBox).not.toBeNull();
@@ -1964,9 +1978,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const fragmentDialog = page.getByRole("dialog", { name: "Add Sequence fragment" });
   await fragmentDialog.getByLabel("Label", { exact: true }).fill("Successful request");
   await fragmentDialog.getByLabel("Second branch label").fill("Failure");
-  await fragmentDialog.getByLabel("Header color").fill("#Gold");
-  await fragmentDialog.getByLabel("Background color").fill("#LightBlue");
-  await fragmentDialog.getByLabel("Second branch color").fill("#Pink");
+  await fragmentDialog.getByLabel("Header color", { exact: true }).fill("#Gold");
+  await fragmentDialog.getByLabel("Background color", { exact: true }).fill("#LightBlue");
+  await fragmentDialog.getByLabel("Second branch color", { exact: true }).fill("#Pink");
   await fragmentDialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("alt#Gold #LightBlue Successful request");
   await expect(page.locator(".cm-content")).toContainText("else #Pink Failure");
@@ -2025,7 +2039,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const structureInspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
   await expect(structureInspector).toBeVisible();
   await structureInspector.getByLabel("Branch 2 label").fill("Rejected");
-  await structureInspector.getByLabel("Branch 2 color").fill("#Red");
+  await structureInspector.getByLabel("Branch 2 color", { exact: true }).fill("#Red");
   await structureInspector.getByRole("button", { name: "Add branch" }).click();
   await structureInspector.getByLabel("Branch 3 label").fill("Timed out");
   await structureInspector.getByRole("button", { name: "Apply" }).click();
@@ -2067,9 +2081,9 @@ test("configures advanced Sequence layout and style with undo and redo", async (
   await settings.getByLabel("Message wrap width").fill("180");
   await settings.getByLabel("Participant padding").fill("24");
   await settings.getByLabel("Box padding").fill("12");
-  await settings.getByLabel("Arrow color").fill("#2563EB");
-  await settings.getByLabel("Participant fill").fill("#EFF6FF");
-  await settings.getByLabel("Note fill").fill("#FEF3C7");
+  await settings.getByLabel("Arrow color", { exact: true }).fill("#2563EB");
+  await settings.getByLabel("Participant fill", { exact: true }).fill("#EFF6FF");
+  await settings.getByLabel("Note fill", { exact: true }).fill("#FEF3C7");
   await settings.getByRole("button", { name: "Apply" }).click();
 
   const editor = page.locator(".cm-content");
@@ -2217,7 +2231,7 @@ test("selects and edits Sequence notes and references from the diagram", async (
   await inspector.getByLabel("Placement").selectOption("right of");
   await inspector.getByLabel("Participant").selectOption("Orders");
   await inspector.getByLabel("Text").fill("Review order");
-  await inspector.getByLabel("Color").fill("#Yellow");
+  await inspector.getByLabel("Color", { exact: true }).fill("#Yellow");
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("rnote right of Orders #Yellow: Review order");
 
@@ -2229,7 +2243,7 @@ test("selects and edits Sequence notes and references from the diagram", async (
   await inspector.getByLabel("First participant").selectOption("System");
   await inspector.getByLabel("Second participant").selectOption("Orders");
   await inspector.getByLabel("Text").fill("Updated external flow");
-  await inspector.getByLabel("Color").fill("#Lavender");
+  await inspector.getByLabel("Color", { exact: true }).fill("#Lavender");
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("ref#Lavender over System, Orders: Updated external flow");
   await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
@@ -2253,7 +2267,7 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
   await inspector.getByLabel("Orders").check();
   await inspector.getByLabel("API").uncheck();
   await inspector.getByLabel("Label").fill("Services");
-  await inspector.getByLabel("Color").fill("#Lavender");
+  await inspector.getByLabel("Color", { exact: true }).fill("#Lavender");
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect
     .poll(() => page.locator(".cm-content").innerText())
@@ -2268,7 +2282,7 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
   await page.getByRole("button", { name: "Drag Activation: API vertically", exact: true }).first().click();
   await inspector.getByLabel("Action").selectOption("destroy");
   await inspector.getByLabel("Participant").selectOption("Orders");
-  await expect(inspector.getByLabel("Color")).toHaveCount(0);
+  await expect(inspector.getByLabel("Color", { exact: true })).toHaveCount(0);
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("destroy Orders");
 
@@ -2567,7 +2581,7 @@ test("starts a highlighted date by clicking the timeline header", async ({ page 
 
   const dialog = page.getByRole("dialog", { name: "Highlight 2026-09-18" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Color").fill("#ffd700");
+  await dialog.getByLabel("Color", { exact: true }).fill("#ffd700");
   await dialog.getByRole("button", { name: "Highlight" }).click();
   await expect(page.locator(".cm-content")).toContainText("2026-09-18 is colored in #ffd700");
 
@@ -3416,7 +3430,6 @@ test("edits an end-to-end task relationship from the task inspector", async ({ p
   await expect(page.locator(".cm-content")).toContainText("[B] ends at [A]'s end");
   await expect(page.locator(".cm-content")).not.toContainText("[B] starts at [A]'s end");
 
-  await page.locator('[data-task-id="b"] .bar').click();
   await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Relationship")).toHaveValue(
     "end-after-end",
   );
@@ -3569,9 +3582,9 @@ test("saves task inspector text fields on blur instead of while typing", async (
   await page.locator('[data-task-id="build"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByRole("button", { name: "Apply" })).toHaveCount(0);
-  await inspector.getByLabel("Color").fill("Orange");
+  await inspector.getByLabel("Color", { exact: true }).fill("Orange");
   await expect(page.locator(".cm-content")).not.toContainText("[Build] is colored in Orange");
-  await inspector.getByLabel("Color").blur();
+  await inspector.getByLabel("Color", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("[Build] is colored in Orange");
   await expect(inspector).toBeVisible();
   await inspector.getByLabel("Name").fill("Compile");
@@ -3597,7 +3610,7 @@ test("applies a dependency's line color as soon as it's picked from the palette"
   await expect(inspector).toBeVisible();
   await inspector.getByRole("button", { name: "Choose line color from a palette" }).click();
   await inspector.getByRole("button", { name: "Red", exact: true }).click();
-  await expect(page.locator(".cm-content")).toContainText("with Red solid link");
+  await expect(page.locator(".cm-content")).toContainText("with Red link");
 });
 
 test("closes inspectors on any outside click and switches directly to another task", async ({ page }) => {

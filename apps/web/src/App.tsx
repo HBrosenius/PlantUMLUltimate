@@ -124,6 +124,7 @@ import {
   moveVerticalSeparatorByDays,
   normalizeTaskId,
   parseGantt,
+  removeDependency,
   renameResource,
   renameTask,
   setNote,
@@ -3219,6 +3220,39 @@ export function App() {
       source = applySourceEdits(source, renamed.edits);
       currentId = original.alias ? original.id : normalizeTaskId(value.label);
 
+      const existingDependency = parseGantt(source).document.dependencies.find(
+        (item) => item.successorTaskId === currentId,
+      );
+      const predecessor = value.predecessorId
+        ? parseGantt(source).document.symbols.tasks.get(value.predecessorId)
+        : undefined;
+      if (
+        existingDependency &&
+        predecessor &&
+        (existingDependency.predecessorTaskId !== predecessor.id ||
+          existingDependency.relation !== value.dependencyRelation)
+      ) {
+        const dependencyOperation = updateDependency(source, existingDependency, {
+          predecessorLabel: predecessor.alias?.value ?? predecessor.label,
+          successorLabel: current()?.alias?.value ?? current()?.label ?? value.label,
+          relation: value.dependencyRelation,
+          offset: existingDependency.offset?.value ?? 0,
+          direction: existingDependency.direction ?? "after",
+          ...(existingDependency.color?.value ? { color: existingDependency.color.value } : {}),
+          lineStyle: existingDependency.lineStyle?.value ?? "solid",
+        });
+        if (dependencyOperation.unavailableReason) {
+          setInteractionMessage(dependencyOperation.unavailableReason);
+          return;
+        }
+        source = applySourceEdits(source, dependencyOperation.edits);
+      } else if (existingDependency) {
+        source = applySourceEdits(
+          source,
+          removeDependency(source, existingDependency.sourceRange, existingDependency.notes).edits,
+        );
+      }
+
       const applyDeclaration = (
         kind: "start" | "end" | "duration" | "completion" | "color" | "same-row",
         statement?: string,
@@ -3226,30 +3260,41 @@ export function App() {
         const task = current();
         if (task) source = applySourceEdits(source, setTaskDeclaration(source, task, kind, statement).edits);
       };
-      const predecessor = value.predecessorId
-        ? parseGantt(source).document.symbols.tasks.get(value.predecessorId)
-        : undefined;
       const derivedStart = resolvedTaskDates.get(selectedTaskId)?.start ?? "";
       if (predecessor) {
         const endsTask = value.dependencyRelation.startsWith("end-");
         const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
         const linkedStatement = `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`;
-        applyDeclaration(
-          "start",
-          endsTask
-            ? value.startDate && value.startDate !== derivedStart
-              ? `starts ${value.startDate}`
-              : undefined
-            : linkedStatement,
-        );
-        applyDeclaration(
-          "end",
-          endsTask
-            ? linkedStatement
-            : value.scheduleMode === "end" && value.endDate
-              ? `ends ${value.endDate}`
-              : undefined,
-        );
+        if (existingDependency) {
+          if (endsTask) {
+            applyDeclaration(
+              "start",
+              value.startDate && value.startDate !== derivedStart ? `starts ${value.startDate}` : undefined,
+            );
+          } else {
+            applyDeclaration(
+              "end",
+              value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined,
+            );
+          }
+        } else {
+          applyDeclaration(
+            "start",
+            endsTask
+              ? value.startDate && value.startDate !== derivedStart
+                ? `starts ${value.startDate}`
+                : undefined
+              : linkedStatement,
+          );
+          applyDeclaration(
+            "end",
+            endsTask
+              ? linkedStatement
+              : value.scheduleMode === "end" && value.endDate
+                ? `ends ${value.endDate}`
+                : undefined,
+          );
+        }
       } else {
         applyDeclaration("start", explicitTaskStartStatement(value.startDate, derivedStart, Boolean(original.start)));
         applyDeclaration("end", value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined);
@@ -3316,6 +3361,25 @@ export function App() {
           return;
         }
         source = applySourceEdits(source, noteOperation.edits);
+      }
+      if (predecessor) {
+        const document = parseGantt(source).document;
+        if (!document.dependencies.some((item) => item.successorTaskId === currentId)) {
+          const task = document.symbols.tasks.get(currentId);
+          if (task) {
+            const endsTask = value.dependencyRelation.startsWith("end-");
+            const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
+            source = applySourceEdits(
+              source,
+              setTaskDeclaration(
+                source,
+                task,
+                endsTask ? "end" : "start",
+                `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`,
+              ).edits,
+            );
+          }
+        }
       }
       setSelectedTaskId(currentId);
       selectedTasksByDocument.current.set(tabs.activeId, currentId);
@@ -3785,7 +3849,6 @@ export function App() {
     unsupportedOpen ||
     problemsOpen,
   );
-
   return (
     <div
       className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
@@ -4086,7 +4149,7 @@ export function App() {
         style={{
           gridTemplateColumns:
             workspace.viewMode === "split"
-              ? `min(${workspace.splitPercent}${sideInspectorOpen || projectInspectorOpen ? "vw" : "%"}, calc(100% - 205px)) 5px minmax(0, 1fr)`
+              ? `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
