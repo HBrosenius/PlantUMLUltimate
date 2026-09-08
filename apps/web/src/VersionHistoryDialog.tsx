@@ -241,98 +241,121 @@ export function VersionHistoryDialog({
     <div className="modal-backdrop version-history-backdrop" role="presentation">
       <div ref={dialog} className="version-history-dialog" role="dialog" aria-modal="true" aria-label="Version history">
         <header>
-          <div>
+          <div className="version-history-title">
             <h2>Version history</h2>
-            <p>
-              Saved checkpoints are separate from Undo and remain available after restoring. Resize from the lower-right
-              corner.
-            </p>
+            <p>Compare, review, and restore saved checkpoints.</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close version history" disabled={creating}>
+          <button
+            type="button"
+            className="version-history-close"
+            onClick={onClose}
+            aria-label="Close version history"
+            disabled={creating}
+          >
             ×
           </button>
         </header>
-        <div className="version-create">
-          <input
-            aria-label="New version name"
-            placeholder="Optional version name"
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-          <button
-            type="button"
-            disabled={creating}
-            onClick={() => {
-              setCreating(true);
-              void onCreate(label)
-                .then(() => setLabel(""))
-                .finally(() => setCreating(false));
-            }}
-          >
-            {creating ? "Creating version…" : "Create version"}
-          </button>
-        </div>
         <div className="version-history-body">
           <aside aria-label="Versions">
-            {versions.length ? (
-              versions.map((version) => (
-                <div className={`version-list-item${version.id === selected?.id ? " selected" : ""}`} key={version.id}>
-                  <button
-                    type="button"
-                    aria-label={`Select version ${versionTitle(version)}`}
-                    onClick={() => {
-                      setImportedBase(undefined);
-                      setSelectedId(version.id);
-                    }}
+            <div className="version-sidebar-header">
+              <strong>Saved versions</strong>
+              <span>{versions.length}</span>
+            </div>
+            <div className="version-create">
+              <input
+                aria-label="New version name"
+                placeholder="Version name (optional)"
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+              />
+              <button
+                type="button"
+                aria-label="Create version"
+                disabled={creating}
+                onClick={() => {
+                  setCreating(true);
+                  void onCreate(label)
+                    .then(() => setLabel(""))
+                    .finally(() => setCreating(false));
+                }}
+              >
+                {creating ? "Saving…" : "Save checkpoint"}
+              </button>
+            </div>
+            <div className="version-list">
+              {versions.length ? (
+                versions.map((version) => (
+                  <div
+                    className={`version-list-item${version.id === selected?.id ? " selected" : ""}`}
+                    key={version.id}
                   >
-                    <strong>{versionTitle(version)}</strong>
-                    <span>
-                      {version.source.split("\n").length} lines
-                      {version.author ? ` · by ${version.author.name}` : ""}
-                      {version.id === baselineVersionId ? " · baseline" : version.pinned ? " · pinned" : ""}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="version-pin"
-                    aria-label={`${version.pinned ? "Unpin" : "Pin"} ${versionTitle(version)}`}
-                    title={version.pinned ? "Unpin version" : "Pin version"}
-                    disabled={version.id === baselineVersionId}
-                    onClick={() => void onUpdate(version, { pinned: !version.pinned })}
-                  >
-                    {version.pinned ? "★" : "☆"}
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p>No versions yet. Create the first checkpoint above.</p>
-            )}
+                    <button
+                      type="button"
+                      aria-label={`Select version ${versionTitle(version)}`}
+                      onClick={() => {
+                        setImportedBase(undefined);
+                        setSelectedId(version.id);
+                      }}
+                    >
+                      <strong>{versionTitle(version)}</strong>
+                      <span>
+                        {version.source.split("\n").length} lines
+                        {version.author ? ` · by ${version.author.name}` : ""}
+                        {version.id === baselineVersionId ? " · baseline" : version.pinned ? " · pinned" : ""}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="version-pin"
+                      aria-label={`${version.pinned ? "Unpin" : "Pin"} ${versionTitle(version)}`}
+                      title={version.pinned ? "Unpin version" : "Pin version"}
+                      disabled={version.id === baselineVersionId}
+                      onClick={() => void onUpdate(version, { pinned: !version.pinned })}
+                    >
+                      {version.pinned ? "★" : "☆"}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="version-list-empty">No checkpoints yet.</p>
+              )}
+            </div>
           </aside>
           <section className="version-compare" aria-label="Version comparison">
             <div className="version-compare-controls">
-              <span>
-                {importedBase
-                  ? `Imported: ${importedBase.name}`
-                  : selected
-                    ? versionTitle(selected)
-                    : "Current working copy"}
-              </span>
-              <span>compared with</span>
-              <select
-                aria-label="Compare with"
-                value={compareId}
-                onChange={(event) => setCompareId(event.target.value)}
-              >
-                <option value="current">Current working copy</option>
-                {importedComparison ? <option value="imported">Imported: {importedComparison.name}</option> : null}
-                {versions
-                  .filter((version) => version.id !== selected?.id)
-                  .map((version) => (
-                    <option key={version.id} value={version.id}>
-                      {versionTitle(version)}
-                    </option>
-                  ))}
-              </select>
+              <div className="version-comparison-picker">
+                <span className="version-comparison-side">
+                  <small>Base</small>
+                  <strong>
+                    {importedBase
+                      ? `Imported: ${importedBase.name}`
+                      : selected
+                        ? versionTitle(selected)
+                        : "Current working copy"}
+                  </strong>
+                </span>
+                <span className="version-comparison-arrow" aria-hidden="true">
+                  →
+                </span>
+                <label className="version-comparison-side">
+                  <small>Compare with</small>
+                  <select
+                    aria-label="Compare with"
+                    value={compareId}
+                    onChange={(event) => setCompareId(event.target.value)}
+                  >
+                    <option value="current">Current working copy</option>
+                    {importedComparison ? <option value="imported">Imported: {importedComparison.name}</option> : null}
+                    {versions
+                      .filter((version) => version.id !== selected?.id)
+                      .map((version) => (
+                        <option key={version.id} value={version.id}>
+                          {versionTitle(version)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
               <input
                 ref={baseImportInput}
                 type="file"
@@ -345,24 +368,26 @@ export function VersionHistoryDialog({
                   if (file) void importBase(file);
                 }}
               />
-              <button type="button" onClick={() => baseImportInput.current?.click()}>
-                Import base…
-              </button>
-              <input
-                ref={importInput}
-                type="file"
-                accept=".puml,.plantuml,text/plain"
-                hidden
-                aria-label="PlantUML comparison file"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void importComparison(file);
-                }}
-              />
-              <button type="button" onClick={() => importInput.current?.click()}>
-                Import comparison…
-              </button>
+              <div className="version-import-actions">
+                <button type="button" aria-label="Import base…" onClick={() => baseImportInput.current?.click()}>
+                  Import base
+                </button>
+                <input
+                  ref={importInput}
+                  type="file"
+                  accept=".puml,.plantuml,text/plain"
+                  hidden
+                  aria-label="PlantUML comparison file"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void importComparison(file);
+                  }}
+                />
+                <button type="button" aria-label="Import comparison…" onClick={() => importInput.current?.click()}>
+                  Import comparison
+                </button>
+              </div>
               <div className="version-view-switch" role="group" aria-label="Comparison view">
                 <button
                   type="button"
@@ -408,9 +433,14 @@ export function VersionHistoryDialog({
                   onChange={(event) => setEditLabel(event.target.value)}
                   placeholder="Version name"
                 />
-                <button type="button" onClick={() => void onUpdate(selected, { label: editLabel })}>
-                  Save name
+                <button
+                  type="button"
+                  aria-label="Save name"
+                  onClick={() => void onUpdate(selected, { label: editLabel })}
+                >
+                  Rename
                 </button>
+                <span className="version-edit-divider" aria-hidden="true" />
                 <button type="button" onClick={() => void onUpdate(selected, { pinned: !selected.pinned })}>
                   {selected.pinned ? "Unpin" : "Pin"}
                 </button>
