@@ -1726,6 +1726,18 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Rename participant Payment API to Billing API");
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Change message Pay → Store");
+  await dialog
+    .getByRole("button", { name: "Show Rename participant Payment API to Billing API in rendered diagrams" })
+    .click();
+  await expect(dialog.getByRole("button", { name: "Rendered", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    1,
+    { timeout: 20_000 },
+  );
+  await expect(
+    dialog.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
+  ).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog.getByRole("button", { name: "Show Rename participant Payment API to Billing API in source" }).click();
   await expect(dialog.getByRole("button", { name: "Source", exact: true })).toHaveAttribute("aria-pressed", "true");
   const highlightedSource = dialog.locator(".version-diff-line.active-review-group");
@@ -1736,6 +1748,14 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(dialog.locator(".version-active-review-group")).toContainText("Change message Pay → Store");
   await expect(highlightedSource.filter({ hasText: "Authorize" })).toHaveCount(1);
   await expect(highlightedSource.filter({ hasText: "Capture" })).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
+  await dialog.getByRole("button", { name: "Show Change message Pay → Store in rendered diagrams" }).click();
+  await expect(
+    dialog.getByLabel("Before review rendered diagram").locator("text.semantic-render-highlight"),
+  ).toContainText("Authorize");
+  await expect(
+    dialog.getByLabel("Current working copy rendered diagram").locator("text.semantic-render-highlight"),
+  ).toContainText("Capture");
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog
     .locator(".semantic-review-group")
@@ -3562,6 +3582,10 @@ test("reviews a visual Backend to Frontend connection as one dependency change",
   await expect(review).not.toContainText("Add task Frontend");
   await expect(review).not.toContainText("Unclassified source change");
   await expect(history.locator(".semantic-review-group")).toHaveCount(1);
+  await history.getByRole("button", { name: "Show Add dependency Backend → Frontend in rendered diagrams" }).click();
+  await expect(
+    history.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
+  ).toHaveCount(1, { timeout: 20_000 });
 });
 
 test("connects task end anchors to create an end-to-end dependency", async ({ page }) => {

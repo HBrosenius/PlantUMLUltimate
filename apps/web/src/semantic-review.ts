@@ -12,7 +12,15 @@ export interface ReviewGroup {
   startRight: number;
   deleteCount: number;
   replacement: string[];
+  leftTargets: ReviewTarget[];
+  rightTargets: ReviewTarget[];
 }
+
+export type ReviewTarget =
+  | { kind: "sequence-participant"; id: string; label: string; alias?: string }
+  | { kind: "sequence-message"; id: string; label: string }
+  | { kind: "gantt-task"; id: string; label: string }
+  | { kind: "gantt-dependency"; predecessorId: string; successorId: string };
 
 type SequenceItem =
   | { kind: "participant"; line: number; value: SequenceParticipant }
@@ -117,6 +125,36 @@ function ganttDependencyItems(source: string): GanttDependencyItem[] {
     line: lineAt(source, value.sourceRange.from),
     value,
   }));
+}
+
+function sequenceTargets(items: readonly SequenceItem[]): ReviewTarget[] {
+  const targets: ReviewTarget[] = [];
+  for (const item of items) {
+    if (item.kind === "participant")
+      targets.push({
+        kind: "sequence-participant",
+        id: item.value.id,
+        label: item.value.label,
+        ...(item.value.alias ? { alias: item.value.alias } : {}),
+      });
+    else if (item.value.label) targets.push({ kind: "sequence-message", id: item.value.id, label: item.value.label });
+  }
+  return targets;
+}
+
+function ganttTargets(items: readonly GanttItem[], dependencies: readonly GanttDependencyItem[]): ReviewTarget[] {
+  const dependencyLines = new Set(dependencies.map((item) => item.line));
+  const tasks = new Map(
+    items.filter((item) => !dependencyLines.has(item.line)).map((item) => [item.value.id, item.value]),
+  );
+  return [
+    ...[...tasks.values()].map((task) => ({ kind: "gantt-task" as const, id: task.id, label: task.label })),
+    ...dependencies.map(({ value }) => ({
+      kind: "gantt-dependency" as const,
+      predecessorId: value.predecessorTaskId,
+      successorId: value.successorTaskId,
+    })),
+  ];
 }
 
 function describeSequenceChange(
@@ -352,6 +390,18 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       startRight,
       deleteCount,
       replacement,
+      leftTargets:
+        kind === "sequence"
+          ? sequenceTargets(removed)
+          : kind === "gantt"
+            ? ganttTargets(removedGantt, removedGanttDependencies)
+            : [],
+      rightTargets:
+        kind === "sequence"
+          ? sequenceTargets(added)
+          : kind === "gantt"
+            ? ganttTargets(addedGantt, addedGanttDependencies)
+            : [],
     });
   }
   if (kind !== "gantt") return groups;
@@ -392,6 +442,8 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         startRight: removal.startRight,
         deleteCount: addition.startLeft + addition.deleteCount - removal.startLeft,
         replacement: rightLines.slice(removal.startRight, replacementEnd),
+        leftTargets: removal.leftTargets,
+        rightTargets: addition.rightTargets,
       });
       index += 1;
       continue;

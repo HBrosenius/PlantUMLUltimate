@@ -1,13 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
 import { useDialogFocus } from "./use-dialog-focus";
 import { useRenderer } from "./render/use-renderer";
 import { sanitizeSvg } from "./render/sanitize-svg";
 import type { DiagramKind } from "./model";
-import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
+import {
+  applyReviewGroups,
+  buildReviewGroups,
+  createReviewReport,
+  createUnifiedPatch,
+  type ReviewTarget,
+} from "./semantic-review";
 import { detectDiagramKind } from "./diagram-kind";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { addCanonicalGanttOverlay } from "./render/canonical-gantt-overlay";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 
 const MAX_REVIEW_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -138,6 +146,10 @@ export function VersionHistoryDialog({
     setActiveGroupId(groupId);
     setComparisonView("source");
     scrollToReviewGroup(groupId);
+  };
+  const showReviewGroupInDiagram = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setComparisonView("rendered");
   };
   const moveToReviewGroup = (direction: -1 | 1) => {
     if (!reviewGroups.length) return;
@@ -444,14 +456,23 @@ export function VersionHistoryDialog({
                             <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
                             <span>{group.detail}</span>
                           </span>
-                          <button
-                            type="button"
-                            className="semantic-review-inspect"
-                            aria-label={`Show ${group.title} in source`}
-                            onClick={() => showReviewGroupInSource(group.id)}
-                          >
-                            Show in source
-                          </button>
+                          <span className="semantic-review-inspect">
+                            <button
+                              type="button"
+                              disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
+                              aria-label={`Show ${group.title} in rendered diagrams`}
+                              onClick={() => showReviewGroupInDiagram(group.id)}
+                            >
+                              Show in diagram
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Show ${group.title} in source`}
+                              onClick={() => showReviewGroupInSource(group.id)}
+                            >
+                              Show in source
+                            </button>
+                          </span>
                         </div>
                       );
                     })
@@ -538,6 +559,9 @@ export function VersionHistoryDialog({
                   status={leftRendered.status}
                   svg={leftRendered.result?.svg}
                   error={leftRendered.result?.error}
+                  targets={reviewGroups.find((group) => group.id === activeGroupId)?.leftTargets ?? []}
+                  source={leftSource}
+                  diagramKind={diagramKind}
                 />
                 <RenderedVersion
                   title={
@@ -550,6 +574,9 @@ export function VersionHistoryDialog({
                   status={rightRendered.status}
                   svg={rightRendered.result?.svg}
                   error={rightRendered.result?.error}
+                  targets={reviewGroups.find((group) => group.id === activeGroupId)?.rightTargets ?? []}
+                  source={rightSource}
+                  diagramKind={diagramKind}
                 />
               </div>
             )}
@@ -573,14 +600,35 @@ function RenderedVersion({
   status,
   svg,
   error,
+  targets,
+  source,
+  diagramKind,
 }: {
   title: string;
   status: "idle" | "rendering" | "error";
   svg: string | undefined;
   error: string | undefined;
+  targets: readonly ReviewTarget[];
+  source: string;
+  diagramKind: DiagramKind;
 }) {
   const [zoom, setZoom] = useState(1);
   const navigation = useDiagramNavigation(zoom, setZoom);
+  const diagram = useRef<HTMLDivElement>(null);
+  const highlightedSvg = useMemo(() => {
+    if (!svg) return undefined;
+    let rendered = svg;
+    if (diagramKind === "gantt") {
+      const document = parseGantt(source).document;
+      rendered = addCanonicalGanttOverlay(rendered, document.tasks, document.dependencies);
+    }
+    return highlightReviewSvg(sanitizeSvg(rendered), targets);
+  }, [diagramKind, source, svg, targets]);
+  useLayoutEffect(() => {
+    const root = diagram.current;
+    if (!root) return;
+    root.querySelector<SVGElement>(".semantic-render-highlight")?.scrollIntoView({ block: "center", inline: "center" });
+  }, [highlightedSvg]);
   return (
     <section className="version-render-panel" aria-label={title}>
       <header className="version-render-header">
@@ -590,7 +638,10 @@ function RenderedVersion({
         </button>
       </header>
       <div
-        ref={navigation.viewportRef}
+        ref={(element) => {
+          diagram.current = element;
+          navigation.viewportRef.current = element;
+        }}
         className="version-render-canvas"
         aria-label={`${title} rendered diagram`}
         onWheel={navigation.onWheel}
@@ -599,10 +650,61 @@ function RenderedVersion({
       >
         {status === "rendering" && !svg ? <p>Rendering…</p> : null}
         {error ? <p className="version-render-error">{error}</p> : null}
-        {svg ? (
-          <div style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} />
+        {highlightedSvg && targets.length > 0 && !highlightedSvg.includes("semantic-render-highlight") ? (
+          <p className="version-render-fallback" role="status">
+            No unambiguous rendered match. Use the source highlight for this side.
+          </p>
+        ) : null}
+        {highlightedSvg ? (
+          <div style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: highlightedSvg }} />
         ) : null}
       </div>
     </section>
   );
+}
+
+function highlightReviewSvg(svg: string, targets: readonly ReviewTarget[]): string {
+  if (typeof DOMParser === "undefined" || !targets.length) return svg;
+  const document = new DOMParser().parseFromString(svg, "image/svg+xml");
+  if (document.querySelector("parsererror")) return svg;
+  const root = document.documentElement;
+  const highlighted = new Set<SVGElement>();
+  const mark = (element: SVGElement | null | undefined) => {
+    if (!element) return;
+    element.classList.add("semantic-render-highlight");
+    highlighted.add(element);
+  };
+  for (const target of targets) {
+    if (target.kind === "gantt-task") {
+      const task = [...root.querySelectorAll<SVGGElement>("[data-task-id]")].find(
+        (element) => element.getAttribute("data-task-id")?.toLowerCase() === target.id.toLowerCase(),
+      );
+      mark(task);
+      continue;
+    }
+    if (target.kind === "gantt-dependency") {
+      const dependency = [
+        ...root.querySelectorAll<SVGElement>("[data-predecessor-task-id][data-successor-task-id]"),
+      ].find(
+        (element) =>
+          element.getAttribute("data-predecessor-task-id")?.toLowerCase() === target.predecessorId.toLowerCase() &&
+          element.getAttribute("data-successor-task-id")?.toLowerCase() === target.successorId.toLowerCase(),
+      );
+      mark(dependency);
+      continue;
+    }
+    const text = [...root.querySelectorAll<SVGTextElement>("text")];
+    if (target.kind === "sequence-participant") {
+      const labels = new Set([target.label.trim(), target.alias?.trim()].filter(Boolean));
+      const matches = text.filter((element) => labels.has(element.textContent?.trim() ?? ""));
+      if (matches.length > 0 && matches.length <= 2) matches.forEach(mark);
+      continue;
+    }
+    const matches = text.filter((element) => {
+      const content = element.textContent?.trim() ?? "";
+      return content === target.label || content.endsWith(target.label);
+    });
+    if (matches.length === 1) mark(matches[0]);
+  }
+  return highlighted.size ? new XMLSerializer().serializeToString(root) : svg;
 }

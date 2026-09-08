@@ -2429,8 +2429,22 @@ textarea:focus-visible,
   width: 100%;
   height: auto;
 }
+.version-render-canvas .semantic-render-highlight {
+  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 1px var(--accent));
+}
+.version-render-canvas text.semantic-render-highlight {
+  stroke: color-mix(in srgb, var(--accent) 75%, white);
+  stroke-width: 3px;
+  paint-order: stroke fill;
+}
 .version-render-error {
   color: #b91c1c;
+}
+.version-render-fallback {
+  margin: 0;
+  padding: 8px;
+  color: #92400e;
+  font-size: 12px;
 }
 .semantic-review {
   min-height: 0;
@@ -2487,6 +2501,8 @@ textarea:focus-visible,
 }
 .semantic-review-inspect {
   align-self: center;
+  display: grid;
+  gap: 6px;
 }
 .semantic-review-group small {
   color: #15803d;
