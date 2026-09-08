@@ -1704,6 +1704,24 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 4 days");
 });
 
+test("resizes Version History to provide more rendered comparison space", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "Native CSS resize gestures differ across browser engines");
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await setSource(page, source("[Resizable] lasts 2 days"));
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+  await expect(dialog).toHaveCSS("resize", "both");
+  const before = await dialog.boundingBox();
+  expect(before).not.toBeNull();
+  await page.mouse.move(before!.x + before!.width - 2, before!.y + before!.height - 2);
+  await page.mouse.down();
+  await page.mouse.move(before!.x + before!.width + 120, before!.y + before!.height + 100, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => (await dialog.boundingBox())?.width ?? 0).toBeGreaterThan(before!.width + 80);
+  await expect.poll(async () => (await dialog.boundingBox())?.height ?? 0).toBeGreaterThan(before!.height + 60);
+});
+
 test("reviews and applies a confirmed Sequence change group", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page

@@ -210,7 +210,10 @@ export function VersionHistoryDialog({
         <header>
           <div>
             <h2>Version history</h2>
-            <p>Saved checkpoints are separate from Undo and remain available after restoring.</p>
+            <p>
+              Saved checkpoints are separate from Undo and remain available after restoring. Resize from the lower-right
+              corner.
+            </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close version history" disabled={creating}>
             ×

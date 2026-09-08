@@ -2185,6 +2185,12 @@ textarea:focus-visible,
 .version-history-dialog {
   width: min(1180px, calc(100vw - 40px));
   height: min(760px, calc(100vh - 40px));
+  min-width: min(640px, calc(100vw - 24px));
+  min-height: min(420px, calc(100vh - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+  resize: both;
   padding: 18px;
   border-radius: 10px;
   background: var(--panel);
@@ -2521,6 +2527,11 @@ textarea:focus-visible,
 }
 
 @media (max-width: 760px) {
+  .version-history-dialog {
+    width: calc(100vw - 24px);
+    height: calc(100vh - 24px);
+    resize: none;
+  }
   .version-history-body {
     grid-template-columns: 1fr;
   }
