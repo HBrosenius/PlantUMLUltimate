@@ -69,6 +69,7 @@ export function VersionHistoryDialog({
   const diffElement = useRef<HTMLDivElement>(null);
   const baseImportInput = useRef<HTMLInputElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const hiddenGroupIds = useRef<Set<string>>(new Set());
   useDialogFocus(dialog, onClose);
   const [selectedId, setSelectedId] = useState(versions[0]?.id ?? "");
   const [compareId, setCompareId] = useState("current");
@@ -135,6 +136,7 @@ export function VersionHistoryDialog({
     setChangeIndex(0);
     setSelectedGroups(new Set());
     setVisibleGroupIds(new Set());
+    hiddenGroupIds.current = new Set();
     setActiveGroupId(reviewGroups[0]?.id);
   }, [compareId, importedBase?.source, importedComparison?.source, reviewGroups, selected?.id, selected?.label]);
   const scrollToReviewGroup = (groupId: string) => {
@@ -161,17 +163,25 @@ export function VersionHistoryDialog({
   };
   const visibleReviewGroups = reviewGroups.filter((group) => visibleGroupIds.has(group.id));
   const showAllReviewGroupsInDiagram = () => {
-    setVisibleGroupIds(
-      new Set(
-        reviewGroups
-          .filter(
-            (group) =>
-              group.confidence === "confirmed" && (group.leftTargets.length > 0 || group.rightTargets.length > 0),
-          )
-          .map((group) => group.id),
-      ),
+    const next = new Set(
+      reviewGroups
+        .filter(
+          (group) =>
+            group.confidence === "confirmed" && (group.leftTargets.length > 0 || group.rightTargets.length > 0),
+        )
+        .map((group) => group.id),
     );
+    hiddenGroupIds.current = next;
+    setVisibleGroupIds(next);
     setComparisonView("rendered");
+  };
+  const toggleRenderedHighlights = () => {
+    if (visibleGroupIds.size) {
+      hiddenGroupIds.current = new Set(visibleGroupIds);
+      setVisibleGroupIds(new Set());
+      return;
+    }
+    setVisibleGroupIds(new Set(hiddenGroupIds.current));
   };
   const moveToReviewGroup = (direction: -1 | 1) => {
     if (!reviewGroups.length) return;
@@ -593,10 +603,11 @@ export function VersionHistoryDialog({
                   </span>
                   <button
                     type="button"
-                    disabled={!visibleReviewGroups.length}
-                    onClick={() => setVisibleGroupIds(new Set())}
+                    disabled={!visibleReviewGroups.length && !hiddenGroupIds.current.size}
+                    aria-pressed={visibleReviewGroups.length > 0}
+                    onClick={toggleRenderedHighlights}
                   >
-                    Clear highlights
+                    {visibleReviewGroups.length ? "Clear highlights" : "Show highlights"}
                   </button>
                 </div>
                 <div className="version-rendered-comparison" aria-label="Rendered differences">

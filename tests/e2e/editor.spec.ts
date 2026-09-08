@@ -1798,8 +1798,7 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
     0,
   );
-  await dialog.getByRole("button", { name: "Review", exact: true }).click();
-  await dialog.getByRole("button", { name: "Show all in diagram" }).click();
+  await dialog.getByRole("button", { name: "Show highlights" }).click();
   await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
     2,
   );
