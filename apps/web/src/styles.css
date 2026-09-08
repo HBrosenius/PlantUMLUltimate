@@ -2439,6 +2439,9 @@ textarea:focus-visible,
 .semantic-review-group.unclassified small {
   color: #b45309;
 }
+.semantic-review-group.probable small {
+  color: #7c3aed;
+}
 .semantic-review-actions {
   justify-content: flex-end;
   flex-wrap: wrap;

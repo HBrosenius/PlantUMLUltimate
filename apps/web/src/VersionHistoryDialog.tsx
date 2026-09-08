@@ -64,7 +64,7 @@ export function VersionHistoryDialog({
   const [changesOnly, setChangesOnly] = useState(false);
   const [changeIndex, setChangeIndex] = useState(0);
   const [comparisonView, setComparisonView] = useState<"semantic" | "source" | "rendered">(
-    diagramKind === "sequence" ? "semantic" : "source",
+    diagramKind === "sequence" || diagramKind === "gantt" ? "semantic" : "source",
   );
   const [creating, setCreating] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -302,7 +302,7 @@ export function VersionHistoryDialog({
                           />
                           <span>
                             <strong>{group.title}</strong>
-                            <small>{group.confidence === "confirmed" ? "Confirmed" : "Unclassified"}</small>
+                            <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
                             <span>{group.detail}</span>
                           </span>
                         </label>

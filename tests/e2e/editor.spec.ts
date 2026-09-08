@@ -1673,6 +1673,8 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await setSource(page, second);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(dialog.getByLabel("Semantic changes")).toBeVisible();
+  await dialog.getByRole("button", { name: "Source", exact: true }).click();
   await expect(dialog.getByRole("table", { name: "Source differences" })).toContainText("[B] lasts 4 days");
   await dialog.getByRole("button", { name: "Rendered", exact: true }).click();
   await expect(dialog.getByLabel("Rendered differences").locator("svg")).toHaveCount(2, { timeout: 20_000 });

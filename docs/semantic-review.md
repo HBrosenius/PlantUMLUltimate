@@ -1,7 +1,7 @@
 # Semantic review
 
 PlantUML Ultimate can review a saved document version against the current working copy from
-**File → Version history**. Sequence diagrams receive a conservative semantic change list;
+**File → Version history**. Sequence and Gantt diagrams receive a conservative semantic change list;
 the source and rendered comparisons remain available as fallbacks.
 
 ## Supported first slice
@@ -14,10 +14,14 @@ The review layer classifies these Sequence changes when their identity is unambi
 - added participant declarations and messages; and
 - removed messages.
 
+Gantt review recognizes task duration, explicit start-date, property, addition, and
+stable-alias rename changes.
+
 Each contiguous source change is one transaction. Confirmed transactions can be selected
 independently and applied to the saved version. Application uses the normal source validation
 and undo history, and first records a durable recovery checkpoint.
 
+Possible renames without a stable identity are labelled **Probable** and cannot be selected.
 Ambiguous edits, unsupported syntax, and changes to other diagram types are labelled
 **Unclassified source change**. They remain visible in the source comparison and are not
 eligible for partial semantic acceptance. The UI never infers that an alias change is a rename.

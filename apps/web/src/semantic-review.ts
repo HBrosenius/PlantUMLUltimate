@@ -1,4 +1,5 @@
 import { parseSequence, type SequenceMessage, type SequenceParticipant } from "@plantuml-studio/diagram-sequence";
+import { parseGantt, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
 
@@ -6,7 +7,7 @@ export interface ReviewGroup {
   id: string;
   title: string;
   detail: string;
-  confidence: "confirmed" | "unclassified";
+  confidence: "confirmed" | "probable" | "unclassified";
   startLeft: number;
   deleteCount: number;
   replacement: string[];
@@ -15,6 +16,12 @@ export interface ReviewGroup {
 type SequenceItem =
   | { kind: "participant"; line: number; value: SequenceParticipant }
   | { kind: "message"; line: number; value: SequenceMessage };
+type GanttItem = {
+  kind: "task";
+  line: number;
+  declarationKind: GanttTask["declarations"][number]["kind"];
+  value: GanttTask;
+};
 
 const lineAt = (source: string, offset: number) => source.slice(0, offset).split("\n").length - 1;
 
@@ -32,6 +39,17 @@ function sequenceItems(source: string): SequenceItem[] {
       value,
     })),
   ];
+}
+
+function ganttItems(source: string): GanttItem[] {
+  return parseGantt(source).document.tasks.flatMap((value) =>
+    value.declarations.map((declaration) => ({
+      kind: "task" as const,
+      line: lineAt(source, declaration.range.from),
+      declarationKind: declaration.kind,
+      value,
+    })),
+  );
 }
 
 function describeSequenceChange(
@@ -54,6 +72,12 @@ function describeSequenceChange(
           confidence: "confirmed",
         };
       }
+      if (before.value.kind === after.value.kind)
+        return {
+          title: `Possible participant rename: ${before.value.label} → ${after.value.label}`,
+          detail: "The declaration position and kind match, but no stable alias or label confirms identity.",
+          confidence: "probable",
+        };
     }
     if (before.kind === "message" && after.kind === "message") {
       if (before.value.from === after.value.from && before.value.to === after.value.to) {
@@ -90,10 +114,79 @@ function describeSequenceChange(
   };
 }
 
+function describeGanttChange(
+  removed: GanttItem[],
+  added: GanttItem[],
+): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
+  if (
+    removed.length > 1 &&
+    removed.length === added.length &&
+    removed.every((item) => item.value.id === removed[0]!.value.id) &&
+    added.every((item) => item.value.id === removed[0]!.value.id)
+  )
+    return {
+      title: `Change schedule for ${added[0]!.value.label}`,
+      detail: `A single transaction updates ${[...new Set(removed.map((item) => item.declarationKind))].join(" and ")}.`,
+      confidence: "confirmed",
+    };
+  if (removed.length === 1 && added.length === 1) {
+    const before = removed[0]!.value;
+    const after = added[0]!.value;
+    if (before.id === after.id) {
+      if (
+        removed[0]!.declarationKind === "duration" &&
+        before.duration &&
+        after.duration &&
+        before.duration.value !== after.duration.value
+      )
+        return {
+          title: `Change ${after.label} duration from ${before.duration.value} to ${after.duration.value} days`,
+          detail: "The task identity is unchanged and both duration declarations are recognized.",
+          confidence: "confirmed",
+        };
+      if (
+        removed[0]!.declarationKind === "start" &&
+        before.start &&
+        after.start &&
+        before.start.value !== after.start.value
+      )
+        return {
+          title: `Move ${after.label} start from ${before.start.value} to ${after.start.value}`,
+          detail: "The task identity is unchanged and both start declarations are recognized.",
+          confidence: "confirmed",
+        };
+      return {
+        title: `Modify task ${after.label}`,
+        detail: "The declaration belongs to the same parsed task.",
+        confidence: "confirmed",
+      };
+    }
+    if (before.alias?.value && before.alias.value === after.alias?.value)
+      return {
+        title: `Rename task ${before.label} to ${after.label}`,
+        detail: "A stable task alias confirms identity.",
+        confidence: "confirmed",
+      };
+  }
+  if (!removed.length && added.length === 1)
+    return {
+      title: `Add task ${added[0]!.value.label}`,
+      detail: "The added declaration is recognized.",
+      confidence: "confirmed",
+    };
+  return {
+    title: "Unclassified source change",
+    detail: "Review the source lines directly. This change is not eligible for partial semantic acceptance.",
+    confidence: "unclassified",
+  };
+}
+
 export function buildReviewGroups(leftSource: string, rightSource: string, kind: DiagramKind): ReviewGroup[] {
   const diff = diffVersionSources(leftSource, rightSource);
   let leftItems: SequenceItem[] = [];
   let rightItems: SequenceItem[] = [];
+  let leftGanttItems: GanttItem[] = [];
+  let rightGanttItems: GanttItem[] = [];
   if (kind === "sequence") {
     try {
       leftItems = sequenceItems(leftSource);
@@ -101,6 +194,10 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     } catch {
       // Oversized or otherwise unparseable input still receives a bounded raw-source review.
     }
+  }
+  if (kind === "gantt") {
+    leftGanttItems = ganttItems(leftSource);
+    rightGanttItems = ganttItems(rightSource);
   }
   const groups: ReviewGroup[] = [];
   let leftCursor = 0;
@@ -131,7 +228,16 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     }
     const removed = leftItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
     const added = rightItems.filter((item) => item.line >= startRight && item.line < startRight + replacement.length);
-    const description = kind === "sequence" ? describeSequenceChange(removed, added) : describeSequenceChange([], []);
+    const removedGantt = leftGanttItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
+    const addedGantt = rightGanttItems.filter(
+      (item) => item.line >= startRight && item.line < startRight + replacement.length,
+    );
+    const description =
+      kind === "sequence"
+        ? describeSequenceChange(removed, added)
+        : kind === "gantt"
+          ? describeGanttChange(removedGantt, addedGantt)
+          : describeSequenceChange([], []);
     groups.push({ id: `change-${groups.length + 1}`, ...description, startLeft, deleteCount, replacement });
   }
   return groups;
