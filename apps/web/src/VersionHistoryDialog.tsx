@@ -7,6 +7,7 @@ import { sanitizeSvg } from "./render/sanitize-svg";
 import type { DiagramKind } from "./model";
 import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
 import { detectDiagramKind } from "./diagram-kind";
+import { useDiagramNavigation } from "./useDiagramNavigation";
 
 const MAX_REVIEW_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -578,13 +579,29 @@ function RenderedVersion({
   svg: string | undefined;
   error: string | undefined;
 }) {
+  const [zoom, setZoom] = useState(1);
+  const navigation = useDiagramNavigation(zoom, setZoom);
   return (
     <section className="version-render-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <div className="version-render-canvas">
+      <header className="version-render-header">
+        <strong>{title}</strong>
+        <button type="button" aria-label={`Reset zoom for ${title}`} onClick={() => setZoom(1)}>
+          {Math.round(zoom * 100)}%
+        </button>
+      </header>
+      <div
+        ref={navigation.viewportRef}
+        className="version-render-canvas"
+        aria-label={`${title} rendered diagram`}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
         {status === "rendering" && !svg ? <p>Rendering…</p> : null}
         {error ? <p className="version-render-error">{error}</p> : null}
-        {svg ? <div dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} /> : null}
+        {svg ? (
+          <div style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} />
+        ) : null}
       </div>
     </section>
   );
