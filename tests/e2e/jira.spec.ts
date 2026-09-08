@@ -32,7 +32,11 @@ function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:0
   };
 }
 
-async function mockJira(page: Page, issues: { current: ReturnType<typeof jiraIssue>[] } = { current: [jiraIssue()] }) {
+async function mockJira(
+  page: Page,
+  issues: { current: ReturnType<typeof jiraIssue>[] } = { current: [jiraIssue()] },
+  fields = [{ id: "customfield_10042", name: "Start date", custom: true, type: "date" }],
+) {
   const requests: Array<{ url: string; method: string; body?: unknown }> = [];
   await page.route(`${integrationOrigin}/**`, async (route) => {
     const request = route.request();
@@ -51,9 +55,7 @@ async function mockJira(page: Page, issues: { current: ReturnType<typeof jiraIss
       return;
     }
     if (url.pathname === "/api/fields") {
-      await route.fulfill({
-        json: { fields: [{ id: "customfield_10042", name: "Start date", custom: true, type: "date" }] },
-      });
+      await route.fulfill({ json: { fields } });
       return;
     }
     if (url.pathname === "/api/issues/search") {
@@ -88,7 +90,8 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByLabel("JQL").fill("project = APP ORDER BY Rank");
-  await expect(dialog.getByLabel("Start date")).toHaveValue("customfield_10042");
+  await expect(dialog.getByLabel("PlantUML start date")).toHaveValue("customfield_10042");
+  await expect(dialog.getByLabel("PlantUML due date")).toHaveValue("duedate");
   await dialog.getByLabel("Import assignee as a 100% resource").check();
   await dialog.getByRole("button", { name: "Review import" }).click();
 
@@ -115,6 +118,23 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
   });
 });
 
+test("allows manual start-date mapping when Jira fields are ambiguous", async ({ page }) => {
+  await mockJira(page, undefined, [
+    { id: "customfield_10042", name: "Start date", custom: true, type: "date" },
+    { id: "customfield_10043", name: "START DATE", custom: true, type: "date" },
+    { id: "customfield_10044", name: "Target date", custom: true, type: "date" },
+  ]);
+  await openGantt(page);
+  await openJira(page);
+
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  const startMapping = dialog.getByLabel("PlantUML start date");
+  await expect(startMapping).toHaveValue("");
+  await expect(dialog.getByRole("status")).toContainText("Select a Jira date field");
+  await startMapping.selectOption("customfield_10044");
+  await expect(dialog.getByRole("status")).toContainText("Start date is mapped to Target date");
+});
+
 test("publishes changed start and due dates to Jira", async ({ page }) => {
   const requests = await mockJira(page);
   await openGantt(page);
@@ -122,7 +142,7 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
   await openJira(page);
   let dialog = page.getByRole("dialog", { name: "Jira integration" });
   await dialog.getByLabel("JQL").fill("project = APP");
-  await expect(dialog.getByLabel("Start date")).toHaveValue("customfield_10042");
+  await expect(dialog.getByLabel("PlantUML start date")).toHaveValue("customfield_10042");
   await dialog.getByLabel("Allow reviewed summary and date changes to be published to Jira").check();
   await dialog.getByRole("button", { name: "Review import" }).click();
   await dialog.getByRole("button", { name: "Apply changes" }).click();
