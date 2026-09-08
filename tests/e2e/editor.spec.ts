@@ -2998,6 +2998,9 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
       expect(item.bottom, JSON.stringify(item)).toBeLessThan(item.lowerWeekdayBaseline);
     }
   };
+  const waitForHatching = () =>
+    expect.poll(() => page.locator(".closed-day-hatching rect").count(), { timeout: 5_000 }).toBeGreaterThan(4);
+  await waitForHatching();
   assertAligned(await measure());
   await page.setViewportSize({ width: 820, height: 720 });
   await page.getByRole("button", { name: "Zoom in" }).click();
@@ -3005,6 +3008,7 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
   await page.locator(".preview-viewport").evaluate((element) => {
     element.scrollLeft = 300;
   });
+  await waitForHatching();
   assertAligned(await measure());
 });
 
