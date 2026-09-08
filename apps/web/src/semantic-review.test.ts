@@ -74,6 +74,31 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("groups a replaced explicit start and inserted dependency from the default Gantt chart", () => {
+    const before =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n@endgantt";
+    const after =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n[Frontend] starts at [Backend]'s end\n@endgantt";
+    const groups = buildReviewGroups(before, after, "gantt");
+    expect(groups).toMatchObject([
+      {
+        title: "Add dependency Backend → Frontend",
+        detail: "Frontend's explicit start is replaced by a dependency on Backend. Both source regions apply together.",
+        confidence: "confirmed",
+      },
+    ]);
+    expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(after);
+  });
+
+  it("recognizes a standalone Gantt dependency without reporting a new task", () => {
+    const before = "@startgantt\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n@endgantt";
+    const after =
+      "@startgantt\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n[Frontend] starts at [Backend]'s end\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      { title: "Add dependency Backend → Frontend", confidence: "confirmed" },
+    ]);
+  });
+
   it("applies only selected source groups without rewriting neighbouring lines", () => {
     const before = "@startuml\nparticipant A\n\nA -> B: First\n@enduml";
     const after = "@startuml\nparticipant A\nparticipant B\n\nA -> B: Second\n@enduml";

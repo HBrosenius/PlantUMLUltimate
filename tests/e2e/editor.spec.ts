@@ -3527,6 +3527,34 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-05");
 });
 
+test("reviews a visual Backend to Frontend connection as one dependency change", async ({ page }) => {
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Initial chart");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.locator('[data-task-id="backend"] .bar').click();
+  const handle = await page.locator('[data-task-id="backend"] [data-dependency-handle="end"]').boundingBox();
+  const target = await page.locator('[data-task-id="frontend"] .bar').boundingBox();
+  expect(handle).not.toBeNull();
+  expect(target).not.toBeNull();
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[Frontend] starts at [Backend]'s end");
+
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const review = history.getByLabel("Semantic changes");
+  await expect(review).toContainText("Add dependency Backend → Frontend");
+  await expect(review).not.toContainText("Add task Frontend");
+  await expect(review).not.toContainText("Unclassified source change");
+  await expect(history.locator(".semantic-review-group")).toHaveCount(1);
+});
+
 test("connects task end anchors to create an end-to-end dependency", async ({ page }) => {
   await setSource(page, source("[A] lasts 2 days\n[B] lasts 4 days"));
   await page.locator('[data-task-id="a"] .bar').click();

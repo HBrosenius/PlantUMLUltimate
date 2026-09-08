@@ -28,7 +28,9 @@ every participant retains a stable alias or label and every message retains its 
 identity is ambiguous, the whole contiguous edit remains unclassified and cannot be partially applied.
 
 Gantt review recognizes task duration, explicit start-date, property, addition, and
-stable-alias rename changes.
+stable-alias rename changes. It also recognizes dependency additions, removals, and modifications.
+When creating a dependency replaces an explicit task start elsewhere in the source, both regions are
+grouped into one atomic dependency transaction if no unrelated change lies between them.
 
 Each contiguous source change is one transaction. Confirmed transactions can be selected
 independently and applied to the saved version. Application uses the normal source validation
