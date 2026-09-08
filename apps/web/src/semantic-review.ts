@@ -277,3 +277,36 @@ export function createUnifiedPatch(fileName: string, leftSource: string, rightSo
   const safeName = fileName.replace(/[\r\n]/g, "_");
   return [`--- a/${safeName}`, `+++ b/${safeName}`, `@@ -1,${leftCount} +1,${rightCount} @@`, ...body, ""].join("\n");
 }
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+export function createReviewReport(
+  fileName: string,
+  leftSource: string,
+  rightSource: string,
+  groups: readonly ReviewGroup[],
+): string {
+  const rows = groups
+    .map(
+      (group) =>
+        `<li data-confidence="${group.confidence}"><strong>${escapeHtml(group.title)}</strong> — ${group.confidence}<br>${escapeHtml(group.detail)}</li>`,
+    )
+    .join("");
+  return [
+    "<!doctype html>",
+    '<meta charset="utf-8">',
+    '<meta name="referrer" content="no-referrer">',
+    `<title>${escapeHtml(fileName)} review</title>`,
+    `<h1>${escapeHtml(fileName)} review</h1>`,
+    `<p>Generated locally. ${groups.length} change group${groups.length === 1 ? "" : "s"}.</p>`,
+    `<ol>${rows}</ol>`,
+    "<h2>Source patch</h2>",
+    `<pre>${escapeHtml(createUnifiedPatch(fileName, leftSource, rightSource))}</pre>`,
+  ].join("\n");
+}

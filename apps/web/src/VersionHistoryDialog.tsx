@@ -5,19 +5,18 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { useRenderer } from "./render/use-renderer";
 import { sanitizeSvg } from "./render/sanitize-svg";
 import type { DiagramKind } from "./model";
-import { applyReviewGroups, buildReviewGroups, createUnifiedPatch } from "./semantic-review";
+import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
 
 function download(content: string, fileName: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = fileName;
+  document.body.append(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
-
-const escapeHtml = (value: string) =>
-  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
 function versionTitle(version: DocumentVersion): string {
   if (!version.label?.trim() && version.reason === "collaboration" && version.author)
@@ -329,16 +328,13 @@ export function VersionHistoryDialog({
                   <button
                     type="button"
                     disabled={!reviewGroups.length}
-                    onClick={() => {
-                      const rows = reviewGroups
-                        .map(
-                          (group) =>
-                            `<li><strong>${escapeHtml(group.title)}</strong> — ${escapeHtml(group.confidence)}<br>${escapeHtml(group.detail)}</li>`,
-                        )
-                        .join("");
-                      const report = `<!doctype html><meta charset="utf-8"><title>PlantUML review</title><h1>${escapeHtml(fileName)} review</h1><p>Generated locally. ${reviewGroups.length} change groups.</p><ol>${rows}</ol><h2>Source patch</h2><pre>${escapeHtml(createUnifiedPatch(fileName, leftSource, rightSource))}</pre>`;
-                      download(report, `${fileName}-review.html`, "text/html;charset=utf-8");
-                    }}
+                    onClick={() =>
+                      download(
+                        createReviewReport(fileName, leftSource, rightSource, reviewGroups),
+                        `${fileName}-review.html`,
+                        "text/html;charset=utf-8",
+                      )
+                    }
                   >
                     Export review report
                   </button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyReviewGroups, buildReviewGroups, createUnifiedPatch } from "./semantic-review";
+import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
 
 describe("semantic review", () => {
   it("classifies a participant rename when its alias remains stable", () => {
@@ -58,5 +58,31 @@ describe("semantic review", () => {
     expect(buildReviewGroups(before, after, "sequence")).toMatchObject([
       { confidence: "unclassified", title: "Unclassified source change" },
     ]);
+  });
+
+  it("preserves comments and unsupported multiline syntax when applying another group", () => {
+    const before =
+      "@startuml\n' ownership stays here\nparticipant API\nnote over API\nDo not rewrite <this>\nend note\n\nAPI -> DB: Old\n@enduml";
+    const after =
+      "@startuml\n' ownership stays here\nparticipant API\nnote over API\nDo not rewrite <this>\nend note\n\nAPI -> DB: New\n@enduml";
+    const groups = buildReviewGroups(before, after, "sequence");
+    expect(groups).toMatchObject([{ title: "Change message API → DB", confidence: "confirmed" }]);
+    expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(after);
+  });
+
+  it("keeps multiline note edits unclassified", () => {
+    const before = "@startuml\nnote over API\nOld text\nend note\n@enduml";
+    const after = "@startuml\nnote over API\nNew text\nend note\n@enduml";
+    expect(buildReviewGroups(before, after, "sequence")).toMatchObject([{ confidence: "unclassified" }]);
+  });
+
+  it("escapes document content in standalone reports", () => {
+    const before = "@startuml\nA -> B: <old>\n@enduml";
+    const after = "@startuml\nA -> B: <script>alert('x')</script>\n@enduml";
+    const report = createReviewReport('bad"name.puml', before, after, buildReviewGroups(before, after, "sequence"));
+    expect(report).not.toContain("<script>");
+    expect(report).toContain("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;");
+    expect(report).toContain("bad&quot;name.puml review");
+    expect(report).toContain('meta name="referrer" content="no-referrer"');
   });
 });
