@@ -85,6 +85,7 @@ import { parseProjectSettings, updateProjectSettings } from "./project-settings"
 import type { Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
+import { useDiagramSelection } from "./use-diagram-selection";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
@@ -309,14 +310,48 @@ function diagramFocusSelector(target: Element): string | undefined {
 export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
-  const [selectedTaskId, setSelectedTaskId] = useState<string>();
-  const [sourceHighlightedTaskId, setSourceHighlightedTaskId] = useState<string>();
-  const [sourceHighlightedSequenceParticipantId, setSourceHighlightedSequenceParticipantId] = useState<string>();
-  const [sourceHighlightedUseCaseId, setSourceHighlightedUseCaseId] = useState<string>();
-  const [sourceHighlightedClassEntityId, setSourceHighlightedClassEntityId] = useState<string>();
-  const [sourceHighlightedClassMemberId, setSourceHighlightedClassMemberId] = useState<string>();
-  const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
-  const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
+  const {
+    selectedTaskId,
+    setSelectedTaskId,
+    selectedDependencyIndex,
+    setSelectedDependencyIndex,
+    selectedDividerIndex,
+    setSelectedDividerIndex,
+    selectedVerticalSeparatorIndex,
+    setSelectedVerticalSeparatorIndex,
+    selectedSequenceParticipantId,
+    setSelectedSequenceParticipantId,
+    selectedSequenceMessageId,
+    setSelectedSequenceMessageId,
+    selectedSequenceStructureId,
+    setSelectedSequenceStructureId,
+    selectedUseCaseObjectId,
+    setSelectedUseCaseObjectId,
+    selectedClassObjectId,
+    setSelectedClassObjectId,
+    selectedActivityObjectId,
+    setSelectedActivityObjectId,
+    selectedWbsNodeId,
+    setSelectedWbsNodeId,
+    selectedWbsRelationshipId,
+    setSelectedWbsRelationshipId,
+    sourceHighlightedTaskId,
+    setSourceHighlightedTaskId,
+    sourceHighlightedSequenceParticipantId,
+    setSourceHighlightedSequenceParticipantId,
+    sourceHighlightedUseCaseId,
+    setSourceHighlightedUseCaseId,
+    sourceHighlightedClassEntityId,
+    setSourceHighlightedClassEntityId,
+    sourceHighlightedClassMemberId,
+    setSourceHighlightedClassMemberId,
+    sourceHighlightedActivityId,
+    setSourceHighlightedActivityId,
+    sourceHighlightedWbsNodeId,
+    setSourceHighlightedWbsNodeId,
+    resetTransientTabSelection,
+    dismissInspectorSelection,
+  } = useDiagramSelection();
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
@@ -346,9 +381,6 @@ export function App() {
     diagnostics: ReturnType<typeof diagnosticsForDiagram>;
     message: string;
   }>();
-  const [selectedDependencyIndex, setSelectedDependencyIndex] = useState<number>();
-  const [selectedDividerIndex, setSelectedDividerIndex] = useState<number>();
-  const [selectedVerticalSeparatorIndex, setSelectedVerticalSeparatorIndex] = useState<number>();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [addDividerOpen, setAddDividerOpen] = useState(false);
@@ -358,14 +390,6 @@ export function App() {
   const [addSequenceParticipantOpen, setAddSequenceParticipantOpen] = useState(false);
   const [addSequenceMessageOpen, setAddSequenceMessageOpen] = useState(false);
   const [addSequenceStructureKind, setAddSequenceStructureKind] = useState<SequenceStructureKind>();
-  const [selectedSequenceParticipantId, setSelectedSequenceParticipantId] = useState<string>();
-  const [selectedSequenceMessageId, setSelectedSequenceMessageId] = useState<string>();
-  const [selectedSequenceStructureId, setSelectedSequenceStructureId] = useState<string>();
-  const [selectedUseCaseObjectId, setSelectedUseCaseObjectId] = useState<string>();
-  const [selectedClassObjectId, setSelectedClassObjectId] = useState<string>();
-  const [selectedActivityObjectId, setSelectedActivityObjectId] = useState<string>();
-  const [selectedWbsNodeId, setSelectedWbsNodeId] = useState<string>();
-  const [selectedWbsRelationshipId, setSelectedWbsRelationshipId] = useState<string>();
   const [addWbsNodeOpen, setAddWbsNodeOpen] = useState(false);
   const [wbsSettingsOpen, setWbsSettingsOpen] = useState(false);
   const [addActivityActionOpen, setAddActivityActionOpen] = useState(false);
@@ -813,11 +837,6 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, tabs.activeId]);
 
-  const resetTransientTabSelection = useCallback(() => {
-    setSelectedDependencyIndex(undefined);
-    setSelectedSequenceParticipantId(undefined);
-    setSelectedSequenceMessageId(undefined);
-  }, []);
   const releaseDocumentResources = useCallback((id: string) => {
     fileHandles.current.delete(id);
     fileSnapshots.current.delete(id);
@@ -901,16 +920,7 @@ export function App() {
         "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      setSelectedDividerIndex(undefined);
-      setSelectedVerticalSeparatorIndex(undefined);
-      setSelectedSequenceParticipantId(undefined);
-      setSelectedSequenceMessageId(undefined);
-      setSelectedSequenceStructureId(undefined);
-      setSelectedUseCaseObjectId(undefined);
-      setSelectedClassObjectId(undefined);
-      setSelectedActivityObjectId(undefined);
+      dismissInspectorSelection();
       setProjectInspectorOpen(false);
       setUseCaseSettingsOpen(false);
       setClassSettingsOpen(false);
@@ -932,6 +942,7 @@ export function App() {
     selectedActivityObjectId,
     classSettingsOpen,
     activitySettingsOpen,
+    dismissInspectorSelection,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
