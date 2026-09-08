@@ -1758,12 +1758,21 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
     .getByRole("button", { name: "Show Rename participant Payment API to Billing API in rendered diagrams" })
     .click();
   await expect(dialog.getByRole("button", { name: "Rendered", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByLabel("Change highlight legend")).toContainText("Removed");
+  await expect(dialog.getByLabel("Change highlight legend")).toContainText("Modified");
+  await expect(dialog.getByLabel("Change highlight legend")).toContainText("Added");
   await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
     1,
     { timeout: 20_000 },
   );
   await expect(
     dialog.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
+  ).toHaveCount(1);
+  await expect(
+    dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight-modified"),
+  ).toHaveCount(1);
+  await expect(
+    dialog.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight-modified"),
   ).toHaveCount(1);
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog.getByRole("button", { name: "Show Rename participant Payment API to Billing API in source" }).click();
