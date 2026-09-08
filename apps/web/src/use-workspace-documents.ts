@@ -29,8 +29,8 @@ type TabControls = {
 type Options = {
   tabs: TabControls;
   replaceActiveDocumentOnCreate: boolean;
-  setReplaceActiveDocumentOnCreate: Dispatch<SetStateAction<boolean>>;
-  setNewDocumentOpen: Dispatch<SetStateAction<boolean>>;
+  openNewDocumentDialog: (replaceActiveDocument: boolean) => void;
+  closeNewDocumentDialog: () => void;
   fileHandles: MutableRefObject<Map<string, WritableFileHandle>>;
   fileSnapshots: MutableRefObject<Map<string, FileSnapshot>>;
   externalCheckSnoozedUntil: MutableRefObject<Map<string, number>>;
@@ -61,8 +61,8 @@ export function diagramKindDisplayName(diagramKind: DiagramKind): string {
 export function useWorkspaceDocuments({
   tabs,
   replaceActiveDocumentOnCreate,
-  setReplaceActiveDocumentOnCreate,
-  setNewDocumentOpen,
+  openNewDocumentDialog,
+  closeNewDocumentDialog,
   fileHandles,
   fileSnapshots,
   externalCheckSnoozedUntil,
@@ -145,8 +145,7 @@ export function useWorkspaceDocuments({
       }
       resetSelection();
       refreshHistoryControls();
-      setReplaceActiveDocumentOnCreate(false);
-      setNewDocumentOpen(false);
+      closeNewDocumentDialog();
       setInteractionMessage(`Created a new ${diagramKindDisplayName(diagramKind)} diagram`);
       if (diagramKind === "gantt") window.setTimeout(openProjectInspector, 0);
     },
@@ -160,16 +159,14 @@ export function useWorkspaceDocuments({
       replaceActiveDocumentOnCreate,
       resetSelection,
       setInteractionMessage,
-      setNewDocumentOpen,
-      setReplaceActiveDocumentOnCreate,
+      closeNewDocumentDialog,
       tabs,
     ],
   );
 
   const newDocument = useCallback(() => {
-    setReplaceActiveDocumentOnCreate(false);
-    setNewDocumentOpen(true);
-  }, [setNewDocumentOpen, setReplaceActiveDocumentOnCreate]);
+    openNewDocumentDialog(false);
+  }, [openNewDocumentDialog]);
 
   return { backupWorkspace, restoreWorkspace, createDocument, newDocument };
 }
