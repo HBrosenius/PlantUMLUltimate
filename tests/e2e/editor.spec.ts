@@ -1741,6 +1741,52 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(page.locator(".cm-content")).not.toContainText("Capture");
 });
 
+test("imports a local PlantUML file for semantic review without replacing the working copy", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  const before = '@startuml\nparticipant "Payment API" as Pay\nhide footbox\nPay -> Store: Authorize\n@enduml';
+  const proposed = '@startuml\nparticipant "Billing API" as Pay\nhide footbox\nPay -> Store: Capture\n@enduml';
+  await setSource(page, before);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+
+  await dialog.getByLabel("PlantUML comparison file").setInputFiles({
+    name: "wrong-kind.puml",
+    mimeType: "text/plain",
+    buffer: Buffer.from("@startgantt\n[Task] lasts 2 days\n@endgantt"),
+  });
+  await expect(dialog.getByRole("alert")).toContainText(
+    "This gantt diagram cannot be reviewed against the current sequence diagram.",
+  );
+  await expect(dialog.getByLabel("Compare with")).toHaveValue("current");
+
+  await dialog.getByLabel("PlantUML comparison file").setInputFiles({
+    name: "proposed.puml",
+    mimeType: "text/plain",
+    buffer: Buffer.from(proposed),
+  });
+
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await expect(dialog.getByLabel("Compare with")).toHaveValue("imported");
+  await expect(dialog.getByLabel("Semantic changes")).toContainText("Rename participant Payment API to Billing API");
+  await expect(page.locator(".cm-content")).toContainText('participant "Payment API" as Pay');
+  await expect(page.locator(".cm-content")).not.toContainText('participant "Billing API" as Pay');
+
+  await dialog
+    .locator(".semantic-review-group")
+    .filter({ hasText: "Rename participant Payment API to Billing API" })
+    .getByRole("checkbox")
+    .check();
+  await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
+  await expect(page.locator(".cm-content")).toContainText('participant "Billing API" as Pay');
+  await expect(page.locator(".cm-content")).toContainText("Pay -> Store: Authorize");
+  await expect(page.locator(".cm-content")).not.toContainText("Capture");
+});
+
 test("starts a new version lineage after Save As", async ({ page }) => {
   await setSource(page, source("[Original lineage] lasts 2 days"));
   await page.getByRole("button", { name: "File" }).click();

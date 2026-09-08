@@ -6,6 +6,9 @@ import { useRenderer } from "./render/use-renderer";
 import { sanitizeSvg } from "./render/sanitize-svg";
 import type { DiagramKind } from "./model";
 import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
+import { detectDiagramKind } from "./diagram-kind";
+
+const MAX_REVIEW_IMPORT_BYTES = 5 * 1024 * 1024;
 
 function download(content: string, fileName: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -55,6 +58,7 @@ export function VersionHistoryDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const diffElement = useRef<HTMLDivElement>(null);
+  const importInput = useRef<HTMLInputElement>(null);
   useDialogFocus(dialog, onClose);
   const [selectedId, setSelectedId] = useState(versions[0]?.id ?? "");
   const [compareId, setCompareId] = useState("current");
@@ -68,9 +72,12 @@ export function VersionHistoryDialog({
   const [creating, setCreating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [importedComparison, setImportedComparison] = useState<{ name: string; source: string }>();
+  const [importError, setImportError] = useState("");
   const selected = versions.find((version) => version.id === selectedId) ?? versions[0];
   const compare = versions.find((version) => version.id === compareId);
-  const rightSource = compare?.source ?? currentSource;
+  const rightSource =
+    compareId === "imported" ? (importedComparison?.source ?? currentSource) : (compare?.source ?? currentSource);
   const leftSource = selected?.source ?? currentSource;
   const layoutEngine =
     /^\s*@startgantt\b/im.test(leftSource) && /^\s*@startgantt\b/im.test(rightSource) ? "native" : "graphviz";
@@ -108,6 +115,29 @@ export function VersionHistoryDialog({
         ?.querySelector<HTMLElement>(`[data-change-index="${next}"]`)
         ?.scrollIntoView({ block: "center" });
     });
+  };
+  const importComparison = async (file: File) => {
+    setImportError("");
+    if (file.size > MAX_REVIEW_IMPORT_BYTES) {
+      setImportError("Choose a PlantUML file smaller than 5 MB.");
+      return;
+    }
+    try {
+      const source = await file.text();
+      const importedKind = detectDiagramKind(source);
+      if (!importedKind) {
+        setImportError("This file does not contain a recognized PlantUML diagram.");
+        return;
+      }
+      if (importedKind !== diagramKind) {
+        setImportError(`This ${importedKind} diagram cannot be reviewed against the current ${diagramKind} diagram.`);
+        return;
+      }
+      setImportedComparison({ name: file.name, source });
+      setCompareId("imported");
+    } catch {
+      setImportError("The selected file could not be read.");
+    }
   };
 
   return (
@@ -185,6 +215,7 @@ export function VersionHistoryDialog({
                 onChange={(event) => setCompareId(event.target.value)}
               >
                 <option value="current">Current working copy</option>
+                {importedComparison ? <option value="imported">Imported: {importedComparison.name}</option> : null}
                 {versions
                   .filter((version) => version.id !== selected?.id)
                   .map((version) => (
@@ -193,6 +224,21 @@ export function VersionHistoryDialog({
                     </option>
                   ))}
               </select>
+              <input
+                ref={importInput}
+                type="file"
+                accept=".puml,.plantuml,text/plain"
+                hidden
+                aria-label="PlantUML comparison file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void importComparison(file);
+                }}
+              />
+              <button type="button" onClick={() => importInput.current?.click()}>
+                Import comparison…
+              </button>
               <div className="version-view-switch" role="group" aria-label="Comparison view">
                 <button
                   type="button"
@@ -217,6 +263,11 @@ export function VersionHistoryDialog({
                 </button>
               </div>
             </div>
+            {importError ? (
+              <p className="version-import-error" role="alert">
+                {importError}
+              </p>
+            ) : null}
             {selected && (
               <div className="version-edit-controls">
                 {selected.author && (
@@ -378,7 +429,13 @@ export function VersionHistoryDialog({
                   error={leftRendered.result?.error}
                 />
                 <RenderedVersion
-                  title={compare ? versionTitle(compare) : "Current working copy"}
+                  title={
+                    compareId === "imported" && importedComparison
+                      ? `Imported: ${importedComparison.name}`
+                      : compare
+                        ? versionTitle(compare)
+                        : "Current working copy"
+                  }
                   status={rightRendered.status}
                   svg={rightRendered.result?.svg}
                   error={rightRendered.result?.error}
