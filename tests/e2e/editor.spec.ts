@@ -1717,6 +1717,17 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Rename participant Payment API to Billing API");
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Change message Pay → Store");
+  await dialog.getByRole("button", { name: "Show Rename participant Payment API to Billing API in source" }).click();
+  await expect(dialog.getByRole("button", { name: "Source", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const highlightedSource = dialog.locator(".version-diff-line.active-review-group");
+  await expect(highlightedSource).toHaveCount(2);
+  await expect(highlightedSource.filter({ hasText: 'participant "Payment API" as Pay' })).toHaveCount(1);
+  await expect(highlightedSource.filter({ hasText: 'participant "Billing API" as Pay' })).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Next group" }).click();
+  await expect(dialog.locator(".version-active-review-group")).toContainText("Change message Pay → Store");
+  await expect(highlightedSource.filter({ hasText: "Authorize" })).toHaveCount(1);
+  await expect(highlightedSource.filter({ hasText: "Capture" })).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog
     .locator(".semantic-review-group")
     .filter({ hasText: "Rename participant Payment API to Billing API" })

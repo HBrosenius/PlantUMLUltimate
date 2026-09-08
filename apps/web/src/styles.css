@@ -2299,9 +2299,17 @@ textarea:focus-visible,
   color: #b91c1c;
 }
 .version-diff-navigation > span {
-  margin-left: auto;
   color: var(--muted);
   font-size: 12px;
+}
+.version-diff-navigation > span:first-of-type {
+  margin-left: auto;
+}
+.version-active-review-group {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .version-diff {
   flex: 1;
@@ -2339,6 +2347,13 @@ textarea:focus-visible,
 .version-diff-line.current-change {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+.version-diff-line.active-review-group {
+  box-shadow: inset 4px 0 var(--accent);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--accent) 12%, transparent),
+    color-mix(in srgb, var(--accent) 12%, transparent)
+  );
 }
 .version-rendered-comparison {
   min-height: 0;
@@ -2414,22 +2429,28 @@ textarea:focus-visible,
 }
 .semantic-review-group {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
 }
-.semantic-review-group > span {
+.semantic-review-group.active {
+  border-color: var(--accent);
+}
+.semantic-review-group-copy {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 10px;
 }
-.semantic-review-group > span > span {
+.semantic-review-group-copy > span {
   grid-column: 1 / -1;
   color: var(--muted);
   font-size: 12px;
+}
+.semantic-review-inspect {
+  align-self: center;
 }
 .semantic-review-group small {
   color: #15803d;

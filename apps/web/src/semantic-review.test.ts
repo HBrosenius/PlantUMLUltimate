@@ -6,7 +6,14 @@ describe("semantic review", () => {
     const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Save\n@enduml';
     const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Store: Save\n@enduml';
     expect(buildReviewGroups(before, after, "sequence")).toMatchObject([
-      { title: "Rename participant Payment API to Billing API", confidence: "confirmed" },
+      {
+        title: "Rename participant Payment API to Billing API",
+        confidence: "confirmed",
+        startLeft: 1,
+        startRight: 1,
+        deleteCount: 1,
+        replacement: ['participant "Billing API" as Pay'],
+      },
     ]);
   });
 
