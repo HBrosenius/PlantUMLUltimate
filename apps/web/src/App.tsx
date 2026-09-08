@@ -66,17 +66,6 @@ import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
 import { JiraDialog } from "./JiraDialog";
-import {
-  CollaborationSession,
-  collaborationLinkDetails,
-  collaborationShareUrl,
-  createCollaborationOwnerToken,
-  createCollaborationRoomId,
-  withoutCollaborationLink,
-  type CollaborationConnection,
-  type CollaborationParticipant,
-  type CollaborationRole,
-} from "./collaboration";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
@@ -89,25 +78,14 @@ import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
 import { UseCaseSettingsInspector } from "./UseCaseSettingsInspector";
 import { parseUseCaseSettings, updateUseCaseSettings, type UseCaseSettings } from "./usecase-settings";
-import { detectDiagramKind } from "./diagram-kind";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { parseProjectSettings, updateProjectSettings } from "./project-settings";
-import type { DiagramKind, Theme, ViewMode } from "./model";
+import type { Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
-import {
-  createDocumentVersion,
-  deleteDocumentVersion,
-  documentDisplayNames,
-  importDocumentVersions,
-  loadDocumentVersions,
-  updateDocumentVersion,
-  type DocumentVersion,
-  type DocumentVersionAuthor,
-  type DocumentVersionReason,
-} from "./workspace-storage";
+import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
   deleteTask,
@@ -136,11 +114,6 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
-import {
-  findJiraLocalChangeFields,
-  issueIdFromJiraTaskAlias,
-  parseJiraDocumentBinding,
-} from "@plantuml-studio/jira-integration";
 import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
@@ -149,24 +122,10 @@ import type { Command } from "@plantuml-studio/editor-core";
 import {
   downloadSvgAsPng,
   downloadText,
-  openPlantUmlDocument,
-  openWorkspaceBackupFile,
-  readFileSnapshot,
-  registerLaunchFileConsumer,
-  savePlantUmlDocumentAs,
   svgFileName,
-  writePlantUmlDocument,
   type WritableFileHandle,
   type FileSnapshot,
 } from "./file-service";
-import {
-  DEFAULT_ACTIVITY_SOURCE,
-  DEFAULT_CLASS_SOURCE,
-  DEFAULT_SEQUENCE_SOURCE,
-  DEFAULT_SOURCE,
-  DEFAULT_USECASE_SOURCE,
-  DEFAULT_WBS_SOURCE,
-} from "./model";
 import {
   deleteWbsNode,
   deleteWbsRelationship,
@@ -288,8 +247,13 @@ import { UseCaseNoteInspector } from "./UseCaseNoteInspector";
 import { validateGeneratedSource } from "./generated-source-validation";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
+import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
+import { useDocumentVersions, type RecordDocumentVersion } from "./use-document-versions";
+import { useDocumentFiles } from "./use-document-files";
+import { useCollaborationLifecycle } from "./use-collaboration-lifecycle";
+import { useJiraIntegration } from "./use-jira-integration";
+import { useWorkspaceDocuments } from "./use-workspace-documents";
 import { useResourceCapacities } from "./use-resource-capacities";
-import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
 import {
   createSemanticSymbolProvider,
   type SemanticRenameRequest,
@@ -353,14 +317,6 @@ export function App() {
   const [sourceHighlightedClassMemberId, setSourceHighlightedClassMemberId] = useState<string>();
   const [sourceHighlightedActivityId, setSourceHighlightedActivityId] = useState<string>();
   const [sourceHighlightedWbsNodeId, setSourceHighlightedWbsNodeId] = useState<string>();
-  const [remoteEditFlash, setRemoteEditFlash] = useState<{
-    participantId: string;
-    name: string;
-    color: string;
-    range: { from: number; to: number };
-    taskId?: string | undefined;
-  }>();
-  const remoteEditFlashTimer = useRef<number | undefined>(undefined);
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
@@ -435,9 +391,6 @@ export function App() {
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
   const [dateMenuFor, setDateMenuFor] = useState<string>();
-  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
-  const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
-  const [baselineVersion, setBaselineVersion] = useState<DocumentVersion>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
   const [resourceFilter, setResourceFilter] = useState("");
@@ -448,51 +401,9 @@ export function App() {
   const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
-  const [externalConflict, setExternalConflict] = useState<{
-    documentId: string;
-    fileName: string;
-    baseSource: string;
-    localSource: string;
-    external: FileSnapshot;
-  }>();
-  const [collaborationDialogOpen, setCollaborationDialogOpen] = useState(false);
-  const [jiraDialogOpen, setJiraDialogOpen] = useState(false);
-  const [pendingCollaboration, setPendingCollaboration] = useState<{
-    roomId: string;
-    endpoint: string;
-    accessToken?: string | undefined;
-    role: CollaborationRole;
-  }>();
-  const [collaboration, setCollaboration] = useState<{
-    documentId: string;
-    roomId: string;
-    endpoint: string;
-    shareUrl: string;
-    viewerShareUrl?: string | undefined;
-    participantId: string;
-    participantName: string;
-    owner: boolean;
-    role: CollaborationRole;
-    connection: CollaborationConnection;
-    participants: CollaborationParticipant[];
-  }>();
-  const collaborationSession = useRef<CollaborationSession | undefined>(undefined);
-  const pendingCollaborationVersion = useRef<
-    | {
-        author: DocumentVersionAuthor;
-        source: string;
-        historyId: string;
-        fileName: string;
-        diagramKind: DiagramKind;
-        timer: number;
-      }
-    | undefined
-  >(undefined);
-  const flushCollaborationVersionRef = useRef<() => void>(() => undefined);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
-  const checkingExternalFiles = useRef(false);
   const workspaceElement = useRef<HTMLElement>(null);
   const pendingInspectorFocus = useRef<InspectorFocusSnapshot | undefined>(undefined);
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
@@ -500,7 +411,6 @@ export function App() {
   const renameReturnFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const pendingDiagramFocusSelector = useRef<string | undefined>(undefined);
   const startupSplashShown = useRef(false);
-  const selectedTasksByDocument = useRef(new Map<string, string>());
   const { activeHistory, refreshHistoryControls, removeHistory, retainHistories } = useDocumentHistory(tabs.activeId);
   const {
     capacities: resourceCapacities,
@@ -533,33 +443,18 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
-  const jiraBinding = useMemo(() => parseJiraDocumentBinding(workspace.source), [workspace.source]);
-  const jiraTaskStatuses = useMemo(() => {
-    const statuses = new Map<
-      string,
-      { issueKey: string; fields: import("@plantuml-studio/jira-integration").JiraMappedField[] }
-    >();
-    for (const task of parseResult.document.tasks) {
-      const issueId = issueIdFromJiraTaskAlias(task.alias?.value ?? "");
-      const baseline = issueId ? jiraBinding?.baselines?.[issueId] : undefined;
-      if (!issueId || !baseline) continue;
-      statuses.set(task.id, {
-        issueKey: baseline.state.key ?? `JIRA-${issueId}`,
-        fields: findJiraLocalChangeFields(workspace.source, issueId, baseline),
-      });
-    }
-    return statuses;
-  }, [jiraBinding, parseResult.document.tasks, workspace.source]);
-  const jiraDiagramStatuses = useMemo(
-    () =>
-      new Map<string, "synchronized" | "local-changes">(
-        [...jiraTaskStatuses].map(([taskId, status]) => [
-          taskId,
-          status.fields.length ? "local-changes" : "synchronized",
-        ]),
-      ),
-    [jiraTaskStatuses],
-  );
+  const {
+    endpoint: defaultJiraEndpoint,
+    binding: jiraBinding,
+    taskStatuses: jiraTaskStatuses,
+    diagramStatuses: jiraDiagramStatuses,
+    jiraDialogOpen,
+    setJiraDialogOpen,
+  } = useJiraIntegration({
+    source: workspace.source,
+    document: parseResult.document,
+    setInteractionMessage,
+  });
   const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
@@ -717,29 +612,43 @@ export function App() {
     return true;
   }, []);
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  const reportFileError = useCallback((error: unknown) => {
+    setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
+  }, []);
+  const recordDocumentVersionRef = useRef<RecordDocumentVersion | undefined>(undefined);
+  const recordCollaborationVersion = useCallback<RecordDocumentVersion>((reason, label, override) => {
+    if (!recordDocumentVersionRef.current) return Promise.reject(new Error("Version history is not ready"));
+    return recordDocumentVersionRef.current(reason, label, override);
+  }, []);
+  const defaultCollaborationEndpoint =
+    localStorage.getItem("plantuml-studio.collaboration-server") ??
+    import.meta.env.VITE_COLLABORATION_URL ??
+    "https://collaboration.plantuml.brosenius.se";
+  const {
+    collaboration,
+    pendingCollaboration,
+    remoteEditFlash,
+    collaborationDialogOpen,
+    setCollaborationDialogOpen,
+    startCollaboration,
+    rotateCollaborationRoom,
+    leaveCollaboration,
+    updateSelection: updateCollaborationSelection,
+  } = useCollaborationLifecycle({
+    hydrated,
+    defaultEndpoint: defaultCollaborationEndpoint,
+    workspace,
+    tabs,
+    recordDocumentVersion: recordCollaborationVersion,
+    reportError: reportFileError,
+    setInteractionMessage,
+  });
   useEffect(() => {
     if (!hydrated || startupSplashShown.current) return;
     startupSplashShown.current = true;
     setReplaceActiveDocumentOnCreate(activeDocument.historyId === "history-welcome");
     setNewDocumentOpen(true);
   }, [activeDocument.historyId, hydrated]);
-  useEffect(() => {
-    let cancelled = false;
-    if (!activeDocument.baselineVersionId) {
-      setBaselineVersion(undefined);
-      return;
-    }
-    void loadDocumentVersions(activeDocument.historyId).then((versions) => {
-      if (!cancelled) setBaselineVersion(versions.find((version) => version.id === activeDocument.baselineVersionId));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDocument.baselineVersionId, activeDocument.historyId]);
-  const baselineParseResult = useMemo(
-    () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
-    [baselineVersion],
-  );
   const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
   const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
   useEffect(() => {
@@ -904,83 +813,40 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, tabs.activeId]);
 
-  useEffect(() => {
-    if (!tabs.documents.some((document) => document.dirty)) return;
-    const protectUnsavedDocuments = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", protectUnsavedDocuments);
-    return () => window.removeEventListener("beforeunload", protectUnsavedDocuments);
-  }, [tabs.documents]);
-
-  const activateTab = useCallback(
-    (id: string) => {
-      if (selectedTaskId) selectedTasksByDocument.current.set(tabs.activeId, selectedTaskId);
-      tabs.activateDocument(id);
-      setSelectedTaskId(selectedTasksByDocument.current.get(id));
-      setSelectedDependencyIndex(undefined);
-      setSelectedSequenceParticipantId(undefined);
-      setSelectedSequenceMessageId(undefined);
-      setInteractionMessage(undefined);
+  const resetTransientTabSelection = useCallback(() => {
+    setSelectedDependencyIndex(undefined);
+    setSelectedSequenceParticipantId(undefined);
+    setSelectedSequenceMessageId(undefined);
+  }, []);
+  const releaseDocumentResources = useCallback((id: string) => {
+    fileHandles.current.delete(id);
+    fileSnapshots.current.delete(id);
+    externalCheckSnoozedUntil.current.delete(id);
+  }, []);
+  const retainDocumentResources = useCallback((id: string) => {
+    for (const documentId of [...fileHandles.current.keys()]) {
+      if (documentId === id) continue;
+      fileHandles.current.delete(documentId);
+      fileSnapshots.current.delete(documentId);
+      externalCheckSnoozedUntil.current.delete(documentId);
+    }
+  }, []);
+  const { activateTab, closeTab, duplicateTab, closeOtherTabs, rememberSelectedTask } = useDocumentTabLifecycle({
+    tabs,
+    selectedTaskId,
+    setSelectedTaskId,
+    resetTransientSelection: resetTransientTabSelection,
+    removeHistory,
+    retainHistories,
+    releaseDocumentResources,
+    retainDocumentResources,
+    closeTabMenu: () => setTabMenu(undefined),
+    openNewDocumentDialog: () => {
+      setReplaceActiveDocumentOnCreate(true);
+      setNewDocumentOpen(true);
     },
-    [selectedTaskId, tabs],
-  );
-
-  const closeTab = useCallback(
-    (id: string) => {
-      const document = tabs.documents.find((item) => item.id === id);
-      if (!document) return;
-      if (document.dirty && !window.confirm(`Close “${document.fileName}” without saving?`)) return;
-      const closingLastDocument = tabs.documents.length === 1;
-      tabs.closeDocument(id);
-      removeHistory(id);
-      fileHandles.current.delete(id);
-      fileSnapshots.current.delete(id);
-      externalCheckSnoozedUntil.current.delete(id);
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      if (closingLastDocument) {
-        setReplaceActiveDocumentOnCreate(true);
-        setNewDocumentOpen(true);
-      }
-    },
-    [removeHistory, tabs],
-  );
-
-  const duplicateTab = useCallback(
-    (id: string) => {
-      tabs.duplicateDocument(id);
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      setTabMenu(undefined);
-      setInteractionMessage("Duplicated document");
-    },
-    [tabs],
-  );
-
-  const closeOtherTabs = useCallback(
-    (id: string) => {
-      const dirtyOthers = tabs.documents.filter((item) => item.id !== id && item.dirty);
-      if (
-        dirtyOthers.length &&
-        !window.confirm(
-          `Close ${tabs.documents.length - 1} other tab${tabs.documents.length === 2 ? "" : "s"}? ${dirtyOthers.length} contain unsaved changes.`,
-        )
-      )
-        return;
-      tabs.closeOtherDocuments(id);
-      retainHistories([id]);
-      for (const documentId of [...fileHandles.current.keys()]) {
-        if (documentId === id) continue;
-        fileHandles.current.delete(documentId);
-        fileSnapshots.current.delete(documentId);
-        externalCheckSnoozedUntil.current.delete(documentId);
-      }
-      setTabMenu(undefined);
-    },
-    [retainHistories, tabs],
-  );
+    setInteractionMessage,
+  });
 
   const tabLabels = useMemo(() => {
     return documentDisplayNames(tabs.documents);
@@ -1078,7 +944,7 @@ export function App() {
     setSelectedTaskId(task.id);
     setSelectedDividerIndex(undefined);
     setFocusNoteTaskId(undefined);
-    selectedTasksByDocument.current.set(tabs.activeId, task.id);
+    rememberSelectedTask(task.id);
     const declaration = task.declarations[0];
     setSelectionRequest(declaration ? { ...declaration.range } : { ...task.sourceRange });
   };
@@ -1542,668 +1408,86 @@ export function App() {
     refreshHistoryControls();
   }, [activeHistory, collaboration, refreshHistoryControls, setWorkspace, tabs.activeId, workspace.source]);
 
-  const reportFileError = useCallback((error: unknown) => {
-    setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
+  const {
+    versionHistoryOpen,
+    setVersionHistoryOpen,
+    documentVersions,
+    baselineVersion,
+    clearBaseline,
+    setBaseline,
+    recordDocumentVersion,
+    openVersionHistory,
+    editDocumentVersion,
+    removeDocumentVersion,
+    restoreDocumentVersion,
+  } = useDocumentVersions({
+    activeDocument,
+    workspace,
+    setBaselineVersionId: tabs.setDocumentBaselineVersionId,
+    commitSource,
+    reportError: reportFileError,
+    setInteractionMessage,
+  });
+  recordDocumentVersionRef.current = recordDocumentVersion;
+  const baselineParseResult = useMemo(
+    () => (baselineVersion ? parseGantt(baselineVersion.source) : undefined),
+    [baselineVersion],
+  );
+
+  const resetFileSelection = useCallback(() => {
+    setSelectedTaskId(undefined);
+    setSelectedDependencyIndex(undefined);
   }, []);
-
-  const recordDocumentVersion = useCallback(
-    async (
-      reason: DocumentVersionReason,
-      label?: string,
-      override?: {
-        historyId?: string;
-        source?: string;
-        fileName?: string;
-        diagramKind?: DiagramKind;
-        author?: DocumentVersionAuthor;
-      },
-    ) => {
-      const historyId = override?.historyId ?? activeDocument.historyId;
-      const existing = await loadDocumentVersions(historyId);
-      const version = await createDocumentVersion({
-        historyId,
-        ...(existing[0] ? { parentVersionId: existing[0].id } : {}),
-        source: override?.source ?? workspace.source,
-        fileName: override?.fileName ?? workspace.fileName,
-        diagramKind: override?.diagramKind ?? workspace.diagramKind,
-        reason,
-        ...(override?.author ? { author: override.author } : {}),
-        ...(label?.trim() ? { label: label.trim() } : {}),
-        pinned: reason === "manual" || reason === "before-restore",
-      });
-      if (historyId === activeDocument.historyId) setDocumentVersions(await loadDocumentVersions(historyId));
-      return version;
-    },
-    [activeDocument.historyId, workspace.diagramKind, workspace.fileName, workspace.source],
-  );
-
-  const openVersionHistory = useCallback(async () => {
-    try {
-      let versions = await loadDocumentVersions(activeDocument.historyId);
-      if (!versions.length) {
-        await recordDocumentVersion("opened", "Initial version");
-        versions = await loadDocumentVersions(activeDocument.historyId);
-      }
-      setDocumentVersions(versions);
-      setVersionHistoryOpen(true);
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [activeDocument.historyId, recordDocumentVersion, reportFileError]);
-
-  const addOpenedDocument = useCallback(
-    async (opened: Awaited<ReturnType<typeof openPlantUmlDocument>>) => {
-      if (!opened) return;
-      const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const diagramKind = detectDiagramKind(opened.source) ?? "gantt";
-      const id = tabs.addDocument({
-        historyId,
-        diagramKind,
-        source: opened.source,
-        fileName: opened.fileName,
-        dirty: false,
-        cursor: { line: 1, column: 1 },
-      });
-      if (opened.handle) {
-        fileHandles.current.set(id, opened.handle);
-        fileSnapshots.current.set(id, {
-          source: opened.source,
-          lastModified: opened.lastModified ?? 0,
-          size: opened.size ?? new Blob([opened.source]).size,
-        });
-      }
-      await recordDocumentVersion("opened", "Opened file", {
-        historyId,
-        source: opened.source,
-        fileName: opened.fileName,
-        diagramKind,
-      });
-      refreshHistoryControls();
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      setInteractionMessage(`Opened ${opened.fileName}`);
-    },
-    [recordDocumentVersion, refreshHistoryControls, tabs],
-  );
-
-  const openDocument = useCallback(async () => {
-    try {
-      await addOpenedDocument(await openPlantUmlDocument());
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [addOpenedDocument, reportFileError]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    registerLaunchFileConsumer(addOpenedDocument, reportFileError);
-  }, [addOpenedDocument, hydrated, reportFileError]);
-
-  const saveDocumentAs = useCallback(async () => {
-    try {
-      const saved = await savePlantUmlDocumentAs(workspace.source, workspace.fileName);
-      if (!saved) return;
-      if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
-      else fileHandles.current.delete(tabs.activeId);
-      if (saved.handle) fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(saved.handle));
-      else fileSnapshots.current.delete(tabs.activeId);
-      const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      tabs.setDocumentHistoryId(tabs.activeId, historyId);
-      tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
-      setBaselineVersion(undefined);
-      setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
-      await recordDocumentVersion("saved", "Saved as new file", { historyId, fileName: saved.fileName });
-      setInteractionMessage(`Saved ${saved.fileName}`);
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [recordDocumentVersion, reportFileError, setWorkspace, tabs, workspace.fileName, workspace.source]);
-
-  const editDocumentVersion = useCallback(
-    async (version: DocumentVersion, patch: { label?: string; pinned?: boolean }) => {
-      try {
-        await updateDocumentVersion(version.id, patch);
-        setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
-        setInteractionMessage("Updated document version");
-      } catch (error) {
-        reportFileError(error);
-      }
-    },
-    [activeDocument.historyId, reportFileError],
-  );
-
-  const removeDocumentVersion = useCallback(
-    async (version: DocumentVersion) => {
-      if (!window.confirm(`Delete version “${version.label || new Date(version.createdAt).toLocaleString()}”?`)) return;
-      try {
-        await deleteDocumentVersion(version.id);
-        if (version.id === activeDocument.baselineVersionId) {
-          tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
-          setBaselineVersion(undefined);
-        }
-        setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
-        setInteractionMessage("Deleted document version");
-      } catch (error) {
-        reportFileError(error);
-      }
-    },
-    [activeDocument.baselineVersionId, activeDocument.historyId, reportFileError, tabs],
-  );
-
-  const saveDocument = useCallback(async () => {
-    const handle = fileHandles.current.get(tabs.activeId);
-    if (!handle) {
-      await saveDocumentAs();
-      return;
-    }
-    try {
-      const previous = fileSnapshots.current.get(tabs.activeId);
-      const external = await readFileSnapshot(handle);
-      if (previous && external.source !== previous.source) {
-        if (workspace.dirty) {
-          setExternalConflict({
-            documentId: tabs.activeId,
-            fileName: handle.name,
-            baseSource: previous.source,
-            localSource: workspace.source,
-            external,
-          });
-        } else {
-          await recordDocumentVersion("before-restore", "Before external reload");
-          tabs.replaceDocumentFromFile(tabs.activeId, {
-            source: external.source,
-            fileName: handle.name,
-            diagramKind: detectDiagramKind(external.source) ?? "gantt",
-          });
-          fileSnapshots.current.set(tabs.activeId, external);
-          setInteractionMessage(`Reloaded external changes from ${handle.name}`);
-        }
-        return;
-      }
-      await writePlantUmlDocument(handle, workspace.source);
-      fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(handle));
-      setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
-      await recordDocumentVersion("saved", undefined, { fileName: handle.name });
-      setInteractionMessage(`Saved ${handle.name}`);
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [recordDocumentVersion, reportFileError, saveDocumentAs, setWorkspace, tabs, workspace.dirty, workspace.source]);
-
-  const checkExternalFiles = useCallback(async () => {
-    if (checkingExternalFiles.current || document.visibilityState === "hidden") return;
-    checkingExternalFiles.current = true;
-    try {
-      for (const [documentId, handle] of fileHandles.current) {
-        const previous = fileSnapshots.current.get(documentId);
-        if (!previous) continue;
-        const external = await readFileSnapshot(handle);
-        if (external.source === previous.source) {
-          fileSnapshots.current.set(documentId, external);
-          continue;
-        }
-        const documentSnapshot = tabs.documents.find((item) => item.id === documentId);
-        if (!documentSnapshot) continue;
-        if (documentSnapshot.dirty) {
-          if ((externalCheckSnoozedUntil.current.get(documentId) ?? 0) > Date.now()) continue;
-          setExternalConflict((current) =>
-            current
-              ? current
-              : {
-                  documentId,
-                  fileName: documentSnapshot.fileName,
-                  baseSource: previous.source,
-                  localSource: documentSnapshot.source,
-                  external,
-                },
-          );
-          continue;
-        }
-        await recordDocumentVersion("before-restore", "Before external reload", {
-          historyId: documentSnapshot.historyId,
-          source: documentSnapshot.source,
-          fileName: documentSnapshot.fileName,
-          diagramKind: documentSnapshot.diagramKind,
-        });
-        tabs.replaceDocumentFromFile(documentId, {
-          source: external.source,
-          fileName: handle.name,
-          diagramKind: detectDiagramKind(external.source) ?? "gantt",
-        });
-        fileSnapshots.current.set(documentId, external);
-        setInteractionMessage(`Reloaded external changes from ${handle.name}`);
-      }
-    } catch (error) {
-      reportFileError(error);
-    } finally {
-      checkingExternalFiles.current = false;
-    }
-  }, [recordDocumentVersion, reportFileError, tabs]);
-
-  const dismissExternalConflict = useCallback(() => {
-    if (externalConflict) externalCheckSnoozedUntil.current.set(externalConflict.documentId, Date.now() + 60_000);
-    setExternalConflict(undefined);
-  }, [externalConflict]);
-
-  const keepLocalExternalConflict = useCallback(() => {
-    if (!externalConflict) return;
-    fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
-    externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
-    setExternalConflict(undefined);
-    setInteractionMessage(`Kept local changes for ${externalConflict.fileName}`);
-  }, [externalConflict]);
-
-  const reloadExternalConflict = useCallback(async () => {
-    if (!externalConflict) return;
-    const documentSnapshot = tabs.documents.find((item) => item.id === externalConflict.documentId);
-    if (!documentSnapshot) {
-      setExternalConflict(undefined);
-      return;
-    }
-    try {
-      await recordDocumentVersion("before-restore", "Before external reload", {
-        historyId: documentSnapshot.historyId,
-        source: documentSnapshot.source,
-        fileName: documentSnapshot.fileName,
-        diagramKind: documentSnapshot.diagramKind,
-      });
-      tabs.replaceDocumentFromFile(externalConflict.documentId, {
-        source: externalConflict.external.source,
-        fileName: externalConflict.fileName,
-        diagramKind: detectDiagramKind(externalConflict.external.source) ?? "gantt",
-      });
-      fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
-      externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
-      setExternalConflict(undefined);
-      setInteractionMessage(`Reloaded external changes from ${externalConflict.fileName}`);
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [externalConflict, recordDocumentVersion, reportFileError, tabs]);
-
-  const openExternalConflictCopy = useCallback(async () => {
-    if (!externalConflict) return;
-    const diagramKind = detectDiagramKind(externalConflict.external.source) ?? "gantt";
-    const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const fileName = `External copy of ${externalConflict.fileName}`;
-    tabs.addDocument({
-      historyId,
-      diagramKind,
-      source: externalConflict.external.source,
-      fileName,
-      dirty: true,
-      cursor: { line: 1, column: 1 },
-    });
-    await recordDocumentVersion("opened", "External conflict copy", {
-      historyId,
-      source: externalConflict.external.source,
-      fileName,
-      diagramKind,
-    });
-    fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
-    externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
-    setExternalConflict(undefined);
-    setInteractionMessage(`Opened external changes from ${externalConflict.fileName} as a copy`);
-  }, [externalConflict, recordDocumentVersion, tabs]);
-
-  const applyExternalConflictMerge = useCallback(
-    async (source: string) => {
-      if (!externalConflict) return;
-      const documentSnapshot = tabs.documents.find((item) => item.id === externalConflict.documentId);
-      if (!documentSnapshot) {
-        setExternalConflict(undefined);
-        return;
-      }
-      try {
-        await recordDocumentVersion("before-restore", "Before external merge", {
-          historyId: documentSnapshot.historyId,
-          source: documentSnapshot.source,
-          fileName: documentSnapshot.fileName,
-          diagramKind: documentSnapshot.diagramKind,
-        });
-        tabs.replaceDocumentFromFile(
-          externalConflict.documentId,
-          {
-            source,
-            fileName: externalConflict.fileName,
-            diagramKind: detectDiagramKind(source) ?? "gantt",
-          },
-          true,
-        );
-        fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
-        externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
-        setExternalConflict(undefined);
-        setInteractionMessage(`Merged local and external changes from ${externalConflict.fileName}`);
-      } catch (error) {
-        reportFileError(error);
-      }
-    },
-    [externalConflict, recordDocumentVersion, reportFileError, tabs],
-  );
-
-  const defaultCollaborationEndpoint =
-    localStorage.getItem("plantuml-studio.collaboration-server") ??
-    import.meta.env.VITE_COLLABORATION_URL ??
-    "https://collaboration.plantuml.brosenius.se";
-  const defaultJiraEndpoint =
-    localStorage.getItem("plantuml-studio.jira-integration-server") ??
-    import.meta.env.VITE_JIRA_INTEGRATION_URL ??
-    "https://jira.plantuml.brosenius.se";
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const result = url.searchParams.get("jira");
-    if (!result) return;
-    const popup = url.searchParams.get("jira_popup") === "1";
-    url.searchParams.delete("jira");
-    url.searchParams.delete("jira_popup");
-    window.history.replaceState(window.history.state, "", url);
-    if (popup && window.opener) {
-      window.opener.postMessage({ type: "plantuml-studio:jira-oauth", result }, window.location.origin);
-      window.close();
-      return;
-    }
-    if (result === "connected") setJiraDialogOpen(true);
-    else setInteractionMessage("Jira authorization was not completed");
-  }, []);
-
-  const savePendingCollaborationVersion = useCallback(
-    (pending: Omit<NonNullable<typeof pendingCollaborationVersion.current>, "timer">) => {
-      void recordDocumentVersion("collaboration", undefined, pending).catch(reportFileError);
-    },
-    [recordDocumentVersion, reportFileError],
-  );
-
-  const flushCollaborationVersion = useCallback(() => {
-    const pending = pendingCollaborationVersion.current;
-    if (!pending) return;
-    window.clearTimeout(pending.timer);
-    pendingCollaborationVersion.current = undefined;
-    savePendingCollaborationVersion(pending);
-  }, [savePendingCollaborationVersion]);
-  flushCollaborationVersionRef.current = flushCollaborationVersion;
-
-  const scheduleCollaborationVersion = useCallback(
-    (
-      participant: CollaborationParticipant,
-      source: string,
-      details: { historyId: string; fileName: string; diagramKind: DiagramKind },
-    ) => {
-      const author = { id: participant.id, name: participant.name, color: participant.color };
-      const existing = pendingCollaborationVersion.current;
-      if (existing) {
-        window.clearTimeout(existing.timer);
-        if (existing.author.id !== author.id) savePendingCollaborationVersion(existing);
-      }
-      const pending = {
-        author,
-        source,
-        ...details,
-        timer: 0,
-      };
-      pending.timer = window.setTimeout(() => {
-        if (pendingCollaborationVersion.current !== pending) return;
-        pendingCollaborationVersion.current = undefined;
-        savePendingCollaborationVersion(pending);
-      }, 1_200);
-      pendingCollaborationVersion.current = pending;
-    },
-    [savePendingCollaborationVersion],
-  );
-
-  const leaveCollaboration = useCallback(() => {
-    flushCollaborationVersion();
-    collaborationSession.current?.stop();
-    collaborationSession.current = undefined;
-    setCollaboration(undefined);
-    setCollaborationDialogOpen(false);
-    window.clearTimeout(remoteEditFlashTimer.current);
-    setRemoteEditFlash(undefined);
-    window.history.replaceState({}, "", withoutCollaborationLink(window.location.href));
-    setInteractionMessage("Left collaboration room");
-  }, [flushCollaborationVersion]);
-
-  const startCollaboration = useCallback(
-    (
-      name: string,
-      endpoint: string,
-      requestedRoomId?: string,
-      requestedAccessToken?: string,
-      requestedRole: CollaborationRole = "editor",
-    ) => {
-      let normalizedEndpoint: string;
-      try {
-        const parsed = new URL(endpoint);
-        if (parsed.protocol !== "https:" && !(import.meta.env.DEV && parsed.protocol === "http:")) throw new Error();
-        parsed.pathname = parsed.pathname.replace(/\/$/, "");
-        parsed.search = "";
-        parsed.hash = "";
-        normalizedEndpoint = parsed.toString().replace(/\/$/, "");
-      } catch {
-        setInteractionMessage("Collaboration service needs a valid HTTPS URL");
-        return;
-      }
-      const roomId = requestedRoomId ?? createCollaborationRoomId();
-      const ownerToken = requestedRoomId ? undefined : createCollaborationOwnerToken();
-      const editorToken = requestedRoomId ? undefined : createCollaborationRoomId();
-      const viewerToken = requestedRoomId ? undefined : createCollaborationRoomId();
-      const role = requestedRoomId ? requestedRole : "editor";
-      if (!/^[A-Za-z0-9_-]{43}$/.test(roomId)) {
-        setInteractionMessage("The collaboration link contains an invalid room credential");
-        return;
-      }
-      if (requestedAccessToken && !/^[A-Za-z0-9_-]{43}$/.test(requestedAccessToken)) {
-        setInteractionMessage("The collaboration link contains an invalid access credential");
-        return;
-      }
-      collaborationSession.current?.stop();
-      const documentId = tabs.activeId;
-      const collaborationDocument = tabs.documents.find((document) => document.id === documentId)!;
-      const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
-      localStorage.setItem("plantuml-studio.collaboration-participant", participantId);
-      const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
-      const color =
-        colors[[...participantId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length]!;
-      const shareUrl = collaborationShareUrl(
-        window.location.href,
-        normalizedEndpoint,
-        roomId,
-        editorToken ?? requestedAccessToken,
-        role,
-      );
-      const viewerShareUrl = viewerToken
-        ? collaborationShareUrl(window.location.href, normalizedEndpoint, roomId, viewerToken, "viewer")
-        : undefined;
-      void recordDocumentVersion("opened", "Collaboration started", {
-        historyId: collaborationDocument.historyId,
-        source: workspace.source,
-        fileName: collaborationDocument.fileName,
-        diagramKind: collaborationDocument.diagramKind,
-      }).catch(reportFileError);
-      const session = new CollaborationSession(
-        normalizedEndpoint,
-        roomId,
-        workspace.source,
-        { id: participantId, name, color, cursor: workspace.cursor, selection: { anchor: 0, head: 0 } },
-        (source) => tabs.updateDocumentSource(documentId, source, detectDiagramKind(source) ?? "gantt"),
-        (connection) => setCollaboration((current) => (current ? { ...current, connection } : current)),
-        (participants) => setCollaboration((current) => (current ? { ...current, participants } : current)),
-        (participant, source, range) => {
-          scheduleCollaborationVersion(participant, source, {
-            historyId: collaborationDocument.historyId,
-            fileName: collaborationDocument.fileName,
-            diagramKind: detectDiagramKind(source) ?? collaborationDocument.diagramKind,
-          });
-          if (participant.id === participantId) return;
-          window.clearTimeout(remoteEditFlashTimer.current);
-          const diagramKind = detectDiagramKind(source) ?? collaborationDocument.diagramKind;
-          const editPosition = Math.min(range.from, Math.max(0, source.length - 1));
-          const taskId =
-            diagramKind === "gantt"
-              ? (
-                  parseGantt(source).document.tasks.find(
-                    (task) => editPosition >= task.sourceRange.from && editPosition <= task.sourceRange.to,
-                  ) ?? findTaskAt(parseGantt(source).document, editPosition)
-                )?.id
-              : undefined;
-          setRemoteEditFlash({
-            participantId: participant.id,
-            name: participant.name,
-            color: participant.color,
-            range,
-            taskId,
-          });
-          remoteEditFlashTimer.current = window.setTimeout(() => setRemoteEditFlash(undefined), 2_500);
-        },
-        role,
-        ownerToken && editorToken && viewerToken
-          ? { ownerToken, editorToken, viewerToken, accessToken: editorToken }
-          : { accessToken: requestedAccessToken },
-      );
-      collaborationSession.current = session;
-      setCollaboration({
-        documentId,
-        roomId,
-        endpoint: normalizedEndpoint,
-        shareUrl,
-        viewerShareUrl,
-        participantId,
-        participantName: name,
-        owner: Boolean(ownerToken),
-        role,
-        connection: "connecting",
-        participants: [],
-      });
-      setPendingCollaboration(undefined);
-      setCollaborationDialogOpen(true);
-      const url = new URL(shareUrl);
-      window.history.replaceState({}, "", url);
-      setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
-    },
-    [recordDocumentVersion, reportFileError, scheduleCollaborationVersion, tabs, workspace.cursor, workspace.source],
-  );
-
-  const rotateCollaborationRoom = useCallback(async () => {
-    if (!collaboration?.owner) return;
-    const session = collaborationSession.current;
-    if (!session) return;
-    try {
-      await session.revokeRoom();
-    } catch (error) {
-      setInteractionMessage(error instanceof Error ? error.message : "Could not revoke collaboration link");
-      return;
-    }
-    collaborationSession.current?.stop();
-    collaborationSession.current = undefined;
-    startCollaboration(collaboration.participantName, collaboration.endpoint);
-    setInteractionMessage("Old collaboration link revoked; created a new private room");
-  }, [collaboration, startCollaboration]);
-
-  useEffect(() => {
-    if (!hydrated || collaboration) return;
-    const details = collaborationLinkDetails(window.location.href);
-    const roomId = details.roomId;
-    const endpoint = details.endpoint ?? defaultCollaborationEndpoint;
-    if (!roomId || !endpoint) return;
-    setPendingCollaboration({ roomId, endpoint, accessToken: details.accessToken, role: details.role });
-    setCollaborationDialogOpen(true);
-  }, [collaboration, defaultCollaborationEndpoint, hydrated]);
-
-  const collaborationDocumentId = collaboration?.documentId;
-  useEffect(() => {
-    if (!collaborationDocumentId || collaborationDocumentId !== tabs.activeId) return;
-    collaborationSession.current?.applySource(workspace.source);
-  }, [collaborationDocumentId, tabs.activeId, workspace.source]);
-
-  useEffect(() => {
-    if (!collaboration || tabs.documents.some((document) => document.id === collaboration.documentId)) return;
-    leaveCollaboration();
-  }, [collaboration, leaveCollaboration, tabs.documents]);
-
-  useEffect(
-    () => () => {
-      flushCollaborationVersionRef.current();
-      collaborationSession.current?.stop();
-      window.clearTimeout(remoteEditFlashTimer.current);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const checkWhenVisible = () => {
-      if (document.visibilityState === "visible") void checkExternalFiles();
-    };
-    const timer = window.setInterval(() => void checkExternalFiles(), 5_000);
-    window.addEventListener("focus", checkWhenVisible);
-    document.addEventListener("visibilitychange", checkWhenVisible);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("focus", checkWhenVisible);
-      document.removeEventListener("visibilitychange", checkWhenVisible);
-    };
-  }, [checkExternalFiles, hydrated]);
-
-  const restoreDocumentVersion = useCallback(
-    async (version: DocumentVersion) => {
-      try {
-        await recordDocumentVersion("before-restore", "Before restore");
-        commitSource(version.source, `Restore version from ${new Date(version.createdAt).toLocaleString()}`, false);
-        setInteractionMessage(`Restored ${version.label || new Date(version.createdAt).toLocaleString()}`);
-        setVersionHistoryOpen(false);
-      } catch (error) {
-        reportFileError(error);
-      }
-    },
-    [commitSource, recordDocumentVersion, reportFileError],
-  );
+  const {
+    externalConflict,
+    openDocument,
+    saveDocument,
+    saveDocumentAs,
+    dismissExternalConflict,
+    keepLocalExternalConflict,
+    reloadExternalConflict,
+    openExternalConflictCopy,
+    applyExternalConflictMerge,
+  } = useDocumentFiles({
+    hydrated,
+    workspace,
+    setWorkspace,
+    tabs,
+    fileHandles,
+    fileSnapshots,
+    externalCheckSnoozedUntil,
+    clearBaseline,
+    recordDocumentVersion,
+    refreshHistoryControls,
+    resetSelection: resetFileSelection,
+    reportError: reportFileError,
+    setInteractionMessage,
+  });
 
   const exportSource = useCallback(
     () => downloadText(workspace.source, workspace.fileName, "text/plain;charset=utf-8"),
     [workspace.fileName, workspace.source],
   );
-  const backupWorkspace = useCallback(async () => {
-    try {
-      const versions = (
-        await Promise.all(tabs.documents.map((document) => loadDocumentVersions(document.historyId)))
-      ).flat();
-      downloadText(
-        serializeWorkspaceBackup(tabs.session, versions),
-        "plantuml-studio-backup.json",
-        "application/json;charset=utf-8",
-      );
-      setInteractionMessage(
-        `Backed up ${tabs.documents.length} open document${tabs.documents.length === 1 ? "" : "s"}`,
-      );
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [reportFileError, tabs.documents, tabs.session]);
-  const restoreWorkspace = useCallback(async () => {
-    try {
-      const contents = await openWorkspaceBackupFile();
-      if (!contents) return;
-      const restored = parseWorkspaceBackupBundle(contents);
-      if (
-        tabs.documents.some((document) => document.dirty) &&
-        !window.confirm("Restore this backup and replace all currently open tabs?")
-      )
-        return;
-      tabs.restoreSession(restored.session);
-      await importDocumentVersions(restored.versions);
-      fileHandles.current.clear();
-      fileSnapshots.current.clear();
-      externalCheckSnoozedUntil.current.clear();
-      retainHistories(restored.session.documents.map((document) => document.id));
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      setInteractionMessage(
-        `Restored ${restored.session.documents.length} document${restored.session.documents.length === 1 ? "" : "s"}`,
-      );
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [reportFileError, retainHistories, tabs]);
+  const resetWorkspaceDocumentSelection = useCallback(() => {
+    setSelectedTaskId(undefined);
+    setSelectedDependencyIndex(undefined);
+  }, []);
+  const { backupWorkspace, restoreWorkspace, createDocument, newDocument } = useWorkspaceDocuments({
+    tabs,
+    replaceActiveDocumentOnCreate,
+    setReplaceActiveDocumentOnCreate,
+    setNewDocumentOpen,
+    fileHandles,
+    fileSnapshots,
+    externalCheckSnoozedUntil,
+    removeHistory,
+    retainHistories,
+    refreshHistoryControls,
+    resetSelection: resetWorkspaceDocumentSelection,
+    openProjectInspector,
+    reportError: reportFileError,
+    setInteractionMessage,
+  });
   const exportSvg = useCallback(() => {
     if (!result?.svg) {
       setInteractionMessage("Render a valid diagram before exporting SVG");
@@ -2222,62 +1506,6 @@ export function App() {
       reportFileError(error);
     }
   }, [reportFileError, result?.svg, workspace.fileName]);
-
-  const createDocument = useCallback(
-    (diagramKind: DiagramKind) => {
-      const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
-      tabs.addDocument({
-        diagramKind,
-        source:
-          diagramKind === "sequence"
-            ? DEFAULT_SEQUENCE_SOURCE
-            : diagramKind === "usecase"
-              ? DEFAULT_USECASE_SOURCE
-              : diagramKind === "class"
-                ? DEFAULT_CLASS_SOURCE
-                : diagramKind === "activity"
-                  ? DEFAULT_ACTIVITY_SOURCE
-                  : diagramKind === "wbs"
-                    ? DEFAULT_WBS_SOURCE
-                    : DEFAULT_SOURCE,
-        fileName: "untitled.puml",
-        dirty: false,
-        cursor: { line: 1, column: 1 },
-      });
-      if (replacedDocumentId) {
-        tabs.closeDocument(replacedDocumentId);
-        removeHistory(replacedDocumentId);
-        fileHandles.current.delete(replacedDocumentId);
-        fileSnapshots.current.delete(replacedDocumentId);
-        externalCheckSnoozedUntil.current.delete(replacedDocumentId);
-      }
-      setSelectedTaskId(undefined);
-      setSelectedDependencyIndex(undefined);
-      refreshHistoryControls();
-      setReplaceActiveDocumentOnCreate(false);
-      setNewDocumentOpen(false);
-      const displayName =
-        diagramKind === "sequence"
-          ? "Sequence"
-          : diagramKind === "usecase"
-            ? "Use Case"
-            : diagramKind === "class"
-              ? "Class"
-              : diagramKind === "activity"
-                ? "Activity"
-                : diagramKind === "wbs"
-                  ? "WBS"
-                  : "Gantt";
-      setInteractionMessage(`Created a new ${displayName} diagram`);
-      if (diagramKind === "gantt") setTimeout(openProjectInspector, 0);
-    },
-    [openProjectInspector, refreshHistoryControls, removeHistory, replaceActiveDocumentOnCreate, tabs],
-  );
-
-  const newDocument = useCallback(() => {
-    setReplaceActiveDocumentOnCreate(false);
-    setNewDocumentOpen(true);
-  }, []);
 
   const addWbsNode = useCallback(
     (value: WbsNodeInput, position: WbsInsertPosition) => {
@@ -3389,15 +2617,15 @@ export function App() {
         }
       }
       setSelectedTaskId(currentId);
-      selectedTasksByDocument.current.set(tabs.activeId, currentId);
+      rememberSelectedTask(currentId);
       if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) {
         setSelectedTaskId(selectedTaskId);
-        selectedTasksByDocument.current.set(tabs.activeId, selectedTaskId);
+        rememberSelectedTask(selectedTaskId);
         return;
       }
       setInteractionMessage(`Updated ${value.label.trim()}`);
     },
-    [commitGeneratedSource, resolvedTaskDates, selectedTaskId, tabs.activeId, workspace.source],
+    [commitGeneratedSource, rememberSelectedTask, resolvedTaskDates, selectedTaskId, workspace.source],
   );
 
   const applyMilestoneInspector = useCallback(
@@ -3661,6 +2889,7 @@ export function App() {
     result?.svg,
     saveDocument,
     saveDocumentAs,
+    setCollaborationDialogOpen,
     undo,
     update,
     workspace.zoom,
@@ -4200,8 +3429,7 @@ export function App() {
             }
             onCursorChange={(line, column, position, anchor, head) => {
               update("cursor", { line, column });
-              if (collaboration?.documentId === tabs.activeId)
-                collaborationSession.current?.updateSelection(line, column, anchor, head);
+              if (collaboration?.documentId === tabs.activeId) updateCollaborationSelection(line, column, anchor, head);
               if (workspace.diagramKind === "gantt") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -4355,11 +3583,7 @@ export function App() {
                   : undefined
               }
               onChangeBaseline={() => void openVersionHistory()}
-              onClearBaseline={() => {
-                tabs.setDocumentBaselineVersionId(tabs.activeId, undefined);
-                setBaselineVersion(undefined);
-                setInteractionMessage("Baseline cleared");
-              }}
+              onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
             />
           ) : workspace.diagramKind === "sequence" ? (
@@ -4813,13 +4037,7 @@ export function App() {
               return false;
             }
           }}
-          onSetBaseline={async (version) => {
-            if (version) await updateDocumentVersion(version.id, { pinned: true });
-            tabs.setDocumentBaselineVersionId(tabs.activeId, version?.id);
-            setBaselineVersion(version ? { ...version, pinned: true } : undefined);
-            setDocumentVersions(await loadDocumentVersions(activeDocument.historyId));
-            setInteractionMessage(version ? "Baseline version selected" : "Baseline cleared");
-          }}
+          onSetBaseline={setBaseline}
           onClose={() => setVersionHistoryOpen(false)}
         />
       )}
@@ -4854,7 +4072,7 @@ export function App() {
         <JiraDialog
           endpoint={defaultJiraEndpoint}
           source={workspace.source}
-          binding={parseJiraDocumentBinding(workspace.source)}
+          binding={jiraBinding}
           readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
           onApply={(source, message) => {
             if (commitGeneratedSource(source, "Synchronize Jira")) setInteractionMessage(message);
