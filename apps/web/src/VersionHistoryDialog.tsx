@@ -154,6 +154,7 @@ export function VersionHistoryDialog({
   const showReviewGroupInDiagram = (groupId: string) => {
     setActiveGroupId(groupId);
     setVisibleGroupIds((current) => {
+      if (current.has(groupId) && current.size > 1) return new Set([groupId]);
       const next = new Set(current);
       if (next.has(groupId)) next.delete(groupId);
       else next.add(groupId);
@@ -469,6 +470,17 @@ export function VersionHistoryDialog({
                   {reviewGroups.length ? (
                     reviewGroups.map((group) => {
                       const confirmed = group.confidence === "confirmed";
+                      const visibleInDiagram = visibleGroupIds.has(group.id);
+                      const diagramAction = visibleInDiagram
+                        ? visibleGroupIds.size > 1
+                          ? {
+                              label: "Show only in diagram",
+                              ariaLabel: `Show only ${group.title} in rendered diagrams`,
+                            }
+                          : { label: "Hide from diagram", ariaLabel: `Hide ${group.title} from rendered diagrams` }
+                        : visibleGroupIds.size
+                          ? { label: "Add to diagram", ariaLabel: `Add ${group.title} to rendered diagrams` }
+                          : { label: "Show in diagram", ariaLabel: `Show ${group.title} in rendered diagrams` };
                       return (
                         <div
                           className={`semantic-review-group ${group.confidence}${activeGroupId === group.id ? " active" : ""}`}
@@ -495,11 +507,11 @@ export function VersionHistoryDialog({
                             <button
                               type="button"
                               disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
-                              aria-label={`${visibleGroupIds.has(group.id) ? "Hide" : "Show"} ${group.title} ${visibleGroupIds.has(group.id) ? "from" : "in"} rendered diagrams`}
-                              aria-pressed={visibleGroupIds.has(group.id)}
+                              aria-label={diagramAction.ariaLabel}
+                              aria-pressed={visibleInDiagram}
                               onClick={() => showReviewGroupInDiagram(group.id)}
                             >
-                              {visibleGroupIds.has(group.id) ? "Hide from diagram" : "Show in diagram"}
+                              {diagramAction.label}
                             </button>
                             <button
                               type="button"

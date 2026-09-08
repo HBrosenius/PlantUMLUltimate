@@ -1777,7 +1777,7 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(highlightedSource.filter({ hasText: "Authorize" })).toHaveCount(1);
   await expect(highlightedSource.filter({ hasText: "Capture" })).toHaveCount(1);
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
-  await dialog.getByRole("button", { name: "Show Change message Pay → Store in rendered diagrams" }).click();
+  await dialog.getByRole("button", { name: "Add Change message Pay → Store to rendered diagrams" }).click();
   await expect(
     dialog
       .getByLabel("Before review rendered diagram")
@@ -1802,6 +1802,14 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
     2,
   );
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Show only Rename participant Payment API to Billing API in rendered diagrams" })
+    .click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    1,
+  );
+  await expect(dialog.getByText("1 change highlighted", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog
     .locator(".semantic-review-group")
