@@ -1755,6 +1755,33 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 12px;
 }
+.jira-field-mapping {
+  margin: 4px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.jira-field-mapping legend {
+  padding: 0 5px;
+  font-weight: 600;
+}
+.jira-field-mapping > p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.jira-field-mapping > label {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.jira-field-mapping .jira-field-note {
+  margin: 10px 0 0 140px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .jira-dialog > header button {
   border: 0;
   background: transparent;
