@@ -42,6 +42,64 @@ function sequenceItems(source: string): SequenceItem[] {
   ];
 }
 
+function hasCompleteMatching<T>(before: readonly T[], after: readonly T[], compatible: (left: T, right: T) => boolean) {
+  if (before.length !== after.length) return false;
+  const matchedBefore = new Array<number>(after.length).fill(-1);
+  const assign = (beforeIndex: number, visited: Set<number>): boolean => {
+    for (let afterIndex = 0; afterIndex < after.length; afterIndex += 1) {
+      if (visited.has(afterIndex) || !compatible(before[beforeIndex]!, after[afterIndex]!)) continue;
+      visited.add(afterIndex);
+      if (matchedBefore[afterIndex] === -1 || assign(matchedBefore[afterIndex]!, visited)) {
+        matchedBefore[afterIndex] = beforeIndex;
+        return true;
+      }
+    }
+    return false;
+  };
+  return before.every((_, index) => assign(index, new Set()));
+}
+
+function describeCompoundSequenceChange(
+  removed: SequenceItem[],
+  added: SequenceItem[],
+): Pick<ReviewGroup, "title" | "detail" | "confidence"> | undefined {
+  if (removed.length < 2 || removed.length !== added.length) return undefined;
+  const removedParticipants = removed.filter(
+    (item): item is Extract<SequenceItem, { kind: "participant" }> => item.kind === "participant",
+  );
+  const addedParticipants = added.filter(
+    (item): item is Extract<SequenceItem, { kind: "participant" }> => item.kind === "participant",
+  );
+  const removedMessages = removed.filter(
+    (item): item is Extract<SequenceItem, { kind: "message" }> => item.kind === "message",
+  );
+  const addedMessages = added.filter(
+    (item): item is Extract<SequenceItem, { kind: "message" }> => item.kind === "message",
+  );
+  const participantsMatch = hasCompleteMatching(removedParticipants, addedParticipants, (before, after) => {
+    const stableAlias = before.value.alias && before.value.alias === after.value.alias;
+    return Boolean(stableAlias || before.value.label === after.value.label);
+  });
+  const messagesMatch = hasCompleteMatching(
+    removedMessages,
+    addedMessages,
+    (before, after) => before.value.from === after.value.from && before.value.to === after.value.to,
+  );
+  if (!participantsMatch || !messagesMatch) return undefined;
+  const parts = [
+    removedParticipants.length
+      ? `${removedParticipants.length} participant${removedParticipants.length === 1 ? "" : "s"}`
+      : "",
+    removedMessages.length ? `${removedMessages.length} message${removedMessages.length === 1 ? "" : "s"}` : "",
+  ].filter(Boolean);
+  return {
+    title: `Update ${parts.join(" and ")}`,
+    detail:
+      "Every declaration and relationship has a stable identity, so this contiguous edit is one atomic transaction.",
+    confidence: "confirmed",
+  };
+}
+
 function ganttItems(source: string): GanttItem[] {
   return parseGantt(source).document.tasks.flatMap((value) =>
     value.declarations.map((declaration) => ({
@@ -57,6 +115,8 @@ function describeSequenceChange(
   removed: SequenceItem[],
   added: SequenceItem[],
 ): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
+  const compound = describeCompoundSequenceChange(removed, added);
+  if (compound) return compound;
   if (removed.length === 1 && added.length === 1 && removed[0]!.kind === added[0]!.kind) {
     const before = removed[0]!;
     const after = added[0]!;

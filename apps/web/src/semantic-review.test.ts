@@ -31,6 +31,37 @@ describe("semantic review", () => {
     ).toMatchObject([{ title: "Possible participant rename: Old → New", confidence: "probable" }]);
   });
 
+  it("groups adjacent participant and message edits when every identity remains stable", () => {
+    const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Authorize\n@enduml';
+    const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Store: Capture\n@enduml';
+    const groups = buildReviewGroups(before, after, "sequence");
+    expect(groups).toMatchObject([
+      {
+        title: "Update 1 participant and 1 message",
+        confidence: "confirmed",
+        deleteCount: 2,
+        replacement: ['participant "Billing API" as Pay', "Pay -> Store: Capture"],
+      },
+    ]);
+    expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(after);
+  });
+
+  it("does not confirm an adjacent edit when a message endpoint changes", () => {
+    const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Authorize\n@enduml';
+    const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Archive: Capture\n@enduml';
+    expect(buildReviewGroups(before, after, "sequence")).toMatchObject([
+      { title: "Unclassified source change", confidence: "unclassified" },
+    ]);
+  });
+
+  it("does not confirm an adjacent edit when participant identity changes", () => {
+    const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Authorize\n@enduml';
+    const after = '@startuml\nparticipant "Billing API" as Bill\nPay -> Store: Capture\n@enduml';
+    expect(buildReviewGroups(before, after, "sequence")).toMatchObject([
+      { title: "Unclassified source change", confidence: "unclassified" },
+    ]);
+  });
+
   it("describes recognized Gantt duration and date changes", () => {
     const before = "@startgantt\n[A] starts 2026-09-01\n[A] lasts 2 days\n@endgantt";
     const after = "@startgantt\n[A] starts 2026-09-03\n[A] lasts 4 days\n@endgantt";

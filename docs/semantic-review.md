@@ -23,6 +23,10 @@ The review layer classifies these Sequence changes when their identity is unambi
 - added participant declarations and messages; and
 - removed messages.
 
+Adjacent participant and message modifications are confirmed as one compound transaction only when
+every participant retains a stable alias or label and every message retains its endpoints. If any
+identity is ambiguous, the whole contiguous edit remains unclassified and cannot be partially applied.
+
 Gantt review recognizes task duration, explicit start-date, property, addition, and
 stable-alias rename changes.
 

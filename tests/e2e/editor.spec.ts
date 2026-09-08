@@ -1752,6 +1752,35 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(page.locator(".cm-content")).not.toContainText("Capture");
 });
 
+test("applies adjacent Sequence edits as one confirmed transaction", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Authorize\n@enduml';
+  const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Store: Capture\n@enduml';
+  await setSource(page, before);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+  await dialog.getByLabel("New version name").fill("Before compound edit");
+  await dialog.getByRole("button", { name: "Create version" }).click();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  await setSource(page, after);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  await expect(dialog.getByLabel("Semantic changes")).toContainText("Update 1 participant and 1 message");
+  await expect(dialog.locator(".semantic-review-group")).toHaveCount(1);
+  await dialog.getByRole("checkbox", { name: "Select Update 1 participant and 1 message" }).check();
+  await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
+
+  await expect(page.locator(".cm-content")).toContainText('participant "Billing API" as Pay');
+  await expect(page.locator(".cm-content")).toContainText("Pay -> Store: Capture");
+  await expect(page.locator(".cm-content")).not.toContainText("Authorize");
+});
+
 test("imports a local PlantUML file for semantic review without replacing the working copy", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page
