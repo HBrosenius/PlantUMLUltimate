@@ -40,6 +40,11 @@ Use **Show in source** on any semantic group to reveal and highlight its exact b
 lines. **Previous group** and **Next group** navigate between complete transactions, including
 probable and unclassified changes that cannot be applied selectively.
 
+Use **Show in diagram** to render both versions and highlight the recognized participant, message,
+task, or dependency on the side where it exists. Added and removed objects therefore appear on only
+one side. When rendered geometry cannot be matched conservatively, the exact source lines remain
+the fallback. Diagram highlighting preserves each pane's zoom and scroll controls.
+
 In **Rendered** view, use the mouse wheel over either diagram to zoom around the pointer. Each pane
 keeps an independent zoom level; select its percentage button to reset it to 100%. Middle-button
 dragging pans a zoomed diagram.

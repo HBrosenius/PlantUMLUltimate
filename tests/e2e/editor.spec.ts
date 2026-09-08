@@ -1684,6 +1684,16 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await page.mouse.move(renderedBox!.x + renderedBox!.width / 2, renderedBox!.y + renderedBox!.height / 2);
   await page.mouse.wheel(0, -400);
   await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).not.toHaveText("100%");
+  await renderedBaseline.evaluate(async (element) => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    element.scrollLeft = 0;
+  });
+  await expect.poll(() => renderedBaseline.evaluate((element) => element.scrollLeft)).toBe(0);
+  const zoomedCanvasBox = await renderedBaseline.boundingBox();
+  const zoomedDiagramBox = await renderedBaseline.locator("svg").boundingBox();
+  expect(zoomedCanvasBox).not.toBeNull();
+  expect(zoomedDiagramBox).not.toBeNull();
+  expect(zoomedDiagramBox!.x).toBeGreaterThanOrEqual(zoomedCanvasBox!.x);
   await expect(dialog.getByRole("button", { name: "Reset zoom for Current working copy" })).toHaveText("100%");
   await dialog.getByRole("button", { name: "Reset zoom for Baseline" }).click();
   await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).toHaveText("100%");
@@ -1702,6 +1712,24 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await dialog.getByRole("button", { name: "Restore this version" }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 2 days");
   await expect(page.locator(".cm-content")).not.toContainText("[B] lasts 4 days");
+});
+
+test("resizes Version History to provide more rendered comparison space", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "Native CSS resize gestures differ across browser engines");
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await setSource(page, source("[Resizable] lasts 2 days"));
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+  await expect(dialog).toHaveCSS("resize", "both");
+  const before = await dialog.boundingBox();
+  expect(before).not.toBeNull();
+  await page.mouse.move(before!.x + before!.width - 2, before!.y + before!.height - 2);
+  await page.mouse.down();
+  await page.mouse.move(before!.x + before!.width + 120, before!.y + before!.height + 100, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => (await dialog.boundingBox())?.width ?? 0).toBeGreaterThan(before!.width + 80);
+  await expect.poll(async () => (await dialog.boundingBox())?.height ?? 0).toBeGreaterThan(before!.height + 60);
 });
 
 test("reviews and applies a confirmed Sequence change group", async ({ page }) => {
@@ -1726,6 +1754,18 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Rename participant Payment API to Billing API");
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Change message Pay → Store");
+  await dialog
+    .getByRole("button", { name: "Show Rename participant Payment API to Billing API in rendered diagrams" })
+    .click();
+  await expect(dialog.getByRole("button", { name: "Rendered", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    1,
+    { timeout: 20_000 },
+  );
+  await expect(
+    dialog.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
+  ).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog.getByRole("button", { name: "Show Rename participant Payment API to Billing API in source" }).click();
   await expect(dialog.getByRole("button", { name: "Source", exact: true })).toHaveAttribute("aria-pressed", "true");
   const highlightedSource = dialog.locator(".version-diff-line.active-review-group");
@@ -1736,6 +1776,40 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(dialog.locator(".version-active-review-group")).toContainText("Change message Pay → Store");
   await expect(highlightedSource.filter({ hasText: "Authorize" })).toHaveCount(1);
   await expect(highlightedSource.filter({ hasText: "Capture" })).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
+  await dialog.getByRole("button", { name: "Add Change message Pay → Store to rendered diagrams" }).click();
+  await expect(
+    dialog
+      .getByLabel("Before review rendered diagram")
+      .locator("text.semantic-render-highlight")
+      .filter({ hasText: "Authorize" }),
+  ).toHaveCount(1);
+  await expect(
+    dialog
+      .getByLabel("Current working copy rendered diagram")
+      .locator("text.semantic-render-highlight")
+      .filter({ hasText: "Capture" }),
+  ).toHaveCount(1);
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    2,
+  );
+  await expect(dialog.getByText("2 changes highlighted", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Clear highlights" }).click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    0,
+  );
+  await dialog.getByRole("button", { name: "Show highlights" }).click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    2,
+  );
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Show only Rename participant Payment API to Billing API in rendered diagrams" })
+    .click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    1,
+  );
+  await expect(dialog.getByText("1 change highlighted", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog
     .locator(".semantic-review-group")
@@ -2924,6 +2998,9 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
       expect(item.bottom, JSON.stringify(item)).toBeLessThan(item.lowerWeekdayBaseline);
     }
   };
+  const waitForHatching = () =>
+    expect.poll(() => page.locator(".closed-day-hatching rect").count(), { timeout: 5_000 }).toBeGreaterThan(4);
+  await waitForHatching();
   assertAligned(await measure());
   await page.setViewportSize({ width: 820, height: 720 });
   await page.getByRole("button", { name: "Zoom in" }).click();
@@ -2931,6 +3008,7 @@ test("closed-day hatching aligns with real timeline grid boundaries across resiz
   await page.locator(".preview-viewport").evaluate((element) => {
     element.scrollLeft = 300;
   });
+  await waitForHatching();
   assertAligned(await measure());
 });
 
@@ -3562,6 +3640,14 @@ test("reviews a visual Backend to Frontend connection as one dependency change",
   await expect(review).not.toContainText("Add task Frontend");
   await expect(review).not.toContainText("Unclassified source change");
   await expect(history.locator(".semantic-review-group")).toHaveCount(1);
+  await history.getByRole("button", { name: "Show Add dependency Backend → Frontend in rendered diagrams" }).click();
+  const renderedComparison = history.getByLabel("Rendered differences");
+  await expect(renderedComparison.locator(".interaction-hit").first()).toHaveCSS("fill", "rgba(0, 0, 0, 0)", {
+    timeout: 20_000,
+  });
+  await expect(
+    history.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
+  ).toHaveCount(1, { timeout: 20_000 });
 });
 
 test("connects task end anchors to create an end-to-end dependency", async ({ page }) => {

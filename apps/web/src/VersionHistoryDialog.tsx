@@ -1,13 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
 import { useDialogFocus } from "./use-dialog-focus";
 import { useRenderer } from "./render/use-renderer";
 import { sanitizeSvg } from "./render/sanitize-svg";
 import type { DiagramKind } from "./model";
-import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
+import {
+  applyReviewGroups,
+  buildReviewGroups,
+  createReviewReport,
+  createUnifiedPatch,
+  type ReviewTarget,
+} from "./semantic-review";
 import { detectDiagramKind } from "./diagram-kind";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { addCanonicalGanttOverlay } from "./render/canonical-gantt-overlay";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 
 const MAX_REVIEW_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -61,6 +69,7 @@ export function VersionHistoryDialog({
   const diffElement = useRef<HTMLDivElement>(null);
   const baseImportInput = useRef<HTMLInputElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const hiddenGroupIds = useRef<Set<string>>(new Set());
   useDialogFocus(dialog, onClose);
   const [selectedId, setSelectedId] = useState(versions[0]?.id ?? "");
   const [compareId, setCompareId] = useState("current");
@@ -75,6 +84,7 @@ export function VersionHistoryDialog({
   const [applying, setApplying] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [activeGroupId, setActiveGroupId] = useState<string>();
+  const [visibleGroupIds, setVisibleGroupIds] = useState<Set<string>>(new Set());
   const [importedBase, setImportedBase] = useState<{ name: string; source: string }>();
   const [importedComparison, setImportedComparison] = useState<{ name: string; source: string }>();
   const [importError, setImportError] = useState("");
@@ -125,6 +135,8 @@ export function VersionHistoryDialog({
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
     setSelectedGroups(new Set());
+    setVisibleGroupIds(new Set());
+    hiddenGroupIds.current = new Set();
     setActiveGroupId(reviewGroups[0]?.id);
   }, [compareId, importedBase?.source, importedComparison?.source, reviewGroups, selected?.id, selected?.label]);
   const scrollToReviewGroup = (groupId: string) => {
@@ -138,6 +150,39 @@ export function VersionHistoryDialog({
     setActiveGroupId(groupId);
     setComparisonView("source");
     scrollToReviewGroup(groupId);
+  };
+  const showReviewGroupInDiagram = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setVisibleGroupIds((current) => {
+      if (current.has(groupId) && current.size > 1) return new Set([groupId]);
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+    setComparisonView("rendered");
+  };
+  const visibleReviewGroups = reviewGroups.filter((group) => visibleGroupIds.has(group.id));
+  const showAllReviewGroupsInDiagram = () => {
+    const next = new Set(
+      reviewGroups
+        .filter(
+          (group) =>
+            group.confidence === "confirmed" && (group.leftTargets.length > 0 || group.rightTargets.length > 0),
+        )
+        .map((group) => group.id),
+    );
+    hiddenGroupIds.current = next;
+    setVisibleGroupIds(next);
+    setComparisonView("rendered");
+  };
+  const toggleRenderedHighlights = () => {
+    if (visibleGroupIds.size) {
+      hiddenGroupIds.current = new Set(visibleGroupIds);
+      setVisibleGroupIds(new Set());
+      return;
+    }
+    setVisibleGroupIds(new Set(hiddenGroupIds.current));
   };
   const moveToReviewGroup = (direction: -1 | 1) => {
     if (!reviewGroups.length) return;
@@ -198,7 +243,10 @@ export function VersionHistoryDialog({
         <header>
           <div>
             <h2>Version history</h2>
-            <p>Saved checkpoints are separate from Undo and remain available after restoring.</p>
+            <p>
+              Saved checkpoints are separate from Undo and remain available after restoring. Resize from the lower-right
+              corner.
+            </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close version history" disabled={creating}>
             ×
@@ -422,6 +470,17 @@ export function VersionHistoryDialog({
                   {reviewGroups.length ? (
                     reviewGroups.map((group) => {
                       const confirmed = group.confidence === "confirmed";
+                      const visibleInDiagram = visibleGroupIds.has(group.id);
+                      const diagramAction = visibleInDiagram
+                        ? visibleGroupIds.size > 1
+                          ? {
+                              label: "Show only in diagram",
+                              ariaLabel: `Show only ${group.title} in rendered diagrams`,
+                            }
+                          : { label: "Hide from diagram", ariaLabel: `Hide ${group.title} from rendered diagrams` }
+                        : visibleGroupIds.size
+                          ? { label: "Add to diagram", ariaLabel: `Add ${group.title} to rendered diagrams` }
+                          : { label: "Show in diagram", ariaLabel: `Show ${group.title} in rendered diagrams` };
                       return (
                         <div
                           className={`semantic-review-group ${group.confidence}${activeGroupId === group.id ? " active" : ""}`}
@@ -444,14 +503,24 @@ export function VersionHistoryDialog({
                             <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
                             <span>{group.detail}</span>
                           </span>
-                          <button
-                            type="button"
-                            className="semantic-review-inspect"
-                            aria-label={`Show ${group.title} in source`}
-                            onClick={() => showReviewGroupInSource(group.id)}
-                          >
-                            Show in source
-                          </button>
+                          <span className="semantic-review-inspect">
+                            <button
+                              type="button"
+                              disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
+                              aria-label={diagramAction.ariaLabel}
+                              aria-pressed={visibleInDiagram}
+                              onClick={() => showReviewGroupInDiagram(group.id)}
+                            >
+                              {diagramAction.label}
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Show ${group.title} in source`}
+                              onClick={() => showReviewGroupInSource(group.id)}
+                            >
+                              Show in source
+                            </button>
+                          </span>
                         </div>
                       );
                     })
@@ -460,6 +529,19 @@ export function VersionHistoryDialog({
                   )}
                 </div>
                 <div className="semantic-review-actions">
+                  <button
+                    type="button"
+                    disabled={
+                      !reviewGroups.some(
+                        (group) =>
+                          group.confidence === "confirmed" &&
+                          (group.leftTargets.length > 0 || group.rightTargets.length > 0),
+                      )
+                    }
+                    onClick={showAllReviewGroupsInDiagram}
+                  >
+                    Show all in diagram
+                  </button>
                   <button
                     type="button"
                     disabled={!selectedGroups.size}
@@ -526,32 +608,53 @@ export function VersionHistoryDialog({
                 })}
               </div>
             ) : (
-              <div className="version-rendered-comparison" aria-label="Rendered differences">
-                <RenderedVersion
-                  title={
-                    importedBase
-                      ? `Imported: ${importedBase.name}`
-                      : selected
-                        ? versionTitle(selected)
-                        : "Current working copy"
-                  }
-                  status={leftRendered.status}
-                  svg={leftRendered.result?.svg}
-                  error={leftRendered.result?.error}
-                />
-                <RenderedVersion
-                  title={
-                    compareId === "imported" && importedComparison
-                      ? `Imported: ${importedComparison.name}`
-                      : compare
-                        ? versionTitle(compare)
-                        : "Current working copy"
-                  }
-                  status={rightRendered.status}
-                  svg={rightRendered.result?.svg}
-                  error={rightRendered.result?.error}
-                />
-              </div>
+              <>
+                <div className="version-render-highlight-controls">
+                  <span>
+                    {visibleReviewGroups.length} change{visibleReviewGroups.length === 1 ? "" : "s"} highlighted
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!visibleReviewGroups.length && !hiddenGroupIds.current.size}
+                    aria-pressed={visibleReviewGroups.length > 0}
+                    onClick={toggleRenderedHighlights}
+                  >
+                    {visibleReviewGroups.length ? "Clear highlights" : "Show highlights"}
+                  </button>
+                </div>
+                <div className="version-rendered-comparison" aria-label="Rendered differences">
+                  <RenderedVersion
+                    title={
+                      importedBase
+                        ? `Imported: ${importedBase.name}`
+                        : selected
+                          ? versionTitle(selected)
+                          : "Current working copy"
+                    }
+                    status={leftRendered.status}
+                    svg={leftRendered.result?.svg}
+                    error={leftRendered.result?.error}
+                    targets={visibleReviewGroups.flatMap((group) => group.leftTargets)}
+                    source={leftSource}
+                    diagramKind={diagramKind}
+                  />
+                  <RenderedVersion
+                    title={
+                      compareId === "imported" && importedComparison
+                        ? `Imported: ${importedComparison.name}`
+                        : compare
+                          ? versionTitle(compare)
+                          : "Current working copy"
+                    }
+                    status={rightRendered.status}
+                    svg={rightRendered.result?.svg}
+                    error={rightRendered.result?.error}
+                    targets={visibleReviewGroups.flatMap((group) => group.rightTargets)}
+                    source={rightSource}
+                    diagramKind={diagramKind}
+                  />
+                </div>
+              </>
             )}
             <div className="dialog-actions">
               <button type="button" disabled={!selected} onClick={() => selected && void onRestore(selected)}>
@@ -573,14 +676,35 @@ function RenderedVersion({
   status,
   svg,
   error,
+  targets,
+  source,
+  diagramKind,
 }: {
   title: string;
   status: "idle" | "rendering" | "error";
   svg: string | undefined;
   error: string | undefined;
+  targets: readonly ReviewTarget[];
+  source: string;
+  diagramKind: DiagramKind;
 }) {
   const [zoom, setZoom] = useState(1);
   const navigation = useDiagramNavigation(zoom, setZoom);
+  const diagram = useRef<HTMLDivElement>(null);
+  const highlightedSvg = useMemo(() => {
+    if (!svg) return undefined;
+    let rendered = svg;
+    if (diagramKind === "gantt") {
+      const document = parseGantt(source).document;
+      rendered = addCanonicalGanttOverlay(rendered, document.tasks, document.dependencies);
+    }
+    return highlightReviewSvg(sanitizeSvg(rendered), targets);
+  }, [diagramKind, source, svg, targets]);
+  useLayoutEffect(() => {
+    const root = diagram.current;
+    if (!root) return;
+    root.querySelector<SVGElement>(".semantic-render-highlight")?.scrollIntoView({ block: "center", inline: "center" });
+  }, [highlightedSvg]);
   return (
     <section className="version-render-panel" aria-label={title}>
       <header className="version-render-header">
@@ -590,7 +714,10 @@ function RenderedVersion({
         </button>
       </header>
       <div
-        ref={navigation.viewportRef}
+        ref={(element) => {
+          diagram.current = element;
+          navigation.viewportRef.current = element;
+        }}
         className="version-render-canvas"
         aria-label={`${title} rendered diagram`}
         onWheel={navigation.onWheel}
@@ -599,10 +726,61 @@ function RenderedVersion({
       >
         {status === "rendering" && !svg ? <p>Rendering…</p> : null}
         {error ? <p className="version-render-error">{error}</p> : null}
-        {svg ? (
-          <div style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} />
+        {highlightedSvg && targets.length > 0 && !highlightedSvg.includes("semantic-render-highlight") ? (
+          <p className="version-render-fallback" role="status">
+            No unambiguous rendered match. Use the source highlight for this side.
+          </p>
+        ) : null}
+        {highlightedSvg ? (
+          <div style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: highlightedSvg }} />
         ) : null}
       </div>
     </section>
   );
+}
+
+function highlightReviewSvg(svg: string, targets: readonly ReviewTarget[]): string {
+  if (typeof DOMParser === "undefined" || !targets.length) return svg;
+  const document = new DOMParser().parseFromString(svg, "image/svg+xml");
+  if (document.querySelector("parsererror")) return svg;
+  const root = document.documentElement;
+  const highlighted = new Set<SVGElement>();
+  const mark = (element: SVGElement | null | undefined) => {
+    if (!element) return;
+    element.classList.add("semantic-render-highlight");
+    highlighted.add(element);
+  };
+  for (const target of targets) {
+    if (target.kind === "gantt-task") {
+      const taskGeometry = [...root.querySelectorAll<SVGElement>("[data-visual-task-id]")].filter(
+        (element) => element.getAttribute("data-visual-task-id")?.toLowerCase() === target.id.toLowerCase(),
+      );
+      taskGeometry.forEach(mark);
+      continue;
+    }
+    if (target.kind === "gantt-dependency") {
+      const dependency = [
+        ...root.querySelectorAll<SVGElement>("[data-predecessor-task-id][data-successor-task-id]"),
+      ].find(
+        (element) =>
+          element.getAttribute("data-predecessor-task-id")?.toLowerCase() === target.predecessorId.toLowerCase() &&
+          element.getAttribute("data-successor-task-id")?.toLowerCase() === target.successorId.toLowerCase(),
+      );
+      mark(dependency);
+      continue;
+    }
+    const text = [...root.querySelectorAll<SVGTextElement>("text")];
+    if (target.kind === "sequence-participant") {
+      const labels = new Set([target.label.trim(), target.alias?.trim()].filter(Boolean));
+      const matches = text.filter((element) => labels.has(element.textContent?.trim() ?? ""));
+      if (matches.length > 0 && matches.length <= 2) matches.forEach(mark);
+      continue;
+    }
+    const matches = text.filter((element) => {
+      const content = element.textContent?.trim() ?? "";
+      return content === target.label || content.endsWith(target.label);
+    });
+    if (matches.length === 1) mark(matches[0]);
+  }
+  return highlighted.size ? new XMLSerializer().serializeToString(root) : svg;
 }

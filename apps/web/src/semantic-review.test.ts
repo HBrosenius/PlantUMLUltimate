@@ -13,6 +13,8 @@ describe("semantic review", () => {
         startRight: 1,
         deleteCount: 1,
         replacement: ['participant "Billing API" as Pay'],
+        leftTargets: [{ kind: "sequence-participant", id: "pay", label: "Payment API", alias: "Pay" }],
+        rightTargets: [{ kind: "sequence-participant", id: "pay", label: "Billing API", alias: "Pay" }],
       },
     ]);
   });
@@ -95,7 +97,12 @@ describe("semantic review", () => {
     const after =
       "@startgantt\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n[Frontend] starts at [Backend]'s end\n@endgantt";
     expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
-      { title: "Add dependency Backend → Frontend", confidence: "confirmed" },
+      {
+        title: "Add dependency Backend → Frontend",
+        confidence: "confirmed",
+        leftTargets: [],
+        rightTargets: [{ kind: "gantt-dependency", predecessorId: "backend", successorId: "frontend" }],
+      },
     ]);
   });
 
