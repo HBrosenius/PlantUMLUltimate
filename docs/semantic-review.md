@@ -40,6 +40,10 @@ Use **Show in source** on any semantic group to reveal and highlight its exact b
 lines. **Previous group** and **Next group** navigate between complete transactions, including
 probable and unclassified changes that cannot be applied selectively.
 
+In **Rendered** view, use the mouse wheel over either diagram to zoom around the pointer. Each pane
+keeps an independent zoom level; select its percentage button to reset it to 100%. Middle-button
+dragging pans a zoomed diagram.
+
 Possible renames without a stable identity are labelled **Probable** and cannot be selected.
 Ambiguous edits, unsupported syntax, and changes to other diagram types are labelled
 **Unclassified source change**. They remain visible in the source comparison and are not

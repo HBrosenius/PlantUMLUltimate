@@ -1678,6 +1678,15 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await expect(dialog.getByRole("table", { name: "Source differences" })).toContainText("[B] lasts 4 days");
   await dialog.getByRole("button", { name: "Rendered", exact: true }).click();
   await expect(dialog.getByLabel("Rendered differences").locator("svg")).toHaveCount(2, { timeout: 20_000 });
+  const renderedBaseline = dialog.getByLabel("Baseline rendered diagram");
+  const renderedBox = await renderedBaseline.boundingBox();
+  expect(renderedBox).not.toBeNull();
+  await page.mouse.move(renderedBox!.x + renderedBox!.width / 2, renderedBox!.y + renderedBox!.height / 2);
+  await page.mouse.wheel(0, -400);
+  await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).not.toHaveText("100%");
+  await expect(dialog.getByRole("button", { name: "Reset zoom for Current working copy" })).toHaveText("100%");
+  await dialog.getByRole("button", { name: "Reset zoom for Baseline" }).click();
+  await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).toHaveText("100%");
   await dialog.getByRole("button", { name: "Source", exact: true }).click();
   await dialog.getByLabel("New version name").fill("Discard me");
   await dialog.getByRole("button", { name: "Create version" }).click();

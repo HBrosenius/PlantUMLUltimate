@@ -2369,10 +2369,19 @@ textarea:focus-visible,
   flex-direction: column;
   gap: 6px;
 }
-.version-render-panel > strong {
+.version-render-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.version-render-header > strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.version-render-header > button {
+  min-width: 52px;
 }
 .version-render-canvas {
   min-height: 0;
@@ -2386,7 +2395,7 @@ textarea:focus-visible,
   background: white;
 }
 .version-render-canvas > div {
-  width: 100%;
+  max-width: none;
 }
 .version-render-canvas svg {
   display: block;
