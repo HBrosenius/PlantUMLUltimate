@@ -72,7 +72,7 @@ import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "
 import { AddSequenceMessageDialog, type AddSequenceMessageValue } from "./AddSequenceMessageDialog";
 import { SequenceParticipantInspector, type SequenceParticipantInspectorValue } from "./SequenceParticipantInspector";
 import { SequenceMessageInspector, type SequenceMessageInspectorValue } from "./SequenceMessageInspector";
-import { AddSequenceStructureDialog, type SequenceStructureKind } from "./AddSequenceStructureDialog";
+import { AddSequenceStructureDialog } from "./AddSequenceStructureDialog";
 import { SequenceStructureInspector } from "./SequenceStructureInspector";
 import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
@@ -86,6 +86,7 @@ import type { Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
+import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
@@ -232,7 +233,6 @@ import {
   updateUseCasePackage,
   updateUseCaseRelationship,
   type UseCaseElementInput,
-  type UseCaseElementKind,
   type UseCaseNoteInput,
   type UseCasePackageInput,
   type UseCaseRelationshipInput,
@@ -352,6 +352,14 @@ export function App() {
     resetTransientTabSelection,
     dismissInspectorSelection,
   } = useDiagramSelection();
+  const { dialog, openDialog, closeDialog, toggleCommandPalette } = useAppDialog();
+  const newDocumentOpen = dialog?.kind === "new-document";
+  const replaceActiveDocumentOnCreate = newDocumentOpen && dialog.replaceActiveDocument;
+  const openNewDocumentDialog = useCallback(
+    (replaceActiveDocument: boolean) => openDialog({ kind: "new-document", replaceActiveDocument }),
+    [openDialog],
+  );
+  const closeNewDocumentDialog = useCallback(() => closeDialog("new-document"), [closeDialog]);
   const [sourceSymbol, setSourceSymbol] = useState<Pick<SemanticSymbolOccurrence, "kind" | "key">>();
   const [sourceSymbolPosition, setSourceSymbolPosition] = useState<number>();
   const [renameSymbol, setRenameSymbol] = useState<SemanticRenameRequest>();
@@ -381,33 +389,9 @@ export function App() {
     diagnostics: ReturnType<typeof diagnosticsForDiagram>;
     message: string;
   }>();
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [addTaskOpen, setAddTaskOpen] = useState(false);
-  const [addDividerOpen, setAddDividerOpen] = useState(false);
-  const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
-  const [newDocumentOpen, setNewDocumentOpen] = useState(false);
-  const [replaceActiveDocumentOnCreate, setReplaceActiveDocumentOnCreate] = useState(false);
-  const [addSequenceParticipantOpen, setAddSequenceParticipantOpen] = useState(false);
-  const [addSequenceMessageOpen, setAddSequenceMessageOpen] = useState(false);
-  const [addSequenceStructureKind, setAddSequenceStructureKind] = useState<SequenceStructureKind>();
-  const [addWbsNodeOpen, setAddWbsNodeOpen] = useState(false);
   const [wbsSettingsOpen, setWbsSettingsOpen] = useState(false);
-  const [addActivityActionOpen, setAddActivityActionOpen] = useState(false);
-  const [addActivityPartitionOpen, setAddActivityPartitionOpen] = useState(false);
-  const [addActivityNoteOpen, setAddActivityNoteOpen] = useState(false);
-  const [addActivityStructureOpen, setAddActivityStructureOpen] = useState(false);
-  const [addActivityTerminalOpen, setAddActivityTerminalOpen] = useState(false);
-  const [addActivityArrowOpen, setAddActivityArrowOpen] = useState(false);
   const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
-  const [addClassEntityOpen, setAddClassEntityOpen] = useState(false);
-  const [addClassRelationshipOpen, setAddClassRelationshipOpen] = useState(false);
-  const [addClassPackageOpen, setAddClassPackageOpen] = useState(false);
-  const [addClassNoteOpen, setAddClassNoteOpen] = useState(false);
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
-  const [addUseCaseElementKind, setAddUseCaseElementKind] = useState<UseCaseElementKind>();
-  const [addUseCaseRelationshipOpen, setAddUseCaseRelationshipOpen] = useState(false);
-  const [addUseCasePackageOpen, setAddUseCasePackageOpen] = useState(false);
-  const [addUseCaseNoteOpen, setAddUseCaseNoteOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [useCaseSettingsOpen, setUseCaseSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
@@ -423,7 +407,6 @@ export function App() {
     () => (localStorage.getItem("plantuml-studio.schedule-mode") as "ask" | "single" | "cascade" | null) ?? "ask",
   );
   const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
@@ -447,7 +430,7 @@ export function App() {
     retry: retryRender,
   } = useRenderer(
     workspace.source,
-    hydrated && !newDocumentOpen && workspace.viewMode !== "code",
+    hydrated && dialog?.kind !== "new-document" && workspace.viewMode !== "code",
     workspace.diagramKind === "class" || workspace.diagramKind === "usecase" || workspace.diagramKind === "activity"
       ? "graphviz"
       : "native",
@@ -670,9 +653,8 @@ export function App() {
   useEffect(() => {
     if (!hydrated || startupSplashShown.current) return;
     startupSplashShown.current = true;
-    setReplaceActiveDocumentOnCreate(activeDocument.historyId === "history-welcome");
-    setNewDocumentOpen(true);
-  }, [activeDocument.historyId, hydrated]);
+    openDialog({ kind: "new-document", replaceActiveDocument: activeDocument.historyId === "history-welcome" });
+  }, [activeDocument.historyId, hydrated, openDialog]);
   const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
   const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
   useEffect(() => {
@@ -680,9 +662,9 @@ export function App() {
       setSelectedWbsNodeId(undefined);
       setSelectedWbsRelationshipId(undefined);
       setWbsSettingsOpen(false);
-      setAddWbsNodeOpen(false);
+      closeDialog("add-wbs-node");
     }
-  }, [workspace.diagramKind]);
+  }, [closeDialog, workspace.diagramKind]);
   const selectedActivityAction = activityDocument.nodes.find(
     (item) => item.id === selectedActivityObjectId && item.kind === "action",
   );
@@ -861,8 +843,7 @@ export function App() {
     retainDocumentResources,
     closeTabMenu: () => setTabMenu(undefined),
     openNewDocumentDialog: () => {
-      setReplaceActiveDocumentOnCreate(true);
-      setNewDocumentOpen(true);
+      openNewDocumentDialog(true);
     },
     setInteractionMessage,
   });
@@ -1486,8 +1467,8 @@ export function App() {
   const { backupWorkspace, restoreWorkspace, createDocument, newDocument } = useWorkspaceDocuments({
     tabs,
     replaceActiveDocumentOnCreate,
-    setReplaceActiveDocumentOnCreate,
-    setNewDocumentOpen,
+    openNewDocumentDialog,
+    closeNewDocumentDialog,
     fileHandles,
     fileSnapshots,
     externalCheckSnoozedUntil,
@@ -1525,10 +1506,10 @@ export function App() {
       const after = position === "sibling" ? selected : undefined;
       const source = insertWbsNode(workspace.source, wbsDocument, value, parent, after);
       commitSource(source, `Add WBS node ${value.label}`);
-      setAddWbsNodeOpen(false);
+      closeDialog("add-wbs-node");
       setInteractionMessage(`Added WBS node ${value.label}`);
     },
-    [commitSource, selectedWbsNodeId, wbsDocument, workspace.source],
+    [closeDialog, commitSource, selectedWbsNodeId, wbsDocument, workspace.source],
   );
 
   const applyWbsNode = useCallback(
@@ -1654,19 +1635,19 @@ export function App() {
   const addSequenceParticipant = useCallback(
     (value: AddSequenceParticipantValue) => {
       commitSource(insertSequenceParticipant(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      setAddSequenceParticipantOpen(false);
+      closeDialog("add-sequence-participant");
       setInteractionMessage(`Added ${value.kind} ${value.label.trim()}`);
     },
-    [commitSource, workspace.source],
+    [closeDialog, commitSource, workspace.source],
   );
 
   const addUseCaseElement = useCallback(
     (value: UseCaseElementInput) => {
       commitSource(insertUseCaseElement(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      setAddUseCaseElementKind(undefined);
+      closeDialog("add-usecase-element");
       setInteractionMessage(`Added ${value.kind === "actor" ? "actor" : "use case"} ${value.label.trim()}`);
     },
-    [commitSource, workspace.source],
+    [closeDialog, commitSource, workspace.source],
   );
 
   const applyUseCaseElement = useCallback(
@@ -1702,10 +1683,10 @@ export function App() {
   const addUseCaseRelationship = useCallback(
     (value: UseCaseRelationshipInput) => {
       commitSource(insertUseCaseRelationship(workspace.source, useCaseDocument, value), "Add Use Case relationship");
-      setAddUseCaseRelationshipOpen(false);
+      closeDialog("add-usecase-relationship");
       setInteractionMessage("Added Use Case relationship");
     },
-    [commitSource, useCaseDocument, workspace.source],
+    [closeDialog, commitSource, useCaseDocument, workspace.source],
   );
 
   const applyUseCaseRelationship = useCallback(
@@ -1735,9 +1716,9 @@ export function App() {
   const addUseCasePackage = useCallback(
     (value: UseCasePackageInput) => {
       commitSource(insertUseCasePackage(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      setAddUseCasePackageOpen(false);
+      closeDialog("add-usecase-package");
     },
-    [commitSource, workspace.source],
+    [closeDialog, commitSource, workspace.source],
   );
 
   const applyUseCasePackage = useCallback(
@@ -1764,9 +1745,9 @@ export function App() {
   const addUseCaseNote = useCallback(
     (value: UseCaseNoteInput) => {
       commitSource(insertUseCaseNote(workspace.source, useCaseDocument, value), "Add Use Case note");
-      setAddUseCaseNoteOpen(false);
+      closeDialog("add-usecase-note");
     },
-    [commitSource, useCaseDocument, workspace.source],
+    [closeDialog, commitSource, useCaseDocument, workspace.source],
   );
 
   const applyUseCaseNote = useCallback(
@@ -1847,7 +1828,7 @@ export function App() {
   );
   const addClassEntity = (v: ClassEntityInput) => {
     commitSource(insertClassEntity(workspace.source, v), "Add Class object");
-    setAddClassEntityOpen(false);
+    closeDialog("add-class-entity");
   };
   const applyClassEntity = (v: ClassEntityInput) => {
     if (selectedClassEntity)
@@ -1877,7 +1858,7 @@ export function App() {
   };
   const addClassRelationship = (v: ClassRelationshipInput) => {
     commitSource(insertClassRelationship(workspace.source, classDocument, v), "Add Class relationship");
-    setAddClassRelationshipOpen(false);
+    closeDialog("add-class-relationship");
   };
   const applyClassRelationship = (v: ClassRelationshipInput) => {
     if (selectedClassRelationship)
@@ -1897,7 +1878,7 @@ export function App() {
   };
   const addClassPackage = (v: ClassPackageInput) => {
     commitSource(insertClassPackage(workspace.source, classDocument, v), "Add Class package");
-    setAddClassPackageOpen(false);
+    closeDialog("add-class-package");
   };
   const applyClassPackage = (v: ClassPackageInput) => {
     if (selectedClassPackage)
@@ -1933,7 +1914,7 @@ export function App() {
   };
   const addClassNote = (v: ClassNoteInput) => {
     commitSource(insertClassNote(workspace.source, classDocument, v), "Add Class note");
-    setAddClassNoteOpen(false);
+    closeDialog("add-class-note");
   };
   const applyClassNote = (v: ClassNoteInput) => {
     if (selectedClassNote) {
@@ -1957,7 +1938,7 @@ export function App() {
 
   const addActivityAction = (value: ActivityActionInput) => {
     commitSource(insertActivityAction(workspace.source, activityDocument, value), "Add Activity action");
-    setAddActivityActionOpen(false);
+    closeDialog("add-activity-action");
   };
   const applyActivityAction = (value: ActivityActionInput) => {
     if (selectedActivityAction)
@@ -1978,7 +1959,7 @@ export function App() {
   };
   const addActivityPartition = (value: ActivityPartitionInput) => {
     commitSource(insertActivityPartition(workspace.source, activityDocument, value), "Add Activity partition");
-    setAddActivityPartitionOpen(false);
+    closeDialog("add-activity-partition");
   };
   const applyActivityPartition = (value: ActivityPartitionInput) => {
     if (selectedActivityPartition)
@@ -2002,19 +1983,19 @@ export function App() {
   };
   const addActivityNote = (value: ActivityNoteInput) => {
     commitSource(insertActivityNote(workspace.source, activityDocument, value), "Add Activity note");
-    setAddActivityNoteOpen(false);
+    closeDialog("add-activity-note");
   };
   const addActivityStructure = (value: ActivityStructureInput) => {
     commitSource(insertActivityStructure(workspace.source, activityDocument, value), "Add Activity flow structure");
-    setAddActivityStructureOpen(false);
+    closeDialog("add-activity-structure");
   };
   const addActivityTerminal = (kind: "start" | "stop" | "end" | "detach" | "kill") => {
     commitSource(insertActivityTerminal(workspace.source, kind), `Add Activity ${kind}`);
-    setAddActivityTerminalOpen(false);
+    closeDialog("add-activity-terminal");
   };
   const addActivityArrow = (value: ActivityArrowInput) => {
     commitSource(insertActivityArrow(workspace.source, activityDocument, value), "Add Activity flow arrow");
-    setAddActivityArrowOpen(false);
+    closeDialog("add-activity-arrow");
   };
   const applyActivityNote = (value: ActivityNoteInput) => {
     if (selectedActivityNote)
@@ -2133,10 +2114,10 @@ export function App() {
   const addSequenceMessage = useCallback(
     (value: AddSequenceMessageValue) => {
       commitSource(insertSequenceMessage(workspace.source, value), `Add message ${value.from} to ${value.to}`);
-      setAddSequenceMessageOpen(false);
+      closeDialog("add-sequence-message");
       setInteractionMessage(`Added message from ${value.from} to ${value.to}`);
     },
-    [commitSource, workspace.source],
+    [closeDialog, commitSource, workspace.source],
   );
 
   const addSequenceStructure = useCallback(
@@ -2146,10 +2127,10 @@ export function App() {
           ? insertSequenceParticipantBox(workspace.source, sequenceDocument, value)
           : insertSequenceStructure(workspace.source, value);
       commitSource(nextSource, `Add Sequence ${value.kind}`);
-      setAddSequenceStructureKind(undefined);
+      closeDialog("add-sequence-structure");
       setInteractionMessage(`Added Sequence ${value.kind}`);
     },
-    [commitSource, sequenceDocument, workspace.source],
+    [closeDialog, commitSource, sequenceDocument, workspace.source],
   );
 
   const selectSequenceParticipant = useCallback(
@@ -2380,10 +2361,10 @@ export function App() {
       }
       if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add ${value.label.trim()}`))
         return;
-      setAddTaskOpen(false);
+      closeDialog("add-task");
       setInteractionMessage(`Added ${value.label.trim()}`);
     },
-    [commitGeneratedSource, workspace.source],
+    [closeDialog, commitGeneratedSource, workspace.source],
   );
 
   const addDivider = useCallback(
@@ -2396,7 +2377,7 @@ export function App() {
         }
         if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Add vertical separator"))
           return;
-        setAddDividerOpen(false);
+        closeDialog("add-divider");
         setInteractionMessage("Added vertical separator");
         return;
       }
@@ -2413,10 +2394,10 @@ export function App() {
         !commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${value.label.trim()}`)
       )
         return;
-      setAddDividerOpen(false);
+      closeDialog("add-divider");
       setInteractionMessage(`Added divider ${value.label.trim()}`);
     },
-    [commitGeneratedSource, workspace.source],
+    [closeDialog, commitGeneratedSource, workspace.source],
   );
 
   const addMilestone = useCallback(
@@ -2433,10 +2414,10 @@ export function App() {
       }
       if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add ${value.label.trim()}`))
         return;
-      setAddMilestoneOpen(false);
+      closeDialog("add-milestone");
       setInteractionMessage(`Added milestone ${value.label.trim()}`);
     },
-    [commitGeneratedSource, workspace.source],
+    [closeDialog, commitGeneratedSource, workspace.source],
   );
 
   const applyTaskInspector = useCallback(
@@ -2768,21 +2749,21 @@ export function App() {
               label: "Add task…",
               category: "Edit",
               shortcut: optionShortcut("T"),
-              run: () => setAddTaskOpen(true),
+              run: () => openDialog({ kind: "add-task" }),
             },
             {
               id: "edit.add-milestone",
               label: "Add milestone…",
               category: "Edit",
               shortcut: optionShortcut("M"),
-              run: () => setAddMilestoneOpen(true),
+              run: () => openDialog({ kind: "add-milestone" }),
             },
             {
               id: "edit.add-divider",
               label: "Add divider…",
               category: "Edit",
               shortcut: optionShortcut("D"),
-              run: () => setAddDividerOpen(true),
+              run: () => openDialog({ kind: "add-divider" }),
             },
             { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
             { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
@@ -2795,7 +2776,7 @@ export function App() {
                 label: "Add WBS node…",
                 category: "Edit",
                 shortcut: optionShortcut("N"),
-                run: () => setAddWbsNodeOpen(true),
+                run: () => openDialog({ kind: "add-wbs-node" }),
               },
               {
                 id: "edit.wbs-settings",
@@ -2810,32 +2791,32 @@ export function App() {
                 label: "Add participant…",
                 category: "Edit",
                 shortcut: optionShortcut("P"),
-                run: () => setAddSequenceParticipantOpen(true),
+                run: () => openDialog({ kind: "add-sequence-participant" }),
               },
               {
                 id: "edit.add-message",
                 label: "Add message…",
                 category: "Edit",
                 shortcut: optionShortcut("M"),
-                run: () => setAddSequenceMessageOpen(true),
+                run: () => openDialog({ kind: "add-sequence-message" }),
               },
               {
                 id: "edit.add-fragment",
                 label: "Add combined fragment…",
                 category: "Edit",
-                run: () => setAddSequenceStructureKind("fragment"),
+                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
               },
               {
                 id: "edit.add-activation",
                 label: "Add activation…",
                 category: "Edit",
-                run: () => setAddSequenceStructureKind("activation"),
+                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
               },
               {
                 id: "edit.add-note",
                 label: "Add Sequence note…",
                 category: "Edit",
-                run: () => setAddSequenceStructureKind("note"),
+                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
               },
             ];
     return [
@@ -2857,7 +2838,7 @@ export function App() {
         label: "Help & keyboard shortcuts",
         category: "Help",
         shortcut: "?",
-        run: () => setHelpOpen(true),
+        run: () => openDialog({ kind: "help" }),
       },
       { id: "edit.undo", label: "Undo", category: "Edit", shortcut: "⌘Z", enabled: activeHistory.canUndo, run: undo },
       { id: "edit.redo", label: "Redo", category: "Edit", shortcut: "⇧⌘Z", enabled: activeHistory.canRedo, run: redo },
@@ -2893,6 +2874,7 @@ export function App() {
     exportSvg,
     newDocument,
     openDocument,
+    openDialog,
     openProjectInspector,
     openResourcePanel,
     redo,
@@ -2923,7 +2905,7 @@ export function App() {
       const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !editing) {
         event.preventDefault();
-        setHelpOpen(true);
+        openDialog({ kind: "help" });
         return;
       }
       if (
@@ -2949,27 +2931,27 @@ export function App() {
                     : "";
         if (workspace.diagramKind === "wbs" && creation === "n") {
           event.preventDefault();
-          setAddWbsNodeOpen(true);
+          openDialog({ kind: "add-wbs-node" });
           return;
         }
         if (workspace.diagramKind === "sequence" && (creation === "p" || creation === "m")) {
           event.preventDefault();
-          if (creation === "p") setAddSequenceParticipantOpen(true);
-          else setAddSequenceMessageOpen(true);
+          if (creation === "p") openDialog({ kind: "add-sequence-participant" });
+          else openDialog({ kind: "add-sequence-message" });
           return;
         }
         if (workspace.diagramKind === "gantt" && (creation === "t" || creation === "m" || creation === "d")) {
           event.preventDefault();
-          if (creation === "t") setAddTaskOpen(true);
-          else if (creation === "m") setAddMilestoneOpen(true);
-          else setAddDividerOpen(true);
+          if (creation === "t") openDialog({ kind: "add-task" });
+          else if (creation === "m") openDialog({ kind: "add-milestone" });
+          else openDialog({ kind: "add-divider" });
           return;
         }
       }
       if (!(event.ctrlKey || event.metaKey)) return;
       if (event.shiftKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
-        setPaletteOpen((open) => !open);
+        toggleCommandPalette();
         return;
       }
       if (event.key.toLowerCase() === "n") {
@@ -3006,7 +2988,19 @@ export function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [closeTab, newDocument, openDocument, redo, saveDocument, tabs.activeId, undo, update, workspace.diagramKind]);
+  }, [
+    closeTab,
+    newDocument,
+    openDialog,
+    openDocument,
+    redo,
+    saveDocument,
+    tabs.activeId,
+    toggleCommandPalette,
+    undo,
+    update,
+    workspace.diagramKind,
+  ]);
 
   const resize = (event: React.PointerEvent<HTMLDivElement>) => {
     if (workspace.viewMode !== "split") return;
@@ -3126,33 +3120,33 @@ export function App() {
           <AddMenu
             diagramKind={workspace.diagramKind}
             disabled={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
-            onTask={() => setAddTaskOpen(true)}
-            onMilestone={() => setAddMilestoneOpen(true)}
-            onDivider={() => setAddDividerOpen(true)}
-            onParticipant={() => setAddSequenceParticipantOpen(true)}
-            onMessage={() => setAddSequenceMessageOpen(true)}
-            onFragment={() => setAddSequenceStructureKind("fragment")}
-            onActivation={() => setAddSequenceStructureKind("activation")}
-            onNote={() => setAddSequenceStructureKind("note")}
-            onSequenceSpacing={() => setAddSequenceStructureKind("separator")}
-            onReference={() => setAddSequenceStructureKind("reference")}
-            onParticipantBox={() => setAddSequenceStructureKind("box")}
-            onUseCaseActor={() => setAddUseCaseElementKind("actor")}
-            onUseCase={() => setAddUseCaseElementKind("usecase")}
-            onUseCaseRelationship={() => setAddUseCaseRelationshipOpen(true)}
-            onUseCasePackage={() => setAddUseCasePackageOpen(true)}
-            onUseCaseNote={() => setAddUseCaseNoteOpen(true)}
-            onClassEntity={() => setAddClassEntityOpen(true)}
-            onClassRelationship={() => setAddClassRelationshipOpen(true)}
-            onClassPackage={() => setAddClassPackageOpen(true)}
-            onClassNote={() => setAddClassNoteOpen(true)}
-            onActivityAction={() => setAddActivityActionOpen(true)}
-            onActivityPartition={() => setAddActivityPartitionOpen(true)}
-            onActivityNote={() => setAddActivityNoteOpen(true)}
-            onActivityStructure={() => setAddActivityStructureOpen(true)}
-            onActivityTerminal={() => setAddActivityTerminalOpen(true)}
-            onActivityArrow={() => setAddActivityArrowOpen(true)}
-            onWbsNode={() => setAddWbsNodeOpen(true)}
+            onTask={() => openDialog({ kind: "add-task" })}
+            onMilestone={() => openDialog({ kind: "add-milestone" })}
+            onDivider={() => openDialog({ kind: "add-divider" })}
+            onParticipant={() => openDialog({ kind: "add-sequence-participant" })}
+            onMessage={() => openDialog({ kind: "add-sequence-message" })}
+            onFragment={() => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })}
+            onActivation={() => openDialog({ kind: "add-sequence-structure", structureKind: "activation" })}
+            onNote={() => openDialog({ kind: "add-sequence-structure", structureKind: "note" })}
+            onSequenceSpacing={() => openDialog({ kind: "add-sequence-structure", structureKind: "separator" })}
+            onReference={() => openDialog({ kind: "add-sequence-structure", structureKind: "reference" })}
+            onParticipantBox={() => openDialog({ kind: "add-sequence-structure", structureKind: "box" })}
+            onUseCaseActor={() => openDialog({ kind: "add-usecase-element", elementKind: "actor" })}
+            onUseCase={() => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })}
+            onUseCaseRelationship={() => openDialog({ kind: "add-usecase-relationship" })}
+            onUseCasePackage={() => openDialog({ kind: "add-usecase-package" })}
+            onUseCaseNote={() => openDialog({ kind: "add-usecase-note" })}
+            onClassEntity={() => openDialog({ kind: "add-class-entity" })}
+            onClassRelationship={() => openDialog({ kind: "add-class-relationship" })}
+            onClassPackage={() => openDialog({ kind: "add-class-package" })}
+            onClassNote={() => openDialog({ kind: "add-class-note" })}
+            onActivityAction={() => openDialog({ kind: "add-activity-action" })}
+            onActivityPartition={() => openDialog({ kind: "add-activity-partition" })}
+            onActivityNote={() => openDialog({ kind: "add-activity-note" })}
+            onActivityStructure={() => openDialog({ kind: "add-activity-structure" })}
+            onActivityTerminal={() => openDialog({ kind: "add-activity-terminal" })}
+            onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
+            onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
           />
           {workspace.diagramKind === "gantt" && (
             <>
@@ -3213,7 +3207,7 @@ export function App() {
               WBS
             </button>
           )}
-          <button onClick={() => setPaletteOpen(true)} title="Command palette (Cmd/Ctrl+Shift+P)">
+          <button onClick={() => openDialog({ kind: "command-palette" })} title="Command palette (Cmd/Ctrl+Shift+P)">
             ⌘
           </button>
           <button
@@ -3222,7 +3216,7 @@ export function App() {
           >
             {collaboration ? `${collaboration.participants.length} online` : "Collaborate"}
           </button>
-          <button onClick={() => setHelpOpen(true)}>Help</button>
+          <button onClick={() => openDialog({ kind: "help" })}>Help</button>
         </div>
         <nav aria-label="View mode">
           {(["code", "split", "diagram"] as ViewMode[]).map((mode, index) => (
@@ -3828,14 +3822,16 @@ export function App() {
           </button>
         )}
       </footer>
-      {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
-      {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={() => setNewDocumentOpen(false)} />}
-      {addWbsNodeOpen && (
+      {dialog?.kind === "command-palette" && (
+        <CommandPalette commands={commands} onClose={() => closeDialog("command-palette")} />
+      )}
+      {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={closeNewDocumentDialog} />}
+      {dialog?.kind === "add-wbs-node" && (
         <AddWbsNodeDialog
           selected={selectedWbsNode}
           hasRoot={wbsDocument.roots.length > 0}
           onAdd={addWbsNode}
-          onClose={() => setAddWbsNodeOpen(false)}
+          onClose={() => closeDialog("add-wbs-node")}
         />
       )}
       {wbsSettingsOpen && (
@@ -3851,7 +3847,7 @@ export function App() {
           node={selectedWbsNode}
           onApply={applyWbsNode}
           onDelete={removeWbsNode}
-          onAddChild={() => setAddWbsNodeOpen(true)}
+          onAddChild={() => openDialog({ kind: "add-wbs-node" })}
           onClose={() => setSelectedWbsNodeId(undefined)}
         />
       )}
@@ -3865,112 +3861,112 @@ export function App() {
           onClose={() => setSelectedWbsRelationshipId(undefined)}
         />
       )}
-      {addActivityActionOpen && (
+      {dialog?.kind === "add-activity-action" && (
         <AddActivityActionDialog
           document={activityDocument}
           onAdd={addActivityAction}
-          onClose={() => setAddActivityActionOpen(false)}
+          onClose={() => closeDialog("add-activity-action")}
         />
       )}
-      {addActivityPartitionOpen && (
+      {dialog?.kind === "add-activity-partition" && (
         <AddActivityPartitionDialog
           document={activityDocument}
           onAdd={addActivityPartition}
-          onClose={() => setAddActivityPartitionOpen(false)}
+          onClose={() => closeDialog("add-activity-partition")}
         />
       )}
-      {addActivityNoteOpen && (
+      {dialog?.kind === "add-activity-note" && (
         <AddActivityNoteDialog
           document={activityDocument}
           onAdd={addActivityNote}
-          onClose={() => setAddActivityNoteOpen(false)}
+          onClose={() => closeDialog("add-activity-note")}
         />
       )}
-      {addActivityStructureOpen && (
+      {dialog?.kind === "add-activity-structure" && (
         <AddActivityStructureDialog
           document={activityDocument}
           onAdd={addActivityStructure}
-          onClose={() => setAddActivityStructureOpen(false)}
+          onClose={() => closeDialog("add-activity-structure")}
         />
       )}
-      {addActivityTerminalOpen && (
-        <AddActivityTerminalDialog onAdd={addActivityTerminal} onClose={() => setAddActivityTerminalOpen(false)} />
+      {dialog?.kind === "add-activity-terminal" && (
+        <AddActivityTerminalDialog onAdd={addActivityTerminal} onClose={() => closeDialog("add-activity-terminal")} />
       )}
-      {addActivityArrowOpen && (
+      {dialog?.kind === "add-activity-arrow" && (
         <AddActivityArrowDialog
           document={activityDocument}
           onAdd={addActivityArrow}
-          onClose={() => setAddActivityArrowOpen(false)}
+          onClose={() => closeDialog("add-activity-arrow")}
         />
       )}
-      {addSequenceParticipantOpen && (
+      {dialog?.kind === "add-sequence-participant" && (
         <AddSequenceParticipantDialog
           onAdd={addSequenceParticipant}
-          onClose={() => setAddSequenceParticipantOpen(false)}
+          onClose={() => closeDialog("add-sequence-participant")}
         />
       )}
-      {addUseCaseElementKind && (
+      {dialog?.kind === "add-usecase-element" && (
         <AddUseCaseElementDialog
-          initialKind={addUseCaseElementKind}
+          initialKind={dialog.elementKind}
           onAdd={addUseCaseElement}
-          onClose={() => setAddUseCaseElementKind(undefined)}
+          onClose={() => closeDialog("add-usecase-element")}
         />
       )}
-      {addUseCaseRelationshipOpen && (
+      {dialog?.kind === "add-usecase-relationship" && (
         <AddUseCaseRelationshipDialog
           elements={useCaseDocument.elements}
           onAdd={addUseCaseRelationship}
-          onClose={() => setAddUseCaseRelationshipOpen(false)}
+          onClose={() => closeDialog("add-usecase-relationship")}
         />
       )}
-      {addUseCasePackageOpen && (
-        <AddUseCasePackageDialog onAdd={addUseCasePackage} onClose={() => setAddUseCasePackageOpen(false)} />
+      {dialog?.kind === "add-usecase-package" && (
+        <AddUseCasePackageDialog onAdd={addUseCasePackage} onClose={() => closeDialog("add-usecase-package")} />
       )}
-      {addUseCaseNoteOpen && (
+      {dialog?.kind === "add-usecase-note" && (
         <AddUseCaseNoteDialog
           elements={useCaseDocument.elements}
           onAdd={addUseCaseNote}
-          onClose={() => setAddUseCaseNoteOpen(false)}
+          onClose={() => closeDialog("add-usecase-note")}
         />
       )}
-      {addSequenceMessageOpen && (
+      {dialog?.kind === "add-sequence-message" && (
         <AddSequenceMessageDialog
           participants={sequenceDocument.participants.map((participant) => participant.alias ?? participant.label)}
           onAdd={addSequenceMessage}
-          onClose={() => setAddSequenceMessageOpen(false)}
+          onClose={() => closeDialog("add-sequence-message")}
         />
       )}
-      {addSequenceStructureKind && (
+      {dialog?.kind === "add-sequence-structure" && (
         <AddSequenceStructureDialog
-          initialKind={addSequenceStructureKind}
+          initialKind={dialog.structureKind}
           participants={sequenceParticipantNames}
           anchors={sequenceDocument.messages.flatMap((message) => (message.anchor ? [message.anchor] : []))}
           onAdd={addSequenceStructure}
-          onClose={() => setAddSequenceStructureKind(undefined)}
+          onClose={() => closeDialog("add-sequence-structure")}
         />
       )}
-      {addTaskOpen && (
+      {dialog?.kind === "add-task" && (
         <AddTaskDialog
           taskLabels={parseResult.document.tasks.map((task) => task.label)}
           defaultStartDate={
             parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
           }
           onAdd={addTask}
-          onClose={() => setAddTaskOpen(false)}
+          onClose={() => closeDialog("add-task")}
         />
       )}
-      {addDividerOpen && (
+      {dialog?.kind === "add-divider" && (
         <AddDividerDialog
           tasks={parseResult.document.tasks}
           onAdd={addDivider}
-          onClose={() => setAddDividerOpen(false)}
+          onClose={() => closeDialog("add-divider")}
         />
       )}
-      {addMilestoneOpen && (
+      {dialog?.kind === "add-milestone" && (
         <AddMilestoneDialog
           taskLabels={parseResult.document.tasks.map((task) => task.label)}
           onAdd={addMilestone}
-          onClose={() => setAddMilestoneOpen(false)}
+          onClose={() => closeDialog("add-milestone")}
         />
       )}
       {projectInspectorOpen && (
@@ -4246,21 +4242,21 @@ export function App() {
           onClose={() => setSelectedClassObjectId(undefined)}
         />
       )}
-      {addClassEntityOpen && (
-        <AddClassEntityDialog onAdd={addClassEntity} onClose={() => setAddClassEntityOpen(false)} />
+      {dialog?.kind === "add-class-entity" && (
+        <AddClassEntityDialog onAdd={addClassEntity} onClose={() => closeDialog("add-class-entity")} />
       )}
-      {addClassRelationshipOpen && (
+      {dialog?.kind === "add-class-relationship" && (
         <AddClassRelationshipDialog
           document={classDocument}
           onAdd={addClassRelationship}
-          onClose={() => setAddClassRelationshipOpen(false)}
+          onClose={() => closeDialog("add-class-relationship")}
         />
       )}
-      {addClassPackageOpen && (
+      {dialog?.kind === "add-class-package" && (
         <AddClassPackageDialog
           document={classDocument}
           onAdd={addClassPackage}
-          onClose={() => setAddClassPackageOpen(false)}
+          onClose={() => closeDialog("add-class-package")}
         />
       )}
       {classSettingsOpen && (
@@ -4279,8 +4275,12 @@ export function App() {
           onClose={() => setSelectedClassObjectId(undefined)}
         />
       )}{" "}
-      {addClassNoteOpen && (
-        <AddClassNoteDialog document={classDocument} onAdd={addClassNote} onClose={() => setAddClassNoteOpen(false)} />
+      {dialog?.kind === "add-class-note" && (
+        <AddClassNoteDialog
+          document={classDocument}
+          onAdd={addClassNote}
+          onClose={() => closeDialog("add-class-note")}
+        />
       )}
       {selectedSequenceMessage && (
         <SequenceMessageInspector
@@ -4493,7 +4493,7 @@ export function App() {
           onClose={() => setSchedulePreview(undefined)}
         />
       )}
-      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {dialog?.kind === "help" && <HelpDialog onClose={() => closeDialog("help")} />}
       {classMemberMenu && (
         <div
           className="tab-menu"
