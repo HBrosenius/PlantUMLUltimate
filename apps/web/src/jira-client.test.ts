@@ -5,11 +5,27 @@ import {
   jiraPopupReturnUrl,
   jiraUpdateIssues,
   normalizeJiraIssue,
+  preferredJiraStartField,
 } from "./jira-client";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Jira client", () => {
+  it("selects one unambiguous Jira Start date field", () => {
+    expect(
+      preferredJiraStartField([
+        { id: "customfield_10041", name: "Target date", custom: true, type: "date" },
+        { id: "customfield_10042", name: "Start date", custom: true, type: "date" },
+      ]),
+    ).toBe("customfield_10042");
+    expect(
+      preferredJiraStartField([
+        { id: "customfield_10042", name: "Start date", custom: true, type: "date" },
+        { id: "customfield_10043", name: " START DATE ", custom: true, type: "date" },
+      ]),
+    ).toBeUndefined();
+  });
+
   it("normalizes configured date, status, and assignee fields", () => {
     expect(
       normalizeJiraIssue(

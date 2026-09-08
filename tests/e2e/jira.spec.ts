@@ -64,6 +64,13 @@ async function mockJira(page: Page, issues: { current: ReturnType<typeof jiraIss
       });
       return;
     }
+    if (url.pathname === "/api/issues/update") {
+      const updates = (body as { updates?: Array<{ issueId: string; issueKey: string }> } | undefined)?.updates ?? [];
+      await route.fulfill({
+        json: { results: updates.map((update) => ({ issueId: update.issueId, issueKey: update.issueKey, ok: true })) },
+      });
+      return;
+    }
     if (url.pathname === "/api/disconnect") {
       await route.fulfill({ status: 204 });
       return;
@@ -81,7 +88,7 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByLabel("JQL").fill("project = APP ORDER BY Rank");
-  await dialog.getByLabel("Start date").selectOption("customfield_10042");
+  await expect(dialog.getByLabel("Start date")).toHaveValue("customfield_10042");
   await dialog.getByLabel("Import assignee as a 100% resource").check();
   await dialog.getByRole("button", { name: "Review import" }).click();
 
@@ -104,6 +111,55 @@ test("imports a Jira query into a Gantt chart after review", async ({ page }) =>
       cloudId: "cloud-1",
       jql: "project = APP ORDER BY Rank",
       fields: ["customfield_10042", "issuelinks"],
+    },
+  });
+});
+
+test("publishes changed start and due dates to Jira", async ({ page }) => {
+  const requests = await mockJira(page);
+  await openGantt(page);
+
+  await openJira(page);
+  let dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await dialog.getByLabel("JQL").fill("project = APP");
+  await expect(dialog.getByLabel("Start date")).toHaveValue("customfield_10042");
+  await dialog.getByLabel("Allow reviewed summary and date changes to be published to Jira").check();
+  await dialog.getByRole("button", { name: "Review import" }).click();
+  await dialog.getByRole("button", { name: "Apply changes" }).click();
+
+  const editor = page.locator(".cm-content");
+  const imported = await editor.innerText();
+  await editor.fill(
+    imported
+      .replace(
+        "[Ship Jira integration] as [jira_10001] starts 2026-09-01",
+        "[Ship Jira integration] as [jira_10001] starts 2026-09-02",
+      )
+      .replace("[jira_10001] ends 2026-09-05", "[jira_10001] ends 2026-09-06"),
+  );
+
+  await openJira(page);
+  dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await dialog.getByRole("button", { name: "Review refresh" }).click();
+  await dialog
+    .getByRole("region", { name: "APP-123 startDate" })
+    .getByRole("button", { name: "Publish local" })
+    .click();
+  await dialog.getByRole("region", { name: "APP-123 dueDate" }).getByRole("button", { name: "Publish local" }).click();
+  await dialog.getByRole("button", { name: "Apply changes" }).click();
+
+  const update = requests.find((request) => request.url === "/api/issues/update");
+  expect(update).toMatchObject({
+    method: "POST",
+    body: {
+      cloudId: "cloud-1",
+      updates: [
+        {
+          issueId: "10001",
+          issueKey: "APP-123",
+          fields: { customfield_10042: "2026-09-02", duedate: "2026-09-06" },
+        },
+      ],
     },
   });
 });

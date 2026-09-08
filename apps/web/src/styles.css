@@ -1755,6 +1755,11 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 12px;
 }
+.jira-field-note {
+  margin: -4px 0 4px 140px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .jira-dialog > header button {
   border: 0;
   background: transparent;

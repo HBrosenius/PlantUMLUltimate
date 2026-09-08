@@ -14,6 +14,13 @@ export interface JiraField {
   type?: string;
 }
 
+export function preferredJiraStartField(fields: readonly JiraField[]): string | undefined {
+  const matches = fields.filter(
+    (field) => field.type === "date" && field.name.trim().toLocaleLowerCase() === "start date",
+  );
+  return matches.length === 1 ? matches[0]?.id : undefined;
+}
+
 interface JiraConnectionResponse {
   connected: boolean;
   sites?: JiraSite[];

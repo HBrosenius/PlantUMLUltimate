@@ -25,6 +25,7 @@ import {
   jiraConnection,
   jiraFields,
   jiraPopupReturnUrl,
+  preferredJiraStartField,
   jiraSearch,
   jiraUpdateIssues,
   normalizeJiraIssue,
@@ -136,7 +137,14 @@ export function JiraDialog({
     }
     let active = true;
     void jiraFields(endpoint, cloudId)
-      .then((next) => active && setFields(next))
+      .then((next) => {
+        if (!active) return;
+        setFields(next);
+        setStartFieldId((current) => {
+          if (next.some((field) => field.id === current && field.type === "date")) return current;
+          return preferredJiraStartField(next) ?? "";
+        });
+      })
       .catch(
         (reason: unknown) => active && setError(reason instanceof Error ? reason.message : "Could not load fields"),
       );
@@ -601,7 +609,7 @@ export function JiraDialog({
             <label>
               Start date
               <select value={startFieldId} onChange={(event) => setStartFieldId(event.target.value)}>
-                <option value="">Do not import</option>
+                <option value="">Do not synchronize</option>
                 {dateFields.map((field) => (
                   <option key={field.id} value={field.id}>
                     {field.name}
@@ -609,6 +617,11 @@ export function JiraDialog({
                 ))}
               </select>
             </label>
+            {!startFieldId && (
+              <p className="jira-field-note" role="status">
+                Select a Jira date field to synchronize task start dates. Due dates will still be synchronized.
+              </p>
+            )}
             <label className="jira-check">
               <input
                 type="checkbox"
