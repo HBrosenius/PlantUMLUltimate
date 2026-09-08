@@ -9,6 +9,7 @@ export interface ReviewGroup {
   detail: string;
   confidence: "confirmed" | "probable" | "unclassified";
   startLeft: number;
+  startRight: number;
   deleteCount: number;
   replacement: string[];
 }
@@ -238,7 +239,14 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         : kind === "gantt"
           ? describeGanttChange(removedGantt, addedGantt)
           : describeSequenceChange([], []);
-    groups.push({ id: `change-${groups.length + 1}`, ...description, startLeft, deleteCount, replacement });
+    groups.push({
+      id: `change-${groups.length + 1}`,
+      ...description,
+      startLeft,
+      startRight,
+      deleteCount,
+      replacement,
+    });
   }
   return groups;
 }

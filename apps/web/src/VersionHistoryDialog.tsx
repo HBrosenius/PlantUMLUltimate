@@ -73,6 +73,7 @@ export function VersionHistoryDialog({
   const [creating, setCreating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [activeGroupId, setActiveGroupId] = useState<string>();
   const [importedBase, setImportedBase] = useState<{ name: string; source: string }>();
   const [importedComparison, setImportedComparison] = useState<{ name: string; source: string }>();
   const [importError, setImportError] = useState("");
@@ -104,11 +105,47 @@ export function VersionHistoryDialog({
     return visibleDiff.map((line) => (line.kind === "equal" ? undefined : next++));
   }, [visibleDiff]);
   const changeCount = rowChangeIndices.filter((index) => index !== undefined).length;
+  const diffGroupIds = useMemo(() => {
+    const leftGroups = new Map<number, string>();
+    const rightGroups = new Map<number, string>();
+    for (const group of reviewGroups) {
+      for (let line = group.startLeft; line < group.startLeft + group.deleteCount; line += 1)
+        leftGroups.set(line, group.id);
+      for (let line = group.startRight; line < group.startRight + group.replacement.length; line += 1)
+        rightGroups.set(line, group.id);
+    }
+    return visibleDiff.map((line) => {
+      if (line.kind === "removed" && line.leftNumber !== undefined) return leftGroups.get(line.leftNumber - 1);
+      if (line.kind === "added" && line.rightNumber !== undefined) return rightGroups.get(line.rightNumber - 1);
+      return undefined;
+    });
+  }, [reviewGroups, visibleDiff]);
   useEffect(() => {
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
     setSelectedGroups(new Set());
-  }, [compareId, importedBase?.source, importedComparison?.source, selected?.id, selected?.label]);
+    setActiveGroupId(reviewGroups[0]?.id);
+  }, [compareId, importedBase?.source, importedComparison?.source, reviewGroups, selected?.id, selected?.label]);
+  const scrollToReviewGroup = (groupId: string) => {
+    window.setTimeout(() => {
+      diffElement.current
+        ?.querySelector<HTMLElement>(`[data-review-group-id="${groupId}"]`)
+        ?.scrollIntoView({ block: "center" });
+    });
+  };
+  const showReviewGroupInSource = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setComparisonView("source");
+    scrollToReviewGroup(groupId);
+  };
+  const moveToReviewGroup = (direction: -1 | 1) => {
+    if (!reviewGroups.length) return;
+    const currentIndex = reviewGroups.findIndex((group) => group.id === activeGroupId);
+    const nextIndex = (Math.max(currentIndex, 0) + direction + reviewGroups.length) % reviewGroups.length;
+    const nextId = reviewGroups[nextIndex]!.id;
+    setActiveGroupId(nextId);
+    scrollToReviewGroup(nextId);
+  };
   const moveToChange = (direction: -1 | 1) => {
     if (!changeCount) return;
     const next = (changeIndex + direction + changeCount) % changeCount;
@@ -358,6 +395,15 @@ export function VersionHistoryDialog({
                 <button type="button" disabled={!changeCount} onClick={() => moveToChange(1)}>
                   Next change
                 </button>
+                <button type="button" disabled={!reviewGroups.length} onClick={() => moveToReviewGroup(-1)}>
+                  Previous group
+                </button>
+                <button type="button" disabled={!reviewGroups.length} onClick={() => moveToReviewGroup(1)}>
+                  Next group
+                </button>
+                <span className="version-active-review-group" aria-live="polite">
+                  {reviewGroups.find((group) => group.id === activeGroupId)?.title ?? "No active group"}
+                </span>
               </div>
             )}
             {comparisonView === "semantic" ? (
@@ -376,9 +422,13 @@ export function VersionHistoryDialog({
                     reviewGroups.map((group) => {
                       const confirmed = group.confidence === "confirmed";
                       return (
-                        <label className={`semantic-review-group ${group.confidence}`} key={group.id}>
+                        <div
+                          className={`semantic-review-group ${group.confidence}${activeGroupId === group.id ? " active" : ""}`}
+                          key={group.id}
+                        >
                           <input
                             type="checkbox"
+                            aria-label={`Select ${group.title}`}
                             disabled={!confirmed}
                             checked={selectedGroups.has(group.id)}
                             onChange={(event) => {
@@ -388,12 +438,20 @@ export function VersionHistoryDialog({
                               setSelectedGroups(next);
                             }}
                           />
-                          <span>
+                          <span className="semantic-review-group-copy">
                             <strong>{group.title}</strong>
                             <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
                             <span>{group.detail}</span>
                           </span>
-                        </label>
+                          <button
+                            type="button"
+                            className="semantic-review-inspect"
+                            aria-label={`Show ${group.title} in source`}
+                            onClick={() => showReviewGroupInSource(group.id)}
+                          >
+                            Show in source
+                          </button>
+                        </div>
                       );
                     })
                   ) : (
@@ -449,12 +507,14 @@ export function VersionHistoryDialog({
               <div ref={diffElement} className="version-diff" role="table" aria-label="Source differences">
                 {visibleDiff.map((line, index) => {
                   const rowChangeIndex = rowChangeIndices[index];
+                  const reviewGroupId = diffGroupIds[index];
                   return (
                     <div
-                      className={`version-diff-line ${line.kind}${rowChangeIndex === changeIndex ? " current-change" : ""}`}
+                      className={`version-diff-line ${line.kind}${rowChangeIndex === changeIndex ? " current-change" : ""}${reviewGroupId === activeGroupId ? " active-review-group" : ""}`}
                       role="row"
                       key={`${index}-${line.kind}`}
                       {...(rowChangeIndex === undefined ? {} : { "data-change-index": rowChangeIndex })}
+                      {...(reviewGroupId === undefined ? {} : { "data-review-group-id": reviewGroupId })}
                     >
                       <span>{line.leftNumber ?? ""}</span>
                       <code>{line.left ?? ""}</code>
