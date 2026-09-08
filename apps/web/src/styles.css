@@ -2438,6 +2438,24 @@ textarea:focus-visible,
 .version-render-canvas .semantic-render-highlight {
   filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 1px var(--accent));
 }
+.version-render-canvas .interaction-hit {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: none;
+}
+.version-render-canvas .dependency-handle,
+.version-render-canvas .resize-handle {
+  display: none;
+}
+.version-render-canvas .interaction-dependency {
+  fill: none;
+  stroke: transparent;
+  pointer-events: none;
+}
+.version-render-canvas .interaction-dependency.semantic-render-highlight {
+  stroke: var(--accent);
+  stroke-width: 4px;
+}
 .version-render-canvas text.semantic-render-highlight {
   stroke: color-mix(in srgb, var(--accent) 75%, white);
   stroke-width: 3px;

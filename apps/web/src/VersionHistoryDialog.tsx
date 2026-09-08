@@ -679,10 +679,10 @@ function highlightReviewSvg(svg: string, targets: readonly ReviewTarget[]): stri
   };
   for (const target of targets) {
     if (target.kind === "gantt-task") {
-      const task = [...root.querySelectorAll<SVGGElement>("[data-task-id]")].find(
-        (element) => element.getAttribute("data-task-id")?.toLowerCase() === target.id.toLowerCase(),
+      const taskGeometry = [...root.querySelectorAll<SVGElement>("[data-visual-task-id]")].filter(
+        (element) => element.getAttribute("data-visual-task-id")?.toLowerCase() === target.id.toLowerCase(),
       );
-      mark(task);
+      taskGeometry.forEach(mark);
       continue;
     }
     if (target.kind === "gantt-dependency") {
