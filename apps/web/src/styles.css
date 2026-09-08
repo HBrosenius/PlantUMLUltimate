@@ -2420,8 +2420,7 @@ textarea:focus-visible,
   min-height: 0;
   flex: 1;
   overflow: auto;
-  display: grid;
-  place-items: start center;
+  display: block;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 7px;

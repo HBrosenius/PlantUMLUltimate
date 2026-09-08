@@ -1684,6 +1684,16 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await page.mouse.move(renderedBox!.x + renderedBox!.width / 2, renderedBox!.y + renderedBox!.height / 2);
   await page.mouse.wheel(0, -400);
   await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).not.toHaveText("100%");
+  await renderedBaseline.evaluate(async (element) => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    element.scrollLeft = 0;
+  });
+  await expect.poll(() => renderedBaseline.evaluate((element) => element.scrollLeft)).toBe(0);
+  const zoomedCanvasBox = await renderedBaseline.boundingBox();
+  const zoomedDiagramBox = await renderedBaseline.locator("svg").boundingBox();
+  expect(zoomedCanvasBox).not.toBeNull();
+  expect(zoomedDiagramBox).not.toBeNull();
+  expect(zoomedDiagramBox!.x).toBeGreaterThanOrEqual(zoomedCanvasBox!.x);
   await expect(dialog.getByRole("button", { name: "Reset zoom for Current working copy" })).toHaveText("100%");
   await dialog.getByRole("button", { name: "Reset zoom for Baseline" }).click();
   await expect(dialog.getByRole("button", { name: "Reset zoom for Baseline" })).toHaveText("100%");
