@@ -83,6 +83,7 @@ export function VersionHistoryDialog({
   const [applying, setApplying] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [activeGroupId, setActiveGroupId] = useState<string>();
+  const [visibleGroupIds, setVisibleGroupIds] = useState<Set<string>>(new Set());
   const [importedBase, setImportedBase] = useState<{ name: string; source: string }>();
   const [importedComparison, setImportedComparison] = useState<{ name: string; source: string }>();
   const [importError, setImportError] = useState("");
@@ -133,6 +134,7 @@ export function VersionHistoryDialog({
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
     setSelectedGroups(new Set());
+    setVisibleGroupIds(new Set());
     setActiveGroupId(reviewGroups[0]?.id);
   }, [compareId, importedBase?.source, importedComparison?.source, reviewGroups, selected?.id, selected?.label]);
   const scrollToReviewGroup = (groupId: string) => {
@@ -149,6 +151,26 @@ export function VersionHistoryDialog({
   };
   const showReviewGroupInDiagram = (groupId: string) => {
     setActiveGroupId(groupId);
+    setVisibleGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+    setComparisonView("rendered");
+  };
+  const visibleReviewGroups = reviewGroups.filter((group) => visibleGroupIds.has(group.id));
+  const showAllReviewGroupsInDiagram = () => {
+    setVisibleGroupIds(
+      new Set(
+        reviewGroups
+          .filter(
+            (group) =>
+              group.confidence === "confirmed" && (group.leftTargets.length > 0 || group.rightTargets.length > 0),
+          )
+          .map((group) => group.id),
+      ),
+    );
     setComparisonView("rendered");
   };
   const moveToReviewGroup = (direction: -1 | 1) => {
@@ -463,10 +485,11 @@ export function VersionHistoryDialog({
                             <button
                               type="button"
                               disabled={!confirmed || (!group.leftTargets.length && !group.rightTargets.length)}
-                              aria-label={`Show ${group.title} in rendered diagrams`}
+                              aria-label={`${visibleGroupIds.has(group.id) ? "Hide" : "Show"} ${group.title} ${visibleGroupIds.has(group.id) ? "from" : "in"} rendered diagrams`}
+                              aria-pressed={visibleGroupIds.has(group.id)}
                               onClick={() => showReviewGroupInDiagram(group.id)}
                             >
-                              Show in diagram
+                              {visibleGroupIds.has(group.id) ? "Hide from diagram" : "Show in diagram"}
                             </button>
                             <button
                               type="button"
@@ -484,6 +507,19 @@ export function VersionHistoryDialog({
                   )}
                 </div>
                 <div className="semantic-review-actions">
+                  <button
+                    type="button"
+                    disabled={
+                      !reviewGroups.some(
+                        (group) =>
+                          group.confidence === "confirmed" &&
+                          (group.leftTargets.length > 0 || group.rightTargets.length > 0),
+                      )
+                    }
+                    onClick={showAllReviewGroupsInDiagram}
+                  >
+                    Show all in diagram
+                  </button>
                   <button
                     type="button"
                     disabled={!selectedGroups.size}
@@ -550,38 +586,52 @@ export function VersionHistoryDialog({
                 })}
               </div>
             ) : (
-              <div className="version-rendered-comparison" aria-label="Rendered differences">
-                <RenderedVersion
-                  title={
-                    importedBase
-                      ? `Imported: ${importedBase.name}`
-                      : selected
-                        ? versionTitle(selected)
-                        : "Current working copy"
-                  }
-                  status={leftRendered.status}
-                  svg={leftRendered.result?.svg}
-                  error={leftRendered.result?.error}
-                  targets={reviewGroups.find((group) => group.id === activeGroupId)?.leftTargets ?? []}
-                  source={leftSource}
-                  diagramKind={diagramKind}
-                />
-                <RenderedVersion
-                  title={
-                    compareId === "imported" && importedComparison
-                      ? `Imported: ${importedComparison.name}`
-                      : compare
-                        ? versionTitle(compare)
-                        : "Current working copy"
-                  }
-                  status={rightRendered.status}
-                  svg={rightRendered.result?.svg}
-                  error={rightRendered.result?.error}
-                  targets={reviewGroups.find((group) => group.id === activeGroupId)?.rightTargets ?? []}
-                  source={rightSource}
-                  diagramKind={diagramKind}
-                />
-              </div>
+              <>
+                <div className="version-render-highlight-controls">
+                  <span>
+                    {visibleReviewGroups.length} change{visibleReviewGroups.length === 1 ? "" : "s"} highlighted
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!visibleReviewGroups.length}
+                    onClick={() => setVisibleGroupIds(new Set())}
+                  >
+                    Clear highlights
+                  </button>
+                </div>
+                <div className="version-rendered-comparison" aria-label="Rendered differences">
+                  <RenderedVersion
+                    title={
+                      importedBase
+                        ? `Imported: ${importedBase.name}`
+                        : selected
+                          ? versionTitle(selected)
+                          : "Current working copy"
+                    }
+                    status={leftRendered.status}
+                    svg={leftRendered.result?.svg}
+                    error={leftRendered.result?.error}
+                    targets={visibleReviewGroups.flatMap((group) => group.leftTargets)}
+                    source={leftSource}
+                    diagramKind={diagramKind}
+                  />
+                  <RenderedVersion
+                    title={
+                      compareId === "imported" && importedComparison
+                        ? `Imported: ${importedComparison.name}`
+                        : compare
+                          ? versionTitle(compare)
+                          : "Current working copy"
+                    }
+                    status={rightRendered.status}
+                    svg={rightRendered.result?.svg}
+                    error={rightRendered.result?.error}
+                    targets={visibleReviewGroups.flatMap((group) => group.rightTargets)}
+                    source={rightSource}
+                    diagramKind={diagramKind}
+                  />
+                </div>
+              </>
             )}
             <div className="dialog-actions">
               <button type="button" disabled={!selected} onClick={() => selected && void onRestore(selected)}>

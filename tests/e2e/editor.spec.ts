@@ -1779,11 +1779,30 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog.getByRole("button", { name: "Show Change message Pay → Store in rendered diagrams" }).click();
   await expect(
-    dialog.getByLabel("Before review rendered diagram").locator("text.semantic-render-highlight"),
-  ).toContainText("Authorize");
+    dialog
+      .getByLabel("Before review rendered diagram")
+      .locator("text.semantic-render-highlight")
+      .filter({ hasText: "Authorize" }),
+  ).toHaveCount(1);
   await expect(
-    dialog.getByLabel("Current working copy rendered diagram").locator("text.semantic-render-highlight"),
-  ).toContainText("Capture");
+    dialog
+      .getByLabel("Current working copy rendered diagram")
+      .locator("text.semantic-render-highlight")
+      .filter({ hasText: "Capture" }),
+  ).toHaveCount(1);
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    2,
+  );
+  await expect(dialog.getByText("2 changes highlighted", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Clear highlights" }).click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    0,
+  );
+  await dialog.getByRole("button", { name: "Review", exact: true }).click();
+  await dialog.getByRole("button", { name: "Show all in diagram" }).click();
+  await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
+    2,
+  );
   await dialog.getByRole("button", { name: "Review", exact: true }).click();
   await dialog
     .locator(".semantic-review-group")
