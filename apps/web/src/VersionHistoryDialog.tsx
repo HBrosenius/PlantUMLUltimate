@@ -58,6 +58,7 @@ export function VersionHistoryDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const diffElement = useRef<HTMLDivElement>(null);
+  const baseImportInput = useRef<HTMLInputElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
   useDialogFocus(dialog, onClose);
   const [selectedId, setSelectedId] = useState(versions[0]?.id ?? "");
@@ -72,13 +73,15 @@ export function VersionHistoryDialog({
   const [creating, setCreating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [importedBase, setImportedBase] = useState<{ name: string; source: string }>();
   const [importedComparison, setImportedComparison] = useState<{ name: string; source: string }>();
   const [importError, setImportError] = useState("");
   const selected = versions.find((version) => version.id === selectedId) ?? versions[0];
   const compare = versions.find((version) => version.id === compareId);
   const rightSource =
     compareId === "imported" ? (importedComparison?.source ?? currentSource) : (compare?.source ?? currentSource);
-  const leftSource = selected?.source ?? currentSource;
+  const leftSource = importedBase?.source ?? selected?.source ?? currentSource;
+  const canApplyReview = !importedBase || importedBase.source === currentSource;
   const layoutEngine =
     /^\s*@startgantt\b/im.test(leftSource) && /^\s*@startgantt\b/im.test(rightSource) ? "native" : "graphviz";
   const leftRendered = useRenderer(leftSource, comparisonView === "rendered", layoutEngine);
@@ -105,7 +108,7 @@ export function VersionHistoryDialog({
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
     setSelectedGroups(new Set());
-  }, [compareId, selected?.id, selected?.label]);
+  }, [compareId, importedBase?.source, importedComparison?.source, selected?.id, selected?.label]);
   const moveToChange = (direction: -1 | 1) => {
     if (!changeCount) return;
     const next = (changeIndex + direction + changeCount) % changeCount;
@@ -116,27 +119,38 @@ export function VersionHistoryDialog({
         ?.scrollIntoView({ block: "center" });
     });
   };
-  const importComparison = async (file: File) => {
+  const readReviewImport = async (file: File) => {
     setImportError("");
     if (file.size > MAX_REVIEW_IMPORT_BYTES) {
       setImportError("Choose a PlantUML file smaller than 5 MB.");
-      return;
+      return undefined;
     }
     try {
       const source = await file.text();
       const importedKind = detectDiagramKind(source);
       if (!importedKind) {
         setImportError("This file does not contain a recognized PlantUML diagram.");
-        return;
+        return undefined;
       }
       if (importedKind !== diagramKind) {
         setImportError(`This ${importedKind} diagram cannot be reviewed against the current ${diagramKind} diagram.`);
-        return;
+        return undefined;
       }
-      setImportedComparison({ name: file.name, source });
-      setCompareId("imported");
+      return { name: file.name, source };
     } catch {
       setImportError("The selected file could not be read.");
+      return undefined;
+    }
+  };
+  const importBase = async (file: File) => {
+    const imported = await readReviewImport(file);
+    if (imported) setImportedBase(imported);
+  };
+  const importComparison = async (file: File) => {
+    const imported = await readReviewImport(file);
+    if (imported) {
+      setImportedComparison(imported);
+      setCompareId("imported");
     }
   };
 
@@ -180,7 +194,10 @@ export function VersionHistoryDialog({
                   <button
                     type="button"
                     aria-label={`Select version ${versionTitle(version)}`}
-                    onClick={() => setSelectedId(version.id)}
+                    onClick={() => {
+                      setImportedBase(undefined);
+                      setSelectedId(version.id);
+                    }}
                   >
                     <strong>{versionTitle(version)}</strong>
                     <span>
@@ -207,7 +224,13 @@ export function VersionHistoryDialog({
           </aside>
           <section className="version-compare" aria-label="Version comparison">
             <div className="version-compare-controls">
-              <span>{selected ? versionTitle(selected) : "No historical version"}</span>
+              <span>
+                {importedBase
+                  ? `Imported: ${importedBase.name}`
+                  : selected
+                    ? versionTitle(selected)
+                    : "Current working copy"}
+              </span>
               <span>compared with</span>
               <select
                 aria-label="Compare with"
@@ -224,6 +247,21 @@ export function VersionHistoryDialog({
                     </option>
                   ))}
               </select>
+              <input
+                ref={baseImportInput}
+                type="file"
+                accept=".puml,.plantuml,text/plain"
+                hidden
+                aria-label="PlantUML base file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void importBase(file);
+                }}
+              />
+              <button type="button" onClick={() => baseImportInput.current?.click()}>
+                Import base…
+              </button>
               <input
                 ref={importInput}
                 type="file"
@@ -268,7 +306,7 @@ export function VersionHistoryDialog({
                 {importError}
               </p>
             ) : null}
-            {selected && (
+            {selected && !importedBase && (
               <div className="version-edit-controls">
                 {selected.author && (
                   <span
@@ -391,7 +429,7 @@ export function VersionHistoryDialog({
                   </button>
                   <button
                     type="button"
-                    disabled={!selectedGroups.size || applying}
+                    disabled={!selectedGroups.size || applying || !canApplyReview}
                     onClick={() => {
                       setApplying(true);
                       void onApplyReview(reviewedSource).finally(() => setApplying(false));
@@ -400,6 +438,12 @@ export function VersionHistoryDialog({
                     {applying ? "Applying…" : `Apply selected (${selectedGroups.size})`}
                   </button>
                 </div>
+                {!canApplyReview ? (
+                  <p className="version-import-warning" role="status">
+                    Applying is disabled because the working copy does not match the imported base. You can still export
+                    the selected patch.
+                  </p>
+                ) : null}
               </div>
             ) : comparisonView === "source" ? (
               <div ref={diffElement} className="version-diff" role="table" aria-label="Source differences">
@@ -423,7 +467,13 @@ export function VersionHistoryDialog({
             ) : (
               <div className="version-rendered-comparison" aria-label="Rendered differences">
                 <RenderedVersion
-                  title={selected ? versionTitle(selected) : "Selected version"}
+                  title={
+                    importedBase
+                      ? `Imported: ${importedBase.name}`
+                      : selected
+                        ? versionTitle(selected)
+                        : "Current working copy"
+                  }
                   status={leftRendered.status}
                   svg={leftRendered.result?.svg}
                   error={leftRendered.result?.error}

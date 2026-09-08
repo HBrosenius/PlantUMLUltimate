@@ -1787,6 +1787,39 @@ test("imports a local PlantUML file for semantic review without replacing the wo
   await expect(page.locator(".cm-content")).not.toContainText("Capture");
 });
 
+test("compares two imported PlantUML files without applying over a different working copy", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await setSource(page, "@startuml\nAlice -> Bob: Working copy\n@enduml");
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Version history" });
+
+  await dialog.getByLabel("PlantUML base file").setInputFiles({
+    name: "before.puml",
+    mimeType: "text/plain",
+    buffer: Buffer.from("@startuml\nAlice -> Bob: Before\n@enduml"),
+  });
+  await dialog.getByLabel("PlantUML comparison file").setInputFiles({
+    name: "after.puml",
+    mimeType: "text/plain",
+    buffer: Buffer.from("@startuml\nAlice -> Bob: After\n@enduml"),
+  });
+
+  await expect(dialog.getByLabel("Version comparison")).toContainText("Imported: before.puml");
+  await expect(dialog.getByLabel("Compare with")).toHaveValue("imported");
+  await expect(dialog.getByLabel("Compare with")).toContainText("Imported: after.puml");
+  await expect(dialog.getByLabel("Semantic changes")).toContainText("Change message Alice → Bob");
+  await dialog.getByRole("checkbox").check();
+  await expect(dialog.getByRole("button", { name: "Apply selected (1)" })).toBeDisabled();
+  await expect(dialog.getByRole("status")).toContainText("working copy does not match the imported base");
+  await expect(dialog.getByRole("button", { name: "Export selected patch" })).toBeEnabled();
+  await expect(page.locator(".cm-content")).toContainText("Alice -> Bob: Working copy");
+});
+
 test("starts a new version lineage after Save As", async ({ page }) => {
   await setSource(page, source("[Original lineage] lasts 2 days"));
   await page.getByRole("button", { name: "File" }).click();

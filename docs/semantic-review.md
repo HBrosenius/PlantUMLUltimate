@@ -9,6 +9,10 @@ working document. When no checkpoint exists, the imported file is compared with 
 copy. The import remains in memory only, is limited to 5 MB, and must contain the same recognized
 diagram type as the working document. No editor content changes until confirmed groups are applied.
 
+Use **Import base…** as well to compare two local files explicitly. Applying a selection is disabled
+when the imported base differs from the working copy, preventing an unrelated document from being
+partially replaced. Patch and report export remain available for these read-only comparisons.
+
 ## Supported first slice
 
 The review layer classifies these Sequence changes when their identity is unambiguous:
