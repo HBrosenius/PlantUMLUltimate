@@ -7,6 +7,7 @@ export interface ReviewGroup {
   id: string;
   title: string;
   detail: string;
+  changeKind: "added" | "removed" | "modified";
   confidence: "confirmed" | "probable" | "unclassified";
   startLeft: number;
   startRight: number;
@@ -386,6 +387,7 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     groups.push({
       id: `change-${groups.length + 1}`,
       ...description,
+      changeKind: deleteCount === 0 ? "added" : replacement.length === 0 ? "removed" : "modified",
       startLeft,
       startRight,
       deleteCount,
@@ -437,6 +439,7 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         id: removal.id,
         title: `Add dependency ${dependency.predecessor.value} → ${dependency.successor.value}`,
         detail: `${dependency.successor.value}'s explicit start is replaced by a dependency on ${dependency.predecessor.value}. Both source regions apply together.`,
+        changeKind: "modified",
         confidence: "confirmed",
         startLeft: removal.startLeft,
         startRight: removal.startRight,

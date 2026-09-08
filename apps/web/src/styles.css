@@ -2536,10 +2536,42 @@ textarea:focus-visible,
 .version-render-highlight-controls {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   color: var(--muted);
   font-size: 12px;
+}
+.version-render-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.version-render-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.version-render-legend > span::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--review-highlight);
+  content: "";
+}
+.version-render-legend .removed,
+.semantic-render-highlight-removed {
+  --review-highlight: #dc2626;
+}
+.version-render-legend .modified,
+.semantic-render-highlight-modified {
+  --review-highlight: #d97706;
+}
+.version-render-legend .added,
+.semantic-render-highlight-added {
+  --review-highlight: #16a34a;
+}
+.version-render-highlight-count {
+  margin-left: auto;
 }
 .version-render-panel {
   min-width: 0;
@@ -2581,7 +2613,7 @@ textarea:focus-visible,
   height: auto;
 }
 .version-render-canvas .semantic-render-highlight {
-  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 1px var(--accent));
+  filter: drop-shadow(0 0 3px var(--review-highlight)) drop-shadow(0 0 1px var(--review-highlight));
 }
 .version-render-canvas .interaction-hit {
   fill: transparent;
@@ -2598,11 +2630,11 @@ textarea:focus-visible,
   pointer-events: none;
 }
 .version-render-canvas .interaction-dependency.semantic-render-highlight {
-  stroke: var(--accent);
+  stroke: var(--review-highlight);
   stroke-width: 4px;
 }
 .version-render-canvas text.semantic-render-highlight {
-  stroke: color-mix(in srgb, var(--accent) 75%, white);
+  stroke: color-mix(in srgb, var(--review-highlight) 75%, white);
   stroke-width: 3px;
   paint-order: stroke fill;
 }

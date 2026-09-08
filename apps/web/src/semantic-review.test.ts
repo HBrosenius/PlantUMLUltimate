@@ -8,6 +8,7 @@ describe("semantic review", () => {
     expect(buildReviewGroups(before, after, "sequence")).toMatchObject([
       {
         title: "Rename participant Payment API to Billing API",
+        changeKind: "modified",
         confidence: "confirmed",
         startLeft: 1,
         startRight: 1,
@@ -31,6 +32,22 @@ describe("semantic review", () => {
     expect(
       buildReviewGroups("@startuml\nparticipant Old\n@enduml", "@startuml\nparticipant New\n@enduml", "sequence"),
     ).toMatchObject([{ title: "Possible participant rename: Old → New", confidence: "probable" }]);
+  });
+
+  it("distinguishes added, removed, and modified review groups", () => {
+    expect(
+      buildReviewGroups(
+        "@startuml\nparticipant A\n@enduml",
+        "@startuml\nparticipant A\nparticipant B\n@enduml",
+        "sequence",
+      ),
+    ).toMatchObject([{ changeKind: "added" }]);
+    expect(buildReviewGroups("@startuml\nA -> B: Remove me\n@enduml", "@startuml\n@enduml", "sequence")).toMatchObject([
+      { changeKind: "removed" },
+    ]);
+    expect(
+      buildReviewGroups("@startuml\nA -> B: Before\n@enduml", "@startuml\nA -> B: After\n@enduml", "sequence"),
+    ).toMatchObject([{ changeKind: "modified" }]);
   });
 
   it("groups adjacent participant and message edits when every identity remains stable", () => {
@@ -85,6 +102,7 @@ describe("semantic review", () => {
     expect(groups).toMatchObject([
       {
         title: "Add dependency Backend → Frontend",
+        changeKind: "modified",
         detail: "Frontend's explicit start is replaced by a dependency on Backend. Both source regions apply together.",
         confidence: "confirmed",
       },

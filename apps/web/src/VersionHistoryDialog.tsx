@@ -19,6 +19,11 @@ import { parseGantt } from "@plantuml-studio/diagram-gantt";
 
 const MAX_REVIEW_IMPORT_BYTES = 5 * 1024 * 1024;
 
+type ReviewHighlight = {
+  target: ReviewTarget;
+  state: "added" | "removed" | "modified";
+};
+
 function download(content: string, fileName: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement("a");
@@ -640,7 +645,12 @@ export function VersionHistoryDialog({
             ) : (
               <>
                 <div className="version-render-highlight-controls">
-                  <span>
+                  <div className="version-render-legend" aria-label="Change highlight legend">
+                    <span className="removed">Removed</span>
+                    <span className="modified">Modified</span>
+                    <span className="added">Added</span>
+                  </div>
+                  <span className="version-render-highlight-count">
                     {visibleReviewGroups.length} change{visibleReviewGroups.length === 1 ? "" : "s"} highlighted
                   </span>
                   <button
@@ -664,7 +674,9 @@ export function VersionHistoryDialog({
                     status={leftRendered.status}
                     svg={leftRendered.result?.svg}
                     error={leftRendered.result?.error}
-                    targets={visibleReviewGroups.flatMap((group) => group.leftTargets)}
+                    highlights={visibleReviewGroups.flatMap((group) =>
+                      group.leftTargets.map((target) => ({ target, state: group.changeKind })),
+                    )}
                     source={leftSource}
                     diagramKind={diagramKind}
                   />
@@ -679,7 +691,9 @@ export function VersionHistoryDialog({
                     status={rightRendered.status}
                     svg={rightRendered.result?.svg}
                     error={rightRendered.result?.error}
-                    targets={visibleReviewGroups.flatMap((group) => group.rightTargets)}
+                    highlights={visibleReviewGroups.flatMap((group) =>
+                      group.rightTargets.map((target) => ({ target, state: group.changeKind })),
+                    )}
                     source={rightSource}
                     diagramKind={diagramKind}
                   />
@@ -706,7 +720,7 @@ function RenderedVersion({
   status,
   svg,
   error,
-  targets,
+  highlights,
   source,
   diagramKind,
 }: {
@@ -714,7 +728,7 @@ function RenderedVersion({
   status: "idle" | "rendering" | "error";
   svg: string | undefined;
   error: string | undefined;
-  targets: readonly ReviewTarget[];
+  highlights: readonly ReviewHighlight[];
   source: string;
   diagramKind: DiagramKind;
 }) {
@@ -728,8 +742,8 @@ function RenderedVersion({
       const document = parseGantt(source).document;
       rendered = addCanonicalGanttOverlay(rendered, document.tasks, document.dependencies);
     }
-    return highlightReviewSvg(sanitizeSvg(rendered), targets);
-  }, [diagramKind, source, svg, targets]);
+    return highlightReviewSvg(sanitizeSvg(rendered), highlights);
+  }, [diagramKind, highlights, source, svg]);
   useLayoutEffect(() => {
     const root = diagram.current;
     if (!root) return;
@@ -756,7 +770,7 @@ function RenderedVersion({
       >
         {status === "rendering" && !svg ? <p>Rendering…</p> : null}
         {error ? <p className="version-render-error">{error}</p> : null}
-        {highlightedSvg && targets.length > 0 && !highlightedSvg.includes("semantic-render-highlight") ? (
+        {highlightedSvg && highlights.length > 0 && !highlightedSvg.includes("semantic-render-highlight") ? (
           <p className="version-render-fallback" role="status">
             No unambiguous rendered match. Use the source highlight for this side.
           </p>
@@ -769,23 +783,23 @@ function RenderedVersion({
   );
 }
 
-function highlightReviewSvg(svg: string, targets: readonly ReviewTarget[]): string {
-  if (typeof DOMParser === "undefined" || !targets.length) return svg;
+function highlightReviewSvg(svg: string, highlights: readonly ReviewHighlight[]): string {
+  if (typeof DOMParser === "undefined" || !highlights.length) return svg;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (document.querySelector("parsererror")) return svg;
   const root = document.documentElement;
   const highlighted = new Set<SVGElement>();
-  const mark = (element: SVGElement | null | undefined) => {
+  const mark = (element: SVGElement | null | undefined, state: ReviewHighlight["state"]) => {
     if (!element) return;
-    element.classList.add("semantic-render-highlight");
+    element.classList.add("semantic-render-highlight", `semantic-render-highlight-${state}`);
     highlighted.add(element);
   };
-  for (const target of targets) {
+  for (const { target, state } of highlights) {
     if (target.kind === "gantt-task") {
       const taskGeometry = [...root.querySelectorAll<SVGElement>("[data-visual-task-id]")].filter(
         (element) => element.getAttribute("data-visual-task-id")?.toLowerCase() === target.id.toLowerCase(),
       );
-      taskGeometry.forEach(mark);
+      taskGeometry.forEach((element) => mark(element, state));
       continue;
     }
     if (target.kind === "gantt-dependency") {
@@ -796,21 +810,21 @@ function highlightReviewSvg(svg: string, targets: readonly ReviewTarget[]): stri
           element.getAttribute("data-predecessor-task-id")?.toLowerCase() === target.predecessorId.toLowerCase() &&
           element.getAttribute("data-successor-task-id")?.toLowerCase() === target.successorId.toLowerCase(),
       );
-      mark(dependency);
+      mark(dependency, state);
       continue;
     }
     const text = [...root.querySelectorAll<SVGTextElement>("text")];
     if (target.kind === "sequence-participant") {
       const labels = new Set([target.label.trim(), target.alias?.trim()].filter(Boolean));
       const matches = text.filter((element) => labels.has(element.textContent?.trim() ?? ""));
-      if (matches.length > 0 && matches.length <= 2) matches.forEach(mark);
+      if (matches.length > 0 && matches.length <= 2) matches.forEach((element) => mark(element, state));
       continue;
     }
     const matches = text.filter((element) => {
       const content = element.textContent?.trim() ?? "";
       return content === target.label || content.endsWith(target.label);
     });
-    if (matches.length === 1) mark(matches[0]);
+    if (matches.length === 1) mark(matches[0], state);
   }
   return highlighted.size ? new XMLSerializer().serializeToString(root) : svg;
 }
