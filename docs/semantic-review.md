@@ -4,6 +4,11 @@ PlantUML Ultimate can review a saved document version against the current workin
 **File → Version history**. Sequence and Gantt diagrams receive a conservative semantic change list;
 the source and rendered comparisons remain available as fallbacks.
 
+Use **Import comparison…** to review a local `.puml` or `.plantuml` file without opening it over the
+working document. When no checkpoint exists, the imported file is compared with the current working
+copy. The import remains in memory only, is limited to 5 MB, and must contain the same recognized
+diagram type as the working document. No editor content changes until confirmed groups are applied.
+
 ## Supported first slice
 
 The review layer classifies these Sequence changes when their identity is unambiguous:
