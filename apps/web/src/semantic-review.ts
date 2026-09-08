@@ -1,5 +1,5 @@
 import { parseSequence, type SequenceMessage, type SequenceParticipant } from "@plantuml-studio/diagram-sequence";
-import { parseGantt, type GanttTask } from "@plantuml-studio/diagram-gantt";
+import { parseGantt, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
 
@@ -23,6 +23,7 @@ type GanttItem = {
   declarationKind: GanttTask["declarations"][number]["kind"];
   value: GanttTask;
 };
+type GanttDependencyItem = { line: number; value: GanttDependency };
 
 const lineAt = (source: string, offset: number) => source.slice(0, offset).split("\n").length - 1;
 
@@ -111,6 +112,13 @@ function ganttItems(source: string): GanttItem[] {
   );
 }
 
+function ganttDependencyItems(source: string): GanttDependencyItem[] {
+  return parseGantt(source).document.dependencies.map((value) => ({
+    line: lineAt(source, value.sourceRange.from),
+    value,
+  }));
+}
+
 function describeSequenceChange(
   removed: SequenceItem[],
   added: SequenceItem[],
@@ -178,7 +186,35 @@ function describeSequenceChange(
 function describeGanttChange(
   removed: GanttItem[],
   added: GanttItem[],
+  removedDependencies: GanttDependencyItem[],
+  addedDependencies: GanttDependencyItem[],
 ): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
+  if (!removedDependencies.length && addedDependencies.length === 1) {
+    const dependency = addedDependencies[0]!.value;
+    return {
+      title: `Add dependency ${dependency.predecessor.value} → ${dependency.successor.value}`,
+      detail: "The added source is recognized as a Gantt dependency, not a new task.",
+      confidence: "confirmed",
+    };
+  }
+  if (removedDependencies.length === 1 && !addedDependencies.length) {
+    const dependency = removedDependencies[0]!.value;
+    return {
+      title: `Remove dependency ${dependency.predecessor.value} → ${dependency.successor.value}`,
+      detail: "The removed source is a recognized Gantt dependency.",
+      confidence: "confirmed",
+    };
+  }
+  if (removedDependencies.length === 1 && addedDependencies.length === 1) {
+    const before = removedDependencies[0]!.value;
+    const after = addedDependencies[0]!.value;
+    if (before.predecessorTaskId === after.predecessorTaskId && before.successorTaskId === after.successorTaskId)
+      return {
+        title: `Change dependency ${after.predecessor.value} → ${after.successor.value}`,
+        detail: "Both dependency endpoints retain their parsed task identities.",
+        confidence: "confirmed",
+      };
+  }
   if (
     removed.length > 1 &&
     removed.length === added.length &&
@@ -248,6 +284,8 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   let rightItems: SequenceItem[] = [];
   let leftGanttItems: GanttItem[] = [];
   let rightGanttItems: GanttItem[] = [];
+  let leftGanttDependencies: GanttDependencyItem[] = [];
+  let rightGanttDependencies: GanttDependencyItem[] = [];
   if (kind === "sequence") {
     try {
       leftItems = sequenceItems(leftSource);
@@ -259,6 +297,8 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   if (kind === "gantt") {
     leftGanttItems = ganttItems(leftSource);
     rightGanttItems = ganttItems(rightSource);
+    leftGanttDependencies = ganttDependencyItems(leftSource);
+    rightGanttDependencies = ganttDependencyItems(rightSource);
   }
   const groups: ReviewGroup[] = [];
   let leftCursor = 0;
@@ -293,11 +333,17 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     const addedGantt = rightGanttItems.filter(
       (item) => item.line >= startRight && item.line < startRight + replacement.length,
     );
+    const removedGanttDependencies = leftGanttDependencies.filter(
+      (item) => item.line >= startLeft && item.line < startLeft + deleteCount,
+    );
+    const addedGanttDependencies = rightGanttDependencies.filter(
+      (item) => item.line >= startRight && item.line < startRight + replacement.length,
+    );
     const description =
       kind === "sequence"
         ? describeSequenceChange(removed, added)
         : kind === "gantt"
-          ? describeGanttChange(removedGantt, addedGantt)
+          ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
           : describeSequenceChange([], []);
     groups.push({
       id: `change-${groups.length + 1}`,
@@ -308,7 +354,51 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       replacement,
     });
   }
-  return groups;
+  if (kind !== "gantt") return groups;
+  const rightLines = rightSource.split("\n");
+  const merged: ReviewGroup[] = [];
+  for (let index = 0; index < groups.length; index += 1) {
+    const removal = groups[index]!;
+    const addition = groups[index + 1];
+    const removedStarts = leftGanttItems.filter(
+      (item) =>
+        item.declarationKind === "start" &&
+        item.line >= removal.startLeft &&
+        item.line < removal.startLeft + removal.deleteCount,
+    );
+    const addedDependencies = addition
+      ? rightGanttDependencies.filter(
+          (item) => item.line >= addition.startRight && item.line < addition.startRight + addition.replacement.length,
+        )
+      : [];
+    const replacesOnlyStart =
+      removal.deleteCount === 1 && removal.replacement.every((line) => !line.trim()) && removedStarts.length === 1;
+    const addsOnlyDependency =
+      addition?.deleteCount === 0 && addition.replacement.length === 1 && addedDependencies.length === 1;
+    const dependency = addedDependencies[0]?.value;
+    if (
+      addition &&
+      replacesOnlyStart &&
+      addsOnlyDependency &&
+      dependency?.successorTaskId === removedStarts[0]!.value.id
+    ) {
+      const replacementEnd = addition.startRight + addition.replacement.length;
+      merged.push({
+        id: removal.id,
+        title: `Add dependency ${dependency.predecessor.value} → ${dependency.successor.value}`,
+        detail: `${dependency.successor.value}'s explicit start is replaced by a dependency on ${dependency.predecessor.value}. Both source regions apply together.`,
+        confidence: "confirmed",
+        startLeft: removal.startLeft,
+        startRight: removal.startRight,
+        deleteCount: addition.startLeft + addition.deleteCount - removal.startLeft,
+        replacement: rightLines.slice(removal.startRight, replacementEnd),
+      });
+      index += 1;
+      continue;
+    }
+    merged.push(removal);
+  }
+  return merged;
 }
 
 export function applyReviewGroups(
