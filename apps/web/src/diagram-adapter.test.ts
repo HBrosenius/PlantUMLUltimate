@@ -65,6 +65,43 @@ describe("diagram adapter architecture", () => {
     ).toEqual({ edits: [], unavailableReason: "Unsupported WBS operation: unknown-operation" });
   });
 
+  it("routes WBS node and relationship commands through typed source edits", () => {
+    let source = "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\n@endwbs";
+    const apply = (operation: WbsVisualOperation) => {
+      const parsed = applicationWbsAdapter.parse(source);
+      const result = applicationWbsAdapter.applyVisualOperation(operation, parsed.document, source);
+      expect(result.unavailableReason).toBeUndefined();
+      source = applySourceEdits(source, result.edits);
+      return applicationWbsAdapter.parse(source).document;
+    };
+
+    let document = apply({ kind: "insert-node", value: { label: "Review" }, parentId: "wbs-0" });
+    const review = document.nodes.find((node) => node.label === "Review")!;
+    document = apply({ kind: "update-node", nodeId: review.id, value: { label: "Approval", color: "Blue" } });
+    const approval = document.nodes.find((node) => node.label === "Approval")!;
+    const deliver = document.nodes.find((node) => node.alias === "deliver")!;
+    document = apply({ kind: "create-relationship", fromNodeId: approval.id, toNodeId: deliver.id });
+    let relationship = document.relationships[0]!;
+    document = apply({ kind: "update-relationship-color", relationshipId: relationship.id, color: "Green" });
+    relationship = document.relationships[0]!;
+    const plan = document.nodes.find((node) => node.alias === "plan")!;
+    document = apply({
+      kind: "reconnect-relationship",
+      relationshipId: relationship.id,
+      endpoint: "to",
+      targetNodeId: plan.id,
+    });
+    relationship = document.relationships[0]!;
+    document = apply({ kind: "delete-relationship", relationshipId: relationship.id });
+    const approvalAfterRelationshipDelete = document.nodes.find((node) => node.label === "Approval")!;
+    apply({ kind: "delete-node", nodeId: approvalAfterRelationshipDelete.id });
+
+    expect(source).toContain("**(plan) Plan");
+    expect(source).toContain("**(deliver) Deliver");
+    expect(source).not.toContain("Approval");
+    expect(source).not.toContain("->");
+  });
+
   it("registers and selects the Gantt adapter", () => {
     expect(applicationDiagramAdapterRegistry.detect("@startgantt\n[A] lasts 1 day\n@endgantt")?.id).toBe("gantt");
     expect(applicationDiagramAdapterRegistry.detect("@startuml\nAlice -> Bob\n@enduml")).toBeUndefined();
