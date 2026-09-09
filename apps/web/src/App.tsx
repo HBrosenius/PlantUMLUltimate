@@ -94,7 +94,6 @@ import {
   deleteDivider,
   deleteVerticalSeparator,
   findTaskAt,
-  ganttAdapter,
   insertDivider,
   insertVerticalSeparator,
   insertMilestone,
@@ -116,6 +115,7 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
+import { applicationGanttAdapter } from "./diagram-adapters";
 import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
@@ -446,7 +446,7 @@ export function App() {
   }, [result?.svg]);
   const parsed = useMemo(() => {
     const started = performance.now();
-    const value = ganttAdapter.parse(workspace.source);
+    const value = applicationGanttAdapter.parse(workspace.source);
     return { value, durationMs: performance.now() - started };
   }, [workspace.source]);
   const parseResult = parsed.value;
@@ -975,7 +975,7 @@ export function App() {
       stageScheduleChange(task.id, task.label, days, "Move", [], applyRoot);
       return;
     }
-    let operation = ganttAdapter.applyVisualOperation(
+    let operation = applicationGanttAdapter.applyVisualOperation(
       { kind: "move-task", taskId, days },
       parseResult.document,
       workspace.source,
@@ -1018,7 +1018,7 @@ export function App() {
       stageScheduleChange(task.id, task.label, calendarDays, "Resize", [], applyRoot);
       return;
     }
-    const operation = ganttAdapter.applyVisualOperation(
+    const operation = applicationGanttAdapter.applyVisualOperation(
       { kind: "resize-task", taskId, days },
       parseResult.document,
       workspace.source,
@@ -1034,7 +1034,7 @@ export function App() {
     const task = parseResult.document.symbols.tasks.get(taskId);
     const beforeTask = beforeTaskId ? parseResult.document.symbols.tasks.get(beforeTaskId) : undefined;
     if (!task) return;
-    const operation = ganttAdapter.applyVisualOperation(
+    const operation = applicationGanttAdapter.applyVisualOperation(
       { kind: "reorder-task", taskId, ...(beforeTaskId ? { beforeTaskId } : {}) },
       parseResult.document,
       workspace.source,
@@ -1160,7 +1160,7 @@ export function App() {
     const predecessor = parseResult.document.symbols.tasks.get(predecessorTaskId);
     const successor = parseResult.document.symbols.tasks.get(successorTaskId);
     if (!predecessor || !successor) return;
-    const operation = ganttAdapter.applyVisualOperation(
+    const operation = applicationGanttAdapter.applyVisualOperation(
       { kind: "create-dependency", predecessorTaskId, successorTaskId, predecessorAnchor, successorAnchor },
       parseResult.document,
       workspace.source,
@@ -1179,7 +1179,7 @@ export function App() {
     if (selectedDependencyIndex === undefined) return;
     const dependency = parseResult.document.dependencies[selectedDependencyIndex];
     if (!dependency) return;
-    const operation = ganttAdapter.applyVisualOperation(
+    const operation = applicationGanttAdapter.applyVisualOperation(
       { kind: "remove-dependency", dependencyIndex: selectedDependencyIndex },
       parseResult.document,
       workspace.source,

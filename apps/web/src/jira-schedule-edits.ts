@@ -1,4 +1,5 @@
-import { applySourceEdits, ganttAdapter, parseGantt, setTaskDeclaration } from "@plantuml-studio/diagram-gantt";
+import { applySourceEdits, parseGantt, setTaskDeclaration } from "@plantuml-studio/diagram-gantt";
+import { applicationGanttAdapter } from "./diagram-adapters";
 import { parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { resolveTaskDates } from "./gantt-schedule";
 
@@ -31,7 +32,7 @@ export function applyJiraScheduleChange(
 
   let next = source;
   if (action === "Resize") {
-    const resized = ganttAdapter.applyVisualOperation(
+    const resized = applicationGanttAdapter.applyVisualOperation(
       { kind: "resize-task", taskId, days: durationDays },
       document,
       source,
