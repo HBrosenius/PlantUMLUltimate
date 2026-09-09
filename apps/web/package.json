@@ -26,6 +26,7 @@
     "@plantuml-studio/diagram-sequence": "*",
     "@plantuml-studio/diagram-usecase": "*",
     "@plantuml-studio/diagram-wbs": "*",
+    "@plantuml-studio/document-format": "*",
     "@plantuml-studio/editor-core": "*",
     "@plantuml-studio/language-core": "*",
     "@plantuml-studio/language-plantuml": "*",
