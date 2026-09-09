@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { applySourceEdits, type GanttVisualOperation } from "@plantuml-studio/diagram-gantt";
+import type { WbsVisualOperation } from "@plantuml-studio/diagram-wbs";
 import { detectPlantUmlDiagramType } from "@plantuml-studio/language-plantuml";
 import {
   applicationDiagramAdapterRegistry,
   applicationGanttAdapter,
+  applicationWbsAdapter,
   getApplicationDiagramAdapter,
   sourceSupportsDiagramCapability,
 } from "./diagram-adapters";
@@ -26,6 +28,41 @@ describe("diagram adapter architecture", () => {
       expect.objectContaining({ kind: "wbs-node", label: "Project" }),
       expect.objectContaining({ kind: "wbs-node", label: "Delivery" }),
     ]);
+  });
+
+  it("routes WBS subtree moves through source-preserving adapter edits", () => {
+    const source =
+      "@startwbs\n*(project) Project\n' keep this comment\n**(plan) Plan\n*** Detail\nfoo bar baz\n**(deliver) Deliver\n@endwbs";
+    const parsed = applicationWbsAdapter.parse(source);
+    const operation = applicationWbsAdapter.applyVisualOperation(
+      { kind: "move-subtree", nodeId: "wbs-1", parentId: "wbs-3" },
+      parsed.document,
+      source,
+    );
+    const next = applySourceEdits(source, operation.edits);
+    expect(next).toContain("' keep this comment");
+    expect(next).toContain("foo bar baz");
+    expect(next).toContain("**(deliver) Deliver\n***(plan) Plan\n**** Detail");
+    expect(operation.edits).not.toEqual([{ range: { from: 0, to: source.length }, text: next }]);
+  });
+
+  it("rejects invalid and unsupported WBS adapter targets without edits", () => {
+    const source = "@startwbs\n*(project) Project\n**(plan) Plan\n@endwbs";
+    const parsed = applicationWbsAdapter.parse(source);
+    expect(
+      applicationWbsAdapter.applyVisualOperation(
+        { kind: "move-subtree", nodeId: "wbs-1", parentId: "missing" },
+        parsed.document,
+        source,
+      ),
+    ).toEqual({ edits: [], unavailableReason: "WBS parent node not found" });
+    expect(
+      applicationWbsAdapter.applyVisualOperation(
+        { kind: "unknown-operation", nodeId: "wbs-1" } as unknown as WbsVisualOperation,
+        parsed.document,
+        source,
+      ),
+    ).toEqual({ edits: [], unavailableReason: "Unsupported WBS operation: unknown-operation" });
   });
 
   it("registers and selects the Gantt adapter", () => {

@@ -115,7 +115,7 @@ import {
   updateDivider,
   updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
-import { applicationGanttAdapter } from "./diagram-adapters";
+import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
@@ -134,8 +134,6 @@ import {
   findWbsNodeAt,
   insertWbsNode,
   insertWbsRelationship,
-  moveWbsSubtree,
-  parseWbs,
   reconnectWbsRelationship,
   updateWbsNode,
   updateWbsRelationshipColor,
@@ -466,7 +464,7 @@ export function App() {
   const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
-  const wbsDocument = useMemo(() => parseWbs(workspace.source), [workspace.source]);
+  const wbsDocument = useMemo(() => applicationWbsAdapter.parse(workspace.source).document, [workspace.source]);
   const symbolProvider = useMemo(
     () =>
       createSemanticSymbolProvider({
@@ -1549,9 +1547,19 @@ export function App() {
       const parent = parentId ? wbsDocument.nodes.find((item) => item.id === parentId) : undefined;
       const before = beforeId ? wbsDocument.nodes.find((item) => item.id === beforeId) : undefined;
       if (!node) return;
-      const source = moveWbsSubtree(workspace.source, wbsDocument, node, parent, before);
-      if (source === workspace.source) {
-        setInteractionMessage("That WBS subtree cannot be moved there");
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        {
+          kind: "move-subtree",
+          nodeId,
+          ...(parentId ? { parentId } : {}),
+          ...(beforeId ? { beforeNodeId: beforeId } : {}),
+        },
+        wbsDocument,
+        workspace.source,
+      );
+      const source = applySourceEdits(workspace.source, operation.edits);
+      if (operation.unavailableReason || source === workspace.source) {
+        setInteractionMessage(operation.unavailableReason ?? "That WBS subtree cannot be moved there");
         return;
       }
       commitSource(source, `Move WBS subtree ${node.label}`);

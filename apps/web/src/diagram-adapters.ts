@@ -27,3 +27,4 @@ export function sourceSupportsDiagramCapability(source: string, capability: keyo
 }
 
 export const applicationGanttAdapter = getApplicationDiagramAdapter("gantt");
+export const applicationWbsAdapter = getApplicationDiagramAdapter("wbs");
