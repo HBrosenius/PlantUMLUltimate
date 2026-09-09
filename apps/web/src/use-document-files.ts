@@ -21,10 +21,11 @@ import {
 } from "./file-service";
 import { assemblePortableDocument } from "./document-format/portable-document";
 import { mapPortableHistoryToLocal } from "./document-format/history-mapping";
-import { documentKey, rememberDocumentKey } from "./document-format/document-keys";
+import { documentKey, forgetDocumentKey, rememberDocumentKey } from "./document-format/document-keys";
 import type { DocumentVersionOverride } from "./use-document-versions";
 import {
   enableMemoryOnlyHistory,
+  disableMemoryOnlyHistory,
   importDocumentVersions,
   loadDocumentVersions,
   type DocumentSnapshot,
@@ -274,6 +275,59 @@ export function useDocumentFiles({
     workspace.source,
   ]);
 
+  const configureDocumentFormat = useCallback(async (settings: {
+    compression: "gzip" | "none";
+    encrypted: boolean;
+    password?: string;
+    maxVersions: number;
+    maxLogicalMiB: number;
+  }) => {
+    const active = tabs.getDocument(tabs.activeId);
+    if (!active) return;
+    const patch: Partial<DocumentSnapshot> = {
+      compression: settings.compression,
+      historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
+      historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
+      dirty: true,
+      revision: (active.revision ?? 0) + 1,
+    };
+    if (!settings.encrypted && active.encrypted) {
+      await disableMemoryOnlyHistory(active.historyId);
+      forgetDocumentKey(active.id);
+      tabs.updateDocumentFormat(active.id, { ...patch, encrypted: false });
+      setInteractionMessage("Password protection disabled; save to write an unencrypted file");
+      return;
+    }
+    if (settings.encrypted && (!active.encrypted || settings.password)) {
+      if (!settings.password) throw new Error("A password is required to enable protection");
+      const next = { ...active, ...patch, source: workspace.source };
+      const portable = await assemblePortableDocument(next, await loadDocumentVersions(active.historyId));
+      const encoded = await encodeDocument(portable, { compression: settings.compression, password: settings.password });
+      const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
+      let fileName = active.fileName;
+      let handle = existingHandle;
+      if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
+      else {
+        const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
+        if (!saved) return;
+        fileName = saved.fileName;
+        handle = saved.handle;
+      }
+      await enableMemoryOnlyHistory(active.historyId);
+      rememberDocumentKey(active.id, encoded.unlockedKey!);
+      if (handle) fileHandles.current.set(active.id, handle);
+      tabs.updateDocumentFormat(active.id, {
+        ...patch, portableDocumentId: portable.documentId, native: true, encrypted: true, fileName, dirty: false,
+      });
+      setWorkspace((current) => ({ ...current, fileName, dirty: false }));
+      setInteractionMessage("Saved password-protected document");
+      return;
+    }
+    tabs.updateDocumentFormat(active.id, patch);
+    setWorkspace((current) => ({ ...current, dirty: true }));
+    setInteractionMessage("Document settings changed; save to apply them");
+  }, [fileHandles, setInteractionMessage, setWorkspace, tabs, workspace.source]);
+
   const checkExternalFiles = useCallback(async () => {
     if (checkingExternalFiles.current || document.visibilityState === "hidden") return;
     checkingExternalFiles.current = true;
@@ -463,5 +517,6 @@ export function useDocumentFiles({
     reloadExternalConflict,
     openExternalConflictCopy,
     applyExternalConflictMerge,
+    configureDocumentFormat,
   };
 }

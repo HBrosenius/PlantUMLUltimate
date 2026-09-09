@@ -7,6 +7,7 @@ export function FileMenu({
   onSave,
   onSaveAs,
   onVersionHistory,
+  onDocumentSettings,
   onJira,
   onBackup,
   onRestore,
@@ -20,6 +21,7 @@ export function FileMenu({
   onSave(): void;
   onSaveAs(): void;
   onVersionHistory(): void;
+  onDocumentSettings?: (() => void) | undefined;
   onJira?: (() => void) | undefined;
   onBackup(): void;
   onRestore(): void;
@@ -115,6 +117,9 @@ export function FileMenu({
           </button>
           <button role="menuitem" onClick={() => run(onVersionHistory)}>
             Version history…
+          </button>
+          <button role="menuitem" onClick={() => run(() => onDocumentSettings?.())}>
+            Document settings…
           </button>
           {onJira && (
             <button role="menuitem" onClick={() => run(onJira)}>

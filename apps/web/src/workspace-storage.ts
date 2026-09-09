@@ -540,3 +540,18 @@ export async function enableMemoryOnlyHistory(historyId: string): Promise<void> 
 export function discardMemoryOnlyHistory(historyId: string): void {
   memoryOnlyHistories.delete(historyId);
 }
+
+export async function disableMemoryOnlyHistory(historyId: string): Promise<void> {
+  const versions = memoryOnlyHistories.get(historyId);
+  if (!versions) return;
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(VERSION_STORE, "readwrite");
+    const store = transaction.objectStore(VERSION_STORE);
+    versions.forEach((version) => store.put(version));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not restore document history"));
+  });
+  database.close();
+  memoryOnlyHistories.delete(historyId);
+}

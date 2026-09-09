@@ -62,6 +62,7 @@ import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnosti
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
+import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
@@ -372,6 +373,7 @@ export function App() {
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<{
     source: string;
     diagnostics: ReturnType<typeof diagnosticsForDiagram>;
@@ -1428,6 +1430,7 @@ export function App() {
     reloadExternalConflict,
     openExternalConflictCopy,
     applyExternalConflictMerge,
+    configureDocumentFormat,
   } = useDocumentFiles({
     hydrated,
     workspace,
@@ -3164,6 +3167,7 @@ export function App() {
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}
+            onDocumentSettings={() => setDocumentSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
@@ -4100,6 +4104,18 @@ export function App() {
           }}
           onSetBaseline={setBaseline}
           onClose={() => setVersionHistoryOpen(false)}
+        />
+      )}
+      {documentSettingsOpen && (
+        <DocumentSettingsDialog
+          current={{
+            compression: activeDocument.compression ?? "gzip",
+            encrypted: activeDocument.encrypted === true,
+            maxVersions: activeDocument.historyMaxVersions ?? 100,
+            maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
+          }}
+          onApply={configureDocumentFormat}
+          onClose={() => setDocumentSettingsOpen(false)}
         />
       )}
       {externalConflict && (
