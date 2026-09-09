@@ -32,6 +32,11 @@ jobs:
       - run: npm ci
       - run: npm --workspace @plantuml-studio/collaboration-worker run test
       - run: npm --workspace @plantuml-studio/collaboration-worker run typecheck
+      - name: Disable unrelated Chrome APT source
+        run: |
+          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
+            sudo mv /etc/apt/sources.list.d/google-chrome.list /tmp/google-chrome.list.disabled
+          fi
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e:collaboration
       - name: Report missing deployment credentials
