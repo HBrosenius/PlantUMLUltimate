@@ -128,17 +128,7 @@ import {
   type WritableFileHandle,
   type FileSnapshot,
 } from "./file-service";
-import {
-  deleteWbsNode,
-  deleteWbsRelationship,
-  findWbsNodeAt,
-  insertWbsNode,
-  insertWbsRelationship,
-  reconnectWbsRelationship,
-  updateWbsNode,
-  updateWbsRelationshipColor,
-  type WbsNodeInput,
-} from "@plantuml-studio/diagram-wbs";
+import { findWbsNodeAt, type WbsNodeInput } from "@plantuml-studio/diagram-wbs";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -1502,7 +1492,21 @@ export function App() {
       const selected = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
       const parent = position === "child" ? selected : undefined;
       const after = position === "sibling" ? selected : undefined;
-      const source = insertWbsNode(workspace.source, wbsDocument, value, parent, after);
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        {
+          kind: "insert-node",
+          value,
+          ...(parent ? { parentId: parent.id } : {}),
+          ...(after ? { afterNodeId: after.id } : {}),
+        },
+        wbsDocument,
+        workspace.source,
+      );
+      const source = applySourceEdits(workspace.source, operation.edits);
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
+        return;
+      }
       commitSource(source, `Add WBS node ${value.label}`);
       closeDialog("add-wbs-node");
       setInteractionMessage(`Added WBS node ${value.label}`);
@@ -1513,10 +1517,19 @@ export function App() {
   const applyWbsNode = useCallback(
     (value: WbsNodeInput) => {
       if (!selectedWbsNode) return;
-      commitSource(updateWbsNode(workspace.source, selectedWbsNode, value), `Update WBS node ${selectedWbsNode.label}`);
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        { kind: "update-node", nodeId: selectedWbsNode.id, value },
+        wbsDocument,
+        workspace.source,
+      );
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
+        return;
+      }
+      commitSource(applySourceEdits(workspace.source, operation.edits), `Update WBS node ${selectedWbsNode.label}`);
       setInteractionMessage(`Updated WBS node ${value.label}`);
     },
-    [commitSource, selectedWbsNode, workspace.source],
+    [commitSource, selectedWbsNode, wbsDocument, workspace.source],
   );
 
   const removeWbsNode = useCallback(() => {
@@ -1532,10 +1545,16 @@ export function App() {
       )
     )
       return;
-    commitSource(
-      deleteWbsNode(workspace.source, wbsDocument, selectedWbsNode),
-      `Delete WBS subtree ${selectedWbsNode.label}`,
+    const operation = applicationWbsAdapter.applyVisualOperation(
+      { kind: "delete-node", nodeId: selectedWbsNode.id },
+      wbsDocument,
+      workspace.source,
     );
+    if (operation.unavailableReason) {
+      setInteractionMessage(operation.unavailableReason);
+      return;
+    }
+    commitSource(applySourceEdits(workspace.source, operation.edits), `Delete WBS subtree ${selectedWbsNode.label}`);
     setSelectedWbsNodeId(undefined);
     setSelectedWbsRelationshipId(undefined);
     setInteractionMessage(`Deleted WBS subtree ${selectedWbsNode.label}`);
@@ -1575,11 +1594,16 @@ export function App() {
       const from = wbsDocument.nodes.find((node) => node.id === fromId);
       const to = wbsDocument.nodes.find((node) => node.id === toId);
       if (!from || !to || from.id === to.id) return;
-      const source = insertWbsRelationship(workspace.source, wbsDocument, from, to);
-      if (source === workspace.source) {
-        setInteractionMessage("That WBS arrow already exists");
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        { kind: "create-relationship", fromNodeId: fromId, toNodeId: toId },
+        wbsDocument,
+        workspace.source,
+      );
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
         return;
       }
+      const source = applySourceEdits(workspace.source, operation.edits);
       commitSource(source, `Connect ${from.label} to ${to.label}`);
       setInteractionMessage(`Connected ${from.label} to ${to.label}`);
     },
@@ -1589,13 +1613,22 @@ export function App() {
   const applyWbsRelationshipColor = useCallback(
     (color: string) => {
       if (!selectedWbsRelationship) return;
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        { kind: "update-relationship-color", relationshipId: selectedWbsRelationship.id, color },
+        wbsDocument,
+        workspace.source,
+      );
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
+        return;
+      }
       commitSource(
-        updateWbsRelationshipColor(workspace.source, selectedWbsRelationship, color),
+        applySourceEdits(workspace.source, operation.edits),
         `Update WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
       );
       setInteractionMessage("Updated WBS arrow color");
     },
-    [commitSource, selectedWbsRelationship, workspace.source],
+    [commitSource, selectedWbsRelationship, wbsDocument, workspace.source],
   );
 
   const reconnectWbsArrow = useCallback(
@@ -1603,11 +1636,16 @@ export function App() {
       const relationship = wbsDocument.relationships.find((item) => item.id === relationshipId);
       const target = wbsDocument.nodes.find((item) => item.id === targetId);
       if (!relationship || !target) return;
-      const source = reconnectWbsRelationship(workspace.source, wbsDocument, relationship, endpoint, target);
-      if (source === workspace.source) {
-        setInteractionMessage("That WBS arrow cannot be reconnected there");
+      const operation = applicationWbsAdapter.applyVisualOperation(
+        { kind: "reconnect-relationship", relationshipId, endpoint, targetNodeId: targetId },
+        wbsDocument,
+        workspace.source,
+      );
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
         return;
       }
+      const source = applySourceEdits(workspace.source, operation.edits);
       commitSource(source, `Reconnect ${endpoint} end of WBS arrow`);
       setInteractionMessage(`Reconnected WBS arrow to ${target.label}`);
     },
@@ -1616,13 +1654,22 @@ export function App() {
 
   const removeWbsRelationship = useCallback(() => {
     if (!selectedWbsRelationship) return;
+    const operation = applicationWbsAdapter.applyVisualOperation(
+      { kind: "delete-relationship", relationshipId: selectedWbsRelationship.id },
+      wbsDocument,
+      workspace.source,
+    );
+    if (operation.unavailableReason) {
+      setInteractionMessage(operation.unavailableReason);
+      return;
+    }
     commitSource(
-      deleteWbsRelationship(workspace.source, selectedWbsRelationship),
+      applySourceEdits(workspace.source, operation.edits),
       `Delete WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
     );
     setSelectedWbsRelationshipId(undefined);
     setInteractionMessage("Deleted WBS arrow");
-  }, [commitSource, selectedWbsRelationship, workspace.source]);
+  }, [commitSource, selectedWbsRelationship, wbsDocument, workspace.source]);
 
   const applyWbsSettings = useCallback(
     (value: { title: string }) => {
