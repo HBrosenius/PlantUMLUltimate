@@ -189,3 +189,32 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await settings.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("title Delivery breakdown");
 });
+
+test("reorders and connects WBS nodes with the keyboard", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n*(root) Project\n**(plan) Plan\n**(build) Build\n@endwbs");
+  const build = page.getByRole("button", { name: "Select WBS node Build" });
+  await build.focus();
+  await page.keyboard.press("Alt+ArrowUp");
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return text.indexOf("**(build) Build") < text.indexOf("**(plan) Plan");
+    })
+    .toBe(true);
+
+  const reorderedBuild = page.getByRole("button", { name: "Select WBS node Build" });
+  await expect(reorderedBuild).toBeFocused();
+  await reorderedBuild.press("c");
+  await expect(page.getByText("Choose a target and press Enter · Esc cancels")).toBeVisible();
+  const plan = page.getByRole("button", { name: "Select WBS node Plan" });
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".cm-content")).toContainText("build -> plan");
+  await expect(page.getByRole("button", { name: "Select WBS node Plan" })).toBeFocused();
+  await expect(page.locator(".wbs-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
