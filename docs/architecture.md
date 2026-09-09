@@ -23,6 +23,10 @@ To add a diagram type:
 3. Register the adapter with `DiagramAdapterRegistry`.
 4. Provide a diagram-specific preview interaction layer only for capabilities marked as supported.
 
+## Workspace packages
+
+The repository uses npm workspaces with `package-lock.json` as the authoritative dependency lock. Workspace packages expose their public entry point through the package `exports` field and declare every other workspace package they import as a direct dependency. Package internals are consumed through those public entry points rather than cross-package source paths.
+
 ## Web application hooks
 
 The app shell composes UI and delegates stateful infrastructure to hooks. `useDocumentHistory` owns per-tab undo histories and lifecycle cleanup. `useResourceCapacities` owns per-document capacity persistence and resource renaming. This keeps tab-specific state isolated while reducing responsibilities in the application shell.
