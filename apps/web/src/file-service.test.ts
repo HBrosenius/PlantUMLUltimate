@@ -6,6 +6,8 @@ import {
   svgFileName,
   pngFileName,
   writePlantUmlDocument,
+  writeDocumentBytes,
+  isPortableDocument,
   type WritableFileHandle,
 } from "./file-service";
 
@@ -14,7 +16,7 @@ function handle(name = "plan.puml", source = "@startgantt\n@endgantt") {
   const close = vi.fn(async () => undefined);
   const value: WritableFileHandle = {
     name,
-    getFile: vi.fn(async () => ({ name, text: async () => source }) as File),
+    getFile: vi.fn(async () => ({ name, text: async () => source, arrayBuffer: async () => new TextEncoder().encode(source).buffer }) as File),
     createWritable: vi.fn(async () => ({ write, close })),
   };
   return { value, write, close };
@@ -75,5 +77,15 @@ describe("PlantUML file integration", () => {
     expect(file.write).toHaveBeenCalledWith("updated");
     expect(svgFileName("Roadmap.PUML")).toBe("Roadmap.svg");
     expect(pngFileName("Roadmap.plantuml")).toBe("Roadmap.png");
+    expect(svgFileName("Roadmap.pumlu")).toBe("Roadmap.svg");
+  });
+
+  it("detects native magic and writes binary bytes", async () => {
+    expect(isPortableDocument(new TextEncoder().encode("PUMLUDOCrest"))).toBe(true);
+    expect(isPortableDocument(new TextEncoder().encode("@startuml"))).toBe(false);
+    const file = handle("plan.pumlu");
+    const bytes = new Uint8Array([1, 2, 3]);
+    await writeDocumentBytes(file.value, bytes);
+    expect(file.write).toHaveBeenCalledWith(bytes);
   });
 });
