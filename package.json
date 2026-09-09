@@ -19,6 +19,7 @@
     "test:e2e:collaboration": "playwright test --config=playwright.collaboration.config.ts",
     "test:e2e:pwa": "npm run build && PWA_E2E=1 PLAYWRIGHT_WEB_SERVER_COMMAND='npm --workspace @plantuml-studio/web run preview -- --host 127.0.0.1 --port 5173' playwright test tests/e2e/pwa.spec.ts --project=chromium --project=webkit",
     "bench": "vitest bench --run",
+    "bench:browser": "npm run build && node benchmarks/browser.mjs",
     "build:collaboration": "npm --workspace @plantuml-studio/collaboration-worker run build",
     "build:integration": "npm --workspace @plantuml-studio/integration-worker run build",
     "lint": "eslint .",
