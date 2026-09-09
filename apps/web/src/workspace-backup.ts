@@ -18,6 +18,7 @@ function validVersion(value: unknown, historyIds: ReadonlySet<string>): value is
   return Boolean(
     typeof version.id === "string" &&
     version.id &&
+    (version.portableId === undefined || typeof version.portableId === "string") &&
     typeof version.historyId === "string" &&
     historyIds.has(version.historyId) &&
     typeof version.source === "string" &&

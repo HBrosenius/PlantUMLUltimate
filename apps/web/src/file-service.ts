@@ -89,6 +89,18 @@ export function registerLaunchFileConsumer(
   return true;
 }
 
+export function registerDocumentLaunchConsumer(
+  onOpen: (document: OpenedFileBytes) => void | Promise<void>,
+  onError: (error: unknown) => void,
+): boolean {
+  const launchQueue = (window as FilePickerWindow).launchQueue;
+  if (!launchQueue) return false;
+  launchQueue.setConsumer((params) => {
+    for (const handle of params.files) void readDocumentBytes(handle).then(onOpen).catch(onError);
+  });
+  return true;
+}
+
 const pickerTypes = [
   {
     description: "PlantUML Ultimate document",
@@ -122,6 +134,40 @@ function fallbackUpload(): Promise<OpenedDocument | undefined> {
     };
     input.click();
   });
+}
+
+function fallbackDocumentUpload(): Promise<OpenedFileBytes | undefined> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pumlu,.puml,.plantuml,application/octet-stream,text/plain";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return resolve(undefined);
+      void file.arrayBuffer().then((buffer) => {
+        const bytes = new Uint8Array(buffer);
+        const native = isPortableDocument(bytes);
+        resolve({
+          kind: native ? "native" : "legacy", bytes,
+          ...(native ? {} : { source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) }),
+          fileName: file.name, lastModified: file.lastModified, size: file.size,
+        });
+      }, () => resolve(undefined));
+    };
+    input.click();
+  });
+}
+
+export async function openDocumentFile(): Promise<OpenedFileBytes | undefined> {
+  const pickerWindow = window as FilePickerWindow;
+  if (!pickerWindow.showOpenFilePicker) return fallbackDocumentUpload();
+  try {
+    const [handle] = await pickerWindow.showOpenFilePicker({ multiple: false, types: pickerTypes });
+    return handle ? await readDocumentBytes(handle) : undefined;
+  } catch (error) {
+    if (cancelled(error)) return undefined;
+    throw error;
+  }
 }
 
 export async function openPlantUmlDocument(): Promise<OpenedDocument | undefined> {

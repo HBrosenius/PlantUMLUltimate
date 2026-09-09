@@ -8,18 +8,29 @@ import {
   type SetStateAction,
 } from "react";
 import { detectDiagramKind } from "./diagram-kind";
+import { decodeDocument, encodeDocument, DocumentFormatError } from "@plantuml-studio/document-format";
 import {
-  openPlantUmlDocument,
+  openDocumentFile,
   readFileSnapshot,
-  registerLaunchFileConsumer,
-  savePlantUmlDocumentAs,
-  writePlantUmlDocument,
+  registerDocumentLaunchConsumer,
+  savePortableDocumentAs,
+  writeDocumentBytes,
   type FileSnapshot,
   type OpenedDocument,
   type WritableFileHandle,
 } from "./file-service";
+import { assemblePortableDocument } from "./document-format/portable-document";
+import { mapPortableHistoryToLocal } from "./document-format/history-mapping";
+import { documentKey, rememberDocumentKey } from "./document-format/document-keys";
 import type { DocumentVersionOverride } from "./use-document-versions";
-import type { DocumentSnapshot, DocumentVersionReason, WorkspaceSnapshot } from "./workspace-storage";
+import {
+  enableMemoryOnlyHistory,
+  importDocumentVersions,
+  loadDocumentVersions,
+  type DocumentSnapshot,
+  type DocumentVersionReason,
+  type WorkspaceSnapshot,
+} from "./workspace-storage";
 
 export type ExternalFileConflict = {
   documentId: string;
@@ -34,6 +45,8 @@ type TabControls = {
   documents: DocumentSnapshot[];
   addDocument: (input?: Partial<Omit<DocumentSnapshot, "id">>) => string;
   setDocumentHistoryId: (id: string, historyId: string) => void;
+  updateDocumentFormat: (id: string, patch: Partial<DocumentSnapshot>) => void;
+  getDocument: (id: string) => DocumentSnapshot | undefined;
   replaceDocumentFromFile: (
     id: string,
     input: Pick<DocumentSnapshot, "source" | "fileName" | "diagramKind">,
@@ -49,7 +62,6 @@ type UseDocumentFilesOptions = {
   fileHandles: MutableRefObject<Map<string, WritableFileHandle>>;
   fileSnapshots: MutableRefObject<Map<string, FileSnapshot>>;
   externalCheckSnoozedUntil: MutableRefObject<Map<string, number>>;
-  clearBaseline: () => void;
   recordDocumentVersion: (
     reason: DocumentVersionReason,
     label?: string,
@@ -73,7 +85,6 @@ export function useDocumentFiles({
   fileHandles,
   fileSnapshots,
   externalCheckSnoozedUntil,
-  clearBaseline,
   recordDocumentVersion,
   refreshHistoryControls,
   resetSelection,
@@ -125,38 +136,98 @@ export function useDocumentFiles({
     ],
   );
 
+  const addOpenedFile = useCallback(async (opened: Awaited<ReturnType<typeof openDocumentFile>>) => {
+    if (!opened) return;
+    if (opened.kind === "legacy") {
+      await addOpenedDocument({
+        source: opened.source!, fileName: opened.fileName, ...(opened.handle ? { handle: opened.handle } : {}),
+        lastModified: opened.lastModified, size: opened.size,
+      });
+      return;
+    }
+    let decoded;
+    try {
+      decoded = await decodeDocument(opened.bytes);
+    } catch (error) {
+      if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+      const password = window.prompt("This document is encrypted. Enter its password:");
+      if (password === null) return;
+      decoded = await decodeDocument(opened.bytes, { password });
+    }
+    const mapped = mapPortableHistoryToLocal(
+      decoded.document.versions, decoded.contents, opened.fileName, decoded.document.current.baselineVersionId,
+    );
+    const encrypted = Boolean(decoded.unlockedKey);
+    if (encrypted) await enableMemoryOnlyHistory(mapped.historyId);
+    await importDocumentVersions(mapped.versions);
+    const id = tabs.addDocument({
+      historyId: mapped.historyId,
+      source: decoded.document.current.source,
+      diagramKind: decoded.document.current.diagramKind,
+      fileName: opened.fileName,
+      dirty: false,
+      cursor: { line: 1, column: 1 },
+      portableDocumentId: decoded.document.documentId,
+      native: true,
+      encrypted,
+      compression: decoded.compression,
+      historyMaxVersions: decoded.document.historyPolicy.maxVersions,
+      historyMaxLogicalBytes: decoded.document.historyPolicy.maxLogicalBytes,
+      ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
+    });
+    if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
+    if (opened.handle) fileHandles.current.set(id, opened.handle);
+    refreshHistoryControls();
+    resetSelection();
+    setInteractionMessage(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
+  }, [addOpenedDocument, fileHandles, refreshHistoryControls, resetSelection, setInteractionMessage, tabs]);
+
   const openDocument = useCallback(async () => {
     try {
-      await addOpenedDocument(await openPlantUmlDocument());
+      await addOpenedFile(await openDocumentFile());
     } catch (error) {
       reportError(error);
     }
-  }, [addOpenedDocument, reportError]);
+  }, [addOpenedFile, reportError]);
 
   useEffect(() => {
     if (!hydrated) return;
-    registerLaunchFileConsumer(addOpenedDocument, reportError);
-  }, [addOpenedDocument, hydrated, reportError]);
+    registerDocumentLaunchConsumer(addOpenedFile, reportError);
+  }, [addOpenedFile, hydrated, reportError]);
 
   const saveDocumentAs = useCallback(async () => {
     try {
-      const saved = await savePlantUmlDocumentAs(workspace.source, workspace.fileName);
+      const active = tabs.documents.find((document) => document.id === tabs.activeId)!;
+      const capturedRevision = active.revision ?? 0;
+      await recordDocumentVersion("saved", "Saved portable document");
+      const portable = await assemblePortableDocument(
+        { ...active, source: workspace.source, fileName: workspace.fileName },
+        await loadDocumentVersions(active.historyId),
+      );
+      const unlockedKey = documentKey(tabs.activeId);
+      const encoded = await encodeDocument(portable, {
+        compression: active.compression ?? "gzip",
+        ...(unlockedKey ? { unlockedKey } : {}),
+      });
+      const saved = await savePortableDocumentAs(encoded.bytes, workspace.fileName);
       if (!saved) return;
       if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
       else fileHandles.current.delete(tabs.activeId);
-      if (saved.handle) fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(saved.handle));
-      else fileSnapshots.current.delete(tabs.activeId);
-      const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      tabs.setDocumentHistoryId(tabs.activeId, historyId);
-      clearBaseline();
-      setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
-      await recordDocumentVersion("saved", "Saved as new file", { historyId, fileName: saved.fileName });
-      setInteractionMessage(`Saved ${saved.fileName}`);
+      fileSnapshots.current.delete(tabs.activeId);
+      tabs.updateDocumentFormat(tabs.activeId, {
+        portableDocumentId: portable.documentId, native: true, fileName: saved.fileName,
+      });
+      const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
+      if (clean) setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
+      setInteractionMessage(
+        clean
+          ? (saved.downloaded ? `Downloaded snapshot ${saved.fileName}` : `Saved ${saved.fileName}`)
+          : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
+      );
     } catch (error) {
       reportError(error);
     }
   }, [
-    clearBaseline,
     fileHandles,
     fileSnapshots,
     recordDocumentVersion,
@@ -169,50 +240,37 @@ export function useDocumentFiles({
   ]);
 
   const saveDocument = useCallback(async () => {
+    const active = tabs.documents.find((document) => document.id === tabs.activeId);
+    if (!active?.native) return saveDocumentAs();
     const handle = fileHandles.current.get(tabs.activeId);
     if (!handle) return saveDocumentAs();
     try {
-      const previous = fileSnapshots.current.get(tabs.activeId);
-      const external = await readFileSnapshot(handle);
-      if (externalFileChanged(previous, external)) {
-        if (workspace.dirty) {
-          setExternalConflict({
-            documentId: tabs.activeId,
-            fileName: handle.name,
-            baseSource: previous!.source,
-            localSource: workspace.source,
-            external,
-          });
-        } else {
-          await recordDocumentVersion("before-restore", "Before external reload");
-          tabs.replaceDocumentFromFile(tabs.activeId, {
-            source: external.source,
-            fileName: handle.name,
-            diagramKind: detectDiagramKind(external.source) ?? "gantt",
-          });
-          fileSnapshots.current.set(tabs.activeId, external);
-          setInteractionMessage(`Reloaded external changes from ${handle.name}`);
-        }
-        return;
-      }
-      await writePlantUmlDocument(handle, workspace.source);
-      fileSnapshots.current.set(tabs.activeId, await readFileSnapshot(handle));
-      setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
-      await recordDocumentVersion("saved", undefined, { fileName: handle.name });
-      setInteractionMessage(`Saved ${handle.name}`);
+      const capturedRevision = active.revision ?? 0;
+      await recordDocumentVersion("saved");
+      const portable = await assemblePortableDocument(
+        { ...active, source: workspace.source, fileName: handle.name },
+        await loadDocumentVersions(active.historyId),
+      );
+      const unlockedKey = documentKey(tabs.activeId);
+      const encoded = await encodeDocument(portable, {
+        compression: active.compression ?? "gzip",
+        ...(unlockedKey ? { unlockedKey } : {}),
+      });
+      await writeDocumentBytes(handle, encoded.bytes);
+      const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
+      if (clean) setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
+      setInteractionMessage(clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`);
     } catch (error) {
       reportError(error);
     }
   }, [
     fileHandles,
-    fileSnapshots,
     recordDocumentVersion,
     reportError,
     saveDocumentAs,
     setInteractionMessage,
     setWorkspace,
     tabs,
-    workspace.dirty,
     workspace.source,
   ]);
 

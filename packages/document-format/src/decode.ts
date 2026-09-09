@@ -8,7 +8,12 @@ import { validateDocument } from "./validate";
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
 
 export interface DecodeDocumentOptions { password?: string; unlockedKey?: UnlockedDocumentKey; signal?: AbortSignal }
-export interface DecodedDocument { document: PortableDocument; contents: Map<string, string>; unlockedKey?: UnlockedDocumentKey }
+export interface DecodedDocument {
+  document: PortableDocument;
+  contents: Map<string, string>;
+  compression: "gzip" | "none";
+  unlockedKey?: UnlockedDocumentKey;
+}
 
 export async function decodeDocument(bytes: Uint8Array, options: DecodeDocumentOptions = {}): Promise<DecodedDocument> {
   const envelope = decodeEnvelope(bytes);
@@ -28,5 +33,5 @@ export async function decodeDocument(bytes: Uint8Array, options: DecodeDocumentO
   if ((await hashSource(document.current.source)) !== document.current.sourceHash)
     throw new DocumentFormatError("invalid-file", "Current source hash does not match");
   const contents = await reconstructContents(document.contents);
-  return { document, contents, ...(unlockedKey ? { unlockedKey } : {}) };
+  return { document, contents, compression: envelope.header.compression, ...(unlockedKey ? { unlockedKey } : {}) };
 }

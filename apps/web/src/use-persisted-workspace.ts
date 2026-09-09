@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   activeWorkspace,
   DEFAULT_SESSION,
@@ -12,6 +12,8 @@ import {
 
 export function usePersistedWorkspace() {
   const [session, setSession] = useState<WorkspaceSession>(DEFAULT_SESSION);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -180,6 +182,13 @@ export function usePersistedWorkspace() {
     },
     [],
   );
+  const updateDocumentFormat = useCallback((id: string, patch: Partial<DocumentSnapshot>) => {
+    setSession((current) => ({
+      ...current,
+      documents: current.documents.map((document) => document.id === id ? { ...document, ...patch } : document),
+    }));
+  }, []);
+  const getDocument = useCallback((id: string) => sessionRef.current.documents.find((document) => document.id === id), []);
 
   const controls = useMemo(
     () => ({
@@ -196,6 +205,8 @@ export function usePersistedWorkspace() {
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
       updateDocumentSource,
+      updateDocumentFormat,
+      getDocument,
       session,
     }),
     [
@@ -210,6 +221,8 @@ export function usePersistedWorkspace() {
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
       updateDocumentSource,
+      updateDocumentFormat,
+      getDocument,
       session,
     ],
   );

@@ -277,6 +277,7 @@ export interface DocumentVersionAuthor {
 
 export interface DocumentVersion {
   id: string;
+  portableId?: string;
   historyId: string;
   parentVersionId?: string;
   source: string;
@@ -351,6 +352,7 @@ export async function createDocumentVersion(
   const version: DocumentVersion = {
     ...input,
     id: `version-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    portableId: crypto.randomUUID(),
     sourceHash,
     createdAt: input.createdAt ?? new Date().toISOString(),
     pinned: input.pinned ?? input.reason === "manual",

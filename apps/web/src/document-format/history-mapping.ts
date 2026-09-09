@@ -10,7 +10,7 @@ export interface MappedPortableHistory {
 
 export function mapLocalHistoryForRetention(versions: readonly DocumentVersion[]): RetentionVersion[] {
   const ascending = [...versions].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-  const ids = new Map(ascending.map((version) => [version.id, crypto.randomUUID()]));
+  const ids = new Map(ascending.map((version) => [version.id, version.portableId ?? crypto.randomUUID()]));
   return ascending.map((version, sequence) => ({
     id: ids.get(version.id)!,
     ...(version.parentVersionId && ids.has(version.parentVersionId)
@@ -45,6 +45,7 @@ export function mapPortableHistoryToLocal(
     const parentVersionId = version.parentVersionId ? portableToLocalIds.get(version.parentVersionId) : undefined;
     return {
       id: localId,
+      portableId: version.id,
       historyId,
       ...(parentVersionId ? { parentVersionId } : {}),
       source,
