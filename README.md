@@ -33,7 +33,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 ## Requirements
 
 - Node.js 22 or newer
-- npm 10 or newer
+- npm 11.17.0, as pinned by the root `packageManager` field
 - A current version of Chromium, Firefox, or Safari
 
 No Java installation or external PlantUML server is required.
@@ -45,6 +45,8 @@ Clone the repository, then install the dependencies:
 ```sh
 npm install
 ```
+
+This repository uses npm workspaces and `package-lock.json`; npm is the supported package manager.
 
 Start the development server:
 
