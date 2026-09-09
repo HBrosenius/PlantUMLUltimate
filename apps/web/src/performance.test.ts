@@ -22,31 +22,23 @@ function dependencyHeavyProject(taskCount: number): string {
   return [...lines, "@endgantt"].join("\n");
 }
 
-describe("large-document performance budgets", () => {
-  it("parses 1,000 compound tasks within the 100 ms regression budget", () => {
+describe("large-document correctness", () => {
+  it("parses 1,000 compound tasks", () => {
     const source = largeProject(1_000);
-    parseGantt(source); // warm module and runtime paths
-    const started = performance.now();
     const result = parseGantt(source);
-    const duration = performance.now() - started;
     expect(result.document.tasks).toHaveLength(1_000);
-    expect(duration).toBeLessThan(100);
   });
 
-  it("moves a task in a 1,000-task model within the 30 ms operation budget", () => {
+  it("moves a task in a 1,000-task model", () => {
     const source = largeProject(1_000);
     const document = parseGantt(source).document;
-    const started = performance.now();
     const operation = moveTaskByDays(document.tasks[500]!, 1);
     const changed = applySourceEdits(source, operation.edits);
-    const duration = performance.now() - started;
     expect(changed).toContain("[Task 500] starts 2026-09-16");
-    expect(duration).toBeLessThan(30);
   });
 
-  it("parses and resolves a 500-task dependency chain within a regression budget", () => {
+  it("parses and resolves a 500-task dependency chain", () => {
     const source = dependencyHeavyProject(500);
-    const started = performance.now();
     const result = parseGantt(source);
     const dates = resolveTaskDates(
       result.document.tasks,
@@ -54,10 +46,8 @@ describe("large-document performance budgets", () => {
       result.document.projectStart?.value,
       parseGanttCalendar(source),
     );
-    const duration = performance.now() - started;
     expect(result.document.tasks).toHaveLength(500);
     expect(result.document.dependencies).toHaveLength(499);
     expect(dates.get(result.document.tasks.at(-1)!.id)?.start).toBeDefined();
-    expect(duration).toBeLessThan(250);
   });
 });

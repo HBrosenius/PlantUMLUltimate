@@ -8,6 +8,7 @@ export default tseslint.config(
   { ignores: ["**/dist/**", "**/coverage/**", "**/.wrangler/**", "playwright-report/**", "test-results/**"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  { files: ["benchmarks/**/*.mjs"], languageOptions: { globals: globals.node } },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
