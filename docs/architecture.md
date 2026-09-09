@@ -12,9 +12,9 @@ Canonical SVG is produced by the official `@plantuml/core` TeaVM build. The engi
 
 `@plantuml-studio/diagram-gantt` supplies the first concrete adapter. The web application resolves it through the configured registry, parses the active source through it, and routes core task movement, resizing, reordering, dependency creation/deletion, and Jira schedule resizing through its typed visual-operation API. React and CodeMirror types do not cross the adapter boundary.
 
-`@plantuml-studio/diagram-wbs` models hierarchical work-breakdown nodes, diagnostics, completions, and source-preserving subtree operations. Its preview uses the canonical PlantUML SVG with a semantic node interaction layer; the hierarchy model is derived from source and is never persisted separately.
+`@plantuml-studio/diagram-wbs` models hierarchical work-breakdown nodes, diagnostics, completions, and source-preserving subtree operations. The web application resolves its parser through the configured registry and routes preview subtree moves through the adapter's typed visual-operation API. Its remaining node, relationship, and settings commands still call the package's specialized source operations directly. The preview uses the canonical PlantUML SVG with a semantic node interaction layer; the hierarchy model is derived from source and is never persisted separately.
 
-Gantt is the proof that the registry can be the production routing boundary. WBS is registered for detection and capability discovery but still uses its specialized web integration for parsing and edits. Sequence, Use Case, Class, and Activity remain specialized implementations until their adapter contracts can preserve their richer source constructs. Registration therefore describes the current application boundary; it does not imply that all six diagram types have completed adapter migration.
+Gantt is the first proof that the registry can be the production routing boundary; WBS is the second incremental migration. Sequence, Use Case, Class, and Activity remain specialized implementations until their adapter contracts can preserve their richer source constructs. Registration therefore describes the current application boundary; it does not imply that all six diagram types have completed adapter migration.
 
 To add a diagram type:
 
