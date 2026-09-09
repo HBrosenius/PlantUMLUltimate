@@ -277,15 +277,12 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   }
 
   const orderLineHit = page.locator('[data-class-object-type="entity"][data-class-object-id="orderline"]');
-  await orderLineHit.focus();
-  await page.keyboard.press("Alt+ArrowUp");
+  await orderLineHit.press("Alt+ArrowUp");
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/class OrderLine[\s\S]*class Order/);
-  await orderLineHit.focus();
-  await page.keyboard.press("c");
+  await orderLineHit.press("c");
   await expect(page.getByText("Choose another class and press Enter · Esc cancels")).toBeVisible();
   const statusHit = page.locator('[data-class-object-type="entity"][data-class-object-id="status"]');
-  await statusHit.focus();
-  await page.keyboard.press("Enter");
+  await statusHit.press("Enter");
   await expect(page.locator(".cm-content")).toContainText("OrderLine --> Status");
 
   const renderedReportingPackage = page.getByRole("button", { name: "Select package Reporting", exact: true });
