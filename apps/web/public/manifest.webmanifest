@@ -11,7 +11,10 @@
   "file_handlers": [
     {
       "action": "/",
-      "accept": { "text/plain": [".puml", ".plantuml"] },
+      "accept": {
+        "application/octet-stream": [".pumlu"],
+        "text/plain": [".puml", ".plantuml"]
+      },
       "launch_type": "single-client"
     }
   ],

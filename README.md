@@ -70,7 +70,7 @@ Open the hosted application in a browser that supports app installation. When th
 
 After the first successful visit, the editor shell and local PlantUML renderer are cached for offline startup. The status bar reports when the browser is offline; edits, history, and workspace recovery continue to use local storage. Reconnect before opening uncached external links or downloading browser updates.
 
-On desktop browsers that support PWA file handling, the installed app registers for `.puml` and `.plantuml` files. Opening one from the operating system loads it in a new tab and keeps its file handle, so **Save** writes back to the same file after the browser grants access.
+On desktop browsers that support PWA file handling, the installed app registers for portable `.pumlu` documents and legacy `.puml`/`.plantuml` sources. Portable documents carry their retained history and settings; legacy sources are imported and the first Save asks for a `.pumlu` destination.
 
 While a handled file remains open, Studio checks it again when the window regains focus and periodically while visible. External edits reload automatically when the tab is clean. If the tab also has local edits, Studio performs a three-way merge from the last synchronized contents. Independent edits combine automatically; overlapping sections offer local or external choices and an editable merged-source preview. Reloading or merging first creates a recoverable Version History checkpoint.
 
@@ -157,7 +157,7 @@ Use the view buttons in the toolbar to switch between:
 ### File
 
 - **New** creates another document tab.
-- **Open…** opens a `.puml` or `.plantuml` file in a new tab.
+- **Open…** opens a portable `.pumlu` document or imports a `.puml`/`.plantuml` source in a new tab.
 - **Save** writes to the current file when the browser has a file handle. Otherwise it behaves like Save As.
 - **Save As…** chooses a new file or downloads the current source, depending on browser support.
 - **Backup workspace…** downloads a JSON backup containing every open document and shared workspace settings.
@@ -366,7 +366,7 @@ The committed Playwright suite defines Chromium, Firefox, and WebKit projects. A
 The File System Access API is currently available only in some browsers. When it is unavailable:
 
 - Open uses a standard file picker.
-- Save As downloads a `.puml` file.
+- Save As writes or downloads a `.pumlu` portable document. Export → Source creates a plaintext `.puml` file.
 - Save may download a new file instead of updating an existing file in place.
 
 Core editing, local rendering, tabs, backups, and exports remain available.

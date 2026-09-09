@@ -69,7 +69,7 @@ export function usePersistedWorkspace() {
       historyId: input?.historyId ?? `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       diagramKind: input?.diagramKind ?? DEFAULT_SESSION.documents[0]!.diagramKind,
       source: input?.source ?? DEFAULT_SESSION.documents[0]!.source,
-      fileName: input?.fileName ?? "untitled.puml",
+      fileName: input?.fileName ?? "untitled.pumlu",
       dirty: input?.dirty ?? false,
       zoom: input?.zoom ?? 1,
       cursor: input?.cursor ?? { line: 1, column: 1 },

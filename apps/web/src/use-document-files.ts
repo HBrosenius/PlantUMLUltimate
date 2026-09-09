@@ -174,6 +174,7 @@ export function useDocumentFiles({
       compression: decoded.compression,
       historyMaxVersions: decoded.document.historyPolicy.maxVersions,
       historyMaxLogicalBytes: decoded.document.historyPolicy.maxLogicalBytes,
+      resourceCapacities: decoded.document.settings.resourceCapacities,
       ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
     });
     if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);

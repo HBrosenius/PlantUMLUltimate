@@ -221,14 +221,14 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   const patchDownload = page.waitForEvent("download");
   await dialog.getByRole("button", { name: "Export selected patch" }).click();
   const patch = await patchDownload;
-  expect(patch.suggestedFilename()).toBe("untitled.puml.patch");
+  expect(patch.suggestedFilename()).toBe("untitled.pumlu.patch");
   expect(readFileSync((await patch.path())!, "utf8")).toContain(
     '-participant "Payment API" as Pay\n+participant "Billing API" as Pay',
   );
   const reportDownload = page.waitForEvent("download");
   await dialog.getByRole("button", { name: "Export review report" }).click();
   const report = await reportDownload;
-  expect(report.suggestedFilename()).toBe("untitled.puml-review.html");
+  expect(report.suggestedFilename()).toBe("untitled.pumlu-review.html");
   expect(readFileSync((await report.path())!, "utf8")).toContain("Rename participant Payment API to Billing API");
   await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
 

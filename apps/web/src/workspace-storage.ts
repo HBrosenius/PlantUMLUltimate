@@ -31,6 +31,7 @@ export interface DocumentSnapshot {
   historyMaxVersions?: number | undefined;
   historyMaxLogicalBytes?: number | undefined;
   revision?: number | undefined;
+  resourceCapacities?: Record<string, number> | undefined;
 }
 
 export interface WorkspaceSession {
@@ -45,7 +46,7 @@ export interface WorkspaceSession {
 export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
   diagramKind: "gantt",
   source: DEFAULT_SOURCE,
-  fileName: "untitled.puml",
+  fileName: "untitled.pumlu",
   dirty: false,
   viewMode: "split",
   splitPercent: 50,
@@ -62,7 +63,7 @@ export const DEFAULT_SESSION: WorkspaceSession = {
       historyId: "history-welcome",
       diagramKind: "gantt",
       source: DEFAULT_SOURCE,
-      fileName: "untitled.puml",
+      fileName: "untitled.pumlu",
       dirty: false,
       zoom: 1,
       cursor: { line: 1, column: 1 },
@@ -165,6 +166,9 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           ...(Number.isSafeInteger(item.historyMaxVersions) ? { historyMaxVersions: item.historyMaxVersions } : {}),
           ...(Number.isSafeInteger(item.historyMaxLogicalBytes)
             ? { historyMaxLogicalBytes: item.historyMaxLogicalBytes }
+            : {}),
+          ...(item.resourceCapacities && typeof item.resourceCapacities === "object"
+            ? { resourceCapacities: item.resourceCapacities }
             : {}),
           ...(Number.isSafeInteger(item.revision) ? { revision: Math.max(0, Number(item.revision)) } : {}),
         };
@@ -325,30 +329,6 @@ export async function createDocumentVersion(
   },
 ): Promise<DocumentVersion> {
   const sourceHash = await hashSource(input.source);
-  const existing = (await loadDocumentVersions(input.historyId)).find((version) => version.sourceHash === sourceHash);
-  if (existing) {
-    const promoted = {
-      ...existing,
-      ...(input.label?.trim() ? { label: input.label.trim() } : {}),
-      pinned: existing.pinned || input.pinned === true || input.reason === "manual",
-    };
-    if (promoted.label !== existing.label || promoted.pinned !== existing.pinned) {
-      const memory = memoryOnlyHistories.get(input.historyId);
-      if (memory) {
-        memory[memory.findIndex((version) => version.id === existing.id)] = promoted;
-        return promoted;
-      }
-      const database = await openDatabase();
-      await new Promise<void>((resolve, reject) => {
-        const transaction = database.transaction(VERSION_STORE, "readwrite");
-        transaction.objectStore(VERSION_STORE).put(promoted);
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error);
-      });
-      database.close();
-    }
-    return promoted;
-  }
   const version: DocumentVersion = {
     ...input,
     id: `version-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

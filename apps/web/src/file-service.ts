@@ -291,6 +291,10 @@ export function svgFileName(fileName: string): string {
   return fileName.replace(/\.(pumlu|puml|plantuml)$/i, "") + ".svg";
 }
 
+export function plantUmlFileName(fileName: string): string {
+  return fileName.replace(/\.(pumlu|puml|plantuml)$/i, "") + ".puml";
+}
+
 export function pngFileName(fileName: string): string {
   return fileName.replace(/\.(pumlu|puml|plantuml)$/i, "") + ".png";
 }

@@ -126,6 +126,7 @@ import {
   downloadSvgAsPng,
   downloadText,
   svgFileName,
+  plantUmlFileName,
   type WritableFileHandle,
   type FileSnapshot,
 } from "./file-service";
@@ -299,6 +300,7 @@ function diagramFocusSelector(target: Element): string | undefined {
 export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
+  const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const {
     selectedTaskId,
     setSelectedTaskId,
@@ -413,7 +415,12 @@ export function App() {
     capacities: resourceCapacities,
     updateCapacities: updateResourceCapacities,
     renameCapacity,
-  } = useResourceCapacities(tabs.activeId);
+  } = useResourceCapacities(
+    tabs.activeId,
+    activeDocument.resourceCapacities ?? {},
+    activeDocument.encrypted === true,
+    (capacities) => tabs.updateDocumentFormat(tabs.activeId, { resourceCapacities: capacities, dirty: true }),
+  );
   const {
     status,
     result,
@@ -608,7 +615,6 @@ export function App() {
     });
     return true;
   }, []);
-  const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const reportFileError = useCallback((error: unknown) => {
     setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
   }, []);
@@ -1447,8 +1453,15 @@ export function App() {
   });
 
   const exportSource = useCallback(
-    () => downloadText(workspace.source, workspace.fileName, "text/plain;charset=utf-8"),
-    [workspace.fileName, workspace.source],
+    () => {
+      if (
+        activeDocument.encrypted &&
+        !window.confirm("This export is plaintext and is not password protected. Continue?")
+      ) return;
+      downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
+      setInteractionMessage("Exported PlantUML source (plaintext)");
+    },
+    [activeDocument.encrypted, workspace.fileName, workspace.source],
   );
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);

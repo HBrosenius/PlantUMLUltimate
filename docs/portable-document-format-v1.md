@@ -1,6 +1,6 @@
 # PlantUML Ultimate Document v1
 
-Status: implementation baseline for tasks F00–F01. The `.pumlu` format is not yet wired into the application and must not be presented as available until the remaining lifecycle tasks are complete.
+Status: implemented v1 format and application lifecycle. The format is intentionally single-document and bounded as specified below.
 
 ## Scope and ownership
 

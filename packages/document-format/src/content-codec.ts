@@ -37,18 +37,17 @@ function spliceRecord(id: string, source: Uint8Array, baseId: string, base: Uint
     source[source.length - suffix - 1] === base[base.length - suffix - 1]
   ) suffix += 1;
   const insert = source.slice(prefix, source.length - suffix);
-  if (insert.length + 24 >= source.length) {
-    return { id, kind: "full", source: UTF8_FATAL.decode(source), byteLength: source.length };
-  }
-  return {
+  const full = { id, kind: "full" as const, source: UTF8_FATAL.decode(source), byteLength: source.length };
+  const splice = {
     id,
-    kind: "splice",
+    kind: "splice" as const,
     baseContentId: baseId,
     prefixBytes: prefix,
     deleteBytes: base.length - prefix - suffix,
     insertBase64: base64(insert),
     byteLength: source.length,
   };
+  return UTF8.encode(JSON.stringify(splice)).length <= UTF8.encode(JSON.stringify(full)).length * 0.8 ? splice : full;
 }
 
 export async function encodeContentHistory(sources: readonly string[]): Promise<{
@@ -66,6 +65,9 @@ export async function encodeContentHistory(sources: readonly string[]): Promise<
     const id = await sha256(bytes);
     contentIds.push(id);
     if (known.has(id)) {
+      const knownBytes = known.get(id)!.bytes;
+      if (knownBytes.length !== bytes.length || knownBytes.some((byte, index) => byte !== bytes[index]))
+        throw new DocumentFormatError("invalid-file", "SHA-256 collision in document history");
       previousId = id;
       continue;
     }

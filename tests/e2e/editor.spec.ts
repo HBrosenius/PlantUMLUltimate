@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("shows the diagram splash after closing the final tab", async ({ page }) => {
-  await page.getByRole("button", { name: "Close untitled.puml", exact: true }).click();
+  await page.getByRole("button", { name: "Close untitled.pumlu", exact: true }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
