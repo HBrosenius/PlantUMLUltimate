@@ -52,6 +52,7 @@ export function usePersistedWorkspace() {
                 dirty: next.dirty,
                 zoom: next.zoom,
                 cursor: next.cursor,
+                revision: (item.revision ?? 0) + 1,
               }
             : item,
         ),

@@ -64,4 +64,28 @@ describe("workspace backups", () => {
     backup.versions = [invalidVersion];
     expect(() => parseWorkspaceBackupBundle(JSON.stringify(backup))).toThrow("invalid document history");
   });
+
+  it("omits every encrypted plaintext field and its history", () => {
+    const sentinel = "PRIVATE-SOURCE-SENTINEL";
+    const encrypted = {
+      ...DEFAULT_SESSION.documents[0]!,
+      id: "private-document",
+      historyId: "private-history",
+      source: sentinel,
+      fileName: "private-title.pumlu",
+      encrypted: true,
+    };
+    const backup = serializeWorkspaceBackup(
+      { ...DEFAULT_SESSION, documents: [DEFAULT_SESSION.documents[0]!, encrypted] },
+      [{
+        id: "private-version", historyId: encrypted.historyId, source: sentinel,
+        sourceHash: "hash", fileName: encrypted.fileName, diagramKind: "gantt",
+        createdAt: "2026-09-09T12:00:00.000Z", reason: "manual", label: "PRIVATE-LABEL", pinned: true,
+      }],
+    );
+    expect(backup).not.toContain(sentinel);
+    expect(backup).not.toContain("PRIVATE-LABEL");
+    expect(backup).not.toContain("private-title.pumlu");
+    expect(JSON.parse(backup).omittedEncryptedDocuments).toBe(1);
+  });
 });

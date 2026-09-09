@@ -24,6 +24,13 @@ export interface DocumentSnapshot {
   zoom: number;
   cursor: { line: number; column: number };
   baselineVersionId?: string | undefined;
+  portableDocumentId?: string | undefined;
+  native?: boolean | undefined;
+  encrypted?: boolean | undefined;
+  compression?: "gzip" | "none" | undefined;
+  historyMaxVersions?: number | undefined;
+  historyMaxLogicalBytes?: number | undefined;
+  revision?: number | undefined;
 }
 
 export interface WorkspaceSession {
@@ -73,6 +80,7 @@ const VERSION_STORE = "document-versions";
 const CURRENT = "current";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
+const memoryOnlyHistories = new Map<string, DocumentVersion[]>();
 
 function wholeLineRange(source: string, range: { from: number; to: number }): { from: number; to: number } {
   const from = source.lastIndexOf("\n", Math.max(0, range.from - 1)) + 1;
@@ -150,6 +158,15 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             column: Math.max(1, Number(item.cursor?.column) || 1),
           },
           ...(typeof item.baselineVersionId === "string" ? { baselineVersionId: item.baselineVersionId } : {}),
+          ...(typeof item.portableDocumentId === "string" ? { portableDocumentId: item.portableDocumentId } : {}),
+          ...(item.native === true ? { native: true } : {}),
+          ...(item.encrypted === true ? { encrypted: true } : {}),
+          ...(item.compression === "none" ? { compression: "none" as const } : {}),
+          ...(Number.isSafeInteger(item.historyMaxVersions) ? { historyMaxVersions: item.historyMaxVersions } : {}),
+          ...(Number.isSafeInteger(item.historyMaxLogicalBytes)
+            ? { historyMaxLogicalBytes: item.historyMaxLogicalBytes }
+            : {}),
+          ...(Number.isSafeInteger(item.revision) ? { revision: Math.max(0, Number(item.revision)) } : {}),
         };
       });
     if (documents.length === 0) return DEFAULT_SESSION;
@@ -284,6 +301,8 @@ async function hashSource(source: string): Promise<string> {
 }
 
 export async function loadDocumentVersions(historyId: string): Promise<DocumentVersion[]> {
+  const memory = memoryOnlyHistories.get(historyId);
+  if (memory) return [...memory].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const database = await openDatabase();
   const result = await new Promise<DocumentVersion[]>((resolve, reject) => {
     const request = database
@@ -313,6 +332,11 @@ export async function createDocumentVersion(
       pinned: existing.pinned || input.pinned === true || input.reason === "manual",
     };
     if (promoted.label !== existing.label || promoted.pinned !== existing.pinned) {
+      const memory = memoryOnlyHistories.get(input.historyId);
+      if (memory) {
+        memory[memory.findIndex((version) => version.id === existing.id)] = promoted;
+        return promoted;
+      }
       const database = await openDatabase();
       await new Promise<void>((resolve, reject) => {
         const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -331,6 +355,12 @@ export async function createDocumentVersion(
     createdAt: input.createdAt ?? new Date().toISOString(),
     pinned: input.pinned ?? input.reason === "manual",
   };
+  const memory = memoryOnlyHistories.get(input.historyId);
+  if (memory) {
+    memory.push(version);
+    await pruneDocumentVersions(input.historyId);
+    return version;
+  }
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -347,6 +377,19 @@ export async function updateDocumentVersion(
   id: string,
   patch: { label?: string; pinned?: boolean },
 ): Promise<DocumentVersion> {
+  for (const versions of memoryOnlyHistories.values()) {
+    const index = versions.findIndex((version) => version.id === id);
+    if (index >= 0) {
+      const current = versions[index]!;
+      const next = { ...current, ...(patch.pinned !== undefined ? { pinned: patch.pinned } : {}) };
+      if (patch.label !== undefined) {
+        if (patch.label.trim()) next.label = patch.label.trim();
+        else delete next.label;
+      }
+      versions[index] = next;
+      return next;
+    }
+  }
   const database = await openDatabase();
   const version = await new Promise<DocumentVersion>((resolve, reject) => {
     const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -378,6 +421,13 @@ export async function updateDocumentVersion(
 }
 
 export async function deleteDocumentVersion(id: string): Promise<void> {
+  for (const versions of memoryOnlyHistories.values()) {
+    const index = versions.findIndex((version) => version.id === id);
+    if (index >= 0) {
+      versions.splice(index, 1);
+      return;
+    }
+  }
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -392,6 +442,12 @@ export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC
   const versions = await loadDocumentVersions(historyId);
   const expired = versions.filter((version) => !version.pinned).slice(Math.max(0, limit));
   if (!expired.length) return 0;
+  const memory = memoryOnlyHistories.get(historyId);
+  if (memory) {
+    const expiredIds = new Set(expired.map((version) => version.id));
+    memoryOnlyHistories.set(historyId, memory.filter((version) => !expiredIds.has(version.id)));
+    return expired.length;
+  }
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -406,6 +462,11 @@ export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC
 
 export async function importDocumentVersions(versions: readonly DocumentVersion[]): Promise<void> {
   if (!versions.length) return;
+  const memory = memoryOnlyHistories.get(versions[0]!.historyId);
+  if (memory) {
+    memory.push(...versions);
+    return;
+  }
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(VERSION_STORE, "readwrite");
@@ -439,16 +500,41 @@ export async function loadWorkspace(): Promise<WorkspaceSession> {
 }
 
 export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
+  const persistable = {
+    ...snapshot,
+    documents: snapshot.documents.filter((document) => !document.encrypted),
+    activeDocumentId: snapshot.documents.find((document) => document.id === snapshot.activeDocumentId && !document.encrypted)?.id ??
+      snapshot.documents.find((document) => !document.encrypted)?.id ?? "",
+  };
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(STORE, "readwrite");
-      transaction.objectStore(STORE).put(snapshot, CURRENT);
+      transaction.objectStore(STORE).put(persistable, CURRENT);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
     database.close();
   } catch {
-    localStorage.setItem(LEGACY_KEY, JSON.stringify(snapshot));
+    localStorage.setItem(LEGACY_KEY, JSON.stringify(persistable));
   }
+}
+
+/** Removes persisted plaintext before routing all future history operations to memory. */
+export async function enableMemoryOnlyHistory(historyId: string): Promise<void> {
+  const versions = await loadDocumentVersions(historyId);
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(VERSION_STORE, "readwrite");
+    const store = transaction.objectStore(VERSION_STORE);
+    versions.forEach((version) => store.delete(version.id));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
+  });
+  database.close();
+  memoryOnlyHistories.set(historyId, versions);
+}
+
+export function discardMemoryOnlyHistory(historyId: string): void {
+  memoryOnlyHistories.delete(historyId);
 }
