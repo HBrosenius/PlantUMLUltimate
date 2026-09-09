@@ -2667,7 +2667,7 @@ end note
 [Open Risk ?] happens 2026-09-03
 note right: Days needed = "?" — unscheduled until estimated
 @endgantt`;
-  await page.locator(".cm-content").fill(value);
+  await fillSource(page, value, "Development");
   await expect(page.locator(".diagram svg")).toContainText("Development", { timeout: 20_000 });
   await expect(page.locator(".diagram svg")).toContainText("Open Risk ?");
   await expect(page.locator(".fallback-note")).toHaveCount(2);
