@@ -1239,8 +1239,13 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
 
   await expect(endpoint).toBeVisible();
-  const retryEndpointBox = await endpoint.boundingBox();
-  expect(retryEndpointBox).not.toBeNull();
+  let retryEndpointBox = await endpoint.boundingBox();
+  await expect
+    .poll(async () => {
+      retryEndpointBox = await endpoint.boundingBox();
+      return retryEndpointBox;
+    })
+    .not.toBeNull();
   await page.mouse.move(
     retryEndpointBox!.x + retryEndpointBox!.width / 2,
     retryEndpointBox!.y + retryEndpointBox!.height / 2,
