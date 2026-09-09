@@ -65,6 +65,7 @@ export const ganttAdapter: DiagramAdapter<GanttDocument, GanttVisualOperation> =
     })),
   ],
   applyVisualOperation: (operation, model, source) => {
+    const operationKind: string = operation.kind;
     if (operation.kind === "move-task") {
       const task = model.symbols.tasks.get(operation.taskId);
       return task ? moveTaskByDays(task, operation.days) : { edits: [], unavailableReason: "Task not found" };
@@ -85,9 +86,12 @@ export const ganttAdapter: DiagramAdapter<GanttDocument, GanttVisualOperation> =
         ? createDependency(source, predecessor, successor, operation.predecessorAnchor, operation.successorAnchor)
         : { edits: [], unavailableReason: "Task not found" };
     }
-    const dependency = model.dependencies[operation.dependencyIndex];
-    return dependency
-      ? removeDependency(source, dependency.sourceRange, dependency.notes)
-      : { edits: [], unavailableReason: "Dependency not found" };
+    if (operation.kind === "remove-dependency") {
+      const dependency = model.dependencies[operation.dependencyIndex];
+      return dependency
+        ? removeDependency(source, dependency.sourceRange, dependency.notes)
+        : { edits: [], unavailableReason: "Dependency not found" };
+    }
+    return { edits: [], unavailableReason: `Unsupported Gantt operation: ${operationKind}` };
   },
 };

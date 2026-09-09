@@ -8,11 +8,13 @@ Canonical SVG is produced by the official `@plantuml/core` TeaVM build. The engi
 
 ## Diagram adapters
 
-`@plantuml-studio/language-core` defines framework-neutral contracts for parsing, diagnostics, completion, interactive objects, capabilities, and source-edit-producing visual operations. `@plantuml-studio/language-plantuml` detects PlantUML diagram types and provides an adapter registry.
+`@plantuml-studio/language-core` defines framework-neutral contracts for parsing, diagnostics, completion, interactive objects, capabilities, and source-edit-producing visual operations. `@plantuml-studio/language-plantuml` detects PlantUML diagram types and provides an adapter registry. The web application configures that registry once in `diagram-adapters.ts`; application code obtains registered adapters and queries source capabilities through that module instead of constructing registries or importing the Gantt adapter directly.
 
-`@plantuml-studio/diagram-gantt` supplies the first concrete adapter. The web application parses the active source through this adapter and routes core task movement, resizing, reordering, and dependency creation/deletion through its typed visual-operation API. React and CodeMirror types do not cross the adapter boundary.
+`@plantuml-studio/diagram-gantt` supplies the first concrete adapter. The web application resolves it through the configured registry, parses the active source through it, and routes core task movement, resizing, reordering, dependency creation/deletion, and Jira schedule resizing through its typed visual-operation API. React and CodeMirror types do not cross the adapter boundary.
 
 `@plantuml-studio/diagram-wbs` models hierarchical work-breakdown nodes, diagnostics, completions, and source-preserving subtree operations. Its preview uses the canonical PlantUML SVG with a semantic node interaction layer; the hierarchy model is derived from source and is never persisted separately.
+
+Gantt is the proof that the registry can be the production routing boundary. WBS is registered for detection and capability discovery but still uses its specialized web integration for parsing and edits. Sequence, Use Case, Class, and Activity remain specialized implementations until their adapter contracts can preserve their richer source constructs. Registration therefore describes the current application boundary; it does not imply that all six diagram types have completed adapter migration.
 
 To add a diagram type:
 
