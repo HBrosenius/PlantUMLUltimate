@@ -1534,6 +1534,45 @@ textarea:focus-visible,
   padding-top: min(18vh, 150px);
   background: rgb(0 0 0 / 35%);
 }
+.document-settings-dialog {
+  display: grid;
+  width: min(470px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  gap: 14px;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 30%);
+}
+.document-settings-dialog header h2,
+.document-settings-dialog p {
+  margin: 0;
+}
+.document-settings-dialog > label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.document-settings-dialog > label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+}
+.document-settings-dialog input:not([type="checkbox"]),
+.document-settings-dialog select {
+  width: 100%;
+  box-sizing: border-box;
+}
+.document-settings-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
 .external-conflict-backdrop {
   padding-top: min(8vh, 72px);
 }

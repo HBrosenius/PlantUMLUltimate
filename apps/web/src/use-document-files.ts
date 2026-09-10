@@ -14,6 +14,7 @@ import {
   sha256,
   DocumentFormatError,
   type DecodedDocument,
+  type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
 import {
   openDocumentFile,
@@ -96,6 +97,32 @@ export function externalFileChanged(previous: FileSnapshot | undefined, external
 
 async function nativeSnapshot(bytes: Uint8Array, source: string, lastModified: number): Promise<FileSnapshot> {
   return { source, lastModified, size: bytes.byteLength, rawDigest: await sha256(bytes), native: true };
+}
+
+export async function readExternalFileSnapshot(
+  handle: WritableFileHandle,
+  previous: FileSnapshot,
+  unlockedKey?: UnlockedDocumentKey,
+): Promise<{ snapshot: FileSnapshot; decodedNative?: DecodedDocument }> {
+  if (!previous.native) return { snapshot: await readFileSnapshot(handle) };
+  const opened = await readDocumentBytes(handle);
+  if (opened.kind !== "native") throw new Error("The external file is no longer a portable PlantUML document");
+  const rawDigest = await sha256(opened.bytes);
+  if (rawDigest === previous.rawDigest)
+    return {
+      snapshot: {
+        source: previous.source,
+        lastModified: opened.lastModified,
+        size: opened.size,
+        rawDigest,
+        native: true,
+      },
+    };
+  const decoded = await decodeDocument(opened.bytes, unlockedKey ? { unlockedKey } : {});
+  return {
+    snapshot: await nativeSnapshot(opened.bytes, decoded.document.current.source, opened.lastModified),
+    decodedNative: decoded,
+  };
 }
 
 export function useDocumentFiles({
@@ -430,13 +457,14 @@ export function useDocumentFiles({
       for (const [documentId, handle] of fileHandles.current) {
         const previous = fileSnapshots.current.get(documentId);
         if (!previous) continue;
-        const external = await readFileSnapshot(handle);
+        const documentSnapshot = tabs.documents.find((item) => item.id === documentId);
+        if (!documentSnapshot) continue;
+        const externalResult = await readExternalFileSnapshot(handle, previous, documentKey(documentId));
+        const external = externalResult.snapshot;
         if (!externalFileChanged(previous, external)) {
           fileSnapshots.current.set(documentId, external);
           continue;
         }
-        const documentSnapshot = tabs.documents.find((item) => item.id === documentId);
-        if (!documentSnapshot) continue;
         if (documentSnapshot.dirty) {
           if ((externalCheckSnoozedUntil.current.get(documentId) ?? 0) > Date.now()) continue;
           setExternalConflict(
@@ -447,6 +475,9 @@ export function useDocumentFiles({
                 baseSource: previous.source,
                 localSource: documentSnapshot.source,
                 external,
+                ...(externalResult.decodedNative
+                  ? { native: true as const, decodedNative: externalResult.decodedNative }
+                  : {}),
               },
           );
           continue;
@@ -457,6 +488,32 @@ export function useDocumentFiles({
           fileName: documentSnapshot.fileName,
           diagramKind: documentSnapshot.diagramKind,
         });
+        if (externalResult.decodedNative) {
+          const decoded = externalResult.decodedNative;
+          const mapped = mapPortableHistoryToLocal(
+            decoded.document.versions,
+            decoded.contents,
+            handle.name,
+            decoded.document.current.baselineVersionId,
+          );
+          if (decoded.unlockedKey) await enableMemoryOnlyHistory(mapped.historyId);
+          await importDocumentVersions(mapped.versions);
+          tabs.setDocumentHistoryId(documentId, mapped.historyId);
+          tabs.setDocumentBaselineVersionId(documentId, mapped.baselineVersionId);
+          tabs.updateDocumentFormat(documentId, {
+            source: decoded.document.current.source,
+            diagramKind: decoded.document.current.diagramKind,
+            portableDocumentId: decoded.document.documentId,
+            compression: decoded.compression,
+            encrypted: Boolean(decoded.unlockedKey),
+            resourceCapacities: decoded.document.settings.resourceCapacities,
+            dirty: false,
+          });
+          if (decoded.unlockedKey) rememberDocumentKey(documentId, decoded.unlockedKey);
+          fileSnapshots.current.set(documentId, external);
+          setInteractionMessage(`Reloaded external portable document ${handle.name}`);
+          continue;
+        }
         tabs.replaceDocumentFromFile(documentId, {
           source: external.source,
           fileName: handle.name,
