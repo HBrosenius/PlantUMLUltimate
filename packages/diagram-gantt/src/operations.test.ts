@@ -3,6 +3,7 @@ import {
   createDependency,
   deleteDivider,
   deleteTask,
+  duplicateTask,
   insertDivider,
   insertVerticalSeparator,
   insertTask,
@@ -151,6 +152,54 @@ describe("insertTask", () => {
   it("rejects unsafe names and invalid durations", () => {
     expect(insertTask("@endgantt", { label: "Bad]", durationDays: 1 }).unavailableReason).toContain("brackets");
     expect(insertTask("@endgantt", { label: "Task", durationDays: 0 }).unavailableReason).toContain("positive");
+  });
+});
+
+describe("duplicateTask", () => {
+  it("copies task settings beside the original without copying dependency declarations", () => {
+    const source =
+      "@startgantt\n[Build] starts 2026-09-01\n[Build] lasts 3 days\n[Build] is colored in Blue\n[Test] starts at [Build]'s end\n[Test] lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const result = duplicateTask(source, document, document.symbols.tasks.get("build")!);
+    const changed = applySourceEdits(source, result.edits);
+
+    expect(result).toMatchObject({ taskId: "build copy", label: "Build copy" });
+    expect(changed).toContain(
+      "[Build copy] starts 2026-09-01\n[Build copy] lasts 3 days\n[Build copy] is colored in Blue",
+    );
+    expect(changed.match(/\[Test] starts at \[Build]/g)).toHaveLength(1);
+    expect(parseGantt(changed).document.tasks).toHaveLength(3);
+  });
+
+  it("creates unique labels and aliases and retains notes, links, and resources", () => {
+    const source =
+      "@startgantt\n[Prototype] as [P1] on {Alice:50%} lasts 2 days\n[P1] links to [[https://example.com Spec]]\nnote bottom\nKeep this note\nend note\n[Prototype copy] lasts 1 day\n[P1_copy] lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const result = duplicateTask(source, document, document.symbols.tasks.get("p1")!);
+    const changed = applySourceEdits(source, result.edits);
+
+    expect(result).toMatchObject({ taskId: "p1_copy_2", label: "Prototype copy 2" });
+    expect(changed).toContain("[Prototype copy 2] as [P1_copy_2] on {Alice:50%} lasts 2 days");
+    expect(changed).toContain("[P1_copy_2] links to [[https://example.com Spec]]");
+    expect(changed.match(/Keep this note/g)).toHaveLength(2);
+    expect(parseGantt(changed).diagnostics).toEqual([]);
+  });
+
+  it("reports why a dependency-only task cannot be duplicated", () => {
+    const source = "@startgantt\n[A] lasts 1 day\n[B] starts at [A]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const result = duplicateTask(source, document, document.symbols.tasks.get("b")!);
+
+    expect(result.edits).toEqual([]);
+    expect(result.unavailableReason).toContain("dependency-only");
+  });
+
+  it("increments the copy suffix when duplicating an existing copy", () => {
+    const source = "@startgantt\n[Build] lasts 1 day\n[Build copy] lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const result = duplicateTask(source, document, document.symbols.tasks.get("build copy")!);
+
+    expect(result).toMatchObject({ taskId: "build copy 2", label: "Build copy 2" });
   });
 });
 

@@ -795,6 +795,62 @@ export function deleteTask(source: string, document: GanttDocument, task: GanttT
   return { edits: [...ranges.values()].map((range) => ({ range, text: "" })) };
 }
 
+export interface DuplicateTaskResult extends MoveTaskResult {
+  taskId?: string;
+  label?: string;
+}
+
+export function duplicateTask(source: string, document: GanttDocument, task: GanttTask): DuplicateTaskResult {
+  const dependencyLines = new Set(
+    document.dependencies.map((item) => {
+      const line = wholeLineRange(source, item.sourceRange);
+      return `${line.from}:${line.to}`;
+    }),
+  );
+  const ranges = [
+    ...task.declarations
+      .map((item) => wholeLineRange(source, item.range))
+      .filter((item) => !dependencyLines.has(`${item.from}:${item.to}`)),
+    ...(task.notes ?? []).map((note) => wholeLineRange(source, note.sourceRange)),
+  ];
+  const unique = [...new Map(ranges.map((item) => [`${item.from}:${item.to}`, item])).values()].sort(
+    (left, right) => left.from - right.from,
+  );
+  if (!unique.length)
+    return {
+      edits: [],
+      unavailableReason: "Add a duration or other task declaration before duplicating this dependency-only task",
+    };
+
+  const uniqueIdentity = (value: string, separator: string) => {
+    const suffix = separator === " " ? / copy(?: \d+)?$/i : /_copy(?:_\d+)?$/i;
+    const base = value.replace(suffix, "");
+    for (let index = 1; ; index += 1) {
+      const candidate = index === 1 ? `${base}${separator}copy` : `${base}${separator}copy${separator}${index}`;
+      const key = normalizeTaskId(candidate);
+      if (!document.symbols.references.has(key) && !document.symbols.tasks.has(key)) return candidate;
+    }
+  };
+  const label = uniqueIdentity(task.label, " ");
+  const alias = task.alias ? uniqueIdentity(task.alias.value, "_") : undefined;
+  const taskId = normalizeTaskId(alias ?? label);
+  const taskLabelKey = normalizeTaskId(task.label);
+  const replaceIdentity = (text: string) =>
+    text.replace(/\[([^\]]+)]/g, (match, value: string) => {
+      const key = normalizeTaskId(value);
+      if (key === taskLabelKey) return `[${label}]`;
+      if (alias && key === task.id) return `[${alias}]`;
+      return match;
+    });
+  const block = unique.map((item) => replaceIdentity(source.slice(item.from, item.to))).join("");
+  const insertionPoint = Math.max(...unique.map((item) => item.to));
+  return {
+    edits: [{ range: { from: insertionPoint, to: insertionPoint }, text: block }],
+    taskId,
+    label,
+  };
+}
+
 export function reorderTask(
   source: string,
   document: GanttDocument,

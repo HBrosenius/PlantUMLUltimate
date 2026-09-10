@@ -95,7 +95,7 @@ test("finds and navigates semantic task references", async ({ page }) => {
   const taskReference = await pointInText(page, 3, "Build");
   await page.mouse.click(taskReference.x, taskReference.y, { button: "right" });
   const symbolMenu = page.getByRole("menu", { name: "Symbol actions" });
-  await expect(symbolMenu.getByRole("menuitem")).toHaveCount(5);
+  await expect(symbolMenu.getByRole("menuitem")).toHaveCount(6);
   await symbolMenu.getByRole("menuitem", { name: "Find references" }).click();
 
   const references = page.getByRole("complementary", { name: "References for Build" });
@@ -132,7 +132,7 @@ test("opens semantic actions from a diagram task", async ({ page }) => {
   await expect(task).toBeVisible();
   await task.click({ button: "right" });
   const menu = page.getByRole("menu", { name: "Symbol actions" });
-  await expect(menu.getByRole("menuitem")).toHaveCount(5);
+  await expect(menu.getByRole("menuitem")).toHaveCount(6);
   await menu.getByRole("menuitem", { name: "Find references" }).click();
   const references = page.getByRole("complementary", { name: "References for Build" });
   await expect(references).toContainText("2 occurrences");
@@ -151,6 +151,21 @@ test("opens semantic actions from a diagram task", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[Compile] lasts 3 days");
   await expect(page.locator(".cm-content")).toContainText("[Compile]'s end");
   await expect(page.locator('[data-task-id="compile"][tabindex="0"]').first()).toBeFocused();
+});
+
+test("duplicates a task from source and diagram context menus", async ({ page }) => {
+  await setSource(page, source("[Build] on {Alice} lasts 3 days\n[Build] is colored in Blue"));
+  const sourceTask = await pointInText(page, 3, "Build");
+  await page.mouse.click(sourceTask.x, sourceTask.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Duplicate task" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Build copy] on {Alice} lasts 3 days");
+  await expect(page.locator(".cm-content")).toContainText("[Build copy] is colored in Blue");
+
+  const diagramCopy = page.locator('[data-task-id="build copy"]').first();
+  await expect(diagramCopy).toBeVisible();
+  await diagramCopy.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Duplicate task" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Build copy 2] on {Alice} lasts 3 days");
 });
 
 test("reports added, removed, moved, and out-of-range baseline tasks", async ({ page }) => {

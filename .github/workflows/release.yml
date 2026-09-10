@@ -25,6 +25,11 @@ jobs:
       - run: npm run validate
       - name: Verify release version
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Disable unrelated Chrome APT source
+        run: |
+          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
+            sudo mv /etc/apt/sources.list.d/google-chrome.list /tmp/google-chrome.list.disabled
+          fi
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
       - run: npm run test:e2e:pwa
