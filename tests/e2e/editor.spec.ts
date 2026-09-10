@@ -183,6 +183,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Save",
     "Save As…",
     "Version history…",
+    "Document settings…",
     "Jira…",
     "Backup workspace…",
     "Restore workspace…",
@@ -410,7 +411,7 @@ test("compares two imported PlantUML files without applying over a different wor
   await expect(page.locator(".cm-content")).toContainText("Alice -> Bob: Working copy");
 });
 
-test("starts a new version lineage after Save As", async ({ page }) => {
+test("retains version history after Save As", async ({ page }) => {
   await setSource(page, source("[Original lineage] lasts 2 days"));
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
@@ -422,12 +423,12 @@ test("starts a new version lineage after Save As", async ({ page }) => {
     Object.defineProperty(window, "showSaveFilePicker", {
       configurable: true,
       value: async () => ({
-        name: "forked-plan.puml",
+        name: "forked-plan.pumlu",
         createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
         getFile: async () =>
           new File(
             ["@startgantt\nProject starts 2026-09-01\n[Original lineage] lasts 2 days\n@endgantt"],
-            "forked-plan.puml",
+            "forked-plan.pumlu",
           ),
       }),
     });
@@ -435,11 +436,11 @@ test("starts a new version lineage after Save As", async ({ page }) => {
 
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Save As…" }).click();
-  await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.puml");
+  await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.pumlu");
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
-  await expect(history.getByRole("button", { name: "Select version Saved as new file" })).toBeVisible();
-  await expect(history.getByRole("button", { name: "Select version Old lineage" })).toHaveCount(0);
+  await expect(history.getByRole("button", { name: "Select version Saved portable document" })).toBeVisible();
+  await expect(history.getByRole("button", { name: "Select version Old lineage" })).toBeVisible();
 });
 
 test("copies the current source from the code editor", async ({ page, context, browserName }) => {
@@ -499,16 +500,11 @@ test("reloads clean external file edits and merges conflicting local changes", a
     fileWindow.testExternalModified = 1;
     const handle = {
       name: "shared.puml",
-      getFile: async () => ({
-        name: "shared.puml",
-        get lastModified() {
-          return fileWindow.testExternalModified;
-        },
-        get size() {
-          return new Blob([fileWindow.testExternalFileSource ?? ""]).size;
-        },
-        text: async () => fileWindow.testExternalFileSource ?? "",
-      }),
+      getFile: async () =>
+        new File([fileWindow.testExternalFileSource ?? ""], "shared.puml", {
+          lastModified: fileWindow.testExternalModified,
+          type: "text/plain",
+        }),
       createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
     };
     Object.defineProperty(window, "showOpenFilePicker", {
@@ -534,8 +530,8 @@ test("reloads clean external file edits and merges conflicting local changes", a
     const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
     fileWindow.testExternalFileSource = contents;
     fileWindow.testExternalModified = 3;
+    window.dispatchEvent(new Event("focus"));
   }, source("[Conflicting external edit] lasts 5 days"));
-  await page.keyboard.press("Control+s");
   const conflict = page.getByRole("dialog", { name: "External file changes" });
   await expect(conflict).toBeVisible();
   await expect(conflict.getByRole("table", { name: "External file differences" })).toContainText(
