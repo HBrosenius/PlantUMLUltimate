@@ -27,7 +27,10 @@ export interface EncodedDocument {
   unlockedKey?: UnlockedDocumentKey;
 }
 
-export async function encodeDocument(document: PortableDocument, options: EncodeDocumentOptions = {}): Promise<EncodedDocument> {
+export async function encodeDocument(
+  document: PortableDocument,
+  options: EncodeDocumentOptions = {},
+): Promise<EncodedDocument> {
   const checked = validateDocument(document);
   if ((await hashSource(checked.current.source)) !== checked.current.sourceHash)
     throw new DocumentFormatError("invalid-file", "Current source hash does not match");
@@ -39,7 +42,7 @@ export async function encodeDocument(document: PortableDocument, options: Encode
     return { bytes: encodeEnvelope(header, compressed) };
   }
   const random = options.randomBytes ?? secureRandomBytes;
-  const unlockedKey = options.unlockedKey ?? await deriveDocumentKey(options.password!, random(16));
+  const unlockedKey = options.unlockedKey ?? (await deriveDocumentKey(options.password!, random(16)));
   const iv = random(12);
   const header = encryptedHeader(compression, unlockedKey, iv);
   const authenticatedData = encodeEnvelope(header, new Uint8Array());

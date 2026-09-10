@@ -7,7 +7,11 @@ import { validateDocument } from "./validate";
 
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
 
-export interface DecodeDocumentOptions { password?: string; unlockedKey?: UnlockedDocumentKey; signal?: AbortSignal }
+export interface DecodeDocumentOptions {
+  password?: string;
+  unlockedKey?: UnlockedDocumentKey;
+  signal?: AbortSignal;
+}
 export interface DecodedDocument {
   document: PortableDocument;
   contents: Map<string, string>;
@@ -27,8 +31,11 @@ export async function decodeDocument(bytes: Uint8Array, options: DecodeDocumentO
   }
   const payload = await decompressPayload(compressed, envelope.header.compression, options.signal);
   let parsed: unknown;
-  try { parsed = JSON.parse(UTF8.decode(payload)); }
-  catch { throw new DocumentFormatError("invalid-file", "Document payload is not strict UTF-8 JSON"); }
+  try {
+    parsed = JSON.parse(UTF8.decode(payload));
+  } catch {
+    throw new DocumentFormatError("invalid-file", "Document payload is not strict UTF-8 JSON");
+  }
   const document = validateDocument(parsed);
   if ((await hashSource(document.current.source)) !== document.current.sourceHash)
     throw new DocumentFormatError("invalid-file", "Current source hash does not match");

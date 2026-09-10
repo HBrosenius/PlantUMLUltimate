@@ -14,7 +14,12 @@ interface WorkerLike {
 }
 
 type WorkerRequest =
-  | { id: number; operation: "encode"; document: PortableDocument; options: Omit<EncodeDocumentOptions, "signal" | "randomBytes"> }
+  | {
+      id: number;
+      operation: "encode";
+      document: PortableDocument;
+      options: Omit<EncodeDocumentOptions, "signal" | "randomBytes">;
+    }
   | { id: number; operation: "decode"; bytes: Uint8Array; options: Omit<DecodeDocumentOptions, "signal"> }
   | { id: number; operation: "cancel" };
 type OperationRequest =
@@ -35,7 +40,11 @@ export class DocumentFormatClient {
     else pending.reject(Object.assign(new Error(event.data.error.message), event.data.error));
   };
 
-  constructor(private readonly worker: WorkerLike = new Worker(new URL("./document-format.worker.ts", import.meta.url), { type: "module" })) {
+  constructor(
+    private readonly worker: WorkerLike = new Worker(new URL("./document-format.worker.ts", import.meta.url), {
+      type: "module",
+    }),
+  ) {
     worker.addEventListener("message", this.onMessage);
   }
 
@@ -50,20 +59,32 @@ export class DocumentFormatClient {
       };
       signal?.addEventListener("abort", abort, { once: true });
       this.pending.set(id, {
-        resolve: (value) => { signal?.removeEventListener("abort", abort); resolve(value as T); },
-        reject: (error) => { signal?.removeEventListener("abort", abort); reject(error); },
+        resolve: (value) => {
+          signal?.removeEventListener("abort", abort);
+          resolve(value as T);
+        },
+        reject: (error) => {
+          signal?.removeEventListener("abort", abort);
+          reject(error);
+        },
       });
       this.worker.postMessage({ ...message, id } as WorkerRequest, transfer);
     });
   }
 
-  encode(document: PortableDocument, options: Omit<EncodeDocumentOptions, "signal" | "randomBytes"> = {}, signal?: AbortSignal) {
+  encode(
+    document: PortableDocument,
+    options: Omit<EncodeDocumentOptions, "signal" | "randomBytes"> = {},
+    signal?: AbortSignal,
+  ) {
     return this.request<EncodedDocument>({ operation: "encode", document, options }, signal);
   }
 
   decode(bytes: Uint8Array, options: Omit<DecodeDocumentOptions, "signal"> = {}, signal?: AbortSignal) {
     const transferable = Uint8Array.from(bytes);
-    return this.request<DecodedDocument>({ operation: "decode", bytes: transferable, options }, signal, [transferable.buffer]);
+    return this.request<DecodedDocument>({ operation: "decode", bytes: transferable, options }, signal, [
+      transferable.buffer,
+    ]);
   }
 
   dispose(): void {

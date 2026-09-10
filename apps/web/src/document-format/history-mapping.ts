@@ -59,8 +59,11 @@ export function mapPortableHistoryToLocal(
       pinned: version.pinned,
     };
   });
-  const baselineVersionId = portableBaselineVersionId
-    ? portableToLocalIds.get(portableBaselineVersionId)
-    : undefined;
-  return { historyId, versions: localVersions, ...(baselineVersionId ? { baselineVersionId } : {}), portableToLocalIds };
+  const baselineVersionId = portableBaselineVersionId ? portableToLocalIds.get(portableBaselineVersionId) : undefined;
+  return {
+    historyId,
+    versions: localVersions,
+    ...(baselineVersionId ? { baselineVersionId } : {}),
+    portableToLocalIds,
+  };
 }

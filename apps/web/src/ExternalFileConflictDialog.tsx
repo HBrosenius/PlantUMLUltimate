@@ -8,6 +8,7 @@ export function ExternalFileConflictDialog({
   baseSource,
   localSource,
   externalSource,
+  native = false,
   onMerge,
   onReload,
   onKeepLocal,
@@ -18,6 +19,7 @@ export function ExternalFileConflictDialog({
   baseSource: string;
   localSource: string;
   externalSource: string;
+  native?: boolean;
   onMerge(source: string): void;
   onReload(): void;
   onKeepLocal(): void;
@@ -80,68 +82,73 @@ export function ExternalFileConflictDialog({
             <p>The file contents are now identical.</p>
           )}
         </div>
-        <section className="external-merge" aria-label="Merge external changes">
-          <header>
-            <div>
-              <h3>{merge.conflicts.length ? "Resolve overlapping changes" : "Changes can be merged automatically"}</h3>
-              <p>
-                {merge.conflicts.length
-                  ? `${merge.conflicts.length} overlapping section${merge.conflicts.length === 1 ? "" : "s"} need a choice. You can also edit the final merged source directly.`
-                  : "Local and external edits affect different sections. Review the combined source before applying it."}
-              </p>
-            </div>
-          </header>
-          {merge.conflicts.map((conflict, index) => (
-            <article className="external-merge-conflict" key={index}>
-              <strong>Conflict {index + 1}</strong>
+        {!native && (
+          <section className="external-merge" aria-label="Merge external changes">
+            <header>
               <div>
-                <section>
-                  <span>Local</span>
-                  <pre>{conflict.local.join("\n") || "(deleted)"}</pre>
-                  <button
-                    type="button"
-                    aria-pressed={choices[index] === "local"}
-                    onClick={() => {
-                      setChoices((current) => current.map((choice, item) => (item === index ? "local" : choice)));
-                      setEditedSource(undefined);
-                    }}
-                  >
-                    Use local
-                  </button>
-                </section>
-                <section>
-                  <span>External</span>
-                  <pre>{conflict.external.join("\n") || "(deleted)"}</pre>
-                  <button
-                    type="button"
-                    aria-pressed={choices[index] === "external"}
-                    onClick={() => {
-                      setChoices((current) => current.map((choice, item) => (item === index ? "external" : choice)));
-                      setEditedSource(undefined);
-                    }}
-                  >
-                    Use external
-                  </button>
-                </section>
+                <h3>
+                  {merge.conflicts.length ? "Resolve overlapping changes" : "Changes can be merged automatically"}
+                </h3>
+                <p>
+                  {merge.conflicts.length
+                    ? `${merge.conflicts.length} overlapping section${merge.conflicts.length === 1 ? "" : "s"} need a choice. You can also edit the final merged source directly.`
+                    : "Local and external edits affect different sections. Review the combined source before applying it."}
+                </p>
               </div>
-            </article>
-          ))}
-          <label>
-            Merged source
-            <textarea
-              aria-label="Merged source"
-              spellCheck={false}
-              value={mergedSource}
-              onChange={(event) => setEditedSource(event.target.value)}
-            />
-          </label>
-          <button type="button" className="primary external-merge-apply" onClick={() => onMerge(mergedSource)}>
-            Apply merged version
-          </button>
-        </section>
+            </header>
+            {merge.conflicts.map((conflict, index) => (
+              <article className="external-merge-conflict" key={index}>
+                <strong>Conflict {index + 1}</strong>
+                <div>
+                  <section>
+                    <span>Local</span>
+                    <pre>{conflict.local.join("\n") || "(deleted)"}</pre>
+                    <button
+                      type="button"
+                      aria-pressed={choices[index] === "local"}
+                      onClick={() => {
+                        setChoices((current) => current.map((choice, item) => (item === index ? "local" : choice)));
+                        setEditedSource(undefined);
+                      }}
+                    >
+                      Use local
+                    </button>
+                  </section>
+                  <section>
+                    <span>External</span>
+                    <pre>{conflict.external.join("\n") || "(deleted)"}</pre>
+                    <button
+                      type="button"
+                      aria-pressed={choices[index] === "external"}
+                      onClick={() => {
+                        setChoices((current) => current.map((choice, item) => (item === index ? "external" : choice)));
+                        setEditedSource(undefined);
+                      }}
+                    >
+                      Use external
+                    </button>
+                  </section>
+                </div>
+              </article>
+            ))}
+            <label>
+              Merged source
+              <textarea
+                aria-label="Merged source"
+                spellCheck={false}
+                value={mergedSource}
+                onChange={(event) => setEditedSource(event.target.value)}
+              />
+            </label>
+            <button type="button" className="primary external-merge-apply" onClick={() => onMerge(mergedSource)}>
+              Apply merged version
+            </button>
+          </section>
+        )}
         <p className="external-conflict-warning">
-          Reloading saves the local working copy in Version History first. Keeping local changes means the next Save
-          will overwrite the external file.
+          {native
+            ? "Portable histories are not merged automatically. Reload the external document or save the local document as a separate copy."
+            : "Reloading saves the local working copy in Version History first. Keeping local changes means the next Save will overwrite the external file."}
         </p>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
@@ -151,7 +158,7 @@ export function ExternalFileConflictDialog({
             Open external as copy
           </button>
           <button type="button" onClick={onKeepLocal}>
-            Keep local changes
+            {native ? "Save local as separate copy" : "Keep local changes"}
           </button>
           <button type="button" className="primary" onClick={onReload}>
             Reload external version

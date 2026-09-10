@@ -11,11 +11,17 @@ async function document(): Promise<PortableDocument> {
     current: { source, sourceHash: hash, diagramKind: "gantt" },
     settings: { resourceCapacities: {} },
     historyPolicy: { maxVersions: 100, maxLogicalBytes: 16 * 1024 * 1024 },
-    versions: [{
-      id: "22222222-2222-4222-8222-222222222222", contentId: hash,
-      createdAt: "2026-09-09T12:00:00.000Z", sequence: 0, reason: "opened",
-      pinned: false, diagramKind: "gantt",
-    }],
+    versions: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        contentId: hash,
+        createdAt: "2026-09-09T12:00:00.000Z",
+        sequence: 0,
+        reason: "opened",
+        pinned: false,
+        diagramKind: "gantt",
+      },
+    ],
     contents: [{ id: hash, kind: "full", source, byteLength: new TextEncoder().encode(source).length }],
   };
 }
@@ -30,8 +36,16 @@ describe("composed document codec", () => {
   it("encrypts deterministically with injected randomness and varies normal saves", async () => {
     const input = await document();
     const deterministic = (length: number) => new Uint8Array(length).fill(length);
-    const first = await encodeDocument(input, { compression: "none", password: "exact password", randomBytes: deterministic });
-    const second = await encodeDocument(input, { compression: "none", password: "exact password", randomBytes: deterministic });
+    const first = await encodeDocument(input, {
+      compression: "none",
+      password: "exact password",
+      randomBytes: deterministic,
+    });
+    const second = await encodeDocument(input, {
+      compression: "none",
+      password: "exact password",
+      randomBytes: deterministic,
+    });
     expect(first.bytes).toEqual(second.bytes);
     expect((await decodeDocument(first.bytes, { password: "exact password" })).document).toEqual(input);
     const randomA = await encodeDocument(input, { password: "exact password" });

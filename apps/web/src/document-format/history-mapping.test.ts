@@ -28,7 +28,10 @@ describe("portable history mapping", () => {
   it("remaps parent and baseline while isolating duplicate opens", () => {
     let counter = 0;
     const ids = () => `local-${counter++}`;
-    const sources = new Map([["a".repeat(64), "one"], ["b".repeat(64), "two"]]);
+    const sources = new Map([
+      ["a".repeat(64), "one"],
+      ["b".repeat(64), "two"],
+    ]);
     const first = mapPortableHistoryToLocal(versions, sources, "plan.pumlu", versions[1]!.id, ids);
     const second = mapPortableHistoryToLocal(versions, sources, "plan.pumlu", versions[1]!.id, ids);
     expect(first.historyId).not.toBe(second.historyId);

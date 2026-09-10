@@ -43,8 +43,10 @@ function logicalBytes(versions: readonly RetentionVersion[]): number {
   for (const version of versions) {
     if (!sources.has(version.sourceHash)) sources.set(version.sourceHash, UTF8.encode(version.source).byteLength);
   }
-  return versions.reduce((total, version) => total + metadataBytes(version), 0) +
-    [...sources.values()].reduce((total, size) => total + size, 0);
+  return (
+    versions.reduce((total, version) => total + metadataBytes(version), 0) +
+    [...sources.values()].reduce((total, size) => total + size, 0)
+  );
 }
 
 /** Selects a stable, bounded history without mutating its input. */
@@ -73,25 +75,27 @@ export function planRetention(
   }
 
   const byId = new Map(ordered.map((version) => [version.id, version]));
-  const retained = ordered.filter((version) => selected.has(version.id)).map((version): RetainedVersion => {
-    let parentVersionId = version.parentVersionId;
-    let truncated = false;
-    const seen = new Set<string>();
-    while (parentVersionId && !selected.has(parentVersionId)) {
-      if (seen.has(parentVersionId)) {
-        parentVersionId = undefined;
-        break;
+  const retained = ordered
+    .filter((version) => selected.has(version.id))
+    .map((version): RetainedVersion => {
+      let parentVersionId = version.parentVersionId;
+      let truncated = false;
+      const seen = new Set<string>();
+      while (parentVersionId && !selected.has(parentVersionId)) {
+        if (seen.has(parentVersionId)) {
+          parentVersionId = undefined;
+          break;
+        }
+        seen.add(parentVersionId);
+        truncated = true;
+        parentVersionId = byId.get(parentVersionId)?.parentVersionId;
       }
-      seen.add(parentVersionId);
-      truncated = true;
-      parentVersionId = byId.get(parentVersionId)?.parentVersionId;
-    }
-    const result: RetainedVersion = { ...version };
-    if (parentVersionId) result.parentVersionId = parentVersionId;
-    else delete result.parentVersionId;
-    if (truncated) result.ancestryTruncated = true;
-    return result;
-  });
+      const result: RetainedVersion = { ...version };
+      if (parentVersionId) result.parentVersionId = parentVersionId;
+      else delete result.parentVersionId;
+      if (truncated) result.ancestryTruncated = true;
+      return result;
+    });
   return {
     retained,
     droppedIds: ordered.filter((version) => !selected.has(version.id)).map((version) => version.id),

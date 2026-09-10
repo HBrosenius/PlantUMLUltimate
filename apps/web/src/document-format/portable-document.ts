@@ -13,7 +13,7 @@ import { mapLocalHistoryForRetention } from "./history-mapping";
 export async function assemblePortableDocument(
   document: DocumentSnapshot,
   localVersions: readonly DocumentVersion[],
-  settings: PortableDocumentSettings = { resourceCapacities: {} },
+  settings: PortableDocumentSettings = { resourceCapacities: document.resourceCapacities ?? {} },
   savedAt = new Date().toISOString(),
 ): Promise<PortableDocument> {
   const candidates = mapLocalHistoryForRetention(localVersions);
@@ -27,7 +27,9 @@ export async function assemblePortableDocument(
   };
   const retention = planRetention(candidates, policy, portableBaselineId);
   const encoded = await encodeContentHistory(retention.retained.map((version) => version.source));
-  const versions = retention.retained.map((version, index) => portableVersionMetadata(version, encoded.contentIds[index]!));
+  const versions = retention.retained.map((version, index) =>
+    portableVersionMetadata(version, encoded.contentIds[index]!),
+  );
   return {
     schemaVersion: 1,
     documentId: document.portableDocumentId ?? crypto.randomUUID(),

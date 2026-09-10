@@ -1,5 +1,12 @@
-export interface SaveSnapshot<T> { documentId: string; revision: number; value: T }
-export interface SaveResult { clean: boolean; message: string }
+export interface SaveSnapshot<T> {
+  documentId: string;
+  revision: number;
+  value: T;
+}
+export interface SaveResult {
+  clean: boolean;
+  message: string;
+}
 
 /** Serializes writes per portable identity and only marks the captured revision clean. */
 export class SaveCoordinator {
@@ -13,7 +20,9 @@ export class SaveCoordinator {
   ): Promise<SaveResult> {
     const previous = this.queues.get(snapshot.documentId) ?? Promise.resolve();
     let release!: () => void;
-    const turn = new Promise<void>((resolve) => { release = resolve; });
+    const turn = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const queue = previous.then(() => turn);
     this.queues.set(snapshot.documentId, queue);
     await previous;

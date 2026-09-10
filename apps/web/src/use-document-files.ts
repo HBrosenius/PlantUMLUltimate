@@ -8,9 +8,16 @@ import {
   type SetStateAction,
 } from "react";
 import { detectDiagramKind } from "./diagram-kind";
-import { decodeDocument, encodeDocument, DocumentFormatError } from "@plantuml-studio/document-format";
+import {
+  decodeDocument,
+  encodeDocument,
+  sha256,
+  DocumentFormatError,
+  type DecodedDocument,
+} from "@plantuml-studio/document-format";
 import {
   openDocumentFile,
+  readDocumentBytes,
   readFileSnapshot,
   registerDocumentLaunchConsumer,
   savePortableDocumentAs,
@@ -28,6 +35,7 @@ import {
   disableMemoryOnlyHistory,
   importDocumentVersions,
   loadDocumentVersions,
+  removePersistedDocument,
   type DocumentSnapshot,
   type DocumentVersionReason,
   type WorkspaceSnapshot,
@@ -39,6 +47,8 @@ export type ExternalFileConflict = {
   baseSource: string;
   localSource: string;
   external: FileSnapshot;
+  native?: true;
+  decodedNative?: DecodedDocument;
 };
 
 type TabControls = {
@@ -46,6 +56,7 @@ type TabControls = {
   documents: DocumentSnapshot[];
   addDocument: (input?: Partial<Omit<DocumentSnapshot, "id">>) => string;
   setDocumentHistoryId: (id: string, historyId: string) => void;
+  setDocumentBaselineVersionId: (id: string, baselineVersionId?: string) => void;
   updateDocumentFormat: (id: string, patch: Partial<DocumentSnapshot>) => void;
   getDocument: (id: string) => DocumentSnapshot | undefined;
   replaceDocumentFromFile: (
@@ -75,7 +86,16 @@ type UseDocumentFilesOptions = {
 };
 
 export function externalFileChanged(previous: FileSnapshot | undefined, external: FileSnapshot) {
-  return Boolean(previous && external.source !== previous.source);
+  return Boolean(
+    previous &&
+    (previous.rawDigest && external.rawDigest
+      ? previous.rawDigest !== external.rawDigest
+      : external.source !== previous.source),
+  );
+}
+
+async function nativeSnapshot(bytes: Uint8Array, source: string, lastModified: number): Promise<FileSnapshot> {
+  return { source, lastModified, size: bytes.byteLength, rawDigest: await sha256(bytes), native: true };
 }
 
 export function useDocumentFiles({
@@ -137,52 +157,67 @@ export function useDocumentFiles({
     ],
   );
 
-  const addOpenedFile = useCallback(async (opened: Awaited<ReturnType<typeof openDocumentFile>>) => {
-    if (!opened) return;
-    if (opened.kind === "legacy") {
-      await addOpenedDocument({
-        source: opened.source!, fileName: opened.fileName, ...(opened.handle ? { handle: opened.handle } : {}),
-        lastModified: opened.lastModified, size: opened.size,
+  const addOpenedFile = useCallback(
+    async (opened: Awaited<ReturnType<typeof openDocumentFile>>) => {
+      if (!opened) return;
+      if (opened.kind === "legacy") {
+        await addOpenedDocument({
+          source: opened.source!,
+          fileName: opened.fileName,
+          ...(opened.handle ? { handle: opened.handle } : {}),
+          lastModified: opened.lastModified,
+          size: opened.size,
+        });
+        return;
+      }
+      let decoded;
+      try {
+        decoded = await decodeDocument(opened.bytes);
+      } catch (error) {
+        if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+        const password = window.prompt("This document is encrypted. Enter its password:");
+        if (password === null) return;
+        decoded = await decodeDocument(opened.bytes, { password });
+      }
+      const mapped = mapPortableHistoryToLocal(
+        decoded.document.versions,
+        decoded.contents,
+        opened.fileName,
+        decoded.document.current.baselineVersionId,
+      );
+      const encrypted = Boolean(decoded.unlockedKey);
+      if (encrypted) await enableMemoryOnlyHistory(mapped.historyId);
+      await importDocumentVersions(mapped.versions);
+      const id = tabs.addDocument({
+        historyId: mapped.historyId,
+        source: decoded.document.current.source,
+        diagramKind: decoded.document.current.diagramKind,
+        fileName: opened.fileName,
+        dirty: false,
+        cursor: { line: 1, column: 1 },
+        portableDocumentId: decoded.document.documentId,
+        native: true,
+        encrypted,
+        compression: decoded.compression,
+        historyMaxVersions: decoded.document.historyPolicy.maxVersions,
+        historyMaxLogicalBytes: decoded.document.historyPolicy.maxLogicalBytes,
+        resourceCapacities: decoded.document.settings.resourceCapacities,
+        ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
       });
-      return;
-    }
-    let decoded;
-    try {
-      decoded = await decodeDocument(opened.bytes);
-    } catch (error) {
-      if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
-      const password = window.prompt("This document is encrypted. Enter its password:");
-      if (password === null) return;
-      decoded = await decodeDocument(opened.bytes, { password });
-    }
-    const mapped = mapPortableHistoryToLocal(
-      decoded.document.versions, decoded.contents, opened.fileName, decoded.document.current.baselineVersionId,
-    );
-    const encrypted = Boolean(decoded.unlockedKey);
-    if (encrypted) await enableMemoryOnlyHistory(mapped.historyId);
-    await importDocumentVersions(mapped.versions);
-    const id = tabs.addDocument({
-      historyId: mapped.historyId,
-      source: decoded.document.current.source,
-      diagramKind: decoded.document.current.diagramKind,
-      fileName: opened.fileName,
-      dirty: false,
-      cursor: { line: 1, column: 1 },
-      portableDocumentId: decoded.document.documentId,
-      native: true,
-      encrypted,
-      compression: decoded.compression,
-      historyMaxVersions: decoded.document.historyPolicy.maxVersions,
-      historyMaxLogicalBytes: decoded.document.historyPolicy.maxLogicalBytes,
-      resourceCapacities: decoded.document.settings.resourceCapacities,
-      ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
-    });
-    if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
-    if (opened.handle) fileHandles.current.set(id, opened.handle);
-    refreshHistoryControls();
-    resetSelection();
-    setInteractionMessage(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
-  }, [addOpenedDocument, fileHandles, refreshHistoryControls, resetSelection, setInteractionMessage, tabs]);
+      if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
+      if (opened.handle) {
+        fileHandles.current.set(id, opened.handle);
+        fileSnapshots.current.set(
+          id,
+          await nativeSnapshot(opened.bytes, decoded.document.current.source, opened.lastModified),
+        );
+      }
+      refreshHistoryControls();
+      resetSelection();
+      setInteractionMessage(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
+    },
+    [addOpenedDocument, fileHandles, refreshHistoryControls, resetSelection, setInteractionMessage, tabs],
+  );
 
   const openDocument = useCallback(async () => {
     try {
@@ -215,15 +250,24 @@ export function useDocumentFiles({
       if (!saved) return;
       if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
       else fileHandles.current.delete(tabs.activeId);
-      fileSnapshots.current.delete(tabs.activeId);
+      if (saved.handle) {
+        fileSnapshots.current.set(
+          tabs.activeId,
+          await nativeSnapshot(encoded.bytes, workspace.source, (await saved.handle.getFile()).lastModified),
+        );
+      } else fileSnapshots.current.delete(tabs.activeId);
       tabs.updateDocumentFormat(tabs.activeId, {
-        portableDocumentId: portable.documentId, native: true, fileName: saved.fileName,
+        portableDocumentId: portable.documentId,
+        native: true,
+        fileName: saved.fileName,
       });
       const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
       if (clean) setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
       setInteractionMessage(
         clean
-          ? (saved.downloaded ? `Downloaded snapshot ${saved.fileName}` : `Saved ${saved.fileName}`)
+          ? saved.downloaded
+            ? `Downloaded snapshot ${saved.fileName}`
+            : `Saved ${saved.fileName}`
           : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
       );
     } catch (error) {
@@ -248,6 +292,25 @@ export function useDocumentFiles({
     if (!handle) return saveDocumentAs();
     try {
       const capturedRevision = active.revision ?? 0;
+      const previous = fileSnapshots.current.get(active.id);
+      if (previous?.rawDigest) {
+        const observed = await readDocumentBytes(handle);
+        const observedDigest = await sha256(observed.bytes);
+        if (observedDigest !== previous.rawDigest) {
+          const unlockedKey = documentKey(active.id);
+          const decoded = await decodeDocument(observed.bytes, unlockedKey ? { unlockedKey } : {});
+          setExternalConflict({
+            documentId: active.id,
+            fileName: active.fileName,
+            baseSource: previous.source,
+            localSource: workspace.source,
+            external: await nativeSnapshot(observed.bytes, decoded.document.current.source, observed.lastModified),
+            native: true,
+            decodedNative: decoded,
+          });
+          return;
+        }
+      }
       await recordDocumentVersion("saved");
       const portable = await assemblePortableDocument(
         { ...active, source: workspace.source, fileName: handle.name },
@@ -259,6 +322,10 @@ export function useDocumentFiles({
         ...(unlockedKey ? { unlockedKey } : {}),
       });
       await writeDocumentBytes(handle, encoded.bytes);
+      fileSnapshots.current.set(
+        active.id,
+        await nativeSnapshot(encoded.bytes, workspace.source, (await handle.getFile()).lastModified),
+      );
       const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
       if (clean) setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
       setInteractionMessage(clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`);
@@ -276,58 +343,76 @@ export function useDocumentFiles({
     workspace.source,
   ]);
 
-  const configureDocumentFormat = useCallback(async (settings: {
-    compression: "gzip" | "none";
-    encrypted: boolean;
-    password?: string;
-    maxVersions: number;
-    maxLogicalMiB: number;
-  }) => {
-    const active = tabs.getDocument(tabs.activeId);
-    if (!active) return;
-    const patch: Partial<DocumentSnapshot> = {
-      compression: settings.compression,
-      historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
-      historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
-      dirty: true,
-      revision: (active.revision ?? 0) + 1,
-    };
-    if (!settings.encrypted && active.encrypted) {
-      await disableMemoryOnlyHistory(active.historyId);
-      forgetDocumentKey(active.id);
-      tabs.updateDocumentFormat(active.id, { ...patch, encrypted: false });
-      setInteractionMessage("Password protection disabled; save to write an unencrypted file");
-      return;
-    }
-    if (settings.encrypted && (!active.encrypted || settings.password)) {
-      if (!settings.password) throw new Error("A password is required to enable protection");
-      const next = { ...active, ...patch, source: workspace.source };
-      const portable = await assemblePortableDocument(next, await loadDocumentVersions(active.historyId));
-      const encoded = await encodeDocument(portable, { compression: settings.compression, password: settings.password });
-      const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
-      let fileName = active.fileName;
-      let handle = existingHandle;
-      if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
-      else {
-        const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
-        if (!saved) return;
-        fileName = saved.fileName;
-        handle = saved.handle;
+  const configureDocumentFormat = useCallback(
+    async (settings: {
+      compression: "gzip" | "none";
+      encrypted: boolean;
+      password?: string;
+      maxVersions: number;
+      maxLogicalMiB: number;
+    }) => {
+      const active = tabs.getDocument(tabs.activeId);
+      if (!active) return;
+      const patch: Partial<DocumentSnapshot> = {
+        compression: settings.compression,
+        historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
+        historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
+        dirty: true,
+        revision: (active.revision ?? 0) + 1,
+      };
+      if (!settings.encrypted && active.encrypted) {
+        await disableMemoryOnlyHistory(active.historyId);
+        forgetDocumentKey(active.id);
+        tabs.updateDocumentFormat(active.id, { ...patch, encrypted: false });
+        setInteractionMessage("Password protection disabled; save to write an unencrypted file");
+        return;
       }
-      await enableMemoryOnlyHistory(active.historyId);
-      rememberDocumentKey(active.id, encoded.unlockedKey!);
-      if (handle) fileHandles.current.set(active.id, handle);
-      tabs.updateDocumentFormat(active.id, {
-        ...patch, portableDocumentId: portable.documentId, native: true, encrypted: true, fileName, dirty: false,
-      });
-      setWorkspace((current) => ({ ...current, fileName, dirty: false }));
-      setInteractionMessage("Saved password-protected document");
-      return;
-    }
-    tabs.updateDocumentFormat(active.id, patch);
-    setWorkspace((current) => ({ ...current, dirty: true }));
-    setInteractionMessage("Document settings changed; save to apply them");
-  }, [fileHandles, setInteractionMessage, setWorkspace, tabs, workspace.source]);
+      if (settings.encrypted && (!active.encrypted || settings.password)) {
+        if (!settings.password) throw new Error("A password is required to enable protection");
+        const next = { ...active, ...patch, source: workspace.source };
+        const portable = await assemblePortableDocument(next, await loadDocumentVersions(active.historyId));
+        const encoded = await encodeDocument(portable, {
+          compression: settings.compression,
+          password: settings.password,
+        });
+        const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
+        let fileName = active.fileName;
+        let handle = existingHandle;
+        if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
+        else {
+          const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
+          if (!saved) return;
+          fileName = saved.fileName;
+          handle = saved.handle;
+        }
+        await removePersistedDocument(active.id);
+        await enableMemoryOnlyHistory(active.historyId);
+        rememberDocumentKey(active.id, encoded.unlockedKey!);
+        if (handle) {
+          fileHandles.current.set(active.id, handle);
+          fileSnapshots.current.set(
+            active.id,
+            await nativeSnapshot(encoded.bytes, workspace.source, (await handle.getFile()).lastModified),
+          );
+        }
+        tabs.updateDocumentFormat(active.id, {
+          ...patch,
+          portableDocumentId: portable.documentId,
+          native: true,
+          encrypted: true,
+          fileName,
+          dirty: false,
+        });
+        setWorkspace((current) => ({ ...current, fileName, dirty: false }));
+        setInteractionMessage("Saved password-protected document");
+        return;
+      }
+      tabs.updateDocumentFormat(active.id, patch);
+      setWorkspace((current) => ({ ...current, dirty: true }));
+      setInteractionMessage("Document settings changed; save to apply them");
+    },
+    [fileHandles, setInteractionMessage, setWorkspace, tabs, workspace.source],
+  );
 
   const checkExternalFiles = useCallback(async () => {
     if (checkingExternalFiles.current || document.visibilityState === "hidden") return;
@@ -408,17 +493,64 @@ export function useDocumentFiles({
 
   const keepLocalExternalConflict = useCallback(() => {
     if (!externalConflict) return;
+    if (externalConflict.native) {
+      setExternalConflict(undefined);
+      void saveDocumentAs();
+      return;
+    }
     fileSnapshots.current.set(externalConflict.documentId, externalConflict.external);
     externalCheckSnoozedUntil.current.delete(externalConflict.documentId);
     setExternalConflict(undefined);
     setInteractionMessage(`Kept local changes for ${externalConflict.fileName}`);
-  }, [externalCheckSnoozedUntil, externalConflict, fileSnapshots, setInteractionMessage]);
+  }, [externalCheckSnoozedUntil, externalConflict, fileSnapshots, saveDocumentAs, setInteractionMessage]);
 
   const reloadExternalConflict = useCallback(async () => {
     if (!externalConflict) return;
     const documentSnapshot = tabs.documents.find((item) => item.id === externalConflict.documentId);
     if (!documentSnapshot) return setExternalConflict(undefined);
     try {
+      if (externalConflict.decodedNative) {
+        if (documentSnapshot.dirty) {
+          const copyHistoryId = `history-${crypto.randomUUID()}`;
+          tabs.addDocument({
+            ...documentSnapshot,
+            historyId: copyHistoryId,
+            fileName: `Local copy of ${documentSnapshot.fileName}`,
+            dirty: true,
+          });
+          await recordDocumentVersion("manual", "Preserved before external reload", {
+            historyId: copyHistoryId,
+            source: documentSnapshot.source,
+            fileName: documentSnapshot.fileName,
+            diagramKind: documentSnapshot.diagramKind,
+          });
+        }
+        const decoded = externalConflict.decodedNative;
+        const mapped = mapPortableHistoryToLocal(
+          decoded.document.versions,
+          decoded.contents,
+          externalConflict.fileName,
+          decoded.document.current.baselineVersionId,
+        );
+        if (decoded.unlockedKey) await enableMemoryOnlyHistory(mapped.historyId);
+        await importDocumentVersions(mapped.versions);
+        tabs.setDocumentHistoryId(documentSnapshot.id, mapped.historyId);
+        tabs.setDocumentBaselineVersionId(documentSnapshot.id, mapped.baselineVersionId);
+        tabs.updateDocumentFormat(documentSnapshot.id, {
+          source: decoded.document.current.source,
+          diagramKind: decoded.document.current.diagramKind,
+          portableDocumentId: decoded.document.documentId,
+          compression: decoded.compression,
+          encrypted: Boolean(decoded.unlockedKey),
+          resourceCapacities: decoded.document.settings.resourceCapacities,
+          dirty: false,
+        });
+        if (decoded.unlockedKey) rememberDocumentKey(documentSnapshot.id, decoded.unlockedKey);
+        fileSnapshots.current.set(documentSnapshot.id, externalConflict.external);
+        setExternalConflict(undefined);
+        setInteractionMessage(`Reloaded external portable document ${externalConflict.fileName}`);
+        return;
+      }
       await recordDocumentVersion("before-restore", "Before external reload", {
         historyId: documentSnapshot.historyId,
         source: documentSnapshot.source,

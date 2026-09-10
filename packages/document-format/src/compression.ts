@@ -58,7 +58,8 @@ export async function decompressPayload(
     const input = new Blob([Uint8Array.from(bytes).buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
     return await collect(input, DOCUMENT_LIMITS.maxDecompressedBytes, signal);
   } catch (error) {
-    if (error instanceof DocumentFormatError || (error instanceof DOMException && error.name === "AbortError")) throw error;
+    if (error instanceof DocumentFormatError || (error instanceof DOMException && error.name === "AbortError"))
+      throw error;
     throw new DocumentFormatError("invalid-file", "Invalid gzip payload");
   }
 }

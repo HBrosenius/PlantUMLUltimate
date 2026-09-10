@@ -26,10 +26,14 @@ describe("planRetention", () => {
   });
 
   it("protects and remaps the baseline and nearest retained parent", () => {
-    const result = planRetention([version(0), version(1), version(2), version(3)], {
-      maxVersions: 2,
-      maxLogicalBytes: 1024 * 1024,
-    }, version(1).id);
+    const result = planRetention(
+      [version(0), version(1), version(2), version(3)],
+      {
+        maxVersions: 2,
+        maxLogicalBytes: 1024 * 1024,
+      },
+      version(1).id,
+    );
     expect(result.retained.map((item) => item.sequence)).toEqual([1, 3]);
     expect(result.retained[1]).toMatchObject({ parentVersionId: version(1).id, ancestryTruncated: true });
   });

@@ -8,6 +8,7 @@ import {
   type DocumentSnapshot,
   type WorkspaceSession,
   type WorkspaceSnapshot,
+  startMemoryOnlyHistory,
 } from "./workspace-storage";
 
 export function usePersistedWorkspace() {
@@ -113,6 +114,7 @@ export function usePersistedWorkspace() {
         fileName: `Copy of ${original.fileName}`,
         dirty: true,
       };
+      if (copy.encrypted) startMemoryOnlyHistory(copy.historyId);
       const documents = [...current.documents];
       documents.splice(index + 1, 0, copy);
       return { ...current, documents, activeDocumentId: nextId };
@@ -185,10 +187,13 @@ export function usePersistedWorkspace() {
   const updateDocumentFormat = useCallback((id: string, patch: Partial<DocumentSnapshot>) => {
     setSession((current) => ({
       ...current,
-      documents: current.documents.map((document) => document.id === id ? { ...document, ...patch } : document),
+      documents: current.documents.map((document) => (document.id === id ? { ...document, ...patch } : document)),
     }));
   }, []);
-  const getDocument = useCallback((id: string) => sessionRef.current.documents.find((document) => document.id === id), []);
+  const getDocument = useCallback(
+    (id: string) => sessionRef.current.documents.find((document) => document.id === id),
+    [],
+  );
 
   const controls = useMemo(
     () => ({

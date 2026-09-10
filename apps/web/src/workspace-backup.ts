@@ -47,7 +47,9 @@ export function serializeWorkspaceBackup(
   const versions = typeof versionsOrCreatedAt === "string" ? [] : versionsOrCreatedAt;
   const createdAt =
     typeof versionsOrCreatedAt === "string" ? versionsOrCreatedAt : (createdAtOverride ?? new Date().toISOString());
-  const encryptedHistoryIds = new Set(session.documents.filter((document) => document.encrypted).map((document) => document.historyId));
+  const encryptedHistoryIds = new Set(
+    session.documents.filter((document) => document.encrypted).map((document) => document.historyId),
+  );
   const safeSession = {
     ...session,
     documents: session.documents.filter((document) => !document.encrypted),

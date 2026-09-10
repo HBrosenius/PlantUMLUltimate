@@ -17,7 +17,9 @@ export function useResourceCapacities(
     }
   });
   useEffect(() => {
-    const persistable = memoryOnly ? Object.fromEntries(Object.entries(byDocument).filter(([id]) => id !== documentId)) : byDocument;
+    const persistable = memoryOnly
+      ? Object.fromEntries(Object.entries(byDocument).filter(([id]) => id !== documentId))
+      : byDocument;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
   }, [byDocument, documentId, memoryOnly]);
   const update = useCallback(

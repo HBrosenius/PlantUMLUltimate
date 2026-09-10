@@ -16,7 +16,10 @@ function handle(name = "plan.puml", source = "@startgantt\n@endgantt") {
   const close = vi.fn(async () => undefined);
   const value: WritableFileHandle = {
     name,
-    getFile: vi.fn(async () => ({ name, text: async () => source, arrayBuffer: async () => new TextEncoder().encode(source).buffer }) as File),
+    getFile: vi.fn(
+      async () =>
+        ({ name, text: async () => source, arrayBuffer: async () => new TextEncoder().encode(source).buffer }) as File,
+    ),
     createWritable: vi.fn(async () => ({ write, close })),
   };
   return { value, write, close };

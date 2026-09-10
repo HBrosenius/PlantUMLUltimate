@@ -13,6 +13,7 @@ The benchmark suite covers:
 - generated projects containing 50, 100, 500, and 1,000 tasks;
 - a dependency-heavy chain containing 500 tasks;
 - parsing, schedule resolution, local fallback rendering, task movement, and task reordering.
+- portable-document hybrid history encoding with gzip for 10 KiB × 10 and 100 KiB × 100 revision corpora.
 
 ## Reference environment
 
@@ -26,6 +27,8 @@ The initial baseline was measured on 2026-09-09 using Node.js 22 on an Apple Sil
 | Move one task in 1,000 tasks                  |    0.0006 ms |
 | Reorder one task in 1,000 tasks               |    0.0075 ms |
 | Parse and resolve a 500-task dependency chain |      2.45 ms |
+| Encode 10 KiB × 10 portable history + gzip    |      0.34 ms |
+| Encode 100 KiB × 100 portable history + gzip  |     12.59 ms |
 
 Performance results vary across operating systems, CPU power states, Node.js versions, and concurrent workloads. CI correctness jobs must not fail on raw wall-clock thresholds. Compare results on the same machine and runtime, with other heavy work stopped.
 

@@ -14,6 +14,7 @@ import {
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
+  removePersistedDocument,
   updateDocumentVersion,
   type WorkspaceSession,
 } from "./workspace-storage";
@@ -188,6 +189,20 @@ describe("workspace persistence", () => {
     };
     await saveWorkspace(session);
     await expect(loadWorkspace()).resolves.toEqual(session);
+  });
+
+  it("removes plaintext for a document before encryption is claimed", async () => {
+    const privateDocument = {
+      ...DEFAULT_SESSION.documents[0]!,
+      id: "private",
+      source: "PRIVATE-PERSISTENCE-SENTINEL",
+      fileName: "private.pumlu",
+    };
+    await saveWorkspace({ ...DEFAULT_SESSION, documents: [DEFAULT_SESSION.documents[0]!, privateDocument] });
+    await removePersistedDocument(privateDocument.id);
+    const persisted = await loadWorkspace();
+    expect(persisted.documents).toHaveLength(1);
+    expect(JSON.stringify(persisted)).not.toContain("PRIVATE-PERSISTENCE-SENTINEL");
   });
 });
 

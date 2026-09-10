@@ -35,7 +35,8 @@ function spliceRecord(id: string, source: Uint8Array, baseId: string, base: Uint
     suffix < source.length - prefix &&
     suffix < base.length - prefix &&
     source[source.length - suffix - 1] === base[base.length - suffix - 1]
-  ) suffix += 1;
+  )
+    suffix += 1;
   const insert = source.slice(prefix, source.length - suffix);
   const full = { id, kind: "full" as const, source: UTF8_FATAL.decode(source), byteLength: source.length };
   const splice = {
@@ -72,9 +73,10 @@ export async function encodeContentHistory(sources: readonly string[]): Promise<
       continue;
     }
     const previous = previousId ? known.get(previousId) : undefined;
-    const record = previous && previous.depth < DOCUMENT_LIMITS.maxDeltaDepth
-      ? spliceRecord(id, bytes, previousId!, previous.bytes)
-      : { id, kind: "full" as const, source, byteLength: bytes.length };
+    const record =
+      previous && previous.depth < DOCUMENT_LIMITS.maxDeltaDepth
+        ? spliceRecord(id, bytes, previousId!, previous.bytes)
+        : { id, kind: "full" as const, source, byteLength: bytes.length };
     contents.push(record);
     known.set(id, { bytes, depth: record.kind === "splice" ? previous!.depth + 1 : 0 });
     previousId = id;

@@ -4,9 +4,15 @@ import { DocumentFormatClient } from "./format-client";
 class FakeWorker {
   messages: unknown[] = [];
   listener: ((event: MessageEvent<any>) => void) | undefined;
-  postMessage(message: unknown): void { this.messages.push(message); }
-  addEventListener(_type: "message", listener: (event: MessageEvent<any>) => void): void { this.listener = listener; }
-  removeEventListener(): void { this.listener = undefined; }
+  postMessage(message: unknown): void {
+    this.messages.push(message);
+  }
+  addEventListener(_type: "message", listener: (event: MessageEvent<any>) => void): void {
+    this.listener = listener;
+  }
+  removeEventListener(): void {
+    this.listener = undefined;
+  }
 }
 
 describe("DocumentFormatClient", () => {

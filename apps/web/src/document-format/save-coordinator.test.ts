@@ -8,14 +8,24 @@ describe("SaveCoordinator", () => {
     const revision = 2;
     const first = coordinator.save(
       { documentId: "document", revision: 1, value: "old" },
-      async (value) => { events.push(`encode:${value}`); return new TextEncoder().encode(value); },
-      async () => { events.push("write:old"); },
+      async (value) => {
+        events.push(`encode:${value}`);
+        return new TextEncoder().encode(value);
+      },
+      async () => {
+        events.push("write:old");
+      },
       () => revision,
     );
     const second = coordinator.save(
       { documentId: "document", revision: 2, value: "new" },
-      async (value) => { events.push(`encode:${value}`); return new TextEncoder().encode(value); },
-      async () => { events.push("write:new"); },
+      async (value) => {
+        events.push(`encode:${value}`);
+        return new TextEncoder().encode(value);
+      },
+      async () => {
+        events.push("write:new");
+      },
       () => revision,
     );
     await expect(first).resolves.toMatchObject({ clean: false });

@@ -21,9 +21,12 @@ describe("portable content codec", () => {
   it("rejects malformed ranges, hashes, and delta chains", async () => {
     const encoded = await encodeContentHistory(["a".repeat(2_000), `${"a".repeat(2_000)}x`]);
     const splice = encoded.contents.find((record) => record.kind === "splice")!;
-    const malformed = encoded.contents.map((record) => record === splice ? { ...splice, prefixBytes: 9999 } : record);
-    await expect(reconstructContents(malformed)).rejects.toMatchObject({ code: "invalid-file" } satisfies Partial<DocumentFormatError>);
-    await expect(reconstructContents([{ id: "0".repeat(64), kind: "full", source: "wrong", byteLength: 5 }]))
-      .rejects.toMatchObject({ code: "invalid-file" });
+    const malformed = encoded.contents.map((record) => (record === splice ? { ...splice, prefixBytes: 9999 } : record));
+    await expect(reconstructContents(malformed)).rejects.toMatchObject({
+      code: "invalid-file",
+    } satisfies Partial<DocumentFormatError>);
+    await expect(
+      reconstructContents([{ id: "0".repeat(64), kind: "full", source: "wrong", byteLength: 5 }]),
+    ).rejects.toMatchObject({ code: "invalid-file" });
   });
 });

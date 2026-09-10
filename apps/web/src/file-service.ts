@@ -28,6 +28,8 @@ export interface FileSnapshot {
   source: string;
   lastModified: number;
   size: number;
+  rawDigest?: string;
+  native?: boolean;
 }
 
 export interface OpenedFileBytes {
@@ -144,15 +146,21 @@ function fallbackDocumentUpload(): Promise<OpenedFileBytes | undefined> {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return resolve(undefined);
-      void file.arrayBuffer().then((buffer) => {
-        const bytes = new Uint8Array(buffer);
-        const native = isPortableDocument(bytes);
-        resolve({
-          kind: native ? "native" : "legacy", bytes,
-          ...(native ? {} : { source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) }),
-          fileName: file.name, lastModified: file.lastModified, size: file.size,
-        });
-      }, () => resolve(undefined));
+      void file.arrayBuffer().then(
+        (buffer) => {
+          const bytes = new Uint8Array(buffer);
+          const native = isPortableDocument(bytes);
+          resolve({
+            kind: native ? "native" : "legacy",
+            bytes,
+            ...(native ? {} : { source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) }),
+            fileName: file.name,
+            lastModified: file.lastModified,
+            size: file.size,
+          });
+        },
+        () => resolve(undefined),
+      );
     };
     input.click();
   });

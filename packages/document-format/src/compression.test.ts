@@ -11,6 +11,8 @@ describe("compression adapters", () => {
     await expect(decompressPayload(new Uint8Array([1, 2, 3]), "gzip")).rejects.toMatchObject({ code: "invalid-file" });
     const controller = new AbortController();
     controller.abort();
-    await expect(compressPayload(new Uint8Array(), "gzip", controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+    await expect(compressPayload(new Uint8Array(), "gzip", controller.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    });
   });
 });

@@ -427,7 +427,10 @@ export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC
   const memory = memoryOnlyHistories.get(historyId);
   if (memory) {
     const expiredIds = new Set(expired.map((version) => version.id));
-    memoryOnlyHistories.set(historyId, memory.filter((version) => !expiredIds.has(version.id)));
+    memoryOnlyHistories.set(
+      historyId,
+      memory.filter((version) => !expiredIds.has(version.id)),
+    );
     return expired.length;
   }
   const database = await openDatabase();
@@ -485,8 +488,10 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
   const persistable = {
     ...snapshot,
     documents: snapshot.documents.filter((document) => !document.encrypted),
-    activeDocumentId: snapshot.documents.find((document) => document.id === snapshot.activeDocumentId && !document.encrypted)?.id ??
-      snapshot.documents.find((document) => !document.encrypted)?.id ?? "",
+    activeDocumentId:
+      snapshot.documents.find((document) => document.id === snapshot.activeDocumentId && !document.encrypted)?.id ??
+      snapshot.documents.find((document) => !document.encrypted)?.id ??
+      "",
   };
   try {
     const database = await openDatabase();
@@ -515,6 +520,47 @@ export async function enableMemoryOnlyHistory(historyId: string): Promise<void> 
   });
   database.close();
   memoryOnlyHistories.set(historyId, versions);
+}
+
+export function startMemoryOnlyHistory(historyId: string): void {
+  if (!memoryOnlyHistories.has(historyId)) memoryOnlyHistories.set(historyId, []);
+}
+
+export async function removePersistedDocument(documentId: string): Promise<void> {
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE, "readwrite");
+    const store = transaction.objectStore(STORE);
+    const request = store.get(CURRENT);
+    request.onsuccess = () => {
+      const session = request.result as WorkspaceSession | undefined;
+      if (session) {
+        const documents = session.documents.filter((document) => document.id !== documentId);
+        store.put(
+          {
+            ...session,
+            documents,
+            activeDocumentId:
+              documents.find((item) => item.id === session.activeDocumentId)?.id ?? documents[0]?.id ?? "",
+          },
+          CURRENT,
+        );
+      }
+    };
+    request.onerror = () => reject(request.error ?? new Error("Could not remove persisted plaintext document"));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove persisted plaintext document"));
+  });
+  database.close();
+  const fallback = globalThis.localStorage?.getItem(LEGACY_KEY);
+  if (fallback) {
+    const session = normalizeSession(JSON.parse(fallback));
+    const documents = session.documents.filter((document) => document.id !== documentId);
+    globalThis.localStorage.setItem(
+      LEGACY_KEY,
+      JSON.stringify({ ...session, documents, activeDocumentId: documents[0]?.id ?? "" }),
+    );
+  }
 }
 
 export function discardMemoryOnlyHistory(historyId: string): void {

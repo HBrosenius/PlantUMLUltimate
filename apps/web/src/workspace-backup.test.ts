@@ -77,11 +77,20 @@ describe("workspace backups", () => {
     };
     const backup = serializeWorkspaceBackup(
       { ...DEFAULT_SESSION, documents: [DEFAULT_SESSION.documents[0]!, encrypted] },
-      [{
-        id: "private-version", historyId: encrypted.historyId, source: sentinel,
-        sourceHash: "hash", fileName: encrypted.fileName, diagramKind: "gantt",
-        createdAt: "2026-09-09T12:00:00.000Z", reason: "manual", label: "PRIVATE-LABEL", pinned: true,
-      }],
+      [
+        {
+          id: "private-version",
+          historyId: encrypted.historyId,
+          source: sentinel,
+          sourceHash: "hash",
+          fileName: encrypted.fileName,
+          diagramKind: "gantt",
+          createdAt: "2026-09-09T12:00:00.000Z",
+          reason: "manual",
+          label: "PRIVATE-LABEL",
+          pinned: true,
+        },
+      ],
     );
     expect(backup).not.toContain(sentinel);
     expect(backup).not.toContain("PRIVATE-LABEL");

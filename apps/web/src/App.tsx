@@ -1452,17 +1452,15 @@ export function App() {
     setInteractionMessage,
   });
 
-  const exportSource = useCallback(
-    () => {
-      if (
-        activeDocument.encrypted &&
-        !window.confirm("This export is plaintext and is not password protected. Continue?")
-      ) return;
-      downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
-      setInteractionMessage("Exported PlantUML source (plaintext)");
-    },
-    [activeDocument.encrypted, workspace.fileName, workspace.source],
-  );
+  const exportSource = useCallback(() => {
+    if (
+      activeDocument.encrypted &&
+      !window.confirm("This export is plaintext and is not password protected. Continue?")
+    )
+      return;
+    downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
+    setInteractionMessage("Exported PlantUML source (plaintext)");
+  }, [activeDocument.encrypted, workspace.fileName, workspace.source]);
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
@@ -4127,7 +4125,14 @@ export function App() {
             maxVersions: activeDocument.historyMaxVersions ?? 100,
             maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
           }}
-          onApply={configureDocumentFormat}
+          onApply={async (settings) => {
+            try {
+              await configureDocumentFormat(settings);
+            } catch (error) {
+              reportFileError(error);
+              throw error;
+            }
+          }}
           onClose={() => setDocumentSettingsOpen(false)}
         />
       )}
@@ -4137,6 +4142,7 @@ export function App() {
           baseSource={externalConflict.baseSource}
           localSource={externalConflict.localSource}
           externalSource={externalConflict.external.source}
+          native={externalConflict.native === true}
           onMerge={(source) => void applyExternalConflictMerge(source)}
           onReload={() => void reloadExternalConflict()}
           onKeepLocal={keepLocalExternalConflict}
