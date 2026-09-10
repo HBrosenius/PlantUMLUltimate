@@ -10,9 +10,9 @@
     "types": "wrangler types src/worker-configuration.d.ts --include-runtime false"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.1.2",
+    "@cloudflare/vitest-plugin": "^1.1.7",
     "@cloudflare/workers-types": "^5.20260901.1",
     "@types/node": "^24.3.0",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.131.0"
   }
 }
