@@ -180,6 +180,8 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(menu.getByRole("menuitem")).toHaveText([
     "New",
     "Open…",
+    "Open project…",
+    "Open ZIP project…",
     "Save",
     "Save As…",
     "Version history…",
