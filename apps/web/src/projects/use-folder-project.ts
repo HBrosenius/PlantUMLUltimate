@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, type Dispatch, type SetStateAction } fro
 import type { DocumentSnapshot } from "../workspace-storage";
 import { readFolderProject, type FolderProject, type ProjectDirectoryHandle } from "./folder-project";
 import { createZipProjectSnapshot, readZipProject, type ZipProject } from "./zip-project";
+import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -130,12 +131,23 @@ export function useFolderProject({
     }
   }, [project, reportError, setInteractionMessage, tabs.documents]);
 
+  const updateLinks = useCallback((links: readonly ProjectLink[]) => {
+    setProject((current) => (current ? { ...current, manifest: { ...current.manifest, links: [...links] } } : current));
+  }, []);
+  const updateElements = useCallback((elements: readonly ProjectElement[]) => {
+    setProject((current) =>
+      current ? { ...current, manifest: { ...current.manifest, elements: [...elements] } } : current,
+    );
+  }, []);
+
   return {
     project,
     openProject,
     openZipProject,
     saveZipProject,
     openMember,
+    updateLinks,
+    updateElements,
     closeProject: () => setProject(undefined),
   };
 }

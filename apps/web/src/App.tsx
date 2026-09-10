@@ -1454,7 +1454,16 @@ export function App() {
     reportError: reportFileError,
     setInteractionMessage,
   });
-  const { project, openProject, openZipProject, saveZipProject, openMember, closeProject } = useFolderProject({
+  const {
+    project,
+    openProject,
+    openZipProject,
+    saveZipProject,
+    openMember,
+    closeProject,
+    updateLinks,
+    updateElements,
+  } = useFolderProject({
     tabs,
     resetSelection: resetFileSelection,
     setInteractionMessage,
@@ -4083,7 +4092,15 @@ export function App() {
           onClose={() => setProjectInspectorOpen(false)}
         />
       )}
-      {project && <ProjectNavigator project={project} onOpen={openMember} onClose={closeProject} />}
+      {project && (
+        <ProjectNavigator
+          project={project}
+          onOpen={openMember}
+          onClose={closeProject}
+          onLinksChange={updateLinks}
+          onElementsChange={updateElements}
+        />
+      )}
       {sequenceSettingsOpen && (
         <SequenceSettingsInspector
           settings={parseSequenceSettings(workspace.source)}

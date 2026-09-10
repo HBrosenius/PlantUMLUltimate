@@ -1,13 +1,19 @@
+import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
 import type { VirtualProject } from "./project-index";
+import { ProjectLinksPanel } from "./ProjectLinksPanel";
 
 export function ProjectNavigator({
   project,
   onOpen,
   onClose,
+  onLinksChange,
+  onElementsChange,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
   onClose(): void;
+  onLinksChange(links: readonly ProjectLink[]): void;
+  onElementsChange(elements: readonly ProjectElement[]): void;
 }) {
   return (
     <aside className="project-navigator" aria-label="Project navigator">
@@ -34,6 +40,12 @@ export function ProjectNavigator({
           </li>
         ))}
       </ul>
+      <ProjectLinksPanel
+        project={project}
+        onChange={onLinksChange}
+        onElementsChange={onElementsChange}
+        onOpenDocument={onOpen}
+      />
     </aside>
   );
 }
