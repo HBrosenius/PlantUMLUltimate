@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useDialogFocus } from "./use-dialog-focus";
 
 export interface DocumentFormatSettings {
   compression: "gzip" | "none";
@@ -17,6 +18,8 @@ export function DocumentSettingsDialog({
   onApply(settings: DocumentFormatSettings): Promise<void>;
   onClose(): void;
 }) {
+  const dialog = useRef<HTMLFormElement>(null);
+  useDialogFocus(dialog, onClose);
   const [compression, setCompression] = useState(current.compression);
   const [encrypted, setEncrypted] = useState(current.encrypted);
   const [password, setPassword] = useState("");
@@ -29,7 +32,8 @@ export function DocumentSettingsDialog({
   return (
     <div className="modal-backdrop" role="presentation">
       <form
-        className="small-dialog"
+        ref={dialog}
+        className="document-settings-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Document settings"
