@@ -6,6 +6,7 @@ interface WorkspaceBackup {
   createdAt: string;
   session: WorkspaceSession;
   versions?: DocumentVersion[];
+  omittedEncryptedDocuments?: number;
 }
 
 const VERSION_REASONS = new Set(["opened", "saved", "manual", "before-restore", "restored", "collaboration"]);
@@ -17,6 +18,7 @@ function validVersion(value: unknown, historyIds: ReadonlySet<string>): value is
   return Boolean(
     typeof version.id === "string" &&
     version.id &&
+    (version.portableId === undefined || typeof version.portableId === "string") &&
     typeof version.historyId === "string" &&
     historyIds.has(version.historyId) &&
     typeof version.source === "string" &&
@@ -45,13 +47,26 @@ export function serializeWorkspaceBackup(
   const versions = typeof versionsOrCreatedAt === "string" ? [] : versionsOrCreatedAt;
   const createdAt =
     typeof versionsOrCreatedAt === "string" ? versionsOrCreatedAt : (createdAtOverride ?? new Date().toISOString());
+  const encryptedHistoryIds = new Set(
+    session.documents.filter((document) => document.encrypted).map((document) => document.historyId),
+  );
+  const safeSession = {
+    ...session,
+    documents: session.documents.filter((document) => !document.encrypted),
+    activeDocumentId: session.documents.some(
+      (document) => document.id === session.activeDocumentId && !document.encrypted,
+    )
+      ? session.activeDocumentId
+      : (session.documents.find((document) => !document.encrypted)?.id ?? ""),
+  };
   return JSON.stringify(
     {
       kind: "plantuml-studio-workspace",
       version: 2,
       createdAt,
-      session,
-      versions: [...versions],
+      session: safeSession,
+      versions: versions.filter((version) => !encryptedHistoryIds.has(version.historyId)),
+      omittedEncryptedDocuments: encryptedHistoryIds.size,
     } satisfies WorkspaceBackup,
     null,
     2,

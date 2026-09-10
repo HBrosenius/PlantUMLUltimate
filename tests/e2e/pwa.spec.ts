@@ -31,6 +31,10 @@ test("opens a PlantUML file delivered by the installed app launch queue", async 
           getFile: async () => ({
             name: "launched.plantuml",
             text: async () => "@startuml\nAlice -> Bob: Opened from Windows\n@enduml",
+            arrayBuffer: async () =>
+              new TextEncoder().encode("@startuml\nAlice -> Bob: Opened from Windows\n@enduml").buffer,
+            lastModified: 1,
+            size: 55,
           }),
           createWritable: async () => ({ write: async () => undefined, close: async () => undefined }),
         },

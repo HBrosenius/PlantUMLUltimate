@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
@@ -38,9 +38,9 @@ describe("useDialogFocus", () => {
     await waitFor(() => expect(first).toHaveFocus());
 
     last.focus();
-    await user.keyboard("{Tab}");
+    fireEvent.keyDown(last, { key: "Tab" });
     expect(first).toHaveFocus();
-    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
     expect(last).toHaveFocus();
 
     await user.keyboard("{Escape}");

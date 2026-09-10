@@ -62,6 +62,7 @@ import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnosti
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
+import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
@@ -126,6 +127,7 @@ import {
   downloadSvgAsPng,
   downloadText,
   svgFileName,
+  plantUmlFileName,
   type WritableFileHandle,
   type FileSnapshot,
 } from "./file-service";
@@ -299,6 +301,7 @@ function diagramFocusSelector(target: Element): string | undefined {
 export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
+  const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const {
     selectedTaskId,
     setSelectedTaskId,
@@ -373,6 +376,7 @@ export function App() {
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<{
     source: string;
     diagnostics: ReturnType<typeof diagnosticsForDiagram>;
@@ -412,7 +416,12 @@ export function App() {
     capacities: resourceCapacities,
     updateCapacities: updateResourceCapacities,
     renameCapacity,
-  } = useResourceCapacities(tabs.activeId);
+  } = useResourceCapacities(
+    tabs.activeId,
+    activeDocument.resourceCapacities ?? {},
+    activeDocument.encrypted === true,
+    (capacities) => tabs.updateDocumentFormat(tabs.activeId, { resourceCapacities: capacities, dirty: true }),
+  );
   const {
     status,
     result,
@@ -607,7 +616,6 @@ export function App() {
     });
     return true;
   }, []);
-  const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const reportFileError = useCallback((error: unknown) => {
     setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
   }, []);
@@ -1394,8 +1402,8 @@ export function App() {
     setVersionHistoryOpen,
     documentVersions,
     baselineVersion,
-    clearBaseline,
     setBaseline,
+    clearBaseline,
     recordDocumentVersion,
     openVersionHistory,
     editDocumentVersion,
@@ -1429,6 +1437,7 @@ export function App() {
     reloadExternalConflict,
     openExternalConflictCopy,
     applyExternalConflictMerge,
+    configureDocumentFormat,
   } = useDocumentFiles({
     hydrated,
     workspace,
@@ -1437,7 +1446,6 @@ export function App() {
     fileHandles,
     fileSnapshots,
     externalCheckSnoozedUntil,
-    clearBaseline,
     recordDocumentVersion,
     refreshHistoryControls,
     resetSelection: resetFileSelection,
@@ -1445,10 +1453,15 @@ export function App() {
     setInteractionMessage,
   });
 
-  const exportSource = useCallback(
-    () => downloadText(workspace.source, workspace.fileName, "text/plain;charset=utf-8"),
-    [workspace.fileName, workspace.source],
-  );
+  const exportSource = useCallback(() => {
+    if (
+      activeDocument.encrypted &&
+      !window.confirm("This export is plaintext and is not password protected. Continue?")
+    )
+      return;
+    downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
+    setInteractionMessage("Exported PlantUML source (plaintext)");
+  }, [activeDocument.encrypted, workspace.fileName, workspace.source]);
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
@@ -3192,6 +3205,7 @@ export function App() {
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}
+            onDocumentSettings={() => setDocumentSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
@@ -4130,12 +4144,32 @@ export function App() {
           onClose={() => setVersionHistoryOpen(false)}
         />
       )}
+      {documentSettingsOpen && (
+        <DocumentSettingsDialog
+          current={{
+            compression: activeDocument.compression ?? "gzip",
+            encrypted: activeDocument.encrypted === true,
+            maxVersions: activeDocument.historyMaxVersions ?? 100,
+            maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
+          }}
+          onApply={async (settings) => {
+            try {
+              await configureDocumentFormat(settings);
+            } catch (error) {
+              reportFileError(error);
+              throw error;
+            }
+          }}
+          onClose={() => setDocumentSettingsOpen(false)}
+        />
+      )}
       {externalConflict && (
         <ExternalFileConflictDialog
           fileName={externalConflict.fileName}
           baseSource={externalConflict.baseSource}
           localSource={externalConflict.localSource}
           externalSource={externalConflict.external.source}
+          native={externalConflict.native === true}
           onMerge={(source) => void applyExternalConflictMerge(source)}
           onReload={() => void reloadExternalConflict()}
           onKeepLocal={keepLocalExternalConflict}

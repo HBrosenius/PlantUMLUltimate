@@ -807,24 +807,31 @@ test("keeps the last valid drag position when pointer capture is lost", async ({
   expect(friday).not.toBeNull();
   expect(monday).not.toBeNull();
   expect(bar).not.toBeNull();
-  const delta = friday!.x + friday!.width / 2 - (monday!.x + monday!.width / 2);
   const startX = bar!.x + bar!.width / 2;
   const startY = bar!.y + bar!.height / 2;
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.evaluate(
-    ({ clientX, clientY }) =>
+    ({ startX, clientY }) => {
+      const center = (selector: string) => {
+        const rect = document.querySelector(selector)!.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const delta =
+        center('[data-timeline-header="top"][data-timeline-date="2026-09-04"]') -
+        center('[data-timeline-header="top"][data-timeline-date="2026-09-07"]');
       window.dispatchEvent(
         new PointerEvent("pointermove", {
           bubbles: true,
           buttons: 1,
-          clientX,
+          clientX: startX + delta,
           clientY,
           pointerId: 1,
           pointerType: "mouse",
         }),
-      ),
-    { clientX: startX + delta, clientY: startY },
+      );
+    },
+    { startX, clientY: startY },
   );
   await expect(page.locator(".interaction-feedback")).toHaveText("Move -3 days");
   await task.dispatchEvent("lostpointercapture", { clientX: 0, clientY: 0 });

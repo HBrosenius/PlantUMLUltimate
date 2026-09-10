@@ -132,7 +132,7 @@ export function useWorkspaceDocuments({
       tabs.addDocument({
         diagramKind,
         source: starterSource(diagramKind),
-        fileName: "untitled.puml",
+        fileName: "untitled.pumlu",
         dirty: false,
         cursor: { line: 1, column: 1 },
       });

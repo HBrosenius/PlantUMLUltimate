@@ -14,6 +14,7 @@ import {
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
+  removePersistedDocument,
   updateDocumentVersion,
   type WorkspaceSession,
 } from "./workspace-storage";
@@ -29,7 +30,7 @@ it("closes Saturday and Sunday in new diagrams by default", () => {
 describe("normalizeWorkspace", () => {
   it("fills fields added after an older snapshot", () => {
     const workspace = normalizeWorkspace({ source: "@startgantt\n@endgantt", viewMode: "code" });
-    expect(workspace.fileName).toBe("untitled.puml");
+    expect(workspace.fileName).toBe("untitled.pumlu");
     expect(workspace.cursor).toEqual({ line: 1, column: 1 });
     expect(workspace.viewMode).toBe("code");
   });
@@ -189,10 +190,24 @@ describe("workspace persistence", () => {
     await saveWorkspace(session);
     await expect(loadWorkspace()).resolves.toEqual(session);
   });
+
+  it("removes plaintext for a document before encryption is claimed", async () => {
+    const privateDocument = {
+      ...DEFAULT_SESSION.documents[0]!,
+      id: "private",
+      source: "PRIVATE-PERSISTENCE-SENTINEL",
+      fileName: "private.pumlu",
+    };
+    await saveWorkspace({ ...DEFAULT_SESSION, documents: [DEFAULT_SESSION.documents[0]!, privateDocument] });
+    await removePersistedDocument(privateDocument.id);
+    const persisted = await loadWorkspace();
+    expect(persisted.documents).toHaveLength(1);
+    expect(JSON.stringify(persisted)).not.toContain("PRIVATE-PERSISTENCE-SENTINEL");
+  });
 });
 
 describe("document versions", () => {
-  it("persists versions by history and promotes duplicate manual checkpoints", async () => {
+  it("persists distinct version events even when their content is identical", async () => {
     await createDocumentVersion({
       historyId: "history-a",
       source: "first",
@@ -217,13 +232,13 @@ describe("document versions", () => {
       reason: "saved",
     });
     const versions = await loadDocumentVersions("history-a");
-    expect(versions).toHaveLength(1);
+    expect(versions).toHaveLength(2);
     expect(versions[0]).toMatchObject({
       source: "first",
       label: "Baseline",
       pinned: true,
-      author: { id: "alice-id", name: "Alice", color: "#2563eb" },
     });
+    expect(versions[1]).toMatchObject({ author: { id: "alice-id", name: "Alice", color: "#2563eb" } });
   });
 
   it("renames, pins, deletes, and retains only the newest automatic versions", async () => {

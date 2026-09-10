@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   activeWorkspace,
   DEFAULT_SESSION,
@@ -8,10 +8,13 @@ import {
   type DocumentSnapshot,
   type WorkspaceSession,
   type WorkspaceSnapshot,
+  startMemoryOnlyHistory,
 } from "./workspace-storage";
 
 export function usePersistedWorkspace() {
   const [session, setSession] = useState<WorkspaceSession>(DEFAULT_SESSION);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -52,6 +55,7 @@ export function usePersistedWorkspace() {
                 dirty: next.dirty,
                 zoom: next.zoom,
                 cursor: next.cursor,
+                revision: (item.revision ?? 0) + 1,
               }
             : item,
         ),
@@ -66,7 +70,7 @@ export function usePersistedWorkspace() {
       historyId: input?.historyId ?? `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       diagramKind: input?.diagramKind ?? DEFAULT_SESSION.documents[0]!.diagramKind,
       source: input?.source ?? DEFAULT_SESSION.documents[0]!.source,
-      fileName: input?.fileName ?? "untitled.puml",
+      fileName: input?.fileName ?? "untitled.pumlu",
       dirty: input?.dirty ?? false,
       zoom: input?.zoom ?? 1,
       cursor: input?.cursor ?? { line: 1, column: 1 },
@@ -110,6 +114,7 @@ export function usePersistedWorkspace() {
         fileName: `Copy of ${original.fileName}`,
         dirty: true,
       };
+      if (copy.encrypted) startMemoryOnlyHistory(copy.historyId);
       const documents = [...current.documents];
       documents.splice(index + 1, 0, copy);
       return { ...current, documents, activeDocumentId: nextId };
@@ -179,6 +184,16 @@ export function usePersistedWorkspace() {
     },
     [],
   );
+  const updateDocumentFormat = useCallback((id: string, patch: Partial<DocumentSnapshot>) => {
+    setSession((current) => ({
+      ...current,
+      documents: current.documents.map((document) => (document.id === id ? { ...document, ...patch } : document)),
+    }));
+  }, []);
+  const getDocument = useCallback(
+    (id: string) => sessionRef.current.documents.find((document) => document.id === id),
+    [],
+  );
 
   const controls = useMemo(
     () => ({
@@ -195,6 +210,8 @@ export function usePersistedWorkspace() {
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
       updateDocumentSource,
+      updateDocumentFormat,
+      getDocument,
       session,
     }),
     [
@@ -209,6 +226,8 @@ export function usePersistedWorkspace() {
       setDocumentBaselineVersionId,
       replaceDocumentFromFile,
       updateDocumentSource,
+      updateDocumentFormat,
+      getDocument,
       session,
     ],
   );
