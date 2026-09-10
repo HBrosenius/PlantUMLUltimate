@@ -663,7 +663,7 @@ export function App() {
       setWbsSettingsOpen(false);
       closeDialog("add-wbs-node");
     }
-  }, [closeDialog, workspace.diagramKind]);
+  }, [closeDialog, setSelectedWbsNodeId, setSelectedWbsRelationshipId, workspace.diagramKind]);
   const selectedActivityAction = activityDocument.nodes.find(
     (item) => item.id === selectedActivityObjectId && item.kind === "action",
   );
@@ -795,7 +795,7 @@ export function App() {
     setSourceSymbolPosition(undefined);
     setRenameSymbol(undefined);
     setReferenceSymbol(undefined);
-  }, [tabs.activeId, workspace.diagramKind]);
+  }, [setSourceHighlightedTaskId, tabs.activeId, workspace.diagramKind]);
 
   useEffect(() => {
     // The code editor (and its onCursorChange handler) is unmounted in diagram-only view, so
@@ -804,7 +804,7 @@ export function App() {
     // clicked directly in the diagram, which silently pinned the anchor/selection markers to
     // a stale task and made connection handles unclickable. Clear it once the editor is gone.
     if (workspace.viewMode === "diagram") setSourceHighlightedTaskId(undefined);
-  }, [workspace.viewMode]);
+  }, [setSourceHighlightedTaskId, workspace.viewMode]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -944,22 +944,25 @@ export function App() {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(true);
-  }, []);
+  }, [setSelectedDependencyIndex, setSelectedTaskId]);
 
-  const openDateActionMenu = useCallback((date: string) => {
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-    setProjectInspectorOpen(false);
-    setResourcePanelOpen(false);
-    setDateMenuFor(date);
-  }, []);
+  const openDateActionMenu = useCallback(
+    (date: string) => {
+      setSelectedTaskId(undefined);
+      setSelectedDependencyIndex(undefined);
+      setProjectInspectorOpen(false);
+      setResourcePanelOpen(false);
+      setDateMenuFor(date);
+    },
+    [setSelectedDependencyIndex, setSelectedTaskId],
+  );
 
   const openResourcePanel = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(false);
     setResourcePanelOpen(true);
-  }, []);
+  }, [setSelectedDependencyIndex, setSelectedTaskId]);
 
   const moveTask = (taskId: string, days: number) => {
     const task = parseResult.document.symbols.tasks.get(taskId);
@@ -1428,7 +1431,7 @@ export function App() {
   const resetFileSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
-  }, []);
+  }, [setSelectedDependencyIndex, setSelectedTaskId]);
   const {
     externalConflict,
     openDocument,
@@ -1473,7 +1476,7 @@ export function App() {
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
-  }, []);
+  }, [setSelectedDependencyIndex, setSelectedTaskId]);
   const { backupWorkspace, restoreWorkspace, createDocument, newDocument } = useWorkspaceDocuments({
     tabs,
     replaceActiveDocumentOnCreate,
@@ -1580,7 +1583,14 @@ export function App() {
     setSelectedWbsNodeId(undefined);
     setSelectedWbsRelationshipId(undefined);
     setInteractionMessage(`Deleted WBS subtree ${selectedWbsNode.label}`);
-  }, [commitSource, selectedWbsNode, wbsDocument, workspace.source]);
+  }, [
+    commitSource,
+    selectedWbsNode,
+    setSelectedWbsNodeId,
+    setSelectedWbsRelationshipId,
+    wbsDocument,
+    workspace.source,
+  ]);
 
   const moveWbsNode = useCallback(
     (nodeId: string, parentId?: string, beforeId?: string) => {
@@ -1691,7 +1701,7 @@ export function App() {
     );
     setSelectedWbsRelationshipId(undefined);
     setInteractionMessage("Deleted WBS arrow");
-  }, [commitSource, selectedWbsRelationship, wbsDocument, workspace.source]);
+  }, [commitSource, selectedWbsRelationship, setSelectedWbsRelationshipId, wbsDocument, workspace.source]);
 
   const applyWbsSettings = useCallback(
     (value: { title: string }) => {
@@ -1736,7 +1746,7 @@ export function App() {
       );
       setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
     },
-    [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source],
+    [commitSource, selectedUseCaseElement, setSelectedUseCaseObjectId, useCaseDocument, workspace.source],
   );
 
   const removeUseCaseElement = useCallback(() => {
@@ -1755,7 +1765,7 @@ export function App() {
       `Delete ${selectedUseCaseElement.kind} ${selectedUseCaseElement.label}`,
     );
     setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source]);
+  }, [commitSource, selectedUseCaseElement, setSelectedUseCaseObjectId, useCaseDocument, workspace.source]);
 
   const addUseCaseRelationship = useCallback(
     (value: UseCaseRelationshipInput) => {
@@ -1778,7 +1788,7 @@ export function App() {
         return;
       setSelectedUseCaseObjectId(selectedUseCaseRelationship.id);
     },
-    [commitSource, selectedUseCaseRelationship, useCaseDocument, workspace.source],
+    [commitSource, selectedUseCaseRelationship, setSelectedUseCaseObjectId, useCaseDocument, workspace.source],
   );
 
   const removeUseCaseRelationship = useCallback(() => {
@@ -1788,7 +1798,7 @@ export function App() {
       "Delete Use Case relationship",
     );
     setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseRelationship, workspace.source]);
+  }, [commitSource, selectedUseCaseRelationship, setSelectedUseCaseObjectId, workspace.source]);
 
   const addUseCasePackage = useCallback(
     (value: UseCasePackageInput) => {
@@ -1807,7 +1817,7 @@ export function App() {
       );
       setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
     },
-    [commitSource, selectedUseCasePackage, workspace.source],
+    [commitSource, selectedUseCasePackage, setSelectedUseCaseObjectId, workspace.source],
   );
 
   const removeUseCasePackage = useCallback(() => {
@@ -1817,7 +1827,7 @@ export function App() {
       `Remove ${selectedUseCasePackage.kind} ${selectedUseCasePackage.label}`,
     );
     setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCasePackage, workspace.source]);
+  }, [commitSource, selectedUseCasePackage, setSelectedUseCaseObjectId, workspace.source]);
 
   const addUseCaseNote = useCallback(
     (value: UseCaseNoteInput) => {
@@ -1842,7 +1852,7 @@ export function App() {
     if (!selectedUseCaseNote) return;
     commitSource(deleteUseCaseNote(workspace.source, selectedUseCaseNote), "Delete Use Case note");
     setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseNote, workspace.source]);
+  }, [commitSource, selectedUseCaseNote, setSelectedUseCaseObjectId, workspace.source]);
 
   const createUseCaseRelationshipByDrag = useCallback(
     (from: string, to: string) => {
@@ -2220,7 +2230,7 @@ export function App() {
         if (participant) setSelectionRequest({ ...participant.sourceRange });
       }
     },
-    [sequenceDocument],
+    [sequenceDocument, setSelectedSequenceMessageId, setSelectedSequenceParticipantId, setSelectedSequenceStructureId],
   );
 
   const selectSequenceMessage = useCallback(
@@ -2233,7 +2243,7 @@ export function App() {
         if (message) setSelectionRequest({ ...message.sourceRange });
       }
     },
-    [sequenceDocument],
+    [sequenceDocument, setSelectedSequenceMessageId, setSelectedSequenceParticipantId, setSelectedSequenceStructureId],
   );
 
   const selectSequenceStructure = useCallback(
@@ -2246,7 +2256,12 @@ export function App() {
         if (structure) setSelectionRequest({ ...structure.sourceRange });
       }
     },
-    [sequenceStructures],
+    [
+      sequenceStructures,
+      setSelectedSequenceMessageId,
+      setSelectedSequenceParticipantId,
+      setSelectedSequenceStructureId,
+    ],
   );
 
   const applySequenceParticipant = useCallback(
@@ -2261,7 +2276,7 @@ export function App() {
       setSelectedSequenceParticipantId((value.alias.trim() || value.label.trim()).toLowerCase());
       setInteractionMessage(`Updated participant ${value.label.trim()}`);
     },
-    [commitSource, selectedSequenceParticipant, sequenceDocument, workspace.source],
+    [commitSource, selectedSequenceParticipant, sequenceDocument, setSelectedSequenceParticipantId, workspace.source],
   );
 
   const removeSequenceParticipant = useCallback(() => {
@@ -2282,7 +2297,7 @@ export function App() {
     );
     setSelectedSequenceParticipantId(undefined);
     setInteractionMessage(`Deleted participant ${selectedSequenceParticipant.label}`);
-  }, [commitSource, selectedSequenceParticipant, sequenceDocument, workspace.source]);
+  }, [commitSource, selectedSequenceParticipant, sequenceDocument, setSelectedSequenceParticipantId, workspace.source]);
 
   const applySequenceMessage = useCallback(
     (value: SequenceMessageInspectorValue) => {
@@ -2297,7 +2312,7 @@ export function App() {
       setSelectedSequenceMessageId(selectedSequenceMessage.id);
       setInteractionMessage("Updated message");
     },
-    [commitSource, selectedSequenceMessage, workspace.source],
+    [commitSource, selectedSequenceMessage, setSelectedSequenceMessageId, workspace.source],
   );
 
   const removeSequenceMessage = useCallback(() => {
@@ -2305,7 +2320,7 @@ export function App() {
     commitSource(deleteSequenceMessage(workspace.source, selectedSequenceMessage), "Delete Sequence message");
     setSelectedSequenceMessageId(undefined);
     setInteractionMessage("Deleted message");
-  }, [commitSource, selectedSequenceMessage, workspace.source]);
+  }, [commitSource, selectedSequenceMessage, setSelectedSequenceMessageId, workspace.source]);
 
   const applySequenceStructure = useCallback(
     (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
@@ -2324,7 +2339,7 @@ export function App() {
     commitSource(deleteSequenceStructure(workspace.source, selectedSequenceStructure), "Delete Sequence structure");
     setSelectedSequenceStructureId(undefined);
     setInteractionMessage("Deleted Sequence structure");
-  }, [commitSource, selectedSequenceStructure, workspace.source]);
+  }, [commitSource, selectedSequenceStructure, setSelectedSequenceStructureId, workspace.source]);
 
   const reorderSequenceParticipant = useCallback(
     (id: string, targetId: string, placement: "before" | "after" = "before") => {
@@ -2349,7 +2364,7 @@ export function App() {
       setSelectedSequenceMessageId(undefined);
       setInteractionMessage("Reordered message");
     },
-    [commitSource, sequenceDocument.messages, workspace.source],
+    [commitSource, sequenceDocument.messages, setSelectedSequenceMessageId, workspace.source],
   );
 
   const reorderSequenceTimeline = useCallback(
@@ -2365,7 +2380,14 @@ export function App() {
       setSelectedSequenceStructureId(undefined);
       setInteractionMessage(`Moved Sequence element ${placement} target`);
     },
-    [commitSource, sequenceDocument.messages, sequenceStructures, workspace.source],
+    [
+      commitSource,
+      sequenceDocument.messages,
+      sequenceStructures,
+      setSelectedSequenceMessageId,
+      setSelectedSequenceStructureId,
+      workspace.source,
+    ],
   );
 
   const reconnectSequenceElement = useCallback(
@@ -2694,7 +2716,14 @@ export function App() {
       }
       setInteractionMessage(`Updated ${value.label.trim()}`);
     },
-    [commitGeneratedSource, rememberSelectedTask, resolvedTaskDates, selectedTaskId, workspace.source],
+    [
+      commitGeneratedSource,
+      rememberSelectedTask,
+      resolvedTaskDates,
+      selectedTaskId,
+      setSelectedTaskId,
+      workspace.source,
+    ],
   );
 
   const applyMilestoneInspector = useCallback(
@@ -2751,7 +2780,7 @@ export function App() {
       setSelectedTaskId(currentId);
       setInteractionMessage(`Updated milestone ${value.label.trim()}`);
     },
-    [commitGeneratedSource, selectedTaskId, workspace.source],
+    [commitGeneratedSource, selectedTaskId, setSelectedTaskId, workspace.source],
   );
 
   const deleteSelectedTask = useCallback(() => {
@@ -2764,7 +2793,14 @@ export function App() {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setInteractionMessage(`Deleted ${selectedTask.label}`);
-  }, [commitGeneratedSource, parseResult.document, selectedTask, workspace.source]);
+  }, [
+    commitGeneratedSource,
+    parseResult.document,
+    selectedTask,
+    setSelectedDependencyIndex,
+    setSelectedTaskId,
+    workspace.source,
+  ]);
 
   const duplicateTaskOccurrence = useCallback(
     (occurrence: SemanticSymbolOccurrence) => {
