@@ -62,6 +62,8 @@ import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnosti
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
+import { ProjectNavigator } from "./projects/ProjectNavigator";
+import { useFolderProject } from "./projects/use-folder-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
@@ -1451,6 +1453,12 @@ export function App() {
     resetSelection: resetFileSelection,
     reportError: reportFileError,
     setInteractionMessage,
+  });
+  const { project, openProject, openZipProject, saveZipProject, openMember, closeProject } = useFolderProject({
+    tabs,
+    resetSelection: resetFileSelection,
+    setInteractionMessage,
+    reportError: reportFileError,
   });
 
   const exportSource = useCallback(() => {
@@ -3187,7 +3195,7 @@ export function App() {
   );
   return (
     <div
-      className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}`}
+      className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
       data-theme={workspace.theme}
       onClickCapture={(event) => {
         if (!(event.target instanceof Element)) return;
@@ -3202,6 +3210,9 @@ export function App() {
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
             onOpen={() => void openDocument()}
+            onOpenProject={() => void openProject()}
+            onOpenZipProject={() => void openZipProject()}
+            onSaveProject={project && "archiveEntries" in project ? () => void saveZipProject() : undefined}
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}
@@ -4072,6 +4083,7 @@ export function App() {
           onClose={() => setProjectInspectorOpen(false)}
         />
       )}
+      {project && <ProjectNavigator project={project} onOpen={openMember} onClose={closeProject} />}
       {sequenceSettingsOpen && (
         <SequenceSettingsInspector
           settings={parseSequenceSettings(workspace.source)}

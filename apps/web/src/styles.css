@@ -439,6 +439,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   width: calc(100vw - 388px);
   max-width: calc(100vw - 388px);
 }
+.app.has-project-navigator .workspace {
+  width: calc(100vw - 308px);
+  max-width: calc(100vw - 308px);
+}
 .workspace.mode-code,
 .workspace.mode-diagram {
   grid-template-columns: 1fr;
@@ -3400,6 +3404,64 @@ textarea:focus-visible,
   background: transparent;
   color: inherit;
   font-size: 20px;
+}
+.project-navigator {
+  position: fixed;
+  z-index: 10;
+  top: 74px;
+  right: 8px;
+  bottom: 33px;
+  width: 300px;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 10px 35px rgb(0 0 0 / 20%);
+}
+.project-navigator header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.project-navigator header div,
+.project-navigator li button {
+  display: grid;
+  gap: 3px;
+}
+.project-navigator header small,
+.project-navigator li small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.project-navigator header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+}
+.project-navigator ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.project-navigator li button {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.project-navigator li button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .jira-task-status {
   display: grid;
