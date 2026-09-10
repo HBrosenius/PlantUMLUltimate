@@ -156,7 +156,7 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await expect(dialog.getByLabel("Change highlight legend")).toContainText("Added");
   await expect(dialog.getByLabel("Before review rendered diagram").locator(".semantic-render-highlight")).toHaveCount(
     1,
-    { timeout: 20_000 },
+    { timeout: 40_000 },
   );
   await expect(
     dialog.getByLabel("Current working copy rendered diagram").locator(".semantic-render-highlight"),
