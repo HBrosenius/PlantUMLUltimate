@@ -92,6 +92,7 @@ import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
   deleteTask,
+  duplicateTask,
   deleteDivider,
   deleteVerticalSeparator,
   findTaskAt,
@@ -2757,6 +2758,32 @@ export function App() {
     setInteractionMessage(`Deleted ${selectedTask.label}`);
   }, [commitGeneratedSource, parseResult.document, selectedTask, workspace.source]);
 
+  const duplicateTaskOccurrence = useCallback(
+    (occurrence: SemanticSymbolOccurrence) => {
+      if (workspace.diagramKind !== "gantt" || occurrence.kind !== "task") return;
+      const task = parseResult.document.symbols.tasks.get(occurrence.key);
+      if (!task) return;
+      const operation = duplicateTask(workspace.source, parseResult.document, task);
+      if (operation.unavailableReason) {
+        setInteractionMessage(operation.unavailableReason);
+        return;
+      }
+      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Duplicate ${task.label}`))
+        return;
+      setSelectedTaskId(operation.taskId);
+      setSelectedDependencyIndex(undefined);
+      setInteractionMessage(`Duplicated ${task.label} as ${operation.label}`);
+    },
+    [
+      commitGeneratedSource,
+      parseResult.document,
+      setSelectedDependencyIndex,
+      setSelectedTaskId,
+      workspace.diagramKind,
+      workspace.source,
+    ],
+  );
+
   const applyProjectSettings = useCallback(
     (value: ReturnType<typeof parseProjectSettings>) => {
       const zoom = value.scaleZoom === "" ? undefined : Number(value.scaleZoom);
@@ -4632,8 +4659,29 @@ export function App() {
             if (event.key === "Escape") setSymbolMenu(undefined);
           }}
         >
+          {workspace.diagramKind === "gantt" &&
+            (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
+              ?.kind === "task" && (
+              <button
+                autoFocus
+                role="menuitem"
+                onClick={() => {
+                  const occurrence =
+                    symbolMenu.occurrence ??
+                    (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+                  if (occurrence) duplicateTaskOccurrence(occurrence);
+                  setSymbolMenu(undefined);
+                }}
+              >
+                Duplicate task
+              </button>
+            )}
           <button
-            autoFocus
+            autoFocus={
+              workspace.diagramKind !== "gantt" ||
+              (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
+                ?.kind !== "task"
+            }
             role="menuitem"
             onClick={() => {
               const occurrence =

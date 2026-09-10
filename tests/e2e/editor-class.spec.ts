@@ -263,6 +263,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     await expect(page.locator(".class-relationship-endpoint")).toHaveCount(2);
     const fromEndpoint = page.locator('[data-class-relationship-endpoint="from"]');
     const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');
+    await expect(fromEndpoint).toBeVisible();
+    await expect(repositoryTarget).toBeVisible();
     const endpointBox = await fromEndpoint.boundingBox();
     const repositoryBox = await repositoryTarget.boundingBox();
     expect(endpointBox).not.toBeNull();
