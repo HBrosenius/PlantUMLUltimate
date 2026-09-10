@@ -180,6 +180,7 @@ import {
   type ClassRelationshipInput,
   type ClassNoteInput,
 } from "@plantuml-studio/diagram-class";
+import { hashSource } from "@plantuml-studio/document-format";
 import {
   deleteActivityArrow,
   deleteActivityControlBlock,
@@ -1456,6 +1457,8 @@ export function App() {
   });
   const {
     project,
+    newProject,
+    newZipProject,
     openProject,
     openZipProject,
     saveZipProject,
@@ -1463,12 +1466,44 @@ export function App() {
     closeProject,
     updateLinks,
     updateElements,
+    applyRenameMappings,
   } = useFolderProject({
     tabs,
     resetSelection: resetFileSelection,
     setInteractionMessage,
     reportError: reportFileError,
   });
+  const mapProjectRename = useCallback(
+    async (
+      kind: "class-entity" | "sequence-participant" | "gantt-task",
+      from: number,
+      declaration: { symbolKey: string; from: number; to: number },
+      source: string,
+    ) => {
+      const document = project?.manifest.documents.find((item) => item.path === workspace.fileName);
+      const element =
+        document &&
+        project?.manifest.elements.find(
+          (item) => item.documentId === document.id && item.kind === kind && item.locator.from === from,
+        );
+      if (!document || !element) return;
+      await applyRenameMappings(
+        document.id,
+        [
+          {
+            elementId: element.id,
+            declaration: {
+              kind,
+              ...declaration,
+              declarationHash: await hashSource(source.slice(declaration.from, declaration.to)),
+            },
+          },
+        ],
+        source,
+      );
+    },
+    [applyRenameMappings, project, workspace.fileName],
+  );
 
   const exportSource = useCallback(() => {
     if (
@@ -1917,8 +1952,19 @@ export function App() {
     closeDialog("add-class-entity");
   };
   const applyClassEntity = (v: ClassEntityInput) => {
-    if (selectedClassEntity)
-      commitSource(updateClassEntity(workspace.source, classDocument, selectedClassEntity, v), "Update Class object");
+    if (selectedClassEntity) {
+      const next = updateClassEntity(workspace.source, classDocument, selectedClassEntity, v);
+      const key = v.alias?.trim() || v.label.trim();
+      const updated = parseClassDiagram(next).entities.find((item) => item.id === key || item.alias === key);
+      if (updated)
+        void mapProjectRename(
+          "class-entity",
+          selectedClassEntity.sourceRange.from,
+          { symbolKey: key, ...updated.sourceRange },
+          next,
+        );
+      commitSource(next, "Update Class object");
+    }
   };
   const removeClassEntity = () => {
     if (selectedClassEntity) {
@@ -2266,11 +2312,20 @@ export function App() {
         ...presentation,
         ...(order !== undefined ? { order } : {}),
       });
+      const key = value.alias.trim() || value.label.trim();
+      const updated = parseSequence(next).participants.find((item) => (item.alias ?? item.label) === key);
+      if (updated)
+        void mapProjectRename(
+          "sequence-participant",
+          selectedSequenceParticipant.sourceRange.from,
+          { symbolKey: key, ...updated.sourceRange },
+          next,
+        );
       commitSource(next, `Update participant ${selectedSequenceParticipant.label}`);
       setSelectedSequenceParticipantId((value.alias.trim() || value.label.trim()).toLowerCase());
       setInteractionMessage(`Updated participant ${value.label.trim()}`);
     },
-    [commitSource, selectedSequenceParticipant, sequenceDocument, workspace.source],
+    [commitSource, mapProjectRename, selectedSequenceParticipant, sequenceDocument, workspace.source],
   );
 
   const removeSequenceParticipant = useCallback(() => {
@@ -2696,6 +2751,14 @@ export function App() {
       }
       setSelectedTaskId(currentId);
       rememberSelectedTask(currentId);
+      const updatedTask = parseGantt(source).document.symbols.tasks.get(currentId);
+      if (updatedTask)
+        void mapProjectRename(
+          "gantt-task",
+          original.sourceRange.from,
+          { symbolKey: updatedTask.alias?.value ?? updatedTask.label, ...updatedTask.sourceRange },
+          source,
+        );
       if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) {
         setSelectedTaskId(selectedTaskId);
         rememberSelectedTask(selectedTaskId);
@@ -2703,7 +2766,14 @@ export function App() {
       }
       setInteractionMessage(`Updated ${value.label.trim()}`);
     },
-    [commitGeneratedSource, rememberSelectedTask, resolvedTaskDates, selectedTaskId, workspace.source],
+    [
+      commitGeneratedSource,
+      mapProjectRename,
+      rememberSelectedTask,
+      resolvedTaskDates,
+      selectedTaskId,
+      workspace.source,
+    ],
   );
 
   const applyMilestoneInspector = useCallback(
@@ -3218,6 +3288,8 @@ export function App() {
           <FileMenu
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
+            onNewProject={() => void newProject()}
+            onNewZipProject={() => void newZipProject()}
             onOpen={() => void openDocument()}
             onOpenProject={() => void openProject()}
             onOpenZipProject={() => void openZipProject()}

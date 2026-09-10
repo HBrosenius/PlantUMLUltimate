@@ -1,9 +1,11 @@
 import { Unzip, UnzipInflate, UnzipPassThrough, zipSync } from "fflate";
 import {
+  PROJECT_FORMAT,
   parseProjectManifestJson,
   portablePathKey,
   serializeProjectManifest,
   validateProjectPath,
+  type ProjectManifest,
 } from "@plantuml-studio/project-model";
 import { memberInputFromBytes } from "./folder-project";
 import { indexVirtualProject, type ProjectMemberInput, type VirtualProject } from "./project-index";
@@ -115,6 +117,31 @@ export async function readZipProject(bytes: Uint8Array): Promise<ZipProject> {
     ),
   );
   return { ...(await indexVirtualProject(manifestJson, inputs)), archiveEntries: entries };
+}
+
+export async function createZipProject(name: string): Promise<ZipProject> {
+  const documentId = crypto.randomUUID();
+  const manifest: ProjectManifest = {
+    format: PROJECT_FORMAT,
+    schemaVersion: 1 as const,
+    projectId: crypto.randomUUID(),
+    revisionId: crypto.randomUUID(),
+    name: name.trim() || "PlantUML project",
+    documents: [{ id: documentId, path: "diagrams/project.puml", format: "plantuml" as const }],
+    elements: [],
+    links: [],
+  };
+  return readZipProject(
+    zipSync(
+      {
+        "project.pumlproject": text.encode(serializeProjectManifest(manifest)),
+        "diagrams/project.puml": text.encode(
+          "@startgantt\nProject starts 2026-01-01\n[First task] lasts 1 day\n@endgantt\n",
+        ),
+      },
+      { level: 6 },
+    ),
+  );
 }
 
 export async function createZipProjectSnapshot(project: ZipProject): Promise<Uint8Array> {

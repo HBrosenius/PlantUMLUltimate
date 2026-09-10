@@ -3,6 +3,7 @@ import {
   PROJECT_FORMAT,
   ProjectFormatError,
   applyIdentityMapping,
+  applyIdentityMappings,
   parseProjectManifest,
   parseProjectManifestJson,
   resolveElement,
@@ -126,6 +127,18 @@ describe("conservative element resolution", () => {
       "b".repeat(64),
     );
     expect(mapped.locator).toMatchObject({ symbolKey: "CheckoutApi", from: 4, sourceHash: "b".repeat(64) });
+  });
+
+  it("leaves unrelated endpoints untouched when applying explicit mappings", () => {
+    const elements = manifest().elements;
+    const mapped = applyIdentityMappings(
+      elements,
+      [{ elementId: id(6), declaration: { ...declaration, symbolKey: "CheckoutApi", from: 4, to: 14 } }],
+      "b".repeat(64),
+    );
+    expect(mapped[0]!.locator.symbolKey).toBe("CheckoutApi");
+    expect(mapped[1]).toEqual(elements[1]);
+    expect(mapped[2]).toEqual(elements[2]);
   });
 });
 

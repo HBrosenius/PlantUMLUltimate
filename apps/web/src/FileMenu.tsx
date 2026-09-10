@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 export function FileMenu({
   canExport,
   onNew,
+  onNewProject,
+  onNewZipProject,
   onOpen,
   onOpenProject,
   onOpenZipProject,
@@ -20,6 +22,8 @@ export function FileMenu({
 }: {
   canExport: boolean;
   onNew(): void;
+  onNewProject?: (() => void) | undefined;
+  onNewZipProject?: (() => void) | undefined;
   onOpen(): void;
   onOpenProject?: (() => void) | undefined;
   onOpenZipProject?: (() => void) | undefined;
@@ -112,6 +116,16 @@ export function FileMenu({
           <button role="menuitem" onClick={() => run(onNew)}>
             New
           </button>
+          {onNewProject && (
+            <button role="menuitem" onClick={() => run(onNewProject)}>
+              New project…
+            </button>
+          )}
+          {onNewZipProject && (
+            <button role="menuitem" onClick={() => run(onNewZipProject)}>
+              New ZIP project…
+            </button>
+          )}
           <button role="menuitem" onClick={() => run(onOpen)}>
             Open…
           </button>

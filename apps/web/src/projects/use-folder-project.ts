@@ -1,8 +1,19 @@
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { DocumentSnapshot } from "../workspace-storage";
-import { readFolderProject, type FolderProject, type ProjectDirectoryHandle } from "./folder-project";
-import { createZipProjectSnapshot, readZipProject, type ZipProject } from "./zip-project";
-import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
+import {
+  createFolderProject,
+  readFolderProject,
+  type FolderProject,
+  type ProjectDirectoryHandle,
+} from "./folder-project";
+import { createZipProject, createZipProjectSnapshot, readZipProject, type ZipProject } from "./zip-project";
+import {
+  applyIdentityMappings,
+  type IdentityMapping,
+  type ProjectElement,
+  type ProjectLink,
+} from "@plantuml-studio/project-model";
+import { hashSource } from "@plantuml-studio/document-format";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -63,6 +74,34 @@ export function useFolderProject({
       setInteractionMessage(`Opened project ${staged.manifest.name}`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+      reportError(error);
+    }
+  }, [reportError, setInteractionMessage]);
+  const newProject = useCallback(async () => {
+    const picker = (window as FolderPickerWindow).showDirectoryPicker;
+    if (!picker)
+      return setInteractionMessage("Creating a folder project requires a browser with folder access support");
+    try {
+      const root = await picker();
+      const name = window.prompt("Project name", root.name);
+      if (name === null) return;
+      setProject(await createFolderProject(root, name));
+      tabsByMember.current.clear();
+      setInteractionMessage(`Created project ${name.trim() || root.name}`);
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) reportError(error);
+    }
+  }, [reportError, setInteractionMessage]);
+  const newZipProject = useCallback(async () => {
+    const name = window.prompt("Project name", "PlantUML project");
+    if (name === null) return;
+    try {
+      const created = await createZipProject(name);
+      setProject(created);
+      tabsByMember.current.clear();
+      downloadZip(await createZipProjectSnapshot(created), created.manifest.name);
+      setInteractionMessage(`Created and downloaded ${created.manifest.name}`);
+    } catch (error) {
       reportError(error);
     }
   }, [reportError, setInteractionMessage]);
@@ -139,15 +178,37 @@ export function useFolderProject({
       current ? { ...current, manifest: { ...current.manifest, elements: [...elements] } } : current,
     );
   }, []);
+  const applyRenameMappings = useCallback(
+    async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
+      if (!mappings.length) return;
+      const sourceHash = await hashSource(source);
+      setProject((current) => {
+        if (!current) return current;
+        const scoped = current.manifest.elements.filter((element) => element.documentId === documentId);
+        const untouched = current.manifest.elements.filter((element) => element.documentId !== documentId);
+        return {
+          ...current,
+          manifest: {
+            ...current.manifest,
+            elements: [...untouched, ...applyIdentityMappings(scoped, mappings, sourceHash)],
+          },
+        };
+      });
+    },
+    [],
+  );
 
   return {
     project,
     openProject,
+    newProject,
+    newZipProject,
     openZipProject,
     saveZipProject,
     openMember,
     updateLinks,
     updateElements,
+    applyRenameMappings,
     closeProject: () => setProject(undefined),
   };
 }
