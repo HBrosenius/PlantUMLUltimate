@@ -216,7 +216,15 @@ export function useDocumentFiles({
       resetSelection();
       setInteractionMessage(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
     },
-    [addOpenedDocument, fileHandles, refreshHistoryControls, resetSelection, setInteractionMessage, tabs],
+    [
+      addOpenedDocument,
+      fileHandles,
+      fileSnapshots,
+      refreshHistoryControls,
+      resetSelection,
+      setInteractionMessage,
+      tabs,
+    ],
   );
 
   const openDocument = useCallback(async () => {
@@ -334,6 +342,7 @@ export function useDocumentFiles({
     }
   }, [
     fileHandles,
+    fileSnapshots,
     recordDocumentVersion,
     reportError,
     saveDocumentAs,
@@ -411,7 +420,7 @@ export function useDocumentFiles({
       setWorkspace((current) => ({ ...current, dirty: true }));
       setInteractionMessage("Document settings changed; save to apply them");
     },
-    [fileHandles, setInteractionMessage, setWorkspace, tabs, workspace.source],
+    [fileHandles, fileSnapshots, setInteractionMessage, setWorkspace, tabs, workspace.source],
   );
 
   const checkExternalFiles = useCallback(async () => {
