@@ -124,6 +124,25 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("recognizes adjacent Gantt milestones as created milestones", () => {
+    const before = "@startgantt\n-- Rating Data --\n@endgantt";
+    const after =
+      "@startgantt\n-- Rating Data --\n[First feed] happens 2026-05-29\n[Second feed] happens 2026-06-26\n[Third feed] happens 2026-08-15\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Add milestones (3)",
+        detail: "All added declarations are recognized as milestones.",
+        changeKind: "added",
+        confidence: "confirmed",
+        rightTargets: [
+          { kind: "gantt-task", label: "First feed" },
+          { kind: "gantt-task", label: "Second feed" },
+          { kind: "gantt-task", label: "Third feed" },
+        ],
+      },
+    ]);
+  });
+
   it("applies only selected source groups without rewriting neighbouring lines", () => {
     const before = "@startuml\nparticipant A\n\nA -> B: First\n@enduml";
     const after = "@startuml\nparticipant A\nparticipant B\n\nA -> B: Second\n@enduml";

@@ -304,6 +304,15 @@ function describeGanttChange(
         confidence: "confirmed",
       };
   }
+  if (!removed.length && added.length && added.every((item) => item.declarationKind === "milestone"))
+    return {
+      title: added.length === 1 ? `Add milestone ${added[0]!.value.label}` : `Add milestones (${added.length})`,
+      detail:
+        added.length === 1
+          ? "The added declaration is recognized as a milestone."
+          : "All added declarations are recognized as milestones.",
+      confidence: "confirmed",
+    };
   if (!removed.length && added.length === 1)
     return {
       title: `Add task ${added[0]!.value.label}`,
