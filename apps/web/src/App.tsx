@@ -3312,6 +3312,7 @@ export function App() {
             onSaveProject={
               project ? () => void ("archiveEntries" in project ? saveZipProject() : saveFolderProject()) : undefined
             }
+            onProjectConnections={project ? () => setProjectNavigatorOpen(true) : undefined}
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}

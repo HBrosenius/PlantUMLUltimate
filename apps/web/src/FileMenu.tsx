@@ -9,6 +9,7 @@ export function FileMenu({
   onOpenProject,
   onOpenZipProject,
   onSaveProject,
+  onProjectConnections,
   onSave,
   onSaveAs,
   onVersionHistory,
@@ -28,6 +29,7 @@ export function FileMenu({
   onOpenProject?: (() => void) | undefined;
   onOpenZipProject?: (() => void) | undefined;
   onSaveProject?: (() => void) | undefined;
+  onProjectConnections?: (() => void) | undefined;
   onSave(): void;
   onSaveAs(): void;
   onVersionHistory(): void;
@@ -148,6 +150,11 @@ export function FileMenu({
           {onSaveProject && (
             <button role="menuitem" onClick={() => run(onSaveProject)}>
               Save project snapshot…
+            </button>
+          )}
+          {onProjectConnections && (
+            <button role="menuitem" onClick={() => run(onProjectConnections)}>
+              Diagram connections
             </button>
           )}
           <button role="menuitem" onClick={() => run(onVersionHistory)}>
