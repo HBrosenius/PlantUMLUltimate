@@ -133,6 +133,7 @@ import {
   plantUmlFileName,
   type WritableFileHandle,
   type FileSnapshot,
+  type OpenedFileBytes,
 } from "./file-service";
 import { findWbsNodeAt, type WbsNodeInput } from "@plantuml-studio/diagram-wbs";
 import {
@@ -306,6 +307,7 @@ export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  const projectLaunchRef = useRef<((opened: OpenedFileBytes) => Promise<boolean>) | undefined>(undefined);
   const {
     selectedTaskId,
     setSelectedTaskId,
@@ -1456,6 +1458,7 @@ export function App() {
     resetSelection: resetFileSelection,
     reportError: reportFileError,
     setInteractionMessage,
+    onProjectLaunch: async (opened) => projectLaunchRef.current?.(opened) ?? false,
   });
   const {
     project: legacyProject,
@@ -1484,6 +1487,7 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
+  projectLaunchRef.current = singleFileProject.openOpenedProject;
   const usingSingleFileProject = Boolean(singleFileProject.portableProject);
   const project = singleFileProject.project ?? legacyProject;
   const openMember = usingSingleFileProject ? singleFileProject.openMember : openLegacyMember;

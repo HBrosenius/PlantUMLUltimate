@@ -16,7 +16,13 @@ import {
   type ProjectLink,
   type ProjectManifest,
 } from "@plantuml-studio/project-model";
-import { isPortableDocument, openDocumentFile, savePortableDocumentAs, type WritableFileHandle } from "../file-service";
+import {
+  isPortableDocument,
+  openDocumentFile,
+  savePortableDocumentAs,
+  type OpenedFileBytes,
+  type WritableFileHandle,
+} from "../file-service";
 import { detectDiagramKind } from "../diagram-kind";
 import type { DiagramKind } from "../model";
 import { starterSource } from "../use-workspace-documents";
@@ -171,46 +177,51 @@ export function useSingleFileProject({
     }
   }, [addPortableDiagram, reportError, setInteractionMessage]);
 
-  const openProject = useCallback(async () => {
-    try {
-      const opened = await openDocumentFile();
-      if (!opened) return;
-      let project: PortableProject;
-      let key: UnlockedDocumentKey | undefined;
-      let encrypted = false;
-      if (opened.kind === "legacy") {
-        const source = opened.source;
-        if (source === undefined) throw new Error("Could not read this PlantUML file");
-        const kind = detectDiagramKind(source);
-        if (!kind) throw new Error("Could not identify this PlantUML diagram type");
-        project = await projectFromPlantUml(source, kind, new Date().toISOString());
-        project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
-      } else {
-        const password =
-          window.prompt(`Password for ${opened.fileName} (leave blank if it is not encrypted)`) ?? undefined;
-        try {
-          const decoded = await decodeProject(opened.bytes, password ? { password } : {});
-          project = decoded.project;
-          key = decoded.unlockedKey;
-          encrypted = Boolean(key);
-        } catch (error) {
-          const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
-          project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
-          key = decoded.unlockedKey;
-          encrypted = Boolean(key);
+  const openOpenedProject = useCallback(
+    async (opened: OpenedFileBytes | undefined): Promise<boolean> => {
+      try {
+        if (!opened) return false;
+        let project: PortableProject;
+        let key: UnlockedDocumentKey | undefined;
+        let encrypted = false;
+        if (opened.kind === "legacy") {
+          const source = opened.source;
+          if (source === undefined) throw new Error("Could not read this PlantUML file");
+          const kind = detectDiagramKind(source);
+          if (!kind) throw new Error("Could not identify this PlantUML diagram type");
+          project = await projectFromPlantUml(source, kind, new Date().toISOString());
+          project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
+        } else {
+          const password =
+            window.prompt(`Password for ${opened.fileName} (leave blank if it is not encrypted)`) ?? undefined;
+          try {
+            const decoded = await decodeProject(opened.bytes, password ? { password } : {});
+            project = decoded.project;
+            key = decoded.unlockedKey;
+            encrypted = Boolean(key);
+          } catch (error) {
+            const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
+            project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
+            key = decoded.unlockedKey;
+            encrypted = Boolean(key);
+          }
         }
+        unlockedKey.current = key;
+        handle.current = opened.handle;
+        embedded.openProject(project, { encrypted });
+        resetSelection();
+        setInteractionMessage(
+          `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
+        );
+        return true;
+      } catch (error) {
+        reportError(error);
+        return false;
       }
-      unlockedKey.current = key;
-      handle.current = opened.handle;
-      embedded.openProject(project, { encrypted });
-      resetSelection();
-      setInteractionMessage(
-        `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
-      );
-    } catch (error) {
-      reportError(error);
-    }
-  }, [embedded, reportError, resetSelection, setInteractionMessage]);
+    },
+    [embedded, reportError, resetSelection, setInteractionMessage],
+  );
+  const openProject = useCallback(async () => openOpenedProject(await openDocumentFile()), [openOpenedProject]);
   const openPortableProject = useCallback(
     (project: PortableProject) => {
       unlockedKey.current = undefined;
@@ -309,6 +320,7 @@ export function useSingleFileProject({
       addProjectDiagram,
       importDiagram,
       openProject,
+      openOpenedProject,
       openPortableProject,
       openMember: embedded.openMember,
       updateLinks,
@@ -328,6 +340,7 @@ export function useSingleFileProject({
       indexed,
       newProject,
       openProject,
+      openOpenedProject,
       openPortableProject,
       renameDiagram,
       saveProject,
