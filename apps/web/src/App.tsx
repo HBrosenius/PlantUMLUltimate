@@ -4298,6 +4298,7 @@ export function App() {
           onAdd={addProjectDiagram}
           {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}
           onClose={() => setProjectNavigatorOpen(false)}
+          {...(usingSingleFileProject ? { onCloseProject: singleFileProject.closeProject } : {})}
           onLinksChange={updateLinks}
           onElementsChange={updateElements}
           {...(usingSingleFileProject

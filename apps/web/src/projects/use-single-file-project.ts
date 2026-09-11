@@ -135,9 +135,7 @@ export function useSingleFileProject({
 
   const addPortableDiagram = useCallback(
     (diagram: PortableProject["diagrams"][number]) => {
-      const current = embedded.project;
-      if (!current) return;
-      embedded.addDiagram(diagram);
+      if (!embedded.project || !embedded.addDiagram(diagram)) throw new Error("Open a project before adding a diagram");
       resetSelection();
       setInteractionMessage(`Added ${diagram.name}. Save the project to keep it.`);
     },
@@ -148,7 +146,6 @@ export function useSingleFileProject({
       try {
         const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
         const staged = await projectFromPlantUml(starterSource(kind), kind, displayName);
-        if (!embedded.project) throw new Error("Open a project before adding a diagram");
         addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
       } catch (error) {
         reportError(error);

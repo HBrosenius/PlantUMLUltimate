@@ -9,6 +9,7 @@ export function ProjectNavigator({
   onAdd,
   onImport,
   onClose,
+  onCloseProject,
   onLinksChange,
   onElementsChange,
   onRename,
@@ -19,6 +20,7 @@ export function ProjectNavigator({
   onAdd(kind: "gantt" | "class" | "sequence", path: string): void | Promise<void>;
   onImport?(): void;
   onClose(): void;
+  onCloseProject?(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
   onRename?(documentId: string, name: string): void;
@@ -42,6 +44,11 @@ export function ProjectNavigator({
         <button type="button" onClick={onClose} aria-label="Close project navigator">
           ×
         </button>
+        {onCloseProject && (
+          <button type="button" onClick={onCloseProject}>
+            Close project
+          </button>
+        )}
       </header>
       <section className="project-navigator-section" aria-labelledby="project-diagrams-heading">
         <div className="project-section-heading">
