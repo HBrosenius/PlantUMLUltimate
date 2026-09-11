@@ -511,6 +511,8 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
 
 /** Persists an active project recovery record alongside the workspace session. */
 export async function saveActiveProject(value: unknown): Promise<void> {
+  // Write the small recovery record synchronously first, so an immediate reload cannot race IndexedDB.
+  localStorage.setItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -520,13 +522,17 @@ export async function saveActiveProject(value: unknown): Promise<void> {
       transaction.onerror = () => reject(transaction.error);
     });
     database.close();
-  } catch {
-    localStorage.setItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
-  }
+  } catch {}
 }
 
 /** Loads the active project recovery record, if there is one. */
 export async function loadActiveProject(): Promise<unknown | undefined> {
+  try {
+    const legacy = localStorage.getItem(ACTIVE_PROJECT_LEGACY_KEY);
+    if (legacy) return JSON.parse(legacy);
+  } catch {
+    // Fall through to IndexedDB.
+  }
   try {
     const database = await openDatabase();
     const value = await new Promise<unknown>((resolve, reject) => {
@@ -539,12 +545,7 @@ export async function loadActiveProject(): Promise<unknown | undefined> {
   } catch {
     // Fall through to the legacy browser-storage record.
   }
-  try {
-    const legacy = localStorage.getItem(ACTIVE_PROJECT_LEGACY_KEY);
-    return legacy ? JSON.parse(legacy) : undefined;
-  } catch {
-    return undefined;
-  }
+  return undefined;
 }
 
 /** Removes persisted plaintext before routing all future history operations to memory. */
