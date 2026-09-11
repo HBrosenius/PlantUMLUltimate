@@ -339,6 +339,7 @@ export function useFolderProject({
     updateLinks,
     updateElements,
     applyRenameMappings,
+    isProjectMemberTab: (id: string) => [...tabsByMember.current.values()].includes(id),
     closeProject: () => setProject(undefined),
   };
 }

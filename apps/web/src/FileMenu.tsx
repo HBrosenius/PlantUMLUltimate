@@ -10,6 +10,7 @@ export function FileMenu({
   onOpenZipProject,
   onSaveProject,
   onProjectConnections,
+  projectName,
   onSave,
   onSaveAs,
   onVersionHistory,
@@ -30,6 +31,7 @@ export function FileMenu({
   onOpenZipProject?: (() => void) | undefined;
   onSaveProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
+  projectName?: string | undefined;
   onSave(): void;
   onSaveAs(): void;
   onVersionHistory(): void;
@@ -139,7 +141,7 @@ export function FileMenu({
                 aria-expanded={projectOpen}
                 onClick={() => setProjectOpen((value) => !value)}
               >
-                <span>Project</span>
+                <span>Project: {projectName}</span>
                 <span aria-hidden="true">›</span>
               </button>
               {projectOpen && (

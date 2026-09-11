@@ -1466,6 +1466,7 @@ export function App() {
     saveFolderProject,
     openMember,
     addProjectDiagram,
+    isProjectMemberTab,
     closeProject,
     updateLinks,
     updateElements,
@@ -3313,6 +3314,7 @@ export function App() {
               project ? () => void ("archiveEntries" in project ? saveZipProject() : saveFolderProject()) : undefined
             }
             onProjectConnections={project ? () => setProjectNavigatorOpen(true) : undefined}
+            projectName={project?.manifest.name}
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}
@@ -3504,13 +3506,14 @@ export function App() {
               if (id) tabs.reorderDocument(id, document.id);
               setDraggedTabId(undefined);
             }}
-            title={`${document.fileName}${document.dirty ? " — unsaved changes" : ""}`}
+            title={`${document.fileName}${isProjectMemberTab(document.id) ? ` — project diagram in ${project?.manifest.name}` : ""}${document.dirty ? " — unsaved changes" : ""}`}
           >
             <span className="tab-label">
               <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
                 ●
               </span>
               {tabLabels.get(document.id)}
+              {isProjectMemberTab(document.id) && <small className="tab-project-badge">Project</small>}
             </span>
             <span
               className="tab-close"
