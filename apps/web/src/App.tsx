@@ -1466,14 +1466,24 @@ export function App() {
   const projectDiagramLinks = useMemo(() => {
     const links = new Map<string, Array<{ documentId: string; path: string; label: string; relationship: string }>>();
     if (!project || workspace.diagramKind !== "gantt") return links;
-    const currentMember = project.members.find((member) => member.path === workspace.fileName);
+    const projectHistoryPrefix = `project-history-${project.manifest.projectId}-`;
+    const memberIdFromTab = activeDocument.historyId.startsWith(projectHistoryPrefix)
+      ? activeDocument.historyId.slice(projectHistoryPrefix.length)
+      : undefined;
+    const currentMember =
+      project.members.find((member) => member.documentId === memberIdFromTab) ??
+      project.members.find((member) => member.path === workspace.fileName);
     if (!currentMember) return links;
-    const tasksBySymbol = new Map(parseResult.document.tasks.map((task) => [task.alias?.value ?? task.label, task]));
+    const tasksBySymbol = new Map<string, (typeof parseResult.document.tasks)[number]>();
+    for (const task of parseResult.document.tasks) {
+      tasksBySymbol.set(task.label.trim().toLocaleLowerCase(), task);
+      if (task.alias?.value) tasksBySymbol.set(task.alias.value.trim().toLocaleLowerCase(), task);
+    }
     const elementsById = new Map(project.manifest.elements.map((element) => [element.id, element]));
     const membersById = new Map(project.members.map((member) => [member.documentId, member]));
     for (const element of project.manifest.elements) {
       if (element.documentId !== currentMember.documentId || element.kind !== "gantt-task") continue;
-      const task = tasksBySymbol.get(element.locator.symbolKey);
+      const task = tasksBySymbol.get(element.locator.symbolKey.trim().toLocaleLowerCase());
       if (!task) continue;
       for (const link of project.manifest.links) {
         if (link.from !== element.id && link.to !== element.id) continue;
@@ -1500,7 +1510,7 @@ export function App() {
       }
     }
     return links;
-  }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  }, [activeDocument.historyId, parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
 
   const exportSource = useCallback(() => {
     if (
