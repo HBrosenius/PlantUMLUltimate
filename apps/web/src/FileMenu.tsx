@@ -42,12 +42,18 @@ export function FileMenu({
   onExportPng(): void;
 }) {
   const [open, setOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [openItemsOpen, setOpenItemsOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const close = (restoreFocus = false) => {
     setOpen(false);
+    setNewOpen(false);
+    setOpenItemsOpen(false);
+    setSaveOpen(false);
     setExportOpen(false);
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   };
@@ -91,6 +97,9 @@ export function FileMenu({
         aria-expanded={open}
         onClick={() => {
           setOpen((value) => !value);
+          setNewOpen(false);
+          setOpenItemsOpen(false);
+          setSaveOpen(false);
           setExportOpen(false);
         }}
         onKeyDown={(event) => {
@@ -115,43 +124,100 @@ export function FileMenu({
             }
           }}
         >
-          <button role="menuitem" onClick={() => run(onNew)}>
-            New
-          </button>
-          {onNewProject && (
-            <button role="menuitem" onClick={() => run(onNewProject)}>
-              New project…
+          <div
+            className="application-submenu"
+            onPointerEnter={() => setNewOpen(true)}
+            onPointerLeave={() => setNewOpen(false)}
+          >
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={newOpen}
+              onClick={() => setNewOpen((value) => !value)}
+            >
+              <span>New</span>
+              <span aria-hidden="true">›</span>
             </button>
-          )}
-          {onNewZipProject && (
-            <button role="menuitem" onClick={() => run(onNewZipProject)}>
-              New ZIP project…
+            {newOpen && (
+              <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="New">
+                <button role="menuitem" onClick={() => run(onNew)}>
+                  Diagram…
+                </button>
+                {onNewProject && (
+                  <button role="menuitem" onClick={() => run(onNewProject)}>
+                    Folder project…
+                  </button>
+                )}
+                {onNewZipProject && (
+                  <button role="menuitem" onClick={() => run(onNewZipProject)}>
+                    ZIP project…
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <div
+            className="application-submenu"
+            onPointerEnter={() => setOpenItemsOpen(true)}
+            onPointerLeave={() => setOpenItemsOpen(false)}
+          >
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openItemsOpen}
+              onClick={() => setOpenItemsOpen((value) => !value)}
+            >
+              <span>Open</span>
+              <span aria-hidden="true">›</span>
             </button>
-          )}
-          <button role="menuitem" onClick={() => run(onOpen)}>
-            Open…
-          </button>
-          {onOpenProject && (
-            <button role="menuitem" onClick={() => run(onOpenProject)}>
-              Open project…
+            {openItemsOpen && (
+              <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Open">
+                <button role="menuitem" onClick={() => run(onOpen)}>
+                  Diagram…
+                </button>
+                {onOpenProject && (
+                  <button role="menuitem" onClick={() => run(onOpenProject)}>
+                    Folder project…
+                  </button>
+                )}
+                {onOpenZipProject && (
+                  <button role="menuitem" onClick={() => run(onOpenZipProject)}>
+                    ZIP project…
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <div
+            className="application-submenu"
+            onPointerEnter={() => setSaveOpen(true)}
+            onPointerLeave={() => setSaveOpen(false)}
+          >
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={saveOpen}
+              onClick={() => setSaveOpen((value) => !value)}
+            >
+              <span>Save</span>
+              <span aria-hidden="true">›</span>
             </button>
-          )}
-          {onOpenZipProject && (
-            <button role="menuitem" onClick={() => run(onOpenZipProject)}>
-              Open ZIP project…
-            </button>
-          )}
-          <button role="menuitem" onClick={() => run(onSave)}>
-            Save
-          </button>
-          <button role="menuitem" onClick={() => run(onSaveAs)}>
-            Save As…
-          </button>
-          {onSaveProject && (
-            <button role="menuitem" onClick={() => run(onSaveProject)}>
-              Save project snapshot…
-            </button>
-          )}
+            {saveOpen && (
+              <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Save">
+                <button role="menuitem" onClick={() => run(onSave)}>
+                  Save diagram
+                </button>
+                <button role="menuitem" onClick={() => run(onSaveAs)}>
+                  Save diagram as…
+                </button>
+                {onSaveProject && (
+                  <button role="menuitem" onClick={() => run(onSaveProject)}>
+                    Save project snapshot…
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           {onProjectConnections && (
             <button role="menuitem" onClick={() => run(onProjectConnections)}>
               Diagram connections
