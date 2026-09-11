@@ -1,5 +1,6 @@
 export const DOCUMENT_MAGIC = "PUMLUDOC";
 export const ENVELOPE_VERSION = 1;
+export const PROJECT_ENVELOPE_VERSION = 2;
 export const SCHEMA_VERSION = 1;
 
 export const DOCUMENT_LIMITS = {
@@ -19,6 +20,7 @@ export const DOCUMENT_LIMITS = {
   maxProjectLinks: 10_000,
   maxProjectNameCharacters: 256,
   maxProjectExpandedBytes: 128 * 1024 * 1024,
+  maxProjectFileBytes: 256 * 1024 * 1024,
   maxProjectSymbolKeyCharacters: 512,
 } as const;
 
@@ -174,6 +176,7 @@ export interface PortableProject {
 }
 
 export interface DecodedEnvelope {
+  version: typeof ENVELOPE_VERSION | typeof PROJECT_ENVELOPE_VERSION;
   header: EnvelopeHeader;
   headerBytes: Uint8Array;
   payload: Uint8Array;

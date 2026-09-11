@@ -7,3 +7,5 @@ export * from "./compression";
 export * from "./encryption";
 export * from "./encode";
 export * from "./decode";
+export * from "./project-encode";
+export * from "./project-decode";

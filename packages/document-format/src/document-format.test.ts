@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   decodeEnvelope,
+  decodeProject,
   DOCUMENT_MAGIC,
   DocumentFormatError,
   encodeEnvelope,
+  encodeProject,
   validateDocument,
   validateProject,
   validateEnvelopeHeader,
@@ -184,7 +186,7 @@ describe("v1 envelope", () => {
 
   it("distinguishes unsupported envelope versions and rejects malformed headers", () => {
     const bytes = encodeEnvelope({ compression: "none", encryption: "none" }, new Uint8Array());
-    bytes[8] = 2;
+    bytes[8] = 3;
     expectCode(() => decodeEnvelope(bytes), "unsupported-version");
     expectCode(() => validateEnvelopeHeader({ compression: "none", encryption: "none", extra: true }), "invalid-file");
   });
@@ -214,5 +216,27 @@ describe("v1 envelope", () => {
         }),
       "invalid-file",
     );
+  });
+});
+
+describe("v2 project envelope", () => {
+  it.each([
+    ["uncompressed", "none" as const, undefined],
+    ["compressed", "gzip" as const, undefined],
+    ["encrypted uncompressed", "none" as const, "project-secret"],
+    ["encrypted compressed", "gzip" as const, "project-secret"],
+  ])("round-trips a %s project", async (_label, compression, password) => {
+    const encoded = await encodeProject(validProject(), { compression, ...(password ? { password } : {}) });
+    expect(encoded.bytes[8]).toBe(2);
+    const decoded = await decodeProject(encoded.bytes, password ? { password } : {});
+    expect(decoded.project).toEqual(validProject());
+    expect(decoded.compression).toBe(compression);
+  });
+
+  it("keeps v1 and v2 decoders separate", async () => {
+    const project = await encodeProject(validProject(), { compression: "none" });
+    await expect(import("./decode").then(({ decodeDocument }) => decodeDocument(project.bytes))).rejects.toMatchObject({
+      code: "unsupported-version",
+    });
   });
 });
