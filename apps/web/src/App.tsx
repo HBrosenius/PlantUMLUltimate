@@ -391,6 +391,7 @@ export function App() {
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [useCaseSettingsOpen, setUseCaseSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
+  const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
@@ -1475,6 +1476,9 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
+  useEffect(() => {
+    if (project) setProjectNavigatorOpen(true);
+  }, [project]);
   const mapProjectRename = useCallback(
     async (
       kind: "class-entity" | "sequence-participant" | "gantt-task",
@@ -3008,6 +3012,16 @@ export function App() {
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveDocument },
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
+      ...(project
+        ? [
+            {
+              id: "project.connections",
+              label: "Diagram connections",
+              category: "Project",
+              run: () => setProjectNavigatorOpen(true),
+            },
+          ]
+        : []),
       { id: "file.backup", label: "Back up workspace", category: "File", run: backupWorkspace },
       { id: "file.restore", label: "Restore workspace…", category: "File", run: () => void restoreWorkspace() },
       {
@@ -4168,12 +4182,12 @@ export function App() {
           onClose={() => setProjectInspectorOpen(false)}
         />
       )}
-      {project && (
+      {project && projectNavigatorOpen && (
         <ProjectNavigator
           project={project}
           onOpen={openMember}
           onAdd={() => void addProjectDiagram()}
-          onClose={closeProject}
+          onClose={() => setProjectNavigatorOpen(false)}
           onLinksChange={updateLinks}
           onElementsChange={updateElements}
         />
