@@ -1489,6 +1489,54 @@ export function App() {
     );
     return new Set(parseResult.document.tasks.filter((task) => symbols.has(task.label)).map((task) => task.id));
   }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  const projectDiagramLinks = useMemo(() => {
+    const links = new Map<string, Array<{ documentId: string; path: string; label: string; relationship: string }>>();
+    if (!project || workspace.diagramKind !== "gantt") return links;
+    const projectHistoryPrefix = `project-history-${project.manifest.projectId}-`;
+    const memberIdFromTab = activeDocument.historyId.startsWith(projectHistoryPrefix)
+      ? activeDocument.historyId.slice(projectHistoryPrefix.length)
+      : undefined;
+    const currentMember =
+      project.members.find((member) => member.documentId === memberIdFromTab) ??
+      project.members.find((member) => member.path === workspace.fileName);
+    if (!currentMember) return links;
+    const tasksBySymbol = new Map<string, (typeof parseResult.document.tasks)[number]>();
+    for (const task of parseResult.document.tasks) {
+      tasksBySymbol.set(task.label.trim().toLocaleLowerCase(), task);
+      if (task.alias?.value) tasksBySymbol.set(task.alias.value.trim().toLocaleLowerCase(), task);
+    }
+    const elementsById = new Map(project.manifest.elements.map((element) => [element.id, element]));
+    const membersById = new Map(project.members.map((member) => [member.documentId, member]));
+    for (const element of project.manifest.elements) {
+      if (element.documentId !== currentMember.documentId || element.kind !== "gantt-task") continue;
+      const task = tasksBySymbol.get(element.locator.symbolKey.trim().toLocaleLowerCase());
+      if (!task) continue;
+      for (const link of project.manifest.links) {
+        if (link.from !== element.id && link.to !== element.id) continue;
+        const target = elementsById.get(link.from === element.id ? link.to : link.from);
+        if (!target || target.documentId === currentMember.documentId) continue;
+        const targetMember = membersById.get(target.documentId);
+        if (!targetMember) continue;
+        const relationship =
+          link.from === element.id
+            ? link.kind === "implements"
+              ? "Implements"
+              : "Represents"
+            : link.kind === "implements"
+              ? "Implemented by"
+              : "Represented by";
+        const targets = links.get(task.id) ?? [];
+        targets.push({
+          documentId: targetMember.documentId,
+          path: targetMember.path,
+          label: target.locator.symbolKey,
+          relationship,
+        });
+        links.set(task.id, targets);
+      }
+    }
+    return links;
+  }, [activeDocument.historyId, parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
   useEffect(() => {
     if (project) setProjectNavigatorOpen(true);
   }, [project]);
@@ -3813,6 +3861,8 @@ export function App() {
               onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
               projectLinkedTaskIds={projectLinkedTaskIds}
+              projectDiagramLinks={projectDiagramLinks}
+              onOpenProjectDiagram={openMember}
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
