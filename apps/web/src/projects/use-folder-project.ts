@@ -142,6 +142,8 @@ export function useFolderProject({
   reportError(error: unknown): void;
 }) {
   const [project, setProject] = useState<ActiveProject>();
+  const projectRef = useRef(project);
+  projectRef.current = project;
   const tabsByMember = useRef(new Map<string, string>());
   const saveCoordinator = useRef(new ProjectSaveCoordinator());
 
@@ -446,23 +448,26 @@ export function useFolderProject({
     }
   }, [project, reportError, setInteractionMessage, tabs.documents]);
 
+  const updateProjectManifest = useCallback((patch: Partial<Pick<ActiveProject["manifest"], "links" | "elements">>) => {
+    const current = projectRef.current;
+    if (!current) return;
+    const manifest = { ...current.manifest, ...patch };
+    const pending = { ...current, manifest } as ActiveProject;
+    projectRef.current = pending;
+    setProject(pending);
+    void reindexActiveProject(current, manifest).then((indexed) => {
+      if (projectRef.current !== pending) return;
+      projectRef.current = indexed;
+      setProject(indexed);
+    });
+  }, []);
   const updateLinks = useCallback(
-    (links: readonly ProjectLink[]) => {
-      if (!project) return;
-      void reindexActiveProject(project, { ...project.manifest, links: [...links] }).then((indexed) =>
-        setProject((current) => (current === project ? indexed : current)),
-      );
-    },
-    [project],
+    (links: readonly ProjectLink[]) => updateProjectManifest({ links: [...links] }),
+    [updateProjectManifest],
   );
   const updateElements = useCallback(
-    (elements: readonly ProjectElement[]) => {
-      if (!project) return;
-      void reindexActiveProject(project, { ...project.manifest, elements: [...elements] }).then((indexed) =>
-        setProject((current) => (current === project ? indexed : current)),
-      );
-    },
-    [project],
+    (elements: readonly ProjectElement[]) => updateProjectManifest({ elements: [...elements] }),
+    [updateProjectManifest],
   );
   const applyRenameMappings = useCallback(
     async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
