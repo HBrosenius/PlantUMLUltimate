@@ -82,7 +82,8 @@ function validEndpoints(link: ProjectLink, elements: Map<string, ProjectElement>
   const to = elements.get(link.to);
   return link.kind === "represents"
     ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
-    : from?.kind === "gantt-task" && (to?.kind === "sequence-participant" || to?.kind === "class-entity");
+    : from?.kind === "gantt-task" &&
+        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
 }
 
 export function parseProjectManifest(value: unknown): ProjectManifest {

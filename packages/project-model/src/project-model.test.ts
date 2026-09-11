@@ -88,6 +88,14 @@ describe("project manifest", () => {
   it("allows a missing declaration registration without making the graph invalid", () => {
     expect(parseProjectManifest(manifest()).elements).toHaveLength(3);
   });
+
+  it("allows a task to implement a task in another Gantt diagram", () => {
+    const value = manifest();
+    value.documents.push({ id: id(11), path: "plans/delivery.puml", format: "plantuml", observedSourceHash: hash });
+    value.elements.push({ id: id(12), documentId: id(11), kind: "gantt-task", locator: locator("Deploy") });
+    value.links.push({ id: id(13), kind: "implements", from: id(8), to: id(12) });
+    expect(parseProjectManifest(value).links).toHaveLength(3);
+  });
 });
 
 describe("conservative element resolution", () => {
