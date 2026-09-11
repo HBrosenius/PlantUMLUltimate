@@ -10,6 +10,8 @@ export function ProjectNavigator({
   onClose,
   onLinksChange,
   onElementsChange,
+  onRename,
+  onDelete,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -17,10 +19,12 @@ export function ProjectNavigator({
   onClose(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
+  onRename?(documentId: string, name: string): void;
+  onDelete?(documentId: string): void;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<"gantt" | "class" | "sequence">("gantt");
-  const [path, setPath] = useState("diagrams/gantt.puml");
+  const [path, setPath] = useState("Gantt diagram");
   return (
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
@@ -41,7 +45,7 @@ export function ProjectNavigator({
         <div className="project-section-heading">
           <div>
             <h2 id="project-diagrams-heading">Diagrams</h2>
-            <p>Files included in this project</p>
+            <p>Diagrams included in this project</p>
           </div>
           <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
             Add diagram
@@ -63,7 +67,7 @@ export function ProjectNavigator({
                 onChange={(event) => {
                   const next = event.target.value as "gantt" | "class" | "sequence";
                   setKind(next);
-                  setPath(`diagrams/${next}.puml`);
+                  setPath(`${next[0]!.toUpperCase()}${next.slice(1)} diagram`);
                 }}
               >
                 <option value="gantt">Gantt</option>
@@ -72,7 +76,7 @@ export function ProjectNavigator({
               </select>
             </label>
             <label>
-              Project file path
+              Diagram name
               <input value={path} onChange={(event) => setPath(event.target.value)} required />
             </label>
             <div>
@@ -86,14 +90,36 @@ export function ProjectNavigator({
         <ul>
           {project.members.map((member) => (
             <li key={member.documentId}>
-              <button type="button" disabled={member.state !== "available"} onClick={() => onOpen(member.documentId)}>
-                <span>{member.path}</span>
-                <small>
-                  {member.state === "available"
-                    ? `${member.diagramKind} · ${member.linkCount} links`
-                    : (member.reason ?? member.state)}
-                </small>
-              </button>
+              <div>
+                <button type="button" disabled={member.state !== "available"} onClick={() => onOpen(member.documentId)}>
+                  <span>{member.path}</span>
+                  <small>
+                    {member.state === "available"
+                      ? `${member.diagramKind} · ${member.linkCount} links`
+                      : (member.reason ?? member.state)}
+                  </small>
+                </button>
+                {onRename && (
+                  <button
+                    type="button"
+                    aria-label={`Rename ${member.path}`}
+                    onClick={() =>
+                      onRename(member.documentId, window.prompt("Diagram name", member.path) ?? member.path)
+                    }
+                  >
+                    Rename
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${member.path}`}
+                    onClick={() => onDelete(member.documentId)}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

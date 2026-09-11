@@ -5,6 +5,7 @@ import type { DocumentSnapshot } from "../workspace-storage";
 export type EmbeddedProjectTabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
   activateDocument(id: string): void;
+  closeDocument?(id: string): void;
   documents: readonly DocumentSnapshot[];
 };
 

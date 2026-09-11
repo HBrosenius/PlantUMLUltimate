@@ -64,6 +64,7 @@ import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
 import { useFolderProject } from "./projects/use-folder-project";
+import { useSingleFileProject } from "./projects/use-single-file-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
@@ -1457,19 +1458,18 @@ export function App() {
     setInteractionMessage,
   });
   const {
-    project,
-    newProject,
+    project: legacyProject,
     newZipProject,
     openProject,
     openZipProject,
     saveZipProject,
     saveFolderProject,
-    openMember,
-    addProjectDiagram,
-    isProjectMemberTab,
-    closeProject,
-    updateLinks,
-    updateElements,
+    openMember: openLegacyMember,
+    addProjectDiagram: addLegacyProjectDiagram,
+    isProjectMemberTab: isLegacyProjectMemberTab,
+    closeProject: closeLegacyProject,
+    updateLinks: updateLegacyLinks,
+    updateElements: updateLegacyElements,
     applyRenameMappings,
   } = useFolderProject({
     tabs,
@@ -1477,6 +1477,28 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
+  const singleFileProject = useSingleFileProject({
+    tabs,
+    resetSelection: resetFileSelection,
+    setInteractionMessage,
+    reportError: reportFileError,
+  });
+  const usingSingleFileProject = Boolean(singleFileProject.portableProject);
+  const project = singleFileProject.project ?? legacyProject;
+  const openMember = usingSingleFileProject ? singleFileProject.openMember : openLegacyMember;
+  const addProjectDiagram = usingSingleFileProject ? singleFileProject.addProjectDiagram : addLegacyProjectDiagram;
+  const isProjectMemberTab = usingSingleFileProject
+    ? (id: string) =>
+        tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
+    : isLegacyProjectMemberTab;
+  const closeProject = usingSingleFileProject ? singleFileProject.closeProject : closeLegacyProject;
+  const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
+  const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
+  const saveActiveProject = useCallback(async () => {
+    if (!usingSingleFileProject) return;
+    const result = await singleFileProject.saveProject();
+    if (!result) await singleFileProject.saveProjectAs();
+  }, [singleFileProject, usingSingleFileProject]);
   const projectLinkedTaskIds = useMemo(() => {
     if (!project || workspace.diagramKind !== "gantt") return new Set<string>();
     const member = project.members.find((item) => item.path === workspace.fileName);
@@ -3226,7 +3248,7 @@ export function App() {
       }
       if (event.key.toLowerCase() === "s") {
         event.preventDefault();
-        void saveDocument();
+        void (usingSingleFileProject ? saveActiveProject() : saveDocument());
         return;
       }
       if (event.key.toLowerCase() === "o") {
@@ -3253,6 +3275,7 @@ export function App() {
     openDialog,
     openDocument,
     redo,
+    saveActiveProject,
     saveDocument,
     tabs.activeId,
     toggleCommandPalette,
@@ -3365,18 +3388,27 @@ export function App() {
           <FileMenu
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
-            onNewProject={() => void newProject()}
+            onNewProject={() => void singleFileProject.newProject()}
             onNewZipProject={() => void newZipProject()}
             onOpen={() => void openDocument()}
             onOpenProject={() => void openProject()}
             onOpenZipProject={() => void openZipProject()}
             onSaveProject={
-              project ? () => void ("archiveEntries" in project ? saveZipProject() : saveFolderProject()) : undefined
+              project
+                ? () =>
+                    void (usingSingleFileProject
+                      ? singleFileProject.saveProject().then(async (result) => {
+                          if (!result) await singleFileProject.saveProjectAs();
+                        })
+                      : "archiveEntries" in project
+                        ? saveZipProject()
+                        : saveFolderProject())
+                : undefined
             }
             onProjectConnections={project ? () => setProjectNavigatorOpen(true) : undefined}
             projectName={project?.manifest.name}
-            onSave={() => void saveDocument()}
-            onSaveAs={() => void saveDocumentAs()}
+            onSave={() => void (usingSingleFileProject ? saveActiveProject() : saveDocument())}
+            onSaveAs={() => void (usingSingleFileProject ? singleFileProject.saveProjectAs() : saveDocumentAs())}
             onVersionHistory={() => void openVersionHistory()}
             onDocumentSettings={() => setDocumentSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
@@ -4257,6 +4289,9 @@ export function App() {
           onClose={() => setProjectNavigatorOpen(false)}
           onLinksChange={updateLinks}
           onElementsChange={updateElements}
+          {...(usingSingleFileProject
+            ? { onRename: singleFileProject.renameDiagram, onDelete: singleFileProject.deleteDiagram }
+            : {})}
         />
       )}
       {sequenceSettingsOpen && (

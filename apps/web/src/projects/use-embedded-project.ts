@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PortableProject } from "@plantuml-studio/document-format";
+import type { PortableProject, PortableProjectDiagram } from "@plantuml-studio/document-format";
 import {
   embeddedMemberHistoryId,
   embeddedMemberTabs,
@@ -86,6 +86,67 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     [encrypted, project, tabs],
   );
 
+  const addDiagram = useCallback(
+    (diagram: PortableProjectDiagram) => {
+      const current = projectRef.current;
+      if (!current) return undefined;
+      const next = {
+        ...current,
+        revisionId: crypto.randomUUID(),
+        savedAt: new Date().toISOString(),
+        diagrams: [...current.diagrams, diagram],
+      };
+      const tabId = openEmbeddedMember(next, diagram.id, tabs, memberTabs.current, encrypted);
+      sourceByMember.current.set(diagram.id, diagram.document.current.source);
+      revisionRef.current += 1;
+      setProject(next);
+      return tabId;
+    },
+    [encrypted, tabs],
+  );
+
+  const renameDiagram = useCallback((memberId: string, name: string) => {
+    const value = name.trim();
+    if (!value) return false;
+    const current = projectRef.current;
+    if (!current?.diagrams.some((diagram) => diagram.id === memberId)) return false;
+    revisionRef.current += 1;
+    setProject({
+      ...current,
+      revisionId: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+      diagrams: current.diagrams.map((diagram) => (diagram.id === memberId ? { ...diagram, name: value } : diagram)),
+    });
+    return true;
+  }, []);
+
+  const deleteDiagram = useCallback(
+    (memberId: string) => {
+      const current = projectRef.current;
+      if (!current) return false;
+      const removed = current.diagrams.find((diagram) => diagram.id === memberId);
+      if (!removed) return false;
+      const removedElementIds = new Set(
+        current.elements.filter((element) => element.documentId === memberId).map((element) => element.id),
+      );
+      const tabId = memberTabs.current.get(memberId);
+      if (tabId) tabs.closeDocument?.(tabId);
+      memberTabs.current.delete(memberId);
+      sourceByMember.current.delete(memberId);
+      revisionRef.current += 1;
+      setProject({
+        ...current,
+        revisionId: crypto.randomUUID(),
+        savedAt: new Date().toISOString(),
+        diagrams: current.diagrams.filter((diagram) => diagram.id !== memberId),
+        elements: current.elements.filter((element) => !removedElementIds.has(element.id)),
+        links: current.links.filter((link) => !removedElementIds.has(link.from) && !removedElementIds.has(link.to)),
+      });
+      return true;
+    },
+    [tabs],
+  );
+
   const snapshot = useCallback(
     async (savedAt?: string) => {
       if (!project) return undefined;
@@ -122,6 +183,9 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     openProject,
     restoreProject,
     openMember,
+    addDiagram,
+    renameDiagram,
+    deleteDiagram,
     snapshot,
     updateProject,
     captureSaveSnapshot,

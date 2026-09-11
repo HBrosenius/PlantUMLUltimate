@@ -179,7 +179,7 @@ export function FileMenu({
                 </button>
                 {onNewProject && (
                   <button role="menuitem" onClick={() => run(onNewProject)}>
-                    Folder project…
+                    Project…
                   </button>
                 )}
                 {onNewZipProject && (
@@ -211,7 +211,7 @@ export function FileMenu({
                 </button>
                 {onOpenProject && (
                   <button role="menuitem" onClick={() => run(onOpenProject)}>
-                    Folder project…
+                    Import folder project…
                   </button>
                 )}
                 {onOpenZipProject && (
@@ -239,10 +239,10 @@ export function FileMenu({
             {saveOpen && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Save">
                 <button role="menuitem" onClick={() => run(onSave)}>
-                  Save diagram
+                  {onSaveProject ? "Save project" : "Save diagram"}
                 </button>
                 <button role="menuitem" onClick={() => run(onSaveAs)}>
-                  Save diagram as…
+                  {onSaveProject ? "Save project as…" : "Save diagram as…"}
                 </button>
               </div>
             )}
