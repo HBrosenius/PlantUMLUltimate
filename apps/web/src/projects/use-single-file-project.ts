@@ -26,7 +26,7 @@ import {
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
-import { indexVirtualProject, type VirtualProject } from "./project-index";
+import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { useEmbeddedProject } from "./use-embedded-project";
 
@@ -61,6 +61,27 @@ async function indexProject(project: PortableProject): Promise<VirtualProject> {
       ]),
     ),
   );
+}
+
+/** Keeps the navigator responsive while the full declaration/link resolver catches up. */
+function immediateIndex(project: PortableProject): VirtualProject {
+  const manifest = manifestFor(project);
+  const members: IndexedProjectMember[] = project.diagrams.map((diagram) => {
+    const diagramKind = detectDiagramKind(diagram.document.current.source);
+    const elementIds = new Set(
+      project.elements.filter((element) => element.documentId === diagram.id).map((element) => element.id),
+    );
+    return {
+      documentId: diagram.id,
+      path: diagram.name,
+      state: diagramKind ? "available" : "unsupported",
+      ...(diagramKind ? { diagramKind } : { reason: "Diagram type could not be identified" }),
+      source: diagram.document.current.source,
+      declarations: [],
+      linkCount: project.links.filter((link) => elementIds.has(link.from) || elementIds.has(link.to)).length,
+    };
+  });
+  return { manifest, members, resolutions: new Map() };
 }
 
 function projectName(name: string): string {
@@ -135,7 +156,9 @@ export function useSingleFileProject({
 
   const addPortableDiagram = useCallback(
     (diagram: PortableProject["diagrams"][number]) => {
-      if (!embedded.project || !embedded.addDiagram(diagram)) throw new Error("Open a project before adding a diagram");
+      const current = embedded.project;
+      if (!current || !embedded.addDiagram(diagram)) throw new Error("Open a project before adding a diagram");
+      setIndexed(immediateIndex({ ...current, diagrams: [...current.diagrams, diagram] }));
       resetSelection();
       setInteractionMessage(`Added ${diagram.name}. Save the project to keep it.`);
     },
