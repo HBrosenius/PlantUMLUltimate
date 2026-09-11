@@ -45,6 +45,7 @@ export function FileMenu({
   const [newOpen, setNewOpen] = useState(false);
   const [openItemsOpen, setOpenItemsOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [projectOpen, setProjectOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -54,6 +55,7 @@ export function FileMenu({
     setNewOpen(false);
     setOpenItemsOpen(false);
     setSaveOpen(false);
+    setProjectOpen(false);
     setExportOpen(false);
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   };
@@ -100,6 +102,7 @@ export function FileMenu({
           setNewOpen(false);
           setOpenItemsOpen(false);
           setSaveOpen(false);
+          setProjectOpen(false);
           setExportOpen(false);
         }}
         onKeyDown={(event) => {
@@ -124,6 +127,35 @@ export function FileMenu({
             }
           }}
         >
+          {onProjectConnections && (
+            <div
+              className="application-submenu"
+              onPointerEnter={() => setProjectOpen(true)}
+              onPointerLeave={() => setProjectOpen(false)}
+            >
+              <button
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={projectOpen}
+                onClick={() => setProjectOpen((value) => !value)}
+              >
+                <span>Project</span>
+                <span aria-hidden="true">›</span>
+              </button>
+              {projectOpen && (
+                <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Project">
+                  <button role="menuitem" onClick={() => run(onProjectConnections)}>
+                    Diagram connections
+                  </button>
+                  {onSaveProject && (
+                    <button role="menuitem" onClick={() => run(onSaveProject)}>
+                      Save project snapshot…
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div
             className="application-submenu"
             onPointerEnter={() => setNewOpen(true)}
@@ -210,19 +242,9 @@ export function FileMenu({
                 <button role="menuitem" onClick={() => run(onSaveAs)}>
                   Save diagram as…
                 </button>
-                {onSaveProject && (
-                  <button role="menuitem" onClick={() => run(onSaveProject)}>
-                    Save project snapshot…
-                  </button>
-                )}
               </div>
             )}
           </div>
-          {onProjectConnections && (
-            <button role="menuitem" onClick={() => run(onProjectConnections)}>
-              Diagram connections
-            </button>
-          )}
           <button role="menuitem" onClick={() => run(onVersionHistory)}>
             Version history…
           </button>
