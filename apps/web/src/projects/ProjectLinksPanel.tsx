@@ -1,6 +1,6 @@
 import { hashSource } from "@plantuml-studio/document-format";
 import { canCreateLink, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { VirtualProject } from "./project-index";
 
 function elementLabel(project: VirtualProject, elementId: string): string {
@@ -39,6 +39,33 @@ export function ProjectLinksPanel({
   const registrations = project.members.flatMap((member) =>
     member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
   );
+  useEffect(() => {
+    const missing = registrations.filter(
+      ({ member, declaration }) =>
+        !elements.some(
+          (element) =>
+            element.documentId === member.documentId &&
+            element.kind === declaration.kind &&
+            element.locator.declarationHash === declaration.declarationHash,
+        ),
+    );
+    if (!missing.length) return;
+    void Promise.all(
+      missing.map(async ({ member, declaration }) => ({
+        id: crypto.randomUUID(),
+        documentId: member.documentId,
+        kind: declaration.kind,
+        locator: {
+          symbolKey: declaration.symbolKey,
+          keyType: "semantic-key" as const,
+          declarationHash: declaration.declarationHash,
+          sourceHash: await hashSource(member.source!),
+          from: declaration.from,
+          to: declaration.to,
+        },
+      })),
+    ).then((registered) => onElementsChange([...elements, ...registered]));
+  }, [elements, onElementsChange, registrations]);
   const repair = (
     element: ProjectElement,
     candidate: { symbolKey: string; declarationHash: string; from: number; to: number },
@@ -79,56 +106,8 @@ export function ProjectLinksPanel({
         <p className="project-links-help">
           A link records that one item relates to another. It does not alter either diagram or add a PlantUML arrow.
         </p>
-        <label>
-          <span>1. Make an item linkable</span>
-          <select
-            value=""
-            onChange={(event) => {
-              const [documentId, index] = event.target.value.split(":");
-              const candidate = registrations[Number(index)];
-              if (!candidate || candidate.member.documentId !== documentId) return;
-              if (
-                elements.some(
-                  (item) =>
-                    item.documentId === documentId &&
-                    item.kind === candidate.declaration.kind &&
-                    item.locator.declarationHash === candidate.declaration.declarationHash,
-                )
-              )
-                return;
-              void hashSource(candidate.member.source!).then((sourceHash) =>
-                onElementsChange([
-                  ...elements,
-                  {
-                    id: crypto.randomUUID(),
-                    documentId,
-                    kind: candidate.declaration.kind,
-                    locator: {
-                      symbolKey: candidate.declaration.symbolKey,
-                      keyType: "semantic-key",
-                      declarationHash: candidate.declaration.declarationHash,
-                      sourceHash,
-                      from: candidate.declaration.from,
-                      to: candidate.declaration.to,
-                    },
-                  },
-                ]),
-              );
-            }}
-          >
-            <option value="">Choose a task, participant, or class…</option>
-            {registrations.map(({ member, declaration }, index) => (
-              <option key={`${member.documentId}:${declaration.from}`} value={`${member.documentId}:${index}`}>
-                {member.path}: {declaration.symbolKey}
-              </option>
-            ))}
-          </select>
-        </label>
         {elements.length === 0 ? (
-          <p className="project-links-empty">
-            Pick each item you want to link above. For example, choose “Backend” from one Gantt diagram, then “Testing”
-            from another.
-          </p>
+          <p className="project-links-empty">No linkable tasks or diagram elements are available yet.</p>
         ) : (
           <form
             className="project-link-form"
@@ -140,7 +119,7 @@ export function ProjectLinksPanel({
             }}
           >
             <label>
-              <span>2. Choose the source item</span>
+              <span>1. Link from</span>
               <select
                 value={fromId}
                 onChange={(event) => {
@@ -157,7 +136,7 @@ export function ProjectLinksPanel({
               </select>
             </label>
             <label>
-              <span>3. Choose the related item</span>
+              <span>2. Link to</span>
               <select value={toId} disabled={!from} onChange={(event) => setToId(event.target.value)}>
                 <option value="">Choose what it relates to…</option>
                 {compatible.map((element) => (
