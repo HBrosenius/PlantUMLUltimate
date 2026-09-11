@@ -2,6 +2,7 @@ import {
   DOCUMENT_LIMITS,
   DOCUMENT_MAGIC,
   ENVELOPE_VERSION,
+  PROJECT_ENVELOPE_VERSION,
   DocumentFormatError,
   type DecodedEnvelope,
   type EnvelopeHeader,
@@ -51,16 +52,22 @@ export function validateEnvelopeHeader(value: unknown): EnvelopeHeader {
   return header as unknown as EnvelopeHeader;
 }
 
-export function encodeEnvelope(header: EnvelopeHeader, payload: Uint8Array): Uint8Array {
+export function encodeEnvelope(
+  header: EnvelopeHeader,
+  payload: Uint8Array,
+  version: typeof ENVELOPE_VERSION | typeof PROJECT_ENVELOPE_VERSION = ENVELOPE_VERSION,
+): Uint8Array {
   const checked = validateEnvelopeHeader(header);
   const headerBytes = UTF8_ENCODER.encode(JSON.stringify(checked));
   if (headerBytes.byteLength > DOCUMENT_LIMITS.maxHeaderBytes)
     throw new DocumentFormatError("limit-exceeded", "Envelope header exceeds 4096 bytes");
-  if (PREFIX_BYTES + headerBytes.byteLength + payload.byteLength > DOCUMENT_LIMITS.maxFileBytes)
-    throw new DocumentFormatError("limit-exceeded", "Document exceeds 80 MiB");
+  const maxBytes =
+    version === PROJECT_ENVELOPE_VERSION ? DOCUMENT_LIMITS.maxProjectFileBytes : DOCUMENT_LIMITS.maxFileBytes;
+  if (PREFIX_BYTES + headerBytes.byteLength + payload.byteLength > maxBytes)
+    throw new DocumentFormatError("limit-exceeded", "Document exceeds the file size limit");
   const result = new Uint8Array(PREFIX_BYTES + headerBytes.byteLength + payload.byteLength);
   result.set(MAGIC_BYTES, 0);
-  result[8] = ENVELOPE_VERSION;
+  result[8] = version;
   new DataView(result.buffer).setUint32(9, headerBytes.byteLength, true);
   result.set(headerBytes, PREFIX_BYTES);
   result.set(payload, PREFIX_BYTES + headerBytes.byteLength);
@@ -68,12 +75,16 @@ export function encodeEnvelope(header: EnvelopeHeader, payload: Uint8Array): Uin
 }
 
 export function decodeEnvelope(bytes: Uint8Array): DecodedEnvelope {
-  if (bytes.byteLength > DOCUMENT_LIMITS.maxFileBytes)
-    throw new DocumentFormatError("limit-exceeded", "Document exceeds 80 MiB");
   if (bytes.byteLength < PREFIX_BYTES) invalid("Document envelope is truncated");
   if (!MAGIC_BYTES.every((byte, index) => bytes[index] === byte)) invalid("Document magic is invalid");
-  if (bytes[8] !== ENVELOPE_VERSION)
+  const version = bytes[8];
+  if (version !== ENVELOPE_VERSION && version !== PROJECT_ENVELOPE_VERSION)
     throw new DocumentFormatError("unsupported-version", `Unsupported envelope version ${bytes[8]}`);
+  if (
+    bytes.byteLength >
+    (version === PROJECT_ENVELOPE_VERSION ? DOCUMENT_LIMITS.maxProjectFileBytes : DOCUMENT_LIMITS.maxFileBytes)
+  )
+    throw new DocumentFormatError("limit-exceeded", "Document exceeds the file size limit");
   const headerLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(9, true);
   if (headerLength > DOCUMENT_LIMITS.maxHeaderBytes)
     throw new DocumentFormatError("limit-exceeded", "Envelope header exceeds 4096 bytes");
@@ -87,6 +98,7 @@ export function decodeEnvelope(bytes: Uint8Array): DecodedEnvelope {
     invalid("Envelope header is not strict UTF-8 JSON");
   }
   return {
+    version,
     header: validateEnvelopeHeader(parsed),
     headerBytes,
     payload: bytes.slice(payloadOffset),

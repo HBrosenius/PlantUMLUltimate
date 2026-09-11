@@ -1,5 +1,6 @@
 export const DOCUMENT_MAGIC = "PUMLUDOC";
 export const ENVELOPE_VERSION = 1;
+export const PROJECT_ENVELOPE_VERSION = 2;
 export const SCHEMA_VERSION = 1;
 
 export const DOCUMENT_LIMITS = {
@@ -14,6 +15,13 @@ export const DOCUMENT_LIMITS = {
   maxIdentifierCharacters: 128,
   maxLabelCharacters: 512,
   maxAuthorNameCharacters: 256,
+  maxProjectDiagrams: 200,
+  maxProjectElements: 5_000,
+  maxProjectLinks: 10_000,
+  maxProjectNameCharacters: 256,
+  maxProjectExpandedBytes: 128 * 1024 * 1024,
+  maxProjectFileBytes: 256 * 1024 * 1024,
+  maxProjectSymbolKeyCharacters: 512,
 } as const;
 
 export const DEFAULT_HISTORY_POLICY = {
@@ -125,7 +133,50 @@ export interface PortableDocument {
   contents: ContentRecord[];
 }
 
+export type PortableProjectElementKind = "sequence-participant" | "class-entity" | "gantt-task";
+export type PortableProjectLinkKind = "represents" | "implements";
+
+export interface PortableProjectElement {
+  id: string;
+  documentId: string;
+  kind: PortableProjectElementKind;
+  locator: {
+    symbolKey: string;
+    keyType: "alias" | "semantic-key";
+    declarationHash: string;
+    sourceHash: string;
+    from: number;
+    to: number;
+  };
+}
+
+export interface PortableProjectLink {
+  id: string;
+  kind: PortableProjectLinkKind;
+  from: string;
+  to: string;
+}
+
+export interface PortableProjectDiagram {
+  id: string;
+  name: string;
+  document: PortableDocument;
+}
+
+/** Logical v2 payload, before the common envelope is compressed and optionally encrypted. */
+export interface PortableProject {
+  schemaVersion: 2;
+  projectId: string;
+  revisionId: string;
+  name: string;
+  savedAt: string;
+  diagrams: PortableProjectDiagram[];
+  elements: PortableProjectElement[];
+  links: PortableProjectLink[];
+}
+
 export interface DecodedEnvelope {
+  version: typeof ENVELOPE_VERSION | typeof PROJECT_ENVELOPE_VERSION;
   header: EnvelopeHeader;
   headerBytes: Uint8Array;
   payload: Uint8Array;

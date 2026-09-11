@@ -336,6 +336,7 @@ describe("task inspector operations", () => {
     const task = parseGantt(source).document.tasks[0]!;
     const changed = applySourceEdits(source, setTaskDeclaration(source, task, "start", "starts 2026-09-01").edits);
     expect(changed).toContain("[P1] starts 2026-09-01");
+    expect(changed.indexOf("[Prototype] as [P1]")).toBeLessThan(changed.indexOf("[P1] starts 2026-09-01"));
     expect(changed).not.toContain("[Prototype] starts 2026-09-01");
     expect(parseGantt(changed).document.tasks).toHaveLength(1);
   });

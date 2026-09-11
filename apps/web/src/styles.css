@@ -472,7 +472,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 1.25em;
   margin: 0 -1px;
   border-left: 2px solid;
-  pointer-events: none;
+  pointer-events: auto;
   vertical-align: text-bottom;
   z-index: 3;
 }
@@ -3482,12 +3482,12 @@ textarea:focus-visible,
   bottom: 33px;
   width: 300px;
   overflow: auto;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--panel);
   color: var(--text);
-  box-shadow: 0 10px 35px rgb(0 0 0 / 20%);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 20%);
 }
 .project-navigator header {
   display: flex;
@@ -3500,6 +3500,16 @@ textarea:focus-visible,
 .project-navigator li button {
   display: grid;
   gap: 3px;
+}
+.project-navigator-kicker {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.project-navigator header strong {
+  font-size: 16px;
 }
 .project-navigator header small,
 .project-navigator li small {
@@ -3521,16 +3531,258 @@ textarea:focus-visible,
 }
 .project-navigator li button {
   width: 100%;
-  padding: 8px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: transparent;
   color: inherit;
   text-align: left;
 }
+.project-navigator li button:not(:disabled):hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
 .project-navigator li button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+.preview [data-project-linked="true"] .bar {
+  stroke: #2563eb !important;
+  stroke-width: 3px !important;
+}
+.preview [data-project-linked="true"] .label {
+  fill: #1d4ed8 !important;
+  font-weight: 700;
+}
+.project-navigator-section,
+.project-links {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.project-navigator-section {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+.project-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.project-section-heading h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.project-section-heading p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.project-add-diagram,
+.project-create-link {
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.project-add-diagram:hover,
+.project-create-link:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+.project-add-diagram-form,
+.project-link-form,
+.project-links-workflow {
+  display: grid;
+  gap: 10px;
+}
+.project-add-diagram-form {
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 72%, var(--panel));
+}
+.project-add-diagram-form label,
+.project-link-form label,
+.project-links-workflow label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.project-add-diagram-form input,
+.project-add-diagram-form select,
+.project-link-form select,
+.project-links-workflow select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.project-add-diagram-form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.project-links-workflow {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.project-links-help,
+.project-links-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.project-link-form {
+  margin-top: 2px;
+}
+.project-create-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.project-count {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.project-existing-links,
+.project-link-repairs {
+  margin-top: 16px;
+}
+.project-subsection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.project-subsection-heading h3,
+.project-link-repairs h3 {
+  margin: 0;
+  font-size: 12px;
+}
+.project-subsection-heading span {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.project-link-list {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.project-link-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.project-navigator .project-link-list .project-link-route {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+  min-width: 0;
+}
+.project-link-kind {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.project-link-list button {
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-link-endpoint {
+  flex: 1 1 92px;
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-link-endpoint:last-child {
+  text-align: left;
+}
+.project-navigator .project-link-list .project-link-remove {
+  display: block;
+  width: auto;
+  flex: none;
+  margin: 0;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.project-navigator .project-link-list .project-link-remove:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+.project-link-remove {
+  flex: none;
+  color: var(--muted);
+}
+.project-link-list button:hover {
+  color: var(--accent);
+}
+.project-link-repair {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 9px;
+  border: 1px solid #d97706;
+  border-radius: 5px;
+  background: rgb(217 119 6 / 8%);
+  font-size: 12px;
+}
+.project-link-repair > span {
+  color: var(--muted);
+}
+.project-link-repair button {
+  justify-self: start;
 }
 .jira-task-status {
   display: grid;

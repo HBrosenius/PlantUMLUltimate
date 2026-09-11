@@ -25,6 +25,7 @@ import {
   writeDocumentBytes,
   type FileSnapshot,
   type OpenedDocument,
+  type OpenedFileBytes,
   type WritableFileHandle,
 } from "./file-service";
 import { assemblePortableDocument } from "./document-format/portable-document";
@@ -84,6 +85,7 @@ type UseDocumentFilesOptions = {
   resetSelection: () => void;
   reportError: (error: unknown) => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
+  onProjectLaunch?: (opened: OpenedFileBytes) => Promise<boolean>;
 };
 
 export function externalFileChanged(previous: FileSnapshot | undefined, external: FileSnapshot) {
@@ -138,6 +140,7 @@ export function useDocumentFiles({
   resetSelection,
   reportError,
   setInteractionMessage,
+  onProjectLaunch,
 }: UseDocumentFilesOptions) {
   const [externalConflict, setExternalConflict] = useState<ExternalFileConflict>();
   const checkingExternalFiles = useRef(false);
@@ -264,8 +267,11 @@ export function useDocumentFiles({
 
   useEffect(() => {
     if (!hydrated) return;
-    registerDocumentLaunchConsumer(addOpenedFile, reportError);
-  }, [addOpenedFile, hydrated, reportError]);
+    registerDocumentLaunchConsumer(async (opened) => {
+      if (await onProjectLaunch?.(opened)) return;
+      await addOpenedFile(opened);
+    }, reportError);
+  }, [addOpenedFile, hydrated, onProjectLaunch, reportError]);
 
   const saveDocumentAs = useCallback(async () => {
     try {

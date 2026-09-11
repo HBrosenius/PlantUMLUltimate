@@ -79,7 +79,9 @@ const DATABASE = "plantuml-studio";
 const STORE = "workspace";
 const VERSION_STORE = "document-versions";
 const CURRENT = "current";
+const ACTIVE_PROJECT = "active-project";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
+const ACTIVE_PROJECT_LEGACY_KEY = "plantuml-studio.active-project.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
 const memoryOnlyHistories = new Map<string, DocumentVersion[]>();
 
@@ -504,6 +506,64 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
     database.close();
   } catch {
     localStorage.setItem(LEGACY_KEY, JSON.stringify(persistable));
+  }
+}
+
+/** Persists an active project recovery record alongside the workspace session. */
+export async function saveActiveProject(value: unknown): Promise<void> {
+  // Write the small recovery record synchronously first, so an immediate reload cannot race IndexedDB.
+  localStorage.setItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
+  try {
+    const database = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE, "readwrite");
+      transaction.objectStore(STORE).put(value, ACTIVE_PROJECT);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  } catch {
+    // IndexedDB recovery is optional when the synchronous fallback has succeeded.
+  }
+}
+
+/** Loads the active project recovery record, if there is one. */
+export async function loadActiveProject(): Promise<unknown | undefined> {
+  try {
+    const legacy = localStorage.getItem(ACTIVE_PROJECT_LEGACY_KEY);
+    if (legacy) return JSON.parse(legacy);
+  } catch {
+    // Fall through to IndexedDB.
+  }
+  try {
+    const database = await openDatabase();
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const request = database.transaction(STORE, "readonly").objectStore(STORE).get(ACTIVE_PROJECT);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    if (value !== undefined) return value;
+  } catch {
+    // Fall through to the legacy browser-storage record.
+  }
+  return undefined;
+}
+
+/** Removes the active-project recovery record from both supported browser stores. */
+export async function clearActiveProject(): Promise<void> {
+  localStorage.removeItem(ACTIVE_PROJECT_LEGACY_KEY);
+  try {
+    const database = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE, "readwrite");
+      transaction.objectStore(STORE).delete(ACTIVE_PROJECT);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  } catch {
+    // The local-storage copy was already removed. IndexedDB recovery is best effort.
   }
 }
 

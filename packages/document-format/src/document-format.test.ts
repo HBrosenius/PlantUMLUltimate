@@ -2,12 +2,20 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   decodeEnvelope,
+  decodeProject,
   DOCUMENT_MAGIC,
   DocumentFormatError,
   encodeEnvelope,
+  encodeProject,
+  projectFromDocument,
+  projectFromLegacy,
+  projectFromPlantUml,
+  portableDocumentFromPlantUml,
   validateDocument,
+  validateProject,
   validateEnvelopeHeader,
   type PortableDocument,
+  type PortableProject,
 } from "./index";
 
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -39,6 +47,33 @@ function validDocument(): PortableDocument {
       },
     ],
     contents: [{ id: EMPTY_HASH, kind: "full", source: "", byteLength: 0 }],
+  };
+}
+
+function validProject(): PortableProject {
+  return {
+    schemaVersion: 2,
+    projectId: "44444444-4444-4444-8444-444444444444",
+    revisionId: "55555555-5555-4555-8555-555555555555",
+    name: "Release plan",
+    savedAt: "2026-09-11T10:00:00.000Z",
+    diagrams: [{ id: "66666666-6666-4666-8666-666666666666", name: "Plan", document: validDocument() }],
+    elements: [
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        documentId: "66666666-6666-4666-8666-666666666666",
+        kind: "gantt-task",
+        locator: {
+          symbolKey: "Release",
+          keyType: "semantic-key",
+          declarationHash: EMPTY_HASH,
+          sourceHash: EMPTY_HASH,
+          from: 0,
+          to: 1,
+        },
+      },
+    ],
+    links: [],
   };
 }
 
@@ -112,6 +147,27 @@ describe("validateDocument", () => {
   });
 });
 
+describe("validateProject", () => {
+  it("accepts an embedded project with a validated v1 document", () => {
+    expect(validateProject(validProject())).toMatchObject({ schemaVersion: 2, name: "Release plan" });
+  });
+
+  it("keeps the project schema strict and validates graph references", () => {
+    expectCode(() => validateProject({ ...validProject(), unexpected: true }), "invalid-file");
+    const unknownDiagram = validProject();
+    unknownDiagram.elements[0]!.documentId = "88888888-8888-4888-8888-888888888888";
+    expectCode(() => validateProject(unknownDiagram), "invalid-file");
+    const invalidLink = validProject();
+    invalidLink.links.push({
+      id: "99999999-9999-4999-8999-999999999999",
+      kind: "represents",
+      from: invalidLink.elements[0]!.id,
+      to: invalidLink.elements[0]!.id,
+    });
+    expectCode(() => validateProject(invalidLink), "invalid-file");
+  });
+});
+
 describe("v1 envelope", () => {
   it("matches and decodes the golden uncompressed fixture", () => {
     const fixture = readFileSync(new URL("../fixtures/uncompressed-v1.pumlu.base64", import.meta.url), "utf8").trim();
@@ -134,7 +190,7 @@ describe("v1 envelope", () => {
 
   it("distinguishes unsupported envelope versions and rejects malformed headers", () => {
     const bytes = encodeEnvelope({ compression: "none", encryption: "none" }, new Uint8Array());
-    bytes[8] = 2;
+    bytes[8] = 3;
     expectCode(() => decodeEnvelope(bytes), "unsupported-version");
     expectCode(() => validateEnvelopeHeader({ compression: "none", encryption: "none", extra: true }), "invalid-file");
   });
@@ -164,5 +220,62 @@ describe("v1 envelope", () => {
         }),
       "invalid-file",
     );
+  });
+});
+
+describe("v2 project envelope", () => {
+  it.each([
+    ["uncompressed", "none" as const, undefined],
+    ["compressed", "gzip" as const, undefined],
+    ["encrypted uncompressed", "none" as const, "project-secret"],
+    ["encrypted compressed", "gzip" as const, "project-secret"],
+  ])("round-trips a %s project", async (_label, compression, password) => {
+    const encoded = await encodeProject(validProject(), { compression, ...(password ? { password } : {}) });
+    expect(encoded.bytes[8]).toBe(2);
+    const decoded = await decodeProject(encoded.bytes, password ? { password } : {});
+    expect(decoded.project).toEqual(validProject());
+    expect(decoded.compression).toBe(compression);
+  });
+
+  it("keeps v1 and v2 decoders separate", async () => {
+    const project = await encodeProject(validProject(), { compression: "none" });
+    await expect(import("./decode").then(({ decodeDocument }) => decodeDocument(project.bytes))).rejects.toMatchObject({
+      code: "unsupported-version",
+    });
+  });
+});
+
+describe("project conversion", () => {
+  it("wraps an existing v1 document without changing its history identity", () => {
+    const project = projectFromDocument(validDocument(), "Imported plan", "2026-09-11T10:00:00.000Z");
+    expect(project.diagrams[0]!.document).toEqual(validDocument());
+  });
+
+  it("creates a standalone PlantUML project with a native checkpoint", async () => {
+    const project = await projectFromPlantUml("@startgantt\n@endgantt\n", "gantt", "Plan", "2026-09-11T10:00:00.000Z");
+    expect(project.diagrams[0]!.document.versions).toHaveLength(1);
+    expect(project.diagrams[0]!.document.current.source).toContain("@startgantt");
+  });
+
+  it("creates an embeddable logical document from PlantUML", async () => {
+    const document = await portableDocumentFromPlantUml("@startuml\n@enduml\n", "class", "2026-09-11T10:00:00.000Z");
+    expect(document.current.diagramKind).toBe("class");
+    expect(document.contents[0]?.kind).toBe("full");
+  });
+
+  it("preserves legacy diagram, element, and link identities", () => {
+    const source = validProject();
+    const converted = projectFromLegacy(
+      {
+        projectId: source.projectId,
+        revisionId: source.revisionId,
+        name: source.name,
+        diagrams: source.diagrams,
+        elements: source.elements,
+        links: source.links,
+      },
+      source.savedAt,
+    );
+    expect(converted).toEqual(source);
   });
 });

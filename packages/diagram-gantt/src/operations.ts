@@ -685,9 +685,11 @@ export function setTaskDeclaration(
     pause: 6,
   };
   const order = declarationOrder[kind] ?? Number.MAX_SAFE_INTEGER;
+  const aliasDeclarationEnd = task.alias ? wholeLineRange(source, task.alias.range).to : 0;
   const following = task.declarations
     .filter((item) => (declarationOrder[item.kind] ?? Number.MAX_SAFE_INTEGER) > order)
     .map((item) => wholeLineRange(source, item.range))
+    .filter((item) => item.from >= aliasDeclarationEnd)
     .sort((a, b) => a.from - b.from)[0];
   if (following) {
     const indentation = source.slice(following.from, following.to).match(/^\s*/)?.[0] ?? "";

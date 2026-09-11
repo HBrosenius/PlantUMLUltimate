@@ -70,6 +70,7 @@ interface Props {
   onChangeBaseline(): void;
   onClearBaseline(): void;
   jiraTaskStatuses?: ReadonlyMap<string, "synchronized" | "local-changes"> | undefined;
+  projectLinkedTaskIds?: ReadonlySet<string> | undefined;
   projectDiagramLinks?: ReadonlyMap<string, readonly ProjectDiagramLink[]> | undefined;
   onOpenProjectDiagram?(documentId: string): void;
 }
@@ -130,6 +131,7 @@ export function DiagramPreview({
   onChangeBaseline,
   onClearBaseline,
   jiraTaskStatuses = new Map(),
+  projectLinkedTaskIds = new Set(),
   projectDiagramLinks = new Map(),
   onOpenProjectDiagram,
 }: Props) {
@@ -138,12 +140,27 @@ export function DiagramPreview({
   const viewportRef = navigation.viewportRef;
   const feedbackRef = useRef<HTMLOutputElement>(null);
   const pointerTaskIdRef = useRef<string | undefined>(undefined);
+  const hoverCloseTimerRef = useRef<number | undefined>(undefined);
   const draggingRef = useRef(false);
   const suppressNextClickRef = useRef(false);
   const [connection, setConnection] = useState<{ x1: number; y1: number; x2: number; y2: number }>();
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
   const [hoveredBaseline, setHoveredBaseline] = useState<{ label: string; dates: string; x: number; y: number }>();
   const [scrollPercent, setScrollPercent] = useState(0);
+  const cancelTaskHoverClose = () => {
+    if (hoverCloseTimerRef.current !== undefined) {
+      window.clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = undefined;
+    }
+  };
+  const scheduleTaskHoverClose = () => {
+    cancelTaskHoverClose();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      hoverCloseTimerRef.current = undefined;
+      setHoveredTask(undefined);
+    }, 180);
+  };
+  useEffect(() => cancelTaskHoverClose, []);
   const suppressGestureClick = () => {
     suppressNextClickRef.current = true;
     window.setTimeout(() => {
@@ -276,6 +293,10 @@ export function DiagramPreview({
       const marker = `data-task-id="${escapedId}"`;
       marked = marked.replace(marker, `${marker} data-jira-status="${status}"`);
     }
+    for (const taskId of projectLinkedTaskIds) {
+      const marker = `data-task-id="${taskId.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`;
+      marked = marked.replace(marker, `${marker} data-project-linked="true"`);
+    }
     const analyzed = decorateScheduleAnalysis(
       marked,
       criticalIds,
@@ -303,6 +324,7 @@ export function DiagramPreview({
     renderedBaselineGeometry,
     baselineLabels,
     jiraTaskStatuses,
+    projectLinkedTaskIds,
   ]);
   const visibleTimelineDates = useMemo(() => {
     if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();
@@ -942,6 +964,7 @@ export function DiagramPreview({
               const group = (event.target as Element).closest<SVGGElement>("[data-task-id]");
               const id = group?.getAttribute("data-task-id");
               if (id && id !== selectedTaskId && preview) {
+                cancelTaskHoverClose();
                 const rect = group!.getBoundingClientRect();
                 setHoveredTask({
                   id,
@@ -957,7 +980,7 @@ export function DiagramPreview({
               if (baselineFrom && baselineFrom !== baselineTo) setHoveredBaseline(undefined);
               const from = (event.target as Element).closest("[data-task-id]");
               const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id]");
-              if (from && from !== to) setHoveredTask(undefined);
+              if (from && from !== to) scheduleTaskHoverClose();
             }}
             onKeyDown={(event) => {
               const date = (event.target as Element)
@@ -1182,8 +1205,8 @@ export function DiagramPreview({
         <aside
           className="task-hover-card"
           style={{ left: hoveredTask.x, top: hoveredTask.y }}
-          onPointerEnter={() => setHoveredTask(hoveredTask)}
-          onPointerLeave={() => setHoveredTask(undefined)}
+          onPointerEnter={cancelTaskHoverClose}
+          onPointerLeave={scheduleTaskHoverClose}
           aria-label={`Task details for ${hoverDetails.label}`}
         >
           <strong>{hoverDetails.label}</strong>
