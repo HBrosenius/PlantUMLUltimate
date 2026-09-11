@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
+  decodeDocument,
   encodeProject,
+  projectFromDocument,
   projectFromPlantUml,
   type PortableProject,
   type PortableProjectElement,
@@ -12,7 +14,8 @@ import {
   type ProjectLink,
   type ProjectManifest,
 } from "@plantuml-studio/project-model";
-import { savePortableDocumentAs, type WritableFileHandle } from "../file-service";
+import { isPortableDocument, savePortableDocumentAs, type WritableFileHandle } from "../file-service";
+import { detectDiagramKind } from "../diagram-kind";
 import type { DiagramKind } from "../model";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
@@ -56,6 +59,16 @@ async function indexProject(project: PortableProject): Promise<VirtualProject> {
 function projectName(name: string): string {
   const value = name.trim();
   return value || "PlantUML project";
+}
+
+function chooseDiagramFile(): Promise<File | undefined> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".puml,.plantuml,.pumlu,text/plain,application/octet-stream";
+    input.onchange = () => resolve(input.files?.[0]);
+    input.click();
+  });
 }
 
 /** The ordinary one-file project workflow. Legacy folder/ZIP projects remain separate import paths. */
@@ -111,19 +124,48 @@ export function useSingleFileProject({
     [embedded, resetSelection, setInteractionMessage],
   );
 
-  const addProjectDiagram = useCallback(
-    async (kind: "gantt" | "class" | "sequence", name: string) => {
+  const addPortableDiagram = useCallback(
+    (diagram: PortableProject["diagrams"][number]) => {
       const current = embedded.project;
       if (!current) return;
-      const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
-      const staged = await projectFromPlantUml(starterSource(kind), kind, new Date().toISOString());
-      const diagram = { ...staged.diagrams[0]!, name: displayName };
       embedded.addDiagram(diagram);
       resetSelection();
-      setInteractionMessage(`Added ${displayName}. Save the project to keep it.`);
+      setInteractionMessage(`Added ${diagram.name}. Save the project to keep it.`);
     },
     [embedded, resetSelection, setInteractionMessage],
   );
+  const addProjectDiagram = useCallback(
+    async (kind: "gantt" | "class" | "sequence", name: string) => {
+      const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
+      const staged = await projectFromPlantUml(starterSource(kind), kind, new Date().toISOString());
+      addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
+    },
+    [addPortableDiagram],
+  );
+  const importDiagram = useCallback(async () => {
+    const file = await chooseDiagramFile();
+    if (!file) return;
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (isPortableDocument(bytes)) {
+        const password = window.prompt(`Password for ${file.name} (leave blank if it is not encrypted)`) ?? undefined;
+        const decoded = await decodeDocument(bytes, password ? { password } : {});
+        const staged = projectFromDocument(decoded.document, file.name, new Date().toISOString());
+        addPortableDiagram(staged.diagrams[0]!);
+        return;
+      }
+      const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      const kind = detectDiagramKind(source);
+      if (!kind || !["gantt", "class", "sequence"].includes(kind)) {
+        setInteractionMessage("Choose a supported Gantt, Class, or Sequence PlantUML diagram");
+        return;
+      }
+      const staged = await projectFromPlantUml(source, kind, new Date().toISOString());
+      addPortableDiagram({ ...staged.diagrams[0]!, name: file.name });
+    } catch (error) {
+      reportError(error);
+    }
+  }, [addPortableDiagram, reportError, setInteractionMessage]);
 
   const updateLinks = useCallback(
     (links: readonly ProjectLink[]) =>
@@ -204,6 +246,7 @@ export function useSingleFileProject({
       dirty: embedded.dirty,
       newProject,
       addProjectDiagram,
+      importDiagram,
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
@@ -218,6 +261,7 @@ export function useSingleFileProject({
       addProjectDiagram,
       deleteDiagram,
       embedded,
+      importDiagram,
       indexed,
       newProject,
       renameDiagram,

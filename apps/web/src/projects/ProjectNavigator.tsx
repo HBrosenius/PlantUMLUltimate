@@ -7,6 +7,7 @@ export function ProjectNavigator({
   project,
   onOpen,
   onAdd,
+  onImport,
   onClose,
   onLinksChange,
   onElementsChange,
@@ -16,6 +17,7 @@ export function ProjectNavigator({
   project: VirtualProject;
   onOpen(documentId: string): void;
   onAdd(kind: "gantt" | "class" | "sequence", path: string): void;
+  onImport?(): void;
   onClose(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
@@ -50,6 +52,11 @@ export function ProjectNavigator({
           <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
             Add diagram
           </button>
+          {onImport && (
+            <button type="button" onClick={onImport}>
+              Import diagram
+            </button>
+          )}
         </div>
         {adding && (
           <form
