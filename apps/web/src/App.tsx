@@ -4295,7 +4295,7 @@ export function App() {
         <ProjectNavigator
           project={project}
           onOpen={openMember}
-          onAdd={(kind, path) => void addProjectDiagram(kind, path)}
+          onAdd={addProjectDiagram}
           {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}
           onClose={() => setProjectNavigatorOpen(false)}
           onLinksChange={updateLinks}

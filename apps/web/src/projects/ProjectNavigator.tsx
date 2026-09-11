@@ -16,7 +16,7 @@ export function ProjectNavigator({
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
-  onAdd(kind: "gantt" | "class" | "sequence", path: string): void;
+  onAdd(kind: "gantt" | "class" | "sequence", path: string): void | Promise<void>;
   onImport?(): void;
   onClose(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
@@ -61,9 +61,9 @@ export function ProjectNavigator({
         {adding && (
           <form
             className="project-add-diagram-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
-              onAdd(kind, path);
+              await onAdd(kind, path);
               setAdding(false);
             }}
           >

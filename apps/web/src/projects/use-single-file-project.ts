@@ -145,11 +145,16 @@ export function useSingleFileProject({
   );
   const addProjectDiagram = useCallback(
     async (kind: "gantt" | "class" | "sequence", name: string) => {
-      const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
-      const staged = await projectFromPlantUml(starterSource(kind), kind, new Date().toISOString());
-      addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
+      try {
+        const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
+        const staged = await projectFromPlantUml(starterSource(kind), kind, displayName);
+        if (!embedded.project) throw new Error("Open a project before adding a diagram");
+        addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
+      } catch (error) {
+        reportError(error);
+      }
     },
-    [addPortableDiagram],
+    [addPortableDiagram, embedded.project, reportError],
   );
   const importDiagram = useCallback(async () => {
     const file = await chooseDiagramFile();
