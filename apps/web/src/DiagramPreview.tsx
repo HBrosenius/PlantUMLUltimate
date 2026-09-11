@@ -70,6 +70,7 @@ interface Props {
   onChangeBaseline(): void;
   onClearBaseline(): void;
   jiraTaskStatuses?: ReadonlyMap<string, "synchronized" | "local-changes"> | undefined;
+  projectLinkedTaskIds?: ReadonlySet<string> | undefined;
 }
 
 export function DiagramPreview({
@@ -121,6 +122,7 @@ export function DiagramPreview({
   onChangeBaseline,
   onClearBaseline,
   jiraTaskStatuses = new Map(),
+  projectLinkedTaskIds = new Set(),
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const navigation = useDiagramNavigation(zoom, onZoomChange);
@@ -265,6 +267,10 @@ export function DiagramPreview({
       const marker = `data-task-id="${escapedId}"`;
       marked = marked.replace(marker, `${marker} data-jira-status="${status}"`);
     }
+    for (const taskId of projectLinkedTaskIds) {
+      const marker = `data-task-id="${taskId.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`;
+      marked = marked.replace(marker, `${marker} data-project-linked="true"`);
+    }
     const analyzed = decorateScheduleAnalysis(
       marked,
       criticalIds,
@@ -292,6 +298,7 @@ export function DiagramPreview({
     renderedBaselineGeometry,
     baselineLabels,
     jiraTaskStatuses,
+    projectLinkedTaskIds,
   ]);
   const visibleTimelineDates = useMemo(() => {
     if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();

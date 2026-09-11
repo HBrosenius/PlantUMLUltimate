@@ -1477,6 +1477,18 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
+  const projectLinkedTaskIds = useMemo(() => {
+    if (!project || workspace.diagramKind !== "gantt") return new Set<string>();
+    const member = project.members.find((item) => item.path === workspace.fileName);
+    if (!member) return new Set<string>();
+    const endpoints = new Set(project.manifest.links.flatMap((link) => [link.from, link.to]));
+    const symbols = new Set(
+      project.manifest.elements
+        .filter((element) => element.documentId === member.documentId && endpoints.has(element.id))
+        .map((element) => element.locator.symbolKey),
+    );
+    return new Set(parseResult.document.tasks.filter((task) => symbols.has(task.label)).map((task) => task.id));
+  }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
   useEffect(() => {
     if (project) setProjectNavigatorOpen(true);
   }, [project]);
@@ -3800,6 +3812,7 @@ export function App() {
               onChangeBaseline={() => void openVersionHistory()}
               onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
+              projectLinkedTaskIds={projectLinkedTaskIds}
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview

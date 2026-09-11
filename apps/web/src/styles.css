@@ -3516,6 +3516,14 @@ textarea:focus-visible,
   cursor: not-allowed;
   opacity: 0.6;
 }
+.diagram-preview [data-project-linked="true"] .bar {
+  stroke: #2563eb !important;
+  stroke-width: 3px !important;
+}
+.diagram-preview [data-project-linked="true"] .label {
+  fill: #1d4ed8 !important;
+  font-weight: 700;
+}
 .project-navigator-section,
 .project-links {
   border-top: 1px solid var(--line);
