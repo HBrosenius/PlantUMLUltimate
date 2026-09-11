@@ -25,66 +25,79 @@ export function ProjectNavigator({
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
         <div>
+          <span className="project-navigator-kicker">Project</span>
           <strong>{project.manifest.name}</strong>
-          <small>{project.members.length} diagrams</small>
+          <small>
+            {project.members.length} diagram{project.members.length === 1 ? "" : "s"} · {project.manifest.links.length}{" "}
+            connection
+            {project.manifest.links.length === 1 ? "" : "s"}
+          </small>
         </div>
         <button type="button" onClick={onClose} aria-label="Close project navigator">
           ×
         </button>
       </header>
-      <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
-        Add diagram…
-      </button>
-      {adding && (
-        <form
-          className="project-add-diagram-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onAdd(kind, path);
-            setAdding(false);
-          }}
-        >
-          <label>
-            Diagram type
-            <select
-              value={kind}
-              onChange={(event) => {
-                const next = event.target.value as "gantt" | "class" | "sequence";
-                setKind(next);
-                setPath(`diagrams/${next}.puml`);
-              }}
-            >
-              <option value="gantt">Gantt</option>
-              <option value="class">Class</option>
-              <option value="sequence">Sequence</option>
-            </select>
-          </label>
-          <label>
-            Project file path
-            <input value={path} onChange={(event) => setPath(event.target.value)} required />
-          </label>
+      <section className="project-navigator-section" aria-labelledby="project-diagrams-heading">
+        <div className="project-section-heading">
           <div>
-            <button type="submit">Add to project</button>
-            <button type="button" onClick={() => setAdding(false)}>
-              Cancel
-            </button>
+            <h2 id="project-diagrams-heading">Diagrams</h2>
+            <p>Files included in this project</p>
           </div>
-        </form>
-      )}
-      <ul>
-        {project.members.map((member) => (
-          <li key={member.documentId}>
-            <button type="button" disabled={member.state !== "available"} onClick={() => onOpen(member.documentId)}>
-              <span>{member.path}</span>
-              <small>
-                {member.state === "available"
-                  ? `${member.diagramKind} · ${member.linkCount} links`
-                  : (member.reason ?? member.state)}
-              </small>
-            </button>
-          </li>
-        ))}
-      </ul>
+          <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
+            Add diagram
+          </button>
+        </div>
+        {adding && (
+          <form
+            className="project-add-diagram-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onAdd(kind, path);
+              setAdding(false);
+            }}
+          >
+            <label>
+              Diagram type
+              <select
+                value={kind}
+                onChange={(event) => {
+                  const next = event.target.value as "gantt" | "class" | "sequence";
+                  setKind(next);
+                  setPath(`diagrams/${next}.puml`);
+                }}
+              >
+                <option value="gantt">Gantt</option>
+                <option value="class">Class</option>
+                <option value="sequence">Sequence</option>
+              </select>
+            </label>
+            <label>
+              Project file path
+              <input value={path} onChange={(event) => setPath(event.target.value)} required />
+            </label>
+            <div>
+              <button type="submit">Add to project</button>
+              <button type="button" onClick={() => setAdding(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+        <ul>
+          {project.members.map((member) => (
+            <li key={member.documentId}>
+              <button type="button" disabled={member.state !== "available"} onClick={() => onOpen(member.documentId)}>
+                <span>{member.path}</span>
+                <small>
+                  {member.state === "available"
+                    ? `${member.diagramKind} · ${member.linkCount} links`
+                    : (member.reason ?? member.state)}
+                </small>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
       <ProjectLinksPanel
         project={project}
         onChange={onLinksChange}

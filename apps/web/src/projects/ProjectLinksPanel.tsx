@@ -75,101 +75,109 @@ export function ProjectLinksPanel({
 
   return (
     <section className="project-links" aria-label="Diagram connections">
-      <h2>Connections</h2>
-      <p className="project-links-help">
-        Link a Gantt task to another task, a sequence participant, or a class entity. A sequence participant can
-        represent a class entity.
-      </p>
-      <label>
-        Register diagram item
-        <select
-          value=""
-          onChange={(event) => {
-            const [documentId, index] = event.target.value.split(":");
-            const candidate = registrations[Number(index)];
-            if (!candidate || candidate.member.documentId !== documentId) return;
-            if (
-              elements.some(
-                (item) =>
-                  item.documentId === documentId &&
-                  item.kind === candidate.declaration.kind &&
-                  item.locator.declarationHash === candidate.declaration.declarationHash,
+      <div className="project-section-heading">
+        <div>
+          <h2>Connections</h2>
+          <p>Connect meaningful items across diagrams</p>
+        </div>
+        <span className="project-count">{project.manifest.links.length}</span>
+      </div>
+      <div className="project-links-workflow">
+        <p className="project-links-help">
+          First register items from your diagrams, then choose a source and destination below.
+        </p>
+        <label>
+          <span>1. Register an item</span>
+          <select
+            value=""
+            onChange={(event) => {
+              const [documentId, index] = event.target.value.split(":");
+              const candidate = registrations[Number(index)];
+              if (!candidate || candidate.member.documentId !== documentId) return;
+              if (
+                elements.some(
+                  (item) =>
+                    item.documentId === documentId &&
+                    item.kind === candidate.declaration.kind &&
+                    item.locator.declarationHash === candidate.declaration.declarationHash,
+                )
               )
-            )
-              return;
-            void hashSource(candidate.member.source!).then((sourceHash) =>
-              onElementsChange([
-                ...elements,
-                {
-                  id: crypto.randomUUID(),
-                  documentId,
-                  kind: candidate.declaration.kind,
-                  locator: {
-                    symbolKey: candidate.declaration.symbolKey,
-                    keyType: "semantic-key",
-                    declarationHash: candidate.declaration.declarationHash,
-                    sourceHash,
-                    from: candidate.declaration.from,
-                    to: candidate.declaration.to,
+                return;
+              void hashSource(candidate.member.source!).then((sourceHash) =>
+                onElementsChange([
+                  ...elements,
+                  {
+                    id: crypto.randomUUID(),
+                    documentId,
+                    kind: candidate.declaration.kind,
+                    locator: {
+                      symbolKey: candidate.declaration.symbolKey,
+                      keyType: "semantic-key",
+                      declarationHash: candidate.declaration.declarationHash,
+                      sourceHash,
+                      from: candidate.declaration.from,
+                      to: candidate.declaration.to,
+                    },
                   },
-                },
-              ]),
-            );
-          }}
-        >
-          <option value="">Choose a declaration…</option>
-          {registrations.map(({ member, declaration }, index) => (
-            <option key={`${member.documentId}:${declaration.from}`} value={`${member.documentId}:${index}`}>
-              {member.path}: {declaration.symbolKey}
-            </option>
-          ))}
-        </select>
-      </label>
-      {elements.length === 0 ? (
-        <p>Connections become available when this project contains registered diagram elements.</p>
-      ) : (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!kind || !from || !to) return;
-            onChange([...project.manifest.links, { id: crypto.randomUUID(), kind, from: from.id, to: to.id }]);
-            setToId("");
-          }}
-        >
-          <label>
-            From
-            <select
-              value={fromId}
-              onChange={(event) => {
-                setFromId(event.target.value);
-                setToId("");
-              }}
-            >
-              <option value="">Choose an element…</option>
-              {elements.map((element) => (
-                <option key={element.id} value={element.id}>
-                  {elementLabel(project, element.id)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            To
-            <select value={toId} disabled={!from} onChange={(event) => setToId(event.target.value)}>
-              <option value="">Choose a compatible element…</option>
-              {compatible.map((element) => (
-                <option key={element.id} value={element.id}>
-                  {elementLabel(project, element.id)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" disabled={!kind}>
-            Create {kind ?? ""} link
-          </button>
-        </form>
-      )}
-      <ul className="project-link-list">
+                ]),
+              );
+            }}
+          >
+            <option value="">Choose a declaration…</option>
+            {registrations.map(({ member, declaration }, index) => (
+              <option key={`${member.documentId}:${declaration.from}`} value={`${member.documentId}:${index}`}>
+                {member.path}: {declaration.symbolKey}
+              </option>
+            ))}
+          </select>
+        </label>
+        {elements.length === 0 ? (
+          <p className="project-links-empty">No items registered yet. Pick an item above to begin.</p>
+        ) : (
+          <form
+            className="project-link-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!kind || !from || !to) return;
+              onChange([...project.manifest.links, { id: crypto.randomUUID(), kind, from: from.id, to: to.id }]);
+              setToId("");
+            }}
+          >
+            <label>
+              <span>2. From</span>
+              <select
+                value={fromId}
+                onChange={(event) => {
+                  setFromId(event.target.value);
+                  setToId("");
+                }}
+              >
+                <option value="">Choose an element…</option>
+                {elements.map((element) => (
+                  <option key={element.id} value={element.id}>
+                    {elementLabel(project, element.id)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>3. To</span>
+              <select value={toId} disabled={!from} onChange={(event) => setToId(event.target.value)}>
+                <option value="">Choose a compatible element…</option>
+                {compatible.map((element) => (
+                  <option key={element.id} value={element.id}>
+                    {elementLabel(project, element.id)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" className="project-create-link" disabled={!kind}>
+              Create {kind ?? ""} link
+            </button>
+          </form>
+        )}
+      </div>
+      <ul className="project-link-list" aria-label="Existing connections">
         {project.manifest.links.map((link) => (
           <li key={link.id}>
             <span>
@@ -220,9 +228,6 @@ export function ProjectLinksPanel({
           {impact?.truncated ? "; impact list truncated" : ""}.
         </p>
       )}
-      <p className="project-links-note">
-        Connection changes are staged for this session; recovery-safe project saving arrives in the next delivery.
-      </p>
     </section>
   );
 }
