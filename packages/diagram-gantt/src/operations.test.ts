@@ -336,8 +336,23 @@ describe("task inspector operations", () => {
     const task = parseGantt(source).document.tasks[0]!;
     const changed = applySourceEdits(source, setTaskDeclaration(source, task, "start", "starts 2026-09-01").edits);
     expect(changed).toContain("[P1] starts 2026-09-01");
+    expect(changed.indexOf("[Prototype] as [P1]")).toBeLessThan(changed.indexOf("[P1] starts 2026-09-01"));
     expect(changed).not.toContain("[Prototype] starts 2026-09-01");
     expect(parseGantt(changed).document.tasks).toHaveLength(1);
+  });
+
+  it("inserts a newly added start before duration even when the task range extends later", () => {
+    const source =
+      "@startgantt\n[Transform] lasts 15 days\n[Transform] is colored in Orange\n[Other] lasts 2 days\n[Transform] displays on same row as [Other]\n@endgantt";
+    const task = parseGantt(source).document.symbols.tasks.get("transform")!;
+    const changed = applySourceEdits(
+      source,
+      setTaskDeclaration(source, task, "start", "starts at [Ingestion]'s end").edits,
+    );
+
+    expect(changed).toBe(
+      "@startgantt\n[Transform] starts at [Ingestion]'s end\n[Transform] lasts 15 days\n[Transform] is colored in Orange\n[Other] lasts 2 days\n[Transform] displays on same row as [Other]\n@endgantt",
+    );
   });
 
   it("adds an explicit date without replacing a dependency declaration", () => {
