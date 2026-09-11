@@ -67,20 +67,20 @@ export function ProjectLinksPanel({
   };
 
   return (
-    <section className="project-links" aria-label="Diagram connections">
+    <section className="project-links" aria-label="Links between diagram items">
       <div className="project-section-heading">
         <div>
-          <h2>Connections</h2>
-          <p>Connect meaningful items across diagrams</p>
+          <h2>Links between diagram items</h2>
+          <p>Keep related tasks and model elements connected across diagrams.</p>
         </div>
         <span className="project-count">{project.manifest.links.length}</span>
       </div>
       <div className="project-links-workflow">
         <p className="project-links-help">
-          First register items from your diagrams, then choose a source and destination below.
+          A link records that one item relates to another. It does not alter either diagram or add a PlantUML arrow.
         </p>
         <label>
-          <span>1. Register an item</span>
+          <span>1. Make an item linkable</span>
           <select
             value=""
             onChange={(event) => {
@@ -116,7 +116,7 @@ export function ProjectLinksPanel({
               );
             }}
           >
-            <option value="">Choose a declaration…</option>
+            <option value="">Choose a task, participant, or class…</option>
             {registrations.map(({ member, declaration }, index) => (
               <option key={`${member.documentId}:${declaration.from}`} value={`${member.documentId}:${index}`}>
                 {member.path}: {declaration.symbolKey}
@@ -125,7 +125,10 @@ export function ProjectLinksPanel({
           </select>
         </label>
         {elements.length === 0 ? (
-          <p className="project-links-empty">No items registered yet. Pick an item above to begin.</p>
+          <p className="project-links-empty">
+            Pick each item you want to link above. For example, choose “Backend” from one Gantt diagram, then “Testing”
+            from another.
+          </p>
         ) : (
           <form
             className="project-link-form"
@@ -137,7 +140,7 @@ export function ProjectLinksPanel({
             }}
           >
             <label>
-              <span>2. From</span>
+              <span>2. Choose the source item</span>
               <select
                 value={fromId}
                 onChange={(event) => {
@@ -145,7 +148,7 @@ export function ProjectLinksPanel({
                   setToId("");
                 }}
               >
-                <option value="">Choose an element…</option>
+                <option value="">Choose the item that starts the link…</option>
                 {elements.map((element) => (
                   <option key={element.id} value={element.id}>
                     {elementLabel(project, element.id)}
@@ -154,9 +157,9 @@ export function ProjectLinksPanel({
               </select>
             </label>
             <label>
-              <span>3. To</span>
+              <span>3. Choose the related item</span>
               <select value={toId} disabled={!from} onChange={(event) => setToId(event.target.value)}>
-                <option value="">Choose a compatible element…</option>
+                <option value="">Choose what it relates to…</option>
                 {compatible.map((element) => (
                   <option key={element.id} value={element.id}>
                     {elementLabel(project, element.id)}
@@ -172,11 +175,11 @@ export function ProjectLinksPanel({
       </div>
       <section className="project-existing-links" aria-labelledby="project-existing-links-heading">
         <div className="project-subsection-heading">
-          <h3 id="project-existing-links-heading">Existing connections</h3>
+          <h3 id="project-existing-links-heading">Existing links</h3>
           <span>{project.manifest.links.length}</span>
         </div>
         {project.manifest.links.length === 0 ? (
-          <p className="project-links-empty">No connections created yet.</p>
+          <p className="project-links-empty">No links created yet.</p>
         ) : (
           <ul className="project-link-list">
             {project.manifest.links.map((link) => (
