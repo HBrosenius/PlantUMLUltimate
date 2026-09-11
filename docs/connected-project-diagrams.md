@@ -10,6 +10,8 @@ Use **File → New ZIP project…** for a single downloadable `.pumlproject.zip`
 
 Use **File → Open project…** to select an existing folder project. The browser must grant read/write permission for reliable saves.
 
+With a project open, use **Add diagram…** in the Project navigator. Choose `gantt`, `class`, or `sequence`, then provide a unique project-relative `.puml` path. The new diagram opens immediately; use **Save project** (or download a ZIP snapshot) to persist it.
+
 ## Connections and repairs
 
 Open **Diagram connections** from the project panel. Register diagram items, then connect compatible items with `represents` or `implements`. The panel shows backlinks and reverse impact.

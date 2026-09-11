@@ -1464,6 +1464,7 @@ export function App() {
     saveZipProject,
     saveFolderProject,
     openMember,
+    addProjectDiagram,
     closeProject,
     updateLinks,
     updateElements,
@@ -4171,6 +4172,7 @@ export function App() {
         <ProjectNavigator
           project={project}
           onOpen={openMember}
+          onAdd={() => void addProjectDiagram()}
           onClose={closeProject}
           onLinksChange={updateLinks}
           onElementsChange={updateElements}

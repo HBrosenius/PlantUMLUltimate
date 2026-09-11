@@ -17,7 +17,10 @@ import {
   type ProjectLink,
 } from "@plantuml-studio/project-model";
 import { hashSource } from "@plantuml-studio/document-format";
-import { serializeProjectManifest } from "@plantuml-studio/project-model";
+import { serializeProjectManifest, validateProjectPath } from "@plantuml-studio/project-model";
+import { indexVirtualProject } from "./project-index";
+import { starterSource } from "../use-workspace-documents";
+import type { DiagramKind } from "../model";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -156,6 +159,62 @@ export function useFolderProject({
     [project, resetSelection, setInteractionMessage, tabs],
   );
 
+  const addProjectDiagram = useCallback(async () => {
+    if (!project) return;
+    const requestedKind = window.prompt("Diagram type: gantt, class, or sequence", "gantt");
+    if (requestedKind === null) return;
+    const diagramKind = requestedKind.trim().toLowerCase();
+    if (diagramKind !== "gantt" && diagramKind !== "class" && diagramKind !== "sequence") {
+      setInteractionMessage("Choose gantt, class, or sequence");
+      return;
+    }
+    const path = window.prompt("Project-relative file path", `diagrams/${diagramKind}-${Date.now()}.puml`);
+    if (path === null) return;
+    const normalizedPath = path.trim();
+    if (
+      validateProjectPath(normalizedPath) ||
+      !/\.puml$/i.test(normalizedPath) ||
+      project.manifest.documents.some((item) => item.path === normalizedPath)
+    ) {
+      setInteractionMessage("Choose a unique, safe .puml project-relative path");
+      return;
+    }
+    const documentId = crypto.randomUUID();
+    const source = starterSource(diagramKind as DiagramKind);
+    const manifest = {
+      ...project.manifest,
+      revisionId: crypto.randomUUID(),
+      documents: [...project.manifest.documents, { id: documentId, path: normalizedPath, format: "plantuml" as const }],
+    };
+    const inputs = new Map(
+      project.members
+        .filter((member) => member.source)
+        .map((member) => [member.path, { state: "available" as const, source: member.source! }]),
+    );
+    inputs.set(normalizedPath, { state: "available", source });
+    const indexed = await indexVirtualProject(serializeProjectManifest(manifest), inputs);
+    const next =
+      "root" in project
+        ? { ...indexed, root: project.root, nativeDocuments: project.nativeDocuments }
+        : {
+            ...indexed,
+            archiveEntries: new Map([...project.archiveEntries, [normalizedPath, new TextEncoder().encode(source)]]),
+            nativeDocuments: project.nativeDocuments,
+          };
+    setProject(next);
+    const tabId = tabs.addDocument({
+      historyId: `project-history-${manifest.projectId}-${documentId}`,
+      source,
+      diagramKind: diagramKind as DiagramKind,
+      fileName: normalizedPath,
+      dirty: true,
+      cursor: { line: 1, column: 1 },
+    });
+    tabsByMember.current.set(`${manifest.projectId}:${documentId}`, tabId);
+    resetSelection();
+    setInteractionMessage(`Added ${normalizedPath}; save the project to keep it`);
+  }, [project, resetSelection, setInteractionMessage, tabs]);
+
   const openZipProject = useCallback(async () => {
     try {
       const picker = (window as FolderPickerWindow).showOpenFilePicker;
@@ -276,6 +335,7 @@ export function useFolderProject({
     saveZipProject,
     saveFolderProject,
     openMember,
+    addProjectDiagram,
     updateLinks,
     updateElements,
     applyRenameMappings,

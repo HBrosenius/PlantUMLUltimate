@@ -5,12 +5,14 @@ import { ProjectLinksPanel } from "./ProjectLinksPanel";
 export function ProjectNavigator({
   project,
   onOpen,
+  onAdd,
   onClose,
   onLinksChange,
   onElementsChange,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
+  onAdd(): void;
   onClose(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
@@ -26,6 +28,9 @@ export function ProjectNavigator({
           ×
         </button>
       </header>
+      <button type="button" className="project-add-diagram" onClick={onAdd}>
+        Add diagram…
+      </button>
       <ul>
         {project.members.map((member) => (
           <li key={member.documentId}>
