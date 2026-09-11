@@ -10,7 +10,12 @@ import {
   type PortableProjectLink,
   type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
-import { type ProjectElement, type ProjectLink, type ProjectManifest } from "@plantuml-studio/project-model";
+import {
+  serializeProjectManifest,
+  type ProjectElement,
+  type ProjectLink,
+  type ProjectManifest,
+} from "@plantuml-studio/project-model";
 import {
   isPortableDocument,
   openDocumentFile,
@@ -21,7 +26,7 @@ import {
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
-import { type IndexedProjectMember, type VirtualProject } from "./project-index";
+import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { useEmbeddedProject } from "./use-embedded-project";
 
@@ -66,6 +71,23 @@ function immediateIndex(project: PortableProject): VirtualProject {
   return { manifest, members, resolutions: new Map() };
 }
 
+/**
+ * Extracting declarations can involve the renderer worker. Keep it away from
+ * the interaction that creates a diagram, then replace the lightweight index
+ * once the browser is idle enough to do the richer work.
+ */
+function resolveIndex(project: PortableProject): Promise<VirtualProject> {
+  return indexVirtualProject(
+    serializeProjectManifest(manifestFor(project)),
+    new Map(
+      project.diagrams.map((diagram) => [
+        diagram.name,
+        { state: "available" as const, source: diagram.document.current.source },
+      ]),
+    ),
+  );
+}
+
 function projectName(name: string): string {
   const value = name.trim();
   return value || "PlantUML project";
@@ -99,6 +121,7 @@ export function useSingleFileProject({
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
   const restored = useRef(false);
+  const indexRevision = useRef(0);
 
   useEffect(() => {
     if (restored.current) return;
@@ -111,10 +134,26 @@ export function useSingleFileProject({
 
   useEffect(() => {
     if (!embedded.project) {
+      indexRevision.current += 1;
       setIndexed(undefined);
       return;
     }
     setIndexed(immediateIndex(embedded.project));
+  }, [embedded.project]);
+
+  useEffect(() => {
+    const project = embedded.project;
+    if (!project) return;
+    const revision = ++indexRevision.current;
+    const timer = window.setTimeout(() => {
+      void resolveIndex(project)
+        .then((next) => {
+          if (indexRevision.current === revision) setIndexed(next);
+        })
+        // The basic navigator remains usable if a declaration cannot be read.
+        .catch(() => undefined);
+    }, 200);
+    return () => window.clearTimeout(timer);
   }, [embedded.project]);
 
   const newProject = useCallback(
