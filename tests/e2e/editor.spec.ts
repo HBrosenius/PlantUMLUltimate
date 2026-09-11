@@ -514,7 +514,7 @@ test("reloads clean external file edits and merges conflicting local changes", a
   }, initial);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Open", exact: true }).click();
-  await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Project or diagram…" }).click();
+  await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Diagram…" }).click();
   await expect(page.locator(".cm-content")).toContainText("Initial file");
 
   await page.evaluate((contents) => {

@@ -5,6 +5,7 @@ export function FileMenu({
   onNew,
   onNewProject,
   onOpen,
+  onOpenProject,
   onSaveProject,
   onProjectConnections,
   projectName,
@@ -23,6 +24,7 @@ export function FileMenu({
   onNew(): void;
   onNewProject?: (() => void) | undefined;
   onOpen(): void;
+  onOpenProject?: (() => void) | undefined;
   onSaveProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
@@ -51,8 +53,6 @@ export function FileMenu({
     close();
     action();
   };
-  const toggleSubmenu = (submenu: NonNullable<typeof activeSubmenu>) =>
-    setActiveSubmenu((current) => (current === submenu ? undefined : submenu));
 
   useEffect(() => {
     if (!open) return;
@@ -119,7 +119,7 @@ export function FileMenu({
                 role="menuitem"
                 aria-haspopup="menu"
                 aria-expanded={activeSubmenu === "project"}
-                onClick={() => toggleSubmenu("project")}
+                onClick={() => setActiveSubmenu("project")}
               >
                 <span>Project: {projectName}</span>
                 <span aria-hidden="true">›</span>
@@ -143,7 +143,7 @@ export function FileMenu({
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={activeSubmenu === "new"}
-              onClick={() => toggleSubmenu("new")}
+              onClick={() => setActiveSubmenu("new")}
             >
               <span>New</span>
               <span aria-hidden="true">›</span>
@@ -166,7 +166,7 @@ export function FileMenu({
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={activeSubmenu === "open"}
-              onClick={() => toggleSubmenu("open")}
+              onClick={() => setActiveSubmenu("open")}
             >
               <span>Open</span>
               <span aria-hidden="true">›</span>
@@ -174,8 +174,13 @@ export function FileMenu({
             {activeSubmenu === "open" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Open">
                 <button role="menuitem" onClick={() => run(onOpen)}>
-                  Project or diagram…
+                  Diagram…
                 </button>
+                {onOpenProject && (
+                  <button role="menuitem" onClick={() => run(onOpenProject)}>
+                    Project…
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -184,7 +189,7 @@ export function FileMenu({
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={activeSubmenu === "save"}
-              onClick={() => toggleSubmenu("save")}
+              onClick={() => setActiveSubmenu("save")}
             >
               <span>Save</span>
               <span aria-hidden="true">›</span>
@@ -224,7 +229,7 @@ export function FileMenu({
               role="menuitem"
               aria-haspopup="menu"
               aria-expanded={activeSubmenu === "export"}
-              onClick={() => toggleSubmenu("export")}
+              onClick={() => setActiveSubmenu("export")}
               onFocus={() => setActiveSubmenu("export")}
               onKeyDown={(event) => {
                 if (event.key === "ArrowRight") {

@@ -33,7 +33,10 @@ test("saves and reopens a portable document with retained history", async ({ pag
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save diagram" }).click();
+  await page
+    .getByRole("menu", { name: "Save" })
+    .getByRole("menuitem", { name: "Save diagram", exact: true })
+    .click();
   await expect
     .poll(() =>
       page.evaluate(() =>
@@ -44,7 +47,7 @@ test("saves and reopens a portable document with retained history", async ({ pag
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Open", exact: true }).click();
-  await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Project or diagram…" }).click();
+  await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Diagram…" }).click();
   await expect(page.locator('.document-tabs > button[title="round-trip.pumlu"]')).toHaveCount(2);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();

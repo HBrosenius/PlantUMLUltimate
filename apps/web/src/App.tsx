@@ -3428,7 +3428,8 @@ export function App() {
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
             onNewProject={() => void singleFileProject.newProject()}
-            onOpen={() => void singleFileProject.openProject()}
+            onOpen={() => void openDocument()}
+            onOpenProject={() => void singleFileProject.openProject()}
             onSaveProject={
               project
                 ? () =>
