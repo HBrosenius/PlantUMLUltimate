@@ -29,6 +29,7 @@ export function openEmbeddedMember(
   memberId: string,
   tabs: EmbeddedProjectTabs,
   knownTabs: Map<string, string>,
+  encrypted = false,
 ): string | undefined {
   const existing = knownTabs.get(memberId) ?? embeddedMemberTabs(project, tabs.documents).get(memberId);
   if (existing) {
@@ -46,6 +47,7 @@ export function openEmbeddedMember(
     dirty: false,
     cursor: { line: 1, column: 1 },
     portableDocumentId: member.document.documentId,
+    encrypted,
   });
   knownTabs.set(memberId, tabId);
   return tabId;

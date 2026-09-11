@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PortableProject } from "@plantuml-studio/document-format";
 import {
+  embeddedMemberHistoryId,
   embeddedMemberTabs,
   openEmbeddedMember,
   snapshotEmbeddedProject,
   type EmbeddedProjectTabs,
 } from "./embedded-project";
+import {
+  clearEmbeddedProjectRecovery,
+  loadEmbeddedProjectRecovery,
+  saveEmbeddedProjectRecovery,
+} from "./embedded-project-session";
+import { enableMemoryOnlyHistory } from "../workspace-storage";
 
 /** Owns one embedded project snapshot and the transient tabs used to view its members. */
 export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const [project, setProject] = useState<PortableProject>();
+  const [encrypted, setEncrypted] = useState(false);
   const memberTabs = useRef(new Map<string, string>());
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -18,11 +26,17 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const sourceByMember = useRef(new Map<string, string>());
 
   const openProject = useCallback(
-    (next: PortableProject) => {
+    (next: PortableProject, options: { encrypted?: boolean } = {}) => {
+      const nextEncrypted = options.encrypted ?? false;
       memberTabs.current = new Map(embeddedMemberTabs(next, tabs.documents));
       sourceByMember.current = new Map(next.diagrams.map((member) => [member.id, member.document.current.source]));
       revisionRef.current = 0;
       setSavedRevision(0);
+      setEncrypted(nextEncrypted);
+      if (nextEncrypted) {
+        for (const member of next.diagrams)
+          void enableMemoryOnlyHistory(embeddedMemberHistoryId(next.projectId, member.id));
+      }
       setProject(next);
     },
     [tabs.documents],
@@ -38,8 +52,26 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       sourceByMember.current.set(member.id, source);
       changed = true;
     }
-    if (changed) revisionRef.current += 1;
+    if (!changed) return;
+    revisionRef.current += 1;
+    void snapshotEmbeddedProject(project, memberTabs.current, tabs.documents).then((next) => {
+      setProject((current) => (current === project ? next : current));
+    });
   }, [project, tabs.documents]);
+
+  useEffect(() => {
+    if (!project) return;
+    void saveEmbeddedProjectRecovery(project, encrypted).catch(() => {
+      // Recovery is a convenience; saving the actual project remains available if browser storage is full.
+    });
+  }, [encrypted, project]);
+
+  const restoreProject = useCallback(async () => {
+    const recovery = await loadEmbeddedProjectRecovery();
+    if (!recovery || recovery.state === "locked") return recovery;
+    openProject(recovery.project);
+    return recovery;
+  }, [openProject]);
 
   const updateProject = useCallback((update: (current: PortableProject) => PortableProject) => {
     setProject((current) => (current ? update(current) : current));
@@ -49,9 +81,9 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const openMember = useCallback(
     (memberId: string) => {
       if (!project) return undefined;
-      return openEmbeddedMember(project, memberId, tabs, memberTabs.current);
+      return openEmbeddedMember(project, memberId, tabs, memberTabs.current, encrypted);
     },
-    [project, tabs],
+    [encrypted, project, tabs],
   );
 
   const snapshot = useCallback(
@@ -79,12 +111,16 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
 
   const closeProject = useCallback(() => {
     memberTabs.current.clear();
+    setEncrypted(false);
     setProject(undefined);
+    void clearEmbeddedProjectRecovery();
   }, []);
 
   return {
     project,
+    encrypted,
     openProject,
+    restoreProject,
     openMember,
     snapshot,
     updateProject,

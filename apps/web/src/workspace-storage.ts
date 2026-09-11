@@ -548,6 +548,23 @@ export async function loadActiveProject(): Promise<unknown | undefined> {
   return undefined;
 }
 
+/** Removes the active-project recovery record from both supported browser stores. */
+export async function clearActiveProject(): Promise<void> {
+  localStorage.removeItem(ACTIVE_PROJECT_LEGACY_KEY);
+  try {
+    const database = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE, "readwrite");
+      transaction.objectStore(STORE).delete(ACTIVE_PROJECT);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  } catch {
+    // The local-storage copy was already removed. IndexedDB recovery is best effort.
+  }
+}
+
 /** Removes persisted plaintext before routing all future history operations to memory. */
 export async function enableMemoryOnlyHistory(historyId: string): Promise<void> {
   const versions = await loadDocumentVersions(historyId);
