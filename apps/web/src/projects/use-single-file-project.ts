@@ -113,6 +113,8 @@ export function useSingleFileProject({
 }) {
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
+  const indexedRef = useRef<VirtualProject | undefined>(undefined);
+  indexedRef.current = indexed;
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
@@ -134,7 +136,11 @@ export function useSingleFileProject({
     }
     let active = true;
     void indexProject(embedded.project).then((next) => {
-      if (active) setIndexed(next);
+      if (!active) return;
+      // A slower empty-project index must never replace a navigator that has
+      // already received a newly added diagram.
+      if ((indexedRef.current?.members.length ?? 0) > next.members.length) return;
+      setIndexed(next);
     });
     return () => {
       active = false;
