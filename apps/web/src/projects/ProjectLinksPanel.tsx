@@ -15,12 +15,10 @@ export function ProjectLinksPanel({
   project,
   onChange,
   onElementsChange,
-  onOpenDocument,
 }: {
   project: VirtualProject;
   onChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
-  onOpenDocument(documentId: string): void;
 }) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
@@ -164,19 +162,9 @@ export function ProjectLinksPanel({
             {project.manifest.links.map((link) => (
               <li key={link.id}>
                 <span className="project-link-route">
-                  <button
-                    type="button"
-                    onClick={() => onOpenDocument(elements.find((item) => item.id === link.from)?.documentId ?? "")}
-                  >
-                    {elementLabel(project, link.from)}
-                  </button>
+                  <span className="project-link-endpoint">{elementLabel(project, link.from)}</span>
                   <span className="project-link-kind">{link.kind} →</span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenDocument(elements.find((item) => item.id === link.to)?.documentId ?? "")}
-                  >
-                    {elementLabel(project, link.to)}
-                  </button>
+                  <span className="project-link-endpoint">{elementLabel(project, link.to)}</span>
                 </span>
                 <button
                   type="button"

@@ -98,12 +98,7 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
-      <ProjectLinksPanel
-        project={project}
-        onChange={onLinksChange}
-        onElementsChange={onElementsChange}
-        onOpenDocument={onOpen}
-      />
+      <ProjectLinksPanel project={project} onChange={onLinksChange} onElementsChange={onElementsChange} />
     </aside>
   );
 }

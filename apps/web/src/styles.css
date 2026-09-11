@@ -3694,17 +3694,13 @@ textarea:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.project-link-list .project-link-route button {
-  display: block;
-  width: 100%;
+.project-link-endpoint {
+  overflow: hidden;
   min-width: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-sizing: border-box;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.project-link-list .project-link-route button:last-child {
+.project-link-endpoint:last-child {
   text-align: right;
 }
 .project-link-remove {
