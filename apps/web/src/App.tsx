@@ -1463,6 +1463,44 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
+  const projectDiagramLinks = useMemo(() => {
+    const links = new Map<string, Array<{ documentId: string; path: string; label: string; relationship: string }>>();
+    if (!project || workspace.diagramKind !== "gantt") return links;
+    const currentMember = project.members.find((member) => member.path === workspace.fileName);
+    if (!currentMember) return links;
+    const tasksBySymbol = new Map(parseResult.document.tasks.map((task) => [task.alias?.value ?? task.label, task]));
+    const elementsById = new Map(project.manifest.elements.map((element) => [element.id, element]));
+    const membersById = new Map(project.members.map((member) => [member.documentId, member]));
+    for (const element of project.manifest.elements) {
+      if (element.documentId !== currentMember.documentId || element.kind !== "gantt-task") continue;
+      const task = tasksBySymbol.get(element.locator.symbolKey);
+      if (!task) continue;
+      for (const link of project.manifest.links) {
+        if (link.from !== element.id && link.to !== element.id) continue;
+        const target = elementsById.get(link.from === element.id ? link.to : link.from);
+        if (!target || target.documentId === currentMember.documentId) continue;
+        const targetMember = membersById.get(target.documentId);
+        if (!targetMember) continue;
+        const relationship =
+          link.from === element.id
+            ? link.kind === "implements"
+              ? "Implements"
+              : "Represents"
+            : link.kind === "implements"
+              ? "Implemented by"
+              : "Represented by";
+        const targets = links.get(task.id) ?? [];
+        targets.push({
+          documentId: targetMember.documentId,
+          path: targetMember.path,
+          label: target.locator.symbolKey,
+          relationship,
+        });
+        links.set(task.id, targets);
+      }
+    }
+    return links;
+  }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
 
   const exportSource = useCallback(() => {
     if (
@@ -3733,6 +3771,8 @@ export function App() {
               onChangeBaseline={() => void openVersionHistory()}
               onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
+              projectDiagramLinks={projectDiagramLinks}
+              onOpenProjectDiagram={openMember}
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview

@@ -1310,6 +1310,36 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text);
   font-size: 10px;
 }
+.hover-project-links {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+.hover-project-links > span {
+  color: var(--muted);
+}
+.hover-project-links > div {
+  display: grid;
+  gap: 4px;
+}
+.hover-project-links button {
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+.hover-project-links button:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg));
+}
+.hover-project-links button strong {
+  color: var(--accent);
+}
 .diagram svg .dependency {
   cursor: pointer;
   pointer-events: stroke;

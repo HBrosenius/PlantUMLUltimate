@@ -70,7 +70,16 @@ interface Props {
   onChangeBaseline(): void;
   onClearBaseline(): void;
   jiraTaskStatuses?: ReadonlyMap<string, "synchronized" | "local-changes"> | undefined;
+  projectDiagramLinks?: ReadonlyMap<string, readonly ProjectDiagramLink[]> | undefined;
+  onOpenProjectDiagram?(documentId: string): void;
 }
+
+export type ProjectDiagramLink = {
+  documentId: string;
+  path: string;
+  label: string;
+  relationship: string;
+};
 
 export function DiagramPreview({
   svg,
@@ -121,6 +130,8 @@ export function DiagramPreview({
   onChangeBaseline,
   onClearBaseline,
   jiraTaskStatuses = new Map(),
+  projectDiagramLinks = new Map(),
+  onOpenProjectDiagram,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const navigation = useDiagramNavigation(zoom, onZoomChange);
@@ -1212,6 +1223,21 @@ export function DiagramPreview({
                   {item.label}
                 </button>
               ))}
+            </div>
+          )}
+          {(projectDiagramLinks.get(hoveredTask.id)?.length ?? 0) > 0 && (
+            <div className="hover-project-links">
+              <span>Project</span>
+              <div>
+                {projectDiagramLinks.get(hoveredTask.id)?.map((link) => (
+                  <button
+                    key={`${link.documentId}:${link.label}`}
+                    onClick={() => onOpenProjectDiagram?.(link.documentId)}
+                  >
+                    <strong>{link.relationship}</strong> {link.path}: {link.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </aside>
