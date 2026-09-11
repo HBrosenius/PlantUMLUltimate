@@ -52,11 +52,10 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       sourceByMember.current.set(member.id, source);
       changed = true;
     }
-    if (!changed) return;
-    revisionRef.current += 1;
-    void snapshotEmbeddedProject(project, memberTabs.current, tabs.documents).then((next) => {
-      setProject((current) => (current === project ? next : current));
-    });
+    // The live tabs are the source of truth until an explicit save snapshot.  Updating
+    // project state here used to feed the new state back into this effect and could
+    // repeatedly re-index a project immediately after adding its first diagram.
+    if (changed) revisionRef.current += 1;
   }, [project, tabs.documents]);
 
   useEffect(() => {
