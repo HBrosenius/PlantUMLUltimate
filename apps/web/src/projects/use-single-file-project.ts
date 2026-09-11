@@ -211,6 +211,16 @@ export function useSingleFileProject({
       reportError(error);
     }
   }, [embedded, reportError, resetSelection, setInteractionMessage]);
+  const openPortableProject = useCallback(
+    (project: PortableProject) => {
+      unlockedKey.current = undefined;
+      handle.current = undefined;
+      embedded.openProject(project);
+      resetSelection();
+      setInteractionMessage(`Imported ${project.name}; save to create its one-file project.`);
+    },
+    [embedded, resetSelection, setInteractionMessage],
+  );
 
   const updateLinks = useCallback(
     (links: readonly ProjectLink[]) =>
@@ -299,6 +309,7 @@ export function useSingleFileProject({
       addProjectDiagram,
       importDiagram,
       openProject,
+      openPortableProject,
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
@@ -317,6 +328,7 @@ export function useSingleFileProject({
       indexed,
       newProject,
       openProject,
+      openPortableProject,
       renameDiagram,
       saveProject,
       saveProjectAs,

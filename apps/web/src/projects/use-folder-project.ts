@@ -21,6 +21,7 @@ import { parseProjectManifest, serializeProjectManifest, validateProjectPath } f
 import { indexVirtualProject } from "./project-index";
 import { starterSource } from "../use-workspace-documents";
 import type { DiagramKind } from "../model";
+import { convertLegacyProject } from "./legacy-project-conversion";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -242,6 +243,7 @@ export function useFolderProject({
         async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
       );
       setProject(staged);
+      projectRef.current = staged;
       openAllMembers(staged);
       resetSelection();
       setInteractionMessage(`Opened project ${staged.manifest.name} with ${staged.members.length} diagrams`);
@@ -260,6 +262,7 @@ export function useFolderProject({
       if (name === null) return;
       const created = await createFolderProject(root, name);
       setProject(created);
+      projectRef.current = created;
       tabsByMember.current.clear();
       const member = created.members[0];
       if (member?.source && member.diagramKind) {
@@ -285,6 +288,7 @@ export function useFolderProject({
     try {
       const created = await createZipProject(name);
       setProject(created);
+      projectRef.current = created;
       tabsByMember.current.clear();
       const member = created.members[0];
       if (member?.source && member.diagramKind) {
@@ -403,6 +407,7 @@ export function useFolderProject({
         async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
       );
       setProject(staged);
+      projectRef.current = staged;
       openAllMembers(staged);
       resetSelection();
       setInteractionMessage(`Opened ZIP project ${staged.manifest.name} with ${staged.members.length} diagrams`);
@@ -509,6 +514,11 @@ export function useFolderProject({
     },
     [],
   );
+  const convertCurrentProject = useCallback(async () => {
+    const current = projectRef.current;
+    if (!current) return undefined;
+    return convertLegacyProject(current, current.nativeDocuments);
+  }, []);
 
   return {
     project,
@@ -523,6 +533,7 @@ export function useFolderProject({
     updateLinks,
     updateElements,
     applyRenameMappings,
+    convertCurrentProject,
     isProjectMemberTab: (id: string) => [...tabsByMember.current.values()].includes(id),
     closeProject: () => setProject(undefined),
   };
