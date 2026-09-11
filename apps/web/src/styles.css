@@ -3669,15 +3669,16 @@ textarea:focus-visible,
   border: 1px solid var(--line);
   border-radius: 5px;
 }
-.project-link-list .project-link-route {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+.project-navigator .project-link-list .project-link-route {
+  display: flex;
   flex: 1;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   align-items: center;
   min-width: 0;
 }
 .project-link-kind {
+  flex: none;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -3695,13 +3696,32 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 .project-link-endpoint {
+  flex: 1 1 92px;
   overflow: hidden;
   min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .project-link-endpoint:last-child {
-  text-align: right;
+  text-align: left;
+}
+.project-navigator .project-link-list .project-link-remove {
+  display: block;
+  width: auto;
+  flex: none;
+  margin: 0;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.project-navigator .project-link-list .project-link-remove:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
 }
 .project-link-remove {
   flex: none;
