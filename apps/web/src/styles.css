@@ -3669,13 +3669,13 @@ textarea:focus-visible,
   border: 1px solid var(--line);
   border-radius: 5px;
 }
-.project-link-list li > span {
+.project-link-list .project-link-route {
   display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-.project-link-route {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   flex: 1;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
 }
 .project-link-kind {
   color: var(--muted);
@@ -3693,6 +3693,15 @@ textarea:focus-visible,
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.project-link-list .project-link-route button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+.project-link-list .project-link-route button:last-child {
+  text-align: right;
 }
 .project-link-remove {
   flex: none;
