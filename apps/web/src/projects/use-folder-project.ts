@@ -37,6 +37,23 @@ type TabControls = {
 
 type ActiveProject = FolderProject | ZipProject;
 
+async function reindexActiveProject(project: ActiveProject, manifest = project.manifest): Promise<ActiveProject> {
+  const indexed = await indexVirtualProject(
+    serializeProjectManifest(manifest),
+    new Map(
+      project.members.map((member) => [
+        member.path,
+        member.source === undefined
+          ? { state: "missing" as const }
+          : { state: "available" as const, source: member.source },
+      ]),
+    ),
+  );
+  return "root" in project
+    ? { ...indexed, root: project.root, nativeDocuments: project.nativeDocuments }
+    : { ...indexed, archiveEntries: project.archiveEntries, nativeDocuments: project.nativeDocuments };
+}
+
 const PROJECT_SESSION_KEY = "plantuml-studio.active-project.v1";
 
 type ProjectSession = {
@@ -435,14 +452,24 @@ export function useFolderProject({
     }
   }, [project, reportError, setInteractionMessage, tabs.documents]);
 
-  const updateLinks = useCallback((links: readonly ProjectLink[]) => {
-    setProject((current) => (current ? { ...current, manifest: { ...current.manifest, links: [...links] } } : current));
-  }, []);
-  const updateElements = useCallback((elements: readonly ProjectElement[]) => {
-    setProject((current) =>
-      current ? { ...current, manifest: { ...current.manifest, elements: [...elements] } } : current,
-    );
-  }, []);
+  const updateLinks = useCallback(
+    (links: readonly ProjectLink[]) => {
+      if (!project) return;
+      void reindexActiveProject(project, { ...project.manifest, links: [...links] }).then((indexed) =>
+        setProject((current) => (current === project ? indexed : current)),
+      );
+    },
+    [project],
+  );
+  const updateElements = useCallback(
+    (elements: readonly ProjectElement[]) => {
+      if (!project) return;
+      void reindexActiveProject(project, { ...project.manifest, elements: [...elements] }).then((indexed) =>
+        setProject((current) => (current === project ? indexed : current)),
+      );
+    },
+    [project],
+  );
   const applyRenameMappings = useCallback(
     async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
       if (!mappings.length) return;
