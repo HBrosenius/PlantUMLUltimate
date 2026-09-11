@@ -6,8 +6,10 @@ import {
   DocumentFormatError,
   encodeEnvelope,
   validateDocument,
+  validateProject,
   validateEnvelopeHeader,
   type PortableDocument,
+  type PortableProject,
 } from "./index";
 
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -39,6 +41,33 @@ function validDocument(): PortableDocument {
       },
     ],
     contents: [{ id: EMPTY_HASH, kind: "full", source: "", byteLength: 0 }],
+  };
+}
+
+function validProject(): PortableProject {
+  return {
+    schemaVersion: 2,
+    projectId: "44444444-4444-4444-8444-444444444444",
+    revisionId: "55555555-5555-4555-8555-555555555555",
+    name: "Release plan",
+    savedAt: "2026-09-11T10:00:00.000Z",
+    diagrams: [{ id: "66666666-6666-4666-8666-666666666666", name: "Plan", document: validDocument() }],
+    elements: [
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        documentId: "66666666-6666-4666-8666-666666666666",
+        kind: "gantt-task",
+        locator: {
+          symbolKey: "Release",
+          keyType: "semantic-key",
+          declarationHash: EMPTY_HASH,
+          sourceHash: EMPTY_HASH,
+          from: 0,
+          to: 1,
+        },
+      },
+    ],
+    links: [],
   };
 }
 
@@ -109,6 +138,27 @@ describe("validateDocument", () => {
     ];
     value.versions[0]!.contentId = "a".repeat(64);
     expectCode(() => validateDocument(value), "invalid-file");
+  });
+});
+
+describe("validateProject", () => {
+  it("accepts an embedded project with a validated v1 document", () => {
+    expect(validateProject(validProject())).toMatchObject({ schemaVersion: 2, name: "Release plan" });
+  });
+
+  it("keeps the project schema strict and validates graph references", () => {
+    expectCode(() => validateProject({ ...validProject(), unexpected: true }), "invalid-file");
+    const unknownDiagram = validProject();
+    unknownDiagram.elements[0]!.documentId = "88888888-8888-4888-8888-888888888888";
+    expectCode(() => validateProject(unknownDiagram), "invalid-file");
+    const invalidLink = validProject();
+    invalidLink.links.push({
+      id: "99999999-9999-4999-8999-999999999999",
+      kind: "represents",
+      from: invalidLink.elements[0]!.id,
+      to: invalidLink.elements[0]!.id,
+    });
+    expectCode(() => validateProject(invalidLink), "invalid-file");
   });
 });
 

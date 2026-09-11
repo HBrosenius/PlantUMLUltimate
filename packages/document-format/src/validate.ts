@@ -4,6 +4,11 @@ import {
   type ContentRecord,
   type PortableDiagramKind,
   type PortableDocument,
+  type PortableProject,
+  type PortableProjectElement,
+  type PortableProjectElementKind,
+  type PortableProjectLink,
+  type PortableProjectLinkKind,
   type PortableVersion,
   type PortableVersionReason,
 } from "./types";
@@ -20,6 +25,12 @@ const VERSION_REASONS = new Set<PortableVersionReason>([
   "restored",
   "collaboration",
 ]);
+const PROJECT_ELEMENT_KINDS = new Set<PortableProjectElementKind>([
+  "sequence-participant",
+  "class-entity",
+  "gantt-task",
+]);
+const PROJECT_LINK_KINDS = new Set<PortableProjectLinkKind>(["represents", "implements"]);
 
 function invalid(message: string): never {
   throw new DocumentFormatError("invalid-file", message);
@@ -222,4 +233,110 @@ export function validateDocument(value: unknown): PortableDocument {
   if (baselineVersionId && !versionIds.has(baselineVersionId))
     invalid("current baseline must reference a retained version");
   return { ...document, contents, versions } as unknown as PortableDocument;
+}
+
+function validateProjectElement(value: unknown, index: number): PortableProjectElement {
+  const item = record(value, `elements[${index}]`);
+  exactKeys(item, ["id", "documentId", "kind", "locator"], `elements[${index}]`);
+  identifier(item.id, `elements[${index}].id`);
+  identifier(item.documentId, `elements[${index}].documentId`);
+  if (typeof item.kind !== "string" || !PROJECT_ELEMENT_KINDS.has(item.kind as PortableProjectElementKind))
+    invalid(`elements[${index}].kind is not supported`);
+  const locator = record(item.locator, `elements[${index}].locator`);
+  exactKeys(
+    locator,
+    ["symbolKey", "keyType", "declarationHash", "sourceHash", "from", "to"],
+    `elements[${index}].locator`,
+  );
+  if (!string(locator.symbolKey, `elements[${index}].locator.symbolKey`, DOCUMENT_LIMITS.maxProjectSymbolKeyCharacters))
+    invalid(`elements[${index}].locator.symbolKey must not be empty`);
+  if (locator.keyType !== "alias" && locator.keyType !== "semantic-key")
+    invalid(`elements[${index}].locator.keyType is not supported`);
+  hash(locator.declarationHash, `elements[${index}].locator.declarationHash`);
+  hash(locator.sourceHash, `elements[${index}].locator.sourceHash`);
+  const from = integer(locator.from, `elements[${index}].locator.from`, 0, Number.MAX_SAFE_INTEGER);
+  const to = integer(locator.to, `elements[${index}].locator.to`, 1, Number.MAX_SAFE_INTEGER);
+  if (to <= from) invalid(`elements[${index}].locator range is invalid`);
+  return item as unknown as PortableProjectElement;
+}
+
+function validProjectLink(link: PortableProjectLink, elements: ReadonlyMap<string, PortableProjectElement>): boolean {
+  const from = elements.get(link.from);
+  const to = elements.get(link.to);
+  return link.kind === "represents"
+    ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
+    : from?.kind === "gantt-task" &&
+        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
+}
+
+export function validateProject(value: unknown): PortableProject {
+  const project = record(value, "project");
+  exactKeys(
+    project,
+    ["schemaVersion", "projectId", "revisionId", "name", "savedAt", "diagrams", "elements", "links"],
+    "project",
+  );
+  if (project.schemaVersion !== 2) {
+    if (Number.isSafeInteger(project.schemaVersion))
+      throw new DocumentFormatError(
+        "unsupported-version",
+        `Unsupported project schema version ${project.schemaVersion}`,
+      );
+    invalid("project.schemaVersion must be 2");
+  }
+  identifier(project.projectId, "project.projectId");
+  identifier(project.revisionId, "project.revisionId");
+  if (!string(project.name, "project.name", DOCUMENT_LIMITS.maxProjectNameCharacters).trim())
+    invalid("project.name must not be empty");
+  timestamp(project.savedAt, "project.savedAt");
+  if (!Array.isArray(project.diagrams)) invalid("project.diagrams must be an array");
+  if (project.diagrams.length > DOCUMENT_LIMITS.maxProjectDiagrams) limit("project contains too many diagrams");
+  const diagramIds = new Set<string>();
+  let expandedBytes = 0;
+  const diagrams = project.diagrams.map((value, index) => {
+    const item = record(value, `diagrams[${index}]`);
+    exactKeys(item, ["id", "name", "document"], `diagrams[${index}]`);
+    const id = identifier(item.id, `diagrams[${index}].id`);
+    if (diagramIds.has(id)) invalid(`diagrams contains duplicate ID ${id}`);
+    diagramIds.add(id);
+    if (!string(item.name, `diagrams[${index}].name`, DOCUMENT_LIMITS.maxProjectNameCharacters).trim())
+      invalid(`diagrams[${index}].name must not be empty`);
+    const document = validateDocument(item.document);
+    expandedBytes += UTF8.encode(document.current.source).byteLength;
+    expandedBytes += document.contents.reduce((total, content) => total + content.byteLength, 0);
+    return { id, name: item.name, document };
+  });
+  if (expandedBytes > DOCUMENT_LIMITS.maxProjectExpandedBytes) limit("project history exceeds aggregate limit");
+  if (!Array.isArray(project.elements)) invalid("project.elements must be an array");
+  if (project.elements.length > DOCUMENT_LIMITS.maxProjectElements) limit("project contains too many elements");
+  const elementIds = new Set<string>();
+  const elements = project.elements.map((value, index) => {
+    const element = validateProjectElement(value, index);
+    if (elementIds.has(element.id)) invalid(`elements contains duplicate ID ${element.id}`);
+    if (!diagramIds.has(element.documentId)) invalid(`elements[${index}] references an unknown diagram`);
+    elementIds.add(element.id);
+    return element;
+  });
+  if (!Array.isArray(project.links)) invalid("project.links must be an array");
+  if (project.links.length > DOCUMENT_LIMITS.maxProjectLinks) limit("project contains too many links");
+  const elementById = new Map(elements.map((element) => [element.id, element]));
+  const linkIds = new Set<string>();
+  const links = project.links.map((value, index) => {
+    const item = record(value, `links[${index}]`);
+    exactKeys(item, ["id", "kind", "from", "to"], `links[${index}]`);
+    const id = identifier(item.id, `links[${index}].id`);
+    if (linkIds.has(id)) invalid(`links contains duplicate ID ${id}`);
+    if (typeof item.kind !== "string" || !PROJECT_LINK_KINDS.has(item.kind as PortableProjectLinkKind))
+      invalid(`links[${index}].kind is not supported`);
+    const link = {
+      id,
+      kind: item.kind as PortableProjectLinkKind,
+      from: identifier(item.from, `links[${index}].from`),
+      to: identifier(item.to, `links[${index}].to`),
+    };
+    if (!validProjectLink(link, elementById)) invalid(`links[${index}] has incompatible endpoints`);
+    linkIds.add(id);
+    return link;
+  });
+  return { ...project, diagrams, elements, links } as unknown as PortableProject;
 }
