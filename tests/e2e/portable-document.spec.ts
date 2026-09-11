@@ -33,10 +33,7 @@ test("saves and reopens a portable document with retained history", async ({ pag
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page
-    .getByRole("menu", { name: "Save" })
-    .getByRole("menuitem", { name: "Save diagram", exact: true })
-    .click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save diagram", exact: true }).click();
   await expect
     .poll(() =>
       page.evaluate(() =>
