@@ -209,6 +209,25 @@ export function useFolderProject({
     return () => window.clearTimeout(timer);
   }, [project, tabs.documents]);
 
+  const openAllMembers = useCallback(
+    (next: ActiveProject) => {
+      tabsByMember.current.clear();
+      for (const member of next.members) {
+        if (!member.source || member.state !== "available" || !member.diagramKind) continue;
+        const tabId = tabs.addDocument({
+          historyId: `project-history-${next.manifest.projectId}-${member.documentId}`,
+          source: member.source,
+          diagramKind: member.diagramKind,
+          fileName: member.path,
+          dirty: false,
+          cursor: { line: 1, column: 1 },
+        });
+        tabsByMember.current.set(`${next.manifest.projectId}:${member.documentId}`, tabId);
+      }
+    },
+    [tabs],
+  );
+
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker) {
@@ -223,13 +242,14 @@ export function useFolderProject({
         async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
       );
       setProject(staged);
-      tabsByMember.current.clear();
-      setInteractionMessage(`Opened project ${staged.manifest.name}`);
+      openAllMembers(staged);
+      resetSelection();
+      setInteractionMessage(`Opened project ${staged.manifest.name} with ${staged.members.length} diagrams`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       reportError(error);
     }
-  }, [reportError, resetSelection, setInteractionMessage, tabs]);
+  }, [openAllMembers, reportError, resetSelection, setInteractionMessage]);
   const newProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker)
@@ -383,13 +403,14 @@ export function useFolderProject({
         async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
       );
       setProject(staged);
-      tabsByMember.current.clear();
-      setInteractionMessage(`Opened ZIP project ${staged.manifest.name}`);
+      openAllMembers(staged);
+      resetSelection();
+      setInteractionMessage(`Opened ZIP project ${staged.manifest.name} with ${staged.members.length} diagrams`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       reportError(error);
     }
-  }, [reportError, setInteractionMessage]);
+  }, [openAllMembers, reportError, resetSelection, setInteractionMessage]);
 
   const saveZipProject = useCallback(async () => {
     if (!project || !("archiveEntries" in project)) return;
