@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { DocumentSnapshot } from "../workspace-storage";
+import { loadActiveProject, saveActiveProject, type DocumentSnapshot } from "../workspace-storage";
 import {
   createFolderProject,
   folderProjectStore,
@@ -54,28 +54,23 @@ async function reindexActiveProject(project: ActiveProject, manifest = project.m
     : { ...indexed, archiveEntries: project.archiveEntries, nativeDocuments: project.nativeDocuments };
 }
 
-const PROJECT_SESSION_KEY = "plantuml-studio.active-project.v1";
-
 type ProjectSession = {
   manifest: unknown;
   sources: Record<string, string>;
 };
 
-function saveProjectSession(project: ActiveProject): void {
+function projectSession(project: ActiveProject): ProjectSession {
   const sources = Object.fromEntries(
     project.members.flatMap((member) => (member.source ? [[member.path, member.source]] : [])),
   );
-  localStorage.setItem(
-    PROJECT_SESSION_KEY,
-    JSON.stringify({ manifest: project.manifest, sources } satisfies ProjectSession),
-  );
+  return { manifest: project.manifest, sources };
 }
 
 async function restoreProjectSession(): Promise<ZipProject | undefined> {
-  const stored = localStorage.getItem(PROJECT_SESSION_KEY);
+  const stored = await loadActiveProject();
   if (!stored) return undefined;
   try {
-    const candidate = JSON.parse(stored) as Partial<ProjectSession>;
+    const candidate = stored as Partial<ProjectSession>;
     if (!candidate.sources || typeof candidate.sources !== "object") return undefined;
     const manifest = parseProjectManifest(candidate.manifest);
     const sources = Object.entries(candidate.sources).filter(
@@ -100,7 +95,6 @@ async function restoreProjectSession(): Promise<ZipProject | undefined> {
     ]);
     return { ...indexed, archiveEntries: entries, nativeDocuments: new Map() };
   } catch {
-    localStorage.removeItem(PROJECT_SESSION_KEY);
     return undefined;
   }
 }
@@ -161,7 +155,7 @@ export function useFolderProject({
   useEffect(() => {
     if (!project) return;
     try {
-      saveProjectSession(project);
+      void saveActiveProject(projectSession(project));
     } catch {
       // Project restoration is a convenience; saving and editing remain available if browser storage is full.
     }
