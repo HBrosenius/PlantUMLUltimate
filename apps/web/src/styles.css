@@ -3628,6 +3628,31 @@ textarea:focus-visible,
   font-weight: 700;
   text-align: center;
 }
+.project-existing-links,
+.project-link-repairs {
+  margin-top: 16px;
+}
+.project-subsection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.project-subsection-heading h3,
+.project-link-repairs h3 {
+  margin: 0;
+  font-size: 12px;
+}
+.project-subsection-heading span {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
 .project-link-list {
   display: grid;
   gap: 7px;
@@ -3649,7 +3674,10 @@ textarea:focus-visible,
   gap: 3px;
   min-width: 0;
 }
-.project-link-list strong {
+.project-link-route {
+  flex: 1;
+}
+.project-link-kind {
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -3666,7 +3694,7 @@ textarea:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.project-link-list li > button {
+.project-link-remove {
   flex: none;
   color: var(--muted);
 }
@@ -3682,6 +3710,12 @@ textarea:focus-visible,
   border-radius: 5px;
   background: rgb(217 119 6 / 8%);
   font-size: 12px;
+}
+.project-link-repair > span {
+  color: var(--muted);
+}
+.project-link-repair button {
+  justify-self: start;
 }
 .jira-task-status {
   display: grid;

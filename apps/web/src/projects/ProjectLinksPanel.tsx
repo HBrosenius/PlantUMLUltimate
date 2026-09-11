@@ -1,11 +1,5 @@
 import { hashSource } from "@plantuml-studio/document-format";
-import {
-  backlinks,
-  canCreateLink,
-  reverseImpact,
-  type ProjectElement,
-  type ProjectLink,
-} from "@plantuml-studio/project-model";
+import { canCreateLink, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
 import { useMemo, useState } from "react";
 import type { VirtualProject } from "./project-index";
 
@@ -42,7 +36,6 @@ export function ProjectLinksPanel({
     : canCreateLink("implements", from, to)
       ? "implements"
       : undefined;
-  const impact = toId ? reverseImpact(project.manifest.links, toId) : undefined;
   const registrations = project.members.flatMap((member) =>
     member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
   );
@@ -177,56 +170,70 @@ export function ProjectLinksPanel({
           </form>
         )}
       </div>
-      <ul className="project-link-list" aria-label="Existing connections">
-        {project.manifest.links.map((link) => (
-          <li key={link.id}>
-            <span>
-              <button
-                type="button"
-                onClick={() => onOpenDocument(elements.find((item) => item.id === link.from)?.documentId ?? "")}
-              >
-                {elementLabel(project, link.from)}
-              </button>
-              <strong>{link.kind}</strong>
-              <button
-                type="button"
-                onClick={() => onOpenDocument(elements.find((item) => item.id === link.to)?.documentId ?? "")}
-              >
-                {elementLabel(project, link.to)}
-              </button>
-            </span>
-            <button
-              type="button"
-              onClick={() => onChange(project.manifest.links.filter((item) => item.id !== link.id))}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      {elements.flatMap((element) => {
-        const resolution = project.resolutions.get(element.id);
-        if (resolution?.state !== "needs-review" && resolution?.state !== "ambiguous") return [];
-        return (
-          <div className="project-link-repair" key={element.id}>
-            <strong>Repair {elementLabel(project, element.id)}</strong>
-            {resolution.candidates.map((candidate) => (
-              <button
-                type="button"
-                key={`${candidate.from}:${candidate.to}`}
-                onClick={() => repair(element, candidate)}
-              >
-                Use {candidate.symbolKey}
-              </button>
+      <section className="project-existing-links" aria-labelledby="project-existing-links-heading">
+        <div className="project-subsection-heading">
+          <h3 id="project-existing-links-heading">Existing connections</h3>
+          <span>{project.manifest.links.length}</span>
+        </div>
+        {project.manifest.links.length === 0 ? (
+          <p className="project-links-empty">No connections created yet.</p>
+        ) : (
+          <ul className="project-link-list">
+            {project.manifest.links.map((link) => (
+              <li key={link.id}>
+                <span className="project-link-route">
+                  <button
+                    type="button"
+                    onClick={() => onOpenDocument(elements.find((item) => item.id === link.from)?.documentId ?? "")}
+                  >
+                    {elementLabel(project, link.from)}
+                  </button>
+                  <span className="project-link-kind">{link.kind} →</span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenDocument(elements.find((item) => item.id === link.to)?.documentId ?? "")}
+                  >
+                    {elementLabel(project, link.to)}
+                  </button>
+                </span>
+                <button
+                  type="button"
+                  className="project-link-remove"
+                  onClick={() => onChange(project.manifest.links.filter((item) => item.id !== link.id))}
+                >
+                  Remove
+                </button>
+              </li>
             ))}
-          </div>
-        );
-      })}
-      {toId && (
-        <p>
-          {backlinks(project.manifest.links, toId).length} direct backlink(s)
-          {impact?.truncated ? "; impact list truncated" : ""}.
-        </p>
+          </ul>
+        )}
+      </section>
+      {elements.some((element) => {
+        const state = project.resolutions.get(element.id)?.state;
+        return state === "needs-review" || state === "ambiguous";
+      }) && (
+        <section className="project-link-repairs" aria-labelledby="project-link-repairs-heading">
+          <h3 id="project-link-repairs-heading">Items needing attention</h3>
+          {elements.flatMap((element) => {
+            const resolution = project.resolutions.get(element.id);
+            if (resolution?.state !== "needs-review" && resolution?.state !== "ambiguous") return [];
+            return (
+              <div className="project-link-repair" key={element.id}>
+                <strong>{elementLabel(project, element.id)}</strong>
+                <span>Choose the matching item to repair this connection.</span>
+                {resolution.candidates.map((candidate) => (
+                  <button
+                    type="button"
+                    key={`${candidate.from}:${candidate.to}`}
+                    onClick={() => repair(element, candidate)}
+                  >
+                    Use {candidate.symbolKey}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </section>
       )}
     </section>
   );
