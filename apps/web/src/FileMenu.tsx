@@ -130,11 +130,7 @@ export function FileMenu({
           }}
         >
           {onProjectConnections && (
-            <div
-              className="application-submenu"
-              onPointerEnter={() => setProjectOpen(true)}
-              onPointerLeave={() => setProjectOpen(false)}
-            >
+            <div className="application-submenu" onPointerEnter={() => setProjectOpen(true)}>
               <button
                 role="menuitem"
                 aria-haspopup="menu"
@@ -158,11 +154,7 @@ export function FileMenu({
               )}
             </div>
           )}
-          <div
-            className="application-submenu"
-            onPointerEnter={() => setNewOpen(true)}
-            onPointerLeave={() => setNewOpen(false)}
-          >
+          <div className="application-submenu" onPointerEnter={() => setNewOpen(true)}>
             <button
               role="menuitem"
               aria-haspopup="menu"
@@ -190,11 +182,7 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <div
-            className="application-submenu"
-            onPointerEnter={() => setOpenItemsOpen(true)}
-            onPointerLeave={() => setOpenItemsOpen(false)}
-          >
+          <div className="application-submenu" onPointerEnter={() => setOpenItemsOpen(true)}>
             <button
               role="menuitem"
               aria-haspopup="menu"
@@ -222,11 +210,7 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <div
-            className="application-submenu"
-            onPointerEnter={() => setSaveOpen(true)}
-            onPointerLeave={() => setSaveOpen(false)}
-          >
+          <div className="application-submenu" onPointerEnter={() => setSaveOpen(true)}>
             <button
               role="menuitem"
               aria-haspopup="menu"
@@ -266,11 +250,7 @@ export function FileMenu({
             Restore workspace…
           </button>
           <span className="menu-separator" role="separator" />
-          <div
-            className="application-submenu"
-            onPointerEnter={() => setExportOpen(true)}
-            onPointerLeave={() => setExportOpen(false)}
-          >
+          <div className="application-submenu" onPointerEnter={() => setExportOpen(true)}>
             <button
               role="menuitem"
               aria-haspopup="menu"

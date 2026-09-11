@@ -145,7 +145,9 @@ export function useSingleFileProject({
     async (name = window.prompt("Project name", "PlantUML project") ?? "") => {
       if (!name.trim()) return;
       const created = await projectFromPlantUml("", "gantt", new Date().toISOString());
-      embedded.openProject({ ...created, name: projectName(name), diagrams: [] });
+      const project = { ...created, name: projectName(name), diagrams: [] };
+      embedded.openProject(project);
+      setIndexed(immediateIndex(project));
       handle.current = undefined;
       unlockedKey.current = undefined;
       resetSelection();
