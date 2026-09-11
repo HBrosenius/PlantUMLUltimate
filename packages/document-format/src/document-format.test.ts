@@ -7,6 +7,10 @@ import {
   DocumentFormatError,
   encodeEnvelope,
   encodeProject,
+  projectFromDocument,
+  projectFromLegacy,
+  projectFromPlantUml,
+  portableDocumentFromPlantUml,
   validateDocument,
   validateProject,
   validateEnvelopeHeader,
@@ -238,5 +242,40 @@ describe("v2 project envelope", () => {
     await expect(import("./decode").then(({ decodeDocument }) => decodeDocument(project.bytes))).rejects.toMatchObject({
       code: "unsupported-version",
     });
+  });
+});
+
+describe("project conversion", () => {
+  it("wraps an existing v1 document without changing its history identity", () => {
+    const project = projectFromDocument(validDocument(), "Imported plan", "2026-09-11T10:00:00.000Z");
+    expect(project.diagrams[0]!.document).toEqual(validDocument());
+  });
+
+  it("creates a standalone PlantUML project with a native checkpoint", async () => {
+    const project = await projectFromPlantUml("@startgantt\n@endgantt\n", "gantt", "Plan", "2026-09-11T10:00:00.000Z");
+    expect(project.diagrams[0]!.document.versions).toHaveLength(1);
+    expect(project.diagrams[0]!.document.current.source).toContain("@startgantt");
+  });
+
+  it("creates an embeddable logical document from PlantUML", async () => {
+    const document = await portableDocumentFromPlantUml("@startuml\n@enduml\n", "class", "2026-09-11T10:00:00.000Z");
+    expect(document.current.diagramKind).toBe("class");
+    expect(document.contents[0]?.kind).toBe("full");
+  });
+
+  it("preserves legacy diagram, element, and link identities", () => {
+    const source = validProject();
+    const converted = projectFromLegacy(
+      {
+        projectId: source.projectId,
+        revisionId: source.revisionId,
+        name: source.name,
+        diagrams: source.diagrams,
+        elements: source.elements,
+        links: source.links,
+      },
+      source.savedAt,
+    );
+    expect(converted).toEqual(source);
   });
 });
