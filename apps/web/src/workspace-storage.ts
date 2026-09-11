@@ -522,7 +522,9 @@ export async function saveActiveProject(value: unknown): Promise<void> {
       transaction.onerror = () => reject(transaction.error);
     });
     database.close();
-  } catch {}
+  } catch {
+    // IndexedDB recovery is optional when the synchronous fallback has succeeded.
+  }
 }
 
 /** Loads the active project recovery record, if there is one. */

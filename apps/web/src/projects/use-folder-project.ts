@@ -20,7 +20,6 @@ import { hashSource } from "@plantuml-studio/document-format";
 import { parseProjectManifest, serializeProjectManifest, validateProjectPath } from "@plantuml-studio/project-model";
 import { indexVirtualProject } from "./project-index";
 import { starterSource } from "../use-workspace-documents";
-import type { DiagramKind } from "../model";
 import { convertLegacyProject } from "./legacy-project-conversion";
 
 type FolderPickerWindow = Window & {

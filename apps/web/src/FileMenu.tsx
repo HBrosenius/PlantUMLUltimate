@@ -216,7 +216,7 @@ export function FileMenu({
                 )}
                 {onOpenZipProject && (
                   <button role="menuitem" onClick={() => run(onOpenZipProject)}>
-                    ZIP project…
+                    Import ZIP project…
                   </button>
                 )}
               </div>

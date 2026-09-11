@@ -24,7 +24,6 @@ import {
   type WritableFileHandle,
 } from "../file-service";
 import { detectDiagramKind } from "../diagram-kind";
-import type { DiagramKind } from "../model";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
 import { indexVirtualProject, type VirtualProject } from "./project-index";
@@ -199,7 +198,7 @@ export function useSingleFileProject({
             project = decoded.project;
             key = decoded.unlockedKey;
             encrypted = Boolean(key);
-          } catch (error) {
+          } catch {
             const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
             project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
             key = decoded.unlockedKey;

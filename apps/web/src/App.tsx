@@ -1462,7 +1462,6 @@ export function App() {
   });
   const {
     project: legacyProject,
-    newZipProject,
     openProject,
     openZipProject,
     saveZipProject,
@@ -1470,7 +1469,6 @@ export function App() {
     openMember: openLegacyMember,
     addProjectDiagram: addLegacyProjectDiagram,
     isProjectMemberTab: isLegacyProjectMemberTab,
-    closeProject: closeLegacyProject,
     updateLinks: updateLegacyLinks,
     updateElements: updateLegacyElements,
     applyRenameMappings,
@@ -1496,7 +1494,6 @@ export function App() {
     ? (id: string) =>
         tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
     : isLegacyProjectMemberTab;
-  const closeProject = usingSingleFileProject ? singleFileProject.closeProject : closeLegacyProject;
   const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
   const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
   const saveActiveProject = useCallback(async () => {
@@ -3402,7 +3399,7 @@ export function App() {
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
             onNewProject={() => void singleFileProject.newProject()}
-            onNewZipProject={() => void newZipProject()}
+            onNewZipProject={undefined}
             onOpen={() => void singleFileProject.openProject()}
             onOpenProject={() => void importLegacyProject(openProject)}
             onOpenZipProject={() => void importLegacyProject(openZipProject)}

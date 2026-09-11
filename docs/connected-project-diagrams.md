@@ -6,7 +6,7 @@ A PlantUML Ultimate project keeps related diagrams and their semantic links in o
 
 Use **File → New project…** to create a folder project. The browser asks you to select the destination folder and creates `project.pumlproject` plus a starter diagram in `diagrams/`.
 
-Use **File → New ZIP project…** for a single downloadable `.pumlproject.zip` file. Use **File → Open ZIP Project…** to reopen it. ZIP projects are snapshots: saving downloads a new archive rather than overwriting the previously downloaded file.
+Projects now use one `.pumlu` file. See [single-file projects](./single-file-projects.md). Existing ZIP projects remain available through **File → Open → Import ZIP project…** and are converted on import.
 
 Use **File → Open project…** to select an existing folder project. The browser must grant read/write permission for reliable saves.
 
@@ -30,4 +30,4 @@ Native `.pumlu` members retain their portable document metadata, history, and do
 
 ## Privacy
 
-Folder projects are handled through the browser’s file-system permission selected by you. ZIP projects are processed locally and downloaded by the browser. Project links, sources, and recovery journals are not uploaded by the project feature.
+Legacy folder and ZIP imports are processed locally. Project links, sources, and recovery records are not uploaded by the project feature.
