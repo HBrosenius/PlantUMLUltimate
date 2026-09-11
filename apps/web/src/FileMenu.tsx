@@ -4,10 +4,7 @@ export function FileMenu({
   canExport,
   onNew,
   onNewProject,
-  onNewZipProject,
   onOpen,
-  onOpenProject,
-  onOpenZipProject,
   onSaveProject,
   onProjectConnections,
   projectName,
@@ -25,10 +22,7 @@ export function FileMenu({
   canExport: boolean;
   onNew(): void;
   onNewProject?: (() => void) | undefined;
-  onNewZipProject?: (() => void) | undefined;
   onOpen(): void;
-  onOpenProject?: (() => void) | undefined;
-  onOpenZipProject?: (() => void) | undefined;
   onSaveProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
@@ -164,11 +158,6 @@ export function FileMenu({
                     Project…
                   </button>
                 )}
-                {onNewZipProject && (
-                  <button role="menuitem" onClick={() => run(onNewZipProject)}>
-                    ZIP project…
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -187,16 +176,6 @@ export function FileMenu({
                 <button role="menuitem" onClick={() => run(onOpen)}>
                   Project or diagram…
                 </button>
-                {onOpenProject && (
-                  <button role="menuitem" onClick={() => run(onOpenProject)}>
-                    Import folder project…
-                  </button>
-                )}
-                {onOpenZipProject && (
-                  <button role="menuitem" onClick={() => run(onOpenZipProject)}>
-                    Import ZIP project…
-                  </button>
-                )}
               </div>
             )}
           </div>

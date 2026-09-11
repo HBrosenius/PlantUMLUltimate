@@ -1462,8 +1462,6 @@ export function App() {
   });
   const {
     project: legacyProject,
-    openProject,
-    openZipProject,
     saveZipProject,
     saveFolderProject,
     openMember: openLegacyMember,
@@ -1472,7 +1470,6 @@ export function App() {
     updateLinks: updateLegacyLinks,
     updateElements: updateLegacyElements,
     applyRenameMappings,
-    convertCurrentProject,
   } = useFolderProject({
     tabs,
     resetSelection: resetFileSelection,
@@ -1501,14 +1498,6 @@ export function App() {
     const result = await singleFileProject.saveProject();
     if (!result) await singleFileProject.saveProjectAs();
   }, [singleFileProject, usingSingleFileProject]);
-  const importLegacyProject = useCallback(
-    async (open: () => Promise<void>) => {
-      await open();
-      const converted = await convertCurrentProject();
-      if (converted) singleFileProject.openPortableProject(converted);
-    },
-    [convertCurrentProject, singleFileProject],
-  );
   const projectLinkedTaskIds = useMemo(() => {
     if (!project || workspace.diagramKind !== "gantt") return new Set<string>();
     const member = project.members.find((item) => item.path === workspace.fileName);
@@ -3399,10 +3388,7 @@ export function App() {
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
             onNewProject={() => void singleFileProject.newProject()}
-            onNewZipProject={undefined}
             onOpen={() => void singleFileProject.openProject()}
-            onOpenProject={() => void importLegacyProject(openProject)}
-            onOpenZipProject={() => void importLegacyProject(openZipProject)}
             onSaveProject={
               project
                 ? () =>
