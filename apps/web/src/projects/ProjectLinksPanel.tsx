@@ -76,6 +76,10 @@ export function ProjectLinksPanel({
   return (
     <section className="project-links" aria-label="Diagram connections">
       <h2>Connections</h2>
+      <p className="project-links-help">
+        Link a Gantt task to another task, a sequence participant, or a class entity. A sequence participant can
+        represent a class entity.
+      </p>
       <label>
         Register diagram item
         <select

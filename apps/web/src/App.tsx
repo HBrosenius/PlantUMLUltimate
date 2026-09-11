@@ -4190,7 +4190,7 @@ export function App() {
         <ProjectNavigator
           project={project}
           onOpen={openMember}
-          onAdd={() => void addProjectDiagram()}
+          onAdd={(kind, path) => void addProjectDiagram(kind, path)}
           onClose={() => setProjectNavigatorOpen(false)}
           onLinksChange={updateLinks}
           onElementsChange={updateElements}

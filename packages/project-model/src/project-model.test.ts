@@ -4,6 +4,7 @@ import {
   ProjectFormatError,
   applyIdentityMapping,
   applyIdentityMappings,
+  canCreateLink,
   parseProjectManifest,
   parseProjectManifestJson,
   resolveElement,
@@ -150,5 +151,13 @@ describe("reverse impact", () => {
       paths: [{ elementIds: [id(6), id(7)] }, { elementIds: [id(8), id(7)] }, { elementIds: [id(8), id(6), id(7)] }],
     });
     expect(reverseImpact(links, id(7), 99).depth).toBe(5);
+  });
+});
+
+describe("project link compatibility", () => {
+  it("allows a Gantt task to link to another Gantt task", () => {
+    const [first] = manifest().elements.filter((element) => element.kind === "gantt-task");
+    const second = { ...first!, id: id(12) };
+    expect(canCreateLink("implements", first, second)).toBe(true);
   });
 });

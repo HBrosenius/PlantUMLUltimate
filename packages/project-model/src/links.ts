@@ -7,7 +7,8 @@ export function canCreateLink(
 ): boolean {
   return kind === "represents"
     ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
-    : from?.kind === "gantt-task" && (to?.kind === "sequence-participant" || to?.kind === "class-entity");
+    : from?.kind === "gantt-task" &&
+        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
 }
 
 export function hasLink(links: readonly ProjectLink[], kind: ProjectLinkKind, from: string, to: string): boolean {
