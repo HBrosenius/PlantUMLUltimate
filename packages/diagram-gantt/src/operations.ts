@@ -675,11 +675,42 @@ export function setTaskDeclaration(
   if (!statement) return { edits: [] };
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const declarationLabel = task.alias?.value ?? task.label;
+  const declarationOrder: Partial<Record<TaskDeclaration["kind"], number>> = {
+    start: 0,
+    end: 1,
+    duration: 2,
+    completion: 3,
+    color: 4,
+    "same-row": 5,
+    pause: 6,
+  };
+  const order = declarationOrder[kind] ?? Number.MAX_SAFE_INTEGER;
+  const following = task.declarations
+    .filter((item) => (declarationOrder[item.kind] ?? Number.MAX_SAFE_INTEGER) > order)
+    .map((item) => wholeLineRange(source, item.range))
+    .sort((a, b) => a.from - b.from)[0];
+  if (following) {
+    const indentation = source.slice(following.from, following.to).match(/^\s*/)?.[0] ?? "";
+    return {
+      edits: [
+        {
+          range: { from: following.from, to: following.from },
+          text: `${indentation}[${declarationLabel}] ${statement}${newline}`,
+        },
+      ],
+    };
+  }
+  const declarationEnd = Math.max(
+    task.labelRange.to,
+    ...task.declarations.map((item) => wholeLineRange(source, item.range).to),
+  );
+  const leadingNewline = declarationEnd > 0 && source[declarationEnd - 1] !== "\n" ? newline : "";
+  const trailingNewline = declarationEnd < source.length ? newline : "";
   return {
     edits: [
       {
-        range: { from: task.sourceRange.to, to: task.sourceRange.to },
-        text: `${newline}[${declarationLabel}] ${statement}`,
+        range: { from: declarationEnd, to: declarationEnd },
+        text: `${leadingNewline}[${declarationLabel}] ${statement}${trailingNewline}`,
       },
     ],
   };
