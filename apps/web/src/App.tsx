@@ -1462,6 +1462,7 @@ export function App() {
     openProject,
     openZipProject,
     saveZipProject,
+    saveFolderProject,
     openMember,
     closeProject,
     updateLinks,
@@ -3293,7 +3294,9 @@ export function App() {
             onOpen={() => void openDocument()}
             onOpenProject={() => void openProject()}
             onOpenZipProject={() => void openZipProject()}
-            onSaveProject={project && "archiveEntries" in project ? () => void saveZipProject() : undefined}
+            onSaveProject={
+              project ? () => void ("archiveEntries" in project ? saveZipProject() : saveFolderProject()) : undefined
+            }
             onSave={() => void saveDocument()}
             onSaveAs={() => void saveDocumentAs()}
             onVersionHistory={() => void openVersionHistory()}

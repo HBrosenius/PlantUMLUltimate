@@ -2,10 +2,13 @@ import { useCallback, useRef, useState, type Dispatch, type SetStateAction } fro
 import type { DocumentSnapshot } from "../workspace-storage";
 import {
   createFolderProject,
+  folderProjectStore,
   readFolderProject,
   type FolderProject,
   type ProjectDirectoryHandle,
 } from "./folder-project";
+import { ProjectSaveCoordinator } from "./project-save-coordinator";
+import { ensureProjectMembersUnchanged, planFolderProjectSave } from "./project-save-plan";
 import { createZipProject, createZipProjectSnapshot, readZipProject, type ZipProject } from "./zip-project";
 import {
   applyIdentityMappings,
@@ -14,6 +17,7 @@ import {
   type ProjectLink,
 } from "@plantuml-studio/project-model";
 import { hashSource } from "@plantuml-studio/document-format";
+import { serializeProjectManifest } from "@plantuml-studio/project-model";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -23,6 +27,8 @@ type FolderPickerWindow = Window & {
 type TabControls = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
   activateDocument(id: string): void;
+  getDocument(id: string): DocumentSnapshot | undefined;
+  updateDocumentFormat(id: string, patch: Partial<DocumentSnapshot>): void;
   documents: readonly DocumentSnapshot[];
 };
 
@@ -47,6 +53,18 @@ function chooseZipFile(): Promise<File | undefined> {
   });
 }
 
+function savedProjectTabs(
+  project: ActiveProject,
+  tabsByMember: ReadonlyMap<string, string>,
+  tabs: readonly DocumentSnapshot[],
+): Array<{ id: string; source: string }> {
+  const byId = new Map(tabs.map((tab) => [tab.id, tab]));
+  return project.manifest.documents.flatMap((document) => {
+    const tab = byId.get(tabsByMember.get(`${project.manifest.projectId}:${document.id}`) ?? "");
+    return tab?.dirty ? [{ id: tab.id, source: tab.source }] : [];
+  });
+}
+
 export function useFolderProject({
   tabs,
   resetSelection,
@@ -60,6 +78,7 @@ export function useFolderProject({
 }) {
   const [project, setProject] = useState<ActiveProject>();
   const tabsByMember = useRef(new Map<string, string>());
+  const saveCoordinator = useRef(new ProjectSaveCoordinator());
 
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
@@ -68,7 +87,12 @@ export function useFolderProject({
       return;
     }
     try {
-      const staged = await readFolderProject(await picker());
+      const root = await picker();
+      await saveCoordinator.current.recover(folderProjectStore(root));
+      const staged = await readFolderProject(
+        root,
+        async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
+      );
       setProject(staged);
       tabsByMember.current.clear();
       setInteractionMessage(`Opened project ${staged.manifest.name}`);
@@ -145,7 +169,10 @@ export function useFolderProject({
         : undefined;
       const file = selected ? await selected.getFile() : picker ? undefined : await chooseZipFile();
       if (!file) return;
-      const staged = await readZipProject(new Uint8Array(await file.arrayBuffer()));
+      const staged = await readZipProject(
+        new Uint8Array(await file.arrayBuffer()),
+        async (document) => window.prompt(`Enter the password for ${document.path}`) ?? undefined,
+      );
       setProject(staged);
       tabsByMember.current.clear();
       setInteractionMessage(`Opened ZIP project ${staged.manifest.name}`);
@@ -157,14 +184,56 @@ export function useFolderProject({
 
   const saveZipProject = useCallback(async () => {
     if (!project || !("archiveEntries" in project)) return;
-    const openProjectTabs = new Set(tabsByMember.current.values());
-    if (tabs.documents.some((document) => openProjectTabs.has(document.id) && document.dirty)) {
-      setInteractionMessage("Save changed project documents before exporting a project snapshot");
-      return;
-    }
     try {
-      downloadZip(await createZipProjectSnapshot(project), project.manifest.name);
-      setInteractionMessage("Downloaded project snapshot");
+      const savedTabs = savedProjectTabs(project, tabsByMember.current, tabs.documents);
+      const plan = await planFolderProjectSave(
+        project.manifest,
+        tabsByMember.current,
+        tabs.documents,
+        project.nativeDocuments,
+      );
+      const archiveEntries = new Map(project.archiveEntries);
+      for (const member of plan.members) archiveEntries.set(member.path, member.bytes);
+      const snapshot = { ...project, manifest: plan.manifest, archiveEntries };
+      downloadZip(await createZipProjectSnapshot(snapshot), snapshot.manifest.name);
+      setProject(snapshot);
+      for (const saved of savedTabs) {
+        if (tabs.getDocument(saved.id)?.source === saved.source) tabs.updateDocumentFormat(saved.id, { dirty: false });
+      }
+      setInteractionMessage(
+        plan.members.length
+          ? `Downloaded project snapshot with ${plan.members.length} changed document${plan.members.length === 1 ? "" : "s"}`
+          : "Downloaded project snapshot",
+      );
+    } catch (error) {
+      reportError(error);
+    }
+  }, [project, reportError, setInteractionMessage, tabs.documents]);
+  const saveFolderProject = useCallback(async () => {
+    if (!project || !("root" in project)) return;
+    try {
+      const savedTabs = savedProjectTabs(project, tabsByMember.current, tabs.documents);
+      const plan = await planFolderProjectSave(
+        project.manifest,
+        tabsByMember.current,
+        tabs.documents,
+        project.nativeDocuments,
+      );
+      const store = folderProjectStore(project.root);
+      await ensureProjectMembersUnchanged(store, project.manifest, plan.members);
+      await saveCoordinator.current.save(store, plan.members, {
+        path: "project.pumlproject",
+        bytes: new TextEncoder().encode(serializeProjectManifest(plan.manifest)),
+      });
+      setProject((current) => (current && "root" in current ? { ...current, manifest: plan.manifest } : current));
+      for (const saved of savedTabs) {
+        if (tabs.getDocument(saved.id)?.source === saved.source) tabs.updateDocumentFormat(saved.id, { dirty: false });
+      }
+      setInteractionMessage(
+        plan.members.length
+          ? `Saved ${plan.members.length} changed project document${plan.members.length === 1 ? "" : "s"}`
+          : "Saved project metadata",
+      );
     } catch (error) {
       reportError(error);
     }
@@ -205,6 +274,7 @@ export function useFolderProject({
     newZipProject,
     openZipProject,
     saveZipProject,
+    saveFolderProject,
     openMember,
     updateLinks,
     updateElements,
