@@ -103,7 +103,7 @@ export function useFolderProject({
       if (error instanceof DOMException && error.name === "AbortError") return;
       reportError(error);
     }
-  }, [reportError, setInteractionMessage]);
+  }, [reportError, resetSelection, setInteractionMessage, tabs]);
   const newProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker)
@@ -112,13 +112,27 @@ export function useFolderProject({
       const root = await picker();
       const name = window.prompt("Project name", root.name);
       if (name === null) return;
-      setProject(await createFolderProject(root, name));
+      const created = await createFolderProject(root, name);
+      setProject(created);
       tabsByMember.current.clear();
+      const member = created.members[0];
+      if (member?.source && member.diagramKind) {
+        const tabId = tabs.addDocument({
+          historyId: `project-history-${created.manifest.projectId}-${member.documentId}`,
+          source: member.source,
+          diagramKind: member.diagramKind,
+          fileName: member.path,
+          dirty: false,
+          cursor: { line: 1, column: 1 },
+        });
+        tabsByMember.current.set(`${created.manifest.projectId}:${member.documentId}`, tabId);
+      }
+      resetSelection();
       setInteractionMessage(`Created project ${name.trim() || root.name}`);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) reportError(error);
     }
-  }, [reportError, setInteractionMessage]);
+  }, [reportError, resetSelection, setInteractionMessage, tabs]);
   const newZipProject = useCallback(async () => {
     const name = window.prompt("Project name", "PlantUML project");
     if (name === null) return;
@@ -126,12 +140,25 @@ export function useFolderProject({
       const created = await createZipProject(name);
       setProject(created);
       tabsByMember.current.clear();
+      const member = created.members[0];
+      if (member?.source && member.diagramKind) {
+        const tabId = tabs.addDocument({
+          historyId: `project-history-${created.manifest.projectId}-${member.documentId}`,
+          source: member.source,
+          diagramKind: member.diagramKind,
+          fileName: member.path,
+          dirty: false,
+          cursor: { line: 1, column: 1 },
+        });
+        tabsByMember.current.set(`${created.manifest.projectId}:${member.documentId}`, tabId);
+      }
+      resetSelection();
       downloadZip(await createZipProjectSnapshot(created), created.manifest.name);
       setInteractionMessage(`Created and downloaded ${created.manifest.name}`);
     } catch (error) {
       reportError(error);
     }
-  }, [reportError, setInteractionMessage]);
+  }, [reportError, resetSelection, setInteractionMessage, tabs]);
 
   const openMember = useCallback(
     (documentId: string) => {
