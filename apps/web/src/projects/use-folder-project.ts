@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { DocumentSnapshot } from "../workspace-storage";
 import {
   createFolderProject,
@@ -17,7 +17,7 @@ import {
   type ProjectLink,
 } from "@plantuml-studio/project-model";
 import { hashSource } from "@plantuml-studio/document-format";
-import { serializeProjectManifest, validateProjectPath } from "@plantuml-studio/project-model";
+import { parseProjectManifest, serializeProjectManifest, validateProjectPath } from "@plantuml-studio/project-model";
 import { indexVirtualProject } from "./project-index";
 import { starterSource } from "../use-workspace-documents";
 import type { DiagramKind } from "../model";
@@ -36,6 +36,57 @@ type TabControls = {
 };
 
 type ActiveProject = FolderProject | ZipProject;
+
+const PROJECT_SESSION_KEY = "plantuml-studio.active-project.v1";
+
+type ProjectSession = {
+  manifest: unknown;
+  sources: Record<string, string>;
+};
+
+function saveProjectSession(project: ActiveProject): void {
+  const sources = Object.fromEntries(
+    project.members.flatMap((member) => (member.source ? [[member.path, member.source]] : [])),
+  );
+  localStorage.setItem(
+    PROJECT_SESSION_KEY,
+    JSON.stringify({ manifest: project.manifest, sources } satisfies ProjectSession),
+  );
+}
+
+async function restoreProjectSession(): Promise<ZipProject | undefined> {
+  const stored = localStorage.getItem(PROJECT_SESSION_KEY);
+  if (!stored) return undefined;
+  try {
+    const candidate = JSON.parse(stored) as Partial<ProjectSession>;
+    if (!candidate.sources || typeof candidate.sources !== "object") return undefined;
+    const manifest = parseProjectManifest(candidate.manifest);
+    const sources = Object.entries(candidate.sources).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    );
+    const sourceByPath = new Map(sources);
+    const indexed = await indexVirtualProject(
+      serializeProjectManifest(manifest),
+      new Map(
+        manifest.documents.map((document) => {
+          const source = sourceByPath.get(document.path);
+          return [
+            document.path,
+            source === undefined ? { state: "missing" as const } : { state: "available" as const, source },
+          ];
+        }),
+      ),
+    );
+    const entries = new Map<string, Uint8Array>([
+      ["project.pumlproject", new TextEncoder().encode(serializeProjectManifest(manifest))],
+      ...sources.map(([path, source]) => [path, new TextEncoder().encode(source)] as const),
+    ]);
+    return { ...indexed, archiveEntries: entries, nativeDocuments: new Map() };
+  } catch {
+    localStorage.removeItem(PROJECT_SESSION_KEY);
+    return undefined;
+  }
+}
 
 function downloadZip(bytes: Uint8Array, name: string): void {
   const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: "application/zip" }));
@@ -82,6 +133,22 @@ export function useFolderProject({
   const [project, setProject] = useState<ActiveProject>();
   const tabsByMember = useRef(new Map<string, string>());
   const saveCoordinator = useRef(new ProjectSaveCoordinator());
+
+  useEffect(() => {
+    void restoreProjectSession().then((restored) => {
+      if (!restored) return;
+      setProject((current) => current ?? restored);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!project) return;
+    try {
+      saveProjectSession(project);
+    } catch {
+      // Project restoration is a convenience; saving and editing remain available if browser storage is full.
+    }
+  }, [project]);
 
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
