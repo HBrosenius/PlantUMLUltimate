@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { DocumentSnapshot } from "../workspace-storage";
 import { readFolderProject, type FolderProject, type ProjectDirectoryHandle } from "./folder-project";
 import { createZipProjectSnapshot, readZipProject, type ZipProject } from "./zip-project";
@@ -15,6 +15,66 @@ type TabControls = {
 };
 
 type ActiveProject = FolderProject | ZipProject;
+
+const PROJECT_SESSION_DATABASE = "plantuml-studio-project-session";
+const PROJECT_SESSION_STORE = "active-project";
+const PROJECT_SESSION_KEY = "current";
+
+type StoredFolderProject = { kind: "folder"; root: ProjectDirectoryHandle };
+
+function projectSessionDatabase(): Promise<IDBDatabase | undefined> {
+  if (typeof indexedDB === "undefined") return Promise.resolve(undefined);
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(PROJECT_SESSION_DATABASE, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(PROJECT_SESSION_STORE))
+        request.result.createObjectStore(PROJECT_SESSION_STORE);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function rememberFolderProject(root: ProjectDirectoryHandle): Promise<void> {
+  const database = await projectSessionDatabase();
+  if (!database) return;
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(PROJECT_SESSION_STORE, "readwrite");
+    transaction
+      .objectStore(PROJECT_SESSION_STORE)
+      .put({ kind: "folder", root } satisfies StoredFolderProject, PROJECT_SESSION_KEY);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
+
+async function rememberedFolderProject(): Promise<ProjectDirectoryHandle | undefined> {
+  const database = await projectSessionDatabase();
+  if (!database) return undefined;
+  const value = await new Promise<StoredFolderProject | undefined>((resolve, reject) => {
+    const request = database
+      .transaction(PROJECT_SESSION_STORE, "readonly")
+      .objectStore(PROJECT_SESSION_STORE)
+      .get(PROJECT_SESSION_KEY);
+    request.onsuccess = () => resolve(request.result as StoredFolderProject | undefined);
+    request.onerror = () => reject(request.error);
+  });
+  database.close();
+  return value?.kind === "folder" ? value.root : undefined;
+}
+
+async function forgetFolderProject(): Promise<void> {
+  const database = await projectSessionDatabase();
+  if (!database) return;
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(PROJECT_SESSION_STORE, "readwrite");
+    transaction.objectStore(PROJECT_SESSION_STORE).delete(PROJECT_SESSION_KEY);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
 
 function downloadZip(bytes: Uint8Array, name: string): void {
   const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: "application/zip" }));
@@ -49,6 +109,27 @@ export function useFolderProject({
   const [project, setProject] = useState<ActiveProject>();
   const tabsByMember = useRef(new Map<string, string>());
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const root = await rememberedFolderProject();
+        if (!root || cancelled) return;
+        const staged = await readFolderProject(root);
+        if (!cancelled) {
+          setProject(staged);
+          setInteractionMessage(`Restored project ${staged.manifest.name}`);
+        }
+      } catch {
+        // A moved folder or revoked permission is recovered by choosing the project again.
+        void forgetFolderProject();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setInteractionMessage]);
+
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker) {
@@ -56,9 +137,11 @@ export function useFolderProject({
       return;
     }
     try {
-      const staged = await readFolderProject(await picker());
+      const root = await picker();
+      const staged = await readFolderProject(root);
       setProject(staged);
       tabsByMember.current.clear();
+      await rememberFolderProject(root);
       setInteractionMessage(`Opened project ${staged.manifest.name}`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -136,6 +219,9 @@ export function useFolderProject({
     openZipProject,
     saveZipProject,
     openMember,
-    closeProject: () => setProject(undefined),
+    closeProject: () => {
+      setProject(undefined);
+      void forgetFolderProject();
+    },
   };
 }
