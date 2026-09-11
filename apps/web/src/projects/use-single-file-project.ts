@@ -10,12 +10,7 @@ import {
   type PortableProjectLink,
   type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
-import {
-  serializeProjectManifest,
-  type ProjectElement,
-  type ProjectLink,
-  type ProjectManifest,
-} from "@plantuml-studio/project-model";
+import { type ProjectElement, type ProjectLink, type ProjectManifest } from "@plantuml-studio/project-model";
 import {
   isPortableDocument,
   openDocumentFile,
@@ -26,7 +21,7 @@ import {
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
-import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
+import { type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { useEmbeddedProject } from "./use-embedded-project";
 
@@ -48,19 +43,6 @@ function manifestFor(project: PortableProject): ProjectManifest {
     elements: project.elements as ProjectElement[],
     links: project.links as ProjectLink[],
   };
-}
-
-async function indexProject(project: PortableProject): Promise<VirtualProject> {
-  const manifest = manifestFor(project);
-  return indexVirtualProject(
-    serializeProjectManifest(manifest),
-    new Map(
-      project.diagrams.map((diagram) => [
-        diagram.name,
-        { state: "available" as const, source: diagram.document.current.source },
-      ]),
-    ),
-  );
 }
 
 /** Keeps the navigator responsive while the full declaration/link resolver catches up. */
@@ -113,8 +95,6 @@ export function useSingleFileProject({
 }) {
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
-  const indexedRef = useRef<VirtualProject | undefined>(undefined);
-  indexedRef.current = indexed;
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
@@ -134,17 +114,7 @@ export function useSingleFileProject({
       setIndexed(undefined);
       return;
     }
-    let active = true;
-    void indexProject(embedded.project).then((next) => {
-      if (!active) return;
-      // A slower empty-project index must never replace a navigator that has
-      // already received a newly added diagram.
-      if ((indexedRef.current?.members.length ?? 0) > next.members.length) return;
-      setIndexed(next);
-    });
-    return () => {
-      active = false;
-    };
+    setIndexed(immediateIndex(embedded.project));
   }, [embedded.project]);
 
   const newProject = useCallback(
