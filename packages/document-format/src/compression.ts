@@ -1,5 +1,15 @@
 import { DOCUMENT_LIMITS, DocumentFormatError } from "./types";
 
+export interface PayloadLimits {
+  maxInputBytes: number;
+  maxOutputBytes: number;
+}
+
+const documentPayloadLimits: PayloadLimits = {
+  maxInputBytes: DOCUMENT_LIMITS.maxDecompressedBytes,
+  maxOutputBytes: DOCUMENT_LIMITS.maxFileBytes,
+};
+
 function cancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Operation cancelled", "AbortError");
 }
@@ -36,27 +46,29 @@ export async function compressPayload(
   bytes: Uint8Array,
   algorithm: "gzip" | "none",
   signal?: AbortSignal,
+  limits = documentPayloadLimits,
 ): Promise<Uint8Array> {
   cancelled(signal);
-  if (bytes.byteLength > DOCUMENT_LIMITS.maxDecompressedBytes)
+  if (bytes.byteLength > limits.maxInputBytes)
     throw new DocumentFormatError("limit-exceeded", "Payload exceeds the decompressed document limit");
   if (algorithm === "none") return Uint8Array.from(bytes);
   const input = new Blob([Uint8Array.from(bytes).buffer]).stream().pipeThrough(new CompressionStream("gzip"));
-  return collect(input, DOCUMENT_LIMITS.maxFileBytes, signal);
+  return collect(input, limits.maxOutputBytes, signal);
 }
 
 export async function decompressPayload(
   bytes: Uint8Array,
   algorithm: "gzip" | "none",
   signal?: AbortSignal,
+  limits = documentPayloadLimits,
 ): Promise<Uint8Array> {
   cancelled(signal);
-  if (bytes.byteLength > DOCUMENT_LIMITS.maxFileBytes)
+  if (bytes.byteLength > limits.maxInputBytes)
     throw new DocumentFormatError("limit-exceeded", "Document exceeds the file limit");
   if (algorithm === "none") return Uint8Array.from(bytes);
   try {
     const input = new Blob([Uint8Array.from(bytes).buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
-    return await collect(input, DOCUMENT_LIMITS.maxDecompressedBytes, signal);
+    return await collect(input, limits.maxOutputBytes, signal);
   } catch (error) {
     if (error instanceof DocumentFormatError || (error instanceof DOMException && error.name === "AbortError"))
       throw error;

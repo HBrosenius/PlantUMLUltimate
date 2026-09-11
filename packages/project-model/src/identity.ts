@@ -48,3 +48,21 @@ export function applyIdentityMapping(
     },
   };
 }
+
+export interface IdentityMapping {
+  elementId: string;
+  declaration: ResolvableDeclaration;
+}
+
+/** Applies only explicit, kind-preserving rename mappings; all other endpoints stay untouched. */
+export function applyIdentityMappings(
+  elements: readonly ProjectElement[],
+  mappings: readonly IdentityMapping[],
+  sourceHash: string,
+): ProjectElement[] {
+  const byElementId = new Map(mappings.map((mapping) => [mapping.elementId, mapping.declaration]));
+  return elements.map((element) => {
+    const declaration = byElementId.get(element.id);
+    return declaration ? applyIdentityMapping(element, declaration, sourceHash) : element;
+  });
+}

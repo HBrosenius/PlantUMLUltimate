@@ -1,9 +1,12 @@
 import { Unzip, UnzipInflate, UnzipPassThrough, zipSync } from "fflate";
+import { decodeDocument, type PortableDocument, type UnlockedDocumentKey } from "@plantuml-studio/document-format";
 import {
+  PROJECT_FORMAT,
   parseProjectManifestJson,
   portablePathKey,
   serializeProjectManifest,
   validateProjectPath,
+  type ProjectManifest,
 } from "@plantuml-studio/project-model";
 import { memberInputFromBytes } from "./folder-project";
 import { indexVirtualProject, type ProjectMemberInput, type VirtualProject } from "./project-index";
@@ -14,7 +17,13 @@ export const ZIP_PROJECT_LIMITS = {
   maxEntries: 1_000,
 } as const;
 
-export type ZipProject = VirtualProject & { archiveEntries: ReadonlyMap<string, Uint8Array> };
+export type ZipProject = VirtualProject & {
+  archiveEntries: ReadonlyMap<string, Uint8Array>;
+  nativeDocuments: ReadonlyMap<
+    string,
+    { document: PortableDocument; compression: "gzip" | "none"; unlockedKey?: UnlockedDocumentKey }
+  >;
+};
 const text = new TextEncoder();
 
 function archivePath(name: string): string | undefined {
@@ -94,7 +103,10 @@ async function extractZip(bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
   });
 }
 
-export async function readZipProject(bytes: Uint8Array): Promise<ZipProject> {
+export async function readZipProject(
+  bytes: Uint8Array,
+  passwordFor?: (document: ProjectManifest["documents"][number]) => Promise<string | undefined>,
+): Promise<ZipProject> {
   const entries = await extractZip(bytes);
   const manifestBytes = entries.get("project.pumlproject");
   if (!manifestBytes) throw new Error("Project archive is missing project.pumlproject");
@@ -104,17 +116,55 @@ export async function readZipProject(bytes: Uint8Array): Promise<ZipProject> {
   if ([...entries.keys()].some((path) => !expected.has(path)))
     throw new Error("Project archive contains an unexpected file");
   const inputs = new Map<string, ProjectMemberInput>();
+  const nativeDocuments = new Map<
+    string,
+    { document: PortableDocument; compression: "gzip" | "none"; unlockedKey?: UnlockedDocumentKey }
+  >();
   await Promise.all(
-    manifest.documents.map(async (document) =>
-      inputs.set(
-        document.path,
-        entries.has(document.path)
-          ? await memberInputFromBytes(document, entries.get(document.path)!)
-          : { state: "missing" },
-      ),
+    manifest.documents.map(async (document) => {
+      const bytes = entries.get(document.path);
+      let input = bytes ? await memberInputFromBytes(document, bytes) : { state: "missing" as const };
+      if (bytes && document.format === "pumlu" && input.state === "locked" && passwordFor) {
+        const password = await passwordFor(document);
+        if (password !== undefined) input = await memberInputFromBytes(document, bytes, { password });
+      }
+      inputs.set(document.path, input);
+      if (bytes && document.format === "pumlu" && input.state === "available") {
+        const decoded = await decodeDocument(bytes);
+        nativeDocuments.set(document.id, {
+          document: decoded.document,
+          compression: decoded.compression,
+          ...(decoded.unlockedKey ? { unlockedKey: decoded.unlockedKey } : {}),
+        });
+      }
+    }),
+  );
+  return { ...(await indexVirtualProject(manifestJson, inputs)), archiveEntries: entries, nativeDocuments };
+}
+
+export async function createZipProject(name: string): Promise<ZipProject> {
+  const documentId = crypto.randomUUID();
+  const manifest: ProjectManifest = {
+    format: PROJECT_FORMAT,
+    schemaVersion: 1 as const,
+    projectId: crypto.randomUUID(),
+    revisionId: crypto.randomUUID(),
+    name: name.trim() || "PlantUML project",
+    documents: [{ id: documentId, path: "diagrams/project.puml", format: "plantuml" as const }],
+    elements: [],
+    links: [],
+  };
+  return readZipProject(
+    zipSync(
+      {
+        "project.pumlproject": text.encode(serializeProjectManifest(manifest)),
+        "diagrams/project.puml": text.encode(
+          "@startgantt\nProject starts 2026-01-01\n[First task] lasts 1 day\n@endgantt\n",
+        ),
+      },
+      { level: 6 },
     ),
   );
-  return { ...(await indexVirtualProject(manifestJson, inputs)), archiveEntries: entries };
 }
 
 export async function createZipProjectSnapshot(project: ZipProject): Promise<Uint8Array> {

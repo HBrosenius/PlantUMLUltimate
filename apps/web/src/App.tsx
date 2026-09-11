@@ -64,6 +64,7 @@ import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
 import { useFolderProject } from "./projects/use-folder-project";
+import { useSingleFileProject } from "./projects/use-single-file-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
@@ -132,6 +133,7 @@ import {
   plantUmlFileName,
   type WritableFileHandle,
   type FileSnapshot,
+  type OpenedFileBytes,
 } from "./file-service";
 import { findWbsNodeAt, type WbsNodeInput } from "@plantuml-studio/diagram-wbs";
 import {
@@ -180,6 +182,7 @@ import {
   type ClassRelationshipInput,
   type ClassNoteInput,
 } from "@plantuml-studio/diagram-class";
+import { hashSource } from "@plantuml-studio/document-format";
 import {
   deleteActivityArrow,
   deleteActivityControlBlock,
@@ -304,6 +307,7 @@ export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
+  const projectLaunchRef = useRef<((opened: OpenedFileBytes) => Promise<boolean>) | undefined>(undefined);
   const {
     selectedTaskId,
     setSelectedTaskId,
@@ -390,6 +394,7 @@ export function App() {
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [useCaseSettingsOpen, setUseCaseSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
+  const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
@@ -1456,13 +1461,143 @@ export function App() {
     resetSelection: resetFileSelection,
     reportError: reportFileError,
     setInteractionMessage,
+    onProjectLaunch: async (opened) => projectLaunchRef.current?.(opened) ?? false,
   });
-  const { project, openProject, openZipProject, saveZipProject, openMember, closeProject } = useFolderProject({
+  const {
+    project: legacyProject,
+    saveZipProject,
+    saveFolderProject,
+    openMember: openLegacyMember,
+    addProjectDiagram: addLegacyProjectDiagram,
+    isProjectMemberTab: isLegacyProjectMemberTab,
+    updateLinks: updateLegacyLinks,
+    updateElements: updateLegacyElements,
+    applyRenameMappings,
+  } = useFolderProject({
     tabs,
     resetSelection: resetFileSelection,
     setInteractionMessage,
     reportError: reportFileError,
   });
+  const singleFileProject = useSingleFileProject({
+    tabs,
+    resetSelection: resetFileSelection,
+    setInteractionMessage,
+    reportError: reportFileError,
+  });
+  // App file launches should retain the ordinary document-opening experience
+  // for .puml/.plantuml files. Native project files are still claimed here.
+  projectLaunchRef.current = (opened) =>
+    opened.kind === "legacy" ? Promise.resolve(false) : singleFileProject.openOpenedProject(opened);
+  const usingSingleFileProject = Boolean(singleFileProject.portableProject);
+  const project = singleFileProject.project ?? legacyProject;
+  const openMember = usingSingleFileProject ? singleFileProject.openMember : openLegacyMember;
+  const addProjectDiagram = usingSingleFileProject ? singleFileProject.addProjectDiagram : addLegacyProjectDiagram;
+  const isProjectMemberTab = usingSingleFileProject
+    ? (id: string) =>
+        tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
+    : isLegacyProjectMemberTab;
+  const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
+  const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
+  const saveActiveProject = useCallback(async () => {
+    if (!usingSingleFileProject) return;
+    const result = await singleFileProject.saveProject();
+    if (!result) await singleFileProject.saveProjectAs();
+  }, [singleFileProject, usingSingleFileProject]);
+  const projectLinkedTaskIds = useMemo(() => {
+    if (!project || workspace.diagramKind !== "gantt") return new Set<string>();
+    const member = project.members.find((item) => item.path === workspace.fileName);
+    if (!member) return new Set<string>();
+    const endpoints = new Set(project.manifest.links.flatMap((link) => [link.from, link.to]));
+    const symbols = new Set(
+      project.manifest.elements
+        .filter((element) => element.documentId === member.documentId && endpoints.has(element.id))
+        .map((element) => element.locator.symbolKey),
+    );
+    return new Set(parseResult.document.tasks.filter((task) => symbols.has(task.label)).map((task) => task.id));
+  }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  const projectDiagramLinks = useMemo(() => {
+    const links = new Map<string, Array<{ documentId: string; path: string; label: string; relationship: string }>>();
+    if (!project || workspace.diagramKind !== "gantt") return links;
+    const projectHistoryPrefix = `project-history-${project.manifest.projectId}-`;
+    const memberIdFromTab = activeDocument.historyId.startsWith(projectHistoryPrefix)
+      ? activeDocument.historyId.slice(projectHistoryPrefix.length)
+      : undefined;
+    const currentMember =
+      project.members.find((member) => member.documentId === memberIdFromTab) ??
+      project.members.find((member) => member.path === workspace.fileName);
+    if (!currentMember) return links;
+    const tasksBySymbol = new Map<string, (typeof parseResult.document.tasks)[number]>();
+    for (const task of parseResult.document.tasks) {
+      tasksBySymbol.set(task.label.trim().toLocaleLowerCase(), task);
+      if (task.alias?.value) tasksBySymbol.set(task.alias.value.trim().toLocaleLowerCase(), task);
+    }
+    const elementsById = new Map(project.manifest.elements.map((element) => [element.id, element]));
+    const membersById = new Map(project.members.map((member) => [member.documentId, member]));
+    for (const element of project.manifest.elements) {
+      if (element.documentId !== currentMember.documentId || element.kind !== "gantt-task") continue;
+      const task = tasksBySymbol.get(element.locator.symbolKey.trim().toLocaleLowerCase());
+      if (!task) continue;
+      for (const link of project.manifest.links) {
+        if (link.from !== element.id && link.to !== element.id) continue;
+        const target = elementsById.get(link.from === element.id ? link.to : link.from);
+        if (!target || target.documentId === currentMember.documentId) continue;
+        const targetMember = membersById.get(target.documentId);
+        if (!targetMember) continue;
+        const relationship =
+          link.from === element.id
+            ? link.kind === "implements"
+              ? "Implements"
+              : "Represents"
+            : link.kind === "implements"
+              ? "Implemented by"
+              : "Represented by";
+        const targets = links.get(task.id) ?? [];
+        targets.push({
+          documentId: targetMember.documentId,
+          path: targetMember.path,
+          label: target.locator.symbolKey,
+          relationship,
+        });
+        links.set(task.id, targets);
+      }
+    }
+    return links;
+  }, [activeDocument.historyId, parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  useEffect(() => {
+    if (project) setProjectNavigatorOpen(true);
+  }, [project]);
+  const mapProjectRename = useCallback(
+    async (
+      kind: "class-entity" | "sequence-participant" | "gantt-task",
+      from: number,
+      declaration: { symbolKey: string; from: number; to: number },
+      source: string,
+    ) => {
+      const document = project?.manifest.documents.find((item) => item.path === workspace.fileName);
+      const element =
+        document &&
+        project?.manifest.elements.find(
+          (item) => item.documentId === document.id && item.kind === kind && item.locator.from === from,
+        );
+      if (!document || !element) return;
+      await applyRenameMappings(
+        document.id,
+        [
+          {
+            elementId: element.id,
+            declaration: {
+              kind,
+              ...declaration,
+              declarationHash: await hashSource(source.slice(declaration.from, declaration.to)),
+            },
+          },
+        ],
+        source,
+      );
+    },
+    [applyRenameMappings, project, workspace.fileName],
+  );
 
   const exportSource = useCallback(() => {
     if (
@@ -1918,8 +2053,19 @@ export function App() {
     closeDialog("add-class-entity");
   };
   const applyClassEntity = (v: ClassEntityInput) => {
-    if (selectedClassEntity)
-      commitSource(updateClassEntity(workspace.source, classDocument, selectedClassEntity, v), "Update Class object");
+    if (selectedClassEntity) {
+      const next = updateClassEntity(workspace.source, classDocument, selectedClassEntity, v);
+      const key = v.alias?.trim() || v.label.trim();
+      const updated = parseClassDiagram(next).entities.find((item) => item.id === key || item.alias === key);
+      if (updated)
+        void mapProjectRename(
+          "class-entity",
+          selectedClassEntity.sourceRange.from,
+          { symbolKey: key, ...updated.sourceRange },
+          next,
+        );
+      commitSource(next, "Update Class object");
+    }
   };
   const removeClassEntity = () => {
     if (selectedClassEntity) {
@@ -2272,11 +2418,27 @@ export function App() {
         ...presentation,
         ...(order !== undefined ? { order } : {}),
       });
+      const key = value.alias.trim() || value.label.trim();
+      const updated = parseSequence(next).participants.find((item) => (item.alias ?? item.label) === key);
+      if (updated)
+        void mapProjectRename(
+          "sequence-participant",
+          selectedSequenceParticipant.sourceRange.from,
+          { symbolKey: key, ...updated.sourceRange },
+          next,
+        );
       commitSource(next, `Update participant ${selectedSequenceParticipant.label}`);
       setSelectedSequenceParticipantId((value.alias.trim() || value.label.trim()).toLowerCase());
       setInteractionMessage(`Updated participant ${value.label.trim()}`);
     },
-    [commitSource, selectedSequenceParticipant, sequenceDocument, setSelectedSequenceParticipantId, workspace.source],
+    [
+      commitSource,
+      mapProjectRename,
+      selectedSequenceParticipant,
+      sequenceDocument,
+      setSelectedSequenceParticipantId,
+      workspace.source,
+    ],
   );
 
   const removeSequenceParticipant = useCallback(() => {
@@ -2709,6 +2871,14 @@ export function App() {
       }
       setSelectedTaskId(currentId);
       rememberSelectedTask(currentId);
+      const updatedTask = parseGantt(source).document.symbols.tasks.get(currentId);
+      if (updatedTask)
+        void mapProjectRename(
+          "gantt-task",
+          original.sourceRange.from,
+          { symbolKey: updatedTask.alias?.value ?? updatedTask.label, ...updatedTask.sourceRange },
+          source,
+        );
       if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) {
         setSelectedTaskId(selectedTaskId);
         rememberSelectedTask(selectedTaskId);
@@ -2718,6 +2888,7 @@ export function App() {
     },
     [
       commitGeneratedSource,
+      mapProjectRename,
       rememberSelectedTask,
       resolvedTaskDates,
       selectedTaskId,
@@ -2963,6 +3134,16 @@ export function App() {
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveDocument },
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
+      ...(project
+        ? [
+            {
+              id: "project.connections",
+              label: "Diagram connections",
+              category: "Project",
+              run: () => setProjectNavigatorOpen(true),
+            },
+          ]
+        : []),
       { id: "file.backup", label: "Back up workspace", category: "File", run: backupWorkspace },
       { id: "file.restore", label: "Restore workspace…", category: "File", run: () => void restoreWorkspace() },
       {
@@ -3106,7 +3287,7 @@ export function App() {
       }
       if (event.key.toLowerCase() === "s") {
         event.preventDefault();
-        void saveDocument();
+        void (usingSingleFileProject ? saveActiveProject() : saveDocument());
         return;
       }
       if (event.key.toLowerCase() === "o") {
@@ -3133,6 +3314,7 @@ export function App() {
     openDialog,
     openDocument,
     redo,
+    saveActiveProject,
     saveDocument,
     tabs.activeId,
     toggleCommandPalette,
@@ -3245,12 +3427,25 @@ export function App() {
           <FileMenu
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
+            onNewProject={() => void singleFileProject.newProject()}
             onOpen={() => void openDocument()}
-            onOpenProject={() => void openProject()}
-            onOpenZipProject={() => void openZipProject()}
-            onSaveProject={project && "archiveEntries" in project ? () => void saveZipProject() : undefined}
-            onSave={() => void saveDocument()}
-            onSaveAs={() => void saveDocumentAs()}
+            onOpenProject={() => void singleFileProject.openProject()}
+            onSaveProject={
+              project
+                ? () =>
+                    void (usingSingleFileProject
+                      ? singleFileProject.saveProject().then(async (result) => {
+                          if (!result) await singleFileProject.saveProjectAs();
+                        })
+                      : "archiveEntries" in project
+                        ? saveZipProject()
+                        : saveFolderProject())
+                : undefined
+            }
+            onProjectConnections={project ? () => setProjectNavigatorOpen(true) : undefined}
+            projectName={project?.manifest.name}
+            onSave={() => void (usingSingleFileProject ? saveActiveProject() : saveDocument())}
+            onSaveAs={() => void (usingSingleFileProject ? singleFileProject.saveProjectAs() : saveDocumentAs())}
             onVersionHistory={() => void openVersionHistory()}
             onDocumentSettings={() => setDocumentSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
@@ -3440,13 +3635,14 @@ export function App() {
               if (id) tabs.reorderDocument(id, document.id);
               setDraggedTabId(undefined);
             }}
-            title={`${document.fileName}${document.dirty ? " — unsaved changes" : ""}`}
+            title={`${document.fileName}${isProjectMemberTab(document.id) ? ` — project diagram in ${project?.manifest.name}` : ""}${document.dirty ? " — unsaved changes" : ""}`}
           >
             <span className="tab-label">
               <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
                 ●
               </span>
               {tabLabels.get(document.id)}
+              {isProjectMemberTab(document.id) && <small className="tab-project-badge">Project</small>}
             </span>
             <span
               className="tab-close"
@@ -3733,6 +3929,9 @@ export function App() {
               onChangeBaseline={() => void openVersionHistory()}
               onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
+              projectLinkedTaskIds={projectLinkedTaskIds}
+              projectDiagramLinks={projectDiagramLinks}
+              onOpenProjectDiagram={openMember}
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
@@ -4119,7 +4318,21 @@ export function App() {
           onClose={() => setProjectInspectorOpen(false)}
         />
       )}
-      {project && <ProjectNavigator project={project} onOpen={openMember} onClose={closeProject} />}
+      {project && projectNavigatorOpen && (
+        <ProjectNavigator
+          project={project}
+          onOpen={openMember}
+          onAdd={addProjectDiagram}
+          {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}
+          onClose={() => setProjectNavigatorOpen(false)}
+          {...(usingSingleFileProject ? { onCloseProject: singleFileProject.closeProject } : {})}
+          onLinksChange={updateLinks}
+          onElementsChange={updateElements}
+          {...(usingSingleFileProject
+            ? { onRename: singleFileProject.renameDiagram, onDelete: singleFileProject.deleteDiagram }
+            : {})}
+        />
+      )}
       {sequenceSettingsOpen && (
         <SequenceSettingsInspector
           settings={parseSequenceSettings(workspace.source)}

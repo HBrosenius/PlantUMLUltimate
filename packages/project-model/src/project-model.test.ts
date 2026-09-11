@@ -3,6 +3,8 @@ import {
   PROJECT_FORMAT,
   ProjectFormatError,
   applyIdentityMapping,
+  applyIdentityMappings,
+  canCreateLink,
   parseProjectManifest,
   parseProjectManifestJson,
   resolveElement,
@@ -88,6 +90,14 @@ describe("project manifest", () => {
   it("allows a missing declaration registration without making the graph invalid", () => {
     expect(parseProjectManifest(manifest()).elements).toHaveLength(3);
   });
+
+  it("allows a task to implement a task in another Gantt diagram", () => {
+    const value = manifest();
+    value.documents.push({ id: id(11), path: "plans/delivery.puml", format: "plantuml", observedSourceHash: hash });
+    value.elements.push({ id: id(12), documentId: id(11), kind: "gantt-task", locator: locator("Deploy") });
+    value.links.push({ id: id(13), kind: "implements", from: id(8), to: id(12) });
+    expect(parseProjectManifest(value).links).toHaveLength(3);
+  });
 });
 
 describe("conservative element resolution", () => {
@@ -127,6 +137,18 @@ describe("conservative element resolution", () => {
     );
     expect(mapped.locator).toMatchObject({ symbolKey: "CheckoutApi", from: 4, sourceHash: "b".repeat(64) });
   });
+
+  it("leaves unrelated endpoints untouched when applying explicit mappings", () => {
+    const elements = manifest().elements;
+    const mapped = applyIdentityMappings(
+      elements,
+      [{ elementId: id(6), declaration: { ...declaration, symbolKey: "CheckoutApi", from: 4, to: 14 } }],
+      "b".repeat(64),
+    );
+    expect(mapped[0]!.locator.symbolKey).toBe("CheckoutApi");
+    expect(mapped[1]).toEqual(elements[1]);
+    expect(mapped[2]).toEqual(elements[2]);
+  });
 });
 
 describe("reverse impact", () => {
@@ -137,5 +159,13 @@ describe("reverse impact", () => {
       paths: [{ elementIds: [id(6), id(7)] }, { elementIds: [id(8), id(7)] }, { elementIds: [id(8), id(6), id(7)] }],
     });
     expect(reverseImpact(links, id(7), 99).depth).toBe(5);
+  });
+});
+
+describe("project link compatibility", () => {
+  it("allows a Gantt task to link to another Gantt task", () => {
+    const [first] = manifest().elements.filter((element) => element.kind === "gantt-task");
+    const second = { ...first!, id: id(12) };
+    expect(canCreateLink("implements", first, second)).toBe(true);
   });
 });

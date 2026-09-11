@@ -178,12 +178,9 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await file.click();
   const menu = page.getByRole("menu", { name: "File" });
   await expect(menu.getByRole("menuitem")).toHaveText([
-    "New",
-    "Open…",
-    "Open project…",
-    "Open ZIP project…",
-    "Save",
-    "Save As…",
+    "New›",
+    "Open›",
+    "Save›",
     "Version history…",
     "Document settings…",
     "Jira…",
@@ -437,7 +434,8 @@ test("retains version history after Save As", async ({ page }) => {
   });
 
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Save As…" }).click();
+  await page.getByRole("menuitem", { name: "Save", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save diagram as…" }).click();
   await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.pumlu");
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
@@ -515,7 +513,8 @@ test("reloads clean external file edits and merges conflicting local changes", a
     });
   }, initial);
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Open…" }).click();
+  await page.getByRole("menuitem", { name: "Open", exact: true }).click();
+  await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Diagram…" }).click();
   await expect(page.locator(".cm-content")).toContainText("Initial file");
 
   await page.evaluate((contents) => {

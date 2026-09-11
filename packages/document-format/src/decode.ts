@@ -21,6 +21,11 @@ export interface DecodedDocument {
 
 export async function decodeDocument(bytes: Uint8Array, options: DecodeDocumentOptions = {}): Promise<DecodedDocument> {
   const envelope = decodeEnvelope(bytes);
+  if (envelope.version !== 1)
+    throw new DocumentFormatError(
+      "unsupported-version",
+      "This file contains a project and must be opened as a project",
+    );
   let compressed = envelope.payload;
   let unlockedKey = options.unlockedKey;
   if (envelope.header.encryption === "aes-256-gcm") {
