@@ -44,27 +44,21 @@ export function FileMenu({
   onExportPng(): void;
 }) {
   const [open, setOpen] = useState(false);
-  const [newOpen, setNewOpen] = useState(false);
-  const [openItemsOpen, setOpenItemsOpen] = useState(false);
-  const [saveOpen, setSaveOpen] = useState(false);
-  const [projectOpen, setProjectOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<"project" | "new" | "open" | "save" | "export">();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
   const close = (restoreFocus = false) => {
     setOpen(false);
-    setNewOpen(false);
-    setOpenItemsOpen(false);
-    setSaveOpen(false);
-    setProjectOpen(false);
-    setExportOpen(false);
+    setActiveSubmenu(undefined);
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   };
   const run = (action: () => void) => {
     close();
     action();
   };
+  const toggleSubmenu = (submenu: NonNullable<typeof activeSubmenu>) =>
+    setActiveSubmenu((current) => (current === submenu ? undefined : submenu));
 
   useEffect(() => {
     if (!open) return;
@@ -101,11 +95,7 @@ export function FileMenu({
         aria-expanded={open}
         onClick={() => {
           setOpen((value) => !value);
-          setNewOpen(false);
-          setOpenItemsOpen(false);
-          setSaveOpen(false);
-          setProjectOpen(false);
-          setExportOpen(false);
+          setActiveSubmenu(undefined);
         }}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {
@@ -130,17 +120,17 @@ export function FileMenu({
           }}
         >
           {onProjectConnections && (
-            <div className="application-submenu" onPointerEnter={() => setProjectOpen(true)}>
+            <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("project")}>
               <button
                 role="menuitem"
                 aria-haspopup="menu"
-                aria-expanded={projectOpen}
-                onClick={() => setProjectOpen((value) => !value)}
+                aria-expanded={activeSubmenu === "project"}
+                onClick={() => toggleSubmenu("project")}
               >
                 <span>Project: {projectName}</span>
                 <span aria-hidden="true">›</span>
               </button>
-              {projectOpen && (
+              {activeSubmenu === "project" && (
                 <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Project">
                   <button role="menuitem" onClick={() => run(onProjectConnections)}>
                     Diagram connections
@@ -154,17 +144,17 @@ export function FileMenu({
               )}
             </div>
           )}
-          <div className="application-submenu" onPointerEnter={() => setNewOpen(true)}>
+          <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("new")}>
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={newOpen}
-              onClick={() => setNewOpen((value) => !value)}
+              aria-expanded={activeSubmenu === "new"}
+              onClick={() => toggleSubmenu("new")}
             >
               <span>New</span>
               <span aria-hidden="true">›</span>
             </button>
-            {newOpen && (
+            {activeSubmenu === "new" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="New">
                 <button role="menuitem" onClick={() => run(onNew)}>
                   Diagram…
@@ -182,20 +172,20 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <div className="application-submenu" onPointerEnter={() => setOpenItemsOpen(true)}>
+          <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("open")}>
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={openItemsOpen}
-              onClick={() => setOpenItemsOpen((value) => !value)}
+              aria-expanded={activeSubmenu === "open"}
+              onClick={() => toggleSubmenu("open")}
             >
               <span>Open</span>
               <span aria-hidden="true">›</span>
             </button>
-            {openItemsOpen && (
+            {activeSubmenu === "open" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Open">
                 <button role="menuitem" onClick={() => run(onOpen)}>
-                  Diagram…
+                  Project or diagram…
                 </button>
                 {onOpenProject && (
                   <button role="menuitem" onClick={() => run(onOpenProject)}>
@@ -210,17 +200,17 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <div className="application-submenu" onPointerEnter={() => setSaveOpen(true)}>
+          <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("save")}>
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={saveOpen}
-              onClick={() => setSaveOpen((value) => !value)}
+              aria-expanded={activeSubmenu === "save"}
+              onClick={() => toggleSubmenu("save")}
             >
               <span>Save</span>
               <span aria-hidden="true">›</span>
             </button>
-            {saveOpen && (
+            {activeSubmenu === "save" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Save">
                 <button role="menuitem" onClick={() => run(onSave)}>
                   {onSaveProject ? "Save project" : "Save diagram"}
@@ -250,17 +240,17 @@ export function FileMenu({
             Restore workspace…
           </button>
           <span className="menu-separator" role="separator" />
-          <div className="application-submenu" onPointerEnter={() => setExportOpen(true)}>
+          <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("export")}>
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={exportOpen}
-              onClick={() => setExportOpen((value) => !value)}
-              onFocus={() => setExportOpen(true)}
+              aria-expanded={activeSubmenu === "export"}
+              onClick={() => toggleSubmenu("export")}
+              onFocus={() => setActiveSubmenu("export")}
               onKeyDown={(event) => {
                 if (event.key === "ArrowRight") {
                   event.preventDefault();
-                  setExportOpen(true);
+                  setActiveSubmenu("export");
                   requestAnimationFrame(() =>
                     root.current
                       ?.querySelector<HTMLButtonElement>('.application-submenu-panel [role="menuitem"]')
@@ -272,7 +262,7 @@ export function FileMenu({
               <span>Export</span>
               <span aria-hidden="true">›</span>
             </button>
-            {exportOpen && (
+            {activeSubmenu === "export" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Export">
                 <button role="menuitem" onClick={() => run(onExportSource)}>
                   Source
