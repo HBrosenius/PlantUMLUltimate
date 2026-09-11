@@ -472,7 +472,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 1.25em;
   margin: 0 -1px;
   border-left: 2px solid;
-  pointer-events: none;
+  pointer-events: auto;
   vertical-align: text-bottom;
   z-index: 3;
 }
