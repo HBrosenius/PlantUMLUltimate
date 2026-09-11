@@ -1485,7 +1485,10 @@ export function App() {
     setInteractionMessage,
     reportError: reportFileError,
   });
-  projectLaunchRef.current = singleFileProject.openOpenedProject;
+  // App file launches should retain the ordinary document-opening experience
+  // for .puml/.plantuml files. Native project files are still claimed here.
+  projectLaunchRef.current = (opened) =>
+    opened.kind === "legacy" ? Promise.resolve(false) : singleFileProject.openOpenedProject(opened);
   const usingSingleFileProject = Boolean(singleFileProject.portableProject);
   const project = singleFileProject.project ?? legacyProject;
   const openMember = usingSingleFileProject ? singleFileProject.openMember : openLegacyMember;
