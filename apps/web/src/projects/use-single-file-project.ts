@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   decodeDocument,
+  decodeProject,
   encodeProject,
   projectFromDocument,
   projectFromPlantUml,
   type PortableProject,
   type PortableProjectElement,
   type PortableProjectLink,
+  type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
 import {
   serializeProjectManifest,
@@ -14,7 +16,7 @@ import {
   type ProjectLink,
   type ProjectManifest,
 } from "@plantuml-studio/project-model";
-import { isPortableDocument, savePortableDocumentAs, type WritableFileHandle } from "../file-service";
+import { isPortableDocument, openDocumentFile, savePortableDocumentAs, type WritableFileHandle } from "../file-service";
 import { detectDiagramKind } from "../diagram-kind";
 import type { DiagramKind } from "../model";
 import { starterSource } from "../use-workspace-documents";
@@ -86,6 +88,7 @@ export function useSingleFileProject({
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
   const handle = useRef<WritableFileHandle | undefined>(undefined);
+  const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
   const restored = useRef(false);
 
@@ -118,6 +121,7 @@ export function useSingleFileProject({
       const created = await projectFromPlantUml("", "gantt", new Date().toISOString());
       embedded.openProject({ ...created, name: projectName(name), diagrams: [] });
       handle.current = undefined;
+      unlockedKey.current = undefined;
       resetSelection();
       setInteractionMessage(`Created ${projectName(name)}. Add a diagram to begin.`);
     },
@@ -166,6 +170,47 @@ export function useSingleFileProject({
       reportError(error);
     }
   }, [addPortableDiagram, reportError, setInteractionMessage]);
+
+  const openProject = useCallback(async () => {
+    try {
+      const opened = await openDocumentFile();
+      if (!opened) return;
+      let project: PortableProject;
+      let key: UnlockedDocumentKey | undefined;
+      let encrypted = false;
+      if (opened.kind === "legacy") {
+        const source = opened.source;
+        if (source === undefined) throw new Error("Could not read this PlantUML file");
+        const kind = detectDiagramKind(source);
+        if (!kind) throw new Error("Could not identify this PlantUML diagram type");
+        project = await projectFromPlantUml(source, kind, new Date().toISOString());
+        project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
+      } else {
+        const password =
+          window.prompt(`Password for ${opened.fileName} (leave blank if it is not encrypted)`) ?? undefined;
+        try {
+          const decoded = await decodeProject(opened.bytes, password ? { password } : {});
+          project = decoded.project;
+          key = decoded.unlockedKey;
+          encrypted = Boolean(key);
+        } catch (error) {
+          const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
+          project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
+          key = decoded.unlockedKey;
+          encrypted = Boolean(key);
+        }
+      }
+      unlockedKey.current = key;
+      handle.current = opened.handle;
+      embedded.openProject(project, { encrypted });
+      resetSelection();
+      setInteractionMessage(
+        `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
+      );
+    } catch (error) {
+      reportError(error);
+    }
+  }, [embedded, reportError, resetSelection, setInteractionMessage]);
 
   const updateLinks = useCallback(
     (links: readonly ProjectLink[]) =>
@@ -219,7 +264,8 @@ export function useSingleFileProject({
     if (!handle.current) return undefined;
     const result = await saveCoordinator.current.save(
       snapshot,
-      async (value) => (await encodeProject(value)).bytes,
+      async (value) =>
+        (await encodeProject(value, unlockedKey.current ? { unlockedKey: unlockedKey.current } : {})).bytes,
       handle.current,
       () => snapshot.revision,
     );
@@ -231,10 +277,15 @@ export function useSingleFileProject({
   const saveProjectAs = useCallback(async () => {
     const snapshot = await embedded.captureSaveSnapshot();
     if (!snapshot) return;
-    const bytes = (await encodeProject(snapshot.project)).bytes;
+    const encoded = await encodeProject(
+      snapshot.project,
+      unlockedKey.current ? { unlockedKey: unlockedKey.current } : {},
+    );
+    const bytes = encoded.bytes;
     const saved = await savePortableDocumentAs(bytes, snapshot.project.name);
     if (!saved) return;
     handle.current = saved.handle;
+    unlockedKey.current = encoded.unlockedKey;
     embedded.markSaved(snapshot.revision);
     setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
   }, [embedded, setInteractionMessage]);
@@ -247,6 +298,7 @@ export function useSingleFileProject({
       newProject,
       addProjectDiagram,
       importDiagram,
+      openProject,
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
@@ -264,6 +316,7 @@ export function useSingleFileProject({
       importDiagram,
       indexed,
       newProject,
+      openProject,
       renameDiagram,
       saveProject,
       saveProjectAs,

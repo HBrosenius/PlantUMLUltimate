@@ -3390,7 +3390,7 @@ export function App() {
             onNew={newDocument}
             onNewProject={() => void singleFileProject.newProject()}
             onNewZipProject={() => void newZipProject()}
-            onOpen={() => void openDocument()}
+            onOpen={() => void singleFileProject.openProject()}
             onOpenProject={() => void openProject()}
             onOpenZipProject={() => void openZipProject()}
             onSaveProject={
