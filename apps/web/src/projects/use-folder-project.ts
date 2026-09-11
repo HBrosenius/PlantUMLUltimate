@@ -150,6 +150,52 @@ export function useFolderProject({
     }
   }, [project]);
 
+  useEffect(() => {
+    if (!project) return;
+    const tabById = new Map(tabs.documents.map((tab) => [tab.id, tab]));
+    const sourceByPath = new Map<string, string>();
+    for (const member of project.members) {
+      const memberKey = `${project.manifest.projectId}:${member.documentId}`;
+      const tab =
+        tabById.get(tabsByMember.current.get(memberKey) ?? "") ??
+        tabs.documents.find(
+          (item) => item.historyId === `project-history-${project.manifest.projectId}-${member.documentId}`,
+        );
+      if (tab) {
+        tabsByMember.current.set(memberKey, tab.id);
+        sourceByPath.set(member.path, tab.source);
+      } else if (member.source) {
+        sourceByPath.set(member.path, member.source);
+      }
+    }
+    const sourceChanged = project.members.some(
+      (member) => sourceByPath.has(member.path) && sourceByPath.get(member.path) !== member.source,
+    );
+    if (!sourceChanged) return;
+    const timer = window.setTimeout(() => {
+      void indexVirtualProject(
+        serializeProjectManifest(project.manifest),
+        new Map(
+          project.manifest.documents.map((document) => {
+            const source = sourceByPath.get(document.path);
+            return [
+              document.path,
+              source === undefined ? { state: "missing" as const } : { state: "available" as const, source },
+            ];
+          }),
+        ),
+      ).then((indexed) => {
+        setProject((current) => {
+          if (current !== project) return current;
+          return "root" in project
+            ? { ...indexed, root: project.root, nativeDocuments: project.nativeDocuments }
+            : { ...indexed, archiveEntries: project.archiveEntries, nativeDocuments: project.nativeDocuments };
+        });
+      });
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [project, tabs.documents]);
+
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker) {
