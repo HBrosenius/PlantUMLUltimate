@@ -58,13 +58,10 @@ import { CollaborationDialog } from "./CollaborationDialog";
 import { JiraDialog } from "./JiraDialog";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
-import type { AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
-import type { AddSequenceMessageValue } from "./AddSequenceMessageDialog";
-import type { SequenceParticipantInspectorValue } from "./SequenceParticipantInspector";
-import type { SequenceMessageInspectorValue } from "./SequenceMessageInspector";
 import { SequenceDialogs, type SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { SequenceInspectors } from "./features/sequence/SequenceInspectors";
-import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
+import { useSequenceActions } from "./features/sequence/use-sequence-actions";
+import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
@@ -120,22 +117,7 @@ import {
   type OpenedFileBytes,
 } from "./file-service";
 import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
-import {
-  deleteSequenceMessage,
-  deleteSequenceParticipant,
-  deleteSequenceStructure,
-  findSequenceObjectAt,
-  insertSequenceMessage,
-  insertSequenceParticipant,
-  insertSequenceParticipantBox,
-  insertSequenceStructure,
-  parseSequence,
-  reconnectSequenceStructure,
-  reorderSequenceStatement,
-  updateSequenceMessage,
-  updateSequenceParticipant,
-  updateSequenceStructure,
-} from "@plantuml-studio/diagram-sequence";
+import { findSequenceObjectAt, parseSequence } from "@plantuml-studio/diagram-sequence";
 import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
 import {
   deleteClassEntity,
@@ -1512,15 +1494,6 @@ export function App() {
     reportMessage: setInteractionMessage,
   });
 
-  const addSequenceParticipant = useCallback(
-    (value: AddSequenceParticipantValue) => {
-      commitSource(insertSequenceParticipant(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      closeDialog("add-sequence-participant");
-      setInteractionMessage(`Added ${value.kind} ${value.label.trim()}`);
-    },
-    [closeDialog, commitSource, workspace.source],
-  );
-
   const confirmUseCaseDelete = useCallback((message: string) => window.confirm(message), []);
   const closeUseCaseDialog = useCallback(
     (kind: "element" | "relationship" | "package" | "note") => {
@@ -1767,28 +1740,6 @@ export function App() {
     reportMessage: setInteractionMessage,
   });
 
-  const addSequenceMessage = useCallback(
-    (value: AddSequenceMessageValue) => {
-      commitSource(insertSequenceMessage(workspace.source, value), `Add message ${value.from} to ${value.to}`);
-      closeDialog("add-sequence-message");
-      setInteractionMessage(`Added message from ${value.from} to ${value.to}`);
-    },
-    [closeDialog, commitSource, workspace.source],
-  );
-
-  const addSequenceStructure = useCallback(
-    (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
-      const nextSource =
-        value.kind === "box"
-          ? insertSequenceParticipantBox(workspace.source, sequenceDocument, value)
-          : insertSequenceStructure(workspace.source, value);
-      commitSource(nextSource, `Add Sequence ${value.kind}`);
-      closeDialog("add-sequence-structure");
-      setInteractionMessage(`Added Sequence ${value.kind}`);
-    },
-    [closeDialog, commitSource, sequenceDocument, workspace.source],
-  );
-
   const selectSequenceParticipant = useCallback(
     (id: string, revealSource = true) => {
       setSelectedSequenceParticipantId(id);
@@ -1833,209 +1784,47 @@ export function App() {
     ],
   );
 
-  const applySequenceParticipant = useCallback(
-    (value: SequenceParticipantInspectorValue) => {
-      if (!selectedSequenceParticipant) return;
-      const { order, ...presentation } = value;
-      const next = updateSequenceParticipant(workspace.source, sequenceDocument, selectedSequenceParticipant, {
-        ...presentation,
-        ...(order !== undefined ? { order } : {}),
-      });
-      const key = value.alias.trim() || value.label.trim();
-      const updated = parseSequence(next).participants.find((item) => (item.alias ?? item.label) === key);
-      if (updated)
-        void mapProjectRename(
-          "sequence-participant",
-          selectedSequenceParticipant.sourceRange.from,
-          { symbolKey: key, ...updated.sourceRange },
-          next,
-        );
-      commitSource(next, `Update participant ${selectedSequenceParticipant.label}`);
-      setSelectedSequenceParticipantId((value.alias.trim() || value.label.trim()).toLowerCase());
-      setInteractionMessage(`Updated participant ${value.label.trim()}`);
-    },
-    [
-      commitSource,
-      mapProjectRename,
-      selectedSequenceParticipant,
-      sequenceDocument,
-      setSelectedSequenceParticipantId,
-      workspace.source,
-    ],
+  const closeSequenceDialog = useCallback(
+    (kind: "participant" | "message" | "structure") => closeDialog(`add-sequence-${kind}`),
+    [closeDialog],
   );
-
-  const removeSequenceParticipant = useCallback(() => {
-    if (!selectedSequenceParticipant) return;
-    const reference = selectedSequenceParticipant.alias ?? selectedSequenceParticipant.label;
-    const attached = sequenceDocument.messages.filter(
-      (message) => message.from === reference || message.to === reference,
-    ).length;
-    if (
-      !window.confirm(
-        `Delete “${selectedSequenceParticipant.label}”${attached ? ` and ${attached} connected message${attached === 1 ? "" : "s"}` : ""}?`,
-      )
-    )
-      return;
-    commitSource(
-      deleteSequenceParticipant(workspace.source, sequenceDocument, selectedSequenceParticipant),
-      `Delete participant ${selectedSequenceParticipant.label}`,
-    );
-    setSelectedSequenceParticipantId(undefined);
-    setInteractionMessage(`Deleted participant ${selectedSequenceParticipant.label}`);
-  }, [commitSource, selectedSequenceParticipant, sequenceDocument, setSelectedSequenceParticipantId, workspace.source]);
-
-  const applySequenceMessage = useCallback(
-    (value: SequenceMessageInspectorValue) => {
-      if (!selectedSequenceMessage) return;
-      if (
-        !commitSource(
-          updateSequenceMessage(workspace.source, selectedSequenceMessage, value),
-          "Update Sequence message",
-        )
-      )
-        return;
-      setSelectedSequenceMessageId(selectedSequenceMessage.id);
-      setInteractionMessage("Updated message");
-    },
-    [commitSource, selectedSequenceMessage, setSelectedSequenceMessageId, workspace.source],
-  );
-
-  const removeSequenceMessage = useCallback(() => {
-    if (!selectedSequenceMessage || !window.confirm("Delete this message?")) return;
-    commitSource(deleteSequenceMessage(workspace.source, selectedSequenceMessage), "Delete Sequence message");
-    setSelectedSequenceMessageId(undefined);
-    setInteractionMessage("Deleted message");
-  }, [commitSource, selectedSequenceMessage, setSelectedSequenceMessageId, workspace.source]);
-
-  const applySequenceStructure = useCallback(
-    (value: import("@plantuml-studio/diagram-sequence").SequenceStructureInput) => {
-      if (!selectedSequenceStructure) return;
-      commitSource(
-        updateSequenceStructure(workspace.source, selectedSequenceStructure, value),
-        `Update Sequence ${value.kind}`,
-      );
-      setInteractionMessage(`Updated Sequence ${value.kind}`);
-    },
-    [commitSource, selectedSequenceStructure, workspace.source],
-  );
-
-  const removeSequenceStructure = useCallback(() => {
-    if (!selectedSequenceStructure || !window.confirm("Delete this Sequence structure?")) return;
-    commitSource(deleteSequenceStructure(workspace.source, selectedSequenceStructure), "Delete Sequence structure");
-    setSelectedSequenceStructureId(undefined);
-    setInteractionMessage("Deleted Sequence structure");
-  }, [commitSource, selectedSequenceStructure, setSelectedSequenceStructureId, workspace.source]);
-
-  const reorderSequenceParticipant = useCallback(
-    (id: string, targetId: string, placement: "before" | "after" = "before") => {
-      const moved = sequenceDocument.participants.find((item) => item.id === id);
-      const target = sequenceDocument.participants.find((item) => item.id === targetId);
-      if (!moved || !target) return;
-      commitSource(
-        reorderSequenceStatement(workspace.source, moved, target, placement),
-        `Reorder participant ${moved.label}`,
-      );
-      setInteractionMessage(`Moved ${moved.label} ${placement} ${target.label}`);
-    },
-    [commitSource, sequenceDocument.participants, workspace.source],
-  );
-
-  const reorderSequenceMessage = useCallback(
-    (id: string, targetId: string, placement: "before" | "after" = "before") => {
-      const moved = sequenceDocument.messages.find((item) => item.id === id);
-      const target = sequenceDocument.messages.find((item) => item.id === targetId);
-      if (!moved || !target) return;
-      commitSource(reorderSequenceStatement(workspace.source, moved, target, placement), "Reorder Sequence message");
-      setSelectedSequenceMessageId(undefined);
-      setInteractionMessage("Reordered message");
-    },
-    [commitSource, sequenceDocument.messages, setSelectedSequenceMessageId, workspace.source],
-  );
-
-  const reorderSequenceTimeline = useCallback(
-    (id: string, targetId: string, placement: "before" | "after" = "before") => {
-      const timeline = [...sequenceDocument.messages, ...sequenceStructures];
-      const moved = timeline.find((item) => item.id === id);
-      const target = timeline.find((item) => item.id === targetId);
-      if (!moved || !target) return;
-      const next = reorderSequenceStatement(workspace.source, moved, target, placement);
-      if (next === workspace.source) return;
-      commitSource(next, "Reorder Sequence element");
-      setSelectedSequenceMessageId(undefined);
-      setSelectedSequenceStructureId(undefined);
-      setInteractionMessage(`Moved Sequence element ${placement} target`);
-    },
-    [
-      commitSource,
-      sequenceDocument.messages,
-      sequenceStructures,
-      setSelectedSequenceMessageId,
-      setSelectedSequenceStructureId,
-      workspace.source,
-    ],
-  );
-
-  const reconnectSequenceElement = useCallback(
-    (structureId: string, endpoint: number, participantId: string) => {
-      const structure = sequenceStructures.find((item) => item.id === structureId);
-      const participant = sequenceDocument.participants.find((item) => item.id === participantId);
-      if (!structure || !participant) return;
-      const next = reconnectSequenceStructure(
-        workspace.source,
-        structure,
-        endpoint,
-        participant.alias ?? participant.label,
-      );
-      if (next === workspace.source) return;
-      commitSource(next, "Reconnect Sequence element");
-      setInteractionMessage(`Attached Sequence element to ${participant.label}`);
-    },
-    [commitSource, sequenceDocument.participants, sequenceStructures, workspace.source],
-  );
-
-  const reconnectSequenceMessage = useCallback(
-    (messageId: string, endpoint: "from" | "to", participantId: string) => {
-      const message = sequenceDocument.messages.find((item) => item.id === messageId);
-      const participant = sequenceDocument.participants.find((item) => item.id === participantId);
-      if (!message || !participant) return;
-      const reference = participant.alias ?? participant.label;
-      const next = updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: reference });
-      commitSource(next, `Reconnect message ${endpoint}`);
-      setInteractionMessage(`Changed message ${endpoint === "from" ? "sender" : "recipient"} to ${participant.label}`);
-    },
-    [commitSource, sequenceDocument, workspace.source],
-  );
-
-  const externalizeSequenceMessage = useCallback(
-    (messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?") => {
-      const message = sequenceDocument.messages.find((item) => item.id === messageId);
-      if (!message) return;
-      commitSource(
-        updateSequenceMessage(workspace.source, message, { ...message, [endpoint]: marker }),
-        "Reconnect message to diagram edge",
-      );
-      setInteractionMessage(marker === "?" ? "Marked message as lost" : "Connected message to diagram edge");
-    },
-    [commitSource, sequenceDocument.messages, workspace.source],
-  );
-
-  const createSequenceMessageByDrag = useCallback(
-    (fromId: string, toId: string) => {
-      const from = sequenceDocument.participants.find((item) => item.id === fromId);
-      const to = sequenceDocument.participants.find((item) => item.id === toId);
-      if (!from || !to) return;
-      const source = insertSequenceMessage(workspace.source, {
-        from: from.alias ?? from.label,
-        to: to.alias ?? to.label,
-        arrow: "->",
-        label: "New message",
-      });
-      commitSource(source, `Connect ${from.label} to ${to.label}`);
-      setInteractionMessage(`Added message from ${from.label} to ${to.label}`);
-    },
-    [commitSource, sequenceDocument.participants, workspace.source],
-  );
-
+  const confirmSequenceDelete = useCallback((message: string) => window.confirm(message), []);
+  const closeSequenceSettings = useCallback(() => setSequenceSettingsOpen(false), []);
+  const {
+    addSequenceParticipant,
+    addSequenceMessage,
+    addSequenceStructure,
+    applySequenceParticipant,
+    removeSequenceParticipant,
+    applySequenceMessage,
+    removeSequenceMessage,
+    applySequenceStructure,
+    removeSequenceStructure,
+    reorderSequenceParticipant,
+    reorderSequenceMessage,
+    reorderSequenceTimeline,
+    reconnectSequenceElement,
+    reconnectSequenceMessage,
+    externalizeSequenceMessage,
+    createSequenceMessageByDrag,
+    applySequenceSettings,
+  } = useSequenceActions({
+    source: workspace.source,
+    document: sequenceDocument,
+    structures: sequenceStructures,
+    selectedParticipant: selectedSequenceParticipant,
+    selectedMessage: selectedSequenceMessage,
+    selectedStructure: selectedSequenceStructure,
+    commitSource,
+    mapProjectRename,
+    confirmDelete: confirmSequenceDelete,
+    closeDialog: closeSequenceDialog,
+    selectParticipant: setSelectedSequenceParticipantId,
+    selectMessage: setSelectedSequenceMessageId,
+    selectStructure: setSelectedSequenceStructureId,
+    closeSettings: closeSequenceSettings,
+    reportMessage: setInteractionMessage,
+  });
   const addTask = useCallback(
     (value: AddTaskValue) => {
       const operation = insertTask(workspace.source, value);
@@ -2454,15 +2243,6 @@ export function App() {
       setInteractionMessage("Updated project calendar");
     },
     [commitGeneratedSource, workspace.source],
-  );
-
-  const applySequenceSettings = useCallback(
-    (value: SequenceSettings) => {
-      commitSource(updateSequenceSettings(workspace.source, value), "Update Sequence settings");
-      setSequenceSettingsOpen(false);
-      setInteractionMessage("Updated Sequence settings");
-    },
-    [commitSource, workspace.source],
   );
 
   const commands = useMemo<Command[]>(() => {
@@ -3968,7 +3748,7 @@ export function App() {
         onMessageDelete={removeSequenceMessage}
         onStructureApply={applySequenceStructure}
         onStructureDelete={removeSequenceStructure}
-        onCloseSettings={() => setSequenceSettingsOpen(false)}
+        onCloseSettings={closeSequenceSettings}
         onCloseParticipant={() => setSelectedSequenceParticipantId(undefined)}
         onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
         onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
