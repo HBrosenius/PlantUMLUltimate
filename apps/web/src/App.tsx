@@ -241,7 +241,6 @@ import { AddUseCasePackageDialog } from "./AddUseCasePackageDialog";
 import { UseCasePackageInspector } from "./UseCasePackageInspector";
 import { AddUseCaseNoteDialog } from "./AddUseCaseNoteDialog";
 import { UseCaseNoteInspector } from "./UseCaseNoteInspector";
-import { validateGeneratedSource } from "./generated-source-validation";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
@@ -251,6 +250,7 @@ import { useCollaborationLifecycle } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
 import { useWorkspaceDocuments } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
+import { useSourceCommands, type SourceProblemPreview } from "./features/documents/use-source-commands";
 import { useResourceCapacities } from "./use-resource-capacities";
 import {
   createSemanticSymbolProvider,
@@ -355,11 +355,7 @@ export function App() {
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
-  const [problemPreview, setProblemPreview] = useState<{
-    source: string;
-    diagnostics: ReturnType<typeof diagnosticsForDiagram>;
-    message: string;
-  }>();
+  const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [wbsSettingsOpen, setWbsSettingsOpen] = useState(false);
   const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
@@ -1213,51 +1209,18 @@ export function App() {
     [setWorkspace],
   );
 
-  const commitSource = useCallback(
-    (source: string, description: string, validate = true): boolean => {
-      if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
-        setInteractionMessage("Viewing only · ask the room owner for an editor link to make changes");
-        return false;
-      }
-      if (source === workspace.source) return true;
-      if (validate) {
-        const validation = validateGeneratedSource(workspace.diagramKind, workspace.source, source);
-        if (!validation.valid) {
-          setInteractionMessage(
-            `Cancelled ${description.toLowerCase()}: ${validation.message ?? "the operation would produce invalid PlantUML"}`,
-          );
-          setProblemPreview({
-            source,
-            diagnostics: validation.introduced,
-            message: validation.message ?? "The operation would produce invalid PlantUML.",
-          });
-          setProblemsOpen(true);
-          return false;
-        }
-      }
-      captureBeforeCommit();
-      setProblemPreview(undefined);
-      activeHistory.record(workspace.source, source, description);
-      setWorkspace((current) => ({ ...current, source, dirty: true }));
-      refreshHistoryControls();
-      return true;
-    },
-    [
-      activeHistory,
-      captureBeforeCommit,
-      collaboration,
-      refreshHistoryControls,
-      setWorkspace,
-      tabs.activeId,
-      workspace.diagramKind,
-      workspace.source,
-    ],
-  );
-
-  const commitGeneratedSource = useCallback(
-    (source: string, description: string): boolean => commitSource(source, description),
-    [commitSource],
-  );
+  const { commitSource, commitGeneratedSource } = useSourceCommands({
+    source: workspace.source,
+    diagramKind: workspace.diagramKind,
+    readOnly: collaboration?.documentId === tabs.activeId && collaboration.role === "viewer",
+    history: activeHistory,
+    setWorkspace,
+    setInteractionMessage,
+    setProblemPreview,
+    setProblemsOpen,
+    captureBeforeCommit,
+    refreshHistoryControls,
+  });
 
   const applyTimelineDateHighlight = useCallback(
     (color: string) => {
