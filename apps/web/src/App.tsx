@@ -9,6 +9,7 @@ import { WbsDiagramPreview } from "./WbsDiagramPreview";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
+import { useWbsController } from "./features/wbs/use-wbs-controller";
 import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
 import {
@@ -297,10 +298,6 @@ export function App() {
     setSelectedClassObjectId,
     selectedActivityObjectId,
     setSelectedActivityObjectId,
-    selectedWbsNodeId,
-    setSelectedWbsNodeId,
-    selectedWbsRelationshipId,
-    setSelectedWbsRelationshipId,
     sourceHighlightedTaskId,
     setSourceHighlightedTaskId,
     sourceHighlightedSequenceParticipantId,
@@ -313,8 +310,6 @@ export function App() {
     setSourceHighlightedClassMemberId,
     sourceHighlightedActivityId,
     setSourceHighlightedActivityId,
-    sourceHighlightedWbsNodeId,
-    setSourceHighlightedWbsNodeId,
     resetTransientTabSelection,
     dismissInspectorSelection,
   } = useDiagramSelection();
@@ -352,7 +347,6 @@ export function App() {
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
-  const [wbsSettingsOpen, setWbsSettingsOpen] = useState(false);
   const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
@@ -436,6 +430,23 @@ export function App() {
   const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
   const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
   const wbsDocument = useMemo(() => applicationWbsAdapter.parse(workspace.source).document, [workspace.source]);
+  const {
+    selectedNodeId: selectedWbsNodeId,
+    selectedRelationshipId: selectedWbsRelationshipId,
+    sourceHighlightedNodeId: sourceHighlightedWbsNodeId,
+    settingsOpen: wbsSettingsOpen,
+    selectedNode: selectedWbsNode,
+    selectedRelationship: selectedWbsRelationship,
+    setSourceHighlightedNodeId: setSourceHighlightedWbsNodeId,
+    clearSelectedNode: clearSelectedWbsNode,
+    clearSelectedRelationship: clearSelectedWbsRelationship,
+    closeSettings: closeWbsSettings,
+    openSettings: openWbsSettings,
+    openSettingsFromToolbar: openWbsSettingsFromToolbar,
+    selectNode: selectWbsNode,
+    selectRelationship: selectWbsRelationship,
+    selectFromSource: selectWbsFromSource,
+  } = useWbsController(workspace.diagramKind, wbsDocument);
   const symbolProvider = useMemo(
     () =>
       createSemanticSymbolProvider({
@@ -623,16 +634,9 @@ export function App() {
     startupSplashShown.current = true;
     openDialog({ kind: "new-document", replaceActiveDocument: activeDocument.historyId === "history-welcome" });
   }, [activeDocument.historyId, hydrated, openDialog]);
-  const selectedWbsNode = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
-  const selectedWbsRelationship = wbsDocument.relationships.find((item) => item.id === selectedWbsRelationshipId);
   useEffect(() => {
-    if (workspace.diagramKind !== "wbs") {
-      setSelectedWbsNodeId(undefined);
-      setSelectedWbsRelationshipId(undefined);
-      setWbsSettingsOpen(false);
-      closeDialog("add-wbs-node");
-    }
-  }, [closeDialog, setSelectedWbsNodeId, setSelectedWbsRelationshipId, workspace.diagramKind]);
+    if (workspace.diagramKind !== "wbs") closeDialog("add-wbs-node");
+  }, [closeDialog, workspace.diagramKind]);
   const selectedActivityAction = activityDocument.nodes.find(
     (item) => item.id === selectedActivityObjectId && item.kind === "action",
   );
@@ -1554,8 +1558,8 @@ export function App() {
     commitSource,
     confirmDelete: confirmWbsDelete,
     closeAddNode: () => closeDialog("add-wbs-node"),
-    clearSelectedNode: () => setSelectedWbsNodeId(undefined),
-    clearSelectedRelationship: () => setSelectedWbsRelationshipId(undefined),
+    clearSelectedNode: clearSelectedWbsNode,
+    clearSelectedRelationship: clearSelectedWbsRelationship,
     reportMessage: setInteractionMessage,
   });
 
@@ -2797,7 +2801,7 @@ export function App() {
                 id: "edit.wbs-settings",
                 label: "WBS settings…",
                 category: "Edit",
-                run: () => setWbsSettingsOpen(true),
+                run: openWbsSettings,
               },
             ]
           : [
@@ -2900,6 +2904,7 @@ export function App() {
     newDocument,
     openDocument,
     openDialog,
+    openWbsSettings,
     openProjectInspector,
     openResourcePanel,
     redo,
@@ -3243,8 +3248,7 @@ export function App() {
             <button
               data-inspector-trigger
               onClick={() => {
-                setSelectedWbsNodeId(undefined);
-                setWbsSettingsOpen(true);
+                openWbsSettingsFromToolbar();
               }}
             >
               WBS
@@ -3530,9 +3534,7 @@ export function App() {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedWbsNodeId(occurrence?.key);
-                setWbsSettingsOpen(false);
-                if (!occurrence) setSelectedWbsNodeId(findWbsNodeAt(wbsDocument, position)?.id);
+                selectWbsFromSource(occurrence?.key, findWbsNodeAt(wbsDocument, position)?.id);
               }
             }}
           />
@@ -3769,16 +3771,12 @@ export function App() {
               onRenderRetry={retryRender}
               onZoomChange={(zoom) => update("zoom", zoom)}
               onSelect={(id) => {
-                setWbsSettingsOpen(false);
-                setSelectedWbsNodeId(id);
-                if (id) setSelectedWbsRelationshipId(undefined);
+                selectWbsNode(id);
                 const node = wbsDocument.nodes.find((item) => item.id === id);
                 if (node) setSelectionRequest({ ...node.sourceRange });
               }}
               onRelationshipSelect={(id) => {
-                setWbsSettingsOpen(false);
-                setSelectedWbsRelationshipId(id);
-                if (id) setSelectedWbsNodeId(undefined);
+                selectWbsRelationship(id);
                 const relationship = wbsDocument.relationships.find((item) => item.id === id);
                 if (relationship) setSelectionRequest({ ...relationship.sourceRange });
               }}
@@ -3882,11 +3880,7 @@ export function App() {
         />
       )}
       {wbsSettingsOpen && (
-        <WbsSettingsInspector
-          source={workspace.source}
-          onApply={applyWbsSettings}
-          onClose={() => setWbsSettingsOpen(false)}
-        />
+        <WbsSettingsInspector source={workspace.source} onApply={applyWbsSettings} onClose={closeWbsSettings} />
       )}
       {selectedWbsNode && (
         <WbsNodeInspector
@@ -3895,7 +3889,7 @@ export function App() {
           onApply={applyWbsNode}
           onDelete={removeWbsNode}
           onAddChild={() => openDialog({ kind: "add-wbs-node" })}
-          onClose={() => setSelectedWbsNodeId(undefined)}
+          onClose={clearSelectedWbsNode}
         />
       )}
       {selectedWbsRelationship && (
@@ -3905,7 +3899,7 @@ export function App() {
           document={wbsDocument}
           onApply={applyWbsRelationshipColor}
           onDelete={removeWbsRelationship}
-          onClose={() => setSelectedWbsRelationshipId(undefined)}
+          onClose={clearSelectedWbsRelationship}
         />
       )}
       {dialog?.kind === "add-activity-action" && (
