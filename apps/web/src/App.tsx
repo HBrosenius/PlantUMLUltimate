@@ -15,17 +15,8 @@ import { ActivityDialogs, type ActivityDialogKind } from "./features/activity/Ac
 import { ActivityInspectors } from "./features/activity/ActivityInspectors";
 import { useActivityActions } from "./features/activity/use-activity-actions";
 import { useActivityController } from "./features/activity/use-activity-controller";
-import {
-  AddClassEntityDialog,
-  AddClassPackageDialog,
-  AddClassRelationshipDialog,
-  AddClassNoteDialog,
-  ClassEntityInspector,
-  ClassPackageInspector,
-  ClassRelationshipInspector,
-  ClassNoteInspector,
-} from "./ClassEditors";
-import { ClassSettingsInspector } from "./ClassSettingsInspector";
+import { ClassDialogs, type ClassDialogKind } from "./features/class/ClassDialogs";
+import { ClassInspectors } from "./features/class/ClassInspectors";
 import { parseClassSettings, updateClassSettings, type ClassSettings } from "./class-settings";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
@@ -2583,6 +2574,16 @@ export function App() {
         : dialog?.kind === "add-sequence-structure"
           ? { kind: "structure", structureKind: dialog.structureKind }
           : undefined;
+  const classDialogKind: ClassDialogKind | undefined =
+    dialog?.kind === "add-class-entity"
+      ? "entity"
+      : dialog?.kind === "add-class-relationship"
+        ? "relationship"
+        : dialog?.kind === "add-class-package"
+          ? "package"
+          : dialog?.kind === "add-class-note"
+            ? "note"
+            : undefined;
   const sideInspectorOpen = Boolean(
     selectedTask ||
     selectedDependency ||
@@ -3598,25 +3599,36 @@ export function App() {
         onCloseSettings={closeUseCaseSettings}
         onCloseSelection={clearSelectedUseCaseObject}
       />
-      {selectedClassEntity && (
-        <ClassEntityInspector
-          entity={selectedClassEntity}
-          entities={classDocument.entities}
-          packages={classDocument.packages}
-          onChange={applyClassEntity}
-          onPackageChange={moveSelectedClassEntity}
-          onDelete={removeClassEntity}
-          onMemberAdd={addClassMember}
-          onMemberChange={applyClassMember}
-          onMemberDelete={removeClassMember}
-          onMemberMove={moveClassMember}
-          onMemberReveal={(member) => {
-            if (workspace.viewMode === "diagram") update("viewMode", "split");
-            setSelectionRequest({ ...member.sourceRange });
-          }}
-          onClose={() => setSelectedClassObjectId(undefined)}
-        />
-      )}
+      <ClassInspectors
+        settingsOpen={classSettingsOpen}
+        settings={parseClassSettings(workspace.source)}
+        document={classDocument}
+        selectedEntity={selectedClassEntity}
+        selectedRelationship={selectedClassRelationship}
+        selectedPackage={selectedClassPackage}
+        selectedNote={selectedClassNote}
+        onSettingsChange={applyClassSettings}
+        onEntityChange={applyClassEntity}
+        onEntityPackageChange={moveSelectedClassEntity}
+        onEntityDelete={removeClassEntity}
+        onMemberAdd={addClassMember}
+        onMemberChange={applyClassMember}
+        onMemberDelete={removeClassMember}
+        onMemberMove={moveClassMember}
+        onMemberReveal={(member) => {
+          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          setSelectionRequest({ ...member.sourceRange });
+        }}
+        onRelationshipChange={applyClassRelationship}
+        onRelationshipDelete={removeClassRelationship}
+        onPackageChange={applyClassPackage}
+        onPackageParentChange={moveSelectedClassPackage}
+        onPackageDelete={removeClassPackage}
+        onNoteChange={applyClassNote}
+        onNoteDelete={removeClassNote}
+        onCloseSettings={() => setClassSettingsOpen(false)}
+        onCloseSelection={() => setSelectedClassObjectId(undefined)}
+      />
       <ActivityInspectors
         settingsOpen={activitySettingsOpen}
         settings={parseActivitySettings(workspace.source)}
@@ -3644,65 +3656,15 @@ export function App() {
         onCloseSettings={closeActivitySettings}
         onCloseSelection={clearSelectedActivityObject}
       />
-      {selectedClassRelationship && (
-        <ClassRelationshipInspector
-          item={selectedClassRelationship}
-          document={classDocument}
-          onChange={applyClassRelationship}
-          onDelete={removeClassRelationship}
-          onClose={() => setSelectedClassObjectId(undefined)}
-        />
-      )}
-      {selectedClassPackage && (
-        <ClassPackageInspector
-          item={selectedClassPackage}
-          packages={classDocument.packages}
-          onChange={applyClassPackage}
-          onParentChange={moveSelectedClassPackage}
-          onDelete={removeClassPackage}
-          onClose={() => setSelectedClassObjectId(undefined)}
-        />
-      )}
-      {dialog?.kind === "add-class-entity" && (
-        <AddClassEntityDialog onAdd={addClassEntity} onClose={() => closeDialog("add-class-entity")} />
-      )}
-      {dialog?.kind === "add-class-relationship" && (
-        <AddClassRelationshipDialog
-          document={classDocument}
-          onAdd={addClassRelationship}
-          onClose={() => closeDialog("add-class-relationship")}
-        />
-      )}
-      {dialog?.kind === "add-class-package" && (
-        <AddClassPackageDialog
-          document={classDocument}
-          onAdd={addClassPackage}
-          onClose={() => closeDialog("add-class-package")}
-        />
-      )}
-      {classSettingsOpen && (
-        <ClassSettingsInspector
-          settings={parseClassSettings(workspace.source)}
-          onChange={applyClassSettings}
-          onClose={() => setClassSettingsOpen(false)}
-        />
-      )}
-      {selectedClassNote && (
-        <ClassNoteInspector
-          item={selectedClassNote}
-          document={classDocument}
-          onChange={applyClassNote}
-          onDelete={removeClassNote}
-          onClose={() => setSelectedClassObjectId(undefined)}
-        />
-      )}{" "}
-      {dialog?.kind === "add-class-note" && (
-        <AddClassNoteDialog
-          document={classDocument}
-          onAdd={addClassNote}
-          onClose={() => closeDialog("add-class-note")}
-        />
-      )}
+      <ClassDialogs
+        active={classDialogKind}
+        document={classDocument}
+        onAddEntity={addClassEntity}
+        onAddRelationship={addClassRelationship}
+        onAddPackage={addClassPackage}
+        onAddNote={addClassNote}
+        onClose={() => classDialogKind && closeDialog(`add-class-${classDialogKind}`)}
+      />
       <SequenceInspectors
         settingsOpen={sequenceSettingsOpen}
         settings={parseSequenceSettings(workspace.source)}
