@@ -10,9 +10,10 @@ import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
-import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
+import { parseActivitySettings } from "./activity-settings";
 import { ActivityDialogs, type ActivityDialogKind } from "./features/activity/ActivityDialogs";
 import { ActivityInspectors } from "./features/activity/ActivityInspectors";
+import { useActivityActions } from "./features/activity/use-activity-actions";
 import {
   AddClassEntityDialog,
   AddClassPackageDialog,
@@ -166,36 +167,7 @@ import {
   type ClassNoteInput,
 } from "@plantuml-studio/diagram-class";
 import { hashSource } from "@plantuml-studio/document-format";
-import {
-  deleteActivityArrow,
-  deleteActivityControlBlock,
-  deleteActivityNode,
-  deleteActivityNote,
-  deleteActivityPartition,
-  findActivityObjectAt,
-  insertActivityAction,
-  insertActivityArrow,
-  insertActivityNote,
-  insertActivityPartition,
-  insertActivityStructure,
-  insertActivityTerminal,
-  parseActivity,
-  moveActivityActionToPartition,
-  moveActivityPartition,
-  reorderActivityAction,
-  reorderActivityControlBlock,
-  updateActivityAction,
-  updateActivityArrow,
-  updateActivityControl,
-  updateActivityNoteWithTarget,
-  updateActivityPartition,
-  type ActivityActionInput,
-  type ActivityArrowInput,
-  type ActivityControlInput,
-  type ActivityNoteInput,
-  type ActivityPartitionInput,
-  type ActivityStructureInput,
-} from "@plantuml-studio/diagram-activity";
+import { findActivityObjectAt, parseActivity } from "@plantuml-studio/diagram-activity";
 import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
 import { UseCaseInspectors } from "./features/usecase/UseCaseInspectors";
 import { useUseCaseActions } from "./features/usecase/use-usecase-actions";
@@ -1723,10 +1695,6 @@ export function App() {
     commitSource(updateClassSettings(workspace.source, v), "Update Class settings");
     setInteractionMessage("Updated Class settings");
   };
-  const applyActivitySettings = (value: ActivitySettings) => {
-    commitSource(updateActivitySettings(workspace.source, value), "Update Activity settings");
-    setInteractionMessage("Updated Activity settings");
-  };
   const addClassNote = (v: ClassNoteInput) => {
     commitSource(insertClassNote(workspace.source, classDocument, v), "Add Class note");
     closeDialog("add-class-note");
@@ -1751,117 +1719,50 @@ export function App() {
     }
   };
 
-  const addActivityAction = (value: ActivityActionInput) => {
-    commitSource(insertActivityAction(workspace.source, activityDocument, value), "Add Activity action");
-    closeDialog("add-activity-action");
-  };
-  const applyActivityAction = (value: ActivityActionInput) => {
-    if (selectedActivityAction)
-      commitSource(updateActivityAction(workspace.source, selectedActivityAction, value), "Update Activity action");
-  };
-  const moveActivityActionPartition = (partitionId?: string) => {
-    if (!selectedActivityAction) return;
-    commitSource(
-      moveActivityActionToPartition(workspace.source, activityDocument, selectedActivityAction, partitionId),
-      "Move Activity action",
-    );
-    setSelectedActivityObjectId(undefined);
-  };
-  const removeActivityAction = () => {
-    if (!selectedActivityAction) return;
-    commitSource(deleteActivityNode(workspace.source, selectedActivityAction), "Delete Activity action");
-    setSelectedActivityObjectId(undefined);
-  };
-  const addActivityPartition = (value: ActivityPartitionInput) => {
-    commitSource(insertActivityPartition(workspace.source, activityDocument, value), "Add Activity partition");
-    closeDialog("add-activity-partition");
-  };
-  const applyActivityPartition = (value: ActivityPartitionInput) => {
-    if (selectedActivityPartition)
-      commitSource(
-        updateActivityPartition(workspace.source, selectedActivityPartition, value),
-        "Update Activity partition",
-      );
-  };
-  const moveSelectedActivityPartition = (parentId?: string) => {
-    if (!selectedActivityPartition) return;
-    commitSource(
-      moveActivityPartition(workspace.source, activityDocument, selectedActivityPartition, parentId),
-      "Move Activity partition",
-    );
-    setSelectedActivityObjectId(undefined);
-  };
-  const removeActivityPartition = () => {
-    if (!selectedActivityPartition) return;
-    commitSource(deleteActivityPartition(workspace.source, selectedActivityPartition), "Delete Activity partition");
-    setSelectedActivityObjectId(undefined);
-  };
-  const addActivityNote = (value: ActivityNoteInput) => {
-    commitSource(insertActivityNote(workspace.source, activityDocument, value), "Add Activity note");
-    closeDialog("add-activity-note");
-  };
-  const addActivityStructure = (value: ActivityStructureInput) => {
-    commitSource(insertActivityStructure(workspace.source, activityDocument, value), "Add Activity flow structure");
-    closeDialog("add-activity-structure");
-  };
-  const addActivityTerminal = (kind: "start" | "stop" | "end" | "detach" | "kill") => {
-    commitSource(insertActivityTerminal(workspace.source, kind), `Add Activity ${kind}`);
-    closeDialog("add-activity-terminal");
-  };
-  const addActivityArrow = (value: ActivityArrowInput) => {
-    commitSource(insertActivityArrow(workspace.source, activityDocument, value), "Add Activity flow arrow");
-    closeDialog("add-activity-arrow");
-  };
-  const applyActivityNote = (value: ActivityNoteInput) => {
-    if (selectedActivityNote)
-      commitSource(
-        updateActivityNoteWithTarget(workspace.source, activityDocument, selectedActivityNote, value),
-        "Update Activity note",
-      );
-  };
-  const removeActivityNote = () => {
-    if (!selectedActivityNote) return;
-    commitSource(deleteActivityNote(workspace.source, selectedActivityNote), "Delete Activity note");
-    setSelectedActivityObjectId(undefined);
-  };
-  const applyActivityControl = (value: ActivityControlInput) => {
-    if (selectedActivityControl)
-      commitSource(updateActivityControl(workspace.source, selectedActivityControl, value), "Update Activity control");
-  };
-  const removeActivityControl = () => {
-    if (!selectedActivityControl) return;
-    commitSource(
-      deleteActivityControlBlock(workspace.source, activityDocument, selectedActivityControl),
-      "Delete Activity flow structure",
-    );
-    setSelectedActivityObjectId(undefined);
-  };
-  const removeActivityTerminal = () => {
-    if (!selectedActivityTerminal) return;
-    commitSource(deleteActivityNode(workspace.source, selectedActivityTerminal), "Delete Activity terminal");
-    setSelectedActivityObjectId(undefined);
-  };
-  const applyActivityArrow = (value: ActivityArrowInput) => {
-    if (selectedActivityArrow)
-      commitSource(updateActivityArrow(workspace.source, selectedActivityArrow, value), "Update Activity flow arrow");
-  };
-  const removeActivityArrow = () => {
-    if (!selectedActivityArrow) return;
-    commitSource(deleteActivityArrow(workspace.source, selectedActivityArrow), "Delete Activity flow arrow");
-    setSelectedActivityObjectId(undefined);
-  };
-  const reorderActivityActionByDrag = (id: string, targetId: string, placement: "before" | "after") => {
-    const item = activityDocument.nodes.find((node) => node.id === id);
-    const target = activityDocument.nodes.find((node) => node.id === targetId);
-    const control = activityDocument.controls.find((entry) => entry.id === id);
-    if (!target || (!item && !control)) return;
-    commitSource(
-      item
-        ? reorderActivityAction(workspace.source, activityDocument, item, target, placement)
-        : reorderActivityControlBlock(workspace.source, activityDocument, control!, target, placement),
-      item ? "Reorder Activity action" : "Reorder Activity flow structure",
-    );
-  };
+  const clearSelectedActivityObject = useCallback(
+    () => setSelectedActivityObjectId(undefined),
+    [setSelectedActivityObjectId],
+  );
+  const closeActivityDialog = useCallback(
+    (kind: ActivityDialogKind) => closeDialog(`add-activity-${kind}`),
+    [closeDialog],
+  );
+  const {
+    applyActivitySettings,
+    addActivityAction,
+    applyActivityAction,
+    moveActivityActionPartition,
+    removeActivityAction,
+    addActivityPartition,
+    applyActivityPartition,
+    moveSelectedActivityPartition,
+    removeActivityPartition,
+    addActivityNote,
+    addActivityStructure,
+    addActivityTerminal,
+    addActivityArrow,
+    applyActivityNote,
+    removeActivityNote,
+    applyActivityControl,
+    removeActivityControl,
+    removeActivityTerminal,
+    applyActivityArrow,
+    removeActivityArrow,
+    reorderActivityActionByDrag,
+  } = useActivityActions({
+    source: workspace.source,
+    document: activityDocument,
+    selectedAction: selectedActivityAction,
+    selectedTerminal: selectedActivityTerminal,
+    selectedPartition: selectedActivityPartition,
+    selectedNote: selectedActivityNote,
+    selectedControl: selectedActivityControl,
+    selectedArrow: selectedActivityArrow,
+    commitSource,
+    closeDialog: closeActivityDialog,
+    clearSelection: clearSelectedActivityObject,
+    reportMessage: setInteractionMessage,
+  });
 
   const addSequenceMessage = useCallback(
     (value: AddSequenceMessageValue) => {
