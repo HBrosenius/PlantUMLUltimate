@@ -77,7 +77,7 @@ import { AddSequenceStructureDialog } from "./AddSequenceStructureDialog";
 import { SequenceStructureInspector } from "./SequenceStructureInspector";
 import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
-import { parseUseCaseSettings, updateUseCaseSettings, type UseCaseSettings } from "./usecase-settings";
+import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
@@ -209,28 +209,9 @@ import {
   type ActivityPartitionInput,
   type ActivityStructureInput,
 } from "@plantuml-studio/diagram-activity";
-import {
-  deleteUseCaseElement,
-  deleteUseCaseNote,
-  deleteUseCasePackage,
-  deleteUseCaseRelationship,
-  insertUseCaseElement,
-  insertUseCaseNote,
-  insertUseCasePackage,
-  insertUseCaseRelationship,
-  moveUseCaseElementToPackage,
-  reorderUseCaseElement,
-  updateUseCaseElement,
-  updateUseCaseNote,
-  updateUseCasePackage,
-  updateUseCaseRelationship,
-  type UseCaseElementInput,
-  type UseCaseNoteInput,
-  type UseCasePackageInput,
-  type UseCaseRelationshipInput,
-} from "@plantuml-studio/diagram-usecase";
 import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
 import { UseCaseInspectors } from "./features/usecase/UseCaseInspectors";
+import { useUseCaseActions } from "./features/usecase/use-usecase-actions";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
@@ -1565,142 +1546,45 @@ export function App() {
     [closeDialog, commitSource, workspace.source],
   );
 
-  const addUseCaseElement = useCallback(
-    (value: UseCaseElementInput) => {
-      commitSource(insertUseCaseElement(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      closeDialog("add-usecase-element");
-      setInteractionMessage(`Added ${value.kind === "actor" ? "actor" : "use case"} ${value.label.trim()}`);
+  const confirmUseCaseDelete = useCallback((message: string) => window.confirm(message), []);
+  const closeUseCaseDialog = useCallback(
+    (kind: "element" | "relationship" | "package" | "note") => {
+      closeDialog(`add-usecase-${kind}`);
     },
-    [closeDialog, commitSource, workspace.source],
+    [closeDialog],
   );
-
-  const applyUseCaseElement = useCallback(
-    (value: UseCaseElementInput) => {
-      if (!selectedUseCaseElement) return;
-      commitSource(
-        updateUseCaseElement(workspace.source, useCaseDocument, selectedUseCaseElement, value),
-        `Update ${selectedUseCaseElement.kind} ${selectedUseCaseElement.label}`,
-      );
-      setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
-    },
-    [commitSource, selectedUseCaseElement, setSelectedUseCaseObjectId, useCaseDocument, workspace.source],
-  );
-
-  const removeUseCaseElement = useCallback(() => {
-    if (!selectedUseCaseElement) return;
-    const connected = useCaseDocument.relationships.filter(
-      (item) => item.from === selectedUseCaseElement.id || item.to === selectedUseCaseElement.id,
-    ).length;
-    if (
-      !window.confirm(
-        `Delete “${selectedUseCaseElement.label}”${connected ? ` and ${connected} connected relationship${connected === 1 ? "" : "s"}` : ""}?`,
-      )
-    )
-      return;
-    commitSource(
-      deleteUseCaseElement(workspace.source, useCaseDocument, selectedUseCaseElement),
-      `Delete ${selectedUseCaseElement.kind} ${selectedUseCaseElement.label}`,
-    );
-    setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseElement, setSelectedUseCaseObjectId, useCaseDocument, workspace.source]);
-
-  const addUseCaseRelationship = useCallback(
-    (value: UseCaseRelationshipInput) => {
-      commitSource(insertUseCaseRelationship(workspace.source, useCaseDocument, value), "Add Use Case relationship");
-      closeDialog("add-usecase-relationship");
-      setInteractionMessage("Added Use Case relationship");
-    },
-    [closeDialog, commitSource, useCaseDocument, workspace.source],
-  );
-
-  const applyUseCaseRelationship = useCallback(
-    (value: UseCaseRelationshipInput) => {
-      if (!selectedUseCaseRelationship) return;
-      if (
-        !commitSource(
-          updateUseCaseRelationship(workspace.source, useCaseDocument, selectedUseCaseRelationship, value),
-          "Update Use Case relationship",
-        )
-      )
-        return;
-      setSelectedUseCaseObjectId(selectedUseCaseRelationship.id);
-    },
-    [commitSource, selectedUseCaseRelationship, setSelectedUseCaseObjectId, useCaseDocument, workspace.source],
-  );
-
-  const removeUseCaseRelationship = useCallback(() => {
-    if (!selectedUseCaseRelationship) return;
-    commitSource(
-      deleteUseCaseRelationship(workspace.source, selectedUseCaseRelationship),
-      "Delete Use Case relationship",
-    );
-    setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseRelationship, setSelectedUseCaseObjectId, workspace.source]);
-
-  const addUseCasePackage = useCallback(
-    (value: UseCasePackageInput) => {
-      commitSource(insertUseCasePackage(workspace.source, value), `Add ${value.kind} ${value.label.trim()}`);
-      closeDialog("add-usecase-package");
-    },
-    [closeDialog, commitSource, workspace.source],
-  );
-
-  const applyUseCasePackage = useCallback(
-    (value: UseCasePackageInput) => {
-      if (!selectedUseCasePackage) return;
-      commitSource(
-        updateUseCasePackage(workspace.source, selectedUseCasePackage, value),
-        `Update ${selectedUseCasePackage.kind} ${selectedUseCasePackage.label}`,
-      );
-      setSelectedUseCaseObjectId((value.alias?.trim() || value.label.trim()).toLowerCase());
-    },
-    [commitSource, selectedUseCasePackage, setSelectedUseCaseObjectId, workspace.source],
-  );
-
-  const removeUseCasePackage = useCallback(() => {
-    if (!selectedUseCasePackage) return;
-    commitSource(
-      deleteUseCasePackage(workspace.source, selectedUseCasePackage),
-      `Remove ${selectedUseCasePackage.kind} ${selectedUseCasePackage.label}`,
-    );
-    setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCasePackage, setSelectedUseCaseObjectId, workspace.source]);
-
-  const addUseCaseNote = useCallback(
-    (value: UseCaseNoteInput) => {
-      commitSource(insertUseCaseNote(workspace.source, useCaseDocument, value), "Add Use Case note");
-      closeDialog("add-usecase-note");
-    },
-    [closeDialog, commitSource, useCaseDocument, workspace.source],
-  );
-
-  const applyUseCaseNote = useCallback(
-    (value: UseCaseNoteInput) => {
-      if (!selectedUseCaseNote) return;
-      commitSource(
-        updateUseCaseNote(workspace.source, useCaseDocument, selectedUseCaseNote, value),
-        "Update Use Case note",
-      );
-    },
-    [commitSource, selectedUseCaseNote, useCaseDocument, workspace.source],
-  );
-
-  const removeUseCaseNote = useCallback(() => {
-    if (!selectedUseCaseNote) return;
-    commitSource(deleteUseCaseNote(workspace.source, selectedUseCaseNote), "Delete Use Case note");
-    setSelectedUseCaseObjectId(undefined);
-  }, [commitSource, selectedUseCaseNote, setSelectedUseCaseObjectId, workspace.source]);
-
-  const createUseCaseRelationshipByDrag = useCallback(
-    (from: string, to: string) => {
-      commitSource(
-        insertUseCaseRelationship(workspace.source, useCaseDocument, { from, to, kind: "association" }),
-        "Connect Use Case objects",
-      );
-      setInteractionMessage("Added association");
-    },
-    [commitSource, useCaseDocument, workspace.source],
-  );
+  const {
+    addUseCaseElement,
+    applyUseCaseElement,
+    removeUseCaseElement,
+    addUseCaseRelationship,
+    applyUseCaseRelationship,
+    removeUseCaseRelationship,
+    addUseCasePackage,
+    applyUseCasePackage,
+    removeUseCasePackage,
+    addUseCaseNote,
+    applyUseCaseNote,
+    removeUseCaseNote,
+    createUseCaseRelationshipByDrag,
+    reconnectUseCaseRelationshipByDrag,
+    moveUseCaseElementByDrag,
+    moveSelectedUseCaseElementToPackage,
+    reorderUseCaseElementByDrag,
+    applyUseCaseSettings,
+  } = useUseCaseActions({
+    source: workspace.source,
+    document: useCaseDocument,
+    selectedElement: selectedUseCaseElement,
+    selectedRelationship: selectedUseCaseRelationship,
+    selectedPackage: selectedUseCasePackage,
+    selectedNote: selectedUseCaseNote,
+    commitSource,
+    confirmDelete: confirmUseCaseDelete,
+    closeDialog: closeUseCaseDialog,
+    selectObject: setSelectedUseCaseObjectId,
+    reportMessage: setInteractionMessage,
+  });
 
   const createClassRelationshipByDrag = useCallback(
     (from: string, to: string) => {
@@ -1982,69 +1866,6 @@ export function App() {
       item ? "Reorder Activity action" : "Reorder Activity flow structure",
     );
   };
-
-  const reconnectUseCaseRelationshipByDrag = useCallback(
-    (relationshipId: string, endpoint: "from" | "to", targetId: string) => {
-      const relationship = useCaseDocument.relationships.find((item) => item.id === relationshipId);
-      if (!relationship) return;
-      const nextValue: UseCaseRelationshipInput = {
-        from: endpoint === "from" ? targetId : relationship.from,
-        to: endpoint === "to" ? targetId : relationship.to,
-        kind: relationship.kind,
-        arrow: relationship.arrow,
-        ...(relationship.kind === "association" && relationship.label ? { label: relationship.label } : {}),
-        ...(relationship.color ? { color: relationship.color } : {}),
-        ...(relationship.lineStyle ? { lineStyle: relationship.lineStyle } : {}),
-        ...(relationship.direction ? { direction: relationship.direction } : {}),
-      };
-      commitSource(
-        updateUseCaseRelationship(workspace.source, useCaseDocument, relationship, nextValue),
-        "Reconnect Use Case relationship",
-      );
-      setInteractionMessage(`Reconnected ${endpoint} endpoint`);
-    },
-    [commitSource, useCaseDocument, workspace.source],
-  );
-
-  const moveUseCaseElementByDrag = useCallback(
-    (elementId: string, packageId: string) => {
-      const element = useCaseDocument.elements.find((item) => item.id === elementId);
-      const target = useCaseDocument.packages.find((item) => item.id === packageId);
-      if (!element || !target) return;
-      commitSource(
-        moveUseCaseElementToPackage(workspace.source, useCaseDocument, element, packageId),
-        `Move ${element.label} into ${target.label}`,
-      );
-      setInteractionMessage(`Moved ${element.label} into ${target.label}`);
-    },
-    [commitSource, useCaseDocument, workspace.source],
-  );
-
-  const moveSelectedUseCaseElementToPackage = useCallback(
-    (packageId?: string) => {
-      if (!selectedUseCaseElement) return;
-      commitSource(
-        moveUseCaseElementToPackage(workspace.source, useCaseDocument, selectedUseCaseElement, packageId),
-        `Move ${selectedUseCaseElement.label}`,
-      );
-    },
-    [commitSource, selectedUseCaseElement, useCaseDocument, workspace.source],
-  );
-
-  const reorderUseCaseElementByDrag = useCallback(
-    (elementId: string, targetId: string, placement: "before" | "after") => {
-      const element = useCaseDocument.elements.find((item) => item.id === elementId);
-      const target = useCaseDocument.elements.find((item) => item.id === targetId);
-      if (!element || !target) return;
-      const next = reorderUseCaseElement(workspace.source, element, target, placement);
-      if (next === workspace.source) {
-        setInteractionMessage("Objects can be reordered only within the same container");
-        return;
-      }
-      commitSource(next, `Reorder ${element.label}`);
-    },
-    [commitSource, useCaseDocument.elements, workspace.source],
-  );
 
   const addSequenceMessage = useCallback(
     (value: AddSequenceMessageValue) => {
@@ -2740,14 +2561,6 @@ export function App() {
       commitSource(updateSequenceSettings(workspace.source, value), "Update Sequence settings");
       setSequenceSettingsOpen(false);
       setInteractionMessage("Updated Sequence settings");
-    },
-    [commitSource, workspace.source],
-  );
-
-  const applyUseCaseSettings = useCallback(
-    (value: UseCaseSettings) => {
-      commitSource(updateUseCaseSettings(workspace.source, value), "Update Use Case settings");
-      setInteractionMessage("Updated Use Case settings");
     },
     [commitSource, workspace.source],
   );
