@@ -14,6 +14,7 @@ import { parseActivitySettings } from "./activity-settings";
 import { ActivityDialogs, type ActivityDialogKind } from "./features/activity/ActivityDialogs";
 import { ActivityInspectors } from "./features/activity/ActivityInspectors";
 import { useActivityActions } from "./features/activity/use-activity-actions";
+import { useActivityController } from "./features/activity/use-activity-controller";
 import {
   AddClassEntityDialog,
   AddClassPackageDialog,
@@ -228,8 +229,6 @@ export function App() {
     setSelectedSequenceStructureId,
     selectedClassObjectId,
     setSelectedClassObjectId,
-    selectedActivityObjectId,
-    setSelectedActivityObjectId,
     sourceHighlightedTaskId,
     setSourceHighlightedTaskId,
     sourceHighlightedSequenceParticipantId,
@@ -238,8 +237,6 @@ export function App() {
     setSourceHighlightedClassEntityId,
     sourceHighlightedClassMemberId,
     setSourceHighlightedClassMemberId,
-    sourceHighlightedActivityId,
-    setSourceHighlightedActivityId,
     resetTransientTabSelection,
     dismissInspectorSelection,
   } = useDiagramSelection();
@@ -277,7 +274,6 @@ export function App() {
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
-  const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
@@ -566,16 +562,24 @@ export function App() {
   useEffect(() => {
     if (workspace.diagramKind !== "wbs") closeDialog("add-wbs-node");
   }, [closeDialog, workspace.diagramKind]);
-  const selectedActivityAction = activityDocument.nodes.find(
-    (item) => item.id === selectedActivityObjectId && item.kind === "action",
-  );
-  const selectedActivityTerminal = activityDocument.nodes.find(
-    (item) => item.id === selectedActivityObjectId && item.kind !== "action",
-  );
-  const selectedActivityPartition = activityDocument.partitions.find((item) => item.id === selectedActivityObjectId);
-  const selectedActivityNote = activityDocument.notes.find((item) => item.id === selectedActivityObjectId);
-  const selectedActivityControl = activityDocument.controls.find((item) => item.id === selectedActivityObjectId);
-  const selectedActivityArrow = activityDocument.arrows.find((item) => item.id === selectedActivityObjectId);
+  const {
+    selectedObjectId: selectedActivityObjectId,
+    sourceHighlightedId: sourceHighlightedActivityId,
+    settingsOpen: activitySettingsOpen,
+    selectedAction: selectedActivityAction,
+    selectedTerminal: selectedActivityTerminal,
+    selectedPartition: selectedActivityPartition,
+    selectedNote: selectedActivityNote,
+    selectedControl: selectedActivityControl,
+    selectedArrow: selectedActivityArrow,
+    setSourceHighlightedId: setSourceHighlightedActivityId,
+    clearSelection: clearSelectedActivityObject,
+    closeSettings: closeActivitySettings,
+    openSettingsFromToolbar: openActivitySettingsFromToolbar,
+    selectObject: selectActivityObject,
+    selectFromSource: selectActivityFromSource,
+    dismissInspector: dismissActivityInspector,
+  } = useActivityController(workspace.diagramKind, activityDocument);
   const selectedClassEntity = classDocument.entities.find((x) => x.id === selectedClassObjectId);
   const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
   const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
@@ -816,9 +820,9 @@ export function App() {
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       dismissInspectorSelection();
       dismissUseCaseInspector();
+      dismissActivityInspector();
       setProjectInspectorOpen(false);
       setClassSettingsOpen(false);
-      setActivitySettingsOpen(false);
       setFocusNoteTaskId(undefined);
     };
     document.addEventListener("click", dismissInspector);
@@ -838,6 +842,7 @@ export function App() {
     activitySettingsOpen,
     dismissInspectorSelection,
     dismissUseCaseInspector,
+    dismissActivityInspector,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -1719,10 +1724,6 @@ export function App() {
     }
   };
 
-  const clearSelectedActivityObject = useCallback(
-    () => setSelectedActivityObjectId(undefined),
-    [setSelectedActivityObjectId],
-  );
   const closeActivityDialog = useCallback(
     (kind: ActivityDialogKind) => closeDialog(`add-activity-${kind}`),
     [closeDialog],
@@ -2945,13 +2946,7 @@ export function App() {
             </button>
           )}
           {workspace.diagramKind === "activity" && (
-            <button
-              data-inspector-trigger
-              onClick={() => {
-                setSelectedActivityObjectId(undefined);
-                setActivitySettingsOpen(true);
-              }}
-            >
+            <button data-inspector-trigger onClick={openActivitySettingsFromToolbar}>
               Activity
             </button>
           )}
@@ -3238,8 +3233,7 @@ export function App() {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedActivityId(occurrence?.key);
-                if (!occurrence) setSelectedActivityObjectId(findActivityObjectAt(activityDocument, position)?.id);
+                selectActivityFromSource(occurrence?.key, findActivityObjectAt(activityDocument, position)?.id);
               } else {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -3455,7 +3449,7 @@ export function App() {
               document={activityDocument}
               selectedId={sourceHighlightedActivityId ?? selectedActivityObjectId}
               onSelect={(id) => {
-                setSelectedActivityObjectId(id);
+                selectActivityObject(id);
                 const object = [
                   ...activityDocument.nodes,
                   ...activityDocument.controls,
@@ -3465,7 +3459,7 @@ export function App() {
                 ].find((item) => item.id === id);
                 if (object) setSelectionRequest({ ...object.sourceRange });
               }}
-              onBackgroundSelect={() => setSelectedActivityObjectId(undefined)}
+              onBackgroundSelect={clearSelectedActivityObject}
               onReorder={reorderActivityActionByDrag}
             />
           ) : (
@@ -3916,8 +3910,8 @@ export function App() {
         onPartitionDelete={removeActivityPartition}
         onNoteChange={applyActivityNote}
         onNoteDelete={removeActivityNote}
-        onCloseSettings={() => setActivitySettingsOpen(false)}
-        onCloseSelection={() => setSelectedActivityObjectId(undefined)}
+        onCloseSettings={closeActivitySettings}
+        onCloseSelection={clearSelectedActivityObject}
       />
       {selectedClassRelationship && (
         <ClassRelationshipInspector

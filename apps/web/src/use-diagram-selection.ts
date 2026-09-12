@@ -9,12 +9,10 @@ export type DiagramSelectionState = {
   selectedSequenceMessageId: string | undefined;
   selectedSequenceStructureId: string | undefined;
   selectedClassObjectId: string | undefined;
-  selectedActivityObjectId: string | undefined;
   sourceHighlightedTaskId: string | undefined;
   sourceHighlightedSequenceParticipantId: string | undefined;
   sourceHighlightedClassEntityId: string | undefined;
   sourceHighlightedClassMemberId: string | undefined;
-  sourceHighlightedActivityId: string | undefined;
 };
 
 export const initialDiagramSelectionState: DiagramSelectionState = {
@@ -26,12 +24,10 @@ export const initialDiagramSelectionState: DiagramSelectionState = {
   selectedSequenceMessageId: undefined,
   selectedSequenceStructureId: undefined,
   selectedClassObjectId: undefined,
-  selectedActivityObjectId: undefined,
   sourceHighlightedTaskId: undefined,
   sourceHighlightedSequenceParticipantId: undefined,
   sourceHighlightedClassEntityId: undefined,
   sourceHighlightedClassMemberId: undefined,
-  sourceHighlightedActivityId: undefined,
 };
 
 type SetDiagramSelectionAction = {
@@ -76,7 +72,6 @@ export function diagramSelectionReducer(
     selectedSequenceMessageId: undefined,
     selectedSequenceStructureId: undefined,
     selectedClassObjectId: undefined,
-    selectedActivityObjectId: undefined,
   };
 }
 
@@ -98,12 +93,10 @@ export function useDiagramSelection() {
       setSelectedSequenceMessageId: setter("selectedSequenceMessageId"),
       setSelectedSequenceStructureId: setter("selectedSequenceStructureId"),
       setSelectedClassObjectId: setter("selectedClassObjectId"),
-      setSelectedActivityObjectId: setter("selectedActivityObjectId"),
       setSourceHighlightedTaskId: setter("sourceHighlightedTaskId"),
       setSourceHighlightedSequenceParticipantId: setter("sourceHighlightedSequenceParticipantId"),
       setSourceHighlightedClassEntityId: setter("sourceHighlightedClassEntityId"),
       setSourceHighlightedClassMemberId: setter("sourceHighlightedClassMemberId"),
-      setSourceHighlightedActivityId: setter("sourceHighlightedActivityId"),
     };
   }, []);
   const resetTransientTabSelection = useCallback(() => dispatch({ type: "reset-transient-tab-selection" }), []);
