@@ -58,13 +58,12 @@ import { CollaborationDialog } from "./CollaborationDialog";
 import { JiraDialog } from "./JiraDialog";
 import { AddMenu } from "./AddMenu";
 import { NewDocumentDialog } from "./NewDocumentDialog";
-import { AddSequenceParticipantDialog, type AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
-import { AddSequenceMessageDialog, type AddSequenceMessageValue } from "./AddSequenceMessageDialog";
-import { SequenceParticipantInspector, type SequenceParticipantInspectorValue } from "./SequenceParticipantInspector";
-import { SequenceMessageInspector, type SequenceMessageInspectorValue } from "./SequenceMessageInspector";
-import { AddSequenceStructureDialog } from "./AddSequenceStructureDialog";
-import { SequenceStructureInspector } from "./SequenceStructureInspector";
-import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
+import type { AddSequenceParticipantValue } from "./AddSequenceParticipantDialog";
+import type { AddSequenceMessageValue } from "./AddSequenceMessageDialog";
+import type { SequenceParticipantInspectorValue } from "./SequenceParticipantInspector";
+import type { SequenceMessageInspectorValue } from "./SequenceMessageInspector";
+import { SequenceDialogs, type SequenceDialog } from "./features/sequence/SequenceDialogs";
+import { SequenceInspectors } from "./features/sequence/SequenceInspectors";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
@@ -625,6 +624,9 @@ export function App() {
       ...sequenceDocument.creations.map((creation) => creation.participant),
     ]),
   ];
+  const sequenceMessageAnchors = sequenceDocument.messages.flatMap((message) =>
+    message.anchor ? [message.anchor] : [],
+  );
   const activeDiagnostics = useMemo(
     () => diagnosticsForDiagram(workspace.diagramKind, workspace.source),
     [workspace.diagramKind, workspace.source],
@@ -2819,6 +2821,14 @@ export function App() {
               : dialog?.kind === "add-activity-arrow"
                 ? "arrow"
                 : undefined;
+  const sequenceDialog: SequenceDialog | undefined =
+    dialog?.kind === "add-sequence-participant"
+      ? { kind: "participant" }
+      : dialog?.kind === "add-sequence-message"
+        ? { kind: "message" }
+        : dialog?.kind === "add-sequence-structure"
+          ? { kind: "structure", structureKind: dialog.structureKind }
+          : undefined;
   const sideInspectorOpen = Boolean(
     selectedTask ||
     selectedDependency ||
@@ -3616,12 +3626,15 @@ export function App() {
         onAddArrow={addActivityArrow}
         onClose={() => closeDialog(dialog?.kind)}
       />
-      {dialog?.kind === "add-sequence-participant" && (
-        <AddSequenceParticipantDialog
-          onAdd={addSequenceParticipant}
-          onClose={() => closeDialog("add-sequence-participant")}
-        />
-      )}
+      <SequenceDialogs
+        active={sequenceDialog}
+        participants={sequenceParticipantNames}
+        anchors={sequenceMessageAnchors}
+        onAddParticipant={addSequenceParticipant}
+        onAddMessage={addSequenceMessage}
+        onAddStructure={addSequenceStructure}
+        onClose={() => closeDialog(dialog?.kind)}
+      />
       <UseCaseDialogs
         active={
           dialog?.kind === "add-usecase-element"
@@ -3641,22 +3654,6 @@ export function App() {
         onAddNote={addUseCaseNote}
         onClose={closeDialog}
       />
-      {dialog?.kind === "add-sequence-message" && (
-        <AddSequenceMessageDialog
-          participants={sequenceDocument.participants.map((participant) => participant.alias ?? participant.label)}
-          onAdd={addSequenceMessage}
-          onClose={() => closeDialog("add-sequence-message")}
-        />
-      )}
-      {dialog?.kind === "add-sequence-structure" && (
-        <AddSequenceStructureDialog
-          initialKind={dialog.structureKind}
-          participants={sequenceParticipantNames}
-          anchors={sequenceDocument.messages.flatMap((message) => (message.anchor ? [message.anchor] : []))}
-          onAdd={addSequenceStructure}
-          onClose={() => closeDialog("add-sequence-structure")}
-        />
-      )}
       {dialog?.kind === "add-task" && (
         <AddTaskDialog
           taskLabels={parseResult.document.tasks.map((task) => task.label)}
@@ -3701,13 +3698,6 @@ export function App() {
           {...(usingSingleFileProject
             ? { onRename: singleFileProject.renameDiagram, onDelete: singleFileProject.deleteDiagram }
             : {})}
-        />
-      )}
-      {sequenceSettingsOpen && (
-        <SequenceSettingsInspector
-          settings={parseSequenceSettings(workspace.source)}
-          onApply={applySequenceSettings}
-          onClose={() => setSequenceSettingsOpen(false)}
         />
       )}
       {dateMenuFor && (
@@ -3834,15 +3824,6 @@ export function App() {
           onApply={applyTimelineDateHighlight}
           onClear={clearTimelineDateHighlight}
           onClose={() => setHighlightDate(undefined)}
-        />
-      )}
-      {selectedSequenceParticipant && (
-        <SequenceParticipantInspector
-          key={`${selectedSequenceParticipant.id}:${selectedSequenceParticipant.sourceRange.to}`}
-          participant={selectedSequenceParticipant}
-          onApply={applySequenceParticipant}
-          onDelete={removeSequenceParticipant}
-          onClose={() => setSelectedSequenceParticipantId(undefined)}
         />
       )}
       <UseCaseInspectors
@@ -3972,27 +3953,26 @@ export function App() {
           onClose={() => closeDialog("add-class-note")}
         />
       )}
-      {selectedSequenceMessage && (
-        <SequenceMessageInspector
-          key={`${selectedSequenceMessage.id}:${selectedSequenceMessage.sourceRange.to}`}
-          message={selectedSequenceMessage}
-          participants={sequenceParticipantNames}
-          onApply={applySequenceMessage}
-          onDelete={removeSequenceMessage}
-          onClose={() => setSelectedSequenceMessageId(undefined)}
-        />
-      )}
-      {selectedSequenceStructure && (
-        <SequenceStructureInspector
-          key={`${selectedSequenceStructure.id}:${selectedSequenceStructure.sourceRange.to}`}
-          structure={selectedSequenceStructure}
-          participants={sequenceParticipantNames}
-          anchors={sequenceDocument.messages.flatMap((message) => (message.anchor ? [message.anchor] : []))}
-          onApply={applySequenceStructure}
-          onDelete={removeSequenceStructure}
-          onClose={() => setSelectedSequenceStructureId(undefined)}
-        />
-      )}
+      <SequenceInspectors
+        settingsOpen={sequenceSettingsOpen}
+        settings={parseSequenceSettings(workspace.source)}
+        selectedParticipant={selectedSequenceParticipant}
+        selectedMessage={selectedSequenceMessage}
+        selectedStructure={selectedSequenceStructure}
+        participants={sequenceParticipantNames}
+        anchors={sequenceMessageAnchors}
+        onSettingsApply={applySequenceSettings}
+        onParticipantApply={applySequenceParticipant}
+        onParticipantDelete={removeSequenceParticipant}
+        onMessageApply={applySequenceMessage}
+        onMessageDelete={removeSequenceMessage}
+        onStructureApply={applySequenceStructure}
+        onStructureDelete={removeSequenceStructure}
+        onCloseSettings={() => setSequenceSettingsOpen(false)}
+        onCloseParticipant={() => setSelectedSequenceParticipantId(undefined)}
+        onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
+        onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
+      />
       {selectedTask?.milestone && (
         <MilestoneInspector
           key={`${selectedTask.id}:${selectedTask.sourceRange.to}:${selectedTaskDependency?.predecessorTaskId ?? ""}:${selectedTaskDependency?.relation ?? ""}`}
