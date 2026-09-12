@@ -11,15 +11,12 @@ export type DiagramSelectionState = {
   selectedUseCaseObjectId: string | undefined;
   selectedClassObjectId: string | undefined;
   selectedActivityObjectId: string | undefined;
-  selectedWbsNodeId: string | undefined;
-  selectedWbsRelationshipId: string | undefined;
   sourceHighlightedTaskId: string | undefined;
   sourceHighlightedSequenceParticipantId: string | undefined;
   sourceHighlightedUseCaseId: string | undefined;
   sourceHighlightedClassEntityId: string | undefined;
   sourceHighlightedClassMemberId: string | undefined;
   sourceHighlightedActivityId: string | undefined;
-  sourceHighlightedWbsNodeId: string | undefined;
 };
 
 export const initialDiagramSelectionState: DiagramSelectionState = {
@@ -33,15 +30,12 @@ export const initialDiagramSelectionState: DiagramSelectionState = {
   selectedUseCaseObjectId: undefined,
   selectedClassObjectId: undefined,
   selectedActivityObjectId: undefined,
-  selectedWbsNodeId: undefined,
-  selectedWbsRelationshipId: undefined,
   sourceHighlightedTaskId: undefined,
   sourceHighlightedSequenceParticipantId: undefined,
   sourceHighlightedUseCaseId: undefined,
   sourceHighlightedClassEntityId: undefined,
   sourceHighlightedClassMemberId: undefined,
   sourceHighlightedActivityId: undefined,
-  sourceHighlightedWbsNodeId: undefined,
 };
 
 type SetDiagramSelectionAction = {
@@ -111,15 +105,12 @@ export function useDiagramSelection() {
       setSelectedUseCaseObjectId: setter("selectedUseCaseObjectId"),
       setSelectedClassObjectId: setter("selectedClassObjectId"),
       setSelectedActivityObjectId: setter("selectedActivityObjectId"),
-      setSelectedWbsNodeId: setter("selectedWbsNodeId"),
-      setSelectedWbsRelationshipId: setter("selectedWbsRelationshipId"),
       setSourceHighlightedTaskId: setter("sourceHighlightedTaskId"),
       setSourceHighlightedSequenceParticipantId: setter("sourceHighlightedSequenceParticipantId"),
       setSourceHighlightedUseCaseId: setter("sourceHighlightedUseCaseId"),
       setSourceHighlightedClassEntityId: setter("sourceHighlightedClassEntityId"),
       setSourceHighlightedClassMemberId: setter("sourceHighlightedClassMemberId"),
       setSourceHighlightedActivityId: setter("sourceHighlightedActivityId"),
-      setSourceHighlightedWbsNodeId: setter("sourceHighlightedWbsNodeId"),
     };
   }, []);
   const resetTransientTabSelection = useCallback(() => dispatch({ type: "reset-transient-tab-selection" }), []);

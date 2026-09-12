@@ -34,10 +34,9 @@ describe("diagram selection transitions", () => {
       selectedDependencyIndex: 2,
       selectedSequenceParticipantId: "alice",
       selectedSequenceMessageId: "message-1",
-      selectedWbsNodeId: "node-1",
     });
     expect(diagramSelectionReducer(state, { type: "reset-transient-tab-selection" })).toEqual(
-      selection({ selectedTaskId: "remembered-task", selectedWbsNodeId: "node-1" }),
+      selection({ selectedTaskId: "remembered-task" }),
     );
   });
 
@@ -45,13 +44,11 @@ describe("diagram selection transitions", () => {
     const state = selection({
       selectedTaskId: "task-a",
       selectedSequenceStructureId: "group-a",
-      selectedWbsNodeId: "node-a",
       sourceHighlightedTaskId: "task-b",
     });
     const next = diagramSelectionReducer(state, { type: "dismiss-inspector-selection" });
     expect(next.selectedTaskId).toBeUndefined();
     expect(next.selectedSequenceStructureId).toBeUndefined();
-    expect(next.selectedWbsNodeId).toBe("node-a");
     expect(next.sourceHighlightedTaskId).toBe("task-b");
   });
 });
