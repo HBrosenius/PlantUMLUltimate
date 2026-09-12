@@ -6,13 +6,8 @@ import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
-import {
-  AddWbsNodeDialog,
-  WbsNodeInspector,
-  WbsRelationshipInspector,
-  WbsSettingsInspector,
-  type WbsInsertPosition,
-} from "./WbsEditors";
+import { AddWbsNodeDialog, type WbsInsertPosition } from "./features/wbs/WbsDialogs";
+import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
 import {
