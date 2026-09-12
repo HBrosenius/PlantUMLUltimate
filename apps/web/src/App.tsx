@@ -1209,7 +1209,7 @@ export function App() {
     [setWorkspace],
   );
 
-  const { commitSource, commitGeneratedSource } = useSourceCommands({
+  const { commitSource, commitGeneratedSource, undo, redo } = useSourceCommands({
     source: workspace.source,
     diagramKind: workspace.diagramKind,
     readOnly: collaboration?.documentId === tabs.activeId && collaboration.role === "viewer",
@@ -1298,28 +1298,6 @@ export function App() {
     },
     [commitGeneratedSource, workspace.source],
   );
-
-  const undo = useCallback(() => {
-    if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
-      setInteractionMessage("Viewing only · undo is available only to editors");
-      return;
-    }
-    const source = activeHistory.undo(workspace.source);
-    if (source === undefined) return;
-    setWorkspace((current) => ({ ...current, source, dirty: true }));
-    refreshHistoryControls();
-  }, [activeHistory, collaboration, refreshHistoryControls, setWorkspace, tabs.activeId, workspace.source]);
-
-  const redo = useCallback(() => {
-    if (collaboration?.documentId === tabs.activeId && collaboration.role === "viewer") {
-      setInteractionMessage("Viewing only · redo is available only to editors");
-      return;
-    }
-    const source = activeHistory.redo(workspace.source);
-    if (source === undefined) return;
-    setWorkspace((current) => ({ ...current, source, dirty: true }));
-    refreshHistoryControls();
-  }, [activeHistory, collaboration, refreshHistoryControls, setWorkspace, tabs.activeId, workspace.source]);
 
   const {
     versionHistoryOpen,

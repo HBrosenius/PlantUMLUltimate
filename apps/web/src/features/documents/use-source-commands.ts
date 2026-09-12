@@ -84,5 +84,27 @@ export function useSourceCommands({
     [commitSource],
   );
 
-  return { commitSource, commitGeneratedSource };
+  const undo = useCallback(() => {
+    if (readOnly) {
+      setInteractionMessage("Viewing only · undo is available only to editors");
+      return;
+    }
+    const source = history.undo(currentSource);
+    if (source === undefined) return;
+    setWorkspace((current) => ({ ...current, source, dirty: true }));
+    refreshHistoryControls();
+  }, [currentSource, history, readOnly, refreshHistoryControls, setInteractionMessage, setWorkspace]);
+
+  const redo = useCallback(() => {
+    if (readOnly) {
+      setInteractionMessage("Viewing only · redo is available only to editors");
+      return;
+    }
+    const source = history.redo(currentSource);
+    if (source === undefined) return;
+    setWorkspace((current) => ({ ...current, source, dirty: true }));
+    refreshHistoryControls();
+  }, [currentSource, history, readOnly, refreshHistoryControls, setInteractionMessage, setWorkspace]);
+
+  return { commitSource, commitGeneratedSource, undo, redo };
 }
