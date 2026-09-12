@@ -8,12 +8,10 @@ export type DiagramSelectionState = {
   selectedSequenceParticipantId: string | undefined;
   selectedSequenceMessageId: string | undefined;
   selectedSequenceStructureId: string | undefined;
-  selectedUseCaseObjectId: string | undefined;
   selectedClassObjectId: string | undefined;
   selectedActivityObjectId: string | undefined;
   sourceHighlightedTaskId: string | undefined;
   sourceHighlightedSequenceParticipantId: string | undefined;
-  sourceHighlightedUseCaseId: string | undefined;
   sourceHighlightedClassEntityId: string | undefined;
   sourceHighlightedClassMemberId: string | undefined;
   sourceHighlightedActivityId: string | undefined;
@@ -27,12 +25,10 @@ export const initialDiagramSelectionState: DiagramSelectionState = {
   selectedSequenceParticipantId: undefined,
   selectedSequenceMessageId: undefined,
   selectedSequenceStructureId: undefined,
-  selectedUseCaseObjectId: undefined,
   selectedClassObjectId: undefined,
   selectedActivityObjectId: undefined,
   sourceHighlightedTaskId: undefined,
   sourceHighlightedSequenceParticipantId: undefined,
-  sourceHighlightedUseCaseId: undefined,
   sourceHighlightedClassEntityId: undefined,
   sourceHighlightedClassMemberId: undefined,
   sourceHighlightedActivityId: undefined,
@@ -79,7 +75,6 @@ export function diagramSelectionReducer(
     selectedSequenceParticipantId: undefined,
     selectedSequenceMessageId: undefined,
     selectedSequenceStructureId: undefined,
-    selectedUseCaseObjectId: undefined,
     selectedClassObjectId: undefined,
     selectedActivityObjectId: undefined,
   };
@@ -102,12 +97,10 @@ export function useDiagramSelection() {
       setSelectedSequenceParticipantId: setter("selectedSequenceParticipantId"),
       setSelectedSequenceMessageId: setter("selectedSequenceMessageId"),
       setSelectedSequenceStructureId: setter("selectedSequenceStructureId"),
-      setSelectedUseCaseObjectId: setter("selectedUseCaseObjectId"),
       setSelectedClassObjectId: setter("selectedClassObjectId"),
       setSelectedActivityObjectId: setter("selectedActivityObjectId"),
       setSourceHighlightedTaskId: setter("sourceHighlightedTaskId"),
       setSourceHighlightedSequenceParticipantId: setter("sourceHighlightedSequenceParticipantId"),
-      setSourceHighlightedUseCaseId: setter("sourceHighlightedUseCaseId"),
       setSourceHighlightedClassEntityId: setter("sourceHighlightedClassEntityId"),
       setSourceHighlightedClassMemberId: setter("sourceHighlightedClassMemberId"),
       setSourceHighlightedActivityId: setter("sourceHighlightedActivityId"),

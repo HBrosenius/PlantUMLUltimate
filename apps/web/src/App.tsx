@@ -212,6 +212,7 @@ import {
 import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
 import { UseCaseInspectors } from "./features/usecase/UseCaseInspectors";
 import { useUseCaseActions } from "./features/usecase/use-usecase-actions";
+import { useUseCaseController } from "./features/usecase/use-usecase-controller";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
@@ -266,8 +267,6 @@ export function App() {
     setSelectedSequenceMessageId,
     selectedSequenceStructureId,
     setSelectedSequenceStructureId,
-    selectedUseCaseObjectId,
-    setSelectedUseCaseObjectId,
     selectedClassObjectId,
     setSelectedClassObjectId,
     selectedActivityObjectId,
@@ -276,8 +275,6 @@ export function App() {
     setSourceHighlightedTaskId,
     sourceHighlightedSequenceParticipantId,
     setSourceHighlightedSequenceParticipantId,
-    sourceHighlightedUseCaseId,
-    setSourceHighlightedUseCaseId,
     sourceHighlightedClassEntityId,
     setSourceHighlightedClassEntityId,
     sourceHighlightedClassMemberId,
@@ -324,7 +321,6 @@ export function App() {
   const [activitySettingsOpen, setActivitySettingsOpen] = useState(false);
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
   const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
-  const [useCaseSettingsOpen, setUseCaseSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
@@ -644,10 +640,22 @@ export function App() {
     [sequenceDocument],
   );
   const selectedSequenceStructure = sequenceStructures.find((item) => item.id === selectedSequenceStructureId);
-  const selectedUseCaseElement = useCaseDocument.elements.find((item) => item.id === selectedUseCaseObjectId);
-  const selectedUseCaseRelationship = useCaseDocument.relationships.find((item) => item.id === selectedUseCaseObjectId);
-  const selectedUseCasePackage = useCaseDocument.packages.find((item) => item.id === selectedUseCaseObjectId);
-  const selectedUseCaseNote = useCaseDocument.notes.find((item) => item.id === selectedUseCaseObjectId);
+  const {
+    selectedObjectId: selectedUseCaseObjectId,
+    sourceHighlightedId: sourceHighlightedUseCaseId,
+    settingsOpen: useCaseSettingsOpen,
+    selectedElement: selectedUseCaseElement,
+    selectedRelationship: selectedUseCaseRelationship,
+    selectedPackage: selectedUseCasePackage,
+    selectedNote: selectedUseCaseNote,
+    setSourceHighlightedId: setSourceHighlightedUseCaseId,
+    clearSelection: clearSelectedUseCaseObject,
+    closeSettings: closeUseCaseSettings,
+    openSettingsFromToolbar: openUseCaseSettingsFromToolbar,
+    selectObject: selectUseCaseObject,
+    selectFromSource: selectUseCaseFromSource,
+    dismissInspector: dismissUseCaseInspector,
+  } = useUseCaseController(workspace.diagramKind, useCaseDocument);
   const sequenceParticipantNames = [
     ...new Set([
       ...sequenceDocument.participants.map((participant) => participant.alias ?? participant.label),
@@ -848,8 +856,8 @@ export function App() {
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       dismissInspectorSelection();
+      dismissUseCaseInspector();
       setProjectInspectorOpen(false);
-      setUseCaseSettingsOpen(false);
       setClassSettingsOpen(false);
       setActivitySettingsOpen(false);
       setFocusNoteTaskId(undefined);
@@ -870,6 +878,7 @@ export function App() {
     classSettingsOpen,
     activitySettingsOpen,
     dismissInspectorSelection,
+    dismissUseCaseInspector,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -1582,7 +1591,7 @@ export function App() {
     commitSource,
     confirmDelete: confirmUseCaseDelete,
     closeDialog: closeUseCaseDialog,
-    selectObject: setSelectedUseCaseObjectId,
+    selectObject: selectUseCaseObject,
     reportMessage: setInteractionMessage,
   });
 
@@ -3018,13 +3027,7 @@ export function App() {
             </button>
           )}
           {workspace.diagramKind === "usecase" && (
-            <button
-              data-inspector-trigger
-              onClick={() => {
-                setSelectedUseCaseObjectId(undefined);
-                setUseCaseSettingsOpen(true);
-              }}
-            >
+            <button data-inspector-trigger onClick={openUseCaseSettingsFromToolbar}>
               Use Case
             </button>
           )}
@@ -3318,8 +3321,7 @@ export function App() {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedUseCaseId(occurrence?.key);
-                if (!occurrence) setSelectedUseCaseObjectId(findUseCaseObjectAt(useCaseDocument, position)?.id);
+                selectUseCaseFromSource(occurrence?.key, findUseCaseObjectAt(useCaseDocument, position)?.id);
               } else if (workspace.diagramKind === "class") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -3482,8 +3484,7 @@ export function App() {
               document={useCaseDocument}
               selectedId={selectedUseCaseObjectId ?? sourceHighlightedUseCaseId}
               onSelect={(id) => {
-                setUseCaseSettingsOpen(false);
-                setSelectedUseCaseObjectId(id);
+                selectUseCaseObject(id);
                 const object = [
                   ...useCaseDocument.elements,
                   ...useCaseDocument.packages,
@@ -4001,8 +4002,8 @@ export function App() {
         onPackageDelete={removeUseCasePackage}
         onNoteChange={applyUseCaseNote}
         onNoteDelete={removeUseCaseNote}
-        onCloseSettings={() => setUseCaseSettingsOpen(false)}
-        onCloseSelection={() => setSelectedUseCaseObjectId(undefined)}
+        onCloseSettings={closeUseCaseSettings}
+        onCloseSelection={clearSelectedUseCaseObject}
       />
       {selectedClassEntity && (
         <ClassEntityInspector
