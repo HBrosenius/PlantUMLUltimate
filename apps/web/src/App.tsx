@@ -10,22 +10,9 @@ import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
-import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
-import {
-  ActivityActionInspector,
-  ActivityArrowInspector,
-  ActivityControlInspector,
-  ActivityTerminalInspector,
-  AddActivityStructureDialog,
-  AddActivityTerminalDialog,
-  AddActivityArrowDialog,
-  ActivityNoteInspector,
-  ActivityPartitionInspector,
-  AddActivityActionDialog,
-  AddActivityNoteDialog,
-  AddActivityPartitionDialog,
-} from "./ActivityEditors";
+import { ActivityDialogs, type ActivityDialogKind } from "./features/activity/ActivityDialogs";
+import { ActivityInspectors } from "./features/activity/ActivityInspectors";
 import {
   AddClassEntityDialog,
   AddClassPackageDialog,
@@ -2916,6 +2903,20 @@ export function App() {
     [restorePreviousFocus],
   );
 
+  const activityDialogKind: ActivityDialogKind | undefined =
+    dialog?.kind === "add-activity-action"
+      ? "action"
+      : dialog?.kind === "add-activity-partition"
+        ? "partition"
+        : dialog?.kind === "add-activity-note"
+          ? "note"
+          : dialog?.kind === "add-activity-structure"
+            ? "structure"
+            : dialog?.kind === "add-activity-terminal"
+              ? "terminal"
+              : dialog?.kind === "add-activity-arrow"
+                ? "arrow"
+                : undefined;
   const sideInspectorOpen = Boolean(
     selectedTask ||
     selectedDependency ||
@@ -3709,44 +3710,17 @@ export function App() {
           onClose={clearSelectedWbsRelationship}
         />
       )}
-      {dialog?.kind === "add-activity-action" && (
-        <AddActivityActionDialog
-          document={activityDocument}
-          onAdd={addActivityAction}
-          onClose={() => closeDialog("add-activity-action")}
-        />
-      )}
-      {dialog?.kind === "add-activity-partition" && (
-        <AddActivityPartitionDialog
-          document={activityDocument}
-          onAdd={addActivityPartition}
-          onClose={() => closeDialog("add-activity-partition")}
-        />
-      )}
-      {dialog?.kind === "add-activity-note" && (
-        <AddActivityNoteDialog
-          document={activityDocument}
-          onAdd={addActivityNote}
-          onClose={() => closeDialog("add-activity-note")}
-        />
-      )}
-      {dialog?.kind === "add-activity-structure" && (
-        <AddActivityStructureDialog
-          document={activityDocument}
-          onAdd={addActivityStructure}
-          onClose={() => closeDialog("add-activity-structure")}
-        />
-      )}
-      {dialog?.kind === "add-activity-terminal" && (
-        <AddActivityTerminalDialog onAdd={addActivityTerminal} onClose={() => closeDialog("add-activity-terminal")} />
-      )}
-      {dialog?.kind === "add-activity-arrow" && (
-        <AddActivityArrowDialog
-          document={activityDocument}
-          onAdd={addActivityArrow}
-          onClose={() => closeDialog("add-activity-arrow")}
-        />
-      )}
+      <ActivityDialogs
+        active={activityDialogKind}
+        document={activityDocument}
+        onAddAction={addActivityAction}
+        onAddPartition={addActivityPartition}
+        onAddNote={addActivityNote}
+        onAddStructure={addActivityStructure}
+        onAddTerminal={addActivityTerminal}
+        onAddArrow={addActivityArrow}
+        onClose={() => closeDialog(dialog?.kind)}
+      />
       {dialog?.kind === "add-sequence-participant" && (
         <AddSequenceParticipantDialog
           onAdd={addSequenceParticipant}
@@ -3839,13 +3813,6 @@ export function App() {
           settings={parseSequenceSettings(workspace.source)}
           onApply={applySequenceSettings}
           onClose={() => setSequenceSettingsOpen(false)}
-        />
-      )}
-      {activitySettingsOpen && (
-        <ActivitySettingsInspector
-          settings={parseActivitySettings(workspace.source)}
-          onChange={applyActivitySettings}
-          onClose={() => setActivitySettingsOpen(false)}
         />
       )}
       {dateMenuFor && (
@@ -4024,58 +3991,33 @@ export function App() {
           onClose={() => setSelectedClassObjectId(undefined)}
         />
       )}
-      {selectedActivityAction && (
-        <ActivityActionInspector
-          item={selectedActivityAction}
-          document={activityDocument}
-          onChange={applyActivityAction}
-          onPartitionChange={moveActivityActionPartition}
-          onDelete={removeActivityAction}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
-      {selectedActivityControl && (
-        <ActivityControlInspector
-          item={selectedActivityControl}
-          onChange={applyActivityControl}
-          onDelete={removeActivityControl}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
-      {selectedActivityTerminal && (
-        <ActivityTerminalInspector
-          item={selectedActivityTerminal}
-          onDelete={removeActivityTerminal}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
-      {selectedActivityArrow && (
-        <ActivityArrowInspector
-          item={selectedActivityArrow}
-          onChange={applyActivityArrow}
-          onDelete={removeActivityArrow}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
-      {selectedActivityPartition && (
-        <ActivityPartitionInspector
-          item={selectedActivityPartition}
-          document={activityDocument}
-          onChange={applyActivityPartition}
-          onParentChange={moveSelectedActivityPartition}
-          onDelete={removeActivityPartition}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
-      {selectedActivityNote && (
-        <ActivityNoteInspector
-          item={selectedActivityNote}
-          document={activityDocument}
-          onChange={applyActivityNote}
-          onDelete={removeActivityNote}
-          onClose={() => setSelectedActivityObjectId(undefined)}
-        />
-      )}
+      <ActivityInspectors
+        settingsOpen={activitySettingsOpen}
+        settings={parseActivitySettings(workspace.source)}
+        document={activityDocument}
+        selectedAction={selectedActivityAction}
+        selectedControl={selectedActivityControl}
+        selectedTerminal={selectedActivityTerminal}
+        selectedArrow={selectedActivityArrow}
+        selectedPartition={selectedActivityPartition}
+        selectedNote={selectedActivityNote}
+        onSettingsChange={applyActivitySettings}
+        onActionChange={applyActivityAction}
+        onActionPartitionChange={moveActivityActionPartition}
+        onActionDelete={removeActivityAction}
+        onControlChange={applyActivityControl}
+        onControlDelete={removeActivityControl}
+        onTerminalDelete={removeActivityTerminal}
+        onArrowChange={applyActivityArrow}
+        onArrowDelete={removeActivityArrow}
+        onPartitionChange={applyActivityPartition}
+        onPartitionParentChange={moveSelectedActivityPartition}
+        onPartitionDelete={removeActivityPartition}
+        onNoteChange={applyActivityNote}
+        onNoteDelete={removeActivityNote}
+        onCloseSettings={() => setActivitySettingsOpen(false)}
+        onCloseSelection={() => setSelectedActivityObjectId(undefined)}
+      />
       {selectedClassRelationship && (
         <ClassRelationshipInspector
           item={selectedClassRelationship}
