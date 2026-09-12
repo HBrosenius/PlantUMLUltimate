@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
@@ -250,41 +250,13 @@ import { useDocumentFiles } from "./use-document-files";
 import { useCollaborationLifecycle } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
 import { useWorkspaceDocuments } from "./use-workspace-documents";
+import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import { useResourceCapacities } from "./use-resource-capacities";
 import {
   createSemanticSymbolProvider,
   type SemanticRenameRequest,
   type SemanticSymbolOccurrence,
 } from "./semantic-symbol-provider";
-
-type InspectorFocusSnapshot = {
-  inspectorLabel: string;
-  controlIndex: number;
-  selectionStart?: number;
-  selectionEnd?: number;
-};
-
-function captureInspectorFocus(): InspectorFocusSnapshot | undefined {
-  const active = document.activeElement;
-  if (!(active instanceof HTMLElement)) return undefined;
-  const inspector = active.closest<HTMLElement>(".task-inspector");
-  const inspectorLabel = inspector?.getAttribute("aria-label");
-  if (!inspector || !inspectorLabel) return undefined;
-  const controls = [...inspector.querySelectorAll<HTMLElement>("input, select, textarea, button")];
-  const controlIndex = controls.indexOf(active);
-  if (controlIndex < 0) return undefined;
-  const selectionControl =
-    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : undefined;
-  const snapshot: InspectorFocusSnapshot = {
-    inspectorLabel,
-    controlIndex,
-  };
-  if (selectionControl?.selectionStart !== null && selectionControl?.selectionStart !== undefined)
-    snapshot.selectionStart = selectionControl.selectionStart;
-  if (selectionControl?.selectionEnd !== null && selectionControl?.selectionEnd !== undefined)
-    snapshot.selectionEnd = selectionControl.selectionEnd;
-  return snapshot;
-}
 
 function diagramFocusSelector(target: Element): string | undefined {
   for (const attribute of [
@@ -412,7 +384,7 @@ export function App() {
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
   const workspaceElement = useRef<HTMLElement>(null);
-  const pendingInspectorFocus = useRef<InspectorFocusSnapshot | undefined>(undefined);
+  const { captureBeforeCommit } = useWorkspaceFocus(workspace.source, workspaceElement);
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const lastDiagramFocusSelector = useRef<string | undefined>(undefined);
   const renameReturnFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
@@ -1263,7 +1235,7 @@ export function App() {
           return false;
         }
       }
-      pendingInspectorFocus.current = captureInspectorFocus();
+      captureBeforeCommit();
       setProblemPreview(undefined);
       activeHistory.record(workspace.source, source, description);
       setWorkspace((current) => ({ ...current, source, dirty: true }));
@@ -1272,6 +1244,7 @@ export function App() {
     },
     [
       activeHistory,
+      captureBeforeCommit,
       collaboration,
       refreshHistoryControls,
       setWorkspace,
@@ -1280,28 +1253,6 @@ export function App() {
       workspace.source,
     ],
   );
-
-  useLayoutEffect(() => {
-    const snapshot = pendingInspectorFocus.current;
-    if (!snapshot) return;
-    pendingInspectorFocus.current = undefined;
-    const inspector = [...document.querySelectorAll<HTMLElement>(".task-inspector")].find(
-      (item) => item.getAttribute("aria-label") === snapshot.inspectorLabel,
-    );
-    const control = inspector?.querySelectorAll<HTMLElement>("input, select, textarea, button")[snapshot.controlIndex];
-    if (!control) {
-      workspaceElement.current?.focus({ preventScroll: true });
-      return;
-    }
-    control.focus({ preventScroll: true });
-    if (
-      snapshot.selectionStart !== undefined &&
-      snapshot.selectionEnd !== undefined &&
-      (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)
-    ) {
-      control.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
-    }
-  }, [workspace.source]);
 
   const commitGeneratedSource = useCallback(
     (source: string, description: string): boolean => commitSource(source, description),
