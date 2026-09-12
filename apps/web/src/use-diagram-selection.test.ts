@@ -32,8 +32,6 @@ describe("diagram selection transitions", () => {
     const state = selection({
       selectedTaskId: "remembered-task",
       selectedDependencyIndex: 2,
-      selectedSequenceParticipantId: "alice",
-      selectedSequenceMessageId: "message-1",
     });
     expect(diagramSelectionReducer(state, { type: "reset-transient-tab-selection" })).toEqual(
       selection({ selectedTaskId: "remembered-task" }),
@@ -43,12 +41,12 @@ describe("diagram selection transitions", () => {
   it("dismisses inspector selections while preserving source highlights", () => {
     const state = selection({
       selectedTaskId: "task-a",
-      selectedSequenceStructureId: "group-a",
+      selectedClassObjectId: "class-a",
       sourceHighlightedTaskId: "task-b",
     });
     const next = diagramSelectionReducer(state, { type: "dismiss-inspector-selection" });
     expect(next.selectedTaskId).toBeUndefined();
-    expect(next.selectedSequenceStructureId).toBeUndefined();
+    expect(next.selectedClassObjectId).toBeUndefined();
     expect(next.sourceHighlightedTaskId).toBe("task-b");
   });
 });

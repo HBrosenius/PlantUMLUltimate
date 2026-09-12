@@ -61,6 +61,7 @@ import { NewDocumentDialog } from "./NewDocumentDialog";
 import { SequenceDialogs, type SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { SequenceInspectors } from "./features/sequence/SequenceInspectors";
 import { useSequenceActions } from "./features/sequence/use-sequence-actions";
+import { useSequenceController } from "./features/sequence/use-sequence-controller";
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
@@ -202,18 +203,10 @@ export function App() {
     setSelectedDividerIndex,
     selectedVerticalSeparatorIndex,
     setSelectedVerticalSeparatorIndex,
-    selectedSequenceParticipantId,
-    setSelectedSequenceParticipantId,
-    selectedSequenceMessageId,
-    setSelectedSequenceMessageId,
-    selectedSequenceStructureId,
-    setSelectedSequenceStructureId,
     selectedClassObjectId,
     setSelectedClassObjectId,
     sourceHighlightedTaskId,
     setSourceHighlightedTaskId,
-    sourceHighlightedSequenceParticipantId,
-    setSourceHighlightedSequenceParticipantId,
     sourceHighlightedClassEntityId,
     setSourceHighlightedClassEntityId,
     sourceHighlightedClassMemberId,
@@ -256,7 +249,6 @@ export function App() {
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [classSettingsOpen, setClassSettingsOpen] = useState(false);
-  const [sequenceSettingsOpen, setSequenceSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
@@ -565,10 +557,6 @@ export function App() {
   const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
   const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
   const selectedClassNote = classDocument.notes.find((x) => x.id === selectedClassObjectId);
-  const selectedSequenceParticipant = sequenceDocument.participants.find(
-    (item) => item.id === selectedSequenceParticipantId,
-  );
-  const selectedSequenceMessage = sequenceDocument.messages.find((item) => item.id === selectedSequenceMessageId);
   const sequenceStructures = useMemo(
     () => [
       ...sequenceDocument.fragments,
@@ -583,7 +571,32 @@ export function App() {
     ],
     [sequenceDocument],
   );
-  const selectedSequenceStructure = sequenceStructures.find((item) => item.id === selectedSequenceStructureId);
+  const revealSequenceSource = useCallback(
+    (range: { from: number; to: number }) => setSelectionRequest({ ...range }),
+    [],
+  );
+  const {
+    selectedParticipantId: selectedSequenceParticipantId,
+    selectedMessageId: selectedSequenceMessageId,
+    selectedStructureId: selectedSequenceStructureId,
+    sourceHighlightedParticipantId: sourceHighlightedSequenceParticipantId,
+    settingsOpen: sequenceSettingsOpen,
+    selectedParticipant: selectedSequenceParticipant,
+    selectedMessage: selectedSequenceMessage,
+    selectedStructure: selectedSequenceStructure,
+    setSourceHighlightedParticipantId: setSourceHighlightedSequenceParticipantId,
+    setSelectedParticipantId: setSelectedSequenceParticipantId,
+    setSelectedMessageId: setSelectedSequenceMessageId,
+    setSelectedStructureId: setSelectedSequenceStructureId,
+    selectParticipant: selectSequenceParticipant,
+    selectMessage: selectSequenceMessage,
+    selectStructure: selectSequenceStructure,
+    clearSelection: clearSequenceSelection,
+    closeSettings: closeSequenceSettings,
+    openSettings: openSequenceSettings,
+    dismissInspector: dismissSequenceInspector,
+    resetTransientSelection: resetTransientSequenceSelection,
+  } = useSequenceController(workspace.diagramKind, sequenceDocument, sequenceStructures, revealSequenceSource);
   const {
     selectedObjectId: selectedUseCaseObjectId,
     sourceHighlightedId: sourceHighlightedUseCaseId,
@@ -733,11 +746,15 @@ export function App() {
       externalCheckSnoozedUntil.current.delete(documentId);
     }
   }, []);
+  const resetTransientDocumentSelection = useCallback(() => {
+    resetTransientTabSelection();
+    resetTransientSequenceSelection();
+  }, [resetTransientSequenceSelection, resetTransientTabSelection]);
   const { activateTab, closeTab, duplicateTab, closeOtherTabs, rememberSelectedTask } = useDocumentTabLifecycle({
     tabs,
     selectedTaskId,
     setSelectedTaskId,
-    resetTransientSelection: resetTransientTabSelection,
+    resetTransientSelection: resetTransientDocumentSelection,
     removeHistory,
     retainHistories,
     releaseDocumentResources,
@@ -803,6 +820,7 @@ export function App() {
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       dismissInspectorSelection();
+      dismissSequenceInspector();
       dismissUseCaseInspector();
       dismissActivityInspector();
       setProjectInspectorOpen(false);
@@ -825,6 +843,7 @@ export function App() {
     classSettingsOpen,
     activitySettingsOpen,
     dismissInspectorSelection,
+    dismissSequenceInspector,
     dismissUseCaseInspector,
     dismissActivityInspector,
     selectedTaskId,
@@ -1740,56 +1759,11 @@ export function App() {
     reportMessage: setInteractionMessage,
   });
 
-  const selectSequenceParticipant = useCallback(
-    (id: string, revealSource = true) => {
-      setSelectedSequenceParticipantId(id);
-      setSelectedSequenceMessageId(undefined);
-      setSelectedSequenceStructureId(undefined);
-      if (revealSource) {
-        const participant = sequenceDocument.participants.find((item) => item.id === id);
-        if (participant) setSelectionRequest({ ...participant.sourceRange });
-      }
-    },
-    [sequenceDocument, setSelectedSequenceMessageId, setSelectedSequenceParticipantId, setSelectedSequenceStructureId],
-  );
-
-  const selectSequenceMessage = useCallback(
-    (id: string, revealSource = true) => {
-      setSelectedSequenceMessageId(id);
-      setSelectedSequenceParticipantId(undefined);
-      setSelectedSequenceStructureId(undefined);
-      if (revealSource) {
-        const message = sequenceDocument.messages.find((item) => item.id === id);
-        if (message) setSelectionRequest({ ...message.sourceRange });
-      }
-    },
-    [sequenceDocument, setSelectedSequenceMessageId, setSelectedSequenceParticipantId, setSelectedSequenceStructureId],
-  );
-
-  const selectSequenceStructure = useCallback(
-    (id: string, revealSource = true) => {
-      setSelectedSequenceStructureId(id);
-      setSelectedSequenceParticipantId(undefined);
-      setSelectedSequenceMessageId(undefined);
-      if (revealSource) {
-        const structure = sequenceStructures.find((item) => item.id === id);
-        if (structure) setSelectionRequest({ ...structure.sourceRange });
-      }
-    },
-    [
-      sequenceStructures,
-      setSelectedSequenceMessageId,
-      setSelectedSequenceParticipantId,
-      setSelectedSequenceStructureId,
-    ],
-  );
-
   const closeSequenceDialog = useCallback(
     (kind: "participant" | "message" | "structure") => closeDialog(`add-sequence-${kind}`),
     [closeDialog],
   );
   const confirmSequenceDelete = useCallback((message: string) => window.confirm(message), []);
-  const closeSequenceSettings = useCallback(() => setSequenceSettingsOpen(false), []);
   const {
     addSequenceParticipant,
     addSequenceMessage,
@@ -2715,7 +2689,7 @@ export function App() {
             </>
           )}
           {workspace.diagramKind === "sequence" && (
-            <button data-inspector-trigger onClick={() => setSequenceSettingsOpen(true)}>
+            <button data-inspector-trigger onClick={openSequenceSettings}>
               Sequence
             </button>
           )}
@@ -2999,11 +2973,7 @@ export function App() {
                   selectSequenceParticipant(object.id, false);
                 else if (object && "from" in object) selectSequenceMessage(object.id, false);
                 else if (object) selectSequenceStructure(object.id, false);
-                else if (!occurrence) {
-                  setSelectedSequenceParticipantId(undefined);
-                  setSelectedSequenceMessageId(undefined);
-                  setSelectedSequenceStructureId(undefined);
-                }
+                else if (!occurrence) clearSequenceSelection();
               } else if (workspace.diagramKind === "usecase") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);

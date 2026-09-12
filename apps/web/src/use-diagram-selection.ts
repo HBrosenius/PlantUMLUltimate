@@ -5,12 +5,8 @@ export type DiagramSelectionState = {
   selectedDependencyIndex: number | undefined;
   selectedDividerIndex: number | undefined;
   selectedVerticalSeparatorIndex: number | undefined;
-  selectedSequenceParticipantId: string | undefined;
-  selectedSequenceMessageId: string | undefined;
-  selectedSequenceStructureId: string | undefined;
   selectedClassObjectId: string | undefined;
   sourceHighlightedTaskId: string | undefined;
-  sourceHighlightedSequenceParticipantId: string | undefined;
   sourceHighlightedClassEntityId: string | undefined;
   sourceHighlightedClassMemberId: string | undefined;
 };
@@ -20,12 +16,8 @@ export const initialDiagramSelectionState: DiagramSelectionState = {
   selectedDependencyIndex: undefined,
   selectedDividerIndex: undefined,
   selectedVerticalSeparatorIndex: undefined,
-  selectedSequenceParticipantId: undefined,
-  selectedSequenceMessageId: undefined,
-  selectedSequenceStructureId: undefined,
   selectedClassObjectId: undefined,
   sourceHighlightedTaskId: undefined,
-  sourceHighlightedSequenceParticipantId: undefined,
   sourceHighlightedClassEntityId: undefined,
   sourceHighlightedClassMemberId: undefined,
 };
@@ -58,8 +50,6 @@ export function diagramSelectionReducer(
     return {
       ...state,
       selectedDependencyIndex: undefined,
-      selectedSequenceParticipantId: undefined,
-      selectedSequenceMessageId: undefined,
     };
   }
   return {
@@ -68,9 +58,6 @@ export function diagramSelectionReducer(
     selectedDependencyIndex: undefined,
     selectedDividerIndex: undefined,
     selectedVerticalSeparatorIndex: undefined,
-    selectedSequenceParticipantId: undefined,
-    selectedSequenceMessageId: undefined,
-    selectedSequenceStructureId: undefined,
     selectedClassObjectId: undefined,
   };
 }
@@ -89,12 +76,8 @@ export function useDiagramSelection() {
       setSelectedDependencyIndex: setter("selectedDependencyIndex"),
       setSelectedDividerIndex: setter("selectedDividerIndex"),
       setSelectedVerticalSeparatorIndex: setter("selectedVerticalSeparatorIndex"),
-      setSelectedSequenceParticipantId: setter("selectedSequenceParticipantId"),
-      setSelectedSequenceMessageId: setter("selectedSequenceMessageId"),
-      setSelectedSequenceStructureId: setter("selectedSequenceStructureId"),
       setSelectedClassObjectId: setter("selectedClassObjectId"),
       setSourceHighlightedTaskId: setter("sourceHighlightedTaskId"),
-      setSourceHighlightedSequenceParticipantId: setter("sourceHighlightedSequenceParticipantId"),
       setSourceHighlightedClassEntityId: setter("sourceHighlightedClassEntityId"),
       setSourceHighlightedClassMemberId: setter("sourceHighlightedClassMemberId"),
     };
