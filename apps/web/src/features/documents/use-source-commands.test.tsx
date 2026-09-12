@@ -30,7 +30,7 @@ function Harness({
   const [message, setMessage] = useState<string>();
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [problemsOpen, setProblemsOpen] = useState(false);
-  const { commitGeneratedSource } = useSourceCommands({
+  const { commitGeneratedSource, undo, redo } = useSourceCommands({
     source: workspace.source,
     diagramKind: workspace.diagramKind,
     readOnly,
@@ -46,6 +46,8 @@ function Harness({
   return (
     <>
       <button onClick={() => commitGeneratedSource(candidate, "Update task")}>Commit</button>
+      <button onClick={undo}>Undo</button>
+      <button onClick={redo}>Redo</button>
       <output data-testid="source">{workspace.source}</output>
       <output data-testid="message">{message}</output>
       <output data-testid="problem">{problemPreview?.message}</output>
@@ -119,5 +121,45 @@ describe("useSourceCommands", () => {
     expect(captureBeforeCommit).not.toHaveBeenCalled();
     expect(refreshHistoryControls).not.toHaveBeenCalled();
     expect(history.canUndo).toBe(false);
+  });
+
+  it("undoes and redoes only the active history", () => {
+    const history = new SourceHistory();
+    const otherHistory = new SourceHistory();
+    otherHistory.record(initialSource, "other document", "Other edit");
+    const refreshHistoryControls = vi.fn();
+    render(<Harness history={history} captureBeforeCommit={vi.fn()} refreshHistoryControls={refreshHistoryControls} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Commit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByTestId("source").textContent).toBe(initialSource);
+    expect(otherHistory.canUndo).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(screen.getByTestId("source").textContent).toBe(changedSource);
+    expect(otherHistory.canUndo).toBe(true);
+    expect(refreshHistoryControls).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects viewer undo and redo without consuming history", () => {
+    const history = new SourceHistory();
+    history.record(initialSource, changedSource, "Update task");
+    const refreshHistoryControls = vi.fn();
+    render(
+      <Harness
+        readOnly
+        candidate={initialSource}
+        history={history}
+        captureBeforeCommit={vi.fn()}
+        refreshHistoryControls={refreshHistoryControls}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByTestId("message")).toHaveTextContent("undo is available only to editors");
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(screen.getByTestId("message")).toHaveTextContent("redo is available only to editors");
+    expect(history.canUndo).toBe(true);
+    expect(refreshHistoryControls).not.toHaveBeenCalled();
   });
 });
