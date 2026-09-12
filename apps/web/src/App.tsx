@@ -77,7 +77,6 @@ import { AddSequenceStructureDialog } from "./AddSequenceStructureDialog";
 import { SequenceStructureInspector } from "./SequenceStructureInspector";
 import { SequenceSettingsInspector } from "./SequenceSettingsInspector";
 import { parseSequenceSettings, updateSequenceSettings, type SequenceSettings } from "./sequence-settings";
-import { UseCaseSettingsInspector } from "./UseCaseSettingsInspector";
 import { parseUseCaseSettings, updateUseCaseSettings, type UseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
@@ -230,14 +229,8 @@ import {
   type UseCasePackageInput,
   type UseCaseRelationshipInput,
 } from "@plantuml-studio/diagram-usecase";
-import { AddUseCaseElementDialog } from "./AddUseCaseElementDialog";
-import { UseCaseElementInspector } from "./UseCaseElementInspector";
-import { AddUseCaseRelationshipDialog } from "./AddUseCaseRelationshipDialog";
-import { UseCaseRelationshipInspector } from "./UseCaseRelationshipInspector";
-import { AddUseCasePackageDialog } from "./AddUseCasePackageDialog";
-import { UseCasePackageInspector } from "./UseCasePackageInspector";
-import { AddUseCaseNoteDialog } from "./AddUseCaseNoteDialog";
-import { UseCaseNoteInspector } from "./UseCaseNoteInspector";
+import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
+import { UseCaseInspectors } from "./features/usecase/UseCaseInspectors";
 import { UnsupportedSyntaxPanel } from "./UnsupportedSyntaxPanel";
 import { useDocumentHistory } from "./use-document-history";
 import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
@@ -3946,30 +3939,25 @@ export function App() {
           onClose={() => closeDialog("add-sequence-participant")}
         />
       )}
-      {dialog?.kind === "add-usecase-element" && (
-        <AddUseCaseElementDialog
-          initialKind={dialog.elementKind}
-          onAdd={addUseCaseElement}
-          onClose={() => closeDialog("add-usecase-element")}
-        />
-      )}
-      {dialog?.kind === "add-usecase-relationship" && (
-        <AddUseCaseRelationshipDialog
-          elements={useCaseDocument.elements}
-          onAdd={addUseCaseRelationship}
-          onClose={() => closeDialog("add-usecase-relationship")}
-        />
-      )}
-      {dialog?.kind === "add-usecase-package" && (
-        <AddUseCasePackageDialog onAdd={addUseCasePackage} onClose={() => closeDialog("add-usecase-package")} />
-      )}
-      {dialog?.kind === "add-usecase-note" && (
-        <AddUseCaseNoteDialog
-          elements={useCaseDocument.elements}
-          onAdd={addUseCaseNote}
-          onClose={() => closeDialog("add-usecase-note")}
-        />
-      )}
+      <UseCaseDialogs
+        active={
+          dialog?.kind === "add-usecase-element"
+            ? { kind: "element", elementKind: dialog.elementKind }
+            : dialog?.kind === "add-usecase-relationship"
+              ? { kind: "relationship" }
+              : dialog?.kind === "add-usecase-package"
+                ? { kind: "package" }
+                : dialog?.kind === "add-usecase-note"
+                  ? { kind: "note" }
+                  : undefined
+        }
+        elements={useCaseDocument.elements}
+        onAddElement={addUseCaseElement}
+        onAddRelationship={addUseCaseRelationship}
+        onAddPackage={addUseCasePackage}
+        onAddNote={addUseCaseNote}
+        onClose={closeDialog}
+      />
       {dialog?.kind === "add-sequence-message" && (
         <AddSequenceMessageDialog
           participants={sequenceDocument.participants.map((participant) => participant.alias ?? participant.label)}
@@ -4037,13 +4025,6 @@ export function App() {
           settings={parseSequenceSettings(workspace.source)}
           onApply={applySequenceSettings}
           onClose={() => setSequenceSettingsOpen(false)}
-        />
-      )}
-      {useCaseSettingsOpen && (
-        <UseCaseSettingsInspector
-          settings={parseUseCaseSettings(workspace.source)}
-          onChange={applyUseCaseSettings}
-          onClose={() => setUseCaseSettingsOpen(false)}
         />
       )}
       {activitySettingsOpen && (
@@ -4188,46 +4169,28 @@ export function App() {
           onClose={() => setSelectedSequenceParticipantId(undefined)}
         />
       )}
-      {selectedUseCaseElement && (
-        <UseCaseElementInspector
-          key={`${selectedUseCaseElement.id}:${selectedUseCaseElement.sourceRange.to}`}
-          element={selectedUseCaseElement}
-          onChange={applyUseCaseElement}
-          onDelete={removeUseCaseElement}
-          onClose={() => setSelectedUseCaseObjectId(undefined)}
-          packages={useCaseDocument.packages}
-          onPackageChange={moveSelectedUseCaseElementToPackage}
-        />
-      )}
-      {selectedUseCaseRelationship && (
-        <UseCaseRelationshipInspector
-          key={`${selectedUseCaseRelationship.id}:${selectedUseCaseRelationship.sourceRange.to}`}
-          relationship={selectedUseCaseRelationship}
-          elements={useCaseDocument.elements}
-          onChange={applyUseCaseRelationship}
-          onDelete={removeUseCaseRelationship}
-          onClose={() => setSelectedUseCaseObjectId(undefined)}
-        />
-      )}
-      {selectedUseCasePackage && (
-        <UseCasePackageInspector
-          key={`${selectedUseCasePackage.id}:${selectedUseCasePackage.sourceRange.to}`}
-          item={selectedUseCasePackage}
-          onChange={applyUseCasePackage}
-          onDelete={removeUseCasePackage}
-          onClose={() => setSelectedUseCaseObjectId(undefined)}
-        />
-      )}
-      {selectedUseCaseNote && (
-        <UseCaseNoteInspector
-          key={`${selectedUseCaseNote.id}:${selectedUseCaseNote.sourceRange.to}`}
-          note={selectedUseCaseNote}
-          elements={useCaseDocument.elements}
-          onChange={applyUseCaseNote}
-          onDelete={removeUseCaseNote}
-          onClose={() => setSelectedUseCaseObjectId(undefined)}
-        />
-      )}
+      <UseCaseInspectors
+        settingsOpen={useCaseSettingsOpen}
+        settings={parseUseCaseSettings(workspace.source)}
+        selectedElement={selectedUseCaseElement}
+        selectedRelationship={selectedUseCaseRelationship}
+        selectedPackage={selectedUseCasePackage}
+        selectedNote={selectedUseCaseNote}
+        elements={useCaseDocument.elements}
+        packages={useCaseDocument.packages}
+        onSettingsChange={applyUseCaseSettings}
+        onElementChange={applyUseCaseElement}
+        onElementDelete={removeUseCaseElement}
+        onElementPackageChange={moveSelectedUseCaseElementToPackage}
+        onRelationshipChange={applyUseCaseRelationship}
+        onRelationshipDelete={removeUseCaseRelationship}
+        onPackageChange={applyUseCasePackage}
+        onPackageDelete={removeUseCasePackage}
+        onNoteChange={applyUseCaseNote}
+        onNoteDelete={removeUseCaseNote}
+        onCloseSettings={() => setUseCaseSettingsOpen(false)}
+        onCloseSelection={() => setSelectedUseCaseObjectId(undefined)}
+      />
       {selectedClassEntity && (
         <ClassEntityInspector
           entity={selectedClassEntity}
