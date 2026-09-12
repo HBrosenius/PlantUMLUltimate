@@ -6,8 +6,9 @@ import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
-import { AddWbsNodeDialog, type WbsInsertPosition } from "./features/wbs/WbsDialogs";
+import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
+import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { ActivitySettingsInspector } from "./ActivitySettingsInspector";
 import { parseActivitySettings, updateActivitySettings, type ActivitySettings } from "./activity-settings";
 import {
@@ -130,7 +131,7 @@ import {
   type FileSnapshot,
   type OpenedFileBytes,
 } from "./file-service";
-import { findWbsNodeAt, type WbsNodeInput } from "@plantuml-studio/diagram-wbs";
+import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
 import {
   deleteSequenceMessage,
   deleteSequenceParticipant,
@@ -1534,212 +1535,29 @@ export function App() {
     }
   }, [reportFileError, result?.svg, workspace.fileName]);
 
-  const addWbsNode = useCallback(
-    (value: WbsNodeInput, position: WbsInsertPosition) => {
-      const selected = wbsDocument.nodes.find((item) => item.id === selectedWbsNodeId);
-      const parent = position === "child" ? selected : undefined;
-      const after = position === "sibling" ? selected : undefined;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        {
-          kind: "insert-node",
-          value,
-          ...(parent ? { parentId: parent.id } : {}),
-          ...(after ? { afterNodeId: after.id } : {}),
-        },
-        wbsDocument,
-        workspace.source,
-      );
-      const source = applySourceEdits(workspace.source, operation.edits);
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      commitSource(source, `Add WBS node ${value.label}`);
-      closeDialog("add-wbs-node");
-      setInteractionMessage(`Added WBS node ${value.label}`);
-    },
-    [closeDialog, commitSource, selectedWbsNodeId, wbsDocument, workspace.source],
-  );
-
-  const applyWbsNode = useCallback(
-    (value: WbsNodeInput) => {
-      if (!selectedWbsNode) return;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        { kind: "update-node", nodeId: selectedWbsNode.id, value },
-        wbsDocument,
-        workspace.source,
-      );
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      commitSource(applySourceEdits(workspace.source, operation.edits), `Update WBS node ${selectedWbsNode.label}`);
-      setInteractionMessage(`Updated WBS node ${value.label}`);
-    },
-    [commitSource, selectedWbsNode, wbsDocument, workspace.source],
-  );
-
-  const removeWbsNode = useCallback(() => {
-    if (!selectedWbsNode) return;
-    const descendants = wbsDocument.nodes.filter(
-      (item) =>
-        item.sourceRange.from > selectedWbsNode.sourceRange.from &&
-        item.sourceRange.to <= selectedWbsNode.subtreeRange.to,
-    ).length;
-    if (
-      !window.confirm(
-        `Delete “${selectedWbsNode.label}”${descendants ? ` and its ${descendants} descendant${descendants === 1 ? "" : "s"}` : ""}?`,
-      )
-    )
-      return;
-    const operation = applicationWbsAdapter.applyVisualOperation(
-      { kind: "delete-node", nodeId: selectedWbsNode.id },
-      wbsDocument,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    commitSource(applySourceEdits(workspace.source, operation.edits), `Delete WBS subtree ${selectedWbsNode.label}`);
-    setSelectedWbsNodeId(undefined);
-    setSelectedWbsRelationshipId(undefined);
-    setInteractionMessage(`Deleted WBS subtree ${selectedWbsNode.label}`);
-  }, [
+  const confirmWbsDelete = useCallback((message: string) => window.confirm(message), []);
+  const {
+    addWbsNode,
+    applyWbsNode,
+    removeWbsNode,
+    moveWbsNode,
+    createWbsRelationship,
+    applyWbsRelationshipColor,
+    reconnectWbsArrow,
+    removeWbsRelationship,
+    applyWbsSettings,
+  } = useWbsActions({
+    source: workspace.source,
+    document: wbsDocument,
+    selectedNode: selectedWbsNode,
+    selectedRelationship: selectedWbsRelationship,
     commitSource,
-    selectedWbsNode,
-    setSelectedWbsNodeId,
-    setSelectedWbsRelationshipId,
-    wbsDocument,
-    workspace.source,
-  ]);
-
-  const moveWbsNode = useCallback(
-    (nodeId: string, parentId?: string, beforeId?: string) => {
-      const node = wbsDocument.nodes.find((item) => item.id === nodeId);
-      const parent = parentId ? wbsDocument.nodes.find((item) => item.id === parentId) : undefined;
-      const before = beforeId ? wbsDocument.nodes.find((item) => item.id === beforeId) : undefined;
-      if (!node) return;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        {
-          kind: "move-subtree",
-          nodeId,
-          ...(parentId ? { parentId } : {}),
-          ...(beforeId ? { beforeNodeId: beforeId } : {}),
-        },
-        wbsDocument,
-        workspace.source,
-      );
-      const source = applySourceEdits(workspace.source, operation.edits);
-      if (operation.unavailableReason || source === workspace.source) {
-        setInteractionMessage(operation.unavailableReason ?? "That WBS subtree cannot be moved there");
-        return;
-      }
-      commitSource(source, `Move WBS subtree ${node.label}`);
-      setInteractionMessage(
-        before ? `Reordered ${node.label}` : `Moved ${node.label}${parent ? ` under ${parent.label}` : " to the root"}`,
-      );
-    },
-    [commitSource, wbsDocument, workspace.source],
-  );
-
-  const createWbsRelationship = useCallback(
-    (fromId: string, toId: string) => {
-      const from = wbsDocument.nodes.find((node) => node.id === fromId);
-      const to = wbsDocument.nodes.find((node) => node.id === toId);
-      if (!from || !to || from.id === to.id) return;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        { kind: "create-relationship", fromNodeId: fromId, toNodeId: toId },
-        wbsDocument,
-        workspace.source,
-      );
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      const source = applySourceEdits(workspace.source, operation.edits);
-      commitSource(source, `Connect ${from.label} to ${to.label}`);
-      setInteractionMessage(`Connected ${from.label} to ${to.label}`);
-    },
-    [commitSource, wbsDocument, workspace.source],
-  );
-
-  const applyWbsRelationshipColor = useCallback(
-    (color: string) => {
-      if (!selectedWbsRelationship) return;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        { kind: "update-relationship-color", relationshipId: selectedWbsRelationship.id, color },
-        wbsDocument,
-        workspace.source,
-      );
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      commitSource(
-        applySourceEdits(workspace.source, operation.edits),
-        `Update WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
-      );
-      setInteractionMessage("Updated WBS arrow color");
-    },
-    [commitSource, selectedWbsRelationship, wbsDocument, workspace.source],
-  );
-
-  const reconnectWbsArrow = useCallback(
-    (relationshipId: string, endpoint: "from" | "to", targetId: string) => {
-      const relationship = wbsDocument.relationships.find((item) => item.id === relationshipId);
-      const target = wbsDocument.nodes.find((item) => item.id === targetId);
-      if (!relationship || !target) return;
-      const operation = applicationWbsAdapter.applyVisualOperation(
-        { kind: "reconnect-relationship", relationshipId, endpoint, targetNodeId: targetId },
-        wbsDocument,
-        workspace.source,
-      );
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      const source = applySourceEdits(workspace.source, operation.edits);
-      commitSource(source, `Reconnect ${endpoint} end of WBS arrow`);
-      setInteractionMessage(`Reconnected WBS arrow to ${target.label}`);
-    },
-    [commitSource, wbsDocument, workspace.source],
-  );
-
-  const removeWbsRelationship = useCallback(() => {
-    if (!selectedWbsRelationship) return;
-    const operation = applicationWbsAdapter.applyVisualOperation(
-      { kind: "delete-relationship", relationshipId: selectedWbsRelationship.id },
-      wbsDocument,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    commitSource(
-      applySourceEdits(workspace.source, operation.edits),
-      `Delete WBS arrow ${selectedWbsRelationship.from} to ${selectedWbsRelationship.to}`,
-    );
-    setSelectedWbsRelationshipId(undefined);
-    setInteractionMessage("Deleted WBS arrow");
-  }, [commitSource, selectedWbsRelationship, setSelectedWbsRelationshipId, wbsDocument, workspace.source]);
-
-  const applyWbsSettings = useCallback(
-    (value: { title: string }) => {
-      let source = workspace.source
-        .replace(/^\s*title\s+.*(?:\r?\n)?/im, "")
-        .replace(/^\s*(?:left side|right side|(?:left to right|top to bottom) direction)\s*(?:\r?\n)?/im, "");
-      const start = /^\s*@startwbs\b.*$/im.exec(source);
-      if (!start) return;
-      const at = start.index + start[0].length;
-      const settings = value.title.trim() ? `\ntitle ${value.title.trim()}` : "";
-      source = `${source.slice(0, at)}${settings}${source.slice(at)}`;
-      commitSource(source, "Update WBS settings");
-      setInteractionMessage("Updated WBS settings");
-    },
-    [commitSource, workspace.source],
-  );
+    confirmDelete: confirmWbsDelete,
+    closeAddNode: () => closeDialog("add-wbs-node"),
+    clearSelectedNode: () => setSelectedWbsNodeId(undefined),
+    clearSelectedRelationship: () => setSelectedWbsRelationshipId(undefined),
+    reportMessage: setInteractionMessage,
+  });
 
   const addSequenceParticipant = useCallback(
     (value: AddSequenceParticipantValue) => {
