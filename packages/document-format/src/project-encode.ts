@@ -8,8 +8,9 @@ import {
   type RandomBytes,
   type UnlockedDocumentKey,
 } from "./encryption";
-import { DOCUMENT_LIMITS, type EnvelopeHeader, type PortableProject } from "./types";
+import { DOCUMENT_LIMITS, DocumentFormatError, type EnvelopeHeader, type PortableProject } from "./types";
 import { validateProject } from "./validate";
+import { hashSource, reconstructContents } from "./content-codec";
 
 const UTF8 = new TextEncoder();
 const projectPayloadLimits: PayloadLimits = {
@@ -35,6 +36,13 @@ export async function encodeProject(
   options: EncodeProjectOptions = {},
 ): Promise<EncodedProject> {
   const checked = validateProject(project);
+  await Promise.all(
+    checked.diagrams.map(async ({ document }) => {
+      if ((await hashSource(document.current.source)) !== document.current.sourceHash)
+        throw new DocumentFormatError("invalid-file", "Project diagram current source hash does not match");
+      await reconstructContents(document.contents);
+    }),
+  );
   const compression = options.compression ?? "gzip";
   const compressed = await compressPayload(
     UTF8.encode(JSON.stringify(checked)),

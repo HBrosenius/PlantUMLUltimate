@@ -3,6 +3,7 @@ import { decodeEnvelope } from "./envelope";
 import { decryptPayload, unlockHeader, type UnlockedDocumentKey } from "./encryption";
 import { DOCUMENT_LIMITS, DocumentFormatError, type PortableProject } from "./types";
 import { validateProject } from "./validate";
+import { hashSource, reconstructContents } from "./content-codec";
 
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
 const projectPayloadLimits: PayloadLimits = {
@@ -50,5 +51,12 @@ export async function decodeProject(bytes: Uint8Array, options: DecodeProjectOpt
     throw new DocumentFormatError("invalid-file", "Project payload is not strict UTF-8 JSON");
   }
   const project = validateProject(parsed);
+  await Promise.all(
+    project.diagrams.map(async ({ document }) => {
+      if ((await hashSource(document.current.source)) !== document.current.sourceHash)
+        throw new DocumentFormatError("invalid-file", "Project diagram current source hash does not match");
+      await reconstructContents(document.contents);
+    }),
+  );
   return { project, compression: envelope.header.compression, ...(unlockedKey ? { unlockedKey } : {}) };
 }
