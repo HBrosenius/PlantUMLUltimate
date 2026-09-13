@@ -3555,6 +3555,13 @@ textarea:focus-visible,
   color: inherit;
   font-size: 20px;
 }
+.project-navigator header .project-cancel-save {
+  justify-self: start;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+}
 .project-navigator ul {
   display: grid;
   gap: 6px;

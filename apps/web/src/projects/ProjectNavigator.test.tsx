@@ -82,6 +82,24 @@ describe("ProjectNavigator", () => {
     expect(screen.getByText("Could not parse the project")).toBeTruthy();
   });
 
+  it("offers cancellation while a project save is running", () => {
+    const onCancelSave = vi.fn();
+    render(
+      <ProjectNavigator
+        project={project}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        saving
+        onCancelSave={onCancelSave}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel save" }));
+    expect(onCancelSave).toHaveBeenCalledOnce();
+  });
+
   it("distinguishes unresolved links and explains a direct repair", async () => {
     const first = {
       id: "element-1",

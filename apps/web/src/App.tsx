@@ -2596,7 +2596,12 @@ export function App() {
         <ProjectNavigator
           project={project}
           {...(usingSingleFileProject
-            ? { dirty: singleFileProject.dirty, indexStatus: singleFileProject.indexStatus }
+            ? {
+                dirty: singleFileProject.dirty,
+                indexStatus: singleFileProject.indexStatus,
+                saving: singleFileProject.saving,
+                onCancelSave: singleFileProject.cancelSave,
+              }
             : {})}
           onOpen={openMember}
           onAdd={addProjectDiagram}

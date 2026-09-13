@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { PortableProject } from "@plantuml-studio/document-format";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 
@@ -124,5 +124,23 @@ describe("embedded project saves", () => {
 
     await Promise.all([first, second]);
     expect(events).toEqual(["open-1", "write-1", "close-1", "open-2", "write-2", "close-2"]);
+  });
+
+  it("cancels encoding before opening a writable file", async () => {
+    const controller = new AbortController();
+    const createWritable = vi.fn();
+    const saving = new EmbeddedProjectSaveCoordinator().save(
+      { projectId: "project", revision: 1, project },
+      async (_project, signal) => {
+        controller.abort();
+        signal?.throwIfAborted();
+        return new Uint8Array([1]);
+      },
+      { name: "project.pumlu", getFile: async () => new File([], "project.pumlu"), createWritable },
+      () => 1,
+      controller.signal,
+    );
+    await expect(saving).rejects.toMatchObject({ name: "AbortError" });
+    expect(createWritable).not.toHaveBeenCalled();
   });
 });

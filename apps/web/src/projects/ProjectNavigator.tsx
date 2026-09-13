@@ -18,6 +18,8 @@ export function ProjectNavigator({
   onDelete,
   dirty,
   indexStatus,
+  saving,
+  onCancelSave,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -31,6 +33,8 @@ export function ProjectNavigator({
   onDelete?(documentId: string): void;
   dirty?: boolean;
   indexStatus?: { state: "idle" | "indexing" | "ready" | "error"; message?: string };
+  saving?: boolean;
+  onCancelSave?(): void;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -46,6 +50,11 @@ export function ProjectNavigator({
             <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
               {dirty ? "Unsaved changes" : "Saved"}
             </span>
+          )}
+          {saving && onCancelSave && (
+            <button type="button" className="project-cancel-save" onClick={onCancelSave}>
+              Cancel save
+            </button>
           )}
           {indexStatus && indexStatus.state !== "idle" && (
             <span className={`project-index-status is-${indexStatus.state}`} role="status" title={indexStatus.message}>

@@ -193,10 +193,12 @@ export function useSingleFileProject({
     message?: string;
   }>({ state: "idle" });
   const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
+  const [saving, setSaving] = useState(false);
   const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
+  const saveAbort = useRef<AbortController | undefined>(undefined);
   const restored = useRef(false);
   const indexRevision = useRef(0);
   const effectiveProject = embedded.effectiveProject;
@@ -443,33 +445,70 @@ export function useSingleFileProject({
     const snapshot = await embedded.captureSaveSnapshot();
     if (!snapshot) return;
     if (!handle.current) return undefined;
-    const result = await saveCoordinator.current.save(
-      snapshot,
-      async (value) =>
-        (await encodeProject(value, unlockedKey.current ? { unlockedKey: unlockedKey.current } : {})).bytes,
-      handle.current,
-      embedded.currentRevision,
-    );
-    if (result.clean) embedded.markSaved(snapshot.revision);
-    setInteractionMessage(result.message);
-    return result;
+    saveAbort.current?.abort();
+    const controller = new AbortController();
+    saveAbort.current = controller;
+    setSaving(true);
+    try {
+      const result = await saveCoordinator.current.save(
+        snapshot,
+        async (value, signal) =>
+          (
+            await encodeProject(value, {
+              ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
+              ...(signal ? { signal } : {}),
+            })
+          ).bytes,
+        handle.current,
+        embedded.currentRevision,
+        controller.signal,
+      );
+      if (result.clean) embedded.markSaved(snapshot.revision);
+      setInteractionMessage(result.message);
+      return result;
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
+      const result = { clean: false, message: "Project save cancelled" };
+      setInteractionMessage(result.message);
+      return result;
+    } finally {
+      if (saveAbort.current === controller) {
+        saveAbort.current = undefined;
+        setSaving(false);
+      }
+    }
   }, [embedded, setInteractionMessage]);
 
   const saveProjectAs = useCallback(async () => {
     const snapshot = await embedded.captureSaveSnapshot();
     if (!snapshot) return;
-    const encoded = await encodeProject(
-      snapshot.project,
-      unlockedKey.current ? { unlockedKey: unlockedKey.current } : {},
-    );
-    const bytes = encoded.bytes;
-    const saved = await savePortableDocumentAs(bytes, snapshot.project.name);
-    if (!saved) return;
-    handle.current = saved.handle;
-    unlockedKey.current = encoded.unlockedKey;
-    embedded.markSaved(snapshot.revision);
-    setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
+    saveAbort.current?.abort();
+    const controller = new AbortController();
+    saveAbort.current = controller;
+    setSaving(true);
+    try {
+      const encoded = await encodeProject(snapshot.project, {
+        ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
+        signal: controller.signal,
+      });
+      const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name);
+      if (!saved) return;
+      handle.current = saved.handle;
+      unlockedKey.current = encoded.unlockedKey;
+      embedded.markSaved(snapshot.revision);
+      setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
+      setInteractionMessage("Project save cancelled");
+    } finally {
+      if (saveAbort.current === controller) {
+        saveAbort.current = undefined;
+        setSaving(false);
+      }
+    }
   }, [embedded, setInteractionMessage]);
+
+  const cancelSave = useCallback(() => saveAbort.current?.abort(), []);
 
   return useMemo(
     () => ({
@@ -477,6 +516,7 @@ export function useSingleFileProject({
       project: indexed,
       indexStatus,
       dirty: embedded.dirty,
+      saving,
       newProject,
       addProjectDiagram,
       importDiagram,
@@ -496,6 +536,7 @@ export function useSingleFileProject({
       unlockRequest,
       unlock,
       cancelUnlock,
+      cancelSave,
     }),
     [
       addProjectDiagram,
@@ -504,6 +545,7 @@ export function useSingleFileProject({
       importDiagram,
       indexed,
       indexStatus,
+      saving,
       newProject,
       openProject,
       openOpenedProject,
@@ -517,6 +559,7 @@ export function useSingleFileProject({
       unlockRequest,
       unlock,
       cancelUnlock,
+      cancelSave,
     ],
   );
 }
