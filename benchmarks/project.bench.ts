@@ -118,7 +118,9 @@ async function mixedProject(count: number): Promise<{
 for (const count of [10, 50, 200]) {
   const fixture = await mixedProject(count);
   const encoded = await encodeProject(fixture.portable);
-  describe(`${count}-diagram mixed project`, () => {
+  const logicalKiB = new TextEncoder().encode(JSON.stringify(fixture.portable)).byteLength / 1024;
+  const encodedKiB = encoded.bytes.byteLength / 1024;
+  describe(`${count}-diagram mixed project (${logicalKiB.toFixed(0)} KiB memory proxy / ${encodedKiB.toFixed(0)} KiB saved)`, () => {
     bench("build live index", async () => {
       await indexVirtualProject(fixture.manifestJson, fixture.inputs);
     });
@@ -127,6 +129,9 @@ for (const count of [10, 50, 200]) {
     });
     bench("reopen", async () => {
       await decodeProject(encoded.bytes);
+    });
+    bench("clone in-memory snapshot", () => {
+      structuredClone(fixture.portable);
     });
     if (count === 200) {
       const activeDocuments: DocumentSnapshot[] = [];

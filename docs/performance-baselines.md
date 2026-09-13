@@ -49,6 +49,17 @@ change.
 | Open an unopened member (200 members)          |     0.003 ms p75 |
 | Encrypt and save 50 diagrams                   |         94.42 ms |
 
+The benchmark also reports the exact UTF-8 JSON size of each in-memory project snapshot and its encoded file size,
+and measures `structuredClone` as a repeatable proxy for snapshot allocation pressure. This is intentionally more
+portable than asserting `process.memoryUsage()`, whose heap figures depend on garbage-collection timing. Investigate
+growth in bytes per diagram or clone latency before using engine-specific heap profiling.
+
+| Project size | JSON memory proxy | Encoded file | Snapshot clone mean |
+| ------------ | ----------------: | -----------: | ------------------: |
+| 10 diagrams  |            28 KiB |        4 KiB |             0.31 ms |
+| 50 diagrams  |           136 KiB |       20 KiB |             2.14 ms |
+| 200 diagrams |           542 KiB |       76 KiB |             2.32 ms |
+
 Performance results vary across operating systems, CPU power states, Node.js versions, and concurrent workloads. CI correctness jobs must not fail on raw wall-clock thresholds. Compare results on the same machine and runtime, with other heavy work stopped.
 
 ## Regression budgets
