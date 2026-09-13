@@ -17,7 +17,8 @@ import { useActivityActions } from "./features/activity/use-activity-actions";
 import { useActivityController } from "./features/activity/use-activity-controller";
 import { ClassDialogs, type ClassDialogKind } from "./features/class/ClassDialogs";
 import { ClassInspectors } from "./features/class/ClassInspectors";
-import { parseClassSettings, updateClassSettings, type ClassSettings } from "./class-settings";
+import { useClassActions } from "./features/class/use-class-actions";
+import { parseClassSettings } from "./class-settings";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
 import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
@@ -111,35 +112,7 @@ import {
 import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
 import { findSequenceObjectAt, parseSequence } from "@plantuml-studio/diagram-sequence";
 import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
-import {
-  deleteClassEntity,
-  deleteClassPackage,
-  deleteClassRelationship,
-  deleteClassNote,
-  deleteClassMember,
-  findClassObjectAt,
-  insertClassEntity,
-  insertClassPackage,
-  insertClassRelationship,
-  insertClassNote,
-  insertClassMember,
-  moveClassEntityToPackage,
-  moveClassPackageToPackage,
-  parseClassDiagram,
-  reorderClassEntity,
-  reorderClassMember,
-  updateClassEntity,
-  updateClassPackage,
-  updateClassRelationship,
-  updateClassNote,
-  updateClassMember,
-  type ClassMember,
-  type ClassMemberInput,
-  type ClassEntityInput,
-  type ClassPackageInput,
-  type ClassRelationshipInput,
-  type ClassNoteInput,
-} from "@plantuml-studio/diagram-class";
+import { findClassObjectAt, parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { hashSource } from "@plantuml-studio/document-format";
 import { findActivityObjectAt, parseActivity } from "@plantuml-studio/diagram-activity";
 import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
@@ -1544,170 +1517,44 @@ export function App() {
     reportMessage: setInteractionMessage,
   });
 
-  const createClassRelationshipByDrag = useCallback(
-    (from: string, to: string) => {
-      commitSource(
-        insertClassRelationship(workspace.source, classDocument, { from, to, kind: "association" }),
-        "Connect Class objects",
-      );
-      setInteractionMessage("Added Class association");
-    },
-    [classDocument, commitSource, workspace.source],
-  );
-  const reconnectClassRelationshipByDrag = useCallback(
-    (id: string, endpoint: "from" | "to", targetId: string) => {
-      const relation = classDocument.relationships.find((item) => item.id === id);
-      if (!relation) return;
-      commitSource(
-        updateClassRelationship(workspace.source, classDocument, relation, {
-          from: endpoint === "from" ? targetId : relation.from,
-          to: endpoint === "to" ? targetId : relation.to,
-          kind: relation.kind,
-          ...(relation.label ? { label: relation.label } : {}),
-          ...(relation.fromMultiplicity ? { fromMultiplicity: relation.fromMultiplicity } : {}),
-          ...(relation.toMultiplicity ? { toMultiplicity: relation.toMultiplicity } : {}),
-          ...(relation.color ? { color: relation.color } : {}),
-          ...(relation.lineStyle ? { lineStyle: relation.lineStyle } : {}),
-          arrow: relation.arrow,
-        }),
-        "Reconnect Class relationship",
-      );
-    },
-    [classDocument, commitSource, workspace.source],
-  );
-  const moveClassEntityByDrag = useCallback(
-    (id: string, packageId?: string) => {
-      const entity = classDocument.entities.find((item) => item.id === id);
-      if (entity)
-        commitSource(moveClassEntityToPackage(workspace.source, classDocument, entity, packageId), "Move Class object");
-    },
-    [classDocument, commitSource, workspace.source],
-  );
-  const reorderClassEntityByDrag = useCallback(
-    (id: string, targetId: string, placement: "before" | "after") => {
-      const entity = classDocument.entities.find((item) => item.id === id);
-      const target = classDocument.entities.find((item) => item.id === targetId);
-      if (entity && target)
-        commitSource(reorderClassEntity(workspace.source, entity, target, placement), "Reorder Class objects");
-    },
-    [classDocument.entities, commitSource, workspace.source],
-  );
-  const addClassEntity = (v: ClassEntityInput) => {
-    commitSource(insertClassEntity(workspace.source, v), "Add Class object");
-    closeDialog("add-class-entity");
-  };
-  const applyClassEntity = (v: ClassEntityInput) => {
-    if (selectedClassEntity) {
-      const next = updateClassEntity(workspace.source, classDocument, selectedClassEntity, v);
-      const key = v.alias?.trim() || v.label.trim();
-      const updated = parseClassDiagram(next).entities.find((item) => item.id === key || item.alias === key);
-      if (updated)
-        void mapProjectRename(
-          "class-entity",
-          selectedClassEntity.sourceRange.from,
-          { symbolKey: key, ...updated.sourceRange },
-          next,
-        );
-      commitSource(next, "Update Class object");
-    }
-  };
-  const removeClassEntity = () => {
-    if (selectedClassEntity) {
-      commitSource(deleteClassEntity(workspace.source, classDocument, selectedClassEntity), "Delete Class object");
-      setSelectedClassObjectId(undefined);
-    }
-  };
-  const addClassMember = (value: ClassMemberInput) => {
-    if (selectedClassEntity)
-      commitSource(insertClassMember(workspace.source, selectedClassEntity, value), "Add Class member");
-  };
-  const applyClassMember = (member: ClassMember, value: ClassMemberInput) =>
-    commitSource(updateClassMember(workspace.source, member, value), "Update Class member");
-  const removeClassMember = (member: ClassMember) => {
-    if (selectedClassEntity)
-      commitSource(deleteClassMember(workspace.source, selectedClassEntity, member), "Delete Class member");
-  };
-  const moveClassMember = (member: ClassMember, direction: -1 | 1) => {
-    if (!selectedClassEntity) return;
-    const index = selectedClassEntity.members.findIndex((candidate) => candidate.id === member.id);
-    const target = selectedClassEntity.members[index + direction];
-    if (target) commitSource(reorderClassMember(workspace.source, member, target), "Reorder Class members");
-  };
-  const addClassRelationship = (v: ClassRelationshipInput) => {
-    commitSource(insertClassRelationship(workspace.source, classDocument, v), "Add Class relationship");
-    closeDialog("add-class-relationship");
-  };
-  const applyClassRelationship = (v: ClassRelationshipInput) => {
-    if (selectedClassRelationship)
-      commitSource(
-        updateClassRelationship(workspace.source, classDocument, selectedClassRelationship, v),
-        "Update Class relationship",
-      );
-  };
-  const removeClassRelationship = () => {
-    if (selectedClassRelationship) {
-      commitSource(
-        deleteClassRelationship(workspace.source, selectedClassRelationship, classDocument),
-        "Delete Class relationship",
-      );
-      setSelectedClassObjectId(undefined);
-    }
-  };
-  const addClassPackage = (v: ClassPackageInput) => {
-    commitSource(insertClassPackage(workspace.source, classDocument, v), "Add Class package");
-    closeDialog("add-class-package");
-  };
-  const applyClassPackage = (v: ClassPackageInput) => {
-    if (selectedClassPackage)
-      commitSource(updateClassPackage(workspace.source, selectedClassPackage, v), "Update Class package");
-  };
-  const removeClassPackage = () => {
-    if (selectedClassPackage) {
-      commitSource(deleteClassPackage(workspace.source, selectedClassPackage), "Delete Class package");
-      setSelectedClassObjectId(undefined);
-    }
-  };
-  const moveSelectedClassPackage = (parentId?: string) => {
-    if (selectedClassPackage)
-      commitSource(
-        moveClassPackageToPackage(workspace.source, classDocument, selectedClassPackage, parentId),
-        "Move Class package",
-      );
-  };
-  const moveSelectedClassEntity = (id?: string) => {
-    if (selectedClassEntity)
-      commitSource(
-        moveClassEntityToPackage(workspace.source, classDocument, selectedClassEntity, id),
-        "Move Class object",
-      );
-  };
-  const applyClassSettings = (v: ClassSettings) => {
-    commitSource(updateClassSettings(workspace.source, v), "Update Class settings");
-    setInteractionMessage("Updated Class settings");
-  };
-  const addClassNote = (v: ClassNoteInput) => {
-    commitSource(insertClassNote(workspace.source, classDocument, v), "Add Class note");
-    closeDialog("add-class-note");
-  };
-  const applyClassNote = (v: ClassNoteInput) => {
-    if (selectedClassNote) {
-      const source = updateClassNote(workspace.source, classDocument, selectedClassNote, v);
-      const updated = parseClassDiagram(source).notes.find(
-        (note) =>
-          note.targetId === v.targetId &&
-          note.text === v.text.trim() &&
-          (note.color ?? "").toLowerCase() === (v.color ? `#${v.color.replace(/^#/, "")}` : "").toLowerCase(),
-      );
-      commitSource(source, "Update Class note");
-      if (updated) setSelectedClassObjectId(updated.id);
-    }
-  };
-  const removeClassNote = () => {
-    if (selectedClassNote) {
-      commitSource(deleteClassNote(workspace.source, selectedClassNote), "Delete Class note");
-      setSelectedClassObjectId(undefined);
-    }
-  };
+  const closeClassDialog = useCallback((kind: ClassDialogKind) => closeDialog(`add-class-${kind}`), [closeDialog]);
+  const {
+    createClassRelationshipByDrag,
+    reconnectClassRelationshipByDrag,
+    moveClassEntityByDrag,
+    reorderClassEntityByDrag,
+    addClassEntity,
+    applyClassEntity,
+    removeClassEntity,
+    addClassMember,
+    applyClassMember,
+    removeClassMember,
+    moveClassMember,
+    addClassRelationship,
+    applyClassRelationship,
+    removeClassRelationship,
+    addClassPackage,
+    applyClassPackage,
+    removeClassPackage,
+    moveSelectedClassPackage,
+    moveSelectedClassEntity,
+    applyClassSettings,
+    addClassNote,
+    applyClassNote,
+    removeClassNote,
+  } = useClassActions({
+    source: workspace.source,
+    document: classDocument,
+    selectedEntity: selectedClassEntity,
+    selectedRelationship: selectedClassRelationship,
+    selectedPackage: selectedClassPackage,
+    selectedNote: selectedClassNote,
+    commitSource,
+    mapProjectRename,
+    closeDialog: closeClassDialog,
+    selectObject: setSelectedClassObjectId,
+    reportMessage: setInteractionMessage,
+  });
 
   const closeActivityDialog = useCallback(
     (kind: ActivityDialogKind) => closeDialog(`add-activity-${kind}`),
@@ -3663,7 +3510,7 @@ export function App() {
         onAddRelationship={addClassRelationship}
         onAddPackage={addClassPackage}
         onAddNote={addClassNote}
-        onClose={() => classDialogKind && closeDialog(`add-class-${classDialogKind}`)}
+        onClose={() => classDialogKind && closeClassDialog(classDialogKind)}
       />
       <SequenceInspectors
         settingsOpen={sequenceSettingsOpen}
