@@ -5,6 +5,7 @@ import {
   decodeProject,
   DocumentFormatError,
   encodeProject,
+  hashSource,
   projectFromDocument,
   projectFromPlantUml,
   type PortableProject,
@@ -13,7 +14,9 @@ import {
   type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
 import {
+  applyIdentityMappings,
   serializeProjectManifest,
+  type IdentityMapping,
   type ProjectElement,
   type ProjectLink,
   type ProjectManifest,
@@ -100,6 +103,27 @@ function projectName(name: string): string {
 export function projectDiagramName(name: string, fallback = "Diagram"): string {
   const value = embeddedDiagramDisplayName(name);
   return value === "Diagram" ? fallback : value;
+}
+
+export function applyPortableProjectRenameMappings(
+  project: PortableProject,
+  documentId: string,
+  mappings: readonly IdentityMapping[],
+  sourceHash: string,
+): PortableProject {
+  const elementIds = new Set(
+    project.elements.filter((element) => element.documentId === documentId).map((element) => element.id),
+  );
+  const scopedMappings = mappings.filter((mapping) => elementIds.has(mapping.elementId));
+  return {
+    ...project,
+    revisionId: crypto.randomUUID(),
+    elements: applyIdentityMappings(
+      project.elements as ProjectElement[],
+      scopedMappings,
+      sourceHash,
+    ) as PortableProjectElement[],
+  };
 }
 
 export async function decodePortableProjectFile(
@@ -371,6 +395,16 @@ export function useSingleFileProject({
       })),
     [embedded],
   );
+  const applyRenameMappings = useCallback(
+    async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
+      if (!mappings.length) return;
+      const sourceHash = await hashSource(source);
+      embedded.updateProject((current) =>
+        applyPortableProjectRenameMappings(current, documentId, mappings, sourceHash),
+      );
+    },
+    [embedded],
+  );
   const renameDiagram = useCallback(
     (memberId: string, name: string) => {
       if (!embedded.renameDiagram(memberId, name)) return;
@@ -446,6 +480,7 @@ export function useSingleFileProject({
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
+      applyRenameMappings,
       renameDiagram,
       deleteDiagram,
       saveProject,
@@ -471,6 +506,7 @@ export function useSingleFileProject({
       saveProject,
       saveProjectAs,
       updateElements,
+      applyRenameMappings,
       updateLinks,
       unlockRequest,
       unlock,

@@ -964,6 +964,9 @@ export function App() {
     : isLegacyProjectMemberTab;
   const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
   const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
+  const applyActiveProjectRenameMappings = usingSingleFileProject
+    ? singleFileProject.applyRenameMappings
+    : applyRenameMappings;
   const saveActiveProject = useCallback(async () => {
     if (!usingSingleFileProject) return;
     const result = await singleFileProject.saveProject();
@@ -1046,7 +1049,7 @@ export function App() {
           (item) => item.documentId === document.id && item.kind === kind && item.locator.from === from,
         );
       if (!document || !element) return;
-      await applyRenameMappings(
+      await applyActiveProjectRenameMappings(
         document.id,
         [
           {
@@ -1061,7 +1064,7 @@ export function App() {
         source,
       );
     },
-    [applyRenameMappings, project, workspace.fileName],
+    [applyActiveProjectRenameMappings, project, workspace.fileName],
   );
 
   const exportSource = useCallback(() => {
