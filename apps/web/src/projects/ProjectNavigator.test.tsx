@@ -82,7 +82,7 @@ describe("ProjectNavigator", () => {
     expect(screen.getByText("Could not parse the project")).toBeTruthy();
   });
 
-  it("distinguishes unresolved links and explains a direct repair", () => {
+  it("distinguishes unresolved links and explains a direct repair", async () => {
     const first = {
       id: "element-1",
       documentId: "document-1",
@@ -146,7 +146,7 @@ describe("ProjectNavigator", () => {
     };
 
     const onElementsChange = vi.fn();
-    render(
+    const { rerender } = render(
       <ProjectNavigator
         project={linkedProject}
         onOpen={vi.fn()}
@@ -160,7 +160,7 @@ describe("ProjectNavigator", () => {
     expect(screen.getByText("Unresolved path")).toBeTruthy();
     expect(screen.getByText(/Affects 1 linked path/).textContent).toContain("Caller: Caller → Target: Old task");
     fireEvent.click(screen.getByRole("button", { name: "Repair: Old task → New task" }));
-    return waitFor(() =>
+    await waitFor(() =>
       expect(
         onElementsChange.mock.calls.some(([elements]) =>
           elements.some(
@@ -169,5 +169,26 @@ describe("ProjectNavigator", () => {
         ),
       ).toBe(true),
     );
+
+    const parseErrorProject: VirtualProject = {
+      ...linkedProject,
+      members: linkedProject.members.map((member) =>
+        member.documentId === second.documentId
+          ? { ...member, state: "parse-error", reason: "Task declaration is incomplete", declarations: [] }
+          : member,
+      ),
+      resolutions: new Map([[first.id, linkedProject.resolutions.get(first.id)!]]),
+    };
+    rerender(
+      <ProjectNavigator
+        project={parseErrorProject}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText("Task declaration is incomplete")).toHaveLength(2);
   });
 });

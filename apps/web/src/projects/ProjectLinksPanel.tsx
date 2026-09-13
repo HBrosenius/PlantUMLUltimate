@@ -22,6 +22,18 @@ function elementLabel(project: VirtualProject, elementId: string): string {
   return `${path}: ${element.locator.symbolKey}${state && state !== "resolved" ? ` (${state})` : ""}`;
 }
 
+function attentionMessage(project: VirtualProject, element: ProjectElement): string {
+  const resolution = project.resolutions.get(element.id);
+  if (resolution?.state === "invalid-evidence") return "The saved location no longer matches the diagram source.";
+  if (resolution?.state === "missing") return "The linked item no longer exists in this diagram.";
+  const member = project.members.find((item) => item.documentId === element.documentId);
+  if (member?.state === "parse-error") return member.reason ?? "This diagram could not be parsed.";
+  if (member?.state === "missing") return "The diagram containing this item is missing.";
+  if (member?.state === "locked") return "Unlock this diagram to check the linked item.";
+  if (member?.state === "unsupported") return member.reason ?? "This diagram type cannot be indexed.";
+  return "Choose the matching item to repair this connection.";
+}
+
 export function ProjectLinksPanel({
   project,
   onChange,
@@ -48,6 +60,12 @@ export function ProjectLinksPanel({
   const registrations = project.members.flatMap((member) =>
     member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
   );
+  const linkedElementIds = new Set(project.manifest.links.flatMap((link) => [link.from, link.to]));
+  const attentionElements = elements.filter((element) => {
+    if (!linkedElementIds.has(element.id)) return false;
+    const state = elementState(project, element.id);
+    return state !== "resolved" && state !== "pending";
+  });
   useEffect(() => {
     const missing = registrations.filter(
       ({ member, declaration }) =>
@@ -200,20 +218,19 @@ export function ProjectLinksPanel({
           </ul>
         )}
       </section>
-      {elements.some((element) => {
-        const state = project.resolutions.get(element.id)?.state;
-        return state === "needs-review" || state === "ambiguous";
-      }) && (
+      {attentionElements.length > 0 && (
         <section className="project-link-repairs" aria-labelledby="project-link-repairs-heading">
           <h3 id="project-link-repairs-heading">Items needing attention</h3>
-          {elements.flatMap((element) => {
+          {attentionElements.map((element) => {
             const resolution = project.resolutions.get(element.id);
-            if (resolution?.state !== "needs-review" && resolution?.state !== "ambiguous") return [];
             const impacts = reverseImpact(project.manifest.links, element.id).paths;
+            const candidates =
+              resolution?.state === "needs-review" || resolution?.state === "ambiguous" ? resolution.candidates : [];
             return (
               <div className="project-link-repair" key={element.id}>
                 <strong>{elementLabel(project, element.id)}</strong>
                 <span>Current target: {element.locator.symbolKey}</span>
+                <span>{attentionMessage(project, element)}</span>
                 {impacts.length > 0 && (
                   <span className="project-link-impact">
                     Affects {impacts.length} linked path{impacts.length === 1 ? "" : "s"}:{" "}
@@ -222,7 +239,7 @@ export function ProjectLinksPanel({
                       .join("; ")}
                   </span>
                 )}
-                {resolution.candidates.map((candidate) => (
+                {candidates.map((candidate) => (
                   <button
                     type="button"
                     key={`${candidate.from}:${candidate.to}`}
