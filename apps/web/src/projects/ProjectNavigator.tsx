@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { DiagramKind } from "../model";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
+import { ProjectNameDialog } from "./ProjectNameDialog";
 
 export function ProjectNavigator({
   project,
@@ -30,6 +31,7 @@ export function ProjectNavigator({
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
   const [path, setPath] = useState("Gantt diagram");
+  const [renaming, setRenaming] = useState<{ id: string; name: string }>();
   return (
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
@@ -123,9 +125,7 @@ export function ProjectNavigator({
                   <button
                     type="button"
                     aria-label={`Rename ${member.path}`}
-                    onClick={() =>
-                      onRename(member.documentId, window.prompt("Diagram name", member.path) ?? member.path)
-                    }
+                    onClick={() => setRenaming({ id: member.documentId, name: member.path })}
                   >
                     Rename
                   </button>
@@ -145,6 +145,18 @@ export function ProjectNavigator({
         </ul>
       </section>
       <ProjectLinksPanel project={project} onChange={onLinksChange} onElementsChange={onElementsChange} />
+      {renaming && onRename && (
+        <ProjectNameDialog
+          title="Rename diagram"
+          initialValue={renaming.name}
+          submitLabel="Rename"
+          onSubmit={(name) => {
+            onRename(renaming.id, name);
+            setRenaming(undefined);
+          }}
+          onClose={() => setRenaming(undefined)}
+        />
+      )}
     </aside>
   );
 }

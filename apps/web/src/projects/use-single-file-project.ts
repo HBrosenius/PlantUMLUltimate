@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   decodeDocument,
+  decodeEnvelope,
   decodeProject,
+  DocumentFormatError,
   encodeProject,
   projectFromDocument,
   projectFromPlantUml,
@@ -100,6 +102,43 @@ export function projectDiagramName(name: string, fallback = "Diagram"): string {
   return value === "Diagram" ? fallback : value;
 }
 
+export async function decodePortableProjectFile(
+  bytes: Uint8Array,
+  fileName: string,
+  requestPassword: (fileName: string) => Promise<string | undefined>,
+): Promise<{ project: PortableProject; key?: UnlockedDocumentKey; encrypted: boolean } | undefined> {
+  const envelope = decodeEnvelope(bytes);
+  const decode = async (password?: string) => {
+    if (envelope.version === 2) {
+      const decoded = await decodeProject(bytes, password ? { password } : {});
+      return { project: decoded.project, key: decoded.unlockedKey };
+    }
+    const decoded = await decodeDocument(bytes, password ? { password } : {});
+    return {
+      project: projectFromDocument(decoded.document, fileName, new Date().toISOString()),
+      key: decoded.unlockedKey,
+    };
+  };
+  try {
+    const decoded = await decode();
+    return {
+      project: decoded.project,
+      ...(decoded.key ? { key: decoded.key } : {}),
+      encrypted: Boolean(decoded.key),
+    };
+  } catch (error) {
+    if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+    const password = await requestPassword(fileName);
+    if (password === undefined) return undefined;
+    const decoded = await decode(password);
+    return {
+      project: decoded.project,
+      ...(decoded.key ? { key: decoded.key } : {}),
+      encrypted: Boolean(decoded.key),
+    };
+  }
+}
+
 function chooseDiagramFile(): Promise<File | undefined> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
@@ -124,6 +163,8 @@ export function useSingleFileProject({
 }) {
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
+  const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
+  const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
@@ -166,7 +207,7 @@ export function useSingleFileProject({
   }, [effectiveProject]);
 
   const newProject = useCallback(
-    async (name = window.prompt("Project name", "PlantUML project") ?? "") => {
+    async (name: string) => {
       if (!name.trim()) return;
       const created = await projectFromPlantUml("", "gantt", new Date().toISOString());
       const project = { ...created, name: projectName(name), diagrams: [] };
@@ -179,6 +220,22 @@ export function useSingleFileProject({
     },
     [embedded, resetSelection, setInteractionMessage],
   );
+
+  const requestPassword = useCallback((fileName: string) => {
+    unlockResolver.current?.(undefined);
+    return new Promise<string | undefined>((resolve) => {
+      unlockResolver.current = resolve;
+      setUnlockRequest({ fileName });
+    });
+  }, []);
+  const finishUnlock = useCallback((password: string | undefined) => {
+    const resolve = unlockResolver.current;
+    unlockResolver.current = undefined;
+    setUnlockRequest(undefined);
+    resolve?.(password);
+  }, []);
+  const unlock = useCallback((password: string) => finishUnlock(password), [finishUnlock]);
+  const cancelUnlock = useCallback(() => finishUnlock(undefined), [finishUnlock]);
 
   const addPortableDiagram = useCallback(
     (diagram: PortableProject["diagrams"][number]) => {
@@ -208,8 +265,15 @@ export function useSingleFileProject({
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (isPortableDocument(bytes)) {
-        const password = window.prompt(`Password for ${file.name} (leave blank if it is not encrypted)`) ?? undefined;
-        const decoded = await decodeDocument(bytes, password ? { password } : {});
+        let decoded;
+        try {
+          decoded = await decodeDocument(bytes);
+        } catch (error) {
+          if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+          const password = await requestPassword(file.name);
+          if (password === undefined) return;
+          decoded = await decodeDocument(bytes, { password });
+        }
         const displayName = projectDiagramName(file.name);
         const staged = projectFromDocument(decoded.document, displayName, new Date().toISOString());
         addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
@@ -226,7 +290,7 @@ export function useSingleFileProject({
     } catch (error) {
       reportError(error);
     }
-  }, [addPortableDiagram, reportError, setInteractionMessage]);
+  }, [addPortableDiagram, reportError, requestPassword, setInteractionMessage]);
 
   const openOpenedProject = useCallback(
     async (opened: OpenedFileBytes | undefined): Promise<boolean> => {
@@ -243,19 +307,11 @@ export function useSingleFileProject({
           project = await projectFromPlantUml(source, kind, new Date().toISOString());
           project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
         } else {
-          const password =
-            window.prompt(`Password for ${opened.fileName} (leave blank if it is not encrypted)`) ?? undefined;
-          try {
-            const decoded = await decodeProject(opened.bytes, password ? { password } : {});
-            project = decoded.project;
-            key = decoded.unlockedKey;
-            encrypted = Boolean(key);
-          } catch {
-            const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
-            project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
-            key = decoded.unlockedKey;
-            encrypted = Boolean(key);
-          }
+          const decoded = await decodePortableProjectFile(opened.bytes, opened.fileName, requestPassword);
+          if (!decoded) return false;
+          project = decoded.project;
+          key = decoded.key;
+          encrypted = decoded.encrypted;
         }
         unlockedKey.current = key;
         handle.current = opened.handle;
@@ -270,7 +326,7 @@ export function useSingleFileProject({
         return false;
       }
     },
-    [embedded, reportError, resetSelection, setInteractionMessage],
+    [embedded, reportError, requestPassword, resetSelection, setInteractionMessage],
   );
   const openProject = useCallback(async () => openOpenedProject(await openDocumentFile()), [openOpenedProject]);
   const openPortableProject = useCallback(
@@ -382,6 +438,9 @@ export function useSingleFileProject({
       saveProjectAs,
       closeProject: embedded.closeProject,
       restoreProject: embedded.restoreProject,
+      unlockRequest,
+      unlock,
+      cancelUnlock,
     }),
     [
       addProjectDiagram,
@@ -398,6 +457,9 @@ export function useSingleFileProject({
       saveProjectAs,
       updateElements,
       updateLinks,
+      unlockRequest,
+      unlock,
+      cancelUnlock,
     ],
   );
 }
