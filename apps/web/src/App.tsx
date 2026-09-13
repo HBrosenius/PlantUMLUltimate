@@ -22,6 +22,7 @@ import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { GanttInspectors } from "./features/gantt/GanttInspectors";
+import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
 import { useGanttDependencyActions } from "./features/gantt/use-gantt-dependency-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
@@ -57,7 +58,7 @@ import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
-import { parseProjectSettings, updateProjectSettings } from "./project-settings";
+import { parseProjectSettings } from "./project-settings";
 import type { Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
@@ -1012,83 +1013,6 @@ export function App() {
     refreshHistoryControls,
   });
 
-  const applyTimelineDateHighlight = useCallback(
-    (color: string) => {
-      if (!highlightDate) return;
-      const settings = parseProjectSettings(workspace.source);
-      const existing = settings.dateRules.find(
-        (rule) => rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate,
-      );
-      settings.dateRules = existing
-        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, color } : rule))
-        : [
-            ...settings.dateRules,
-            {
-              id: `highlight-${highlightDate}`,
-              from: highlightDate,
-              to: highlightDate,
-              state: "colored",
-              color,
-            },
-          ];
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Highlight ${highlightDate}`))
-        return;
-      setHighlightDate(undefined);
-      setInteractionMessage(`Highlighted ${highlightDate}`);
-    },
-    [commitGeneratedSource, highlightDate, workspace.source],
-  );
-
-  const clearTimelineDateHighlight = useCallback(() => {
-    if (!highlightDate) return;
-    const settings = parseProjectSettings(workspace.source);
-    const remaining = settings.dateRules.filter(
-      (rule) => !(rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate),
-    );
-    if (remaining.length === settings.dateRules.length) {
-      setHighlightDate(undefined);
-      return;
-    }
-    settings.dateRules = remaining;
-    if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear highlight ${highlightDate}`))
-      return;
-    setHighlightDate(undefined);
-    setInteractionMessage(`Cleared highlight for ${highlightDate}`);
-  }, [commitGeneratedSource, highlightDate, workspace.source]);
-
-  const applyTimelineDateClosed = useCallback(
-    (date: string) => {
-      const settings = parseProjectSettings(workspace.source);
-      const existing = settings.dateRules.find(
-        (rule) => rule.from === date && rule.to === date && rule.state !== "colored",
-      );
-      settings.dateRules = existing
-        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, state: "closed" } : rule))
-        : [...settings.dateRules, { id: `closed-${date}`, from: date, to: date, state: "closed" as const }];
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Close ${date}`)) return;
-      setDateMenuFor(undefined);
-      setInteractionMessage(`Marked ${date} as a closed day`);
-    },
-    [commitGeneratedSource, workspace.source],
-  );
-
-  const clearTimelineDateSetting = useCallback(
-    (date: string) => {
-      const settings = parseProjectSettings(workspace.source);
-      const remaining = settings.dateRules.filter((rule) => !(rule.from === date && rule.to === date));
-      if (remaining.length === settings.dateRules.length) {
-        setDateMenuFor(undefined);
-        return;
-      }
-      settings.dateRules = remaining;
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear date setting ${date}`))
-        return;
-      setDateMenuFor(undefined);
-      setInteractionMessage(`Cleared the date setting for ${date}`);
-    },
-    [commitGeneratedSource, workspace.source],
-  );
-
   const {
     versionHistoryOpen,
     setVersionHistoryOpen,
@@ -1553,6 +1477,23 @@ export function App() {
     report: setInteractionMessage,
     confirmDelete: confirmGanttTaskDelete,
   });
+  const closeGanttDateMenu = useCallback(() => setDateMenuFor(undefined), []);
+  const closeGanttProjectInspector = useCallback(() => setProjectInspectorOpen(false), []);
+  const {
+    applyTimelineDateHighlight,
+    clearTimelineDateHighlight,
+    applyTimelineDateClosed,
+    clearTimelineDateSetting,
+    applyProjectSettings,
+  } = useGanttCalendarActions({
+    source: workspace.source,
+    highlightDate,
+    commit: commitGeneratedSource,
+    setHighlightDate,
+    closeDateMenu: closeGanttDateMenu,
+    closeProjectInspector: closeGanttProjectInspector,
+    report: setInteractionMessage,
+  });
 
   const applyTaskInspector = useCallback(
     (value: TaskInspectorValue) => {
@@ -1825,40 +1766,6 @@ export function App() {
       setInteractionMessage(`Updated milestone ${value.label.trim()}`);
     },
     [commitGeneratedSource, selectedTaskId, setSelectedTaskId, workspace.source],
-  );
-
-  const applyProjectSettings = useCallback(
-    (value: ReturnType<typeof parseProjectSettings>) => {
-      const zoom = value.scaleZoom === "" ? undefined : Number(value.scaleZoom);
-      if (zoom !== undefined && (!Number.isInteger(zoom) || zoom < 1)) {
-        setInteractionMessage("Scale zoom must be a positive whole number");
-        return;
-      }
-      if (value.highlightToday && (!value.todayColor.trim() || /\s/.test(value.todayColor.trim()))) {
-        setInteractionMessage("Today color must be a PlantUML color name or hex value");
-        return;
-      }
-      if (value.dateRules.some((rule) => !rule.from || !rule.to || rule.to < rule.from)) {
-        setInteractionMessage("Calendar dates need a valid start and end date");
-        return;
-      }
-      if (
-        value.dateRules.some(
-          (rule) => rule.state === "colored" && (!rule.color?.trim() || /\s/.test(rule.color.trim())),
-        )
-      ) {
-        setInteractionMessage("Highlighted dates need a PlantUML color name or hex value");
-        return;
-      }
-      const settingsSource = updateProjectSettings(workspace.source, value);
-      const nextSource = value.showLegend
-        ? synchronizeLegend(settingsSource, parseGantt(settingsSource).document.tasks)
-        : removeLegend(settingsSource);
-      if (!commitGeneratedSource(nextSource, "Update project calendar")) return;
-      setProjectInspectorOpen(false);
-      setInteractionMessage("Updated project calendar");
-    },
-    [commitGeneratedSource, workspace.source],
   );
 
   const commands = useMemo<Command[]>(() => {
