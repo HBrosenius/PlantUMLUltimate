@@ -115,4 +115,34 @@ describe("useEmbeddedProject lifecycle", () => {
     await waitFor(() => expect(result.current.dirty).toBe(true));
     expect(result.current.currentRevision()).toBe(1);
   });
+
+  it("opens members against the replacement project identity", async () => {
+    const created: Array<Partial<Omit<DocumentSnapshot, "id">>> = [];
+    const tabs = {
+      documents: [] as DocumentSnapshot[],
+      addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>) {
+        created.push(input ?? {});
+        return "replacement-tab";
+      },
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const first = projectWithDiagram();
+    const replacement = {
+      ...projectWithDiagram(),
+      projectId: "99999999-9999-4999-8999-999999999999",
+      name: "Replacement",
+    };
+    const { result } = renderHook(() => useEmbeddedProject(tabs));
+
+    act(() => result.current.openProject(first));
+    act(() => result.current.openProject(replacement));
+    await act(async () => {
+      await result.current.openMember(replacement.diagrams[0]!.id);
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]?.historyId).toBe(`project-history-${replacement.projectId}-${replacement.diagrams[0]!.id}`);
+    expect(result.current.project?.name).toBe("Replacement");
+  });
 });

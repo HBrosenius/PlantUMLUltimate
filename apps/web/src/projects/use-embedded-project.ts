@@ -51,9 +51,11 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const recoveryRevision = useRef(0);
   const historyReady = useRef(Promise.resolve());
   const baselineByMember = useRef(new Map<string, string>());
+  const projectGeneration = useRef(0);
 
   const openProject = useCallback(
     (next: PortableProject, options: { encrypted?: boolean } = {}) => {
+      const generation = ++projectGeneration.current;
       const nextEncrypted = options.encrypted ?? false;
       memberTabs.current = new Map(embeddedMemberTabs(next, tabs.documents));
       persistentStateByMember.current = new Map(
@@ -72,11 +74,8 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       setRevision(0);
       setSavedRevision(0);
       setEncrypted(nextEncrypted);
-      if (nextEncrypted) {
-        for (const member of next.diagrams)
-          void enableMemoryOnlyHistory(embeddedMemberHistoryId(next.projectId, member.id));
-      }
       baselineByMember.current.clear();
+      const nextBaselines = new Map<string, string>();
       historyReady.current = Promise.all(
         next.diagrams.map(async (member) => {
           const historyId = embeddedMemberHistoryId(next.projectId, member.id);
@@ -92,11 +91,13 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
               versionId: (portableId) => embeddedMemberVersionId(next.projectId, member.id, portableId),
             },
           );
-          if (mapped.baselineVersionId) baselineByMember.current.set(member.id, mapped.baselineVersionId);
+          if (mapped.baselineVersionId) nextBaselines.set(member.id, mapped.baselineVersionId);
           await importDocumentVersions(mapped.versions);
         }),
       )
-        .then(() => undefined)
+        .then(() => {
+          if (projectGeneration.current === generation) baselineByMember.current = nextBaselines;
+        })
         .catch(() => undefined);
       setProject(next);
     },
@@ -271,6 +272,8 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const currentRevision = useCallback(() => revisionRef.current, []);
 
   const closeProject = useCallback(() => {
+    projectGeneration.current += 1;
+    recoveryRevision.current += 1;
     memberTabs.current.clear();
     setEncrypted(false);
     setProject(undefined);
