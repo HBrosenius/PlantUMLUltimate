@@ -6,6 +6,7 @@ import {
   embeddedMemberTabs,
   openEmbeddedMember,
   projectWithOpenTabSources,
+  snapshotEmbeddedProject,
 } from "./embedded-project";
 
 const project = (): PortableProject => ({
@@ -60,6 +61,11 @@ describe("embedded project tabs", () => {
     expect(openEmbeddedMember(project(), memberId, tabs as never, known)).toBe("tab-1");
     expect(created).toHaveLength(1);
     expect(activated).toEqual(["tab-1"]);
+    expect(created[0]).toMatchObject({
+      historyMaxVersions: 10,
+      historyMaxLogicalBytes: 1024 * 1024,
+      resourceCapacities: {},
+    });
   });
 
   it("finds retained member tabs by stable project-member history ID", () => {
@@ -105,5 +111,54 @@ describe("embedded project tabs", () => {
 
     expect(effective.diagrams[0]!.document.current.source).toContain("Live edit");
     expect(value.diagrams[0]!.document.current.source).toBe(original);
+  });
+
+  it("snapshots source, history, baseline, policy, and resource settings from an open tab", async () => {
+    const value = project();
+    const memberId = value.diagrams[0]!.id;
+    const source = "@startgantt\n[Current] lasts 2 days\n@endgantt\n";
+    const snapshot = await snapshotEmbeddedProject(
+      value,
+      new Map([[memberId, "tab-1"]]),
+      [
+        {
+          id: "tab-1",
+          historyId: "history-1",
+          source,
+          diagramKind: "gantt",
+          fileName: "Plan",
+          dirty: true,
+          zoom: 1,
+          cursor: { line: 1, column: 1 },
+          baselineVersionId: "local-version",
+          historyMaxVersions: 25,
+          historyMaxLogicalBytes: 2 * 1024 * 1024,
+          resourceCapacities: { Alice: 80 },
+        },
+      ],
+      "2026-09-13T09:00:00.000Z",
+      async () => [
+        {
+          id: "local-version",
+          portableId: "55555555-5555-4555-8555-555555555555",
+          historyId: "history-1",
+          source,
+          sourceHash: value.diagrams[0]!.document.current.sourceHash,
+          fileName: "Plan",
+          diagramKind: "gantt",
+          createdAt: "2026-09-13T08:30:00.000Z",
+          reason: "manual",
+          pinned: true,
+        },
+      ],
+    );
+    const document = snapshot.diagrams[0]!.document;
+
+    expect(document.current.source).toBe(source);
+    expect(document.current.baselineVersionId).toBe("55555555-5555-4555-8555-555555555555");
+    expect(document.settings.resourceCapacities).toEqual({ Alice: 80 });
+    expect(document.historyPolicy).toEqual({ maxVersions: 25, maxLogicalBytes: 2 * 1024 * 1024 });
+    expect(document.versions).toHaveLength(1);
+    expect(document.versions[0]).toMatchObject({ reason: "manual", pinned: true });
   });
 });

@@ -8,6 +8,8 @@ import { useEmbeddedProject } from "./use-embedded-project";
 
 vi.mock("../workspace-storage", () => ({
   enableMemoryOnlyHistory: vi.fn(async () => undefined),
+  importDocumentVersions: vi.fn(async () => undefined),
+  loadDocumentVersions: vi.fn(async () => []),
 }));
 
 vi.mock("./embedded-project-session", () => ({
@@ -26,6 +28,29 @@ function project(): PortableProject {
     diagrams: [],
     elements: [],
     links: [],
+  };
+}
+
+function projectWithDiagram(): PortableProject {
+  const value = project();
+  return {
+    ...value,
+    diagrams: [
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "Plan",
+        document: {
+          schemaVersion: 1,
+          documentId: "44444444-4444-4444-8444-444444444444",
+          savedAt: value.savedAt,
+          current: { source: "@startgantt\n@endgantt\n", sourceHash: "a".repeat(64), diagramKind: "gantt" },
+          settings: { resourceCapacities: {} },
+          historyPolicy: { maxVersions: 10, maxLogicalBytes: 1024 * 1024 },
+          versions: [],
+          contents: [],
+        },
+      },
+    ],
   };
 }
 
@@ -54,5 +79,40 @@ describe("useEmbeddedProject lifecycle", () => {
     expect(result.current.currentRevision()).toBe(1);
     expect(result.current.currentRevision()).not.toBe(snapshot?.revision);
     expect(result.current.dirty).toBe(true);
+  });
+
+  it("marks project metadata changes in an open member dirty", async () => {
+    const value = projectWithDiagram();
+    const historyId = `project-history-${value.projectId}-${value.diagrams[0]!.id}`;
+    const baseDocument = {
+      id: "tab-1",
+      historyId,
+      source: value.diagrams[0]!.document.current.source,
+      diagramKind: "gantt" as const,
+      fileName: "Plan",
+      dirty: false,
+      zoom: 1,
+      cursor: { line: 1, column: 1 },
+      historyMaxVersions: 10,
+      historyMaxLogicalBytes: 1024 * 1024,
+      resourceCapacities: {},
+    };
+    const controls = {
+      addDocument: vi.fn(() => "tab-1"),
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ documents }: { documents: DocumentSnapshot[] }) => useEmbeddedProject({ ...controls, documents }),
+      { initialProps: { documents: [baseDocument] } },
+    );
+
+    act(() => result.current.openProject(value));
+    await waitFor(() => expect(result.current.project).toBeDefined());
+    expect(result.current.dirty).toBe(false);
+
+    rerender({ documents: [{ ...baseDocument, resourceCapacities: { Alice: 80 } }] });
+    await waitFor(() => expect(result.current.dirty).toBe(true));
+    expect(result.current.currentRevision()).toBe(1);
   });
 });

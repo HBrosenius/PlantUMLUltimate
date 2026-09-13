@@ -1,6 +1,7 @@
 import { hashSource, type PortableProject } from "@plantuml-studio/document-format";
+import { assemblePortableDocument } from "../document-format/portable-document";
 import type { DiagramKind } from "../model";
-import type { DocumentSnapshot } from "../workspace-storage";
+import { loadDocumentVersions, type DocumentSnapshot } from "../workspace-storage";
 
 export type EmbeddedProjectTabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -11,6 +12,10 @@ export type EmbeddedProjectTabs = {
 
 export function embeddedMemberHistoryId(projectId: string, memberId: string): string {
   return `project-history-${projectId}-${memberId}`;
+}
+
+export function embeddedMemberVersionId(projectId: string, memberId: string, portableVersionId: string): string {
+  return `project-version-${projectId}-${memberId}-${portableVersionId}`;
 }
 
 export function embeddedMemberTabs(
@@ -31,6 +36,7 @@ export function openEmbeddedMember(
   tabs: EmbeddedProjectTabs,
   knownTabs: Map<string, string>,
   encrypted = false,
+  baselineVersionId?: string,
 ): string | undefined {
   const knownTab = knownTabs.get(memberId);
   const existing =
@@ -52,6 +58,10 @@ export function openEmbeddedMember(
     cursor: { line: 1, column: 1 },
     portableDocumentId: member.document.documentId,
     encrypted,
+    historyMaxVersions: member.document.historyPolicy.maxVersions,
+    historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
+    resourceCapacities: member.document.settings.resourceCapacities,
+    ...(baselineVersionId ? { baselineVersionId } : {}),
   });
   knownTabs.set(memberId, tabId);
   return tabId;
@@ -74,24 +84,42 @@ export function projectWithOpenTabSources(
   return changed ? { ...project, diagrams } : project;
 }
 
-/** Capture member source from currently open tabs without changing graph or history metadata. */
+/** Capture every persistent member field from currently open tabs. */
 export async function snapshotEmbeddedProject(
   project: PortableProject,
   memberTabs: ReadonlyMap<string, string>,
   tabs: readonly DocumentSnapshot[],
   savedAt = new Date().toISOString(),
+  loadVersions: typeof loadDocumentVersions = loadDocumentVersions,
 ): Promise<PortableProject> {
   const effective = projectWithOpenTabSources(project, memberTabs, tabs);
+  const byTabId = new Map(tabs.map((tab) => [tab.id, tab]));
   const diagrams = await Promise.all(
-    effective.diagrams.map(async (member, index) => {
-      if (member === project.diagrams[index]) return member;
+    effective.diagrams.map(async (member) => {
+      const tab = byTabId.get(memberTabs.get(member.id) ?? "");
+      if (!tab) return member;
+      const versions = await loadVersions(tab.historyId);
+      if (!versions.length)
+        return {
+          ...member,
+          document: {
+            ...member.document,
+            savedAt,
+            current: {
+              ...member.document.current,
+              source: tab.source,
+              sourceHash: await hashSource(tab.source),
+            },
+            settings: { resourceCapacities: tab.resourceCapacities ?? {} },
+            historyPolicy: {
+              maxVersions: tab.historyMaxVersions ?? member.document.historyPolicy.maxVersions,
+              maxLogicalBytes: tab.historyMaxLogicalBytes ?? member.document.historyPolicy.maxLogicalBytes,
+            },
+          },
+        };
       return {
         ...member,
-        document: {
-          ...member.document,
-          savedAt,
-          current: { ...member.document.current, sourceHash: await hashSource(member.document.current.source) },
-        },
+        document: await assemblePortableDocument(tab, versions, undefined, savedAt),
       };
     }),
   );

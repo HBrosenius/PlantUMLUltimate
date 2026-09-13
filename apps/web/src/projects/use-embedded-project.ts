@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PortableProject, PortableProjectDiagram } from "@plantuml-studio/document-format";
+import {
+  reconstructContents,
+  type PortableProject,
+  type PortableProjectDiagram,
+} from "@plantuml-studio/document-format";
+import { mapPortableHistoryToLocal } from "../document-format/history-mapping";
 import {
   embeddedMemberHistoryId,
+  embeddedMemberVersionId,
   embeddedMemberTabs,
   openEmbeddedMember,
   projectWithOpenTabSources,
@@ -13,7 +19,23 @@ import {
   loadEmbeddedProjectRecovery,
   saveEmbeddedProjectRecovery,
 } from "./embedded-project-session";
-import { enableMemoryOnlyHistory } from "../workspace-storage";
+import { enableMemoryOnlyHistory, importDocumentVersions } from "../workspace-storage";
+
+function persistentTabState(tab: {
+  source: string;
+  baselineVersionId?: string | undefined;
+  historyMaxVersions?: number | undefined;
+  historyMaxLogicalBytes?: number | undefined;
+  resourceCapacities?: Record<string, number> | undefined;
+}): string {
+  return JSON.stringify([
+    tab.source,
+    tab.baselineVersionId,
+    tab.historyMaxVersions,
+    tab.historyMaxLogicalBytes,
+    Object.entries(tab.resourceCapacities ?? {}).sort(([left], [right]) => left.localeCompare(right)),
+  ]);
+}
 
 /** Owns one embedded project snapshot and the transient tabs used to view its members. */
 export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
@@ -23,22 +45,59 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const projectRef = useRef(project);
   projectRef.current = project;
   const revisionRef = useRef(0);
+  const [revision, setRevision] = useState(0);
   const [savedRevision, setSavedRevision] = useState(0);
-  const sourceByMember = useRef(new Map<string, string>());
+  const persistentStateByMember = useRef(new Map<string, string>());
   const recoveryRevision = useRef(0);
+  const historyReady = useRef(Promise.resolve());
+  const baselineByMember = useRef(new Map<string, string>());
 
   const openProject = useCallback(
     (next: PortableProject, options: { encrypted?: boolean } = {}) => {
       const nextEncrypted = options.encrypted ?? false;
       memberTabs.current = new Map(embeddedMemberTabs(next, tabs.documents));
-      sourceByMember.current = new Map(next.diagrams.map((member) => [member.id, member.document.current.source]));
+      persistentStateByMember.current = new Map(
+        next.diagrams.map((member) => [
+          member.id,
+          persistentTabState({
+            source: member.document.current.source,
+            baselineVersionId: member.document.current.baselineVersionId,
+            historyMaxVersions: member.document.historyPolicy.maxVersions,
+            historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
+            resourceCapacities: member.document.settings.resourceCapacities,
+          }),
+        ]),
+      );
       revisionRef.current = 0;
+      setRevision(0);
       setSavedRevision(0);
       setEncrypted(nextEncrypted);
       if (nextEncrypted) {
         for (const member of next.diagrams)
           void enableMemoryOnlyHistory(embeddedMemberHistoryId(next.projectId, member.id));
       }
+      baselineByMember.current.clear();
+      historyReady.current = Promise.all(
+        next.diagrams.map(async (member) => {
+          const historyId = embeddedMemberHistoryId(next.projectId, member.id);
+          if (nextEncrypted) await enableMemoryOnlyHistory(historyId);
+          const mapped = mapPortableHistoryToLocal(
+            member.document.versions,
+            await reconstructContents(member.document.contents),
+            member.name,
+            member.document.current.baselineVersionId,
+            undefined,
+            {
+              historyId,
+              versionId: (portableId) => embeddedMemberVersionId(next.projectId, member.id, portableId),
+            },
+          );
+          if (mapped.baselineVersionId) baselineByMember.current.set(member.id, mapped.baselineVersionId);
+          await importDocumentVersions(mapped.versions);
+        }),
+      )
+        .then(() => undefined)
+        .catch(() => undefined);
       setProject(next);
     },
     [tabs.documents],
@@ -49,15 +108,20 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     const byId = new Map(tabs.documents.map((tab) => [tab.id, tab]));
     let changed = false;
     for (const member of project.diagrams) {
-      const source = byId.get(memberTabs.current.get(member.id) ?? "")?.source;
-      if (source === undefined || sourceByMember.current.get(member.id) === source) continue;
-      sourceByMember.current.set(member.id, source);
+      const tab = byId.get(memberTabs.current.get(member.id) ?? "");
+      if (!tab) continue;
+      const state = persistentTabState(tab);
+      if (persistentStateByMember.current.get(member.id) === state) continue;
+      persistentStateByMember.current.set(member.id, state);
       changed = true;
     }
     // The live tabs are the source of truth until an explicit save snapshot.  Updating
     // project state here used to feed the new state back into this effect and could
     // repeatedly re-index a project immediately after adding its first diagram.
-    if (changed) revisionRef.current += 1;
+    if (changed) {
+      revisionRef.current += 1;
+      setRevision(revisionRef.current);
+    }
   }, [project, tabs.documents]);
 
   const effectiveProject = useMemo(
@@ -68,7 +132,8 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   useEffect(() => {
     if (!project) return;
     const revision = ++recoveryRevision.current;
-    void snapshotEmbeddedProject(project, memberTabs.current, tabs.documents)
+    void historyReady.current
+      .then(() => snapshotEmbeddedProject(project, memberTabs.current, tabs.documents))
       .then((snapshot) => {
         if (recoveryRevision.current === revision) return saveEmbeddedProjectRecovery(snapshot, encrypted);
       })
@@ -87,12 +152,21 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const updateProject = useCallback((update: (current: PortableProject) => PortableProject) => {
     setProject((current) => (current ? update(current) : current));
     revisionRef.current += 1;
+    setRevision(revisionRef.current);
   }, []);
 
   const openMember = useCallback(
-    (memberId: string) => {
+    async (memberId: string) => {
       if (!project) return undefined;
-      return openEmbeddedMember(project, memberId, tabs, memberTabs.current, encrypted);
+      await historyReady.current;
+      return openEmbeddedMember(
+        project,
+        memberId,
+        tabs,
+        memberTabs.current,
+        encrypted,
+        baselineByMember.current.get(memberId),
+      );
     },
     [encrypted, project, tabs],
   );
@@ -108,8 +182,18 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
         diagrams: [...current.diagrams, diagram],
       };
       const tabId = openEmbeddedMember(next, diagram.id, tabs, memberTabs.current, encrypted);
-      sourceByMember.current.set(diagram.id, diagram.document.current.source);
+      persistentStateByMember.current.set(
+        diagram.id,
+        persistentTabState({
+          source: diagram.document.current.source,
+          baselineVersionId: diagram.document.current.baselineVersionId,
+          historyMaxVersions: diagram.document.historyPolicy.maxVersions,
+          historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
+          resourceCapacities: diagram.document.settings.resourceCapacities,
+        }),
+      );
       revisionRef.current += 1;
+      setRevision(revisionRef.current);
       setProject(next);
       return tabId;
     },
@@ -122,6 +206,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     const current = projectRef.current;
     if (!current?.diagrams.some((diagram) => diagram.id === memberId)) return false;
     revisionRef.current += 1;
+    setRevision(revisionRef.current);
     setProject({
       ...current,
       revisionId: crypto.randomUUID(),
@@ -143,8 +228,9 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       const tabId = memberTabs.current.get(memberId);
       if (tabId) tabs.closeDocument?.(tabId);
       memberTabs.current.delete(memberId);
-      sourceByMember.current.delete(memberId);
+      persistentStateByMember.current.delete(memberId);
       revisionRef.current += 1;
+      setRevision(revisionRef.current);
       setProject({
         ...current,
         revisionId: crypto.randomUUID(),
@@ -161,6 +247,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const snapshot = useCallback(
     async (savedAt?: string) => {
       if (!project) return undefined;
+      await historyReady.current;
       const next = await snapshotEmbeddedProject(project, memberTabs.current, tabs.documents, savedAt);
       setProject(next);
       return next;
@@ -172,6 +259,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     const current = projectRef.current;
     if (!current) return undefined;
     const revision = revisionRef.current;
+    await historyReady.current;
     return {
       projectId: current.projectId,
       revision,
@@ -204,7 +292,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     captureSaveSnapshot,
     currentRevision,
     markSaved,
-    dirty: Boolean(project) && revisionRef.current !== savedRevision,
+    dirty: Boolean(project) && revision !== savedRevision,
     closeProject,
   };
 }

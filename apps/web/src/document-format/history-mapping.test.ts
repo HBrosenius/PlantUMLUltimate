@@ -39,4 +39,23 @@ describe("portable history mapping", () => {
     expect(first.baselineVersionId).toBe(first.versions[1]!.id);
     expect(first.versions.map((item) => item.id)).not.toEqual(second.versions.map((item) => item.id));
   });
+
+  it("supports stable identities for project-member history", () => {
+    const mapped = mapPortableHistoryToLocal(
+      versions,
+      new Map([
+        ["a".repeat(64), "one"],
+        ["b".repeat(64), "two"],
+      ]),
+      "Plan",
+      versions[1]!.id,
+      undefined,
+      { historyId: "project-history", versionId: (id) => `project-version-${id}` },
+    );
+
+    expect(mapped.historyId).toBe("project-history");
+    expect(mapped.versions.map((item) => item.id)).toEqual(versions.map((item) => `project-version-${item.id}`));
+    expect(mapped.versions[1]!.parentVersionId).toBe(mapped.versions[0]!.id);
+    expect(mapped.baselineVersionId).toBe(mapped.versions[1]!.id);
+  });
 });
