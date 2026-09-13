@@ -11,9 +11,9 @@ function selection(overrides: Partial<DiagramSelectionState>): DiagramSelectionS
 
 describe("diagram selection transitions", () => {
   it("updates one selection without disturbing the others", () => {
-    const state = selection({ selectedTaskId: "task-a", selectedClassObjectId: "class-a" });
+    const state = selection({ selectedTaskId: "task-a", selectedDependencyIndex: 1 });
     expect(diagramSelectionReducer(state, { type: "set", key: "selectedTaskId", value: "task-b" })).toEqual(
-      selection({ selectedTaskId: "task-b", selectedClassObjectId: "class-a" }),
+      selection({ selectedTaskId: "task-b", selectedDependencyIndex: 1 }),
     );
   });
 
@@ -41,12 +41,12 @@ describe("diagram selection transitions", () => {
   it("dismisses inspector selections while preserving source highlights", () => {
     const state = selection({
       selectedTaskId: "task-a",
-      selectedClassObjectId: "class-a",
+      selectedDependencyIndex: 2,
       sourceHighlightedTaskId: "task-b",
     });
     const next = diagramSelectionReducer(state, { type: "dismiss-inspector-selection" });
     expect(next.selectedTaskId).toBeUndefined();
-    expect(next.selectedClassObjectId).toBeUndefined();
+    expect(next.selectedDependencyIndex).toBeUndefined();
     expect(next.sourceHighlightedTaskId).toBe("task-b");
   });
 });

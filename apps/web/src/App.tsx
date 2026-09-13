@@ -18,6 +18,7 @@ import { useActivityController } from "./features/activity/use-activity-controll
 import { ClassDialogs, type ClassDialogKind } from "./features/class/ClassDialogs";
 import { ClassInspectors } from "./features/class/ClassInspectors";
 import { useClassActions } from "./features/class/use-class-actions";
+import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
 import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
 import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
@@ -167,14 +168,8 @@ export function App() {
     setSelectedDividerIndex,
     selectedVerticalSeparatorIndex,
     setSelectedVerticalSeparatorIndex,
-    selectedClassObjectId,
-    setSelectedClassObjectId,
     sourceHighlightedTaskId,
     setSourceHighlightedTaskId,
-    sourceHighlightedClassEntityId,
-    setSourceHighlightedClassEntityId,
-    sourceHighlightedClassMemberId,
-    setSourceHighlightedClassMemberId,
     resetTransientTabSelection,
     dismissInspectorSelection,
   } = useDiagramSelection();
@@ -212,7 +207,6 @@ export function App() {
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
-  const [classSettingsOpen, setClassSettingsOpen] = useState(false);
   const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
@@ -517,10 +511,26 @@ export function App() {
     selectFromSource: selectActivityFromSource,
     dismissInspector: dismissActivityInspector,
   } = useActivityController(workspace.diagramKind, activityDocument);
-  const selectedClassEntity = classDocument.entities.find((x) => x.id === selectedClassObjectId);
-  const selectedClassRelationship = classDocument.relationships.find((x) => x.id === selectedClassObjectId);
-  const selectedClassPackage = classDocument.packages.find((x) => x.id === selectedClassObjectId);
-  const selectedClassNote = classDocument.notes.find((x) => x.id === selectedClassObjectId);
+  const revealClassSource = useCallback((range: { from: number; to: number }) => setSelectionRequest({ ...range }), []);
+  const {
+    selectedObjectId: selectedClassObjectId,
+    sourceHighlightedEntityId: sourceHighlightedClassEntityId,
+    sourceHighlightedMemberId: sourceHighlightedClassMemberId,
+    settingsOpen: classSettingsOpen,
+    selectedEntity: selectedClassEntity,
+    selectedRelationship: selectedClassRelationship,
+    selectedPackage: selectedClassPackage,
+    selectedNote: selectedClassNote,
+    setSelectedObjectId: setSelectedClassObjectId,
+    setSourceHighlightedEntityId: setSourceHighlightedClassEntityId,
+    clearSelection: clearSelectedClassObject,
+    closeSettings: closeClassSettings,
+    openSettingsFromToolbar: openClassSettingsFromToolbar,
+    selectObject: selectClassObject,
+    selectMember: selectClassMember,
+    selectFromSource: selectClassFromSource,
+    dismissInspector: dismissClassInspector,
+  } = useClassController(workspace.diagramKind, classDocument, revealClassSource);
   const sequenceStructures = useMemo(
     () => [
       ...sequenceDocument.fragments,
@@ -786,9 +796,9 @@ export function App() {
       dismissInspectorSelection();
       dismissSequenceInspector();
       dismissUseCaseInspector();
+      dismissClassInspector();
       dismissActivityInspector();
       setProjectInspectorOpen(false);
-      setClassSettingsOpen(false);
       setFocusNoteTaskId(undefined);
     };
     document.addEventListener("click", dismissInspector);
@@ -809,6 +819,7 @@ export function App() {
     dismissInspectorSelection,
     dismissSequenceInspector,
     dismissUseCaseInspector,
+    dismissClassInspector,
     dismissActivityInspector,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
@@ -2547,13 +2558,7 @@ export function App() {
             </button>
           )}
           {workspace.diagramKind === "class" && (
-            <button
-              data-inspector-trigger
-              onClick={() => {
-                setSelectedClassObjectId(undefined);
-                setClassSettingsOpen(true);
-              }}
-            >
+            <button data-inspector-trigger onClick={openClassSettingsFromToolbar}>
               Class
             </button>
           )}
@@ -2834,9 +2839,11 @@ export function App() {
                 const member = classDocument.entities
                   .flatMap((entity) => entity.members.map((item) => ({ entity, item })))
                   .find(({ item }) => position >= item.sourceRange.from && position <= item.sourceRange.to);
-                setSourceHighlightedClassMemberId(member?.item.id);
-                setSourceHighlightedClassEntityId(occurrence?.key ?? member?.entity.id);
-                if (!occurrence && !member) setSelectedClassObjectId(findClassObjectAt(classDocument, position)?.id);
+                selectClassFromSource(
+                  occurrence?.key ?? member?.entity.id,
+                  member?.item.id,
+                  findClassObjectAt(classDocument, position)?.id,
+                );
               } else if (workspace.diagramKind === "activity") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -3016,31 +3023,9 @@ export function App() {
                   : (sourceHighlightedClassEntityId ?? selectedClassObjectId)
               }
               highlightedMemberId={sourceHighlightedClassMemberId}
-              onSelect={(id) => {
-                setClassSettingsOpen(false);
-                setSourceHighlightedClassMemberId(undefined);
-                setSelectedClassObjectId(id);
-                const x = [
-                  ...classDocument.entities,
-                  ...classDocument.packages,
-                  ...classDocument.relationships,
-                  ...classDocument.notes,
-                ].find((x) => x.id === id);
-                if (x) setSelectionRequest({ ...x.sourceRange });
-              }}
-              onMemberSelect={(entityId, memberId) => {
-                setClassSettingsOpen(false);
-                setSelectedClassObjectId(entityId);
-                setSourceHighlightedClassMemberId(memberId);
-                const member = classDocument.entities
-                  .find((item) => item.id === entityId)
-                  ?.members.find((item) => item.id === memberId);
-                if (member) setSelectionRequest({ ...member.sourceRange });
-              }}
-              onBackgroundSelect={() => {
-                setSelectedClassObjectId(undefined);
-                setClassSettingsOpen(false);
-              }}
+              onSelect={selectClassObject}
+              onMemberSelect={selectClassMember}
+              onBackgroundSelect={dismissClassInspector}
               onRelationshipCreate={createClassRelationshipByDrag}
               onRelationshipReconnect={reconnectClassRelationshipByDrag}
               onMoveToPackage={moveClassEntityByDrag}
@@ -3473,8 +3458,8 @@ export function App() {
         onPackageDelete={removeClassPackage}
         onNoteChange={applyClassNote}
         onNoteDelete={removeClassNote}
-        onCloseSettings={() => setClassSettingsOpen(false)}
-        onCloseSelection={() => setSelectedClassObjectId(undefined)}
+        onCloseSettings={closeClassSettings}
+        onCloseSelection={clearSelectedClassObject}
       />
       <ActivityInspectors
         settingsOpen={activitySettingsOpen}

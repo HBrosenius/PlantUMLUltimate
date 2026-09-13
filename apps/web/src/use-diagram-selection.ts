@@ -5,10 +5,7 @@ export type DiagramSelectionState = {
   selectedDependencyIndex: number | undefined;
   selectedDividerIndex: number | undefined;
   selectedVerticalSeparatorIndex: number | undefined;
-  selectedClassObjectId: string | undefined;
   sourceHighlightedTaskId: string | undefined;
-  sourceHighlightedClassEntityId: string | undefined;
-  sourceHighlightedClassMemberId: string | undefined;
 };
 
 export const initialDiagramSelectionState: DiagramSelectionState = {
@@ -16,10 +13,7 @@ export const initialDiagramSelectionState: DiagramSelectionState = {
   selectedDependencyIndex: undefined,
   selectedDividerIndex: undefined,
   selectedVerticalSeparatorIndex: undefined,
-  selectedClassObjectId: undefined,
   sourceHighlightedTaskId: undefined,
-  sourceHighlightedClassEntityId: undefined,
-  sourceHighlightedClassMemberId: undefined,
 };
 
 type SetDiagramSelectionAction = {
@@ -58,7 +52,6 @@ export function diagramSelectionReducer(
     selectedDependencyIndex: undefined,
     selectedDividerIndex: undefined,
     selectedVerticalSeparatorIndex: undefined,
-    selectedClassObjectId: undefined,
   };
 }
 
@@ -76,10 +69,7 @@ export function useDiagramSelection() {
       setSelectedDependencyIndex: setter("selectedDependencyIndex"),
       setSelectedDividerIndex: setter("selectedDividerIndex"),
       setSelectedVerticalSeparatorIndex: setter("selectedVerticalSeparatorIndex"),
-      setSelectedClassObjectId: setter("selectedClassObjectId"),
       setSourceHighlightedTaskId: setter("sourceHighlightedTaskId"),
-      setSourceHighlightedClassEntityId: setter("sourceHighlightedClassEntityId"),
-      setSourceHighlightedClassMemberId: setter("sourceHighlightedClassMemberId"),
     };
   }, []);
   const resetTransientTabSelection = useCallback(() => dispatch({ type: "reset-transient-tab-selection" }), []);
