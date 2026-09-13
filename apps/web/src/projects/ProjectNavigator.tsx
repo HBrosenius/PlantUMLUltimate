@@ -1,5 +1,6 @@
 import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
 import { useState } from "react";
+import type { DiagramKind } from "../model";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
 
@@ -17,7 +18,7 @@ export function ProjectNavigator({
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
-  onAdd(kind: "gantt" | "class" | "sequence", path: string): void | Promise<void>;
+  onAdd(kind: DiagramKind, path: string): void | Promise<void>;
   onImport?(): void;
   onClose(): void;
   onCloseProject?(): void;
@@ -27,7 +28,7 @@ export function ProjectNavigator({
   onDelete?(documentId: string): void;
 }) {
   const [adding, setAdding] = useState(false);
-  const [kind, setKind] = useState<"gantt" | "class" | "sequence">("gantt");
+  const [kind, setKind] = useState<DiagramKind>("gantt");
   const [path, setPath] = useState("Gantt diagram");
   return (
     <aside className="project-navigator" aria-label="Project navigator">
@@ -79,14 +80,19 @@ export function ProjectNavigator({
               <select
                 value={kind}
                 onChange={(event) => {
-                  const next = event.target.value as "gantt" | "class" | "sequence";
+                  const next = event.target.value as DiagramKind;
                   setKind(next);
-                  setPath(`${next[0]!.toUpperCase()}${next.slice(1)} diagram`);
+                  setPath(
+                    `${next === "usecase" ? "Use Case" : next === "wbs" ? "WBS" : `${next[0]!.toUpperCase()}${next.slice(1)}`} diagram`,
+                  );
                 }}
               >
                 <option value="gantt">Gantt</option>
                 <option value="class">Class</option>
                 <option value="sequence">Sequence</option>
+                <option value="usecase">Use Case</option>
+                <option value="activity">Activity</option>
+                <option value="wbs">WBS</option>
               </select>
             </label>
             <label>

@@ -4,6 +4,7 @@ import type { DocumentSnapshot } from "../workspace-storage";
 import {
   embeddedMemberHistoryId,
   embeddedMemberTabs,
+  embeddedDiagramDisplayName,
   openEmbeddedMember,
   projectWithOpenTabSources,
   snapshotEmbeddedProject,
@@ -40,6 +41,9 @@ const project = (): PortableProject => ({
 });
 
 describe("embedded project tabs", () => {
+  it.each(["Plan.puml", "Plan.plantuml", "Plan.pumlu"])("shows %s as a clean diagram name", (name) => {
+    expect(embeddedDiagramDisplayName(name)).toBe("Plan");
+  });
   it("opens a member once and reuses its project-member tab", () => {
     const created: Array<Record<string, unknown>> = [];
     const activated: string[] = [];

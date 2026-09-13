@@ -18,6 +18,15 @@ export function embeddedMemberVersionId(projectId: string, memberId: string, por
   return `project-version-${projectId}-${memberId}-${portableVersionId}`;
 }
 
+export function embeddedDiagramDisplayName(name: string): string {
+  return (
+    name
+      .trim()
+      .replace(/\.(?:puml|plantuml|pumlu)$/i, "")
+      .trim() || "Diagram"
+  );
+}
+
 export function embeddedMemberTabs(
   project: PortableProject,
   documents: readonly DocumentSnapshot[],

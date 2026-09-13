@@ -26,9 +26,11 @@ import {
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
+import type { DiagramKind } from "../model";
 import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { useEmbeddedProject } from "./use-embedded-project";
+import { embeddedDiagramDisplayName } from "./embedded-project";
 
 type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -91,6 +93,11 @@ function resolveIndex(project: PortableProject): Promise<VirtualProject> {
 function projectName(name: string): string {
   const value = name.trim();
   return value || "PlantUML project";
+}
+
+export function projectDiagramName(name: string, fallback = "Diagram"): string {
+  const value = embeddedDiagramDisplayName(name);
+  return value === "Diagram" ? fallback : value;
 }
 
 function chooseDiagramFile(): Promise<File | undefined> {
@@ -184,9 +191,9 @@ export function useSingleFileProject({
     [embedded, resetSelection, setInteractionMessage],
   );
   const addProjectDiagram = useCallback(
-    async (kind: "gantt" | "class" | "sequence", name: string) => {
+    async (kind: DiagramKind, name: string) => {
       try {
-        const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
+        const displayName = projectDiagramName(name, `${kind} diagram`);
         const staged = await projectFromPlantUml(starterSource(kind), kind, displayName);
         addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
       } catch (error) {
@@ -203,18 +210,19 @@ export function useSingleFileProject({
       if (isPortableDocument(bytes)) {
         const password = window.prompt(`Password for ${file.name} (leave blank if it is not encrypted)`) ?? undefined;
         const decoded = await decodeDocument(bytes, password ? { password } : {});
-        const staged = projectFromDocument(decoded.document, file.name, new Date().toISOString());
-        addPortableDiagram(staged.diagrams[0]!);
+        const displayName = projectDiagramName(file.name);
+        const staged = projectFromDocument(decoded.document, displayName, new Date().toISOString());
+        addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
         return;
       }
       const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       const kind = detectDiagramKind(source);
-      if (!kind || !["gantt", "class", "sequence"].includes(kind)) {
-        setInteractionMessage("Choose a supported Gantt, Class, or Sequence PlantUML diagram");
+      if (!kind) {
+        setInteractionMessage("Choose a supported PlantUML diagram");
         return;
       }
       const staged = await projectFromPlantUml(source, kind, new Date().toISOString());
-      addPortableDiagram({ ...staged.diagrams[0]!, name: file.name });
+      addPortableDiagram({ ...staged.diagrams[0]!, name: projectDiagramName(file.name) });
     } catch (error) {
       reportError(error);
     }

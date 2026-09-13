@@ -8,6 +8,7 @@ import { mapPortableHistoryToLocal } from "../document-format/history-mapping";
 import {
   embeddedMemberHistoryId,
   embeddedMemberVersionId,
+  embeddedDiagramDisplayName,
   embeddedMemberTabs,
   openEmbeddedMember,
   projectWithOpenTabSources,
@@ -55,6 +56,10 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
 
   const openProject = useCallback(
     (next: PortableProject, options: { encrypted?: boolean } = {}) => {
+      next = {
+        ...next,
+        diagrams: next.diagrams.map((diagram) => ({ ...diagram, name: embeddedDiagramDisplayName(diagram.name) })),
+      };
       const generation = ++projectGeneration.current;
       const nextEncrypted = options.encrypted ?? false;
       memberTabs.current = new Map(embeddedMemberTabs(next, tabs.documents));
