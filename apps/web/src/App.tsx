@@ -20,11 +20,10 @@ import { ClassInspectors } from "./features/class/ClassInspectors";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
-import type { AddTaskValue } from "./AddTaskDialog";
 import type { AddSeparatorValue } from "./AddDividerDialog";
-import type { AddMilestoneValue } from "./AddMilestoneDialog";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { GanttInspectors } from "./features/gantt/GanttInspectors";
+import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
 import type { TaskInspectorValue } from "./TaskInspector";
 import { explicitTaskStartStatement } from "./task-inspector-schedule";
@@ -69,15 +68,11 @@ import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
-  deleteTask,
-  duplicateTask,
   deleteDivider,
   deleteVerticalSeparator,
   findTaskAt,
   insertDivider,
   insertVerticalSeparator,
-  insertMilestone,
-  insertTask,
   moveDependentTasksByDays,
   moveDivider,
   moveVerticalSeparatorByDays,
@@ -1648,20 +1643,20 @@ export function App() {
     closeSettings: closeSequenceSettings,
     reportMessage: setInteractionMessage,
   });
-  const addTask = useCallback(
-    (value: AddTaskValue) => {
-      const operation = insertTask(workspace.source, value);
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add ${value.label.trim()}`))
-        return;
-      closeDialog("add-task");
-      setInteractionMessage(`Added ${value.label.trim()}`);
-    },
-    [closeDialog, commitGeneratedSource, workspace.source],
-  );
+  const closeGanttTaskDialog = useCallback((kind: "task" | "milestone") => closeDialog(`add-${kind}`), [closeDialog]);
+  const confirmGanttTaskDelete = useCallback((message: string) => window.confirm(message), []);
+  const { addTask, addMilestone, deleteSelectedTask, duplicateTaskOccurrence } = useGanttTaskActions({
+    source: workspace.source,
+    document: parseResult.document,
+    selectedTask,
+    diagramKind: workspace.diagramKind,
+    commitGeneratedSource,
+    closeDialog: closeGanttTaskDialog,
+    selectTask: setSelectedTaskId,
+    selectDependency: setSelectedDependencyIndex,
+    reportMessage: setInteractionMessage,
+    confirmDelete: confirmGanttTaskDelete,
+  });
 
   const addDivider = useCallback(
     (value: AddSeparatorValue) => {
@@ -1692,26 +1687,6 @@ export function App() {
         return;
       closeDialog("add-divider");
       setInteractionMessage(`Added divider ${value.label.trim()}`);
-    },
-    [closeDialog, commitGeneratedSource, workspace.source],
-  );
-
-  const addMilestone = useCallback(
-    (value: AddMilestoneValue) => {
-      const operation = insertMilestone(workspace.source, {
-        label: value.label,
-        ...(value.mode === "fixed"
-          ? { date: value.date ?? "" }
-          : { referenceLabel: value.referenceLabel ?? "", referenceAnchor: value.referenceAnchor ?? "end" }),
-      });
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add ${value.label.trim()}`))
-        return;
-      closeDialog("add-milestone");
-      setInteractionMessage(`Added milestone ${value.label.trim()}`);
     },
     [closeDialog, commitGeneratedSource, workspace.source],
   );
@@ -1987,51 +1962,6 @@ export function App() {
       setInteractionMessage(`Updated milestone ${value.label.trim()}`);
     },
     [commitGeneratedSource, selectedTaskId, setSelectedTaskId, workspace.source],
-  );
-
-  const deleteSelectedTask = useCallback(() => {
-    if (!selectedTask) return;
-    const kind = selectedTask.milestone ? "milestone" : "task";
-    if (!window.confirm(`Delete ${kind} “${selectedTask.label}” and its dependency links?`)) return;
-    const operation = deleteTask(workspace.source, parseResult.document, selectedTask);
-    if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Delete ${selectedTask.label}`))
-      return;
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-    setInteractionMessage(`Deleted ${selectedTask.label}`);
-  }, [
-    commitGeneratedSource,
-    parseResult.document,
-    selectedTask,
-    setSelectedDependencyIndex,
-    setSelectedTaskId,
-    workspace.source,
-  ]);
-
-  const duplicateTaskOccurrence = useCallback(
-    (occurrence: SemanticSymbolOccurrence) => {
-      if (workspace.diagramKind !== "gantt" || occurrence.kind !== "task") return;
-      const task = parseResult.document.symbols.tasks.get(occurrence.key);
-      if (!task) return;
-      const operation = duplicateTask(workspace.source, parseResult.document, task);
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Duplicate ${task.label}`))
-        return;
-      setSelectedTaskId(operation.taskId);
-      setSelectedDependencyIndex(undefined);
-      setInteractionMessage(`Duplicated ${task.label} as ${operation.label}`);
-    },
-    [
-      commitGeneratedSource,
-      parseResult.document,
-      setSelectedDependencyIndex,
-      setSelectedTaskId,
-      workspace.diagramKind,
-      workspace.source,
-    ],
   );
 
   const applyProjectSettings = useCallback(
