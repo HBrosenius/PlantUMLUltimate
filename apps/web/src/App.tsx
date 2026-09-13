@@ -20,16 +20,14 @@ import { ClassInspectors } from "./features/class/ClassInspectors";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
-import type { AddSeparatorValue } from "./AddDividerDialog";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { GanttInspectors } from "./features/gantt/GanttInspectors";
+import { useGanttDependencyActions } from "./features/gantt/use-gantt-dependency-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
 import type { TaskInspectorValue } from "./TaskInspector";
 import { explicitTaskStartStatement } from "./task-inspector-schedule";
 import type { MilestoneInspectorValue } from "./MilestoneInspector";
-import type { DependencyInspectorValue } from "./DependencyInspector";
-import type { VerticalSeparatorValue } from "./VerticalSeparatorInspector";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
@@ -68,13 +66,8 @@ import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
-  deleteDivider,
-  deleteVerticalSeparator,
   findTaskAt,
-  insertDivider,
-  insertVerticalSeparator,
   moveDependentTasksByDays,
-  moveDivider,
   moveVerticalSeparatorByDays,
   normalizeTaskId,
   parseGantt,
@@ -87,8 +80,6 @@ import {
   setTaskLinks,
   setTaskResources,
   updateDependency,
-  updateDivider,
-  updateVerticalSeparator,
 } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
@@ -945,51 +936,6 @@ export function App() {
     );
   };
 
-  const reorderDiagramDivider = (dividerIndex: number, beforeTaskId?: string) => {
-    const divider = parseResult.document.dividers[dividerIndex];
-    const beforeTask = beforeTaskId ? parseResult.document.symbols.tasks.get(beforeTaskId) : undefined;
-    if (!divider) return;
-    const beforeRange = beforeTask?.sourceRange;
-    const operation = moveDivider(workspace.source, divider.sourceRange, beforeRange);
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    const reorderedSource = applySourceEdits(workspace.source, operation.edits);
-    if (!commitGeneratedSource(reorderedSource, `Move divider ${divider.label}`)) return;
-    setInteractionMessage(
-      beforeTask ? `Moved ${divider.label} before ${beforeTask.label}` : `Moved ${divider.label} to the end`,
-    );
-  };
-
-  const applyDividerInspector = (label: string) => {
-    if (selectedDividerIndex === undefined) return;
-    const divider = parseResult.document.dividers[selectedDividerIndex];
-    if (!divider) return;
-    const operation = updateDivider(workspace.source, divider.sourceRange, label);
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Rename divider ${divider.label}`))
-      setInteractionMessage(`Renamed divider to ${label.trim()}`);
-  };
-
-  const deleteSelectedDivider = () => {
-    if (selectedDividerIndex === undefined) return;
-    const divider = parseResult.document.dividers[selectedDividerIndex];
-    if (!divider || !window.confirm(`Delete divider “${divider.label}”?`)) return;
-    if (
-      !commitGeneratedSource(
-        applySourceEdits(workspace.source, deleteDivider(workspace.source, divider.sourceRange).edits),
-        `Delete divider ${divider.label}`,
-      )
-    )
-      return;
-    setSelectedDividerIndex(undefined);
-    setInteractionMessage(`Deleted divider ${divider.label}`);
-  };
-
   const stageScheduleChange = (
     taskId: string,
     taskLabel: string,
@@ -1045,82 +991,6 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("plantuml-studio.schedule-mode", scheduleMode);
   }, [scheduleMode]);
-
-  const connectTasks = (
-    predecessorTaskId: string,
-    successorTaskId: string,
-    predecessorAnchor: "start" | "end",
-    successorAnchor: "start" | "end",
-  ) => {
-    const predecessor = parseResult.document.symbols.tasks.get(predecessorTaskId);
-    const successor = parseResult.document.symbols.tasks.get(successorTaskId);
-    if (!predecessor || !successor) return;
-    const operation = applicationGanttAdapter.applyVisualOperation(
-      { kind: "create-dependency", predecessorTaskId, successorTaskId, predecessorAnchor, successorAnchor },
-      parseResult.document,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    commitGeneratedSource(
-      applySourceEdits(workspace.source, operation.edits),
-      `Connect ${predecessor.label}'s ${predecessorAnchor} to ${successor.label}'s ${successorAnchor}`,
-    );
-  };
-
-  const deleteDependency = () => {
-    if (selectedDependencyIndex === undefined) return;
-    const dependency = parseResult.document.dependencies[selectedDependencyIndex];
-    if (!dependency) return;
-    const operation = applicationGanttAdapter.applyVisualOperation(
-      { kind: "remove-dependency", dependencyIndex: selectedDependencyIndex },
-      parseResult.document,
-      workspace.source,
-    );
-    if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Delete dependency")) return;
-    setSelectedDependencyIndex(undefined);
-  };
-
-  const applyDependencyInspector = (value: DependencyInspectorValue) => {
-    if (!selectedDependency) return;
-    const predecessor = parseResult.document.symbols.tasks.get(value.predecessorId);
-    const successor = parseResult.document.symbols.tasks.get(value.successorId);
-    if (!predecessor || !successor) return;
-    const operation = updateDependency(workspace.source, selectedDependency, {
-      predecessorLabel: predecessor.alias?.value ?? predecessor.label,
-      successorLabel: successor.alias?.value ?? successor.label,
-      relation: value.relation,
-      offset: value.offset,
-      direction: value.direction,
-      ...(value.color.trim() ? { color: value.color.trim() } : {}),
-      lineStyle: value.lineStyle,
-    });
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    const noteOperation = setNote(
-      workspace.source,
-      selectedDependency.sourceRange,
-      selectedDependency.notes,
-      value.note,
-      value.notePosition,
-    );
-    if (noteOperation.unavailableReason) {
-      setInteractionMessage(noteOperation.unavailableReason);
-      return;
-    }
-    if (
-      !commitGeneratedSource(
-        applySourceEdits(workspace.source, [...operation.edits, ...noteOperation.edits]),
-        "Update dependency",
-      )
-    )
-      return;
-    setInteractionMessage("Updated dependency");
-  };
 
   const update = useCallback(
     <K extends keyof typeof workspace>(key: K, value: (typeof workspace)[K]) => {
@@ -1657,39 +1527,32 @@ export function App() {
     reportMessage: setInteractionMessage,
     confirmDelete: confirmGanttTaskDelete,
   });
-
-  const addDivider = useCallback(
-    (value: AddSeparatorValue) => {
-      if (value.kind === "vertical") {
-        const operation = insertVerticalSeparator(workspace.source, value);
-        if (operation.unavailableReason) {
-          setInteractionMessage(operation.unavailableReason);
-          return;
-        }
-        if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Add vertical separator"))
-          return;
-        closeDialog("add-divider");
-        setInteractionMessage("Added vertical separator");
-        return;
-      }
-      const beforeTask = value.beforeTaskId
-        ? parseGantt(workspace.source).document.symbols.tasks.get(value.beforeTaskId)
-        : undefined;
-      const beforeRange = beforeTask?.declarations.map((item) => item.range).sort((a, b) => a.from - b.from)[0];
-      const operation = insertDivider(workspace.source, value.label, beforeRange);
-      if (operation.unavailableReason) {
-        setInteractionMessage(operation.unavailableReason);
-        return;
-      }
-      if (
-        !commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Add divider ${value.label.trim()}`)
-      )
-        return;
-      closeDialog("add-divider");
-      setInteractionMessage(`Added divider ${value.label.trim()}`);
-    },
-    [closeDialog, commitGeneratedSource, workspace.source],
-  );
+  const closeGanttDividerDialog = useCallback(() => closeDialog("add-divider"), [closeDialog]);
+  const {
+    addDivider,
+    reorderDiagramDivider,
+    applyDividerInspector,
+    deleteSelectedDivider,
+    connectTasks,
+    deleteDependency,
+    applyDependencyInspector,
+    applyVerticalSeparatorInspector,
+    deleteSelectedVerticalSeparator,
+  } = useGanttDependencyActions({
+    source: workspace.source,
+    document: parseResult.document,
+    selectedDependency,
+    selectedDependencyIndex,
+    selectedDividerIndex,
+    selectedVerticalSeparatorIndex,
+    commit: commitGeneratedSource,
+    closeAddDivider: closeGanttDividerDialog,
+    selectDependency: setSelectedDependencyIndex,
+    selectDivider: setSelectedDividerIndex,
+    selectVerticalSeparator: setSelectedVerticalSeparatorIndex,
+    report: setInteractionMessage,
+    confirmDelete: confirmGanttTaskDelete,
+  });
 
   const applyTaskInspector = useCallback(
     (value: TaskInspectorValue) => {
@@ -2386,28 +2249,6 @@ export function App() {
     selectedVerticalSeparatorIndex === undefined
       ? undefined
       : parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
-  const applyVerticalSeparatorInspector = (value: VerticalSeparatorValue) => {
-    if (!selectedVerticalSeparator) return;
-    const operation = updateVerticalSeparator(selectedVerticalSeparator, value);
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator"))
-      setInteractionMessage("Updated vertical separator");
-  };
-  const deleteSelectedVerticalSeparator = () => {
-    if (!selectedVerticalSeparator || !window.confirm("Delete this vertical separator?")) return;
-    if (
-      commitGeneratedSource(
-        applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, selectedVerticalSeparator).edits),
-        "Delete vertical separator",
-      )
-    ) {
-      setSelectedVerticalSeparatorIndex(undefined);
-      setInteractionMessage("Deleted vertical separator");
-    }
-  };
   const applyLegendInspector = (entries: readonly (typeof legendEntries)[number][]) => {
     const labels = new Map(entries.map((entry) => [entry.color.toLowerCase(), entry.label]));
     const source = synchronizeLegend(workspace.source, parseResult.document.tasks, labels);
