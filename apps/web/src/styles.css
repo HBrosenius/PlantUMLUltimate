@@ -3814,6 +3814,24 @@ textarea:focus-visible,
 .project-link-repair > span {
   color: var(--muted);
 }
+.project-link-health {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.project-link-health.is-confirmed {
+  background: color-mix(in srgb, var(--success, #2f855a) 14%, transparent);
+  color: var(--success, #2f855a);
+}
+.project-link-health.needs-attention {
+  background: color-mix(in srgb, var(--warning, #b7791f) 16%, transparent);
+  color: var(--warning, #975a16);
+}
+.project-link-impact {
+  line-height: 1.4;
+}
 .project-link-repair button {
   justify-self: start;
 }

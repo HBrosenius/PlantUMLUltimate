@@ -1,15 +1,24 @@
 import { hashSource } from "@plantuml-studio/document-format";
-import { canCreateLink, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
+import { canCreateLink, reverseImpact, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
 import { useEffect, useMemo, useState } from "react";
 import type { VirtualProject } from "./project-index";
+
+function elementState(project: VirtualProject, elementId: string): string {
+  const element = project.manifest.elements.find((item) => item.id === elementId);
+  if (!element) return "missing";
+  const member = project.members.find((item) => item.documentId === element.documentId);
+  return (
+    project.resolutions.get(elementId)?.state ??
+    (member?.state !== "available" ? (member?.state ?? "missing") : "pending")
+  );
+}
 
 function elementLabel(project: VirtualProject, elementId: string): string {
   const element = project.manifest.elements.find((item) => item.id === elementId);
   if (!element) return "Unknown element";
   const member = project.members.find((item) => item.documentId === element.documentId);
   const path = member?.path ?? element.documentId;
-  const state =
-    project.resolutions.get(elementId)?.state ?? (member?.state !== "available" ? member?.state : undefined);
+  const state = elementState(project, elementId);
   return `${path}: ${element.locator.symbolKey}${state && state !== "resolved" ? ` (${state})` : ""}`;
 }
 
@@ -167,6 +176,17 @@ export function ProjectLinksPanel({
                   <span className="project-link-endpoint">{elementLabel(project, link.from)}</span>
                   <span className="project-link-kind">{link.kind} →</span>
                   <span className="project-link-endpoint">{elementLabel(project, link.to)}</span>
+                  <span
+                    className={`project-link-health ${
+                      elementState(project, link.from) === "resolved" && elementState(project, link.to) === "resolved"
+                        ? "is-confirmed"
+                        : "needs-attention"
+                    }`}
+                  >
+                    {elementState(project, link.from) === "resolved" && elementState(project, link.to) === "resolved"
+                      ? "Confirmed"
+                      : "Unresolved path"}
+                  </span>
                 </span>
                 <button
                   type="button"
@@ -189,17 +209,26 @@ export function ProjectLinksPanel({
           {elements.flatMap((element) => {
             const resolution = project.resolutions.get(element.id);
             if (resolution?.state !== "needs-review" && resolution?.state !== "ambiguous") return [];
+            const impacts = reverseImpact(project.manifest.links, element.id).paths;
             return (
               <div className="project-link-repair" key={element.id}>
                 <strong>{elementLabel(project, element.id)}</strong>
-                <span>Choose the matching item to repair this connection.</span>
+                <span>Current target: {element.locator.symbolKey}</span>
+                {impacts.length > 0 && (
+                  <span className="project-link-impact">
+                    Affects {impacts.length} linked path{impacts.length === 1 ? "" : "s"}:{" "}
+                    {impacts
+                      .map((path) => path.elementIds.map((id) => elementLabel(project, id)).join(" → "))
+                      .join("; ")}
+                  </span>
+                )}
                 {resolution.candidates.map((candidate) => (
                   <button
                     type="button"
                     key={`${candidate.from}:${candidate.to}`}
                     onClick={() => repair(element, candidate)}
                   >
-                    Use {candidate.symbolKey}
+                    Repair: {element.locator.symbolKey} → {candidate.symbolKey}
                   </button>
                 ))}
               </div>
