@@ -24,14 +24,13 @@ import type { AddTaskValue } from "./AddTaskDialog";
 import type { AddSeparatorValue } from "./AddDividerDialog";
 import type { AddMilestoneValue } from "./AddMilestoneDialog";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
+import { GanttInspectors } from "./features/gantt/GanttInspectors";
 import { CommandPalette } from "./CommandPalette";
-import { TaskInspector, type TaskInspectorValue } from "./TaskInspector";
+import type { TaskInspectorValue } from "./TaskInspector";
 import { explicitTaskStartStatement } from "./task-inspector-schedule";
-import { MilestoneInspector, type MilestoneInspectorValue } from "./MilestoneInspector";
-import { DependencyInspector, type DependencyInspectorValue } from "./DependencyInspector";
-import { DividerInspector } from "./DividerInspector";
-import { LegendInspector } from "./LegendInspector";
-import { VerticalSeparatorInspector, type VerticalSeparatorValue } from "./VerticalSeparatorInspector";
+import type { MilestoneInspectorValue } from "./MilestoneInspector";
+import type { DependencyInspectorValue } from "./DependencyInspector";
+import type { VerticalSeparatorValue } from "./VerticalSeparatorInspector";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
@@ -2451,6 +2450,47 @@ export function App() {
         : dialog?.kind === "add-milestone"
           ? "milestone"
           : undefined;
+  const selectedDivider =
+    selectedDividerIndex === undefined ? undefined : parseResult.document.dividers[selectedDividerIndex];
+  const selectedVerticalSeparator =
+    selectedVerticalSeparatorIndex === undefined
+      ? undefined
+      : parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+  const applyVerticalSeparatorInspector = (value: VerticalSeparatorValue) => {
+    if (!selectedVerticalSeparator) return;
+    const operation = updateVerticalSeparator(selectedVerticalSeparator, value);
+    if (operation.unavailableReason) {
+      setInteractionMessage(operation.unavailableReason);
+      return;
+    }
+    if (commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator"))
+      setInteractionMessage("Updated vertical separator");
+  };
+  const deleteSelectedVerticalSeparator = () => {
+    if (!selectedVerticalSeparator || !window.confirm("Delete this vertical separator?")) return;
+    if (
+      commitGeneratedSource(
+        applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, selectedVerticalSeparator).edits),
+        "Delete vertical separator",
+      )
+    ) {
+      setSelectedVerticalSeparatorIndex(undefined);
+      setInteractionMessage("Deleted vertical separator");
+    }
+  };
+  const applyLegendInspector = (entries: readonly (typeof legendEntries)[number][]) => {
+    const labels = new Map(entries.map((entry) => [entry.color.toLowerCase(), entry.label]));
+    const source = synchronizeLegend(workspace.source, parseResult.document.tasks, labels);
+    if (commitGeneratedSource(source, "Update legend labels")) {
+      setLegendInspectorOpen(false);
+      setLegendFocusColor(undefined);
+      setInteractionMessage("Updated legend labels");
+    }
+  };
+  const closeLegendInspector = () => {
+    setLegendInspectorOpen(false);
+    setLegendFocusColor(undefined);
+  };
   const sideInspectorOpen = Boolean(
     selectedTask ||
     selectedDependency ||
@@ -3513,117 +3553,52 @@ export function App() {
         onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
         onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
       />
-      {selectedTask?.milestone && (
-        <MilestoneInspector
-          key={`${selectedTask.id}:${selectedTask.sourceRange.to}:${selectedTaskDependency?.predecessorTaskId ?? ""}:${selectedTaskDependency?.relation ?? ""}`}
-          milestone={selectedTask}
-          tasks={parseResult.document.tasks}
-          relativeAnchor={
-            workspace.source
-              .slice(
-                selectedTask.declarations.find((item) => item.kind === "milestone")?.range.from ?? 0,
-                selectedTask.declarations.find((item) => item.kind === "milestone")?.range.to ?? 0,
-              )
-              .match(/'s\s+(start|end)/i)?.[1]
-              ?.toLowerCase() === "start"
-              ? "start"
-              : "end"
-          }
-          onApply={applyMilestoneInspector}
-          onDelete={deleteSelectedTask}
-          onClose={() => setSelectedTaskId(undefined)}
-        />
-      )}
-      {selectedTask && !selectedTask.milestone && (
-        <TaskInspector
-          key={selectedTask.id}
-          task={selectedTask}
-          tasks={parseResult.document.tasks}
-          predecessorId={selectedPredecessorId}
-          dependencyRelation={selectedTaskDependency?.relation ?? "start-after-end"}
-          effectiveStart={resolvedTaskDates.get(selectedTask.id)?.start ?? ""}
-          effectiveEnd={resolvedTaskDates.get(selectedTask.id)?.end ?? ""}
-          calendar={ganttCalendar}
-          resourceNames={resourceNames}
-          conflicts={selectedResourceConflicts}
-          jiraStatus={jiraTaskStatuses.get(selectedTask.id)}
-          focusNote={focusNoteTaskId === selectedTask.id}
-          onApply={applyTaskInspector}
-          onDelete={deleteSelectedTask}
-          onClose={() => setSelectedTaskId(undefined)}
-        />
-      )}
-      {selectedDependency && (
-        <DependencyInspector
-          key={`${selectedDependency.sourceRange.from}:${selectedDependency.sourceRange.to}`}
-          dependency={selectedDependency}
-          tasks={parseResult.document.tasks}
-          onApply={applyDependencyInspector}
-          onDelete={deleteDependency}
-          onClose={() => setSelectedDependencyIndex(undefined)}
-        />
-      )}
-      {selectedDividerIndex !== undefined && parseResult.document.dividers[selectedDividerIndex] && (
-        <DividerInspector
-          divider={parseResult.document.dividers[selectedDividerIndex]!}
-          onApply={applyDividerInspector}
-          onDelete={deleteSelectedDivider}
-          onClose={() => setSelectedDividerIndex(undefined)}
-        />
-      )}
-      {selectedVerticalSeparatorIndex !== undefined &&
-        parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex] && (
-          <VerticalSeparatorInspector
-            separator={parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex]!}
-            tasks={parseResult.document.tasks}
-            onApply={(value: VerticalSeparatorValue) => {
-              const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
-              if (!separator) return;
-              const operation = updateVerticalSeparator(separator, value);
-              if (operation.unavailableReason) {
-                setInteractionMessage(operation.unavailableReason);
-                return;
-              }
-              if (
-                commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), "Update vertical separator")
-              )
-                setInteractionMessage("Updated vertical separator");
-            }}
-            onDelete={() => {
-              const separator = parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
-              if (!separator || !window.confirm("Delete this vertical separator?")) return;
-              if (
-                commitGeneratedSource(
-                  applySourceEdits(workspace.source, deleteVerticalSeparator(workspace.source, separator).edits),
-                  "Delete vertical separator",
-                )
-              ) {
-                setSelectedVerticalSeparatorIndex(undefined);
-                setInteractionMessage("Deleted vertical separator");
-              }
-            }}
-            onClose={() => setSelectedVerticalSeparatorIndex(undefined)}
-          />
-        )}
-      {legendInspectorOpen && (
-        <LegendInspector
-          entries={legendEntries}
-          focusColor={legendFocusColor}
-          onApply={(entries) => {
-            const labels = new Map(entries.map((entry) => [entry.color.toLowerCase(), entry.label]));
-            const source = synchronizeLegend(workspace.source, parseResult.document.tasks, labels);
-            if (commitGeneratedSource(source, "Update legend labels")) {
-              setLegendInspectorOpen(false);
-              setLegendFocusColor(undefined);
-              setInteractionMessage("Updated legend labels");
-            }
-          }}
-          onClose={() => {
-            setLegendInspectorOpen(false);
-            setLegendFocusColor(undefined);
-          }}
-        />
-      )}
+      <GanttInspectors
+        selectedTask={selectedTask}
+        selectedDependency={selectedDependency}
+        selectedDivider={selectedDivider}
+        selectedVerticalSeparator={selectedVerticalSeparator}
+        tasks={parseResult.document.tasks}
+        relativeMilestoneAnchor={
+          selectedTask &&
+          workspace.source
+            .slice(
+              selectedTask.declarations.find((item) => item.kind === "milestone")?.range.from ?? 0,
+              selectedTask.declarations.find((item) => item.kind === "milestone")?.range.to ?? 0,
+            )
+            .match(/'s\s+(start|end)/i)?.[1]
+            ?.toLowerCase() === "start"
+            ? "start"
+            : "end"
+        }
+        predecessorId={selectedPredecessorId}
+        dependencyRelation={selectedTaskDependency?.relation ?? "start-after-end"}
+        effectiveStart={selectedTask ? (resolvedTaskDates.get(selectedTask.id)?.start ?? "") : ""}
+        effectiveEnd={selectedTask ? (resolvedTaskDates.get(selectedTask.id)?.end ?? "") : ""}
+        calendar={ganttCalendar}
+        resourceNames={resourceNames}
+        resourceConflicts={selectedResourceConflicts}
+        jiraStatus={selectedTask ? jiraTaskStatuses.get(selectedTask.id) : undefined}
+        focusTaskNote={Boolean(selectedTask && focusNoteTaskId === selectedTask.id)}
+        legendOpen={legendInspectorOpen}
+        legendEntries={legendEntries}
+        legendFocusColor={legendFocusColor}
+        onMilestoneApply={applyMilestoneInspector}
+        onTaskApply={applyTaskInspector}
+        onTaskDelete={deleteSelectedTask}
+        onDependencyApply={applyDependencyInspector}
+        onDependencyDelete={deleteDependency}
+        onDividerApply={applyDividerInspector}
+        onDividerDelete={deleteSelectedDivider}
+        onVerticalSeparatorApply={applyVerticalSeparatorInspector}
+        onVerticalSeparatorDelete={deleteSelectedVerticalSeparator}
+        onLegendApply={applyLegendInspector}
+        onCloseTask={() => setSelectedTaskId(undefined)}
+        onCloseDependency={() => setSelectedDependencyIndex(undefined)}
+        onCloseDivider={() => setSelectedDividerIndex(undefined)}
+        onCloseVerticalSeparator={() => setSelectedVerticalSeparatorIndex(undefined)}
+        onCloseLegend={closeLegendInspector}
+      />
       {resourcePanelOpen && (
         <ResourceWorkloadPanel
           tasks={parseResult.document.tasks}
