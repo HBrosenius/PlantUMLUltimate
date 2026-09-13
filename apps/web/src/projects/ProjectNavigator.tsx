@@ -17,6 +17,7 @@ export function ProjectNavigator({
   onRename,
   onDelete,
   dirty,
+  indexStatus,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -29,6 +30,7 @@ export function ProjectNavigator({
   onRename?(documentId: string, name: string): void;
   onDelete?(documentId: string): void;
   dirty?: boolean;
+  indexStatus?: { state: "idle" | "indexing" | "ready" | "error"; message?: string };
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -44,6 +46,18 @@ export function ProjectNavigator({
             <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
               {dirty ? "Unsaved changes" : "Saved"}
             </span>
+          )}
+          {indexStatus && indexStatus.state !== "idle" && (
+            <span className={`project-index-status is-${indexStatus.state}`} role="status" title={indexStatus.message}>
+              {indexStatus.state === "indexing"
+                ? "Updating links…"
+                : indexStatus.state === "error"
+                  ? "Link index failed"
+                  : "Links current"}
+            </span>
+          )}
+          {indexStatus?.state === "error" && indexStatus.message && (
+            <small className="project-index-error">{indexStatus.message}</small>
           )}
           <small>
             {project.members.length} diagram{project.members.length === 1 ? "" : "s"} · {project.manifest.links.length}{" "}

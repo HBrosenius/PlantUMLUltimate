@@ -52,4 +52,33 @@ describe("ProjectNavigator", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add to project" }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith("activity", "Activity diagram"));
   });
+
+  it("shows whether the live link index is updating or failed", () => {
+    const { rerender } = render(
+      <ProjectNavigator
+        project={project}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        indexStatus={{ state: "indexing" }}
+      />,
+    );
+    expect(screen.getByText("Updating links…")).toBeTruthy();
+
+    rerender(
+      <ProjectNavigator
+        project={project}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        indexStatus={{ state: "error", message: "Could not parse the project" }}
+      />,
+    );
+    expect(screen.getByText("Link index failed")).toBeTruthy();
+    expect(screen.getByText("Could not parse the project")).toBeTruthy();
+  });
 });

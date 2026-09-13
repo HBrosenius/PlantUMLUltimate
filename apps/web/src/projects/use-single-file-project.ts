@@ -163,6 +163,10 @@ export function useSingleFileProject({
 }) {
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
+  const [indexStatus, setIndexStatus] = useState<{
+    state: "idle" | "indexing" | "ready" | "error";
+    message?: string;
+  }>({ state: "idle" });
   const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
   const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
@@ -186,9 +190,11 @@ export function useSingleFileProject({
     if (!effectiveProject) {
       indexRevision.current += 1;
       setIndexed(undefined);
+      setIndexStatus({ state: "idle" });
       return;
     }
     setIndexed(immediateIndex(effectiveProject));
+    setIndexStatus({ state: "indexing" });
   }, [effectiveProject]);
 
   useEffect(() => {
@@ -198,10 +204,17 @@ export function useSingleFileProject({
     const timer = window.setTimeout(() => {
       void resolveIndex(project)
         .then((next) => {
-          if (indexRevision.current === revision) setIndexed(next);
+          if (indexRevision.current !== revision) return;
+          setIndexed(next);
+          setIndexStatus({ state: "ready" });
         })
-        // The basic navigator remains usable if a declaration cannot be read.
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          if (indexRevision.current !== revision) return;
+          setIndexStatus({
+            state: "error",
+            message: error instanceof Error ? error.message : "The project index could not be updated",
+          });
+        });
     }, 200);
     return () => window.clearTimeout(timer);
   }, [effectiveProject]);
@@ -422,6 +435,7 @@ export function useSingleFileProject({
     () => ({
       portableProject: embedded.project,
       project: indexed,
+      indexStatus,
       dirty: embedded.dirty,
       newProject,
       addProjectDiagram,
@@ -448,6 +462,7 @@ export function useSingleFileProject({
       embedded,
       importDiagram,
       indexed,
+      indexStatus,
       newProject,
       openProject,
       openOpenedProject,

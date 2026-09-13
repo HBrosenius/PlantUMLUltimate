@@ -2592,7 +2592,9 @@ export function App() {
       {project && projectNavigatorOpen && (
         <ProjectNavigator
           project={project}
-          {...(usingSingleFileProject ? { dirty: singleFileProject.dirty } : {})}
+          {...(usingSingleFileProject
+            ? { dirty: singleFileProject.dirty, indexStatus: singleFileProject.indexStatus }
+            : {})}
           onOpen={openMember}
           onAdd={addProjectDiagram}
           {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}

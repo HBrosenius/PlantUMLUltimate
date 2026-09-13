@@ -6,8 +6,10 @@ import type { VirtualProject } from "./project-index";
 function elementLabel(project: VirtualProject, elementId: string): string {
   const element = project.manifest.elements.find((item) => item.id === elementId);
   if (!element) return "Unknown element";
-  const path = project.members.find((member) => member.documentId === element.documentId)?.path ?? element.documentId;
-  const state = project.resolutions.get(elementId)?.state;
+  const member = project.members.find((item) => item.documentId === element.documentId);
+  const path = member?.path ?? element.documentId;
+  const state =
+    project.resolutions.get(elementId)?.state ?? (member?.state !== "available" ? member?.state : undefined);
   return `${path}: ${element.locator.symbolKey}${state && state !== "resolved" ? ` (${state})` : ""}`;
 }
 

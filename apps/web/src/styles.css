@@ -3529,6 +3529,21 @@ textarea:focus-visible,
   background: color-mix(in srgb, var(--warning, #b7791f) 16%, transparent);
   color: var(--warning, #975a16);
 }
+.project-index-status {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.project-index-status.is-ready {
+  color: var(--success, #2f855a);
+}
+
+.project-index-status.is-error,
+.project-index-error {
+  color: var(--danger, #c53030);
+}
 .project-navigator header small,
 .project-navigator li small {
   color: var(--muted);
