@@ -22,15 +22,16 @@ import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { GanttInspectors } from "./features/gantt/GanttInspectors";
+import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
+import { useGanttController } from "./features/gantt/use-gantt-controller";
 import { useGanttDependencyActions } from "./features/gantt/use-gantt-dependency-actions";
+import { findResourceConflicts } from "./features/gantt/gantt-resource-conflicts";
+import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
-import type { TaskInspectorValue } from "./TaskInspector";
-import { explicitTaskStartStatement } from "./task-inspector-schedule";
-import type { MilestoneInspectorValue } from "./MilestoneInspector";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
-import { SchedulePreviewDialog, type SchedulePreview } from "./SchedulePreviewDialog";
+import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
@@ -57,7 +58,7 @@ import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
-import { parseProjectSettings, updateProjectSettings } from "./project-settings";
+import { parseProjectSettings } from "./project-settings";
 import type { Theme, ViewMode } from "./model";
 import { useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
@@ -67,22 +68,11 @@ import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
   findTaskAt,
-  moveDependentTasksByDays,
   moveVerticalSeparatorByDays,
-  normalizeTaskId,
   parseGantt,
-  removeDependency,
   renameResource,
-  renameTask,
-  setNote,
-  setTaskDeclaration,
-  setTaskPauses,
-  setTaskLinks,
-  setTaskResources,
-  updateDependency,
 } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
-import { applyJiraScheduleChange, isJiraTaskAlias } from "./jira-schedule-edits";
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import { usePwa } from "./pwa";
@@ -159,6 +149,28 @@ export function App() {
     resetTransientTabSelection,
     dismissInspectorSelection,
   } = useDiagramSelection();
+  const {
+    focusNoteTaskId,
+    setFocusNoteTaskId,
+    projectInspectorOpen,
+    setProjectInspectorOpen,
+    legendInspectorOpen,
+    setLegendInspectorOpen,
+    legendFocusColor,
+    setLegendFocusColor,
+    highlightDate,
+    setHighlightDate,
+    dateMenuFor,
+    setDateMenuFor,
+    resourceFilter,
+    setResourceFilter,
+    schedulePreview,
+    setSchedulePreview,
+    scheduleMode,
+    setScheduleMode,
+    resourcePanelOpen,
+    setResourcePanelOpen,
+  } = useGanttController(workspace.diagramKind);
   const { dialog, openDialog, closeDialog, toggleCommandPalette } = useAppDialog();
   const newDocumentOpen = dialog?.kind === "new-document";
   const replaceActiveDocumentOnCreate = newDocumentOpen && dialog.replaceActiveDocument;
@@ -187,26 +199,14 @@ export function App() {
     key: string;
     label: string;
   }>();
-  const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
-  const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
-  const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
-  const [legendFocusColor, setLegendFocusColor] = useState<string>();
-  const [highlightDate, setHighlightDate] = useState<string>();
-  const [dateMenuFor, setDateMenuFor] = useState<string>();
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
-  const [resourceFilter, setResourceFilter] = useState("");
-  const [schedulePreview, setSchedulePreview] = useState<SchedulePreview>();
-  const [scheduleMode, setScheduleMode] = useState<"ask" | "single" | "cascade">(
-    () => (localStorage.getItem("plantuml-studio.schedule-mode") as "ask" | "single" | "cascade" | null) ?? "ask",
-  );
-  const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
   const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
@@ -807,6 +807,8 @@ export function App() {
     dismissUseCaseInspector,
     dismissClassInspector,
     dismissActivityInspector,
+    setFocusNoteTaskId,
+    setProjectInspectorOpen,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -828,7 +830,7 @@ export function App() {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(true);
-  }, [setSelectedDependencyIndex, setSelectedTaskId]);
+  }, [setProjectInspectorOpen, setSelectedDependencyIndex, setSelectedTaskId]);
 
   const openDateActionMenu = useCallback(
     (date: string) => {
@@ -838,7 +840,7 @@ export function App() {
       setResourcePanelOpen(false);
       setDateMenuFor(date);
     },
-    [setSelectedDependencyIndex, setSelectedTaskId],
+    [setDateMenuFor, setProjectInspectorOpen, setResourcePanelOpen, setSelectedDependencyIndex, setSelectedTaskId],
   );
 
   const openResourcePanel = useCallback(() => {
@@ -846,151 +848,7 @@ export function App() {
     setSelectedDependencyIndex(undefined);
     setProjectInspectorOpen(false);
     setResourcePanelOpen(true);
-  }, [setSelectedDependencyIndex, setSelectedTaskId]);
-
-  const moveTask = (taskId: string, days: number) => {
-    const task = parseResult.document.symbols.tasks.get(taskId);
-    if (!task) return;
-    if (isJiraTaskAlias(task.alias?.value)) {
-      const applyRoot = (source: string) => applyJiraScheduleChange(source, taskId, "Move", days).source;
-      const result = applyJiraScheduleChange(workspace.source, taskId, "Move", days);
-      if (result.unavailableReason) {
-        setInteractionMessage(result.unavailableReason);
-        return;
-      }
-      stageScheduleChange(task.id, task.label, days, "Move", [], applyRoot);
-      return;
-    }
-    let operation = applicationGanttAdapter.applyVisualOperation(
-      { kind: "move-task", taskId, days },
-      parseResult.document,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      const dependency = parseResult.document.dependencies.find((item) => item.successorTaskId === task.id);
-      const predecessor = dependency ? parseResult.document.symbols.tasks.get(dependency.predecessorTaskId) : undefined;
-      if (dependency && predecessor) {
-        const currentOffset = (dependency.direction === "before" ? -1 : 1) * (dependency.offset?.value ?? 0);
-        const nextOffset = currentOffset + days;
-        operation = updateDependency(workspace.source, dependency, {
-          predecessorLabel: predecessor.alias?.value ?? predecessor.label,
-          successorLabel: task.alias?.value ?? task.label,
-          relation: dependency.relation,
-          offset: Math.abs(nextOffset),
-          direction: nextOffset < 0 ? "before" : "after",
-          ...(dependency.color?.value ? { color: dependency.color.value } : {}),
-          lineStyle: dependency.lineStyle?.value ?? "solid",
-        });
-      }
-    }
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    stageScheduleChange(task.id, task.label, days, "Move", operation.edits);
-  };
-
-  const resizeTask = (taskId: string, days: number, calendarDays = days) => {
-    const task = parseResult.document.symbols.tasks.get(taskId);
-    if (!task) return;
-    if (isJiraTaskAlias(task.alias?.value)) {
-      const applyRoot = (source: string) =>
-        applyJiraScheduleChange(source, taskId, "Resize", days, calendarDays).source;
-      const result = applyJiraScheduleChange(workspace.source, taskId, "Resize", days, calendarDays);
-      if (result.unavailableReason) {
-        setInteractionMessage(result.unavailableReason);
-        return;
-      }
-      stageScheduleChange(task.id, task.label, calendarDays, "Resize", [], applyRoot);
-      return;
-    }
-    const operation = applicationGanttAdapter.applyVisualOperation(
-      { kind: "resize-task", taskId, days },
-      parseResult.document,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    stageScheduleChange(task.id, task.label, calendarDays, "Resize", operation.edits);
-  };
-
-  const reorderDiagramTask = (taskId: string, beforeTaskId?: string) => {
-    const task = parseResult.document.symbols.tasks.get(taskId);
-    const beforeTask = beforeTaskId ? parseResult.document.symbols.tasks.get(beforeTaskId) : undefined;
-    if (!task) return;
-    const operation = applicationGanttAdapter.applyVisualOperation(
-      { kind: "reorder-task", taskId, ...(beforeTaskId ? { beforeTaskId } : {}) },
-      parseResult.document,
-      workspace.source,
-    );
-    if (operation.unavailableReason) {
-      setInteractionMessage(operation.unavailableReason);
-      return;
-    }
-    const reorderedSource = applySourceEdits(workspace.source, operation.edits);
-    if (!commitGeneratedSource(reorderedSource, `Reorder ${task.label}`)) return;
-    setInteractionMessage(
-      beforeTask ? `Moved ${task.label} before ${beforeTask.label}` : `Moved ${task.label} to the end`,
-    );
-  };
-
-  const stageScheduleChange = (
-    taskId: string,
-    taskLabel: string,
-    days: number,
-    action: "Move" | "Resize",
-    taskEdits: import("@plantuml-studio/diagram-gantt").SourceEdit[],
-    applyRoot?: (source: string) => string,
-  ) => {
-    const dependents = moveDependentTasksByDays(parseResult.document, taskId, days);
-    const singleSource = applyRoot ? applyRoot(workspace.source) : applySourceEdits(workspace.source, taskEdits);
-    if (dependents.unavailableReason) {
-      setInteractionMessage(dependents.unavailableReason);
-      return;
-    }
-    if (!dependents.affectedLabels.length) {
-      commitGeneratedSource(singleSource, `${action} ${taskLabel} ${days} days`);
-      return;
-    }
-    const cascadeSource = applyRoot
-      ? applyRoot(applySourceEdits(workspace.source, dependents.edits))
-      : applySourceEdits(workspace.source, [...taskEdits, ...dependents.edits]);
-    if (scheduleMode !== "ask") {
-      commitGeneratedSource(
-        scheduleMode === "cascade" ? cascadeSource : singleSource,
-        `${action} ${taskLabel}${scheduleMode === "cascade" ? " with dependents" : ""}`,
-      );
-      return;
-    }
-    const cascadeDocument = parseGantt(cascadeSource).document;
-    const affected = dependents.affectedTaskIds.map((id, index) => {
-      const before = parseResult.document.symbols.tasks.get(id);
-      const after = cascadeDocument.symbols.tasks.get(id);
-      return {
-        id,
-        label: dependents.affectedLabels[index]!,
-        oldDate: before?.start?.value ?? before?.end?.value ?? "",
-        newDate: after?.start?.value ?? after?.end?.value ?? "",
-      };
-    });
-    const conflicts = [
-      ...new Set(
-        dependents.affectedTaskIds.flatMap((id) => {
-          const task = cascadeDocument.symbols.tasks.get(id);
-          return task
-            ? findResourceConflicts(task, cascadeDocument.tasks).map((label) => `${task.label} ↔ ${label}`)
-            : [];
-        }),
-      ),
-    ];
-    setSchedulePreview({ taskLabel, days, action, singleSource, cascadeSource, affected, conflicts });
-  };
-
-  useEffect(() => {
-    localStorage.setItem("plantuml-studio.schedule-mode", scheduleMode);
-  }, [scheduleMode]);
+  }, [setProjectInspectorOpen, setResourcePanelOpen, setSelectedDependencyIndex, setSelectedTaskId]);
 
   const update = useCallback(
     <K extends keyof typeof workspace>(key: K, value: (typeof workspace)[K]) => {
@@ -1011,83 +869,6 @@ export function App() {
     captureBeforeCommit,
     refreshHistoryControls,
   });
-
-  const applyTimelineDateHighlight = useCallback(
-    (color: string) => {
-      if (!highlightDate) return;
-      const settings = parseProjectSettings(workspace.source);
-      const existing = settings.dateRules.find(
-        (rule) => rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate,
-      );
-      settings.dateRules = existing
-        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, color } : rule))
-        : [
-            ...settings.dateRules,
-            {
-              id: `highlight-${highlightDate}`,
-              from: highlightDate,
-              to: highlightDate,
-              state: "colored",
-              color,
-            },
-          ];
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Highlight ${highlightDate}`))
-        return;
-      setHighlightDate(undefined);
-      setInteractionMessage(`Highlighted ${highlightDate}`);
-    },
-    [commitGeneratedSource, highlightDate, workspace.source],
-  );
-
-  const clearTimelineDateHighlight = useCallback(() => {
-    if (!highlightDate) return;
-    const settings = parseProjectSettings(workspace.source);
-    const remaining = settings.dateRules.filter(
-      (rule) => !(rule.state === "colored" && rule.from === highlightDate && rule.to === highlightDate),
-    );
-    if (remaining.length === settings.dateRules.length) {
-      setHighlightDate(undefined);
-      return;
-    }
-    settings.dateRules = remaining;
-    if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear highlight ${highlightDate}`))
-      return;
-    setHighlightDate(undefined);
-    setInteractionMessage(`Cleared highlight for ${highlightDate}`);
-  }, [commitGeneratedSource, highlightDate, workspace.source]);
-
-  const applyTimelineDateClosed = useCallback(
-    (date: string) => {
-      const settings = parseProjectSettings(workspace.source);
-      const existing = settings.dateRules.find(
-        (rule) => rule.from === date && rule.to === date && rule.state !== "colored",
-      );
-      settings.dateRules = existing
-        ? settings.dateRules.map((rule) => (rule.id === existing.id ? { ...rule, state: "closed" } : rule))
-        : [...settings.dateRules, { id: `closed-${date}`, from: date, to: date, state: "closed" as const }];
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Close ${date}`)) return;
-      setDateMenuFor(undefined);
-      setInteractionMessage(`Marked ${date} as a closed day`);
-    },
-    [commitGeneratedSource, workspace.source],
-  );
-
-  const clearTimelineDateSetting = useCallback(
-    (date: string) => {
-      const settings = parseProjectSettings(workspace.source);
-      const remaining = settings.dateRules.filter((rule) => !(rule.from === date && rule.to === date));
-      if (remaining.length === settings.dateRules.length) {
-        setDateMenuFor(undefined);
-        return;
-      }
-      settings.dateRules = remaining;
-      if (!commitGeneratedSource(updateProjectSettings(workspace.source, settings), `Clear date setting ${date}`))
-        return;
-      setDateMenuFor(undefined);
-      setInteractionMessage(`Cleared the date setting for ${date}`);
-    },
-    [commitGeneratedSource, workspace.source],
-  );
 
   const {
     versionHistoryOpen,
@@ -1553,313 +1334,42 @@ export function App() {
     report: setInteractionMessage,
     confirmDelete: confirmGanttTaskDelete,
   });
-
-  const applyTaskInspector = useCallback(
-    (value: TaskInspectorValue) => {
-      if (!selectedTaskId) return;
-      const duration = value.scheduleMode === "duration" && value.duration !== "" ? Number(value.duration) : undefined;
-      const completion = value.completion === "" ? undefined : Number(value.completion);
-      if (duration !== undefined && (!Number.isInteger(duration) || duration < 1)) {
-        setInteractionMessage("Duration must be a positive whole number");
-        return;
-      }
-      if (completion !== undefined && (!Number.isInteger(completion) || completion < 0 || completion > 100)) {
-        setInteractionMessage("Completion must be between 0 and 100");
-        return;
-      }
-
-      let source = workspace.source;
-      let currentId = selectedTaskId;
-      const current = () => parseGantt(source).document.symbols.tasks.get(currentId);
-      const original = current();
-      if (!original) return;
-      const renamed = renameTask(source, parseGantt(source).document, original, value.label);
-      if (renamed.unavailableReason) {
-        setInteractionMessage(renamed.unavailableReason);
-        return;
-      }
-      source = applySourceEdits(source, renamed.edits);
-      currentId = original.alias ? original.id : normalizeTaskId(value.label);
-
-      const existingDependency = parseGantt(source).document.dependencies.find(
-        (item) => item.successorTaskId === currentId,
-      );
-      const predecessor = value.predecessorId
-        ? parseGantt(source).document.symbols.tasks.get(value.predecessorId)
-        : undefined;
-      if (
-        existingDependency &&
-        predecessor &&
-        (existingDependency.predecessorTaskId !== predecessor.id ||
-          existingDependency.relation !== value.dependencyRelation)
-      ) {
-        const dependencyOperation = updateDependency(source, existingDependency, {
-          predecessorLabel: predecessor.alias?.value ?? predecessor.label,
-          successorLabel: current()?.alias?.value ?? current()?.label ?? value.label,
-          relation: value.dependencyRelation,
-          offset: existingDependency.offset?.value ?? 0,
-          direction: existingDependency.direction ?? "after",
-          ...(existingDependency.color?.value ? { color: existingDependency.color.value } : {}),
-          lineStyle: existingDependency.lineStyle?.value ?? "solid",
-        });
-        if (dependencyOperation.unavailableReason) {
-          setInteractionMessage(dependencyOperation.unavailableReason);
-          return;
-        }
-        source = applySourceEdits(source, dependencyOperation.edits);
-      } else if (existingDependency) {
-        source = applySourceEdits(
-          source,
-          removeDependency(source, existingDependency.sourceRange, existingDependency.notes).edits,
-        );
-      }
-
-      const applyDeclaration = (
-        kind: "start" | "end" | "duration" | "completion" | "color" | "same-row",
-        statement?: string,
-      ) => {
-        const task = current();
-        if (task) source = applySourceEdits(source, setTaskDeclaration(source, task, kind, statement).edits);
-      };
-      const derivedStart = resolvedTaskDates.get(selectedTaskId)?.start ?? "";
-      if (predecessor) {
-        const endsTask = value.dependencyRelation.startsWith("end-");
-        const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
-        const linkedStatement = `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`;
-        if (existingDependency) {
-          if (endsTask) {
-            applyDeclaration(
-              "start",
-              value.startDate && value.startDate !== derivedStart ? `starts ${value.startDate}` : undefined,
-            );
-          } else {
-            applyDeclaration(
-              "end",
-              value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined,
-            );
-          }
-        } else {
-          applyDeclaration(
-            "start",
-            endsTask
-              ? value.startDate && value.startDate !== derivedStart
-                ? `starts ${value.startDate}`
-                : undefined
-              : linkedStatement,
-          );
-          applyDeclaration(
-            "end",
-            endsTask
-              ? linkedStatement
-              : value.scheduleMode === "end" && value.endDate
-                ? `ends ${value.endDate}`
-                : undefined,
-          );
-        }
-      } else {
-        applyDeclaration("start", explicitTaskStartStatement(value.startDate, derivedStart, Boolean(original.start)));
-        applyDeclaration("end", value.scheduleMode === "end" && value.endDate ? `ends ${value.endDate}` : undefined);
-      }
-      applyDeclaration(
-        "duration",
-        duration !== undefined ? `lasts ${duration} ${value.durationUnit}${duration === 1 ? "" : "s"}` : undefined,
-      );
-      applyDeclaration("completion", completion !== undefined ? `is ${completion}% completed` : undefined);
-      applyDeclaration("color", value.color.trim() ? `is colored in ${value.color.trim()}` : undefined);
-      const sameRowTask = value.sameRowTaskId
-        ? parseGantt(source).document.symbols.tasks.get(value.sameRowTaskId)
-        : undefined;
-      applyDeclaration(
-        "same-row",
-        sameRowTask ? `displays on same row as [${sameRowTask.alias?.value ?? sameRowTask.label}]` : undefined,
-      );
-      const pauseDates = value.pauses.map((pause) => pause.value.trim()).filter(Boolean);
-      const pauseOperation = current()
-        ? setTaskPauses(source, current()!, pauseDates)
-        : { edits: [], unavailableReason: "Task not found" };
-      if (pauseOperation.unavailableReason) {
-        setInteractionMessage(pauseOperation.unavailableReason);
-        return;
-      }
-      source = applySourceEdits(source, pauseOperation.edits);
-      const links = value.links
-        .filter((link) => link.url.trim())
-        .map((link) => ({
-          url: link.url.trim(),
-          ...(link.label.trim() ? { label: link.label.trim() } : {}),
-        }));
-      const linkOperation = current()
-        ? setTaskLinks(source, current()!, links)
-        : { edits: [], unavailableReason: "Task not found" };
-      if (linkOperation.unavailableReason) {
-        setInteractionMessage(linkOperation.unavailableReason);
-        return;
-      }
-      source = applySourceEdits(source, linkOperation.edits);
-      const resources = value.resources.map((item) => ({
-        name: item.name.trim(),
-        allocation: Number(item.allocation),
-      }));
-      const resourceOperation = current()
-        ? setTaskResources(source, current()!, resources)
-        : { edits: [], unavailableReason: "Task not found" };
-      if (resourceOperation.unavailableReason) {
-        setInteractionMessage(resourceOperation.unavailableReason);
-        return;
-      }
-      source = applySourceEdits(source, resourceOperation.edits);
-      const taskForNote = current();
-      if (taskForNote) {
-        const noteOperation = setNote(
-          source,
-          taskForNote.sourceRange,
-          taskForNote.notes,
-          value.note,
-          value.notePosition,
-        );
-        if (noteOperation.unavailableReason) {
-          setInteractionMessage(noteOperation.unavailableReason);
-          return;
-        }
-        source = applySourceEdits(source, noteOperation.edits);
-      }
-      if (predecessor) {
-        const document = parseGantt(source).document;
-        if (!document.dependencies.some((item) => item.successorTaskId === currentId)) {
-          const task = document.symbols.tasks.get(currentId);
-          if (task) {
-            const endsTask = value.dependencyRelation.startsWith("end-");
-            const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
-            source = applySourceEdits(
-              source,
-              setTaskDeclaration(
-                source,
-                task,
-                endsTask ? "end" : "start",
-                `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`,
-              ).edits,
-            );
-          }
-        }
-      }
-      setSelectedTaskId(currentId);
-      rememberSelectedTask(currentId);
-      const updatedTask = parseGantt(source).document.symbols.tasks.get(currentId);
-      if (updatedTask)
-        void mapProjectRename(
-          "gantt-task",
-          original.sourceRange.from,
-          { symbolKey: updatedTask.alias?.value ?? updatedTask.label, ...updatedTask.sourceRange },
-          source,
-        );
-      if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) {
-        setSelectedTaskId(selectedTaskId);
-        rememberSelectedTask(selectedTaskId);
-        return;
-      }
-      setInteractionMessage(`Updated ${value.label.trim()}`);
-    },
-    [
-      commitGeneratedSource,
-      mapProjectRename,
-      rememberSelectedTask,
-      resolvedTaskDates,
-      selectedTaskId,
-      setSelectedTaskId,
-      workspace.source,
-    ],
-  );
-
-  const applyMilestoneInspector = useCallback(
-    (value: MilestoneInspectorValue) => {
-      if (!selectedTaskId) return;
-      if (value.mode === "fixed" && !value.date) {
-        setInteractionMessage("Milestone date is required");
-        return;
-      }
-      if (value.mode === "relative" && !value.referenceLabel) {
-        setInteractionMessage("Choose a relative task or milestone");
-        return;
-      }
-      let source = workspace.source;
-      let currentId = selectedTaskId;
-      const current = () => parseGantt(source).document.symbols.tasks.get(currentId);
-      const original = current();
-      if (!original) return;
-      const renamed = renameTask(source, parseGantt(source).document, original, value.label);
-      if (renamed.unavailableReason) {
-        setInteractionMessage(renamed.unavailableReason);
-        return;
-      }
-      source = applySourceEdits(source, renamed.edits);
-      currentId = original.alias ? original.id : normalizeTaskId(value.label);
-      const task = current();
-      if (!task) return;
-      const milestoneStatement =
-        value.mode === "fixed"
-          ? `happens ${value.date}`
-          : `happens at [${value.referenceLabel}]'s ${value.referenceAnchor}`;
-      source = applySourceEdits(source, setTaskDeclaration(source, task, "milestone", milestoneStatement).edits);
-      const colored = current();
-      if (colored)
-        source = applySourceEdits(
-          source,
-          setTaskDeclaration(
-            source,
-            colored,
-            "color",
-            value.color.trim() ? `is colored in ${value.color.trim()}` : undefined,
-          ).edits,
-        );
-      const noted = current();
-      if (noted) {
-        const noteOperation = setNote(source, noted.sourceRange, noted.notes, value.note, value.notePosition);
-        if (noteOperation.unavailableReason) {
-          setInteractionMessage(noteOperation.unavailableReason);
-          return;
-        }
-        source = applySourceEdits(source, noteOperation.edits);
-      }
-      if (!commitGeneratedSource(source, `Update ${value.label.trim()}`)) return;
-      setSelectedTaskId(currentId);
-      setInteractionMessage(`Updated milestone ${value.label.trim()}`);
-    },
-    [commitGeneratedSource, selectedTaskId, setSelectedTaskId, workspace.source],
-  );
-
-  const applyProjectSettings = useCallback(
-    (value: ReturnType<typeof parseProjectSettings>) => {
-      const zoom = value.scaleZoom === "" ? undefined : Number(value.scaleZoom);
-      if (zoom !== undefined && (!Number.isInteger(zoom) || zoom < 1)) {
-        setInteractionMessage("Scale zoom must be a positive whole number");
-        return;
-      }
-      if (value.highlightToday && (!value.todayColor.trim() || /\s/.test(value.todayColor.trim()))) {
-        setInteractionMessage("Today color must be a PlantUML color name or hex value");
-        return;
-      }
-      if (value.dateRules.some((rule) => !rule.from || !rule.to || rule.to < rule.from)) {
-        setInteractionMessage("Calendar dates need a valid start and end date");
-        return;
-      }
-      if (
-        value.dateRules.some(
-          (rule) => rule.state === "colored" && (!rule.color?.trim() || /\s/.test(rule.color.trim())),
-        )
-      ) {
-        setInteractionMessage("Highlighted dates need a PlantUML color name or hex value");
-        return;
-      }
-      const settingsSource = updateProjectSettings(workspace.source, value);
-      const nextSource = value.showLegend
-        ? synchronizeLegend(settingsSource, parseGantt(settingsSource).document.tasks)
-        : removeLegend(settingsSource);
-      if (!commitGeneratedSource(nextSource, "Update project calendar")) return;
-      setProjectInspectorOpen(false);
-      setInteractionMessage("Updated project calendar");
-    },
-    [commitGeneratedSource, workspace.source],
-  );
+  const closeGanttDateMenu = useCallback(() => setDateMenuFor(undefined), [setDateMenuFor]);
+  const closeGanttProjectInspector = useCallback(() => setProjectInspectorOpen(false), [setProjectInspectorOpen]);
+  const {
+    applyTimelineDateHighlight,
+    clearTimelineDateHighlight,
+    applyTimelineDateClosed,
+    clearTimelineDateSetting,
+    applyProjectSettings,
+  } = useGanttCalendarActions({
+    source: workspace.source,
+    highlightDate,
+    commit: commitGeneratedSource,
+    setHighlightDate,
+    closeDateMenu: closeGanttDateMenu,
+    closeProjectInspector: closeGanttProjectInspector,
+    report: setInteractionMessage,
+  });
+  const {
+    moveTask: moveGanttTask,
+    resizeTask: resizeGanttTask,
+    reorderDiagramTask: reorderGanttTask,
+    applyTaskInspector: applyGanttTaskInspector,
+    applyMilestoneInspector: applyGanttMilestoneInspector,
+  } = useGanttScheduleActions({
+    source: workspace.source,
+    document: parseResult.document,
+    selectedTaskId,
+    resolvedTaskDates,
+    scheduleMode,
+    commit: commitGeneratedSource,
+    showSchedulePreview: setSchedulePreview,
+    selectTask: setSelectedTaskId,
+    rememberSelectedTask,
+    mapProjectRename,
+    report: setInteractionMessage,
+  });
 
   const commands = useMemo<Command[]>(() => {
     const diagramCommands: Command[] =
@@ -2009,12 +1519,14 @@ export function App() {
     openWbsSettings,
     openProjectInspector,
     openResourcePanel,
+    project,
     redo,
     restoreWorkspace,
     result?.svg,
     saveDocument,
     saveDocumentAs,
     setCollaborationDialogOpen,
+    setLegendInspectorOpen,
     undo,
     update,
     workspace.zoom,
@@ -2707,8 +2219,8 @@ export function App() {
                 setSelectedDependencyIndex(undefined);
                 setFocusNoteTaskId(undefined);
               }}
-              onTaskMove={moveTask}
-              onTaskReorder={reorderDiagramTask}
+              onTaskMove={moveGanttTask}
+              onTaskReorder={reorderGanttTask}
               onDividerReorder={reorderDiagramDivider}
               onVerticalSeparatorMove={(index, days) => {
                 const separator = parseResult.document.verticalSeparators[index];
@@ -2736,7 +2248,7 @@ export function App() {
                 const divider = parseResult.document.dividers[index];
                 if (divider) setSelectionRequest({ ...divider.sourceRange });
               }}
-              onTaskResize={resizeTask}
+              onTaskResize={resizeGanttTask}
               onDependencyCreate={connectTasks}
               selectedDependencyIndex={selectedDependencyIndex}
               onDependencySelect={setSelectedDependencyIndex}
@@ -3354,8 +2866,8 @@ export function App() {
         legendOpen={legendInspectorOpen}
         legendEntries={legendEntries}
         legendFocusColor={legendFocusColor}
-        onMilestoneApply={applyMilestoneInspector}
-        onTaskApply={applyTaskInspector}
+        onMilestoneApply={applyGanttMilestoneInspector}
+        onTaskApply={applyGanttTaskInspector}
         onTaskDelete={deleteSelectedTask}
         onDependencyApply={applyDependencyInspector}
         onDependencyDelete={deleteDependency}
@@ -3656,34 +3168,4 @@ export function App() {
       )}
     </div>
   );
-}
-
-function findResourceConflicts(
-  task: import("@plantuml-studio/diagram-gantt").GanttTask,
-  tasks: readonly import("@plantuml-studio/diagram-gantt").GanttTask[],
-): string[] {
-  if (!task.start?.resolved || !task.duration || !task.resources?.length) return [];
-  const start = Date.parse(`${task.start.value}T00:00:00Z`);
-  const end =
-    start +
-    task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1) * 86_400_000;
-  const names = new Set(task.resources.map((item) => item.value.toLocaleLowerCase()));
-  return tasks
-    .filter(
-      (other) =>
-        other.id !== task.id &&
-        other.start?.resolved &&
-        other.duration &&
-        other.resources?.some((item) => names.has(item.value.toLocaleLowerCase())),
-    )
-    .filter((other) => {
-      const otherStart = Date.parse(`${other.start!.value}T00:00:00Z`);
-      const otherEnd =
-        otherStart +
-        other.duration!.value *
-          (other.duration!.unit === "month" ? 30 : other.duration!.unit === "week" ? 7 : 1) *
-          86_400_000;
-      return start < otherEnd && otherStart < end;
-    })
-    .map((other) => other.label);
 }

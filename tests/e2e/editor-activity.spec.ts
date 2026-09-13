@@ -39,9 +39,8 @@ test("highlights and renames distinct Activity actions and partitions", async ({
     .toBe(1);
 
   const partition = await pointInText(page, 1, "Operations");
-  await page.mouse.click(partition.x, partition.y);
-  await page.locator(".cm-content").focus();
-  await page.keyboard.press("F2");
+  await page.mouse.click(partition.x, partition.y, { button: "right" });
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
   const partitionRename = page.getByRole("dialog", { name: "Rename activity partition" });
   await partitionRename.getByLabel("New name").fill("Fulfilment");
   await partitionRename.getByRole("button", { name: "Rename" }).click();
