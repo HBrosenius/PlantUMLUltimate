@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PortableProject, PortableProjectDiagram } from "@plantuml-studio/document-format";
 import {
   embeddedMemberHistoryId,
   embeddedMemberTabs,
   openEmbeddedMember,
+  projectWithOpenTabSources,
   snapshotEmbeddedProject,
   type EmbeddedProjectTabs,
 } from "./embedded-project";
@@ -24,6 +25,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const revisionRef = useRef(0);
   const [savedRevision, setSavedRevision] = useState(0);
   const sourceByMember = useRef(new Map<string, string>());
+  const recoveryRevision = useRef(0);
 
   const openProject = useCallback(
     (next: PortableProject, options: { encrypted?: boolean } = {}) => {
@@ -58,12 +60,22 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     if (changed) revisionRef.current += 1;
   }, [project, tabs.documents]);
 
+  const effectiveProject = useMemo(
+    () => (project ? projectWithOpenTabSources(project, memberTabs.current, tabs.documents) : undefined),
+    [project, tabs.documents],
+  );
+
   useEffect(() => {
     if (!project) return;
-    void saveEmbeddedProjectRecovery(project, encrypted).catch(() => {
-      // Recovery is a convenience; saving the actual project remains available if browser storage is full.
-    });
-  }, [encrypted, project]);
+    const revision = ++recoveryRevision.current;
+    void snapshotEmbeddedProject(project, memberTabs.current, tabs.documents)
+      .then((snapshot) => {
+        if (recoveryRevision.current === revision) return saveEmbeddedProjectRecovery(snapshot, encrypted);
+      })
+      .catch(() => {
+        // Recovery is a convenience; saving the actual project remains available if browser storage is full.
+      });
+  }, [encrypted, project, tabs.documents]);
 
   const restoreProject = useCallback(async () => {
     const recovery = await loadEmbeddedProjectRecovery();
@@ -168,6 +180,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   }, [tabs.documents]);
 
   const markSaved = useCallback((revision: number) => setSavedRevision(revision), []);
+  const currentRevision = useCallback(() => revisionRef.current, []);
 
   const closeProject = useCallback(() => {
     memberTabs.current.clear();
@@ -178,6 +191,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
 
   return {
     project,
+    effectiveProject,
     encrypted,
     openProject,
     restoreProject,
@@ -188,6 +202,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     snapshot,
     updateProject,
     captureSaveSnapshot,
+    currentRevision,
     markSaved,
     dirty: Boolean(project) && revisionRef.current !== savedRevision,
     closeProject,

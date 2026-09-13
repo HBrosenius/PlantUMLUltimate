@@ -122,27 +122,29 @@ export function useSingleFileProject({
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
   const restored = useRef(false);
   const indexRevision = useRef(0);
+  const effectiveProject = embedded.effectiveProject;
+  const restoreEmbeddedProject = embedded.restoreProject;
 
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
-    void embedded.restoreProject().then((recovery) => {
+    void restoreEmbeddedProject().then((recovery) => {
       if (recovery?.state === "locked")
         setInteractionMessage("An encrypted project was open here. Reopen its .pumlu file to unlock it.");
     });
-  }, [embedded.restoreProject, setInteractionMessage]);
+  }, [restoreEmbeddedProject, setInteractionMessage]);
 
   useEffect(() => {
-    if (!embedded.project) {
+    if (!effectiveProject) {
       indexRevision.current += 1;
       setIndexed(undefined);
       return;
     }
-    setIndexed(immediateIndex(embedded.project));
-  }, [embedded.project]);
+    setIndexed(immediateIndex(effectiveProject));
+  }, [effectiveProject]);
 
   useEffect(() => {
-    const project = embedded.project;
+    const project = effectiveProject;
     if (!project) return;
     const revision = ++indexRevision.current;
     const timer = window.setTimeout(() => {
@@ -154,7 +156,7 @@ export function useSingleFileProject({
         .catch(() => undefined);
     }, 200);
     return () => window.clearTimeout(timer);
-  }, [embedded.project]);
+  }, [effectiveProject]);
 
   const newProject = useCallback(
     async (name = window.prompt("Project name", "PlantUML project") ?? "") => {
@@ -191,7 +193,7 @@ export function useSingleFileProject({
         reportError(error);
       }
     },
-    [addPortableDiagram, embedded.project, reportError],
+    [addPortableDiagram, reportError],
   );
   const importDiagram = useCallback(async () => {
     const file = await chooseDiagramFile();
@@ -329,7 +331,7 @@ export function useSingleFileProject({
       async (value) =>
         (await encodeProject(value, unlockedKey.current ? { unlockedKey: unlockedKey.current } : {})).bytes,
       handle.current,
-      () => snapshot.revision,
+      embedded.currentRevision,
     );
     if (result.clean) embedded.markSaved(snapshot.revision);
     setInteractionMessage(result.message);

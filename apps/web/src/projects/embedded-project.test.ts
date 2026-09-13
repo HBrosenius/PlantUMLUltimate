@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PortableProject } from "@plantuml-studio/document-format";
-import { embeddedMemberHistoryId, embeddedMemberTabs, openEmbeddedMember } from "./embedded-project";
+import type { DocumentSnapshot } from "../workspace-storage";
+import {
+  embeddedMemberHistoryId,
+  embeddedMemberTabs,
+  openEmbeddedMember,
+  projectWithOpenTabSources,
+} from "./embedded-project";
 
 const project = (): PortableProject => ({
   schemaVersion: 2,
@@ -36,10 +42,12 @@ describe("embedded project tabs", () => {
   it("opens a member once and reuses its project-member tab", () => {
     const created: Array<Record<string, unknown>> = [];
     const activated: string[] = [];
+    const documents: Array<{ id: string; historyId: string }> = [];
     const tabs = {
-      documents: [],
+      documents,
       addDocument(input: Record<string, unknown>) {
         created.push(input);
+        documents.push({ id: "tab-1", historyId: input.historyId as string });
         return "tab-1";
       },
       activateDocument(id: string) {
@@ -48,8 +56,8 @@ describe("embedded project tabs", () => {
     };
     const known = new Map<string, string>();
     const memberId = project().diagrams[0]!.id;
-    expect(openEmbeddedMember(project(), memberId, tabs, known)).toBe("tab-1");
-    expect(openEmbeddedMember(project(), memberId, tabs, known)).toBe("tab-1");
+    expect(openEmbeddedMember(project(), memberId, tabs as never, known)).toBe("tab-1");
+    expect(openEmbeddedMember(project(), memberId, tabs as never, known)).toBe("tab-1");
     expect(created).toHaveLength(1);
     expect(activated).toEqual(["tab-1"]);
   });
@@ -62,5 +70,40 @@ describe("embedded project tabs", () => {
         { id: "tab-1", historyId: embeddedMemberHistoryId(value.projectId, memberId) } as never,
       ]),
     ).toEqual(new Map([[memberId, "tab-1"]]));
+  });
+
+  it("creates a fresh tab when the cached member tab has been closed", () => {
+    const created: Array<Record<string, unknown>> = [];
+    const activated: string[] = [];
+    const tabs = {
+      documents: [],
+      addDocument(input: Record<string, unknown>) {
+        created.push(input);
+        return "tab-new";
+      },
+      activateDocument(id: string) {
+        activated.push(id);
+      },
+    };
+    const value = project();
+    const memberId = value.diagrams[0]!.id;
+    const known = new Map([[memberId, "tab-closed"]]);
+
+    expect(openEmbeddedMember(value, memberId, tabs, known)).toBe("tab-new");
+    expect(created).toHaveLength(1);
+    expect(activated).toEqual([]);
+    expect(known.get(memberId)).toBe("tab-new");
+  });
+
+  it("projects live member source without mutating the saved project", () => {
+    const value = project();
+    const memberId = value.diagrams[0]!.id;
+    const original = value.diagrams[0]!.document.current.source;
+    const effective = projectWithOpenTabSources(value, new Map([[memberId, "tab-1"]]), [
+      { id: "tab-1", source: "@startgantt\n[Live edit] lasts 1 day\n@endgantt\n" } as DocumentSnapshot,
+    ]);
+
+    expect(effective.diagrams[0]!.document.current.source).toContain("Live edit");
+    expect(value.diagrams[0]!.document.current.source).toBe(original);
   });
 });

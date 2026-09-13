@@ -32,7 +32,10 @@ export function openEmbeddedMember(
   knownTabs: Map<string, string>,
   encrypted = false,
 ): string | undefined {
-  const existing = knownTabs.get(memberId) ?? embeddedMemberTabs(project, tabs.documents).get(memberId);
+  const knownTab = knownTabs.get(memberId);
+  const existing =
+    (knownTab && tabs.documents.some((tab) => tab.id === knownTab) ? knownTab : undefined) ??
+    embeddedMemberTabs(project, tabs.documents).get(memberId);
   if (existing) {
     knownTabs.set(memberId, existing);
     tabs.activateDocument(existing);
@@ -54,6 +57,23 @@ export function openEmbeddedMember(
   return tabId;
 }
 
+/** Project view with source from currently open member tabs, for indexing and recovery. */
+export function projectWithOpenTabSources(
+  project: PortableProject,
+  memberTabs: ReadonlyMap<string, string>,
+  tabs: readonly DocumentSnapshot[],
+): PortableProject {
+  const byTabId = new Map(tabs.map((tab) => [tab.id, tab]));
+  let changed = false;
+  const diagrams = project.diagrams.map((member) => {
+    const source = byTabId.get(memberTabs.get(member.id) ?? "")?.source;
+    if (source === undefined || source === member.document.current.source) return member;
+    changed = true;
+    return { ...member, document: { ...member.document, current: { ...member.document.current, source } } };
+  });
+  return changed ? { ...project, diagrams } : project;
+}
+
 /** Capture member source from currently open tabs without changing graph or history metadata. */
 export async function snapshotEmbeddedProject(
   project: PortableProject,
@@ -61,17 +81,16 @@ export async function snapshotEmbeddedProject(
   tabs: readonly DocumentSnapshot[],
   savedAt = new Date().toISOString(),
 ): Promise<PortableProject> {
-  const byTabId = new Map(tabs.map((tab) => [tab.id, tab]));
+  const effective = projectWithOpenTabSources(project, memberTabs, tabs);
   const diagrams = await Promise.all(
-    project.diagrams.map(async (member) => {
-      const tab = byTabId.get(memberTabs.get(member.id) ?? "");
-      if (!tab || tab.source === member.document.current.source) return member;
+    effective.diagrams.map(async (member, index) => {
+      if (member === project.diagrams[index]) return member;
       return {
         ...member,
         document: {
           ...member.document,
           savedAt,
-          current: { ...member.document.current, source: tab.source, sourceHash: await hashSource(tab.source) },
+          current: { ...member.document.current, sourceHash: await hashSource(member.document.current.source) },
         },
       };
     }),
