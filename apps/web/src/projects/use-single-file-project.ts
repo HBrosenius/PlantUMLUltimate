@@ -83,7 +83,7 @@ function immediateIndex(project: PortableProject): VirtualProject {
  * the interaction that creates a diagram, then replace the lightweight index
  * once the browser is idle enough to do the richer work.
  */
-function resolveIndex(project: PortableProject): Promise<VirtualProject> {
+function resolveIndex(project: PortableProject, signal?: AbortSignal): Promise<VirtualProject> {
   return indexVirtualProject(
     serializeProjectManifest(manifestFor(project)),
     new Map(
@@ -92,6 +92,7 @@ function resolveIndex(project: PortableProject): Promise<VirtualProject> {
         { state: "available" as const, source: diagram.document.current.source },
       ]),
     ),
+    signal,
   );
 }
 
@@ -225,8 +226,9 @@ export function useSingleFileProject({
     const project = effectiveProject;
     if (!project) return;
     const revision = ++indexRevision.current;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      void resolveIndex(project)
+      void resolveIndex(project, controller.signal)
         .then((next) => {
           if (indexRevision.current !== revision) return;
           setIndexed(next);
@@ -234,13 +236,17 @@ export function useSingleFileProject({
         })
         .catch((error: unknown) => {
           if (indexRevision.current !== revision) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
           setIndexStatus({
             state: "error",
             message: error instanceof Error ? error.message : "The project index could not be updated",
           });
         });
     }, 200);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [effectiveProject]);
 
   const newProject = useCallback(

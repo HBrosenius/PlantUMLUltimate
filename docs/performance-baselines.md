@@ -14,6 +14,9 @@ The benchmark suite covers:
 - a dependency-heavy chain containing 500 tasks;
 - parsing, schedule resolution, local fallback rendering, task movement, and task reordering.
 - portable-document hybrid history encoding with gzip for 10 KiB × 10 and 100 KiB × 100 revision corpora.
+- mixed six-family projects containing 10, 50, and the supported limit of 200 diagrams;
+- five retained revisions per mixed-project diagram, registered link endpoints, and cross-diagram links;
+- whole-project live indexing, gzip save/reopen, encrypted save, and open/unopened member switching.
 
 ## Reference environment
 
@@ -30,6 +33,22 @@ The initial baseline was measured on 2026-09-09 using Node.js 22 on an Apple Sil
 | Encode 10 KiB × 10 portable history + gzip    |      0.34 ms |
 | Encode 100 KiB × 100 portable history + gzip  |     12.59 ms |
 
+The first whole-project baseline was measured on 2026-09-13 in the same class of environment. These figures are
+navigation and storage baselines, not correctness limits; repeat the run on the same machine before investigating a
+change.
+
+| Mixed-project workload                         |   Reference mean |
+| ---------------------------------------------- | ---------------: |
+| Index 10 diagrams                              |          0.89 ms |
+| Save/reopen 10 diagrams                        |   4.33 / 5.77 ms |
+| Index 50 diagrams                              |          1.83 ms |
+| Save/reopen 50 diagrams                        |   9.90 / 9.28 ms |
+| Index 200 diagrams                             |          5.66 ms |
+| Save/reopen 200 diagrams                       | 37.41 / 27.99 ms |
+| Switch to an already-open member (200 members) |     0.011 ms p75 |
+| Open an unopened member (200 members)          |     0.003 ms p75 |
+| Encrypt and save 50 diagrams                   |         94.42 ms |
+
 Performance results vary across operating systems, CPU power states, Node.js versions, and concurrent workloads. CI correctness jobs must not fail on raw wall-clock thresholds. Compare results on the same machine and runtime, with other heavy work stopped.
 
 ## Regression budgets
@@ -42,6 +61,8 @@ Use these relative budgets until enough CI benchmark history exists for platform
 | Parse 1,000 generated tasks                   |                            More than 25% slower |
 | Move or reorder one task in 1,000 tasks       |                            More than 30% slower |
 | Parse and resolve a 500-task dependency chain |                            More than 25% slower |
+| Index or save/reopen a mixed project          |                            More than 35% slower |
+| Switch or open a project member               |                            More than 50% slower |
 
 A threshold breach is a prompt to reproduce and profile, not an automatic correctness failure. Record at least five runs before accepting or rejecting a performance-sensitive change. Update this document only when the workload or supported runtime changes, or when repeated measurements establish a new intentional baseline.
 
