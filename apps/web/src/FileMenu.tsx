@@ -129,11 +129,6 @@ export function FileMenu({
                   <button role="menuitem" onClick={() => run(onProjectConnections)}>
                     Diagram connections
                   </button>
-                  {onSaveProject && (
-                    <button role="menuitem" onClick={() => run(onSaveProject)}>
-                      Save project snapshot…
-                    </button>
-                  )}
                 </div>
               )}
             </div>

@@ -3511,6 +3511,24 @@ textarea:focus-visible,
 .project-navigator header strong {
   font-size: 16px;
 }
+
+.project-save-status {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.project-save-status.is-saved {
+  background: color-mix(in srgb, var(--success, #2f855a) 14%, transparent);
+  color: var(--success, #2f855a);
+}
+
+.project-save-status.is-dirty {
+  background: color-mix(in srgb, var(--warning, #b7791f) 16%, transparent);
+  color: var(--warning, #975a16);
+}
 .project-navigator header small,
 .project-navigator li small {
   color: var(--muted);

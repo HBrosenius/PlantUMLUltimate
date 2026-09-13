@@ -16,6 +16,7 @@ export function ProjectNavigator({
   onElementsChange,
   onRename,
   onDelete,
+  dirty,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -27,6 +28,7 @@ export function ProjectNavigator({
   onElementsChange(elements: readonly ProjectElement[]): void;
   onRename?(documentId: string, name: string): void;
   onDelete?(documentId: string): void;
+  dirty?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -38,6 +40,11 @@ export function ProjectNavigator({
         <div>
           <span className="project-navigator-kicker">Project</span>
           <strong>{project.manifest.name}</strong>
+          {dirty !== undefined && (
+            <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
+              {dirty ? "Unsaved changes" : "Saved"}
+            </span>
+          )}
           <small>
             {project.members.length} diagram{project.members.length === 1 ? "" : "s"} · {project.manifest.links.length}{" "}
             connection

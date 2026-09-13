@@ -31,10 +31,12 @@ describe("ProjectNavigator", () => {
         onClose={vi.fn()}
         onLinksChange={vi.fn()}
         onElementsChange={vi.fn()}
+        dirty
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add diagram" }));
+    expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
     const type = screen.getByRole("combobox", { name: "Diagram type" });
     expect([...type.querySelectorAll("option")].map((option) => option.value)).toEqual([
       "gantt",
