@@ -20,9 +20,10 @@ import { ClassInspectors } from "./features/class/ClassInspectors";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
-import { AddTaskDialog, type AddTaskValue } from "./AddTaskDialog";
-import { AddDividerDialog, type AddSeparatorValue } from "./AddDividerDialog";
-import { AddMilestoneDialog, type AddMilestoneValue } from "./AddMilestoneDialog";
+import type { AddTaskValue } from "./AddTaskDialog";
+import type { AddSeparatorValue } from "./AddDividerDialog";
+import type { AddMilestoneValue } from "./AddMilestoneDialog";
+import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { CommandPalette } from "./CommandPalette";
 import { TaskInspector, type TaskInspectorValue } from "./TaskInspector";
 import { explicitTaskStartStatement } from "./task-inspector-schedule";
@@ -2442,6 +2443,14 @@ export function App() {
           : dialog?.kind === "add-class-note"
             ? "note"
             : undefined;
+  const ganttDialogKind: GanttDialogKind | undefined =
+    dialog?.kind === "add-task"
+      ? "task"
+      : dialog?.kind === "add-divider"
+        ? "divider"
+        : dialog?.kind === "add-milestone"
+          ? "milestone"
+          : undefined;
   const sideInspectorOpen = Boolean(
     selectedTask ||
     selectedDependency ||
@@ -3237,30 +3246,17 @@ export function App() {
         onAddNote={addUseCaseNote}
         onClose={closeDialog}
       />
-      {dialog?.kind === "add-task" && (
-        <AddTaskDialog
-          taskLabels={parseResult.document.tasks.map((task) => task.label)}
-          defaultStartDate={
-            parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
-          }
-          onAdd={addTask}
-          onClose={() => closeDialog("add-task")}
-        />
-      )}
-      {dialog?.kind === "add-divider" && (
-        <AddDividerDialog
-          tasks={parseResult.document.tasks}
-          onAdd={addDivider}
-          onClose={() => closeDialog("add-divider")}
-        />
-      )}
-      {dialog?.kind === "add-milestone" && (
-        <AddMilestoneDialog
-          taskLabels={parseResult.document.tasks.map((task) => task.label)}
-          onAdd={addMilestone}
-          onClose={() => closeDialog("add-milestone")}
-        />
-      )}
+      <GanttDialogs
+        active={ganttDialogKind}
+        tasks={parseResult.document.tasks}
+        defaultStartDate={
+          parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
+        }
+        onAddTask={addTask}
+        onAddDivider={addDivider}
+        onAddMilestone={addMilestone}
+        onClose={() => ganttDialogKind && closeDialog(`add-${ganttDialogKind}`)}
+      />
       {projectInspectorOpen && (
         <ProjectInspector
           settings={parseProjectSettings(workspace.source)}
