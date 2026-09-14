@@ -6,6 +6,7 @@ export type AppDialog =
   | { kind: "command-palette" }
   | { kind: "new-document"; replaceActiveDocument: boolean }
   | { kind: "help" }
+  | { kind: "new-project" }
   | { kind: "add-task" }
   | { kind: "add-divider" }
   | { kind: "add-milestone" }

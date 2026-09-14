@@ -48,4 +48,12 @@ describe("virtual project index", () => {
   it("does not replace a staged project with structurally invalid input", async () => {
     await expect(indexVirtualProject("{", new Map())).rejects.toThrow("Manifest is not valid JSON");
   });
+
+  it("cancels obsolete indexing before publishing a result", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(indexVirtualProject(manifest, new Map(), controller.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    });
+  });
 });

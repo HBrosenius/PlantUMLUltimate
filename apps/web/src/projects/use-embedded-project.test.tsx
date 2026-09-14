@@ -1,0 +1,148 @@
+// @vitest-environment jsdom
+
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PortableProject } from "@plantuml-studio/document-format";
+import type { DocumentSnapshot } from "../workspace-storage";
+import { useEmbeddedProject } from "./use-embedded-project";
+
+vi.mock("../workspace-storage", () => ({
+  enableMemoryOnlyHistory: vi.fn(async () => undefined),
+  importDocumentVersions: vi.fn(async () => undefined),
+  loadDocumentVersions: vi.fn(async () => []),
+}));
+
+vi.mock("./embedded-project-session", () => ({
+  clearEmbeddedProjectRecovery: vi.fn(async () => undefined),
+  loadEmbeddedProjectRecovery: vi.fn(async () => undefined),
+  saveEmbeddedProjectRecovery: vi.fn(async () => undefined),
+}));
+
+function project(): PortableProject {
+  return {
+    schemaVersion: 2,
+    projectId: "11111111-1111-4111-8111-111111111111",
+    revisionId: "22222222-2222-4222-8222-222222222222",
+    name: "Lifecycle project",
+    savedAt: "2026-09-13T08:00:00.000Z",
+    diagrams: [],
+    elements: [],
+    links: [],
+  };
+}
+
+function projectWithDiagram(): PortableProject {
+  const value = project();
+  return {
+    ...value,
+    diagrams: [
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "Plan",
+        document: {
+          schemaVersion: 1,
+          documentId: "44444444-4444-4444-8444-444444444444",
+          savedAt: value.savedAt,
+          current: { source: "@startgantt\n@endgantt\n", sourceHash: "a".repeat(64), diagramKind: "gantt" },
+          settings: { resourceCapacities: {} },
+          historyPolicy: { maxVersions: 10, maxLogicalBytes: 1024 * 1024 },
+          versions: [],
+          contents: [],
+        },
+      },
+    ],
+  };
+}
+
+describe("useEmbeddedProject lifecycle", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("reports the live revision when project metadata changes during a save", async () => {
+    const documents: DocumentSnapshot[] = [];
+    const tabs = {
+      documents,
+      addDocument: vi.fn(() => "tab-1"),
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const { result } = renderHook(() => useEmbeddedProject(tabs));
+
+    act(() => result.current.openProject(project()));
+    await waitFor(() => expect(result.current.project).toBeDefined());
+    const snapshot = await result.current.captureSaveSnapshot();
+    expect(snapshot?.revision).toBe(0);
+
+    act(() => {
+      result.current.updateProject((current) => ({ ...current, name: "Changed while saving" }));
+    });
+
+    expect(result.current.currentRevision()).toBe(1);
+    expect(result.current.currentRevision()).not.toBe(snapshot?.revision);
+    expect(result.current.dirty).toBe(true);
+  });
+
+  it("marks project metadata changes in an open member dirty", async () => {
+    const value = projectWithDiagram();
+    const historyId = `project-history-${value.projectId}-${value.diagrams[0]!.id}`;
+    const baseDocument = {
+      id: "tab-1",
+      historyId,
+      source: value.diagrams[0]!.document.current.source,
+      diagramKind: "gantt" as const,
+      fileName: "Plan",
+      dirty: false,
+      zoom: 1,
+      cursor: { line: 1, column: 1 },
+      historyMaxVersions: 10,
+      historyMaxLogicalBytes: 1024 * 1024,
+      resourceCapacities: {},
+    };
+    const controls = {
+      addDocument: vi.fn(() => "tab-1"),
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ documents }: { documents: DocumentSnapshot[] }) => useEmbeddedProject({ ...controls, documents }),
+      { initialProps: { documents: [baseDocument] } },
+    );
+
+    act(() => result.current.openProject(value));
+    await waitFor(() => expect(result.current.project).toBeDefined());
+    expect(result.current.dirty).toBe(false);
+
+    rerender({ documents: [{ ...baseDocument, resourceCapacities: { Alice: 80 } }] });
+    await waitFor(() => expect(result.current.dirty).toBe(true));
+    expect(result.current.currentRevision()).toBe(1);
+  });
+
+  it("opens members against the replacement project identity", async () => {
+    const created: Array<Partial<Omit<DocumentSnapshot, "id">>> = [];
+    const tabs = {
+      documents: [] as DocumentSnapshot[],
+      addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>) {
+        created.push(input ?? {});
+        return "replacement-tab";
+      },
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const first = projectWithDiagram();
+    const replacement = {
+      ...projectWithDiagram(),
+      projectId: "99999999-9999-4999-8999-999999999999",
+      name: "Replacement",
+    };
+    const { result } = renderHook(() => useEmbeddedProject(tabs));
+
+    act(() => result.current.openProject(first));
+    act(() => result.current.openProject(replacement));
+    await act(async () => {
+      await result.current.openMember(replacement.diagrams[0]!.id);
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]?.historyId).toBe(`project-history-${replacement.projectId}-${replacement.diagrams[0]!.id}`);
+    expect(result.current.project?.name).toBe("Replacement");
+  });
+});

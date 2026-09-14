@@ -10,9 +10,10 @@ export class EmbeddedProjectSaveCoordinator {
 
   async save(
     snapshot: EmbeddedProjectSnapshot,
-    encode: (project: PortableProject) => Promise<Uint8Array>,
+    encode: (project: PortableProject, signal?: AbortSignal) => Promise<Uint8Array>,
     handle: WritableFileHandle,
     currentRevision: () => number,
+    signal?: AbortSignal,
   ): Promise<EmbeddedProjectSaveResult> {
     const previous = this.queues.get(snapshot.projectId) ?? Promise.resolve();
     let release!: () => void;
@@ -23,9 +24,12 @@ export class EmbeddedProjectSaveCoordinator {
     this.queues.set(snapshot.projectId, queue);
     await previous;
     try {
-      const bytes = await encode(snapshot.project);
+      if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
+      const bytes = await encode(snapshot.project, signal);
+      if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
       const writable = await handle.createWritable();
       try {
+        if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
         await writable.write(bytes);
         await writable.close();
       } catch (error) {

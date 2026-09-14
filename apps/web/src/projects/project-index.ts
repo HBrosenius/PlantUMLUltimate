@@ -37,6 +37,10 @@ export interface VirtualProject {
 
 const encode = new TextEncoder();
 
+function throwIfCancelled(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Project indexing cancelled", "AbortError");
+}
+
 function linkCountFor(manifest: ProjectManifest, documentId: string): number {
   const elementIds = new Set(
     manifest.elements.filter((element) => element.documentId === documentId).map((element) => element.id),
@@ -87,10 +91,13 @@ async function declarationsFor(source: string, kind: DiagramKind): Promise<reado
 export async function indexVirtualProject(
   manifestJson: string,
   inputs: ReadonlyMap<string, ProjectMemberInput>,
+  signal?: AbortSignal,
 ): Promise<VirtualProject> {
+  throwIfCancelled(signal);
   const manifest = parseProjectManifestJson(manifestJson);
   const members = await Promise.all(
     manifest.documents.map(async (document): Promise<IndexedProjectMember> => {
+      throwIfCancelled(signal);
       const input = inputs.get(document.path) ?? { state: "missing" as const };
       if (input.state !== "available")
         return {
@@ -113,13 +120,15 @@ export async function indexVirtualProject(
           linkCount: linkCountFor(manifest, document.id),
         };
       try {
+        const declarations = await declarationsFor(input.source, diagramKind);
+        throwIfCancelled(signal);
         return {
           documentId: document.id,
           path: document.path,
           state: "available",
           diagramKind,
           source: input.source,
-          declarations: await declarationsFor(input.source, diagramKind),
+          declarations,
           linkCount: linkCountFor(manifest, document.id),
         };
       } catch (error) {
@@ -136,17 +145,19 @@ export async function indexVirtualProject(
       }
     }),
   );
+  throwIfCancelled(signal);
   const byId = new Map(members.map((member) => [member.documentId, member]));
   const resolutions = new Map<string, ElementResolution>();
   await Promise.all(
     manifest.elements.map(async (element) => {
+      throwIfCancelled(signal);
       const member = byId.get(element.documentId);
       if (!member?.source || member.state !== "available") return;
-      resolutions.set(
-        element.id,
-        resolveElement(element, await sha256(encode.encode(member.source)), member.declarations),
-      );
+      const sourceHash = await sha256(encode.encode(member.source));
+      throwIfCancelled(signal);
+      resolutions.set(element.id, resolveElement(element, sourceHash, member.declarations));
     }),
   );
+  throwIfCancelled(signal);
   return { manifest, members, resolutions };
 }

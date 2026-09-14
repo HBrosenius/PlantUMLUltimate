@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   decodeDocument,
+  decodeEnvelope,
   decodeProject,
+  DocumentFormatError,
   encodeProject,
+  hashSource,
   projectFromDocument,
   projectFromPlantUml,
   type PortableProject,
@@ -11,13 +14,16 @@ import {
   type UnlockedDocumentKey,
 } from "@plantuml-studio/document-format";
 import {
+  applyIdentityMappings,
   serializeProjectManifest,
+  type IdentityMapping,
   type ProjectElement,
   type ProjectLink,
   type ProjectManifest,
 } from "@plantuml-studio/project-model";
 import {
   isPortableDocument,
+  downloadText,
   openDocumentFile,
   savePortableDocumentAs,
   type OpenedFileBytes,
@@ -26,9 +32,12 @@ import {
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
+import type { DiagramKind } from "../model";
 import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
+import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
+import { embeddedDiagramDisplayName } from "./embedded-project";
 
 type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -76,7 +85,7 @@ function immediateIndex(project: PortableProject): VirtualProject {
  * the interaction that creates a diagram, then replace the lightweight index
  * once the browser is idle enough to do the richer work.
  */
-function resolveIndex(project: PortableProject): Promise<VirtualProject> {
+function resolveIndex(project: PortableProject, signal?: AbortSignal): Promise<VirtualProject> {
   return indexVirtualProject(
     serializeProjectManifest(manifestFor(project)),
     new Map(
@@ -85,12 +94,76 @@ function resolveIndex(project: PortableProject): Promise<VirtualProject> {
         { state: "available" as const, source: diagram.document.current.source },
       ]),
     ),
+    signal,
   );
 }
 
 function projectName(name: string): string {
   const value = name.trim();
   return value || "PlantUML project";
+}
+
+export function projectDiagramName(name: string, fallback = "Diagram"): string {
+  const value = embeddedDiagramDisplayName(name);
+  return value === "Diagram" ? fallback : value;
+}
+
+export function applyPortableProjectRenameMappings(
+  project: PortableProject,
+  documentId: string,
+  mappings: readonly IdentityMapping[],
+  sourceHash: string,
+): PortableProject {
+  const elementIds = new Set(
+    project.elements.filter((element) => element.documentId === documentId).map((element) => element.id),
+  );
+  const scopedMappings = mappings.filter((mapping) => elementIds.has(mapping.elementId));
+  return {
+    ...project,
+    revisionId: crypto.randomUUID(),
+    elements: applyIdentityMappings(
+      project.elements as ProjectElement[],
+      scopedMappings,
+      sourceHash,
+    ) as PortableProjectElement[],
+  };
+}
+
+export async function decodePortableProjectFile(
+  bytes: Uint8Array,
+  fileName: string,
+  requestPassword: (fileName: string) => Promise<string | undefined>,
+): Promise<{ project: PortableProject; key?: UnlockedDocumentKey; encrypted: boolean } | undefined> {
+  const envelope = decodeEnvelope(bytes);
+  const decode = async (password?: string) => {
+    if (envelope.version === 2) {
+      const decoded = await decodeProject(bytes, password ? { password } : {});
+      return { project: decoded.project, key: decoded.unlockedKey };
+    }
+    const decoded = await decodeDocument(bytes, password ? { password } : {});
+    return {
+      project: projectFromDocument(decoded.document, fileName, new Date().toISOString()),
+      key: decoded.unlockedKey,
+    };
+  };
+  try {
+    const decoded = await decode();
+    return {
+      project: decoded.project,
+      ...(decoded.key ? { key: decoded.key } : {}),
+      encrypted: Boolean(decoded.key),
+    };
+  } catch (error) {
+    if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+    const password = await requestPassword(fileName);
+    if (password === undefined) return undefined;
+    const decoded = await decode(password);
+    return {
+      project: decoded.project,
+      ...(decoded.key ? { key: decoded.key } : {}),
+      encrypted: Boolean(decoded.key),
+    };
+  }
 }
 
 function chooseDiagramFile(): Promise<File | undefined> {
@@ -117,47 +190,72 @@ export function useSingleFileProject({
 }) {
   const embedded = useEmbeddedProject(tabs);
   const [indexed, setIndexed] = useState<VirtualProject>();
+  const [indexStatus, setIndexStatus] = useState<{
+    state: "idle" | "indexing" | "ready" | "error";
+    message?: string;
+  }>({ state: "idle" });
+  const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
+  const [saving, setSaving] = useState(false);
+  const [savedBaseline, setSavedBaseline] = useState<PortableProject>();
+  const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
+  const saveAbort = useRef<AbortController | undefined>(undefined);
   const restored = useRef(false);
   const indexRevision = useRef(0);
+  const effectiveProject = embedded.effectiveProject;
+  const restoreEmbeddedProject = embedded.restoreProject;
 
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
-    void embedded.restoreProject().then((recovery) => {
+    void restoreEmbeddedProject().then((recovery) => {
       if (recovery?.state === "locked")
         setInteractionMessage("An encrypted project was open here. Reopen its .pumlu file to unlock it.");
     });
-  }, [embedded.restoreProject, setInteractionMessage]);
+  }, [restoreEmbeddedProject, setInteractionMessage]);
 
   useEffect(() => {
-    if (!embedded.project) {
+    if (!effectiveProject) {
       indexRevision.current += 1;
       setIndexed(undefined);
+      setIndexStatus({ state: "idle" });
       return;
     }
-    setIndexed(immediateIndex(embedded.project));
-  }, [embedded.project]);
+    setIndexed(immediateIndex(effectiveProject));
+    setIndexStatus({ state: "indexing" });
+  }, [effectiveProject]);
 
   useEffect(() => {
-    const project = embedded.project;
+    const project = effectiveProject;
     if (!project) return;
     const revision = ++indexRevision.current;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      void resolveIndex(project)
+      void resolveIndex(project, controller.signal)
         .then((next) => {
-          if (indexRevision.current === revision) setIndexed(next);
+          if (indexRevision.current !== revision) return;
+          setIndexed(next);
+          setIndexStatus({ state: "ready" });
         })
-        // The basic navigator remains usable if a declaration cannot be read.
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          if (indexRevision.current !== revision) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          setIndexStatus({
+            state: "error",
+            message: error instanceof Error ? error.message : "The project index could not be updated",
+          });
+        });
     }, 200);
-    return () => window.clearTimeout(timer);
-  }, [embedded.project]);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [effectiveProject]);
 
   const newProject = useCallback(
-    async (name = window.prompt("Project name", "PlantUML project") ?? "") => {
+    async (name: string) => {
       if (!name.trim()) return;
       const created = await projectFromPlantUml("", "gantt", new Date().toISOString());
       const project = { ...created, name: projectName(name), diagrams: [] };
@@ -165,11 +263,28 @@ export function useSingleFileProject({
       setIndexed(immediateIndex(project));
       handle.current = undefined;
       unlockedKey.current = undefined;
+      setSavedBaseline(undefined);
       resetSelection();
       setInteractionMessage(`Created ${projectName(name)}. Add a diagram to begin.`);
     },
     [embedded, resetSelection, setInteractionMessage],
   );
+
+  const requestPassword = useCallback((fileName: string) => {
+    unlockResolver.current?.(undefined);
+    return new Promise<string | undefined>((resolve) => {
+      unlockResolver.current = resolve;
+      setUnlockRequest({ fileName });
+    });
+  }, []);
+  const finishUnlock = useCallback((password: string | undefined) => {
+    const resolve = unlockResolver.current;
+    unlockResolver.current = undefined;
+    setUnlockRequest(undefined);
+    resolve?.(password);
+  }, []);
+  const unlock = useCallback((password: string) => finishUnlock(password), [finishUnlock]);
+  const cancelUnlock = useCallback(() => finishUnlock(undefined), [finishUnlock]);
 
   const addPortableDiagram = useCallback(
     (diagram: PortableProject["diagrams"][number]) => {
@@ -182,16 +297,16 @@ export function useSingleFileProject({
     [embedded, resetSelection, setInteractionMessage],
   );
   const addProjectDiagram = useCallback(
-    async (kind: "gantt" | "class" | "sequence", name: string) => {
+    async (kind: DiagramKind, name: string) => {
       try {
-        const displayName = projectName(name).replace(/\.(?:puml|pumlu)$/i, "") + ".pumlu";
+        const displayName = projectDiagramName(name, `${kind} diagram`);
         const staged = await projectFromPlantUml(starterSource(kind), kind, displayName);
         addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
       } catch (error) {
         reportError(error);
       }
     },
-    [addPortableDiagram, embedded.project, reportError],
+    [addPortableDiagram, reportError],
   );
   const importDiagram = useCallback(async () => {
     const file = await chooseDiagramFile();
@@ -199,24 +314,32 @@ export function useSingleFileProject({
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (isPortableDocument(bytes)) {
-        const password = window.prompt(`Password for ${file.name} (leave blank if it is not encrypted)`) ?? undefined;
-        const decoded = await decodeDocument(bytes, password ? { password } : {});
-        const staged = projectFromDocument(decoded.document, file.name, new Date().toISOString());
-        addPortableDiagram(staged.diagrams[0]!);
+        let decoded;
+        try {
+          decoded = await decodeDocument(bytes);
+        } catch (error) {
+          if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
+          const password = await requestPassword(file.name);
+          if (password === undefined) return;
+          decoded = await decodeDocument(bytes, { password });
+        }
+        const displayName = projectDiagramName(file.name);
+        const staged = projectFromDocument(decoded.document, displayName, new Date().toISOString());
+        addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
         return;
       }
       const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       const kind = detectDiagramKind(source);
-      if (!kind || !["gantt", "class", "sequence"].includes(kind)) {
-        setInteractionMessage("Choose a supported Gantt, Class, or Sequence PlantUML diagram");
+      if (!kind) {
+        setInteractionMessage("Choose a supported PlantUML diagram");
         return;
       }
       const staged = await projectFromPlantUml(source, kind, new Date().toISOString());
-      addPortableDiagram({ ...staged.diagrams[0]!, name: file.name });
+      addPortableDiagram({ ...staged.diagrams[0]!, name: projectDiagramName(file.name) });
     } catch (error) {
       reportError(error);
     }
-  }, [addPortableDiagram, reportError, setInteractionMessage]);
+  }, [addPortableDiagram, reportError, requestPassword, setInteractionMessage]);
 
   const openOpenedProject = useCallback(
     async (opened: OpenedFileBytes | undefined): Promise<boolean> => {
@@ -233,23 +356,16 @@ export function useSingleFileProject({
           project = await projectFromPlantUml(source, kind, new Date().toISOString());
           project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
         } else {
-          const password =
-            window.prompt(`Password for ${opened.fileName} (leave blank if it is not encrypted)`) ?? undefined;
-          try {
-            const decoded = await decodeProject(opened.bytes, password ? { password } : {});
-            project = decoded.project;
-            key = decoded.unlockedKey;
-            encrypted = Boolean(key);
-          } catch {
-            const decoded = await decodeDocument(opened.bytes, password ? { password } : {});
-            project = projectFromDocument(decoded.document, opened.fileName, new Date().toISOString());
-            key = decoded.unlockedKey;
-            encrypted = Boolean(key);
-          }
+          const decoded = await decodePortableProjectFile(opened.bytes, opened.fileName, requestPassword);
+          if (!decoded) return false;
+          project = decoded.project;
+          key = decoded.key;
+          encrypted = decoded.encrypted;
         }
         unlockedKey.current = key;
         handle.current = opened.handle;
         embedded.openProject(project, { encrypted });
+        setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
         setInteractionMessage(
           `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
@@ -260,7 +376,7 @@ export function useSingleFileProject({
         return false;
       }
     },
-    [embedded, reportError, resetSelection, setInteractionMessage],
+    [embedded, reportError, requestPassword, resetSelection, setInteractionMessage],
   );
   const openProject = useCallback(async () => openOpenedProject(await openDocumentFile()), [openOpenedProject]);
   const openPortableProject = useCallback(
@@ -268,6 +384,7 @@ export function useSingleFileProject({
       unlockedKey.current = undefined;
       handle.current = undefined;
       embedded.openProject(project);
+      setSavedBaseline(undefined);
       resetSelection();
       setInteractionMessage(`Imported ${project.name}; save to create its one-file project.`);
     },
@@ -290,6 +407,16 @@ export function useSingleFileProject({
         revisionId: crypto.randomUUID(),
         elements: elements as PortableProjectElement[],
       })),
+    [embedded],
+  );
+  const applyRenameMappings = useCallback(
+    async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
+      if (!mappings.length) return;
+      const sourceHash = await hashSource(source);
+      embedded.updateProject((current) =>
+        applyPortableProjectRenameMappings(current, documentId, mappings, sourceHash),
+      );
+    },
     [embedded],
   );
   const renameDiagram = useCallback(
@@ -324,39 +451,102 @@ export function useSingleFileProject({
     const snapshot = await embedded.captureSaveSnapshot();
     if (!snapshot) return;
     if (!handle.current) return undefined;
-    const result = await saveCoordinator.current.save(
-      snapshot,
-      async (value) =>
-        (await encodeProject(value, unlockedKey.current ? { unlockedKey: unlockedKey.current } : {})).bytes,
-      handle.current,
-      () => snapshot.revision,
-    );
-    if (result.clean) embedded.markSaved(snapshot.revision);
-    setInteractionMessage(result.message);
-    return result;
+    saveAbort.current?.abort();
+    const controller = new AbortController();
+    saveAbort.current = controller;
+    setSaving(true);
+    try {
+      const result = await saveCoordinator.current.save(
+        snapshot,
+        async (value, signal) =>
+          (
+            await encodeProject(value, {
+              ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
+              ...(signal ? { signal } : {}),
+            })
+          ).bytes,
+        handle.current,
+        embedded.currentRevision,
+        controller.signal,
+      );
+      if (result.clean) embedded.markSaved(snapshot.revision);
+      setSavedBaseline(structuredClone(snapshot.project));
+      setInteractionMessage(result.message);
+      return result;
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
+      const result = { clean: false, message: "Project save cancelled" };
+      setInteractionMessage(result.message);
+      return result;
+    } finally {
+      if (saveAbort.current === controller) {
+        saveAbort.current = undefined;
+        setSaving(false);
+      }
+    }
   }, [embedded, setInteractionMessage]);
 
   const saveProjectAs = useCallback(async () => {
     const snapshot = await embedded.captureSaveSnapshot();
     if (!snapshot) return;
-    const encoded = await encodeProject(
-      snapshot.project,
-      unlockedKey.current ? { unlockedKey: unlockedKey.current } : {},
-    );
-    const bytes = encoded.bytes;
-    const saved = await savePortableDocumentAs(bytes, snapshot.project.name);
-    if (!saved) return;
-    handle.current = saved.handle;
-    unlockedKey.current = encoded.unlockedKey;
-    embedded.markSaved(snapshot.revision);
-    setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
+    saveAbort.current?.abort();
+    const controller = new AbortController();
+    saveAbort.current = controller;
+    setSaving(true);
+    try {
+      const encoded = await encodeProject(snapshot.project, {
+        ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
+        signal: controller.signal,
+      });
+      const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name);
+      if (!saved) return;
+      handle.current = saved.handle;
+      unlockedKey.current = encoded.unlockedKey;
+      embedded.markSaved(snapshot.revision);
+      setSavedBaseline(structuredClone(snapshot.project));
+      setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
+      setInteractionMessage("Project save cancelled");
+    } finally {
+      if (saveAbort.current === controller) {
+        saveAbort.current = undefined;
+        setSaving(false);
+      }
+    }
   }, [embedded, setInteractionMessage]);
+
+  const cancelSave = useCallback(() => saveAbort.current?.abort(), []);
+  const reviewChanges = useCallback(async () => {
+    if (!savedBaseline) return undefined;
+    const current = await embedded.captureSaveSnapshot();
+    return current ? buildProjectChangeReview(savedBaseline, current.project) : undefined;
+  }, [embedded, savedBaseline]);
+  const exportReviewReport = useCallback(async () => {
+    if (!savedBaseline) return;
+    const current = await embedded.captureSaveSnapshot();
+    if (!current) return;
+    const review = buildProjectChangeReview(savedBaseline, current.project);
+    const names = new Map(
+      [...savedBaseline.diagrams, ...current.project.diagrams].map((diagram) => [diagram.id, diagram.name]),
+    );
+    const report = createProjectReviewReport(current.project.name, review, names);
+    const fileName = `${current.project.name.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "project"}-review.html`;
+    downloadText(report, fileName, "text/html;charset=utf-8");
+    setInteractionMessage(`Exported ${fileName}`);
+  }, [embedded, savedBaseline, setInteractionMessage]);
+  const closeProject = useCallback(() => {
+    setSavedBaseline(undefined);
+    embedded.closeProject();
+  }, [embedded]);
 
   return useMemo(
     () => ({
       portableProject: embedded.project,
       project: indexed,
+      indexStatus,
       dirty: embedded.dirty,
+      saving,
       newProject,
       addProjectDiagram,
       importDiagram,
@@ -366,12 +556,20 @@ export function useSingleFileProject({
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
+      applyRenameMappings,
       renameDiagram,
       deleteDiagram,
       saveProject,
       saveProjectAs,
-      closeProject: embedded.closeProject,
       restoreProject: embedded.restoreProject,
+      unlockRequest,
+      unlock,
+      cancelUnlock,
+      cancelSave,
+      reviewChanges,
+      exportReviewReport,
+      hasReviewBaseline: Boolean(savedBaseline),
+      closeProject,
     }),
     [
       addProjectDiagram,
@@ -379,6 +577,8 @@ export function useSingleFileProject({
       embedded,
       importDiagram,
       indexed,
+      indexStatus,
+      saving,
       newProject,
       openProject,
       openOpenedProject,
@@ -387,7 +587,16 @@ export function useSingleFileProject({
       saveProject,
       saveProjectAs,
       updateElements,
+      applyRenameMappings,
       updateLinks,
+      unlockRequest,
+      unlock,
+      cancelUnlock,
+      cancelSave,
+      reviewChanges,
+      exportReviewReport,
+      savedBaseline,
+      closeProject,
     ],
   );
 }

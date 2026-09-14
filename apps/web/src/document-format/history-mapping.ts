@@ -35,9 +35,12 @@ export function mapPortableHistoryToLocal(
   fileName: string,
   portableBaselineVersionId?: string,
   createId: () => string = () => crypto.randomUUID(),
+  identity?: { historyId?: string; versionId?(portableId: string): string },
 ): MappedPortableHistory {
-  const historyId = `history-${createId()}`;
-  const portableToLocalIds = new Map(versions.map((version) => [version.id, `version-${createId()}`]));
+  const historyId = identity?.historyId ?? `history-${createId()}`;
+  const portableToLocalIds = new Map(
+    versions.map((version) => [version.id, identity?.versionId?.(version.id) ?? `version-${createId()}`]),
+  );
   const localVersions = versions.map((version): DocumentVersion => {
     const source = sources.get(version.contentId);
     if (source === undefined) throw new Error(`Missing reconstructed content ${version.contentId}`);

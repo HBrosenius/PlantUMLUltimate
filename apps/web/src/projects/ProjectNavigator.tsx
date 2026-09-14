@@ -1,7 +1,10 @@
 import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
 import { useState } from "react";
+import type { DiagramKind } from "../model";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
+import { ProjectNameDialog } from "./ProjectNameDialog";
+import type { ProjectChangeReview } from "./project-change-review";
 
 export function ProjectNavigator({
   project,
@@ -14,10 +17,17 @@ export function ProjectNavigator({
   onElementsChange,
   onRename,
   onDelete,
+  dirty,
+  indexStatus,
+  saving,
+  onCancelSave,
+  onReviewChanges,
+  hasReviewBaseline,
+  onExportReview,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
-  onAdd(kind: "gantt" | "class" | "sequence", path: string): void | Promise<void>;
+  onAdd(kind: DiagramKind, path: string): void | Promise<void>;
   onImport?(): void;
   onClose(): void;
   onCloseProject?(): void;
@@ -25,16 +35,48 @@ export function ProjectNavigator({
   onElementsChange(elements: readonly ProjectElement[]): void;
   onRename?(documentId: string, name: string): void;
   onDelete?(documentId: string): void;
+  dirty?: boolean;
+  indexStatus?: { state: "idle" | "indexing" | "ready" | "error"; message?: string };
+  saving?: boolean;
+  onCancelSave?(): void;
+  onReviewChanges?(): Promise<ProjectChangeReview | undefined>;
+  hasReviewBaseline?: boolean;
+  onExportReview?(): void | Promise<void>;
 }) {
   const [adding, setAdding] = useState(false);
-  const [kind, setKind] = useState<"gantt" | "class" | "sequence">("gantt");
+  const [kind, setKind] = useState<DiagramKind>("gantt");
   const [path, setPath] = useState("Gantt diagram");
+  const [renaming, setRenaming] = useState<{ id: string; name: string }>();
+  const [review, setReview] = useState<ProjectChangeReview>();
+  const [reviewing, setReviewing] = useState(false);
   return (
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
         <div>
           <span className="project-navigator-kicker">Project</span>
           <strong>{project.manifest.name}</strong>
+          {dirty !== undefined && (
+            <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
+              {dirty ? "Unsaved changes" : "Saved"}
+            </span>
+          )}
+          {saving && onCancelSave && (
+            <button type="button" className="project-cancel-save" onClick={onCancelSave}>
+              Cancel save
+            </button>
+          )}
+          {indexStatus && indexStatus.state !== "idle" && (
+            <span className={`project-index-status is-${indexStatus.state}`} role="status" title={indexStatus.message}>
+              {indexStatus.state === "indexing"
+                ? "Updating links…"
+                : indexStatus.state === "error"
+                  ? "Link index failed"
+                  : "Links current"}
+            </span>
+          )}
+          {indexStatus?.state === "error" && indexStatus.message && (
+            <small className="project-index-error">{indexStatus.message}</small>
+          )}
           <small>
             {project.members.length} diagram{project.members.length === 1 ? "" : "s"} · {project.manifest.links.length}{" "}
             connection
@@ -79,14 +121,19 @@ export function ProjectNavigator({
               <select
                 value={kind}
                 onChange={(event) => {
-                  const next = event.target.value as "gantt" | "class" | "sequence";
+                  const next = event.target.value as DiagramKind;
                   setKind(next);
-                  setPath(`${next[0]!.toUpperCase()}${next.slice(1)} diagram`);
+                  setPath(
+                    `${next === "usecase" ? "Use Case" : next === "wbs" ? "WBS" : `${next[0]!.toUpperCase()}${next.slice(1)}`} diagram`,
+                  );
                 }}
               >
                 <option value="gantt">Gantt</option>
                 <option value="class">Class</option>
                 <option value="sequence">Sequence</option>
+                <option value="usecase">Use Case</option>
+                <option value="activity">Activity</option>
+                <option value="wbs">WBS</option>
               </select>
             </label>
             <label>
@@ -117,9 +164,7 @@ export function ProjectNavigator({
                   <button
                     type="button"
                     aria-label={`Rename ${member.path}`}
-                    onClick={() =>
-                      onRename(member.documentId, window.prompt("Diagram name", member.path) ?? member.path)
-                    }
+                    onClick={() => setRenaming({ id: member.documentId, name: member.path })}
                   >
                     Rename
                   </button>
@@ -138,7 +183,102 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
+      {onReviewChanges && (
+        <section className="project-navigator-section project-change-review" aria-labelledby="project-review-heading">
+          <div className="project-section-heading">
+            <div>
+              <h2 id="project-review-heading">Review changes</h2>
+              <p>Compare this project with its last successful save</p>
+            </div>
+            <button
+              type="button"
+              disabled={!hasReviewBaseline || reviewing}
+              onClick={() => {
+                setReviewing(true);
+                void onReviewChanges()
+                  .then(setReview)
+                  .finally(() => setReviewing(false));
+              }}
+            >
+              {reviewing ? "Reviewing…" : "Review"}
+            </button>
+          </div>
+          {!hasReviewBaseline ? (
+            <p className="project-review-empty">Save this project once to create a review baseline.</p>
+          ) : review && !review.hasChanges ? (
+            <p className="project-review-empty">No changes since the last successful save.</p>
+          ) : review ? (
+            <div className="project-review-results" aria-live="polite">
+              {review.diagrams.map((change) => (
+                <article key={change.documentId}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(change.documentId)}
+                    disabled={change.kinds.includes("deleted")}
+                  >
+                    {change.name}
+                  </button>
+                  <span>{change.kinds.join(" · ")}</span>
+                  {change.previousName && <small>Previously {change.previousName}</small>}
+                  {change.sourceComparison && (
+                    <div className="project-review-comparison">
+                      <small>
+                        {change.sourceComparison.mode === "semantic" ? "Semantic review" : "Source review"} · +
+                        {change.sourceComparison.addedLines} −{change.sourceComparison.removedLines} lines
+                      </small>
+                      {change.sourceComparison.summaries.map((summary, index) => (
+                        <div key={`${summary.title}-${index}`}>
+                          <strong>{summary.title}</strong>
+                          <small>{summary.detail}</small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {change.linkedDocumentIds.length > 0 && (
+                    <div className="project-review-impact">
+                      <small>Linked diagrams that may need review</small>
+                      <div>
+                        {change.linkedDocumentIds.map((documentId) => (
+                          <button key={documentId} type="button" onClick={() => onOpen(documentId)}>
+                            {project.members.find((member) => member.documentId === documentId)?.path ?? documentId}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </article>
+              ))}
+              {review.links.map((change) => (
+                <article key={change.linkId}>
+                  <strong>{change.kind} relationship</strong>
+                  <span>{change.link.kind}</span>
+                  <small>
+                    Affects {change.documentIds.length} diagram{change.documentIds.length === 1 ? "" : "s"}
+                  </small>
+                </article>
+              ))}
+              {onExportReview && (
+                <button type="button" className="project-export-review" onClick={() => void onExportReview()}>
+                  Export review report
+                </button>
+              )}
+            </div>
+          ) : null}
+        </section>
+      )}
       <ProjectLinksPanel project={project} onChange={onLinksChange} onElementsChange={onElementsChange} />
+      {renaming && onRename && (
+        <ProjectNameDialog
+          title="Rename diagram"
+          initialValue={renaming.name}
+          submitLabel="Rename"
+          onSubmit={(name) => {
+            onRename(renaming.id, name);
+            setRenaming(undefined);
+          }}
+          onClose={() => setRenaming(undefined)}
+        />
+      )}
     </aside>
   );
 }

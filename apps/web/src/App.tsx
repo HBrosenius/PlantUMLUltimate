@@ -40,6 +40,8 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
+import { ProjectNameDialog } from "./projects/ProjectNameDialog";
+import { ProjectUnlockDialog } from "./projects/ProjectUnlockDialog";
 import { useFolderProject } from "./projects/use-folder-project";
 import { useSingleFileProject } from "./projects/use-single-file-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
@@ -962,6 +964,9 @@ export function App() {
     : isLegacyProjectMemberTab;
   const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
   const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
+  const applyActiveProjectRenameMappings = usingSingleFileProject
+    ? singleFileProject.applyRenameMappings
+    : applyRenameMappings;
   const saveActiveProject = useCallback(async () => {
     if (!usingSingleFileProject) return;
     const result = await singleFileProject.saveProject();
@@ -1044,7 +1049,7 @@ export function App() {
           (item) => item.documentId === document.id && item.kind === kind && item.locator.from === from,
         );
       if (!document || !element) return;
-      await applyRenameMappings(
+      await applyActiveProjectRenameMappings(
         document.id,
         [
           {
@@ -1059,7 +1064,7 @@ export function App() {
         source,
       );
     },
-    [applyRenameMappings, project, workspace.fileName],
+    [applyActiveProjectRenameMappings, project, workspace.fileName],
   );
 
   const exportSource = useCallback(() => {
@@ -1810,7 +1815,7 @@ export function App() {
           <FileMenu
             canExport={Boolean(result?.svg)}
             onNew={newDocument}
-            onNewProject={() => void singleFileProject.newProject()}
+            onNewProject={() => openDialog({ kind: "new-project" })}
             onOpen={() => void openDocument()}
             onOpenProject={() => void singleFileProject.openProject()}
             onSaveProject={
@@ -2590,6 +2595,17 @@ export function App() {
       {project && projectNavigatorOpen && (
         <ProjectNavigator
           project={project}
+          {...(usingSingleFileProject
+            ? {
+                dirty: singleFileProject.dirty,
+                indexStatus: singleFileProject.indexStatus,
+                saving: singleFileProject.saving,
+                onCancelSave: singleFileProject.cancelSave,
+                onReviewChanges: singleFileProject.reviewChanges,
+                hasReviewBaseline: singleFileProject.hasReviewBaseline,
+                onExportReview: singleFileProject.exportReviewReport,
+              }
+            : {})}
           onOpen={openMember}
           onAdd={addProjectDiagram}
           {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}
@@ -2600,6 +2616,25 @@ export function App() {
           {...(usingSingleFileProject
             ? { onRename: singleFileProject.renameDiagram, onDelete: singleFileProject.deleteDiagram }
             : {})}
+        />
+      )}
+      {dialog?.kind === "new-project" && (
+        <ProjectNameDialog
+          title="New project"
+          initialValue="PlantUML project"
+          submitLabel="Create project"
+          onSubmit={(name) => {
+            closeDialog("new-project");
+            void singleFileProject.newProject(name);
+          }}
+          onClose={() => closeDialog("new-project")}
+        />
+      )}
+      {singleFileProject.unlockRequest && (
+        <ProjectUnlockDialog
+          fileName={singleFileProject.unlockRequest.fileName}
+          onUnlock={singleFileProject.unlock}
+          onClose={singleFileProject.cancelUnlock}
         />
       )}
       {dateMenuFor && (

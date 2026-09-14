@@ -21,6 +21,7 @@ import { parseProjectManifest, serializeProjectManifest, validateProjectPath } f
 import { indexVirtualProject } from "./project-index";
 import { starterSource } from "../use-workspace-documents";
 import { convertLegacyProject } from "./legacy-project-conversion";
+import type { DiagramKind } from "../model";
 
 type FolderPickerWindow = Window & {
   showDirectoryPicker?: () => Promise<ProjectDirectoryHandle>;
@@ -418,9 +419,10 @@ export function useFolderProject({
   );
 
   const addProjectDiagram = useCallback(
-    async (diagramKind: "gantt" | "class" | "sequence", path: string) => {
+    async (diagramKind: DiagramKind, path: string) => {
       if (!project) return;
-      const normalizedPath = path.trim();
+      const requestedPath = path.trim();
+      const normalizedPath = /\.puml$/i.test(requestedPath) ? requestedPath : `${requestedPath}.puml`;
       if (
         validateProjectPath(normalizedPath) ||
         !/\.puml$/i.test(normalizedPath) ||
