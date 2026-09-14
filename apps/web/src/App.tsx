@@ -2661,8 +2661,9 @@ export function App() {
           versions={documentVersions}
           currentSource={workspace.source}
           onCreate={async (label) => {
-            await recordDocumentVersion("manual", label || "Manual version");
+            const version = await recordDocumentVersion("manual", label || "Manual version");
             setInteractionMessage("Created document version");
+            return version;
           }}
           onRestore={restoreDocumentVersion}
           onUpdate={editDocumentVersion}

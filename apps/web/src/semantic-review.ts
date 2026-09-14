@@ -435,6 +435,7 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   );
   const dependencyGroupIndex = dependencyGroups.findIndex((items) => items.length > 1);
   if (
+    dependencyGroupIndex >= 0 &&
     dependencyGroupIndex === groups.length - 1 &&
     startReplacements.slice(0, dependencyGroupIndex).every(Boolean) &&
     dependencyGroups.slice(0, dependencyGroupIndex).every((items) => items.length === 0)

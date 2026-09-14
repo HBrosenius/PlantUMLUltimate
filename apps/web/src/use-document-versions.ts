@@ -24,7 +24,7 @@ export type RecordDocumentVersion = (
   reason: DocumentVersionReason,
   label?: string,
   override?: DocumentVersionOverride,
-) => Promise<unknown>;
+) => Promise<DocumentVersion>;
 
 type UseDocumentVersionsOptions = {
   activeDocument: DocumentSnapshot;
@@ -121,6 +121,8 @@ export function useDocumentVersions({
   const recordDocumentVersion = useCallback(
     async (reason: DocumentVersionReason, label?: string, override?: DocumentVersionOverride) => {
       const historyId = override?.historyId ?? activeDocument.historyId;
+      const initial = initialDocuments.current.get(historyId);
+      if (initial) await ensureInitialDocumentVersion(initial);
       const existing = await loadDocumentVersions(historyId);
       const version = await createDocumentVersion({
         historyId,
