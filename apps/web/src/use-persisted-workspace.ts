@@ -5,6 +5,7 @@ import {
   loadWorkspace,
   normalizeSession,
   saveWorkspace,
+  saveWorkspaceRecovery,
   type DocumentSnapshot,
   type WorkspaceSession,
   type WorkspaceSnapshot,
@@ -31,6 +32,7 @@ export function usePersistedWorkspace() {
 
   useEffect(() => {
     if (!hydrated) return;
+    saveWorkspaceRecovery(session);
     const timer = window.setTimeout(() => void saveWorkspace(session), 350);
     return () => window.clearTimeout(timer);
   }, [hydrated, session]);

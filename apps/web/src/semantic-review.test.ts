@@ -165,6 +165,65 @@ describe("semantic review", () => {
     ]);
   });
 
+  it.each([
+    {
+      name: "an added task",
+      before: "@startgantt\n[A] lasts 2 days\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\n@endgantt",
+      title: "Add task B",
+      confidence: "confirmed",
+    },
+    {
+      name: "a removed task",
+      before: "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n@endgantt",
+      title: "Remove task B",
+      confidence: "confirmed",
+    },
+    {
+      name: "a task end-date change",
+      before: "@startgantt\n[A] starts 2026-09-01\n[A] ends 2026-09-03\n@endgantt",
+      after: "@startgantt\n[A] starts 2026-09-01\n[A] ends 2026-09-05\n@endgantt",
+      title: "Change A end from 2026-09-03 to 2026-09-05",
+      confidence: "confirmed",
+    },
+    {
+      name: "a task rename without an alias",
+      before: "@startgantt\n[Old] lasts 2 days\n@endgantt",
+      after: "@startgantt\n[New] lasts 2 days\n@endgantt",
+      title: "Possible task rename: Old → New",
+      confidence: "probable",
+    },
+    {
+      name: "a reconnected dependency",
+      before: "@startgantt\n[A] lasts 2 days\n[B] starts at [A]'s end\n[C] lasts 2 days\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n[B] starts at [C]'s end\n[C] lasts 2 days\n@endgantt",
+      title: "Reconnect dependency A → B as C → B",
+      confidence: "confirmed",
+    },
+  ])("classifies $name", ({ before, after, title, confidence }) => {
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([{ title, confidence }]);
+  });
+
+  it("classifies multiple added and removed tasks without falling back to raw source", () => {
+    const empty = "@startgantt\n@endgantt";
+    const tasks = "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\n@endgantt";
+    expect(buildReviewGroups(empty, tasks, "gantt")).toMatchObject([
+      { title: "Add tasks (2)", confidence: "confirmed" },
+    ]);
+    expect(buildReviewGroups(tasks, empty, "gantt")).toMatchObject([
+      { title: "Remove tasks (2)", confidence: "confirmed" },
+    ]);
+  });
+
+  it("classifies a removed dependency", () => {
+    const before = "@startgantt\n[A] lasts 2 days\n[B] starts at [A]'s end\n@endgantt";
+    const after = "@startgantt\n[A] lasts 2 days\n[B] lasts 2 days\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      { title: "Remove dependency A → B", confidence: "confirmed" },
+    ]);
+  });
+
   it("groups multiple dependencies that replace separate explicit starts", () => {
     const before =
       "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";
