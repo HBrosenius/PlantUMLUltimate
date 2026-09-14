@@ -233,10 +233,16 @@ export function ProjectNavigator({
                     </div>
                   )}
                   {change.linkedDocumentIds.length > 0 && (
-                    <small>
-                      {change.linkedDocumentIds.length} linked diagram{change.linkedDocumentIds.length === 1 ? "" : "s"}{" "}
-                      may need review
-                    </small>
+                    <div className="project-review-impact">
+                      <small>Linked diagrams that may need review</small>
+                      <div>
+                        {change.linkedDocumentIds.map((documentId) => (
+                          <button key={documentId} type="button" onClick={() => onOpen(documentId)}>
+                            {project.members.find((member) => member.documentId === documentId)?.path ?? documentId}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </article>
               ))}

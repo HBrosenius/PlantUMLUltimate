@@ -3679,6 +3679,24 @@ textarea:focus-visible,
   font-size: 11px;
   line-height: 1.35;
 }
+.project-review-impact {
+  display: grid;
+  gap: 4px;
+  margin-top: 3px;
+}
+.project-review-impact > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.project-review-impact button {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+}
 .project-add-diagram,
 .project-create-link {
   padding: 6px 8px;

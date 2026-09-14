@@ -158,7 +158,9 @@ describe("ProjectNavigator", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(await screen.findByText("renamed · source")).toBeTruthy();
     expect(screen.getByText("Previously Delivery")).toBeTruthy();
-    expect(screen.getByText("1 linked diagram may need review")).toBeTruthy();
+    expect(screen.getByText("Linked diagrams that may need review")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "document-2" }));
+    expect(onOpen).toHaveBeenCalledWith("document-2");
     expect(screen.getByText("added relationship")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Delivery plan" }));
     expect(onOpen).toHaveBeenCalledWith("document-1");
