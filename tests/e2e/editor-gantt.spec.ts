@@ -32,6 +32,9 @@ test("selects a native PlantUML theme from document settings", async ({ page }) 
   await expect(page.locator(".cm-content")).toContainText("!theme blueprint");
   await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).not.toBe(defaultSvg);
   await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).toContain("#003153");
+  await page.locator('[data-task-id="architecture"] .bar').click();
+  await expect(page.locator('[data-task-id="architecture"]')).toHaveAttribute("data-selected", "true");
+  await expect(page.locator('[data-task-id="architecture"] [data-dependency-handle]')).toHaveCount(2);
 
   await page.waitForTimeout(450);
   await page.reload();
@@ -53,6 +56,23 @@ test("selects a native PlantUML theme from document settings", async ({ page }) 
   await settings.getByRole("button", { name: "Apply" }).click();
   await expect(settings).toBeHidden();
   await expect(page.locator(".cm-content")).not.toContainText("!theme");
+});
+
+test("creates diagram dependencies with a hand-drawn PlantUML theme", async ({ page }) => {
+  await setSource(
+    page,
+    source("!theme sketchy\n[A] starts 2026-09-01 and lasts 2 days\n[B] starts 2026-09-01 and lasts 2 days"),
+  );
+  await page.locator('[data-task-id="a"] .bar').click();
+  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
+  const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
+  expect(handle).not.toBeNull();
+  expect(target).not.toBeNull();
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[B] starts at [A]'s end");
 });
 
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
