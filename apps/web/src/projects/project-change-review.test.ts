@@ -72,6 +72,12 @@ describe("project change review", () => {
         name: "Delivery plan",
         kinds: ["renamed", "source", "history", "settings"],
         linkedDocumentIds: [before.diagrams[1]!.id],
+        sourceComparison: expect.objectContaining({
+          mode: "semantic",
+          addedLines: 1,
+          removedLines: 0,
+          summaries: expect.any(Array),
+        }),
       }),
     ]);
   });

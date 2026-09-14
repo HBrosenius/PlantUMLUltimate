@@ -1,5 +1,7 @@
 import type { PortableProject, PortableProjectDiagram, PortableProjectLink } from "@plantuml-studio/document-format";
 import { reverseImpact } from "@plantuml-studio/project-model";
+import { buildReviewGroups } from "../semantic-review";
+import { diffVersionSources } from "../version-diff";
 
 export type DiagramChangeKind = "added" | "deleted" | "renamed" | "source" | "history" | "settings";
 
@@ -9,6 +11,12 @@ export interface ProjectDiagramChange {
   previousName?: string;
   kinds: readonly DiagramChangeKind[];
   linkedDocumentIds: readonly string[];
+  sourceComparison?: {
+    mode: "semantic" | "source";
+    addedLines: number;
+    removedLines: number;
+    summaries: readonly { title: string; detail: string; confidence: "confirmed" | "probable" | "unclassified" }[];
+  };
 }
 
 export interface ProjectLinkChange {
@@ -74,12 +82,32 @@ function changedDiagram(
   )
     kinds.push("settings");
   if (!kinds.length) return undefined;
+  const sourceComparison = kinds.includes("source")
+    ? (() => {
+        const diff = diffVersionSources(before.document.current.source, after.document.current.source);
+        const semantic =
+          after.document.current.diagramKind === "gantt" || after.document.current.diagramKind === "sequence";
+        return {
+          mode: semantic ? ("semantic" as const) : ("source" as const),
+          addedLines: diff.filter((line) => line.kind === "added").length,
+          removedLines: diff.filter((line) => line.kind === "removed").length,
+          summaries: semantic
+            ? buildReviewGroups(
+                before.document.current.source,
+                after.document.current.source,
+                after.document.current.diagramKind,
+              ).map(({ title, detail, confidence }) => ({ title, detail, confidence }))
+            : [],
+        };
+      })()
+    : undefined;
   return {
     documentId: after.id,
     name: after.name,
     ...(before.name !== after.name ? { previousName: before.name } : {}),
     kinds,
     linkedDocumentIds: linkedDocuments(current, after.id),
+    ...(sourceComparison ? { sourceComparison } : {}),
   };
 }
 

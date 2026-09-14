@@ -218,6 +218,20 @@ export function ProjectNavigator({
                   </button>
                   <span>{change.kinds.join(" · ")}</span>
                   {change.previousName && <small>Previously {change.previousName}</small>}
+                  {change.sourceComparison && (
+                    <div className="project-review-comparison">
+                      <small>
+                        {change.sourceComparison.mode === "semantic" ? "Semantic review" : "Source review"} · +
+                        {change.sourceComparison.addedLines} −{change.sourceComparison.removedLines} lines
+                      </small>
+                      {change.sourceComparison.summaries.map((summary, index) => (
+                        <div key={`${summary.title}-${index}`}>
+                          <strong>{summary.title}</strong>
+                          <small>{summary.detail}</small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {change.linkedDocumentIds.length > 0 && (
                     <small>
                       {change.linkedDocumentIds.length} linked diagram{change.linkedDocumentIds.length === 1 ? "" : "s"}{" "}
