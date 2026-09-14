@@ -98,6 +98,30 @@ describe("semantic review", () => {
     expect(buildReviewGroups(source, source, "gantt")).toEqual([]);
   });
 
+  it("classifies a vertically reordered Gantt task as one move", () => {
+    const before =
+      "@startgantt\n[A] starts 2026-09-01\n[A] lasts 2 days\n\n[B] starts 2026-09-04\n[B] lasts 3 days\n@endgantt";
+    const after =
+      "@startgantt\n[B] starts 2026-09-04\n[B] lasts 3 days\n\n[A] starts 2026-09-01\n[A] lasts 2 days\n@endgantt";
+    const groups = buildReviewGroups(before, after, "gantt");
+    expect(groups).toMatchObject([
+      {
+        title: "Move task B",
+        detail: "The task declarations are unchanged and moved together to a new position.",
+        confidence: "confirmed",
+        leftTargets: [{ kind: "gantt-task", id: "b", label: "B" }],
+        rightTargets: [{ kind: "gantt-task", id: "b", label: "B" }],
+      },
+    ]);
+    expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(after);
+  });
+
+  it("does not call a reordered and edited Gantt task an unchanged move", () => {
+    const before = "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days\n@endgantt";
+    const after = "@startgantt\n[B] lasts 4 days\n[A] lasts 2 days\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt").map((group) => group.title)).not.toContain("Move task B");
+  });
+
   it("groups a replaced explicit start and inserted dependency from the default Gantt chart", () => {
     const before =
       "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n@endgantt";

@@ -417,6 +417,54 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   }
   if (kind !== "gantt") return groups;
   const rightLines = rightSource.split("\n");
+  if (groups.length === 2) {
+    const removalIndex = groups.findIndex(
+      (group) => group.deleteCount > 0 && group.replacement.every((line) => !line.trim()),
+    );
+    const additionIndex = groups.findIndex(
+      (group) => group.deleteCount === 0 && group.replacement.some((line) => line.trim()),
+    );
+    const removal = groups[removalIndex];
+    const addition = groups[additionIndex];
+    const removedTasks = removal?.leftTargets.filter((target) => target.kind === "gantt-task") ?? [];
+    const addedTasks = addition?.rightTargets.filter((target) => target.kind === "gantt-task") ?? [];
+    const movedTaskId = removedTasks[0]?.id;
+    const leftTask = leftGanttItems.find((item) => item.value.id === movedTaskId)?.value;
+    const rightTask = rightGanttItems.find((item) => item.value.id === movedTaskId)?.value;
+    const declarations = (source: string, task: GanttTask | undefined) =>
+      task?.declarations.map((declaration) => source.slice(declaration.range.from, declaration.range.to)).join("\n");
+    if (
+      removal &&
+      addition &&
+      removedTasks.length === 1 &&
+      addedTasks.length === 1 &&
+      removedTasks[0]!.id === addedTasks[0]!.id &&
+      declarations(leftSource, leftTask) === declarations(rightSource, rightTask)
+    ) {
+      const startLeft = Math.min(removal.startLeft, addition.startLeft);
+      const endLeft = Math.max(removal.startLeft + removal.deleteCount, addition.startLeft + addition.deleteCount);
+      const startRight = Math.min(removal.startRight, addition.startRight);
+      const endRight = Math.max(
+        removal.startRight + removal.replacement.length,
+        addition.startRight + addition.replacement.length,
+      );
+      return [
+        {
+          id: groups[0]!.id,
+          title: `Move task ${addedTasks[0]!.label}`,
+          detail: "The task declarations are unchanged and moved together to a new position.",
+          changeKind: "modified",
+          confidence: "confirmed",
+          startLeft,
+          startRight,
+          deleteCount: endLeft - startLeft,
+          replacement: rightLines.slice(startRight, endRight),
+          leftTargets: removedTasks,
+          rightTargets: addedTasks,
+        },
+      ];
+    }
+  }
   const startReplacements = groups.map((group) => {
     const starts = leftGanttItems.filter(
       (item) =>
