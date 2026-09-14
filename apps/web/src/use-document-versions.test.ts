@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { documentVersionDisplayName, ensureInitialDocumentVersion } from "./use-document-versions";
+import {
+  documentVersionDisplayName,
+  ensureInitialDocumentVersion,
+  recordVersionHistoryReview,
+} from "./use-document-versions";
 
 describe("document version display names", () => {
   it("prefers a user-provided label", () => {
@@ -50,6 +54,49 @@ describe("initial document version", () => {
       },
     );
     expect(version).toBe(existing);
+    expect(created).toBe(false);
+  });
+});
+
+describe("version history review checkpoints", () => {
+  it("records the source reviewed by the user for the next comparison", async () => {
+    let captured: Parameters<typeof import("./workspace-storage").createDocumentVersion>[0] | undefined;
+    const document = {
+      historyId: "history",
+      source: "after",
+      fileName: "diagram.puml",
+      diagramKind: "gantt" as const,
+    };
+    await recordVersionHistoryReview(document, [{ id: "before", source: "before" } as never], async (input) => {
+      captured = input;
+      return {
+        ...input,
+        pinned: input.pinned ?? false,
+        id: "reviewed",
+        sourceHash: "hash",
+        createdAt: "2026-09-14T09:00:00.000Z",
+      };
+    });
+    expect(captured).toMatchObject({
+      historyId: "history",
+      parentVersionId: "before",
+      source: "after",
+      label: "Last reviewed",
+      reason: "opened",
+    });
+  });
+
+  it("does not duplicate an unchanged reviewed source", async () => {
+    let created = false;
+    const result = await recordVersionHistoryReview(
+      { historyId: "history", source: "same", fileName: "diagram.puml", diagramKind: "gantt" },
+      [{ source: "same" } as never],
+      async () => {
+        created = true;
+        return {} as never;
+      },
+    );
+    expect(result).toBeUndefined();
     expect(created).toBe(false);
   });
 });

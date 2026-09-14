@@ -153,6 +153,18 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("classifies a changed dependency offset as moving its task", () => {
+    const before = "@startgantt\n[Backend] lasts 2 days\n[Frontend] starts at [Backend]'s end\n@endgantt";
+    const after = "@startgantt\n[Backend] lasts 2 days\n[Frontend] starts 2 days after [Backend]'s end\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Move task Frontend relative to Backend",
+        detail: "The dependency offset changes from 0 to 2 days.",
+        confidence: "confirmed",
+      },
+    ]);
+  });
+
   it("groups multiple dependencies that replace separate explicit starts", () => {
     const before =
       "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";

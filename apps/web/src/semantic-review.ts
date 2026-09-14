@@ -247,12 +247,23 @@ function describeGanttChange(
   if (removedDependencies.length === 1 && addedDependencies.length === 1) {
     const before = removedDependencies[0]!.value;
     const after = addedDependencies[0]!.value;
-    if (before.predecessorTaskId === after.predecessorTaskId && before.successorTaskId === after.successorTaskId)
+    if (before.predecessorTaskId === after.predecessorTaskId && before.successorTaskId === after.successorTaskId) {
+      const signedOffset = (dependency: GanttDependency) =>
+        (dependency.direction === "before" ? -1 : 1) * (dependency.offset?.value ?? 0);
+      const beforeOffset = signedOffset(before);
+      const afterOffset = signedOffset(after);
+      if (before.relation === after.relation && beforeOffset !== afterOffset)
+        return {
+          title: `Move task ${after.successor.value} relative to ${after.predecessor.value}`,
+          detail: `The dependency offset changes from ${beforeOffset} to ${afterOffset} days.`,
+          confidence: "confirmed",
+        };
       return {
         title: `Change dependency ${after.predecessor.value} → ${after.successor.value}`,
         detail: "Both dependency endpoints retain their parsed task identities.",
         confidence: "confirmed",
       };
+    }
   }
   if (
     removed.length > 1 &&
