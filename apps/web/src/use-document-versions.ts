@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { DiagramKind } from "./model";
 import {
   createDocumentVersion,
@@ -24,7 +24,7 @@ export type RecordDocumentVersion = (
   reason: DocumentVersionReason,
   label?: string,
   override?: DocumentVersionOverride,
-) => Promise<unknown>;
+) => Promise<DocumentVersion>;
 
 type UseDocumentVersionsOptions = {
   activeDocument: DocumentSnapshot;
@@ -34,6 +34,34 @@ type UseDocumentVersionsOptions = {
   reportError: (error: unknown) => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
 };
+
+const initialVersionRequests = new Map<string, Promise<DocumentVersion>>();
+
+export function ensureInitialDocumentVersion(
+  document: Pick<DocumentSnapshot, "historyId" | "source" | "fileName" | "diagramKind">,
+  load = loadDocumentVersions,
+  create = createDocumentVersion,
+): Promise<DocumentVersion> {
+  const pending = initialVersionRequests.get(document.historyId);
+  if (pending) return pending;
+  const request = load(document.historyId)
+    .then((versions) =>
+      versions[0]
+        ? versions[0]
+        : create({
+            historyId: document.historyId,
+            source: document.source,
+            fileName: document.fileName,
+            diagramKind: document.diagramKind,
+            reason: "opened",
+            label: "Initial version",
+            pinned: false,
+          }),
+    )
+    .finally(() => initialVersionRequests.delete(document.historyId));
+  initialVersionRequests.set(document.historyId, request);
+  return request;
+}
 
 export function documentVersionDisplayName(version: Pick<DocumentVersion, "label" | "createdAt">) {
   return version.label || new Date(version.createdAt).toLocaleString();
@@ -50,6 +78,23 @@ export function useDocumentVersions({
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
   const [baselineVersion, setBaselineVersion] = useState<DocumentVersion>();
+  const initialDocuments = useRef(
+    new Map<string, Pick<DocumentSnapshot, "historyId" | "source" | "fileName" | "diagramKind">>(),
+  );
+  let initialDocument = initialDocuments.current.get(activeDocument.historyId);
+  if (!initialDocument) {
+    initialDocument = {
+      historyId: activeDocument.historyId,
+      source: activeDocument.source,
+      fileName: activeDocument.fileName,
+      diagramKind: activeDocument.diagramKind,
+    };
+    initialDocuments.current.set(activeDocument.historyId, initialDocument);
+  }
+
+  useEffect(() => {
+    void ensureInitialDocumentVersion(initialDocument).catch(reportError);
+  }, [initialDocument, reportError]);
 
   const refreshVersions = useCallback(async () => {
     const versions = await loadDocumentVersions(activeDocument.historyId);
@@ -76,6 +121,8 @@ export function useDocumentVersions({
   const recordDocumentVersion = useCallback(
     async (reason: DocumentVersionReason, label?: string, override?: DocumentVersionOverride) => {
       const historyId = override?.historyId ?? activeDocument.historyId;
+      const initial = initialDocuments.current.get(historyId);
+      if (initial) await ensureInitialDocumentVersion(initial);
       const existing = await loadDocumentVersions(historyId);
       const version = await createDocumentVersion({
         historyId,
@@ -96,17 +143,14 @@ export function useDocumentVersions({
 
   const openVersionHistory = useCallback(async () => {
     try {
-      let versions = await refreshVersions();
-      if (!versions.length) {
-        await recordDocumentVersion("opened", "Initial version");
-        versions = await refreshVersions();
-      }
+      await ensureInitialDocumentVersion(activeDocument);
+      const versions = await refreshVersions();
       setDocumentVersions(versions);
       setVersionHistoryOpen(true);
     } catch (error) {
       reportError(error);
     }
-  }, [recordDocumentVersion, refreshVersions, reportError]);
+  }, [activeDocument, refreshVersions, reportError]);
 
   const editDocumentVersion = useCallback(
     async (version: DocumentVersion, patch: { label?: string; pinned?: boolean }) => {

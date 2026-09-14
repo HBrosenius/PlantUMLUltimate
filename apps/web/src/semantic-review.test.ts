@@ -93,6 +93,11 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("returns no Gantt review groups when the sources are identical", () => {
+    const source = "@startgantt\n[A] lasts 2 days\n@endgantt";
+    expect(buildReviewGroups(source, source, "gantt")).toEqual([]);
+  });
+
   it("groups a replaced explicit start and inserted dependency from the default Gantt chart", () => {
     const before =
       "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n@endgantt";
@@ -120,6 +125,25 @@ describe("semantic review", () => {
         confidence: "confirmed",
         leftTargets: [],
         rightTargets: [{ kind: "gantt-dependency", predecessorId: "backend", successorId: "frontend" }],
+      },
+    ]);
+  });
+
+  it("groups multiple dependencies that replace separate explicit starts", () => {
+    const before =
+      "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";
+    const after =
+      "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Backend] starts at [Architecture]'s end\n[Frontend] starts at [Backend]'s end\n@endgantt";
+
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Add dependencies (2)",
+        detail: "2 explicit task starts are replaced by recognized dependencies. The source regions apply together.",
+        confidence: "confirmed",
+        rightTargets: [
+          { kind: "gantt-dependency", predecessorId: "architecture", successorId: "backend" },
+          { kind: "gantt-dependency", predecessorId: "backend", successorId: "frontend" },
+        ],
       },
     ]);
   });

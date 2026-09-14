@@ -59,7 +59,7 @@ export function VersionHistoryDialog({
 }: {
   versions: readonly DocumentVersion[];
   currentSource: string;
-  onCreate(label: string): Promise<void>;
+  onCreate(label: string): Promise<DocumentVersion>;
   onRestore(version: DocumentVersion): Promise<void>;
   onUpdate(version: DocumentVersion, patch: { label?: string; pinned?: boolean }): Promise<void>;
   onDelete(version: DocumentVersion): Promise<void>;
@@ -97,7 +97,8 @@ export function VersionHistoryDialog({
   const compare = versions.find((version) => version.id === compareId);
   const rightSource =
     compareId === "imported" ? (importedComparison?.source ?? currentSource) : (compare?.source ?? currentSource);
-  const leftSource = importedBase?.source ?? selected?.source ?? currentSource;
+  const leftSource =
+    importedBase?.source ?? (compareId === "imported" ? currentSource : (selected?.source ?? currentSource));
   const canApplyReview = !importedBase || importedBase.source === currentSource;
   const layoutEngine =
     /^\s*@startgantt\b/im.test(leftSource) && /^\s*@startgantt\b/im.test(rightSource) ? "native" : "graphviz";
@@ -280,7 +281,10 @@ export function VersionHistoryDialog({
                 onClick={() => {
                   setCreating(true);
                   void onCreate(label)
-                    .then(() => setLabel(""))
+                    .then((version) => {
+                      setSelectedId(version.id);
+                      setLabel("");
+                    })
                     .finally(() => setCreating(false));
                 }}
               >
