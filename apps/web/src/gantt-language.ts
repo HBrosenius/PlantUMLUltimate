@@ -9,6 +9,68 @@ export interface GanttQuickFix {
   message: string;
 }
 
+function wholeLineRange(source: string, range: { from: number; to: number }) {
+  const from = source.lastIndexOf("\n", Math.max(0, range.from - 1)) + 1;
+  const lineBreak = source.indexOf("\n", range.to);
+  return { from, to: lineBreak < 0 ? source.length : lineBreak + 1 };
+}
+
+function dependencyOrderRepair(
+  source: string,
+): { replacement: string; affected: { from: number; to: number }[] } | undefined {
+  const parsed = parseGantt(source).document;
+  const seenLines = new Set<string>();
+  const standalone = parsed.dependencies
+    .map((dependency, index) => ({ dependency, index, range: wholeLineRange(source, dependency.sourceRange) }))
+    .filter(({ range }) => {
+      const line = source.slice(range.from, range.to).trim();
+      const key = `${range.from}:${range.to}`;
+      if (!/^\s*(?:then\s+)?\[[^\]]+]/i.test(line) || seenLines.has(key)) return false;
+      seenLines.add(key);
+      return true;
+    });
+  if (!standalone.length) return undefined;
+
+  const schedulingKinds = new Set(["start", "end", "duration", "milestone", "pause"]);
+  const affected = standalone.filter(({ dependency }) => {
+    const predecessor = parsed.symbols.tasks.get(dependency.predecessorTaskId);
+    return predecessor?.declarations.some(
+      (declaration) => schedulingKinds.has(declaration.kind) && declaration.range.from > dependency.sourceRange.from,
+    );
+  });
+  if (!affected.length) return undefined;
+
+  // PlantUML evaluates these statements in source order. Put relationship statements after
+  // ordinary task scheduling, and order relationship chains from predecessor to successor.
+  const remaining = [...standalone];
+  const ordered: typeof standalone = [];
+  const pendingSuccessors = new Set(remaining.map(({ dependency }) => dependency.successorTaskId));
+  while (remaining.length) {
+    const nextIndex = remaining.findIndex(({ dependency }) => !pendingSuccessors.has(dependency.predecessorTaskId));
+    const [next] = remaining.splice(nextIndex < 0 ? 0 : nextIndex, 1);
+    if (!next) break;
+    ordered.push(next);
+    if (!remaining.some(({ dependency }) => dependency.successorTaskId === next.dependency.successorTaskId))
+      pendingSuccessors.delete(next.dependency.successorTaskId);
+  }
+
+  const ranges = standalone.map(({ range }) => range).sort((a, b) => b.from - a.from);
+  let withoutDependencies = source;
+  for (const range of ranges)
+    withoutDependencies = withoutDependencies.slice(0, range.from) + withoutDependencies.slice(range.to);
+  const end = /(^|\r?\n)([ \t]*)@endgantt\b/i.exec(withoutDependencies);
+  if (!end) return undefined;
+  const at = end.index + end[1]!.length;
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const relationshipBlock = ordered
+    .map(({ range }) => source.slice(range.from, range.to).replace(/\r?\n$/, ""))
+    .join(newline);
+  return {
+    replacement: `${withoutDependencies.slice(0, at)}${relationshipBlock}${newline}${withoutDependencies.slice(at)}`,
+    affected: affected.map(({ dependency }) => dependency.sourceRange),
+  };
+}
+
 export const PLANTUML_COLOR_NAMES = [
   "AliceBlue",
   "AntiqueWhite",
@@ -272,7 +334,7 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
 export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
   const diagnostics = parseGantt(source).diagnostics;
   const fixes = quickFixesForDiagnostics(source, diagnostics);
-  return diagnostics.map((diagnostic) => {
+  const result = diagnostics.map((diagnostic) => {
     const fix = fixes.find((item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to);
     return {
       from: diagnostic.range.from,
@@ -294,10 +356,42 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
         : {}),
     };
   });
+  const repair = dependencyOrderRepair(source);
+  if (repair) {
+    const first = repair.affected[0]!;
+    result.push({
+      from: first.from,
+      to: first.to,
+      severity: "warning",
+      message: `${repair.affected.length} relationship statement${repair.affected.length === 1 ? " is" : "s are"} evaluated before later predecessor scheduling. Repair their order.`,
+      source: "PlantUML Gantt",
+      actions: [
+        {
+          name: "Repair relationship order",
+          apply(view: import("@codemirror/view").EditorView) {
+            view.dispatch({ changes: { from: 0, to: source.length, insert: repair.replacement } });
+          },
+        },
+      ],
+    });
+  }
+  return result;
 }
 
 export function ganttQuickFixes(source: string): GanttQuickFix[] {
-  return quickFixesForDiagnostics(source, parseGantt(source).diagnostics);
+  const fixes = quickFixesForDiagnostics(source, parseGantt(source).diagnostics);
+  const repair = dependencyOrderRepair(source);
+  return repair
+    ? [
+        ...fixes,
+        {
+          from: 0,
+          to: source.length,
+          replacement: repair.replacement,
+          message: `Repair ${repair.affected.length} order-sensitive relationship statement${repair.affected.length === 1 ? "" : "s"}`,
+        },
+      ]
+    : fixes;
 }
 
 const GANTT_STATEMENT_KEYWORDS = ["starts", "ends", "lasts", "requires", "happens", "pauses", "links", "displays"];

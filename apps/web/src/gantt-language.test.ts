@@ -87,6 +87,41 @@ describe("Gantt CodeMirror language service", () => {
     ]);
   });
 
+  it("repairs relationship statements evaluated before later predecessor scheduling", () => {
+    const source = `@startgantt
+[Prototype delivered] happens 2026-09-25
+[Front End] lasts 20 days
+[Front End Testing] starts at [Front End]'s end
+[Front End Testing] lasts 20 days
+[Back End] lasts 14 days
+[Back End Testing] starts at [Back End]'s end and lasts 14 days
+[Front End] starts at [Prototype delivered]'s end
+[Back End] starts at [Prototype delivered]'s end
+@endgantt`;
+    const fixes = ganttQuickFixes(source);
+    expect(fixes).toHaveLength(1);
+    expect(fixes[0]?.message).toContain("Repair 2 order-sensitive relationship statements");
+    const repaired = fixes[0]!.replacement;
+    expect(repaired.indexOf("[Front End] starts at [Prototype delivered]'s end")).toBeLessThan(
+      repaired.indexOf("[Front End Testing] starts at [Front End]'s end"),
+    );
+    expect(repaired.indexOf("[Back End] starts at [Prototype delivered]'s end")).toBeLessThan(
+      repaired.indexOf("[Back End Testing] starts at [Back End]'s end"),
+    );
+    expect(ganttQuickFixes(repaired)).toEqual([]);
+    expect(ganttDiagnostics(source)).toEqual([
+      expect.objectContaining({
+        severity: "warning",
+        message: expect.stringContaining("2 relationship statements"),
+      }),
+    ]);
+  });
+
+  it("does not offer relationship repair when predecessor scheduling is already ordered", () => {
+    const source = "@startgantt\n[A] starts 2026-09-01 and lasts 2 days\n[B] starts at [A]'s end\n@endgantt";
+    expect(ganttQuickFixes(source)).toEqual([]);
+  });
+
   it("shows a task name but inserts its alias for further declarations", () => {
     const source = "@startgantt\n[Long task name] as [T1] lasts 2 days\n[Lo\n@endgantt";
     const state = EditorState.create({ doc: source });

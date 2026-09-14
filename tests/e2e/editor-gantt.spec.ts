@@ -749,6 +749,30 @@ test("keeps source fixes available outside the lint tooltip", async ({ page }) =
   await expect(fix).toBeHidden();
 });
 
+test("repairs order-sensitive relationship statements from the editor", async ({ page }) => {
+  await setSource(
+    page,
+    source(
+      "[Prototype delivered] happens 2026-09-25\n[Front End] lasts 20 days\n[Front End Testing] starts at [Front End]'s end\n[Front End Testing] lasts 20 days\n[Front End] starts at [Prototype delivered]'s end",
+    ),
+  );
+  const repair = page.getByRole("button", { name: "Fix nearest source issue" });
+  await expect(repair).toBeVisible();
+  await expect(repair).toHaveAttribute("title", /Repair 1 order-sensitive relationship statement/);
+  await repair.click();
+  await expect
+    .poll(async () => {
+      const text = await page.locator(".cm-content").innerText();
+      return (
+        text.indexOf("[Front End Testing] starts at [Front End]'s end") >
+        text.indexOf("[Front End] starts at [Prototype delivered]'s end")
+      );
+    })
+    .toBe(true);
+  await expect(repair).toBeHidden();
+  await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
+});
+
 test("renders a pasted document containing block and shorthand task notes", async ({ page }) => {
   const value = `@startgantt
 title Project Gantt Chart — Weekend-Aware (Business Day) Logic
