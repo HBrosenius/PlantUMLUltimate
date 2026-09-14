@@ -417,6 +417,53 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   }
   if (kind !== "gantt") return groups;
   const rightLines = rightSource.split("\n");
+  const startReplacements = groups.map((group) => {
+    const starts = leftGanttItems.filter(
+      (item) =>
+        item.declarationKind === "start" &&
+        item.line >= group.startLeft &&
+        item.line < group.startLeft + group.deleteCount,
+    );
+    return group.deleteCount === 1 && group.replacement.every((line) => !line.trim()) && starts.length === 1
+      ? starts[0]
+      : undefined;
+  });
+  const dependencyGroups = groups.map((group) =>
+    rightGanttDependencies.filter(
+      (item) => item.line >= group.startRight && item.line < group.startRight + group.replacement.length,
+    ),
+  );
+  const dependencyGroupIndex = dependencyGroups.findIndex((items) => items.length > 1);
+  if (
+    dependencyGroupIndex === groups.length - 1 &&
+    startReplacements.slice(0, dependencyGroupIndex).every(Boolean) &&
+    dependencyGroups.slice(0, dependencyGroupIndex).every((items) => items.length === 0)
+  ) {
+    const starts = startReplacements.slice(0, dependencyGroupIndex).filter(Boolean) as GanttItem[];
+    const dependencies = dependencyGroups[dependencyGroupIndex]!;
+    if (
+      starts.length === dependencies.length &&
+      dependencies.every((dependency) => starts.some((start) => start.value.id === dependency.value.successorTaskId))
+    ) {
+      const first = groups[0]!;
+      const last = groups[dependencyGroupIndex]!;
+      return [
+        {
+          id: first.id,
+          title: `Add dependencies (${dependencies.length})`,
+          detail: `${dependencies.length} explicit task starts are replaced by recognized dependencies. The source regions apply together.`,
+          changeKind: "modified",
+          confidence: "confirmed",
+          startLeft: first.startLeft,
+          startRight: first.startRight,
+          deleteCount: last.startLeft + last.deleteCount - first.startLeft,
+          replacement: rightLines.slice(first.startRight, last.startRight + last.replacement.length),
+          leftTargets: groups.slice(0, dependencyGroupIndex).flatMap((group) => group.leftTargets),
+          rightTargets: last.rightTargets,
+        },
+      ];
+    }
+  }
   const merged: ReviewGroup[] = [];
   for (let index = 0; index < groups.length; index += 1) {
     const removal = groups[index]!;

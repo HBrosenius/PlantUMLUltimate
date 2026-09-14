@@ -124,6 +124,25 @@ describe("semantic review", () => {
     ]);
   });
 
+  it("groups multiple dependencies that replace separate explicit starts", () => {
+    const before =
+      "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";
+    const after =
+      "@startgantt\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Backend] starts at [Architecture]'s end\n[Frontend] starts at [Backend]'s end\n@endgantt";
+
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Add dependencies (2)",
+        detail: "2 explicit task starts are replaced by recognized dependencies. The source regions apply together.",
+        confidence: "confirmed",
+        rightTargets: [
+          { kind: "gantt-dependency", predecessorId: "architecture", successorId: "backend" },
+          { kind: "gantt-dependency", predecessorId: "backend", successorId: "frontend" },
+        ],
+      },
+    ]);
+  });
+
   it("recognizes adjacent Gantt milestones as created milestones", () => {
     const before = "@startgantt\n-- Rating Data --\n@endgantt";
     const after =
