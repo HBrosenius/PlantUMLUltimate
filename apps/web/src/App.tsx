@@ -2601,6 +2601,8 @@ export function App() {
                 indexStatus: singleFileProject.indexStatus,
                 saving: singleFileProject.saving,
                 onCancelSave: singleFileProject.cancelSave,
+                onReviewChanges: singleFileProject.reviewChanges,
+                hasReviewBaseline: singleFileProject.hasReviewBaseline,
               }
             : {})}
           onOpen={openMember}

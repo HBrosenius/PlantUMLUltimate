@@ -3622,6 +3622,45 @@ textarea:focus-visible,
   font-size: 12px;
   line-height: 1.35;
 }
+.project-change-review > .project-section-heading > button {
+  flex: 0 0 auto;
+}
+.project-review-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.project-review-results {
+  display: grid;
+  gap: 8px;
+}
+.project-review-results article {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--accent) 12%);
+}
+.project-review-results article > button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+}
+.project-review-results article > strong {
+  font-size: 13px;
+  text-transform: capitalize;
+}
+.project-review-results article > span,
+.project-review-results article > small {
+  color: var(--muted);
+  font-size: 11px;
+}
 .project-add-diagram,
 .project-create-link {
   padding: 6px 8px;

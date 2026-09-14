@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProjectNavigator } from "./ProjectNavigator";
 import type { VirtualProject } from "./project-index";
 
@@ -19,6 +19,8 @@ const project: VirtualProject = {
   members: [],
   resolutions: new Map(),
 };
+
+afterEach(cleanup);
 
 describe("ProjectNavigator", () => {
   it("offers every supported diagram type and submits a clean display name", async () => {
@@ -98,6 +100,68 @@ describe("ProjectNavigator", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Cancel save" }));
     expect(onCancelSave).toHaveBeenCalledOnce();
+  });
+
+  it("explains when project review has no successful-save baseline", () => {
+    render(
+      <ProjectNavigator
+        project={project}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        onReviewChanges={vi.fn()}
+        hasReviewBaseline={false}
+      />,
+    );
+
+    expect((screen.getByRole("button", { name: "Review" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Save this project once to create a review baseline.")).toBeTruthy();
+  });
+
+  it("lists categorized project changes and opens an affected diagram", async () => {
+    const onOpen = vi.fn();
+    const onReviewChanges = vi.fn().mockResolvedValue({
+      diagrams: [
+        {
+          documentId: "document-1",
+          name: "Delivery plan",
+          previousName: "Delivery",
+          kinds: ["renamed", "source"],
+          linkedDocumentIds: ["document-2"],
+        },
+      ],
+      links: [
+        {
+          linkId: "link-1",
+          kind: "added",
+          link: { id: "link-1", kind: "implements", from: "element-1", to: "element-2" },
+          documentIds: ["document-1", "document-2"],
+        },
+      ],
+      hasChanges: true,
+    });
+    render(
+      <ProjectNavigator
+        project={project}
+        onOpen={onOpen}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        onReviewChanges={onReviewChanges}
+        hasReviewBaseline
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(await screen.findByText("renamed · source")).toBeTruthy();
+    expect(screen.getByText("Previously Delivery")).toBeTruthy();
+    expect(screen.getByText("1 linked diagram may need review")).toBeTruthy();
+    expect(screen.getByText("added relationship")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delivery plan" }));
+    expect(onOpen).toHaveBeenCalledWith("document-1");
   });
 
   it("distinguishes unresolved links and explains a direct repair", async () => {

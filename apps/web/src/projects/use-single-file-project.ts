@@ -34,6 +34,7 @@ import type { DocumentSnapshot } from "../workspace-storage";
 import type { DiagramKind } from "../model";
 import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
+import { reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
 import { embeddedDiagramDisplayName } from "./embedded-project";
 
@@ -194,6 +195,7 @@ export function useSingleFileProject({
   }>({ state: "idle" });
   const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
   const [saving, setSaving] = useState(false);
+  const [savedBaseline, setSavedBaseline] = useState<PortableProject>();
   const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
@@ -260,6 +262,7 @@ export function useSingleFileProject({
       setIndexed(immediateIndex(project));
       handle.current = undefined;
       unlockedKey.current = undefined;
+      setSavedBaseline(undefined);
       resetSelection();
       setInteractionMessage(`Created ${projectName(name)}. Add a diagram to begin.`);
     },
@@ -361,6 +364,7 @@ export function useSingleFileProject({
         unlockedKey.current = key;
         handle.current = opened.handle;
         embedded.openProject(project, { encrypted });
+        setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
         setInteractionMessage(
           `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
@@ -379,6 +383,7 @@ export function useSingleFileProject({
       unlockedKey.current = undefined;
       handle.current = undefined;
       embedded.openProject(project);
+      setSavedBaseline(undefined);
       resetSelection();
       setInteractionMessage(`Imported ${project.name}; save to create its one-file project.`);
     },
@@ -464,6 +469,7 @@ export function useSingleFileProject({
         controller.signal,
       );
       if (result.clean) embedded.markSaved(snapshot.revision);
+      setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(result.message);
       return result;
     } catch (error) {
@@ -496,6 +502,7 @@ export function useSingleFileProject({
       handle.current = saved.handle;
       unlockedKey.current = encoded.unlockedKey;
       embedded.markSaved(snapshot.revision);
+      setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
     } catch (error) {
       if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
@@ -509,6 +516,15 @@ export function useSingleFileProject({
   }, [embedded, setInteractionMessage]);
 
   const cancelSave = useCallback(() => saveAbort.current?.abort(), []);
+  const reviewChanges = useCallback(async () => {
+    if (!savedBaseline) return undefined;
+    const current = await embedded.captureSaveSnapshot();
+    return current ? buildProjectChangeReview(savedBaseline, current.project) : undefined;
+  }, [embedded, savedBaseline]);
+  const closeProject = useCallback(() => {
+    setSavedBaseline(undefined);
+    embedded.closeProject();
+  }, [embedded]);
 
   return useMemo(
     () => ({
@@ -531,12 +547,14 @@ export function useSingleFileProject({
       deleteDiagram,
       saveProject,
       saveProjectAs,
-      closeProject: embedded.closeProject,
       restoreProject: embedded.restoreProject,
       unlockRequest,
       unlock,
       cancelUnlock,
       cancelSave,
+      reviewChanges,
+      hasReviewBaseline: Boolean(savedBaseline),
+      closeProject,
     }),
     [
       addProjectDiagram,
@@ -560,6 +578,9 @@ export function useSingleFileProject({
       unlock,
       cancelUnlock,
       cancelSave,
+      reviewChanges,
+      savedBaseline,
+      closeProject,
     ],
   );
 }

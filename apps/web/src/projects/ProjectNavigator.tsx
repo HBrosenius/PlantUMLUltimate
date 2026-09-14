@@ -4,6 +4,7 @@ import type { DiagramKind } from "../model";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
 import { ProjectNameDialog } from "./ProjectNameDialog";
+import type { ProjectChangeReview } from "./project-change-review";
 
 export function ProjectNavigator({
   project,
@@ -20,6 +21,8 @@ export function ProjectNavigator({
   indexStatus,
   saving,
   onCancelSave,
+  onReviewChanges,
+  hasReviewBaseline,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -35,11 +38,15 @@ export function ProjectNavigator({
   indexStatus?: { state: "idle" | "indexing" | "ready" | "error"; message?: string };
   saving?: boolean;
   onCancelSave?(): void;
+  onReviewChanges?(): Promise<ProjectChangeReview | undefined>;
+  hasReviewBaseline?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
   const [path, setPath] = useState("Gantt diagram");
   const [renaming, setRenaming] = useState<{ id: string; name: string }>();
+  const [review, setReview] = useState<ProjectChangeReview>();
+  const [reviewing, setReviewing] = useState(false);
   return (
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
@@ -174,6 +181,64 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
+      {onReviewChanges && (
+        <section className="project-navigator-section project-change-review" aria-labelledby="project-review-heading">
+          <div className="project-section-heading">
+            <div>
+              <h2 id="project-review-heading">Review changes</h2>
+              <p>Compare this project with its last successful save</p>
+            </div>
+            <button
+              type="button"
+              disabled={!hasReviewBaseline || reviewing}
+              onClick={() => {
+                setReviewing(true);
+                void onReviewChanges()
+                  .then(setReview)
+                  .finally(() => setReviewing(false));
+              }}
+            >
+              {reviewing ? "Reviewing…" : "Review"}
+            </button>
+          </div>
+          {!hasReviewBaseline ? (
+            <p className="project-review-empty">Save this project once to create a review baseline.</p>
+          ) : review && !review.hasChanges ? (
+            <p className="project-review-empty">No changes since the last successful save.</p>
+          ) : review ? (
+            <div className="project-review-results" aria-live="polite">
+              {review.diagrams.map((change) => (
+                <article key={change.documentId}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(change.documentId)}
+                    disabled={change.kinds.includes("deleted")}
+                  >
+                    {change.name}
+                  </button>
+                  <span>{change.kinds.join(" · ")}</span>
+                  {change.previousName && <small>Previously {change.previousName}</small>}
+                  {change.linkedDocumentIds.length > 0 && (
+                    <small>
+                      {change.linkedDocumentIds.length} linked diagram{change.linkedDocumentIds.length === 1 ? "" : "s"}{" "}
+                      may need review
+                    </small>
+                  )}
+                </article>
+              ))}
+              {review.links.map((change) => (
+                <article key={change.linkId}>
+                  <strong>{change.kind} relationship</strong>
+                  <span>{change.link.kind}</span>
+                  <small>
+                    Affects {change.documentIds.length} diagram{change.documentIds.length === 1 ? "" : "s"}
+                  </small>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      )}
       <ProjectLinksPanel project={project} onChange={onLinksChange} onElementsChange={onElementsChange} />
       {renaming && onRename && (
         <ProjectNameDialog
