@@ -1250,6 +1250,9 @@ test("connects a later default task to an earlier task without breaking PlantUML
 test("migrates dependencies in every persisted open Gantt tab on reload", async ({ page }) => {
   await page.waitForTimeout(500);
   await page.evaluate(async () => {
+    // This fixture deliberately seeds the older IndexedDB workspace format. Remove the
+    // current synchronous recovery snapshot so it cannot take precedence on reload.
+    localStorage.removeItem("plantuml-studio.workspace.recovery.v6");
     const request = indexedDB.open("plantuml-studio", 2);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
