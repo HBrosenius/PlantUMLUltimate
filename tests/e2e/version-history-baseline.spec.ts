@@ -9,6 +9,10 @@ const oneDependency = DEFAULT_SOURCE.replace("[Backend] starts 2026-09-05", "").
 const twoDependencies = oneDependency
   .replace("[Frontend] starts 2026-09-05", "")
   .replace("\n@endgantt", "\n[Frontend] starts at [Backend]'s end\n@endgantt");
+const movedDependentTask = twoDependencies.replace(
+  "[Frontend] starts at [Backend]'s end",
+  "[Frontend] starts 2 days after [Backend]'s end",
+);
 
 async function openHistory(page: Parameters<typeof prepareEditor>[0]) {
   await page.getByRole("button", { name: "File", exact: true }).click();
@@ -26,6 +30,12 @@ test("history captures the initial source before opening and classifies later de
 
   await fillSource(page, twoDependencies, "[Frontend] starts at [Backend]'s end");
   history = await openHistory(page);
-  await expect(history.getByText("Add dependencies (2)", { exact: true })).toBeVisible();
+  await expect(history.getByText("Add dependency Backend → Frontend", { exact: true })).toBeVisible();
   await expect(history.getByText("Unclassified source change", { exact: true })).toHaveCount(0);
+  await history.getByRole("button", { name: "Close version history" }).click();
+
+  await fillSource(page, movedDependentTask, "[Frontend] starts 2 days after [Backend]'s end");
+  history = await openHistory(page);
+  await expect(history.getByText("Move task Frontend relative to Backend", { exact: true })).toBeVisible();
+  await expect(history).toContainText("The dependency offset changes from 0 to 2 days.");
 });

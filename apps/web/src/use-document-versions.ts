@@ -63,6 +63,24 @@ export function ensureInitialDocumentVersion(
   return request;
 }
 
+export async function recordVersionHistoryReview(
+  document: Pick<DocumentSnapshot, "historyId" | "source" | "fileName" | "diagramKind">,
+  versions: readonly DocumentVersion[],
+  create = createDocumentVersion,
+): Promise<DocumentVersion | undefined> {
+  if (versions[0]?.source === document.source) return undefined;
+  return create({
+    historyId: document.historyId,
+    ...(versions[0] ? { parentVersionId: versions[0].id } : {}),
+    source: document.source,
+    fileName: document.fileName,
+    diagramKind: document.diagramKind,
+    reason: "opened",
+    label: "Last reviewed",
+    pinned: false,
+  });
+}
+
 export function documentVersionDisplayName(version: Pick<DocumentVersion, "label" | "createdAt">) {
   return version.label || new Date(version.createdAt).toLocaleString();
 }
@@ -145,6 +163,7 @@ export function useDocumentVersions({
     try {
       await ensureInitialDocumentVersion(activeDocument);
       const versions = await refreshVersions();
+      await recordVersionHistoryReview(activeDocument, versions);
       setDocumentVersions(versions);
       setVersionHistoryOpen(true);
     } catch (error) {
