@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
+import { PLANTUML_THEMES } from "./plantuml-theme";
+import { useRenderer } from "./render/use-renderer";
 
 export interface DocumentFormatSettings {
   compression: "gzip" | "none";
@@ -7,6 +9,7 @@ export interface DocumentFormatSettings {
   password?: string;
   maxVersions: number;
   maxLogicalMiB: number;
+  diagramTheme?: string;
 }
 
 export function DocumentSettingsDialog({
@@ -26,6 +29,22 @@ export function DocumentSettingsDialog({
   const [confirmation, setConfirmation] = useState("");
   const [maxVersions, setMaxVersions] = useState(current.maxVersions);
   const [maxLogicalMiB, setMaxLogicalMiB] = useState(current.maxLogicalMiB);
+  const [diagramTheme, setDiagramTheme] = useState(current.diagramTheme ?? "");
+  const customDiagramTheme = diagramTheme && !PLANTUML_THEMES.some((theme) => theme === diagramTheme);
+  const previewSource = useMemo(
+    () =>
+      [
+        "@startgantt",
+        ...(diagramTheme ? [`!theme ${diagramTheme}`] : []),
+        "Project starts 2026-09-01",
+        "[Plan] lasts 3 days",
+        "[Build] starts at [Plan]'s end",
+        "[Build] lasts 4 days",
+        "@endgantt",
+      ].join("\n"),
+    [diagramTheme],
+  );
+  const themePreview = useRenderer(previewSource, current.diagramTheme !== undefined, "native");
   const [busy, setBusy] = useState(false);
   const needsPassword = encrypted && (!current.encrypted || Boolean(password));
   const passwordError = needsPassword && (password.length < 12 || password !== confirmation);
@@ -41,65 +60,112 @@ export function DocumentSettingsDialog({
           event.preventDefault();
           if (passwordError) return;
           setBusy(true);
-          void onApply({ compression, encrypted, ...(password ? { password } : {}), maxVersions, maxLogicalMiB })
+          void onApply({
+            compression,
+            encrypted,
+            ...(password ? { password } : {}),
+            maxVersions,
+            maxLogicalMiB,
+            ...(current.diagramTheme !== undefined ? { diagramTheme } : {}),
+          })
             .then(onClose)
             .catch(() => undefined)
             .finally(() => setBusy(false));
         }}
       >
         <header>
-          <h2>Portable document settings</h2>
+          <h2>Document settings</h2>
         </header>
-        <label>
-          Compression
-          <select value={compression} onChange={(event) => setCompression(event.target.value as "gzip" | "none")}>
-            <option value="gzip">Gzip (recommended)</option>
-            <option value="none">None</option>
-          </select>
-        </label>
-        <label>
-          <input type="checkbox" checked={encrypted} onChange={(event) => setEncrypted(event.target.checked)} />{" "}
-          Password protection
-        </label>
-        {encrypted && (
-          <>
-            <p>
-              There is no password recovery. Encrypted unsaved changes are kept only in this session. Collaboration and
-              plaintext exports are not end-to-end encrypted.
-            </p>
+        {current.diagramTheme !== undefined && (
+          <section className="document-settings-section" aria-labelledby="diagram-appearance-heading">
+            <h3 id="diagram-appearance-heading">Diagram appearance</h3>
             <label>
-              {current.encrypted ? "New password (leave blank to keep current)" : "Password"}
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+              PlantUML theme
+              <select value={diagramTheme} onChange={(event) => setDiagramTheme(event.target.value)}>
+                <option value="">Default PlantUML</option>
+                {customDiagramTheme && <option value={diagramTheme}>{diagramTheme} (from source)</option>}
+                {PLANTUML_THEMES.map((theme) => (
+                  <option key={theme} value={theme}>
+                    {theme}
+                  </option>
+                ))}
+              </select>
             </label>
-            {password && (
-              <label>
-                Confirm password
-                <input type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
-              </label>
-            )}
-            {passwordError && <p role="alert">Use at least 12 characters and enter the same password twice.</p>}
-          </>
+            <p>
+              Stored as a native !theme directive so it travels with the diagram.{" "}
+              <a href="https://plantuml.com/theme-gallery" target="_blank" rel="noreferrer">
+                View the official theme gallery
+              </a>
+              .
+            </p>
+            <div className="document-theme-preview" aria-label="Theme preview" aria-live="polite">
+              {themePreview.result?.svg ? (
+                <div dangerouslySetInnerHTML={{ __html: themePreview.result.svg }} />
+              ) : themePreview.status === "error" ? (
+                <span>Theme preview unavailable</span>
+              ) : (
+                <span>Rendering theme preview…</span>
+              )}
+            </div>
+          </section>
         )}
-        <label>
-          Maximum versions
-          <input
-            type="number"
-            min="10"
-            max="500"
-            value={maxVersions}
-            onChange={(event) => setMaxVersions(Number(event.target.value))}
-          />
-        </label>
-        <label>
-          History budget (MiB)
-          <input
-            type="number"
-            min="1"
-            max="64"
-            value={maxLogicalMiB}
-            onChange={(event) => setMaxLogicalMiB(Number(event.target.value))}
-          />
-        </label>
+        <section className="document-settings-section" aria-labelledby="portable-format-heading">
+          <h3 id="portable-format-heading">Portable file</h3>
+          <label>
+            Compression
+            <select value={compression} onChange={(event) => setCompression(event.target.value as "gzip" | "none")}>
+              <option value="gzip">Gzip (recommended)</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label className="document-settings-checkbox">
+            <input type="checkbox" checked={encrypted} onChange={(event) => setEncrypted(event.target.checked)} />{" "}
+            Password protection
+          </label>
+          {encrypted && (
+            <>
+              <p>
+                There is no password recovery. Encrypted unsaved changes are kept only in this session. Collaboration
+                and plaintext exports are not end-to-end encrypted.
+              </p>
+              <label>
+                {current.encrypted ? "New password (leave blank to keep current)" : "Password"}
+                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+              </label>
+              {password && (
+                <label>
+                  Confirm password
+                  <input
+                    type="password"
+                    value={confirmation}
+                    onChange={(event) => setConfirmation(event.target.value)}
+                  />
+                </label>
+              )}
+              {passwordError && <p role="alert">Use at least 12 characters and enter the same password twice.</p>}
+            </>
+          )}
+          <label>
+            Maximum versions
+            <input
+              type="number"
+              min="10"
+              max="500"
+              value={maxVersions}
+              onChange={(event) => setMaxVersions(Number(event.target.value))}
+            />
+          </label>
+          <label>
+            History budget (MiB)
+            <input
+              type="number"
+              min="1"
+              max="64"
+              value={maxLogicalMiB}
+              onChange={(event) => setMaxLogicalMiB(Number(event.target.value))}
+            />
+          </label>
+        </section>
         <footer>
           <button type="button" onClick={onClose}>
             Cancel

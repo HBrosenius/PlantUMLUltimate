@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { applyReviewGroups, buildReviewGroups, createReviewReport, createUnifiedPatch } from "./semantic-review";
 
 describe("semantic review", () => {
+  it("classifies native PlantUML theme changes", () => {
+    const before = "@startgantt\n!theme plain\n[A] lasts 2 days\n@endgantt";
+    const after = "@startgantt\n!theme blueprint\n[A] lasts 2 days\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      {
+        title: "Change diagram theme from plain to blueprint",
+        detail: "The changed source is a native PlantUML theme directive.",
+        confidence: "confirmed",
+      },
+    ]);
+  });
+
   it("classifies a participant rename when its alias remains stable", () => {
     const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Save\n@enduml';
     const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Store: Save\n@enduml';

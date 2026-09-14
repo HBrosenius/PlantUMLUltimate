@@ -1567,7 +1567,7 @@ textarea:focus-visible,
 .document-settings-dialog {
   display: grid;
   width: min(470px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
+  max-height: calc(82vh - 24px);
   gap: 14px;
   overflow: auto;
   padding: 22px;
@@ -1586,6 +1586,70 @@ textarea:focus-visible,
   gap: 6px;
   color: var(--muted);
   font-size: 13px;
+}
+.document-settings-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.document-settings-section h3,
+.document-settings-section p {
+  margin: 0;
+}
+.document-settings-section h3 {
+  font-size: 14px;
+}
+.document-settings-section p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.document-settings-section > label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.document-settings-section > .document-settings-checkbox {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+}
+.document-settings-section select,
+.document-settings-section input:not([type="checkbox"]) {
+  width: 100%;
+  box-sizing: border-box;
+}
+.document-theme-preview {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, rgb(127 127 127 / 8%) 25%, transparent 25%, transparent 75%, rgb(127 127 127 / 8%) 75%),
+    linear-gradient(45deg, rgb(127 127 127 / 8%) 25%, transparent 25%, transparent 75%, rgb(127 127 127 / 8%) 75%);
+  background-position:
+    0 0,
+    8px 8px;
+  background-size: 16px 16px;
+}
+.document-theme-preview > div {
+  width: 100%;
+}
+.document-theme-preview svg {
+  display: block;
+  width: 100%;
+  max-height: 210px;
+}
+.document-theme-preview > span {
+  color: var(--muted);
+  font-size: 12px;
 }
 .document-settings-dialog > label:has(input[type="checkbox"]) {
   display: flex;
@@ -3587,12 +3651,13 @@ textarea:focus-visible,
   opacity: 0.6;
 }
 .preview [data-project-linked="true"] .bar {
-  stroke: #2563eb !important;
+  stroke: #38bdf8 !important;
   stroke-width: 3px !important;
+  filter: drop-shadow(0 0 2px rgb(2 132 199 / 80%));
 }
 .preview [data-project-linked="true"] .label {
-  fill: #1d4ed8 !important;
   font-weight: 700;
+  text-decoration: underline;
 }
 .project-navigator-section,
 .project-links {

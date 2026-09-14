@@ -2,6 +2,7 @@ import { parseSequence, type SequenceMessage, type SequenceParticipant } from "@
 import { parseGantt, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
+import { plantUmlTheme } from "./plantuml-theme";
 
 export interface ReviewGroup {
   id: string;
@@ -431,12 +432,28 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     const addedGanttDependencies = rightGanttDependencies.filter(
       (item) => item.line >= startRight && item.line < startRight + replacement.length,
     );
+    const changedLeftLines = leftSource.split("\n").slice(startLeft, startLeft + deleteCount);
+    const themeOnly = [...changedLeftLines, ...replacement]
+      .filter((line) => line.trim())
+      .every((line) => /^\s*!theme\b/i.test(line));
+    const beforeTheme = plantUmlTheme(leftSource);
+    const afterTheme = plantUmlTheme(rightSource);
     const description =
-      kind === "sequence"
-        ? describeSequenceChange(removed, added)
-        : kind === "gantt"
-          ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
-          : describeSequenceChange([], []);
+      themeOnly && beforeTheme !== afterTheme
+        ? {
+            title: beforeTheme
+              ? afterTheme
+                ? `Change diagram theme from ${beforeTheme} to ${afterTheme}`
+                : `Remove diagram theme ${beforeTheme}`
+              : `Set diagram theme to ${afterTheme}`,
+            detail: "The changed source is a native PlantUML theme directive.",
+            confidence: "confirmed" as const,
+          }
+        : kind === "sequence"
+          ? describeSequenceChange(removed, added)
+          : kind === "gantt"
+            ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
+            : describeSequenceChange([], []);
     groups.push({
       id: `change-${groups.length + 1}`,
       ...description,
