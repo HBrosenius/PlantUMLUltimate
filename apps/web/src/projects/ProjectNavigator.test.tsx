@@ -122,6 +122,7 @@ describe("ProjectNavigator", () => {
 
   it("lists categorized project changes and opens an affected diagram", async () => {
     const onOpen = vi.fn();
+    const onExportReview = vi.fn();
     const onReviewChanges = vi.fn().mockResolvedValue({
       diagrams: [
         {
@@ -151,6 +152,7 @@ describe("ProjectNavigator", () => {
         onLinksChange={vi.fn()}
         onElementsChange={vi.fn()}
         onReviewChanges={onReviewChanges}
+        onExportReview={onExportReview}
         hasReviewBaseline
       />,
     );
@@ -162,6 +164,8 @@ describe("ProjectNavigator", () => {
     fireEvent.click(screen.getByRole("button", { name: "document-2" }));
     expect(onOpen).toHaveBeenCalledWith("document-2");
     expect(screen.getByText("added relationship")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Export review report" }));
+    expect(onExportReview).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "Delivery plan" }));
     expect(onOpen).toHaveBeenCalledWith("document-1");
   });

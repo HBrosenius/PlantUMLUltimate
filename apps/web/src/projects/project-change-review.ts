@@ -1,6 +1,6 @@
 import type { PortableProject, PortableProjectDiagram, PortableProjectLink } from "@plantuml-studio/document-format";
 import { reverseImpact } from "@plantuml-studio/project-model";
-import { buildReviewGroups } from "../semantic-review";
+import { buildReviewGroups, createUnifiedPatch } from "../semantic-review";
 import { diffVersionSources } from "../version-diff";
 
 export type DiagramChangeKind = "added" | "deleted" | "renamed" | "source" | "history" | "settings";
@@ -15,6 +15,7 @@ export interface ProjectDiagramChange {
     mode: "semantic" | "source";
     addedLines: number;
     removedLines: number;
+    patch: string;
     summaries: readonly { title: string; detail: string; confidence: "confirmed" | "probable" | "unclassified" }[];
   };
 }
@@ -91,6 +92,7 @@ function changedDiagram(
           mode: semantic ? ("semantic" as const) : ("source" as const),
           addedLines: diff.filter((line) => line.kind === "added").length,
           removedLines: diff.filter((line) => line.kind === "removed").length,
+          patch: createUnifiedPatch(after.name, before.document.current.source, after.document.current.source),
           summaries: semantic
             ? buildReviewGroups(
                 before.document.current.source,
@@ -146,4 +148,56 @@ export function reviewProjectChanges(before: PortableProject, after: PortablePro
       links.push({ linkId: link.id, kind: "deleted", link, documentIds: documentsForLink(before, link) });
   }
   return { diagrams, links, hasChanges: diagrams.length > 0 || links.length > 0 };
+}
+
+const escapeHtml = (value: string) =>
+  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+
+export function createProjectReviewReport(
+  projectName: string,
+  review: ProjectChangeReview,
+  documentNames: ReadonlyMap<string, string>,
+  generatedAt = new Date().toISOString(),
+): string {
+  const diagrams = review.diagrams
+    .map((change) => {
+      const summaries = change.sourceComparison?.summaries
+        .map(
+          (summary) =>
+            `<li><strong>${escapeHtml(summary.title)}</strong> <span>(${summary.confidence})</span><br>${escapeHtml(summary.detail)}</li>`,
+        )
+        .join("");
+      const impact = change.linkedDocumentIds
+        .map((id) => `<li>${escapeHtml(documentNames.get(id) ?? id)}</li>`)
+        .join("");
+      return [
+        "<article>",
+        `<h3>${escapeHtml(change.name)}</h3>`,
+        change.previousName ? `<p>Previously: ${escapeHtml(change.previousName)}</p>` : "",
+        `<p class="kinds">${change.kinds.map(escapeHtml).join(" · ")}</p>`,
+        summaries ? `<h4>Semantic changes</h4><ul>${summaries}</ul>` : "",
+        impact ? `<h4>Linked diagrams that may need review</h4><ul>${impact}</ul>` : "",
+        change.sourceComparison ? `<h4>Source patch</h4><pre>${escapeHtml(change.sourceComparison.patch)}</pre>` : "",
+        "</article>",
+      ].join("\n");
+    })
+    .join("\n");
+  const links = review.links
+    .map((change) => {
+      const names = change.documentIds.map((id) => documentNames.get(id) ?? id).join(" ↔ ");
+      return `<li><strong>${escapeHtml(change.kind)} ${escapeHtml(change.link.kind)} relationship</strong><br>${escapeHtml(names)}</li>`;
+    })
+    .join("");
+  return [
+    "<!doctype html>",
+    '<html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer">',
+    `<meta name="generator" content="PlantUML Ultimate"><title>${escapeHtml(projectName)} change review</title>`,
+    "<style>body{font:15px system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 24px;color:#172033}article{border:1px solid #d8dee9;border-radius:8px;padding:16px;margin:14px 0}h1,h2,h3,h4{margin:.4em 0}.meta,.kinds,span{color:#5d687c}pre{overflow:auto;background:#f4f6f8;padding:12px;border-radius:6px}li{margin:.4em 0}</style></head><body>",
+    `<h1>${escapeHtml(projectName)} change review</h1>`,
+    `<p class="meta">Generated locally ${escapeHtml(generatedAt)} · ${review.diagrams.length} diagram change${review.diagrams.length === 1 ? "" : "s"} · ${review.links.length} relationship change${review.links.length === 1 ? "" : "s"}</p>`,
+    review.hasChanges ? "" : "<p>No changes since the last successful save.</p>",
+    diagrams ? `<h2>Diagrams</h2>${diagrams}` : "",
+    links ? `<h2>Relationships</h2><ul>${links}</ul>` : "",
+    "</body></html>",
+  ].join("\n");
 }

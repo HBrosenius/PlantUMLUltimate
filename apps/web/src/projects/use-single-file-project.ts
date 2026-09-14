@@ -23,6 +23,7 @@ import {
 } from "@plantuml-studio/project-model";
 import {
   isPortableDocument,
+  downloadText,
   openDocumentFile,
   savePortableDocumentAs,
   type OpenedFileBytes,
@@ -34,7 +35,7 @@ import type { DocumentSnapshot } from "../workspace-storage";
 import type { DiagramKind } from "../model";
 import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
-import { reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
+import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
 import { embeddedDiagramDisplayName } from "./embedded-project";
 
@@ -521,6 +522,19 @@ export function useSingleFileProject({
     const current = await embedded.captureSaveSnapshot();
     return current ? buildProjectChangeReview(savedBaseline, current.project) : undefined;
   }, [embedded, savedBaseline]);
+  const exportReviewReport = useCallback(async () => {
+    if (!savedBaseline) return;
+    const current = await embedded.captureSaveSnapshot();
+    if (!current) return;
+    const review = buildProjectChangeReview(savedBaseline, current.project);
+    const names = new Map(
+      [...savedBaseline.diagrams, ...current.project.diagrams].map((diagram) => [diagram.id, diagram.name]),
+    );
+    const report = createProjectReviewReport(current.project.name, review, names);
+    const fileName = `${current.project.name.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "project"}-review.html`;
+    downloadText(report, fileName, "text/html;charset=utf-8");
+    setInteractionMessage(`Exported ${fileName}`);
+  }, [embedded, savedBaseline, setInteractionMessage]);
   const closeProject = useCallback(() => {
     setSavedBaseline(undefined);
     embedded.closeProject();
@@ -553,6 +567,7 @@ export function useSingleFileProject({
       cancelUnlock,
       cancelSave,
       reviewChanges,
+      exportReviewReport,
       hasReviewBaseline: Boolean(savedBaseline),
       closeProject,
     }),
@@ -579,6 +594,7 @@ export function useSingleFileProject({
       cancelUnlock,
       cancelSave,
       reviewChanges,
+      exportReviewReport,
       savedBaseline,
       closeProject,
     ],

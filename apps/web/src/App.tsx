@@ -2603,6 +2603,7 @@ export function App() {
                 onCancelSave: singleFileProject.cancelSave,
                 onReviewChanges: singleFileProject.reviewChanges,
                 hasReviewBaseline: singleFileProject.hasReviewBaseline,
+                onExportReview: singleFileProject.exportReviewReport,
               }
             : {})}
           onOpen={openMember}

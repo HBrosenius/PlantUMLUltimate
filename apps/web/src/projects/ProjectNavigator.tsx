@@ -23,6 +23,7 @@ export function ProjectNavigator({
   onCancelSave,
   onReviewChanges,
   hasReviewBaseline,
+  onExportReview,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -40,6 +41,7 @@ export function ProjectNavigator({
   onCancelSave?(): void;
   onReviewChanges?(): Promise<ProjectChangeReview | undefined>;
   hasReviewBaseline?: boolean;
+  onExportReview?(): void | Promise<void>;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -255,6 +257,11 @@ export function ProjectNavigator({
                   </small>
                 </article>
               ))}
+              {onExportReview && (
+                <button type="button" className="project-export-review" onClick={() => void onExportReview()}>
+                  Export review report
+                </button>
+              )}
             </div>
           ) : null}
         </section>

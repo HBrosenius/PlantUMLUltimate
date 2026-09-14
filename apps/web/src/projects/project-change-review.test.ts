@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { projectFromPlantUml, type PortableProject } from "@plantuml-studio/document-format";
-import { reviewProjectChanges } from "./project-change-review";
+import { createProjectReviewReport, reviewProjectChanges } from "./project-change-review";
 
 async function fixture(): Promise<PortableProject> {
   const project = await projectFromPlantUml("@startgantt\n[API] lasts 2 days\n@endgantt", "gantt", "Delivery");
@@ -107,5 +107,41 @@ describe("project change review", () => {
       links: [],
       hasChanges: false,
     });
+  });
+
+  it("creates a standalone escaped report with semantic, patch, relationship, and impact details", async () => {
+    const before = await fixture();
+    const first = before.diagrams[0]!;
+    const after = {
+      ...before,
+      name: '<Delivery & "support">',
+      diagrams: [
+        {
+          ...first,
+          document: {
+            ...first.document,
+            current: { ...first.document.current, source: `${first.document.current.source}\n' <changed>` },
+          },
+        },
+        before.diagrams[1]!,
+      ],
+      links: [...before.links, { ...before.links[0]!, id: crypto.randomUUID() }],
+    };
+    const review = reviewProjectChanges(before, after);
+    const report = createProjectReviewReport(
+      after.name,
+      review,
+      new Map(after.diagrams.map((diagram) => [diagram.id, diagram.name])),
+      "2026-09-14T08:00:00.000Z",
+    );
+
+    expect(report).toContain("<!doctype html>");
+    expect(report).toContain("&lt;Delivery &amp; &quot;support&quot;&gt;");
+    expect(report).toContain("Linked diagrams that may need review");
+    expect(report).toContain("Architecture");
+    expect(report).toContain("Source patch");
+    expect(report).toContain("&lt;changed&gt;");
+    expect(report).toContain("added implements relationship");
+    expect(report).not.toContain("<changed>");
   });
 });

@@ -3697,6 +3697,18 @@ textarea:focus-visible,
   color: var(--accent);
   font-size: 11px;
 }
+.project-review-results .project-export-review {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
 .project-add-diagram,
 .project-create-link {
   padding: 6px 8px;
