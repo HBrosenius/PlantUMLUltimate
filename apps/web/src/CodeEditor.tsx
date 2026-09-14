@@ -420,6 +420,8 @@ export function CodeEditor({
     editor.focus();
   };
 
+  const relationshipRepair = quickFixes.length === 1 && quickFixes[0]?.message.startsWith("Repair ");
+
   return (
     <section className="editor-pane" aria-label="Code editor section">
       <div className="editor-actions">
@@ -431,7 +433,9 @@ export function CodeEditor({
             title={quickFixes[0]?.message}
             aria-label="Fix nearest source issue"
           >
-            Fix issue{quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}
+            {relationshipRepair
+              ? "Repair relationships"
+              : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
           </button>
         )}
         <button type="button" onClick={() => void copySource()}>
