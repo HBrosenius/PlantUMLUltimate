@@ -2,6 +2,7 @@ import { parseSequence, type SequenceMessage, type SequenceParticipant } from "@
 import { parseGantt, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
+import { plantUmlTheme } from "./plantuml-theme";
 
 export interface ReviewGroup {
   id: string;
@@ -264,6 +265,11 @@ function describeGanttChange(
         confidence: "confirmed",
       };
     }
+    return {
+      title: `Reconnect dependency ${before.predecessor.value} → ${before.successor.value} as ${after.predecessor.value} → ${after.successor.value}`,
+      detail: "One recognized dependency is replaced by another.",
+      confidence: "confirmed",
+    };
   }
   if (
     removed.length > 1 &&
@@ -302,6 +308,12 @@ function describeGanttChange(
           detail: "The task identity is unchanged and both start declarations are recognized.",
           confidence: "confirmed",
         };
+      if (removed[0]!.declarationKind === "end" && before.end && after.end && before.end.value !== after.end.value)
+        return {
+          title: `Change ${after.label} end from ${before.end.value} to ${after.end.value}`,
+          detail: "The task identity is unchanged and both end declarations are recognized.",
+          confidence: "confirmed",
+        };
       return {
         title: `Modify task ${after.label}`,
         detail: "The declaration belongs to the same parsed task.",
@@ -313,6 +325,12 @@ function describeGanttChange(
         title: `Rename task ${before.label} to ${after.label}`,
         detail: "A stable task alias confirms identity.",
         confidence: "confirmed",
+      };
+    if (removed[0]!.declarationKind === added[0]!.declarationKind)
+      return {
+        title: `Possible task rename: ${before.label} → ${after.label}`,
+        detail: "The declaration stays in place with the same kind, but there is no stable alias to prove identity.",
+        confidence: "probable",
       };
   }
   if (!removed.length && added.length && added.every((item) => item.declarationKind === "milestone"))
@@ -330,6 +348,22 @@ function describeGanttChange(
       detail: "The added declaration is recognized.",
       confidence: "confirmed",
     };
+  if (!removed.length && added.length > 1) {
+    const tasks = new Map(added.map((item) => [item.value.id, item.value]));
+    return {
+      title: `Add tasks (${tasks.size})`,
+      detail: "All added declarations belong to recognized Gantt tasks.",
+      confidence: "confirmed",
+    };
+  }
+  if (removed.length && !added.length) {
+    const tasks = new Map(removed.map((item) => [item.value.id, item.value]));
+    return {
+      title: tasks.size === 1 ? `Remove task ${[...tasks.values()][0]!.label}` : `Remove tasks (${tasks.size})`,
+      detail: "All removed declarations belong to recognized Gantt tasks.",
+      confidence: "confirmed",
+    };
+  }
   return {
     title: "Unclassified source change",
     detail: "Review the source lines directly. This change is not eligible for partial semantic acceptance.",
@@ -398,12 +432,28 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     const addedGanttDependencies = rightGanttDependencies.filter(
       (item) => item.line >= startRight && item.line < startRight + replacement.length,
     );
+    const changedLeftLines = leftSource.split("\n").slice(startLeft, startLeft + deleteCount);
+    const themeOnly = [...changedLeftLines, ...replacement]
+      .filter((line) => line.trim())
+      .every((line) => /^\s*!theme\b/i.test(line));
+    const beforeTheme = plantUmlTheme(leftSource);
+    const afterTheme = plantUmlTheme(rightSource);
     const description =
-      kind === "sequence"
-        ? describeSequenceChange(removed, added)
-        : kind === "gantt"
-          ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
-          : describeSequenceChange([], []);
+      themeOnly && beforeTheme !== afterTheme
+        ? {
+            title: beforeTheme
+              ? afterTheme
+                ? `Change diagram theme from ${beforeTheme} to ${afterTheme}`
+                : `Remove diagram theme ${beforeTheme}`
+              : `Set diagram theme to ${afterTheme}`,
+            detail: "The changed source is a native PlantUML theme directive.",
+            confidence: "confirmed" as const,
+          }
+        : kind === "sequence"
+          ? describeSequenceChange(removed, added)
+          : kind === "gantt"
+            ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
+            : describeSequenceChange([], []);
     groups.push({
       id: `change-${groups.length + 1}`,
       ...description,

@@ -14,13 +14,17 @@ import {
   normalizeSession,
   normalizeWorkspace,
   saveWorkspace,
+  saveWorkspaceRecovery,
   removePersistedDocument,
   updateDocumentVersion,
   type WorkspaceSession,
 } from "./workspace-storage";
 import { DEFAULT_SOURCE } from "./model";
 
-beforeEach(() => Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() }));
+beforeEach(() => {
+  Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() });
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: undefined });
+});
 
 it("closes Saturday and Sunday in new diagrams by default", () => {
   expect(DEFAULT_SOURCE).toContain("saturday are closed\nsunday are closed");
@@ -189,6 +193,25 @@ describe("workspace persistence", () => {
     };
     await saveWorkspace(session);
     await expect(loadWorkspace()).resolves.toEqual(session);
+  });
+
+  it("prefers the synchronous recovery snapshot after an immediate edit", async () => {
+    const values = new Map<string, string>();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+    const before = { ...DEFAULT_SESSION, theme: "light" as const };
+    const after = {
+      ...before,
+      documents: before.documents.map((document) => ({ ...document, source: "immediate edit", dirty: true })),
+    };
+    await saveWorkspace(before);
+    saveWorkspaceRecovery(after);
+    await expect(loadWorkspace()).resolves.toEqual(after);
   });
 
   it("removes plaintext for a document before encryption is claimed", async () => {

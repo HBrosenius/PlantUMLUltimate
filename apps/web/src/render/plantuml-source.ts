@@ -1,7 +1,9 @@
+import { expandBundledTheme } from "./bundled-themes";
+
 export function sourceForPlantUmlRenderer(source: string): string {
   const lines = source.split(/\r?\n/);
   let inNote = false;
-  return lines
+  const safeSource = lines
     .map((line) => {
       if (/^\s*!(?:include(?:url|_many|_once)?|import)\b/i.test(line) || /^\s*!theme\b.*\bfrom\b/i.test(line))
         return "' remote resource directive blocked by PlantUML Ultimate";
@@ -17,4 +19,5 @@ export function sourceForPlantUmlRenderer(source: string): string {
       return inNote ? "" : line;
     })
     .join("\n");
+  return expandBundledTheme(safeSource);
 }

@@ -45,6 +45,7 @@ import { ProjectUnlockDialog } from "./projects/ProjectUnlockDialog";
 import { useFolderProject } from "./projects/use-folder-project";
 import { useSingleFileProject } from "./projects/use-single-file-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
+import { plantUmlTheme, setPlantUmlTheme } from "./plantuml-theme";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
@@ -2696,10 +2697,15 @@ export function App() {
             encrypted: activeDocument.encrypted === true,
             maxVersions: activeDocument.historyMaxVersions ?? 100,
             maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
+            ...(workspace.diagramKind === "gantt" ? { diagramTheme: plantUmlTheme(workspace.source) ?? "" } : {}),
           }}
           onApply={async (settings) => {
             try {
               await configureDocumentFormat(settings);
+              if (workspace.diagramKind === "gantt") {
+                const themedSource = setPlantUmlTheme(workspace.source, settings.diagramTheme);
+                if (themedSource !== workspace.source) commitSource(themedSource, "Change diagram theme", false);
+              }
             } catch (error) {
               reportFileError(error);
               throw error;

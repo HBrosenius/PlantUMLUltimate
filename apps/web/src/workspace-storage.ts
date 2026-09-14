@@ -81,6 +81,7 @@ const VERSION_STORE = "document-versions";
 const CURRENT = "current";
 const ACTIVE_PROJECT = "active-project";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
+const RECOVERY_KEY = "plantuml-studio.workspace.recovery.v6";
 const ACTIVE_PROJECT_LEGACY_KEY = "plantuml-studio.active-project.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
 const memoryOnlyHistories = new Map<string, DocumentVersion[]>();
@@ -467,6 +468,12 @@ export async function importDocumentVersions(versions: readonly DocumentVersion[
 
 export async function loadWorkspace(): Promise<WorkspaceSession> {
   try {
+    const recovery = globalThis.localStorage?.getItem(RECOVERY_KEY);
+    if (recovery) return normalizeSession(JSON.parse(recovery));
+  } catch {
+    // Continue with IndexedDB when synchronous recovery is unavailable.
+  }
+  try {
     const database = await openDatabase();
     const value = await new Promise<unknown>((resolve, reject) => {
       const request = database.transaction(STORE, "readonly").objectStore(STORE).get(CURRENT);
@@ -486,15 +493,23 @@ export async function loadWorkspace(): Promise<WorkspaceSession> {
   }
 }
 
-export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
-  const persistable = {
+function persistableWorkspace(snapshot: WorkspaceSession): WorkspaceSession {
+  const documents = snapshot.documents.filter((document) => !document.encrypted);
+  return {
     ...snapshot,
-    documents: snapshot.documents.filter((document) => !document.encrypted),
+    documents,
     activeDocumentId:
-      snapshot.documents.find((document) => document.id === snapshot.activeDocumentId && !document.encrypted)?.id ??
-      snapshot.documents.find((document) => !document.encrypted)?.id ??
-      "",
+      documents.find((document) => document.id === snapshot.activeDocumentId)?.id ?? documents[0]?.id ?? "",
   };
+}
+
+export function saveWorkspaceRecovery(snapshot: WorkspaceSession): void {
+  globalThis.localStorage?.setItem(RECOVERY_KEY, JSON.stringify(persistableWorkspace(snapshot)));
+}
+
+export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
+  const persistable = persistableWorkspace(snapshot);
+  saveWorkspaceRecovery(snapshot);
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -618,6 +633,15 @@ export async function removePersistedDocument(documentId: string): Promise<void>
     const documents = session.documents.filter((document) => document.id !== documentId);
     globalThis.localStorage.setItem(
       LEGACY_KEY,
+      JSON.stringify({ ...session, documents, activeDocumentId: documents[0]?.id ?? "" }),
+    );
+  }
+  const recovery = globalThis.localStorage?.getItem(RECOVERY_KEY);
+  if (recovery) {
+    const session = normalizeSession(JSON.parse(recovery));
+    const documents = session.documents.filter((document) => document.id !== documentId);
+    globalThis.localStorage.setItem(
+      RECOVERY_KEY,
       JSON.stringify({ ...session, documents, activeDocumentId: documents[0]?.id ?? "" }),
     );
   }

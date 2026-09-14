@@ -7,6 +7,54 @@ test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
 });
 
+test("selects a native PlantUML theme from document settings", async ({ page }) => {
+  const openSettings = async () => {
+    await page.getByRole("button", { name: "File" }).click();
+    await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Document settings…" }).click();
+    return page.getByRole("dialog", { name: "Document settings" });
+  };
+
+  const diagram = page.locator(".diagram-svg-host svg");
+  await expect(diagram).toBeVisible();
+  const defaultSvg = await diagram.evaluate((element) => element.outerHTML);
+  let settings = await openSettings();
+  await settings.getByLabel("PlantUML theme").selectOption("blueprint");
+  await expect
+    .poll(() =>
+      settings
+        .getByLabel("Theme preview")
+        .locator("svg")
+        .evaluate((element) => element.outerHTML),
+    )
+    .toContain("#003153");
+  await settings.getByRole("button", { name: "Apply" }).click();
+  await expect(settings).toBeHidden();
+  await expect(page.locator(".cm-content")).toContainText("!theme blueprint");
+  await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).not.toBe(defaultSvg);
+  await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).toContain("#003153");
+
+  await page.waitForTimeout(450);
+  await page.reload();
+  await expect(page.locator(".cm-content")).toContainText("!theme blueprint");
+  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Cancel" }).click();
+  await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).toContain("#003153");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Export" }).hover();
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "SVG" }).click();
+  const downloadPath = await (await downloadPromise).path();
+  expect(downloadPath).not.toBeNull();
+  expect(readFileSync(downloadPath!, "utf8")).toContain("#003153");
+
+  settings = await openSettings();
+  await expect(settings.getByLabel("PlantUML theme")).toHaveValue("blueprint");
+  await settings.getByLabel("PlantUML theme").selectOption("");
+  await settings.getByRole("button", { name: "Apply" }).click();
+  await expect(settings).toBeHidden();
+  await expect(page.locator(".cm-content")).not.toContainText("!theme");
+});
+
 test("zooms with the mouse wheel and pans with the middle mouse button", async ({ page, browserName }) => {
   await setSource(page, source("[Large task] lasts 40 days"));
   const viewport = page.locator(".preview-viewport");
@@ -1202,6 +1250,9 @@ test("connects a later default task to an earlier task without breaking PlantUML
 test("migrates dependencies in every persisted open Gantt tab on reload", async ({ page }) => {
   await page.waitForTimeout(500);
   await page.evaluate(async () => {
+    // This fixture deliberately seeds the older IndexedDB workspace format. Remove the
+    // current synchronous recovery snapshot so it cannot take precedence on reload.
+    localStorage.removeItem("plantuml-studio.workspace.recovery.v6");
     const request = indexedDB.open("plantuml-studio", 2);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
