@@ -223,11 +223,22 @@ function describeSequenceChange(
   };
 }
 
+function resourceNames(resources: GanttTask["resources"]): string[] {
+  return (resources ?? []).map((resource) =>
+    resource.allocation != null ? `${resource.value} (${resource.allocation}%)` : resource.value,
+  );
+}
+
+function completionLabel(label: string, value: number): string {
+  return value >= 100 ? `Mark ${label} as complete` : `Set ${label} to ${value}% complete`;
+}
+
 function describeGanttChange(
   removed: GanttItem[],
   added: GanttItem[],
   removedDependencies: GanttDependencyItem[],
   addedDependencies: GanttDependencyItem[],
+  leftItems: GanttItem[] = [],
 ): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
   if (!removedDependencies.length && addedDependencies.length === 1) {
     const dependency = addedDependencies[0]!.value;
@@ -314,6 +325,48 @@ function describeGanttChange(
           detail: "The task identity is unchanged and both end declarations are recognized.",
           confidence: "confirmed",
         };
+      if (
+        removed[0]!.declarationKind === "completion" &&
+        before.completion &&
+        after.completion &&
+        before.completion.value !== after.completion.value
+      )
+        return {
+          title:
+            after.completion.value >= 100
+              ? `Mark ${after.label} as complete`
+              : `Change ${after.label} completion from ${before.completion.value}% to ${after.completion.value}%`,
+          detail: "The task identity is unchanged and both completion declarations are recognized.",
+          confidence: "confirmed",
+        };
+      // Resource assignments are written inline on the same source line as the task's
+      // duration/start/end declaration (see setTaskResources in operations.ts), so a resource
+      // change is not tied to a distinct "resource" declarationKind — it can show up on a hunk
+      // whose declarationKind is "duration", "start", "end", or anything else. Check it
+      // independently of declarationKind rather than gating on removed[0].declarationKind.
+      {
+        const beforeNames = resourceNames(before.resources);
+        const afterNames = resourceNames(after.resources);
+        if (beforeNames.join(",") !== afterNames.join(",")) {
+          if (!beforeNames.length && afterNames.length)
+            return {
+              title: `Assign ${after.label} to ${afterNames.join(", ")}`,
+              detail: "The task identity is unchanged and a resource assignment was added.",
+              confidence: "confirmed",
+            };
+          if (beforeNames.length && !afterNames.length)
+            return {
+              title: `Unassign ${after.label} from ${beforeNames.join(", ")}`,
+              detail: "The task identity is unchanged and its resource assignment was removed.",
+              confidence: "confirmed",
+            };
+          return {
+            title: `Reassign ${after.label} from ${beforeNames.join(", ")} to ${afterNames.join(", ")}`,
+            detail: "The task identity is unchanged and both resource assignments are recognized.",
+            confidence: "confirmed",
+          };
+        }
+      }
       return {
         title: `Modify task ${after.label}`,
         detail: "The declaration belongs to the same parsed task.",
@@ -342,17 +395,43 @@ function describeGanttChange(
           : "All added declarations are recognized as milestones.",
       confidence: "confirmed",
     };
-  if (!removed.length && added.length === 1)
+  if (!removed.length && added.length === 1) {
+    const addedItem = added[0]!;
+    const existedBefore = leftItems.some((item) => item.value.id === addedItem.value.id);
+    if (existedBefore) {
+      const after = addedItem.value;
+      if (addedItem.declarationKind === "completion" && after.completion)
+        return {
+          title: completionLabel(after.label, after.completion.value),
+          detail: "The task already existed; a completion declaration was added to it.",
+          confidence: "confirmed",
+        };
+      if (after.resources?.length)
+        return {
+          title: `Assign ${after.label} to ${resourceNames(after.resources).join(", ")}`,
+          detail: "The task already existed; a resource assignment was added to it.",
+          confidence: "confirmed",
+        };
+      return {
+        title: `Modify task ${after.label}`,
+        detail: "The task already existed; a new declaration was added to it.",
+        confidence: "confirmed",
+      };
+    }
     return {
-      title: `Add task ${added[0]!.value.label}`,
+      title: `Add task ${addedItem.value.label}`,
       detail: "The added declaration is recognized.",
       confidence: "confirmed",
     };
+  }
   if (!removed.length && added.length > 1) {
     const tasks = new Map(added.map((item) => [item.value.id, item.value]));
+    const preExisting = [...tasks.values()].every((task) => leftItems.some((item) => item.value.id === task.id));
     return {
-      title: `Add tasks (${tasks.size})`,
-      detail: "All added declarations belong to recognized Gantt tasks.",
+      title: preExisting ? `Modify tasks (${tasks.size})` : `Add tasks (${tasks.size})`,
+      detail: preExisting
+        ? "All changed declarations belong to tasks that already existed."
+        : "All added declarations belong to recognized Gantt tasks.",
       confidence: "confirmed",
     };
   }
@@ -452,7 +531,7 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         : kind === "sequence"
           ? describeSequenceChange(removed, added)
           : kind === "gantt"
-            ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies)
+            ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies, leftGanttItems)
             : describeSequenceChange([], []);
     groups.push({
       id: `change-${groups.length + 1}`,
