@@ -45,6 +45,7 @@ import { ProjectUnlockDialog } from "./projects/ProjectUnlockDialog";
 import { useFolderProject } from "./projects/use-folder-project";
 import { useSingleFileProject } from "./projects/use-single-file-project";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
+import { SettingsDialog } from "./SettingsDialog";
 import { plantUmlTheme, setPlantUmlTheme } from "./plantuml-theme";
 import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
@@ -206,6 +207,7 @@ export function App() {
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [draggedTabId, setDraggedTabId] = useState<string>();
@@ -860,6 +862,14 @@ export function App() {
     [setWorkspace],
   );
 
+  const viewModes = useMemo(
+    () => (workspace.advancedMode ? (["code", "split", "diagram"] as ViewMode[]) : (["diagram"] as ViewMode[])),
+    [workspace.advancedMode],
+  );
+  useEffect(() => {
+    if (!workspace.advancedMode && workspace.viewMode !== "diagram") update("viewMode", "diagram");
+  }, [update, workspace.advancedMode, workspace.viewMode]);
+
   const { commitSource, commitGeneratedSource, undo, redo } = useSourceCommands({
     source: workspace.source,
     diagramKind: workspace.diagramKind,
@@ -1084,6 +1094,7 @@ export function App() {
   const { backupWorkspace, restoreWorkspace, createDocument, newDocument } = useWorkspaceDocuments({
     tabs,
     replaceActiveDocumentOnCreate,
+    defaultDiagramTheme: workspace.defaultDiagramTheme,
     openNewDocumentDialog,
     closeNewDocumentDialog,
     fileHandles,
@@ -1489,7 +1500,7 @@ export function App() {
       },
       { id: "edit.undo", label: "Undo", category: "Edit", shortcut: "⌘Z", enabled: activeHistory.canUndo, run: undo },
       { id: "edit.redo", label: "Redo", category: "Edit", shortcut: "⇧⌘Z", enabled: activeHistory.canRedo, run: redo },
-      ...(["code", "split", "diagram"] as ViewMode[]).map((mode, index) => ({
+      ...viewModes.map((mode, index) => ({
         id: `view.${mode}`,
         label: `${mode[0]!.toUpperCase()}${mode.slice(1)} view`,
         category: "View",
@@ -1535,6 +1546,7 @@ export function App() {
     setLegendInspectorOpen,
     undo,
     update,
+    viewModes,
     workspace.zoom,
     workspace.diagramKind,
   ]);
@@ -1837,6 +1849,7 @@ export function App() {
             onSaveAs={() => void (usingSingleFileProject ? singleFileProject.saveProjectAs() : saveDocumentAs())}
             onVersionHistory={() => void openVersionHistory()}
             onDocumentSettings={() => setDocumentSettingsOpen(true)}
+            onSettings={() => setSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
@@ -1927,7 +1940,7 @@ export function App() {
           <button onClick={() => openDialog({ kind: "help" })}>Help</button>
         </div>
         <nav aria-label="View mode">
-          {(["code", "split", "diagram"] as ViewMode[]).map((mode, index) => (
+          {viewModes.map((mode, index) => (
             <button
               className={workspace.viewMode === mode ? "active" : ""}
               onClick={() => update("viewMode", mode)}
@@ -2712,6 +2725,44 @@ export function App() {
             }
           }}
           onClose={() => setDocumentSettingsOpen(false)}
+        />
+      )}
+      {settingsOpen && (
+        <SettingsDialog
+          mode="settings"
+          current={{
+            theme: workspace.theme,
+            advancedMode: workspace.advancedMode,
+            defaultDiagramTheme: workspace.defaultDiagramTheme,
+          }}
+          onApply={(settings) => {
+            setWorkspace((current) => ({
+              ...current,
+              ...settings,
+              viewMode: !settings.advancedMode && current.advancedMode ? "diagram" : current.viewMode,
+            }));
+            setSettingsOpen(false);
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {hydrated && !tabs.session.onboarded && (
+        <SettingsDialog
+          mode="onboarding"
+          current={{
+            theme: workspace.theme,
+            advancedMode: workspace.advancedMode,
+            defaultDiagramTheme: workspace.defaultDiagramTheme,
+          }}
+          onApply={(settings) => {
+            setWorkspace((current) => ({
+              ...current,
+              ...settings,
+              viewMode: settings.advancedMode ? "split" : "diagram",
+            }));
+            tabs.setOnboarded();
+          }}
+          onClose={tabs.setOnboarded}
         />
       )}
       {externalConflict && (

@@ -47,6 +47,7 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onSave: vi.fn(),
   onSaveAs: vi.fn(),
   onVersionHistory: vi.fn(),
+  onSettings: vi.fn(),
   onJira: vi.fn(),
   onBackup: vi.fn(),
   onRestore: vi.fn(),

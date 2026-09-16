@@ -13,6 +13,7 @@ export function FileMenu({
   onSaveAs,
   onVersionHistory,
   onDocumentSettings,
+  onSettings,
   onJira,
   onBackup,
   onRestore,
@@ -32,6 +33,7 @@ export function FileMenu({
   onSaveAs(): void;
   onVersionHistory(): void;
   onDocumentSettings?: (() => void) | undefined;
+  onSettings(): void;
   onJira?: (() => void) | undefined;
   onBackup(): void;
   onRestore(): void;
@@ -217,6 +219,9 @@ export function FileMenu({
           </button>
           <button role="menuitem" onClick={() => run(onRestore)}>
             Restore workspace…
+          </button>
+          <button role="menuitem" onClick={() => run(onSettings)}>
+            Settings…
           </button>
           <span className="menu-separator" role="separator" />
           <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("export")}>

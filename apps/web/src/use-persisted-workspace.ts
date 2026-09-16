@@ -47,6 +47,8 @@ export function usePersistedWorkspace() {
         viewMode: next.viewMode,
         splitPercent: next.splitPercent,
         theme: next.theme,
+        advancedMode: next.advancedMode,
+        defaultDiagramTheme: next.defaultDiagramTheme,
         documents: current.documents.map((item) =>
           item.id === current.activeDocumentId
             ? {
@@ -148,6 +150,7 @@ export function usePersistedWorkspace() {
     [],
   );
   const restoreSession = useCallback((next: WorkspaceSession) => setSession(normalizeSession(next)), []);
+  const setOnboarded = useCallback(() => setSession((current) => ({ ...current, onboarded: true })), []);
   const setDocumentHistoryId = useCallback((id: string, historyId: string) => {
     setSession((current) => ({
       ...current,
@@ -214,6 +217,7 @@ export function usePersistedWorkspace() {
       updateDocumentSource,
       updateDocumentFormat,
       getDocument,
+      setOnboarded,
       session,
     }),
     [
@@ -230,6 +234,7 @@ export function usePersistedWorkspace() {
       updateDocumentSource,
       updateDocumentFormat,
       getDocument,
+      setOnboarded,
       session,
     ],
   );

@@ -10,6 +10,8 @@ export interface WorkspaceSnapshot {
   viewMode: ViewMode;
   splitPercent: number;
   theme: Theme;
+  advancedMode: boolean;
+  defaultDiagramTheme: string;
   zoom: number;
   cursor: { line: number; column: number };
 }
@@ -35,12 +37,15 @@ export interface DocumentSnapshot {
 }
 
 export interface WorkspaceSession {
-  version: 6;
+  version: 7;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
   viewMode: ViewMode;
   splitPercent: number;
   theme: Theme;
+  advancedMode: boolean;
+  defaultDiagramTheme: string;
+  onboarded: boolean;
 }
 
 export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
@@ -51,12 +56,14 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
   viewMode: "split",
   splitPercent: 50,
   theme: "system",
+  advancedMode: true,
+  defaultDiagramTheme: "",
   zoom: 1,
   cursor: { line: 1, column: 1 },
 };
 
 export const DEFAULT_SESSION: WorkspaceSession = {
-  version: 6,
+  version: 7,
   documents: [
     {
       id: "welcome",
@@ -70,9 +77,12 @@ export const DEFAULT_SESSION: WorkspaceSession = {
     },
   ],
   activeDocumentId: "welcome",
-  viewMode: "split",
+  viewMode: "diagram",
   splitPercent: 50,
   theme: "system",
+  advancedMode: false,
+  defaultDiagramTheme: "",
+  onboarded: false,
 };
 
 const DATABASE = "plantuml-studio";
@@ -132,6 +142,11 @@ export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
     cursor: { ...DEFAULT_WORKSPACE.cursor, ...candidate.cursor },
     splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
     zoom: Math.min(3, Math.max(0.25, Number(candidate.zoom) || 1)),
+    advancedMode: candidate.advancedMode ?? DEFAULT_WORKSPACE.advancedMode,
+    defaultDiagramTheme:
+      typeof candidate.defaultDiagramTheme === "string"
+        ? candidate.defaultDiagramTheme
+        : DEFAULT_WORKSPACE.defaultDiagramTheme,
   };
 }
 
@@ -181,12 +196,15 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       ? candidate.activeDocumentId!
       : documents[0]!.id;
     return {
-      version: 6,
+      version: 7,
       documents,
       activeDocumentId,
       viewMode: candidate.viewMode === "code" || candidate.viewMode === "diagram" ? candidate.viewMode : "split",
       splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
       theme: candidate.theme === "light" || candidate.theme === "dark" ? candidate.theme : "system",
+      advancedMode: candidate.advancedMode ?? true,
+      defaultDiagramTheme: typeof candidate.defaultDiagramTheme === "string" ? candidate.defaultDiagramTheme : "",
+      onboarded: candidate.onboarded ?? true,
     };
   }
   const legacy = normalizeWorkspace(value);
@@ -201,7 +219,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
         ? migrateInvalidWbsDirection(legacy.source)
         : legacy.source;
   return {
-    version: 6,
+    version: 7,
     documents: [
       {
         id: "migrated",
@@ -218,6 +236,9 @@ export function normalizeSession(value: unknown): WorkspaceSession {
     viewMode: legacy.viewMode,
     splitPercent: legacy.splitPercent,
     theme: legacy.theme,
+    advancedMode: legacy.advancedMode,
+    defaultDiagramTheme: legacy.defaultDiagramTheme,
+    onboarded: true,
   };
 }
 
@@ -236,6 +257,8 @@ export function activeWorkspace(session: WorkspaceSession): WorkspaceSnapshot {
     viewMode: session.viewMode,
     splitPercent: session.splitPercent,
     theme: session.theme,
+    advancedMode: session.advancedMode,
+    defaultDiagramTheme: session.defaultDiagramTheme,
   };
 }
 
