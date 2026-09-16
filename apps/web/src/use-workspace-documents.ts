@@ -9,6 +9,7 @@ import {
   DEFAULT_WBS_SOURCE,
   type DiagramKind,
 } from "./model";
+import { setPlantUmlTheme } from "./plantuml-theme";
 import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
 import {
   importDocumentVersions,
@@ -29,6 +30,7 @@ type TabControls = {
 type Options = {
   tabs: TabControls;
   replaceActiveDocumentOnCreate: boolean;
+  defaultDiagramTheme: string;
   openNewDocumentDialog: (replaceActiveDocument: boolean) => void;
   closeNewDocumentDialog: () => void;
   fileHandles: MutableRefObject<Map<string, WritableFileHandle>>;
@@ -61,6 +63,7 @@ export function diagramKindDisplayName(diagramKind: DiagramKind): string {
 export function useWorkspaceDocuments({
   tabs,
   replaceActiveDocumentOnCreate,
+  defaultDiagramTheme,
   openNewDocumentDialog,
   closeNewDocumentDialog,
   fileHandles,
@@ -129,9 +132,13 @@ export function useWorkspaceDocuments({
   const createDocument = useCallback(
     (diagramKind: DiagramKind) => {
       const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
+      const source =
+        defaultDiagramTheme && diagramKind !== "wbs"
+          ? setPlantUmlTheme(starterSource(diagramKind), defaultDiagramTheme)
+          : starterSource(diagramKind);
       tabs.addDocument({
         diagramKind,
-        source: starterSource(diagramKind),
+        source,
         fileName: "untitled.pumlu",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -150,6 +157,7 @@ export function useWorkspaceDocuments({
       if (diagramKind === "gantt") window.setTimeout(openProjectInspector, 0);
     },
     [
+      defaultDiagramTheme,
       externalCheckSnoozedUntil,
       fileHandles,
       fileSnapshots,

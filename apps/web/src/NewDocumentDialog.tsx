@@ -80,7 +80,7 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
   );
 }
 
-function PlantUmlUltimateLogo() {
+export function PlantUmlUltimateLogo() {
   return (
     <svg className="welcome-logo" viewBox="0 0 104 104" role="img" aria-label="PlantUML Ultimate logo">
       <defs>

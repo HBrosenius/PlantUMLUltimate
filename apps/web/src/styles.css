@@ -1667,6 +1667,20 @@ textarea:focus-visible,
   gap: 8px;
   padding-top: 4px;
 }
+.settings-dialog-onboarding {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0;
+}
+.settings-dialog-onboarding > section,
+.settings-dialog-onboarding > footer {
+  margin: 0 22px;
+}
+.settings-dialog-onboarding > section:first-of-type {
+  margin-top: 18px;
+}
+.settings-dialog-onboarding > footer {
+  margin-bottom: 22px;
+}
 .external-conflict-backdrop {
   padding-top: min(8vh, 72px);
 }

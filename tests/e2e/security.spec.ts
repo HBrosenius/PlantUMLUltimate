@@ -74,7 +74,14 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
   await page.goto(
     `/#collaboration=${roomId}&server=${encodeURIComponent("http://127.0.0.1:5173")}&access=${accessToken}&mode=viewer`,
   );
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
   const join = page.getByRole("dialog", { name: "Collaboration" });
+  await Promise.race([onboarding.waitFor({ state: "visible" }), join.waitFor({ state: "visible" })]);
+  if (await onboarding.isVisible()) {
+    // The test reads .cm-content, which basic mode hides; opt into advanced mode during onboarding.
+    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("button", { name: "Get started" }).click();
+  }
   await expect(join.getByText("This viewer link follows live changes without permission to edit.")).toBeVisible();
   await join.getByLabel("Your name").fill("Read-only reviewer");
   await join.getByRole("button", { name: "Join as viewer" }).click();

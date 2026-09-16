@@ -4,10 +4,15 @@ const integrationOrigin = "https://jira.plantuml.brosenius.se";
 
 async function openGantt(page: Page) {
   await page.goto("/");
-  await page
-    .getByRole("dialog", { name: "Choose a diagram type" })
-    .getByRole("button", { name: "Gantt diagram" })
-    .click();
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
+  if (await onboarding.isVisible()) {
+    // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
+    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("button", { name: "Get started" }).click();
+  }
+  await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 

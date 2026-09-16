@@ -98,7 +98,7 @@ describe("normalizeSession", () => {
       activeDocumentId: "first",
     });
 
-    expect(session.version).toBe(6);
+    expect(session.version).toBe(7);
     expect(session.documents[0]?.source.indexOf("[Frontend] starts at [Testing]'s end")).toBeGreaterThan(
       session.documents[0]?.source.indexOf("[Testing] lasts 2 days") ?? -1,
     );
@@ -163,11 +163,14 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 6,
+      version: 7,
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,
       theme: "dark",
+      advancedMode: true,
+      defaultDiagramTheme: "",
+      onboarded: true,
       documents: [
         {
           id: "first",

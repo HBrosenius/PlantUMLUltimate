@@ -27,7 +27,14 @@ async function setEditorSource(page: Page, source: string) {
 
 async function createGantt(page: Page) {
   await page.goto("/");
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
+  if (await onboarding.isVisible()) {
+    // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
+    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("button", { name: "Get started" }).click();
+  }
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
@@ -57,7 +64,15 @@ async function join(browser: Browser, link: string, name: string, role: "editor"
     });
   });
   await page.goto(link);
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
   const dialog = page.getByRole("dialog", { name: "Collaboration" });
+  await Promise.race([onboarding.waitFor({ state: "visible" }), dialog.waitFor({ state: "visible" })]);
+  if (await onboarding.isVisible()) {
+    // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
+    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("button", { name: "Get started" }).click();
+  }
+  await expect(dialog).toBeVisible();
   await dialog.getByLabel("Your name").fill(name);
   await dialog.getByRole("button", { name: `Join as ${role}` }).click();
   await expect(dialog).toContainText(role === "viewer" ? "Viewing only" : "Connected");

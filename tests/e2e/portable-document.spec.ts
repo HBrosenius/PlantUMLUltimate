@@ -25,11 +25,11 @@ test("saves and reopens a portable document with retained history", async ({ pag
     });
   });
   await page.goto("/");
-  const onboarding = page.getByRole("dialog", { name: "Choose a diagram type" });
-  await onboarding
-    .waitFor({ state: "visible", timeout: 2_000 })
-    .then(() => onboarding.getByRole("button", { name: "Gantt diagram" }).click())
-    .catch(() => undefined);
+  const welcome = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await Promise.race([welcome.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
+  if (await welcome.isVisible()) await welcome.getByRole("button", { name: "Get started" }).click();
+  await chooser.getByRole("button", { name: "Gantt diagram" }).click();
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();

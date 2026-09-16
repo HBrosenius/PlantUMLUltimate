@@ -17,6 +17,11 @@ test("opens a PlantUML file delivered by the installed app launch queue", async 
     });
   });
   await page.goto("/");
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
+  await onboarding.waitFor({ state: "visible" });
+  // The test reads .cm-content, which basic mode hides; opt into advanced mode during onboarding.
+  await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+  await onboarding.getByRole("button", { name: "Get started" }).click();
   await page.waitForFunction(() =>
     Boolean((window as Window & { testLaunchConsumer?: (params: { files: unknown[] }) => void }).testLaunchConsumer),
   );
