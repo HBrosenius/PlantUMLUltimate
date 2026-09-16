@@ -213,6 +213,41 @@ describe("semantic review", () => {
       title: "Reconnect dependency A → B as C → B",
       confidence: "confirmed",
     },
+    {
+      name: "marking an existing task complete for the first time",
+      before: "@startgantt\n[A] lasts 2 days\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n[A] is 100% completed\n@endgantt",
+      title: "Mark A as complete",
+      confidence: "confirmed",
+    },
+    {
+      name: "a completion percentage change",
+      before: "@startgantt\n[A] lasts 2 days\n[A] is 40% completed\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n[A] is 100% completed\n@endgantt",
+      title: "Mark A as complete",
+      confidence: "confirmed",
+    },
+    {
+      name: "a partial completion percentage change",
+      before: "@startgantt\n[A] lasts 2 days\n[A] is 40% completed\n@endgantt",
+      after: "@startgantt\n[A] lasts 2 days\n[A] is 60% completed\n@endgantt",
+      title: "Change A completion from 40% to 60%",
+      confidence: "confirmed",
+    },
+    {
+      name: "assigning a resource to an existing task for the first time",
+      before: "@startgantt\n[Testing] lasts 5 days\n@endgantt",
+      after: "@startgantt\n[Testing] on {Alice} lasts 5 days\n@endgantt",
+      title: "Assign Testing to Alice",
+      confidence: "confirmed",
+    },
+    {
+      name: "reassigning a task's resource",
+      before: "@startgantt\n[Testing] on {Alice} lasts 5 days\n@endgantt",
+      after: "@startgantt\n[Testing] on {Bob} lasts 5 days\n@endgantt",
+      title: "Reassign Testing from Alice to Bob",
+      confidence: "confirmed",
+    },
   ])("classifies $name", ({ before, after, title, confidence }) => {
     expect(buildReviewGroups(before, after, "gantt")).toMatchObject([{ title, confidence }]);
   });

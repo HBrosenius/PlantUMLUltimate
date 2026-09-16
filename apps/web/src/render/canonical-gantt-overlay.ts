@@ -8,9 +8,13 @@ function numberAttribute(element: Element, name: string): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
-function isVisibleFill(rect: Element): boolean {
-  const fill = rect.getAttribute("fill")?.toLowerCase();
-  return fill !== undefined && fill !== "none" && fill !== "transparent" && fill !== "#00000000";
+function hasVisiblePaint(element: Element): boolean {
+  const visible = (value: string | null) =>
+    value !== null && value !== "none" && value !== "transparent" && value !== "#00000000";
+  return (
+    visible(element.getAttribute("fill")?.toLowerCase() ?? null) ||
+    visible(element.getAttribute("stroke")?.toLowerCase() ?? null)
+  );
 }
 
 function durationInDays(task: GanttTask): number | undefined {
@@ -134,8 +138,9 @@ export function addCanonicalGanttOverlay(
   if (document.querySelector("parsererror")) return svg;
   const root = document.documentElement;
   const texts = [...root.querySelectorAll("text")];
-  const rects = [...root.querySelectorAll("rect")].filter(isVisibleFill);
+  const rects = [...root.querySelectorAll("rect")].filter(hasVisiblePaint);
   const polygons = [...root.querySelectorAll("polygon")];
+  const paintedPolygons = polygons.filter(hasVisiblePaint);
   const canonicalDependencyPaths = [...root.querySelectorAll("path")].filter((path) => {
     const stroke = path.getAttribute("stroke")?.toLowerCase();
     const fill = path.getAttribute("fill")?.toLowerCase();
@@ -306,6 +311,12 @@ export function addCanonicalGanttOverlay(
       const height = numberAttribute(rect, "height");
       return y !== undefined && height !== undefined && height <= 30 && textY >= y && textY <= y + height;
     });
+    const rowPolygons = task.milestone
+      ? []
+      : paintedPolygons.filter((polygon) => {
+          const bounds = polygonBounds(polygon);
+          return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
+        });
     const milestoneShapes = task.milestone
       ? polygons.filter((polygon) => {
           const bounds = polygonBounds(polygon);
@@ -323,7 +334,7 @@ export function addCanonicalGanttOverlay(
             },
           ]
         : [];
-    if (!rowBars.length && !milestoneShapes.length && !labelBounds.length) continue;
+    if (!rowBars.length && !rowPolygons.length && !milestoneShapes.length && !labelBounds.length) continue;
     const bounds = rowBars
       .flatMap((bar) => {
         const x = numberAttribute(bar, "x");
@@ -335,6 +346,7 @@ export function addCanonicalGanttOverlay(
           : [{ x, y, width, height }];
       })
       .concat(
+        rowPolygons.flatMap((polygon) => polygonBounds(polygon) ?? []),
         milestoneShapes.flatMap((polygon) => polygonBounds(polygon) ?? []),
         labelBounds,
       );
@@ -358,6 +370,10 @@ export function addCanonicalGanttOverlay(
     rowBars.forEach((bar) => {
       bar.setAttribute("data-visual-task-id", task.id);
       bar.setAttribute("data-resource-match", String(resourceMatch));
+    });
+    rowPolygons.forEach((shape) => {
+      shape.setAttribute("data-visual-task-id", task.id);
+      shape.setAttribute("data-resource-match", String(resourceMatch));
     });
     milestoneShapes.forEach((shape) => {
       shape.setAttribute("data-visual-task-id", task.id);
