@@ -186,6 +186,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Jira…",
     "Backup workspace…",
     "Restore workspace…",
+    "Settings…",
     "Export›",
   ]);
   await menu.getByRole("menuitem", { name: "Export" }).hover();

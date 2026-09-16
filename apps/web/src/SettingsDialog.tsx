@@ -81,17 +81,11 @@ export function SettingsDialog({
         <section className="document-settings-section" aria-labelledby="settings-mode-heading">
           <h3 id="settings-mode-heading">Editing mode</h3>
           <label className="document-settings-checkbox">
-            <input
-              type="checkbox"
-              checked={advancedMode}
-              onChange={(event) => setAdvancedMode(event.target.checked)}
-            />{" "}
+            <input type="checkbox" checked={advancedMode} onChange={(event) => setAdvancedMode(event.target.checked)} />{" "}
             Advanced mode
           </label>
           <p>
-            {advancedMode
-              ? "Also shows the Code and Split views alongside Diagram."
-              : "Shows the Diagram view only."}
+            {advancedMode ? "Also shows the Code and Split views alongside Diagram." : "Shows the Diagram view only."}
           </p>
         </section>
         <footer>

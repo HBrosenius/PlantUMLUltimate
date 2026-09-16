@@ -122,6 +122,75 @@ function polygonBounds(polygon: SVGPolygonElement): Geometry | undefined {
   return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
 }
 
+const PATH_COMMAND_ARITY: Record<string, number> = {
+  M: 2,
+  L: 2,
+  H: 1,
+  V: 1,
+  C: 6,
+  S: 4,
+  Q: 4,
+  T: 2,
+  A: 7,
+  Z: 0,
+};
+
+/**
+ * Themed Gantt bars that span a closed day render as a rounded-rect `<path>` (arcs at the
+ * corners) instead of a plain `<rect>`, so the overlay must derive bar bounds from `d` itself —
+ * `getBBox()` is unreliable on the detached document this module parses the SVG into.
+ */
+function pathBounds(path: SVGPathElement): Geometry | undefined {
+  const d = path.getAttribute("d");
+  if (!d) return undefined;
+  const commands = d.match(/[a-zA-Z][^a-zA-Z]*/g);
+  if (!commands) return undefined;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  let currentX = 0;
+  let currentY = 0;
+  for (const command of commands) {
+    const letter = command[0]!;
+    const upper = letter.toUpperCase();
+    const arity = PATH_COMMAND_ARITY[upper];
+    if (arity === undefined || upper === "Z") continue;
+    const relative = letter !== upper;
+    const numbers =
+      command
+        .slice(1)
+        .match(/-?\d+(?:\.\d+)?/g)
+        ?.map(Number) ?? [];
+    for (let index = 0; index + arity <= numbers.length; index += arity) {
+      const group = numbers.slice(index, index + arity);
+      let x: number | undefined;
+      let y: number | undefined;
+      if (upper === "H") {
+        x = group[0];
+        y = currentY;
+      } else if (upper === "V") {
+        x = currentX;
+        y = group[0];
+      } else {
+        x = group[arity - 2];
+        y = group[arity - 1];
+      }
+      if (x === undefined || y === undefined) continue;
+      if (relative) {
+        x += currentX;
+        y += currentY;
+      }
+      xs.push(x);
+      ys.push(y);
+      currentX = x;
+      currentY = y;
+    }
+  }
+  if (!xs.length) return undefined;
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+}
+
 export function addCanonicalGanttOverlay(
   svg: string,
   tasks: readonly GanttTask[] | undefined,
@@ -141,6 +210,7 @@ export function addCanonicalGanttOverlay(
   const rects = [...root.querySelectorAll("rect")].filter(hasVisiblePaint);
   const polygons = [...root.querySelectorAll("polygon")];
   const paintedPolygons = polygons.filter(hasVisiblePaint);
+  const paintedPaths = [...root.querySelectorAll("path")].filter(hasVisiblePaint);
   const canonicalDependencyPaths = [...root.querySelectorAll("path")].filter((path) => {
     const stroke = path.getAttribute("stroke")?.toLowerCase();
     const fill = path.getAttribute("fill")?.toLowerCase();
@@ -317,6 +387,12 @@ export function addCanonicalGanttOverlay(
           const bounds = polygonBounds(polygon);
           return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
         });
+    const rowPaths = task.milestone
+      ? []
+      : paintedPaths.filter((path) => {
+          const bounds = pathBounds(path);
+          return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
+        });
     const milestoneShapes = task.milestone
       ? polygons.filter((polygon) => {
           const bounds = polygonBounds(polygon);
@@ -334,7 +410,8 @@ export function addCanonicalGanttOverlay(
             },
           ]
         : [];
-    if (!rowBars.length && !rowPolygons.length && !milestoneShapes.length && !labelBounds.length) continue;
+    if (!rowBars.length && !rowPolygons.length && !rowPaths.length && !milestoneShapes.length && !labelBounds.length)
+      continue;
     const bounds = rowBars
       .flatMap((bar) => {
         const x = numberAttribute(bar, "x");
@@ -347,6 +424,7 @@ export function addCanonicalGanttOverlay(
       })
       .concat(
         rowPolygons.flatMap((polygon) => polygonBounds(polygon) ?? []),
+        rowPaths.flatMap((path) => pathBounds(path) ?? []),
         milestoneShapes.flatMap((polygon) => polygonBounds(polygon) ?? []),
         labelBounds,
       );
@@ -372,6 +450,10 @@ export function addCanonicalGanttOverlay(
       bar.setAttribute("data-resource-match", String(resourceMatch));
     });
     rowPolygons.forEach((shape) => {
+      shape.setAttribute("data-visual-task-id", task.id);
+      shape.setAttribute("data-resource-match", String(resourceMatch));
+    });
+    rowPaths.forEach((shape) => {
       shape.setAttribute("data-visual-task-id", task.id);
       shape.setAttribute("data-resource-match", String(resourceMatch));
     });

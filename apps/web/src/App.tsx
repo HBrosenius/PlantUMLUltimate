@@ -469,6 +469,7 @@ export function App() {
     updateSelection: updateCollaborationSelection,
   } = useCollaborationLifecycle({
     hydrated,
+    onboarded: tabs.session.onboarded,
     defaultEndpoint: defaultCollaborationEndpoint,
     workspace,
     tabs,
@@ -477,10 +478,10 @@ export function App() {
     setInteractionMessage,
   });
   useEffect(() => {
-    if (!hydrated || startupSplashShown.current) return;
+    if (!hydrated || startupSplashShown.current || !tabs.session.onboarded) return;
     startupSplashShown.current = true;
     openDialog({ kind: "new-document", replaceActiveDocument: activeDocument.historyId === "history-welcome" });
-  }, [activeDocument.historyId, hydrated, openDialog]);
+  }, [activeDocument.historyId, hydrated, openDialog, tabs.session.onboarded]);
   useEffect(() => {
     if (workspace.diagramKind !== "wbs") closeDialog("add-wbs-node");
   }, [closeDialog, workspace.diagramKind]);

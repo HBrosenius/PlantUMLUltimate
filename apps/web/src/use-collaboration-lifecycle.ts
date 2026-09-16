@@ -46,6 +46,7 @@ type TabControls = {
 
 type Options = {
   hydrated: boolean;
+  onboarded: boolean;
   defaultEndpoint: string;
   workspace: WorkspaceSnapshot;
   tabs: TabControls;
@@ -69,6 +70,7 @@ export function normalizeCollaborationEndpoint(endpoint: string, allowHttp: bool
 
 export function useCollaborationLifecycle({
   hydrated,
+  onboarded,
   defaultEndpoint,
   workspace,
   tabs,
@@ -285,14 +287,14 @@ export function useCollaborationLifecycle({
   }, [collaboration, setInteractionMessage, startCollaboration]);
 
   useEffect(() => {
-    if (!hydrated || collaboration) return;
+    if (!hydrated || !onboarded || collaboration) return;
     const details = collaborationLinkDetails(window.location.href);
     const roomId = details.roomId;
     const endpoint = details.endpoint ?? defaultEndpoint;
     if (!roomId || !endpoint) return;
     setPendingCollaboration({ roomId, endpoint, accessToken: details.accessToken, role: details.role });
     setDialogOpen(true);
-  }, [collaboration, defaultEndpoint, hydrated]);
+  }, [collaboration, defaultEndpoint, hydrated, onboarded]);
 
   useEffect(() => {
     if (collaboration?.documentId === tabs.activeId) sessionRef.current?.applySource(workspace.source);

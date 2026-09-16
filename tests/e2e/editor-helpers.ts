@@ -4,7 +4,14 @@ export const source = (body: string) => `@startgantt\nProject starts 2026-09-01\
 
 export async function prepareEditor(page: Page) {
   await page.goto("/");
+  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
+  if (await onboarding.isVisible()) {
+    // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
+    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("button", { name: "Get started" }).click();
+  }
   await expect(chooser).toBeVisible();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
