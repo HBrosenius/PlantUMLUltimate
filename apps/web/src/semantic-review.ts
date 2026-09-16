@@ -531,7 +531,13 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         : kind === "sequence"
           ? describeSequenceChange(removed, added)
           : kind === "gantt"
-            ? describeGanttChange(removedGantt, addedGantt, removedGanttDependencies, addedGanttDependencies, leftGanttItems)
+            ? describeGanttChange(
+                removedGantt,
+                addedGantt,
+                removedGanttDependencies,
+                addedGanttDependencies,
+                leftGanttItems,
+              )
             : describeSequenceChange([], []);
     groups.push({
       id: `change-${groups.length + 1}`,
