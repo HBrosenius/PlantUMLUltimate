@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
 test("reviews project changes against the last successful save and exports a report", async ({ page }) => {
+  test.setTimeout(120_000);
   await page.addInitScript(() => {
     let bytes = new Uint8Array();
     const handle = {
@@ -39,7 +40,11 @@ test("reviews project changes against the last successful save and exports a rep
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
-  await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();
+  // The project save round-trip (mocked File System Access write + IndexedDB persistence) can
+  // run well past the default expect timeout on a loaded CI runner — this shard's other tests
+  // were all running 2-3x slower than their local baseline when this was observed failing, not
+  // just this assertion — so give it more room rather than the default.
+  await expect(navigator.getByText("Saved", { exact: true })).toBeVisible({ timeout: 60_000 });
 
   await setSource(page, source("[Backend] lasts 2 days"));
   await navigator.getByRole("button", { name: "Review", exact: true }).click();
