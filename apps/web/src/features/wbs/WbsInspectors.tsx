@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsRelationship } from "@plantuml-studio/diagram-wbs";
 import { ColorField } from "../../ColorField";
+import { IconField } from "../../IconField";
 
 export function WbsNodeInspector({
   node,
@@ -18,9 +19,15 @@ export function WbsNodeInspector({
   const [label, setLabel] = useState(node.label);
   const [color, setColor] = useState(node.color ?? "");
   const [textColor, setTextColor] = useState(node.textColor ?? "");
-  const [stereotype, setStereotype] = useState(node.stereotype ?? "");
+  // Not user-editable here (dropped from the inspector as unnecessary complexity) — carried
+  // through unchanged so applying an unrelated field doesn't erase a stereotype set via source.
+  const stereotype = node.stereotype ?? "";
+  const [link, setLink] = useState(node.link ?? "");
+  const [icon, setIcon] = useState(node.icon ?? "");
   const [side, setSide] = useState<"left" | "right">(node.side === "left" ? "left" : "right");
   const labelMissing = !label.trim();
+  const iconTrimmed = icon.trim();
+  const iconInvalid = iconTrimmed.length > 0 && !/^[$&][\w-]+$/.test(iconTrimmed);
   return (
     <aside className="task-inspector wbs-node-inspector" aria-label="WBS node inspector">
       <header>
@@ -31,8 +38,9 @@ export function WbsNodeInspector({
       </header>
       <label>
         Label
-        <input
+        <textarea
           required
+          rows={label.includes("\n") ? Math.min(8, label.split("\n").length + 1) : 2}
           aria-invalid={labelMissing}
           aria-describedby={labelMissing ? "wbs-label-error" : undefined}
           value={label}
@@ -58,12 +66,30 @@ export function WbsNodeInspector({
       <ColorField label="Background color" value={color} onChange={setColor} />
       <ColorField label="Text color" value={textColor} onChange={setTextColor} />
       <label>
-        Stereotype
-        <input placeholder="phase" value={stereotype} onChange={(event) => setStereotype(event.target.value)} />
+        Link URL
+        <input
+          type="url"
+          placeholder="https://example.com"
+          value={link}
+          onChange={(event) => setLink(event.target.value)}
+        />
       </label>
+      <label>
+        Icon
+        <IconField value={icon} onChange={setIcon} invalid={iconInvalid} {...(iconInvalid ? { describedBy: "wbs-icon-error" } : {})} />
+      </label>
+      {iconInvalid && (
+        <span id="wbs-icon-error" className="field-error" role="alert">
+          Start with <code>&amp;</code> for a built-in icon (e.g. <code>&amp;home</code>) or <code>$</code> for a
+          custom sprite (e.g. <code>$my-sprite</code>).
+        </span>
+      )}
       <div className="inspector-actions">
         <button onClick={onAddChild}>Add child…</button>
-        <button disabled={labelMissing} onClick={() => onApply({ label, color, textColor, stereotype, side })}>
+        <button
+          disabled={labelMissing || iconInvalid}
+          onClick={() => onApply({ label, color, textColor, stereotype, link, icon, side })}
+        >
           Apply
         </button>
         <button className="danger" onClick={onDelete}>

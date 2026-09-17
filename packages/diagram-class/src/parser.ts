@@ -32,7 +32,18 @@ const member = (text: string, sourceRange: { from: number; to: number }, id: str
     sourceRange,
   };
 };
+let lastSource: string | undefined;
+let lastResult: ClassDocument | undefined;
+
 export function parseClassDiagram(source: string): ClassDocument {
+  if (source === lastSource && lastResult) return lastResult;
+  const result = parseClassDiagramUncached(source);
+  lastSource = source;
+  lastResult = result;
+  return result;
+}
+
+function parseClassDiagramUncached(source: string): ClassDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Class source exceeds the 100,000 character limit");
   const entities: ClassEntity[] = [];
   const packages: ClassPackage[] = [];

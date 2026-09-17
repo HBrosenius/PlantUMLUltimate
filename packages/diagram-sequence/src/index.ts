@@ -153,7 +153,18 @@ function singleLineReference(line: string): { color?: string; participants: stri
   return { ...(color ? { color } : {}), participants, text: rest.slice(colon + 1).trimStart() };
 }
 
+let lastSource: string | undefined;
+let lastResult: SequenceDocument | undefined;
+
 export function parseSequence(source: string): SequenceDocument {
+  if (source === lastSource && lastResult) return lastResult;
+  const result = parseSequenceUncached(source);
+  lastSource = source;
+  lastResult = result;
+  return result;
+}
+
+function parseSequenceUncached(source: string): SequenceDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Sequence source exceeds the 100,000 character limit");
   const participants: SequenceParticipant[] = [];
   const messages: SequenceMessage[] = [];

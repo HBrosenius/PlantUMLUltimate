@@ -1,5 +1,30 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+
+// @plantuml/core's engine lazily loads its OpenIconic sprite set (for a WBS/mindmap node's
+// "<&name>" icon) by requesting "/openiconic.js" relative to the page's own origin — not
+// relative to wherever the bundler placed plantuml.js — so it must be served verbatim at that
+// exact root path rather than imported as a normal fingerprinted asset. Reading straight from
+// the installed package (rather than committing a copy under public/) keeps it in sync with
+// whatever @plantuml/core version is installed.
+function openIconicAsset(): Plugin {
+  const source = readFileSync(fileURLToPath(import.meta.resolve("@plantuml/core/openiconic.js")));
+  return {
+    name: "plantuml-ultimate-openiconic",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== "/openiconic.js") return next();
+        res.setHeader("Content-Type", "text/javascript");
+        res.end(source);
+      });
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "openiconic.js", source });
+    },
+  };
+}
 
 export function serviceWorkerSource(files: readonly string[]): string {
   const paths = [
@@ -50,7 +75,7 @@ function pwaServiceWorker(): Plugin {
 
 export default defineConfig({
   base: "/",
-  plugins: [react(), pwaServiceWorker()],
+  plugins: [react(), openIconicAsset(), pwaServiceWorker()],
   worker: { format: "es" },
   build: {
     // PlantUML and Graphviz are intentionally emitted as large standalone assets and

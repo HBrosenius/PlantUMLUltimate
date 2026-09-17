@@ -13,6 +13,8 @@ export interface WbsNode {
   color?: string;
   textColor?: string;
   stereotype?: string;
+  link?: string;
+  icon?: string;
   sourceRange: TextRange;
   subtreeRange: TextRange;
 }
@@ -39,5 +41,7 @@ export interface WbsNodeInput {
   color?: string;
   textColor?: string;
   stereotype?: string;
+  link?: string;
+  icon?: string;
   side?: Exclude<WbsSide, "root">;
 }

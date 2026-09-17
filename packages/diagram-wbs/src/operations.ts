@@ -6,10 +6,17 @@ const markerFor = (depth: number, side: WbsSide) =>
 const plantUmlColor = (value: string) => (value.startsWith("#") ? value : `#${value}`);
 const MAX_SOURCE_LENGTH = 100_000;
 const statement = (marker: string, value: WbsNodeInput, alias?: string) => {
-  const label = value.textColor?.trim()
+  const iconPrefix = value.icon?.trim() ? `<${value.icon.trim()}> ` : "";
+  const styledLabel = value.textColor?.trim()
     ? `<color:${plantUmlColor(value.textColor.trim())}>${value.label.trim()}</color>`
     : value.label.trim();
-  return `${marker}${alias ? `(${alias})` : ""}${value.color?.trim() ? `[${plantUmlColor(value.color.trim())}]` : ""} ${label}${value.stereotype?.trim() ? ` <<${value.stereotype.trim()}>>` : ""}`;
+  const label = `${iconPrefix}${styledLabel}`;
+  const linked = value.link?.trim() ? `[[${value.link.trim()} ${label}]]` : label;
+  const stereotype = value.stereotype?.trim() ? ` <<${value.stereotype.trim()}>>` : "";
+  const prefix = `${marker}${alias ? `(${alias})` : ""}${value.color?.trim() ? `[${plantUmlColor(value.color.trim())}]` : ""}`;
+  // A label containing newlines can't fit PlantUML's single-line `marker label` form, so it is
+  // written using the `marker: text;` multiline form instead, closing with a trailing `;`.
+  return linked.includes("\n") ? `${prefix}: ${linked};${stereotype}` : `${prefix} ${linked}${stereotype}`;
 };
 const insertionPoint = (source: string) => {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("WBS source exceeds the 100,000 character limit");

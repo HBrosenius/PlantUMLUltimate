@@ -10,7 +10,18 @@ const id = (value: string) =>
 const unquote = (value: string) => value.trim().replace(/^"([\s\S]*)"$/, "$1");
 const MAX_SOURCE_LENGTH = 100_000;
 
+let lastSource: string | undefined;
+let lastResult: ActivityDocument | undefined;
+
 export function parseActivity(source: string): ActivityDocument {
+  if (source === lastSource && lastResult) return lastResult;
+  const result = parseActivityUncached(source);
+  lastSource = source;
+  lastResult = result;
+  return result;
+}
+
+function parseActivityUncached(source: string): ActivityDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Activity source exceeds the 100,000 character limit");
   const nodes: ActivityNode[] = [];
   const controls: ActivityControl[] = [];

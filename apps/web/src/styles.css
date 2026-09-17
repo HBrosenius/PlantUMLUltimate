@@ -2160,6 +2160,13 @@ textarea:focus-visible,
   font-size: 12px;
 }
 
+.inspector-hint {
+  margin: -4px 0 11px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .rename-preview {
   max-height: 15rem;
   overflow: auto;
@@ -4134,6 +4141,102 @@ textarea:focus-visible,
   background: var(--bg);
   outline: 1px solid var(--accent);
   outline-offset: -1px;
+}
+
+.icon-field {
+  display: grid;
+  gap: 4px;
+}
+.icon-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.icon-field-row input {
+  flex: 1;
+  min-width: 0;
+}
+.icon-field-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.icon-field-trigger:hover,
+.icon-field-trigger:focus-visible {
+  border-color: var(--accent);
+}
+.icon-field-trigger svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.icon-field-panel {
+  display: grid;
+  gap: 6px;
+  max-height: 300px;
+  margin-top: 4px;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+}
+.icon-field-search {
+  width: 100%;
+}
+.icon-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  grid-auto-rows: min-content;
+  gap: 4px;
+  overflow-y: auto;
+}
+.icon-field-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.icon-field-grid button svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.icon-field-grid button:hover,
+.icon-field-grid button:focus-visible {
+  background: var(--bg);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.icon-field-empty {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.icon-field-hint {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 .color-swatch-preview {
   flex: none;
