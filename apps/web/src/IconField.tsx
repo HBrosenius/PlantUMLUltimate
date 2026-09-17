@@ -119,8 +119,8 @@ export function IconField({
             {matches.length === 0 && <p className="icon-field-empty">No icons match "{query}".</p>}
           </div>
           <p className="icon-field-hint">
-            Looking for a custom sprite instead? Type <code>$name</code> directly in the field above — those aren't
-            in this gallery since they're defined in your own source.
+            Looking for a custom sprite instead? Type <code>$name</code> directly in the field above — those aren't in
+            this gallery since they're defined in your own source.
           </p>
         </div>
       )}

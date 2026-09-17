@@ -76,12 +76,17 @@ export function WbsNodeInspector({
       </label>
       <label>
         Icon
-        <IconField value={icon} onChange={setIcon} invalid={iconInvalid} {...(iconInvalid ? { describedBy: "wbs-icon-error" } : {})} />
+        <IconField
+          value={icon}
+          onChange={setIcon}
+          invalid={iconInvalid}
+          {...(iconInvalid ? { describedBy: "wbs-icon-error" } : {})}
+        />
       </label>
       {iconInvalid && (
         <span id="wbs-icon-error" className="field-error" role="alert">
-          Start with <code>&amp;</code> for a built-in icon (e.g. <code>&amp;home</code>) or <code>$</code> for a
-          custom sprite (e.g. <code>$my-sprite</code>).
+          Start with <code>&amp;</code> for a built-in icon (e.g. <code>&amp;home</code>) or <code>$</code> for a custom
+          sprite (e.g. <code>$my-sprite</code>).
         </span>
       )}
       <div className="inspector-actions">

@@ -37,7 +37,12 @@ describe("WBS operations", () => {
   });
   it("adds and round-trips a node link", () => {
     const document = parseWbs(source);
-    const inserted = insertWbsNode(source, document, { label: "Budget", link: "https://example.com/budget" }, document.nodes[1]);
+    const inserted = insertWbsNode(
+      source,
+      document,
+      { label: "Budget", link: "https://example.com/budget" },
+      document.nodes[1],
+    );
     expect(inserted).toContain("*** [[https://example.com/budget Budget]]");
     const parsed = parseWbs(inserted);
     const budget = parsed.nodes.find((node) => node.label === "Budget")!;

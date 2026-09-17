@@ -58,17 +58,13 @@ describe("WBS parser", () => {
   });
 
   it("parses a multiline label combined with an inline text color and stereotype", () => {
-    const document = parseWbs(
-      "@startwbs\n*: <color:#Blue>Line one\nLine two</color>;\n@endwbs",
-    );
+    const document = parseWbs("@startwbs\n*: <color:#Blue>Line one\nLine two</color>;\n@endwbs");
     expect(document.diagnostics).toEqual([]);
     expect(document.nodes[0]).toMatchObject({ label: "Line one\nLine two", textColor: "#Blue" });
   });
 
   it("parses a multiline label wrapped in a link, without the URL leaking into the label", () => {
-    const document = parseWbs(
-      "@startwbs\n*: [[https://example.com/plan Line one\nLine two]];\n@endwbs",
-    );
+    const document = parseWbs("@startwbs\n*: [[https://example.com/plan Line one\nLine two]];\n@endwbs");
     expect(document.diagnostics).toEqual([]);
     expect(document.nodes[0]).toMatchObject({ label: "Line one\nLine two", link: "https://example.com/plan" });
   });
