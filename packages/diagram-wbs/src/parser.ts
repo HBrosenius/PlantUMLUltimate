@@ -7,6 +7,21 @@ const CONTROL =
   /^(?:@startwbs|@endwbs|title\b|caption\b|header\b|footer\b|legend\b|endlegend\b|skinparam\b|style\b|<style>|<\/style>)\b/i;
 const MAX_SOURCE_LENGTH = 100_000;
 
+// A node's `:`-opened label may close on a later source line (e.g. `*: Line one\nLine two;`);
+// this recognizes a closing `;`, optionally trailed by a stereotype and/or a background color.
+const MULTILINE_CLOSE = /;\s*(?:<<\s*[^>]*>>\s*)?(?:#[\w-]+\s*)?$/;
+
+function stripNodePrefixes(value: string): string {
+  const withoutAlias = value.replace(/^\s*\([A-Za-z_][\w-]*\)\s*/, "");
+  return withoutAlias.replace(/^\s*\[#[\w-]+\]\s*/, "");
+}
+
+// True when `content` (the text following a node's marker) opens a `:` ... `;` multiline label
+// that isn't already closed on the same line.
+function opensMultilineLabel(content: string): boolean {
+  return stripNodePrefixes(content).trimStart().startsWith(":") && !MULTILINE_CLOSE.test(content.trim());
+}
+
 function nodeDetails(value: string) {
   const alias = value.match(/^\s*\(([A-Za-z_][\w-]*)\)\s*/)?.[1];
   const withoutAlias = alias ? value.replace(/^\s*\([A-Za-z_][\w-]*\)\s*/, "") : value;
@@ -19,25 +34,45 @@ function nodeDetails(value: string) {
   const rawLabel = (
     trailingColor ? withoutStereotype.slice(0, withoutStereotype.lastIndexOf(trailingColor)) : withoutStereotype
   ).trim();
-  const textColorMatch = rawLabel.match(/^<color:([^>]+)>([\s\S]*)<\/color>$/i);
+  // Strip a `:` ... `;` multiline wrapper (whether closed on this line or joined from several)
+  // before looking for a link, icon, or inline text color, so all three are recognized inside
+  // it too — a link's `[[...]]` must be at the very start of the string to match.
+  let inner = rawLabel;
+  if (inner.startsWith(":")) inner = inner.slice(1);
+  if (/;\s*$/.test(inner)) inner = inner.replace(/;\s*$/, "");
+  inner = inner.trim();
+  const linkMatch = inner.match(/^\[\[(\S+)(?:\s+([\s\S]*))?\]\]$/);
+  const link = linkMatch?.[1];
+  const labelSource = (linkMatch ? (linkMatch[2] ?? linkMatch[1]!) : inner).trim();
+  const iconMatch = labelSource.match(/^<([$&][\w-]+)>\s*/);
+  const icon = iconMatch?.[1];
+  const withoutIcon = icon ? labelSource.slice(iconMatch[0].length) : labelSource;
+  const textColorMatch = withoutIcon.match(/^<color:([^>]+)>([\s\S]*)<\/color>$/i);
   const textColor = textColorMatch?.[1];
-  const label = (textColorMatch?.[2] ?? rawLabel)
-    .trim()
-    .replace(/^:/, "")
-    .replace(/;$/, "")
-    .replace(/^\[\[([^\s\]]+)\s+/, "")
-    .replace(/\]\]$/, "")
-    .trim();
+  const label = (textColorMatch?.[2] ?? withoutIcon).trim();
   return {
     label,
     ...(alias ? { alias } : {}),
     ...(color ? { color } : {}),
     ...(textColor ? { textColor } : {}),
     ...(stereotype ? { stereotype } : {}),
+    ...(link ? { link } : {}),
+    ...(icon ? { icon } : {}),
   };
 }
 
+let lastSource: string | undefined;
+let lastDocument: WbsDocument | undefined;
+
 export function parseWbs(source: string): WbsDocument {
+  if (source === lastSource && lastDocument) return lastDocument;
+  const document = parseWbsUncached(source);
+  lastSource = source;
+  lastDocument = document;
+  return document;
+}
+
+function parseWbsUncached(source: string): WbsDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("WBS source exceeds the 100,000 character limit");
   const nodes: WbsNode[] = [];
   const relationships: WbsDocument["relationships"] = [];
@@ -47,7 +82,9 @@ export function parseWbs(source: string): WbsDocument {
   let offset = 0;
   let sawStart = false;
   let sawEnd = false;
-  for (const text of source.split("\n")) {
+  const lines = source.split("\n");
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const text = lines[lineIndex]!;
     const range = { from: offset, to: offset + text.length };
     offset += text.length + 1;
     const trimmed = text.trim();
@@ -83,7 +120,17 @@ export function parseWbs(source: string): WbsDocument {
     }
     const depth = marker.length;
     const side: WbsSide = marker[0] === "+" ? "right" : marker[0] === "-" ? "left" : depth === 1 ? "root" : "right";
-    const details = nodeDetails(match[3] ?? "");
+    let content = match[3] ?? "";
+    if (opensMultilineLabel(content)) {
+      while (lineIndex + 1 < lines.length && !MULTILINE_CLOSE.test(content.trim())) {
+        lineIndex += 1;
+        const continuation = lines[lineIndex]!;
+        content += `\n${continuation}`;
+        range.to = offset + continuation.length;
+        offset += continuation.length + 1;
+      }
+    }
+    const details = nodeDetails(content);
     if (!details.label)
       diagnostics.push({ severity: "error", message: "WBS node needs a label", range, code: "empty-node" });
     // A node's parent is simply the nearest preceding node one level shallower — PlantUML nests

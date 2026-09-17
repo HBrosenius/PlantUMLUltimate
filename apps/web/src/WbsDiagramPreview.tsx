@@ -87,17 +87,49 @@ export function WbsDiagramPreview({
     const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
     const claimed = new Set<SVGTextElement>();
     const renderedNodes = new Map<string, SVGTextElement>();
+    // PlantUML renders a multiline `*: line one\nline two;` label as one <text> per line, so a
+    // node whose label contains "\n" is matched against a run of consecutive, unclaimed <text>
+    // elements whose trimmed contents equal the label's lines in order.
+    const findLabelTexts = (label: string): SVGTextElement[] | undefined => {
+      const lines = label.split("\n");
+      if (lines.length === 1) {
+        const text = texts.find((candidate) => !claimed.has(candidate) && candidate.textContent?.trim() === label);
+        return text ? [text] : undefined;
+      }
+      for (let start = 0; start + lines.length <= texts.length; start += 1) {
+        const run = texts.slice(start, start + lines.length);
+        if (run.some((candidate) => claimed.has(candidate))) continue;
+        if (run.every((candidate, index) => candidate.textContent?.trim() === lines[index])) return run;
+      }
+      return undefined;
+    };
     for (const node of document.nodes) {
-      const text = texts.find((candidate) => !claimed.has(candidate) && candidate.textContent?.trim() === node.label);
-      if (!text) continue;
-      claimed.add(text);
+      const matched = findLabelTexts(node.label);
+      if (!matched || matched.length === 0) continue;
+      const text = matched[0]!;
+      matched.forEach((candidate) => {
+        claimed.add(candidate);
+        candidate.dataset.wbsNodeId = node.id;
+        candidate.classList.toggle("wbs-selected-node", node.id === selectedId);
+      });
       renderedNodes.set(node.id, text);
-      text.dataset.wbsNodeId = node.id;
       text.setAttribute("tabindex", "0");
       text.setAttribute("role", "button");
       text.setAttribute("aria-label", `Select WBS node ${node.label}`);
-      text.classList.toggle("wbs-selected-node", node.id === selectedId);
-      const bounds = text.getBBox();
+      const boxes = matched.map((candidate) => candidate.getBBox());
+      const bounds = boxes.slice(1).reduce(
+        (union, box) => {
+          const x = Math.min(union.x, box.x);
+          const y = Math.min(union.y, box.y);
+          return {
+            x,
+            y,
+            width: Math.max(union.x + union.width, box.x + box.width) - x,
+            height: Math.max(union.y + union.height, box.y + box.height) - y,
+          };
+        },
+        { x: boxes[0]!.x, y: boxes[0]!.y, width: boxes[0]!.width, height: boxes[0]!.height },
+      );
       const hit = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       hit.setAttribute("x", String(bounds.x - 12));
       hit.setAttribute("y", String(bounds.y - 8));

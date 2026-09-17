@@ -32,7 +32,18 @@ function endpointId(value: string, aliases: ReadonlyMap<string, string>): string
   return aliases.get(normalized) ?? normalized;
 }
 
+let lastSource: string | undefined;
+let lastResult: UseCaseDocument | undefined;
+
 export function parseUseCase(source: string): UseCaseDocument {
+  if (source === lastSource && lastResult) return lastResult;
+  const result = parseUseCaseUncached(source);
+  lastSource = source;
+  lastResult = result;
+  return result;
+}
+
+function parseUseCaseUncached(source: string): UseCaseDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Use Case source exceeds the 100,000 character limit");
   const elements: UseCaseElement[] = [];
   const packages: UseCasePackage[] = [];

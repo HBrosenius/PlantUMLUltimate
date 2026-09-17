@@ -190,6 +190,131 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await expect(page.locator(".cm-content")).toContainText("title Delivery breakdown");
 });
 
+test("edits and clears a WBS node link", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
+  const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await inspector.getByLabel("Link URL").fill("https://example.com/plan");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[[https://example.com/plan Plan]]");
+  await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
+
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  await expect(inspector.getByLabel("Link URL")).toHaveValue("https://example.com/plan");
+  await inspector.getByLabel("Link URL").fill("");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("** Plan");
+  await expect(page.locator(".cm-content")).not.toContainText("[[");
+});
+
+test("edits and clears a WBS node icon", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
+  const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await inspector.getByLabel("Icon", { exact: true }).fill("&home");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("<&home> Plan");
+  // The OpenIconic sprite set is fetched lazily by the PlantUML engine at "/openiconic.js"
+  // (see apps/web/vite.config.ts's openIconicAsset plugin) — if that request 404s, rendering
+  // fails with a ".render-error" banner, but the *previous* successful SVG (from before this
+  // node had an icon) stays on screen throughout, so checking the SVG alone would pass even
+  // when rendering the icon actually failed. Waiting for the statusbar's "Rendering…" state to
+  // start and finish first proves this specific re-render actually completed before checking it.
+  const statusbar = page.locator(".statusbar");
+  await expect(statusbar).toContainText("Rendering…");
+  await expect(statusbar).not.toContainText("Rendering…", { timeout: 20_000 });
+  await expect(page.locator(".render-error")).toHaveCount(0);
+  await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
+
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  await expect(inspector.getByLabel("Icon", { exact: true })).toHaveValue("&home");
+  await inspector.getByLabel("Icon", { exact: true }).fill("");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("** Plan");
+  await expect(page.locator(".cm-content")).not.toContainText("<&home>");
+});
+
+test("has no Stereotype field, and preserves an existing stereotype set via source", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n** Plan <<phase>>\n@endwbs");
+  const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await expect(inspector.getByLabel("Stereotype")).toHaveCount(0);
+  await inspector.getByLabel("Label").fill("Planning");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("** Planning <<phase>>");
+});
+
+test("picks a built-in icon from the searchable gallery instead of typing it", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
+  const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await inspector.getByRole("button", { name: "Choose a built-in icon from a gallery" }).click();
+  const gallery = inspector.locator(".icon-field-panel");
+  await gallery.getByPlaceholder("Search icons…").fill("beaker");
+  await gallery.getByRole("button", { name: "beaker", exact: true }).click();
+  await expect(inspector.getByLabel("Icon", { exact: true })).toHaveValue("&beaker");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("<&beaker> Plan");
+  await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
+});
+
+test("edits a WBS node label into and out of a multiline shape", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
+  const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
+  await plan.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await inspector.getByLabel("Label").fill("Line one\nLine two");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("**: Line one");
+  await expect(page.locator(".cm-content")).toContainText("Line two;");
+  await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
+
+  const replan = page.locator("[data-wbs-node-id]").filter({ hasText: "Line one" }).first();
+  await replan.focus();
+  await page.keyboard.press("Enter");
+  await expect(inspector.getByLabel("Label")).toHaveValue("Line one\nLine two");
+  await inspector.getByLabel("Label").fill("Plan");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("** Plan");
+  await expect(page.locator(".cm-content")).not.toContainText("Line two;");
+});
+
 test("reorders and connects WBS nodes with the keyboard", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page
