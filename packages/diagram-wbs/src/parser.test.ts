@@ -24,6 +24,16 @@ describe("WBS parser", () => {
     expect(document.diagnostics.map((item) => item.code)).toEqual(["missing-parent", "missing-start", "missing-end"]);
   });
 
+  it("resolves parents by depth alone, regardless of a mismatched marker family", () => {
+    const document = parseWbs("@startwbs\n* Project\n-- Left branch\n+++ Odd child\n@endwbs");
+    expect(document.diagnostics).toEqual([]);
+    expect(document.nodes.map(({ label, depth, parentId }) => ({ label, depth, parentId }))).toEqual([
+      { label: "Project", depth: 1, parentId: undefined },
+      { label: "Left branch", depth: 2, parentId: "wbs-0" },
+      { label: "Odd child", depth: 3, parentId: "wbs-1" },
+    ]);
+  });
+
   it("parses aliased nodes and arrows", () => {
     const document = parseWbs("@startwbs\n*(project) Project\n**(plan) Plan\nproject ..> plan #blue\n@endwbs");
     expect(document.nodes.map((node) => node.alias)).toEqual(["project", "plan"]);

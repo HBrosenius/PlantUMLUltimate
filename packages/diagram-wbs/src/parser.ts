@@ -43,7 +43,7 @@ export function parseWbs(source: string): WbsDocument {
   const relationships: WbsDocument["relationships"] = [];
   const unknown: WbsDocument["unknown"] = [];
   const diagnostics: LanguageDiagnostic[] = [];
-  const stack = new Map<string, WbsNode>();
+  const stack = new Map<number, WbsNode>();
   let offset = 0;
   let sawStart = false;
   let sawEnd = false;
@@ -86,7 +86,10 @@ export function parseWbs(source: string): WbsDocument {
     const details = nodeDetails(match[3] ?? "");
     if (!details.label)
       diagnostics.push({ severity: "error", message: "WBS node needs a label", range, code: "empty-node" });
-    const parent = depth > 1 ? (stack.get(`${side}:${depth - 1}`) ?? stack.get(`root:${depth - 1}`)) : undefined;
+    // A node's parent is simply the nearest preceding node one level shallower — PlantUML nests
+    // by indentation depth alone. A marker's +/- family only steers left/right placement for a
+    // root's direct child (depth 2); deeper markers don't need to match their ancestor's family.
+    const parent = depth > 1 ? stack.get(depth - 1) : undefined;
     if (depth > 1 && !parent)
       diagnostics.push({
         severity: "error",
@@ -105,12 +108,8 @@ export function parseWbs(source: string): WbsDocument {
       subtreeRange: { ...range },
     };
     nodes.push(node);
-    stack.set(`${side}:${depth}`, node);
-    if (side === "root") stack.set(`root:${depth}`, node);
-    for (const key of [...stack.keys()]) {
-      const keyDepth = Number(key.split(":")[1]);
-      if (keyDepth > depth) stack.delete(key);
-    }
+    stack.set(depth, node);
+    for (const key of [...stack.keys()]) if (key > depth) stack.delete(key);
   }
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index]!;

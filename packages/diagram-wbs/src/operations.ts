@@ -25,8 +25,11 @@ export function insertWbsNode(
   after?: WbsNode,
 ): string {
   const depth = parent ? parent.depth + 1 : after ? after.depth : 1;
+  // Every non-root node picks its own side independently: it only steers where that node sits
+  // relative to its own parent, so it doesn't need to match any ancestor's family. When no side
+  // is requested, default to the reference node's exact marker character (cosmetic only).
   const side = depth === 1 ? "root" : (value.side ?? parent?.side ?? after?.side ?? "right");
-  const inheritedMarker = !value.side ? (parent?.marker[0] ?? after?.marker[0]) : undefined;
+  const inheritedMarker = value.side ? undefined : (parent?.marker[0] ?? after?.marker[0]);
   const marker = depth === 1 ? "*" : inheritedMarker ? inheritedMarker.repeat(depth) : markerFor(depth, side);
   const at = after
     ? lineEnd(source, after.subtreeRange.to)
@@ -38,17 +41,11 @@ export function insertWbsNode(
 }
 
 export function updateWbsNode(source: string, node: WbsNode, value: WbsNodeInput): string {
-  const side = value.side ?? node.side;
-  const marker = !value.side || side === node.side ? node.marker : markerFor(node.depth, side);
-  if (side === node.side || node.depth === 1)
-    return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${source.slice(node.sourceRange.to)}`;
-  const tail = source.slice(node.sourceRange.to, node.subtreeRange.to);
-  const family = side === "left" ? "-" : "+";
-  const changedTail = tail.replace(
-    /^(\s*)[*+-]+(?=\s)/gm,
-    (match) => `${match.match(/^\s*/)?.[0] ?? ""}${family.repeat(match.trim().length)}`,
-  );
-  return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${changedTail}${source.slice(node.subtreeRange.to)}`;
+  // A node's side only steers its position relative to its own parent, so changing it only ever
+  // rewrites this node's own marker — descendants keep whichever side they were each given.
+  const side = node.depth === 1 ? "root" : (value.side ?? node.side);
+  const marker = side === node.side ? node.marker : markerFor(node.depth, side);
+  return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${source.slice(node.sourceRange.to)}`;
 }
 
 export function renameWbsNodeAlias(source: string, document: WbsDocument, node: WbsNode, alias: string): string {
@@ -202,15 +199,18 @@ export function moveWbsSubtree(
     return source;
   const block = source.slice(node.subtreeRange.from, lineEnd(source, node.subtreeRange.to)).replace(/\n$/, "");
   const newDepth = parent ? parent.depth + 1 : (before?.depth ?? 1);
-  const markerCharacter = parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*";
+  const inheritedFamily = parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*";
   const depthDelta = newDepth - node.depth;
+  // Only the moved node's own line adopts its new parent's family — each descendant keeps its
+  // own side (relative to its own parent, which didn't change) and just gets re-sized for depth.
   const transformed = block
     .split("\n")
-    .map((line) => {
+    .map((line, index) => {
       const match = line.match(/^(\s*)([*+-]+)(\s*.*)$/);
       if (!match?.[2]) return line;
       const depth = Math.max(1, match[2].length + depthDelta);
-      return `${match[1]}${depth === 1 ? "*" : markerCharacter.repeat(depth)}${match[3]}`;
+      const family = index === 0 ? inheritedFamily : match[2][0]!;
+      return `${match[1]}${depth === 1 ? "*" : family.repeat(depth)}${match[3]}`;
     })
     .join("\n");
   const removedTo = lineEnd(source, node.subtreeRange.to);

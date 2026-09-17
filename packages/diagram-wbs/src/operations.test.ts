@@ -42,10 +42,37 @@ describe("WBS operations", () => {
     const deleted = deleteWbsNode(connected, document, document.nodes[1]!);
     expect(deleted).toBe("@startwbs\n*(project) Project\n**(deliver) Deliver\nproject -> deliver\n@endwbs");
   });
+  it("lets any non-root node change its own side without touching its descendants' sides", () => {
+    const mixed = "@startwbs\n* Project\n** Plan\n+++ Task A\n--- Task B\n@endwbs";
+    const document = parseWbs(mixed);
+    const plan = document.nodes.find((node) => node.label === "Plan")!;
+    const updated = updateWbsNode(mixed, plan, { label: "Plan", side: "left" });
+    expect(updated).toContain("-- Plan");
+    expect(updated).toContain("+++ Task A");
+    expect(updated).toContain("--- Task B");
+    expect(parseWbs(updated).diagnostics).toEqual([]);
+  });
+  it("resolves a deep node's parent purely by depth even when marker families mismatch", () => {
+    const document = parseWbs(source);
+    const plan = document.nodes.find((node) => node.label === "Plan")!;
+    const inserted = insertWbsNode(source, document, { label: "Detail", side: "left" }, plan);
+    expect(inserted).toContain("--- Detail");
+    expect(parseWbs(inserted).diagnostics).toEqual([]);
+  });
   it("moves a subtree and adjusts its depth", () => {
     const document = parseWbs(source);
     const moved = moveWbsSubtree(source, document, document.nodes[1]!, document.nodes[3]);
     expect(moved).toContain("** Deliver\n*** Plan\n**** Scope");
+  });
+  it("preserves each descendant's own side when moving a subtree, only resizing depth", () => {
+    const mixed = "@startwbs\n* Project\n** Plan\n+++ Task A\n--- Task B\n** Deliver\n@endwbs";
+    const document = parseWbs(mixed);
+    const plan = document.nodes.find((node) => node.label === "Plan")!;
+    const deliver = document.nodes.find((node) => node.label === "Deliver")!;
+    const moved = moveWbsSubtree(mixed, document, plan, deliver);
+    expect(moved).toContain("*** Plan");
+    expect(moved).toContain("++++ Task A");
+    expect(moved).toContain("---- Task B");
   });
   it("adds stable aliases and an arrow between nodes", () => {
     const document = parseWbs(source);
