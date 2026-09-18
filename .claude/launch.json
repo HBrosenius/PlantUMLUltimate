@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5175", "--strictPort"],
+      "runtimeArgs": ["run", "dev", "--workspace", "@plantuml-studio/web", "--", "--port", "5175", "--strictPort"],
       "port": 5175
     }
   ]

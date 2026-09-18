@@ -15,11 +15,13 @@ export function SettingsDialog({
   current,
   onApply,
   onClose,
+  onPreview,
 }: {
   mode: "onboarding" | "settings";
   current: AppSettings;
   onApply(settings: AppSettings): void;
   onClose(): void;
+  onPreview?(settings: AppSettings): void;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, mode === "onboarding" ? () => undefined : onClose);
@@ -59,7 +61,14 @@ export function SettingsDialog({
           <h3 id="settings-appearance-heading">Appearance</h3>
           <label>
             Theme
-            <select value={theme} onChange={(event) => setTheme(event.target.value as Theme)}>
+            <select
+              value={theme}
+              onChange={(event) => {
+                const value = event.target.value as Theme;
+                setTheme(value);
+                onPreview?.({ theme: value, advancedMode, defaultDiagramTheme });
+              }}
+            >
               <option value="system">System</option>
               <option value="light">Light</option>
               <option value="dark">Dark</option>
@@ -67,7 +76,14 @@ export function SettingsDialog({
           </label>
           <label>
             Default diagram theme
-            <select value={defaultDiagramTheme} onChange={(event) => setDefaultDiagramTheme(event.target.value)}>
+            <select
+              value={defaultDiagramTheme}
+              onChange={(event) => {
+                const value = event.target.value;
+                setDefaultDiagramTheme(value);
+                onPreview?.({ theme, advancedMode, defaultDiagramTheme: value });
+              }}
+            >
               <option value="">Default PlantUML</option>
               {PLANTUML_THEMES.map((option) => (
                 <option key={option} value={option}>
