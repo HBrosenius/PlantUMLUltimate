@@ -34,10 +34,10 @@ import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
 import type { DiagramKind } from "../model";
 import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
-import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
+import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-project-save";
 import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
-import { embeddedDiagramDisplayName, projectContentEqual } from "./embedded-project";
+import { embeddedDiagramDisplayName } from "./embedded-project";
 
 type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -469,19 +469,9 @@ export function useSingleFileProject({
         embedded.currentRevision,
         controller.signal,
       );
-      let result = written;
-      if (written.clean) {
-        embedded.markSaved(snapshot.revision);
-      } else {
-        // The revision counter can advance between capturing the snapshot and the write
-        // finishing (e.g. an in-flight auto-correction settles back to the same content).
-        // Re-check the actual content before permanently flagging the save as stale.
-        const latest = await embedded.captureSaveSnapshot();
-        if (latest && projectContentEqual(latest.project, snapshot.project)) {
-          embedded.markSaved(latest.revision);
-          result = { clean: true, message: "Saved project" };
-        }
-      }
+      const result = (await settleSavedRevision(snapshot, embedded))
+        ? { clean: true, message: "Saved project" }
+        : written;
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(result.message);
       return result;
@@ -514,9 +504,15 @@ export function useSingleFileProject({
       if (!saved) return;
       handle.current = saved.handle;
       unlockedKey.current = encoded.unlockedKey;
-      embedded.markSaved(snapshot.revision);
+      const clean = await settleSavedRevision(snapshot, embedded);
       setSavedBaseline(structuredClone(snapshot.project));
-      setInteractionMessage(saved.downloaded ? "Downloaded project snapshot" : `Saved ${saved.fileName}`);
+      setInteractionMessage(
+        saved.downloaded
+          ? "Downloaded project snapshot"
+          : clean
+            ? `Saved ${saved.fileName}`
+            : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
+      );
     } catch (error) {
       if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
       setInteractionMessage("Project save cancelled");
