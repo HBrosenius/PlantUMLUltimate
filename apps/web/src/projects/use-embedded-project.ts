@@ -161,6 +161,17 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     setRevision(revisionRef.current);
   }, []);
 
+  /**
+   * Apply bookkeeping the app derives from the diagrams themselves (e.g. registering indexed
+   * declarations as project elements) without treating it as an unsaved user change. The
+   * index resolves asynchronously after a diagram is added or opened, so it can land after a
+   * save completed; flagging that as dirty would tell the user their just-saved project has
+   * unsaved changes. The derived state is idempotent and is written by the next real save.
+   */
+  const updateDerivedProject = useCallback((update: (current: PortableProject) => PortableProject) => {
+    setProject((current) => (current ? update(current) : current));
+  }, []);
+
   const openMember = useCallback(
     async (memberId: string) => {
       if (!project) return undefined;
@@ -297,6 +308,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     deleteDiagram,
     snapshot,
     updateProject,
+    updateDerivedProject,
     captureSaveSnapshot,
     currentRevision,
     markSaved,

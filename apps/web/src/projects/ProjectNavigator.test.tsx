@@ -170,6 +170,57 @@ describe("ProjectNavigator", () => {
     expect(onOpen).toHaveBeenCalledWith("document-1");
   });
 
+  it("routes indexed declarations through the registration callback instead of an element edit", async () => {
+    const declaration = {
+      kind: "gantt-task" as const,
+      symbolKey: "Backend",
+      declarationHash: "e".repeat(64),
+      from: 12,
+      to: 36,
+    };
+    const indexedProject: VirtualProject = {
+      manifest: {
+        ...project.manifest,
+        documents: [{ id: "document-1", path: "Delivery", format: "plantuml" }],
+      },
+      members: [
+        {
+          documentId: "document-1",
+          path: "Delivery",
+          diagramKind: "gantt",
+          state: "available",
+          source: "@startgantt\n[Backend] lasts 8 days\n@endgantt",
+          declarations: [declaration],
+          linkCount: 0,
+        },
+      ],
+      resolutions: new Map(),
+    };
+    const onElementsChange = vi.fn();
+    const onElementsRegistered = vi.fn();
+    render(
+      <ProjectNavigator
+        project={indexedProject}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={onElementsChange}
+        onElementsRegistered={onElementsRegistered}
+      />,
+    );
+
+    await waitFor(() => expect(onElementsRegistered).toHaveBeenCalledOnce());
+    const [registered] = onElementsRegistered.mock.calls[0]!;
+    expect(registered).toHaveLength(1);
+    expect(registered[0]).toMatchObject({
+      documentId: "document-1",
+      kind: "gantt-task",
+      locator: { symbolKey: "Backend", declarationHash: declaration.declarationHash, from: 12, to: 36 },
+    });
+    expect(onElementsChange).not.toHaveBeenCalled();
+  });
+
   it("distinguishes unresolved links and explains a direct repair", async () => {
     const first = {
       id: "element-1",

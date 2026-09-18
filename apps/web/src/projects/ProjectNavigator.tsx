@@ -15,6 +15,7 @@ export function ProjectNavigator({
   onCloseProject,
   onLinksChange,
   onElementsChange,
+  onElementsRegistered,
   onRename,
   onDelete,
   dirty,
@@ -33,6 +34,7 @@ export function ProjectNavigator({
   onCloseProject?(): void;
   onLinksChange(links: readonly ProjectLink[]): void;
   onElementsChange(elements: readonly ProjectElement[]): void;
+  onElementsRegistered?(elements: readonly ProjectElement[]): void;
   onRename?(documentId: string, name: string): void;
   onDelete?(documentId: string): void;
   dirty?: boolean;
@@ -266,7 +268,12 @@ export function ProjectNavigator({
           ) : null}
         </section>
       )}
-      <ProjectLinksPanel project={project} onChange={onLinksChange} onElementsChange={onElementsChange} />
+      <ProjectLinksPanel
+        project={project}
+        onChange={onLinksChange}
+        onElementsChange={onElementsChange}
+        {...(onElementsRegistered ? { onElementsRegistered } : {})}
+      />
       {renaming && onRename && (
         <ProjectNameDialog
           title="Rename diagram"
