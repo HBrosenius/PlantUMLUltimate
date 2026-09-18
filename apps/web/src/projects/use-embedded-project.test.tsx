@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PortableProject } from "@plantuml-studio/document-format";
 import type { DocumentSnapshot } from "../workspace-storage";
 import { useEmbeddedProject } from "./use-embedded-project";
+import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
+import { projectContentEqual } from "./embedded-project";
 
 vi.mock("../workspace-storage", () => ({
   enableMemoryOnlyHistory: vi.fn(async () => undefined),
@@ -114,6 +116,75 @@ describe("useEmbeddedProject lifecycle", () => {
     rerender({ documents: [{ ...baseDocument, resourceCapacities: { Alice: 80 } }] });
     await waitFor(() => expect(result.current.dirty).toBe(true));
     expect(result.current.currentRevision()).toBe(1);
+  });
+
+  it("lets a revision bump that settles back to the saved content be recognized as unchanged", async () => {
+    const value = projectWithDiagram();
+    const historyId = `project-history-${value.projectId}-${value.diagrams[0]!.id}`;
+    const baseDocument = {
+      id: "tab-1",
+      historyId,
+      source: value.diagrams[0]!.document.current.source,
+      diagramKind: "gantt" as const,
+      fileName: "Plan",
+      dirty: false,
+      zoom: 1,
+      cursor: { line: 1, column: 1 },
+      historyMaxVersions: 10,
+      historyMaxLogicalBytes: 1024 * 1024,
+      resourceCapacities: {},
+    };
+    const controls = {
+      addDocument: vi.fn(() => "tab-1"),
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ documents }: { documents: DocumentSnapshot[] }) => useEmbeddedProject({ ...controls, documents }),
+      { initialProps: { documents: [baseDocument] } },
+    );
+
+    act(() => result.current.openProject(value));
+    await waitFor(() => expect(result.current.project).toBeDefined());
+    const snapshot = await result.current.captureSaveSnapshot();
+    expect(snapshot?.revision).toBe(0);
+
+    let releaseEncode!: () => void;
+    const encodeGate = new Promise<void>((resolve) => {
+      releaseEncode = resolve;
+    });
+    const coordinator = new EmbeddedProjectSaveCoordinator();
+    const handle = {
+      name: "project.pumlu",
+      getFile: async () => new File([], "project.pumlu"),
+      createWritable: async () => ({
+        write: async () => undefined,
+        close: async () => undefined,
+      }),
+    };
+    const saving = coordinator.save(
+      snapshot!,
+      async () => {
+        await encodeGate;
+        return new Uint8Array([1]);
+      },
+      handle,
+      result.current.currentRevision,
+    );
+
+    // An in-flight auto-correction bumps the revision mid-write, then settles back to the
+    // exact content that was already captured in the snapshot before the write finishes.
+    rerender({ documents: [{ ...baseDocument, resourceCapacities: { Alice: 80 } }] });
+    await waitFor(() => expect(result.current.currentRevision()).toBe(1));
+    rerender({ documents: [baseDocument] });
+    await waitFor(() => expect(result.current.currentRevision()).toBe(2));
+
+    releaseEncode();
+    const written = await saving;
+    expect(written.clean).toBe(false);
+
+    const latest = await result.current.captureSaveSnapshot();
+    expect(projectContentEqual(latest!.project, snapshot!.project)).toBe(true);
   });
 
   it("opens members against the replacement project identity", async () => {

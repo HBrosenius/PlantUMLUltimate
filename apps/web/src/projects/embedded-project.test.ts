@@ -6,6 +6,7 @@ import {
   embeddedMemberTabs,
   embeddedDiagramDisplayName,
   openEmbeddedMember,
+  projectContentEqual,
   projectWithOpenTabSources,
   snapshotEmbeddedProject,
 } from "./embedded-project";
@@ -164,5 +165,69 @@ describe("embedded project tabs", () => {
     expect(document.historyPolicy).toEqual({ maxVersions: 25, maxLogicalBytes: 2 * 1024 * 1024 });
     expect(document.versions).toHaveLength(1);
     expect(document.versions[0]).toMatchObject({ reason: "manual", pinned: true });
+  });
+
+  it("treats snapshots with identical member content as content-equal despite metadata drift", () => {
+    const a = project();
+    const b = {
+      ...project(),
+      savedAt: "2026-09-12T00:00:00.000Z",
+      diagrams: [
+        {
+          ...project().diagrams[0]!,
+          document: {
+            ...project().diagrams[0]!.document,
+            savedAt: "2026-09-12T00:00:00.000Z",
+            versions: [{ id: "v1" } as never],
+          },
+        },
+      ],
+    };
+
+    expect(projectContentEqual(a, b)).toBe(true);
+  });
+
+  it("treats a changed source, baseline, policy, or resource capacity as content-different", () => {
+    const base = project();
+    const withDifferentSource = {
+      ...base,
+      diagrams: [
+        {
+          ...base.diagrams[0]!,
+          document: {
+            ...base.diagrams[0]!.document,
+            current: { ...base.diagrams[0]!.document.current, source: "@startgantt\n[New] lasts 1 day\n@endgantt\n" },
+          },
+        },
+      ],
+    };
+    const withDifferentBaseline = {
+      ...base,
+      diagrams: [
+        {
+          ...base.diagrams[0]!,
+          document: {
+            ...base.diagrams[0]!.document,
+            current: { ...base.diagrams[0]!.document.current, baselineVersionId: "version-1" },
+          },
+        },
+      ],
+    };
+    const withDifferentCapacities = {
+      ...base,
+      diagrams: [
+        {
+          ...base.diagrams[0]!,
+          document: {
+            ...base.diagrams[0]!.document,
+            settings: { resourceCapacities: { Alice: 40 } },
+          },
+        },
+      ],
+    };
+
+    expect(projectContentEqual(base, withDifferentSource)).toBe(false);
+    expect(projectContentEqual(base, withDifferentBaseline)).toBe(false);
+    expect(projectContentEqual(base, withDifferentCapacities)).toBe(false);
   });
 });
