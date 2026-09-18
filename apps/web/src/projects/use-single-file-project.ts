@@ -37,7 +37,7 @@ import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } f
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
-import { embeddedDiagramDisplayName } from "./embedded-project";
+import { embeddedDiagramDisplayName, projectContentEqual } from "./embedded-project";
 
 type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -456,7 +456,7 @@ export function useSingleFileProject({
     saveAbort.current = controller;
     setSaving(true);
     try {
-      const result = await saveCoordinator.current.save(
+      const written = await saveCoordinator.current.save(
         snapshot,
         async (value, signal) =>
           (
@@ -469,7 +469,19 @@ export function useSingleFileProject({
         embedded.currentRevision,
         controller.signal,
       );
-      if (result.clean) embedded.markSaved(snapshot.revision);
+      let result = written;
+      if (written.clean) {
+        embedded.markSaved(snapshot.revision);
+      } else {
+        // The revision counter can advance between capturing the snapshot and the write
+        // finishing (e.g. an in-flight auto-correction settles back to the same content).
+        // Re-check the actual content before permanently flagging the save as stale.
+        const latest = await embedded.captureSaveSnapshot();
+        if (latest && projectContentEqual(latest.project, snapshot.project)) {
+          embedded.markSaved(latest.revision);
+          result = { clean: true, message: "Saved project" };
+        }
+      }
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(result.message);
       return result;

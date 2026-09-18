@@ -93,6 +93,34 @@ export function projectWithOpenTabSources(
   return changed ? { ...project, diagrams } : project;
 }
 
+/**
+ * Compares the persisted-member fields two project snapshots would save, ignoring metadata
+ * (savedAt, version history) that changes without representing a real content difference.
+ * Used to recover from a save whose revision counter advanced between snapshot capture and
+ * write completion for a reason that didn't actually change what gets written to disk.
+ */
+export function projectContentEqual(a: PortableProject, b: PortableProject): boolean {
+  if (a.name !== b.name) return false;
+  if (JSON.stringify(a.elements) !== JSON.stringify(b.elements)) return false;
+  if (JSON.stringify(a.links) !== JSON.stringify(b.links)) return false;
+  if (a.diagrams.length !== b.diagrams.length) return false;
+  const byId = new Map(b.diagrams.map((diagram) => [diagram.id, diagram]));
+  return a.diagrams.every((diagram) => {
+    const other = byId.get(diagram.id);
+    if (!other) return false;
+    return (
+      diagram.name === other.name &&
+      diagram.document.current.source === other.document.current.source &&
+      diagram.document.current.diagramKind === other.document.current.diagramKind &&
+      diagram.document.current.baselineVersionId === other.document.current.baselineVersionId &&
+      diagram.document.historyPolicy.maxVersions === other.document.historyPolicy.maxVersions &&
+      diagram.document.historyPolicy.maxLogicalBytes === other.document.historyPolicy.maxLogicalBytes &&
+      JSON.stringify(diagram.document.settings.resourceCapacities) ===
+        JSON.stringify(other.document.settings.resourceCapacities)
+    );
+  });
+}
+
 /** Capture every persistent member field from currently open tabs. */
 export async function snapshotEmbeddedProject(
   project: PortableProject,
