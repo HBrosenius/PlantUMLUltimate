@@ -151,6 +151,46 @@ describe("semantic review", () => {
     expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(after);
   });
 
+  it("keeps a replaced explicit start paired with its dependency when a task was added afterwards", () => {
+    const before =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";
+    const after =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Frontend] starts at [Backend]'s end\n[Deploy] lasts 3 days\n\n@endgantt";
+    const groups = buildReviewGroups(before, after, "gantt");
+    expect(groups.map((group) => group.title)).toEqual(["Add dependency Backend → Frontend", "Add task Deploy"]);
+    expect(groups.map((group) => group.title)).not.toContain("Remove task Frontend");
+    expect(applyReviewGroups(before, groups, new Set(groups.map((group) => group.id)))).toBe(after);
+    expect(applyReviewGroups(before, groups, new Set([groups[0]!.id]))).toBe(
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Frontend] starts at [Backend]'s end\n@endgantt",
+    );
+    expect(applyReviewGroups(before, groups, new Set([groups[1]!.id]))).toBe(
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n[Deploy] lasts 3 days\n\n@endgantt",
+    );
+  });
+
+  it("keeps a replaced explicit start paired with its dependency when a task was added before it", () => {
+    const before =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n[Frontend] starts 2026-09-05\n[Frontend] lasts 10 days\n@endgantt";
+    const after =
+      "@startgantt\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days\n\n[Frontend] lasts 10 days\n[Deploy] lasts 3 days\n\n[Frontend] starts at [Backend]'s end\n[Review] lasts 2 days\n\n@endgantt";
+    const groups = buildReviewGroups(before, after, "gantt");
+    expect(groups.map((group) => group.title)).toEqual([
+      "Add task Deploy",
+      "Add dependency Backend → Frontend",
+      "Add task Review",
+    ]);
+    expect(applyReviewGroups(before, groups, new Set(groups.map((group) => group.id)))).toBe(after);
+    expect(new Set(groups.map((group) => group.id)).size).toBe(groups.length);
+  });
+
+  it("does not report a removed declaration as a removed task when the task still exists", () => {
+    const before = "@startgantt\n[A] starts 2026-09-01\n[A] lasts 2 days\n[A] is colored in Red\n@endgantt";
+    const after = "@startgantt\n[A] starts 2026-09-01\n[A] lasts 2 days\n@endgantt";
+    expect(buildReviewGroups(before, after, "gantt")).toMatchObject([
+      { title: "Modify task A", detail: "The task still exists; its color declaration was removed." },
+    ]);
+  });
+
   it("recognizes a standalone Gantt dependency without reporting a new task", () => {
     const before = "@startgantt\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n@endgantt";
     const after =
