@@ -8,6 +8,15 @@ describe("bundled PlantUML themes", () => {
     expect(bundledPlantUmlThemes.get("blueprint")).not.toMatch(/^---/);
   });
 
+  it("gives WBS and mind map nodes readable colours in themes whose node skinparam hides them", () => {
+    for (const name of ["sketchy-outline", "united", "minty", "spacelab", "spacelab-white"]) {
+      const theme = bundledPlantUmlThemes.get(name) ?? "";
+      expect(theme, name).toMatch(/wbsDiagram\s*\{\s*node\s*\{[^}]*FontColor/);
+      expect(theme, name).toMatch(/mindmapDiagram\s*\{\s*node\s*\{[^}]*FontColor/);
+      expect(theme.indexOf("wbsDiagram"), name).toBeGreaterThan(theme.indexOf("skinparam node"));
+    }
+  });
+
   it("expands a built-in theme at the native directive position", () => {
     const expanded = expandBundledTheme("@startgantt\n!theme blueprint\n[A] lasts 2 days\n@endgantt");
     expect(expanded).toContain("' !theme blueprint expanded locally by PlantUML Ultimate");

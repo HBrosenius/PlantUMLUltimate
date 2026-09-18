@@ -555,3 +555,25 @@ skinparam stack {
 	$primary_scheme()
 }
 !endsub
+
+''
+'' PlantUML Ultimate: WBS and mind map nodes otherwise inherit the legacy `skinparam node` block above,
+'' which paints them in colours meant for deployment nodes and leaves the labels unreadable.
+'' Style them like this theme's primary elements instead.
+''
+<style>
+wbsDiagram {
+  node {
+    FontColor $DARK
+    LineColor $PRIMARY_DARK
+    BackgroundColor $PRIMARY_LIGHT
+  }
+}
+mindmapDiagram {
+  node {
+    FontColor $DARK
+    LineColor $PRIMARY_DARK
+    BackgroundColor $PRIMARY_LIGHT
+  }
+}
+</style>
