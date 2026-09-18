@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PortableProject } from "@plantuml-studio/document-format";
-import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
+import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-project-save";
 
 const project = { projectId: "project", schemaVersion: 2 } as PortableProject;
 
@@ -142,5 +142,80 @@ describe("embedded project saves", () => {
     );
     await expect(saving).rejects.toMatchObject({ name: "AbortError" });
     expect(createWritable).not.toHaveBeenCalled();
+  });
+});
+
+describe("settling the saved revision after a write", () => {
+  const fullProject = (): PortableProject => ({
+    schemaVersion: 2,
+    projectId: "project",
+    revisionId: "22222222-2222-4222-8222-222222222222",
+    name: "Review project",
+    savedAt: "2026-09-18T10:00:00.000Z",
+    diagrams: [
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "Delivery",
+        document: {
+          schemaVersion: 1,
+          documentId: "44444444-4444-4444-8444-444444444444",
+          savedAt: "2026-09-18T10:00:00.000Z",
+          current: { source: "@startgantt\n@endgantt\n", sourceHash: "a".repeat(64), diagramKind: "gantt" },
+          settings: { resourceCapacities: {} },
+          historyPolicy: { maxVersions: 10, maxLogicalBytes: 1024 * 1024 },
+          versions: [],
+          contents: [],
+        },
+      },
+    ],
+    elements: [],
+    links: [],
+  });
+
+  it("marks the written revision saved when nothing changed during the write", async () => {
+    const markSaved = vi.fn();
+    const snapshot = { projectId: "project", revision: 3, project: fullProject() };
+    const settled = await settleSavedRevision(snapshot, {
+      currentRevision: () => 3,
+      captureSaveSnapshot: vi.fn(),
+      markSaved,
+    });
+    expect(settled).toBe(true);
+    expect(markSaved).toHaveBeenCalledWith(3);
+  });
+
+  it("marks the live revision saved when the counter moved but the content is unchanged", async () => {
+    // Regression: the first save of a new project (Save As) left the navigator on "Unsaved changes"
+    // when a member tab synced metadata while the file was being written.
+    const markSaved = vi.fn();
+    const snapshot = { projectId: "project", revision: 3, project: fullProject() };
+    const settled = await settleSavedRevision(snapshot, {
+      currentRevision: () => 4,
+      captureSaveSnapshot: async () => ({
+        projectId: "project",
+        revision: 4,
+        project: { ...fullProject(), savedAt: "2026-09-18T10:00:05.000Z" },
+      }),
+      markSaved,
+    });
+    expect(settled).toBe(true);
+    expect(markSaved).toHaveBeenCalledWith(4);
+  });
+
+  it("keeps the project dirty when newer content differs from what was written", async () => {
+    const markSaved = vi.fn();
+    const snapshot = { projectId: "project", revision: 3, project: fullProject() };
+    const changed = fullProject();
+    changed.diagrams[0]!.document.current = {
+      ...changed.diagrams[0]!.document.current,
+      source: "@startgantt\n[A] lasts 1 day\n@endgantt\n",
+    };
+    const settled = await settleSavedRevision(snapshot, {
+      currentRevision: () => 4,
+      captureSaveSnapshot: async () => ({ projectId: "project", revision: 4, project: changed }),
+      markSaved,
+    });
+    expect(settled).toBe(false);
+    expect(markSaved).not.toHaveBeenCalled();
   });
 });

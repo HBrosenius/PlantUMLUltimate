@@ -344,6 +344,10 @@ export function CodeEditor({
     } finally {
       synchronizingValue.current = false;
     }
+    // The update listener above skips synchronized changes, so recompute quick fixes here.
+    // Otherwise a kind switch (which runs first, against the previous document) leaves stale fixes
+    // behind — e.g. "Add @startwbs" on a freshly created, valid WBS document.
+    setQuickFixes(quickFixesForDiagram(kindRef.current, value));
   }, [value]);
 
   useEffect(() => {
