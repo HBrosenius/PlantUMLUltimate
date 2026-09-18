@@ -40,11 +40,11 @@ test("reviews project changes against the last successful save and exports a rep
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
-  // The project save round-trip (mocked File System Access write + IndexedDB persistence) can
-  // run well past the default expect timeout on a loaded CI runner — this shard's other tests
-  // were all running 2-3x slower than their local baseline when this was observed failing, not
-  // just this assertion — so give it more room rather than the default.
-  await expect(navigator.getByText("Saved", { exact: true })).toBeVisible({ timeout: 60_000 });
+  // The link index registers the Gantt tasks as project elements shortly after the diagram is
+  // added; that must not flip a project saved in the meantime back to "Unsaved changes".
+  await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(navigator.getByText("Links current")).toBeVisible();
+  await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();
 
   await setSource(page, source("[Backend] lasts 2 days"));
   await navigator.getByRole("button", { name: "Review", exact: true }).click();

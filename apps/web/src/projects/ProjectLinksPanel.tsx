@@ -38,10 +38,17 @@ export function ProjectLinksPanel({
   project,
   onChange,
   onElementsChange,
+  onElementsRegistered = onElementsChange,
 }: {
   project: VirtualProject;
   onChange(links: readonly ProjectLink[]): void;
+  /** A user edit to the element set, such as repairing a link target. */
   onElementsChange(elements: readonly ProjectElement[]): void;
+  /**
+   * Declarations found by the index being recorded as elements. This is derived bookkeeping
+   * that arrives asynchronously, so hosts may route it separately from user edits.
+   */
+  onElementsRegistered?(elements: readonly ProjectElement[]): void;
 }) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
@@ -91,8 +98,8 @@ export function ProjectLinksPanel({
           to: declaration.to,
         },
       })),
-    ).then((registered) => onElementsChange([...elements, ...registered]));
-  }, [elements, onElementsChange, registrations]);
+    ).then((registered) => onElementsRegistered([...elements, ...registered]));
+  }, [elements, onElementsRegistered, registrations]);
   const repair = (
     element: ProjectElement,
     candidate: { symbolKey: string; declarationHash: string; from: number; to: number },

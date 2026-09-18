@@ -409,6 +409,18 @@ export function useSingleFileProject({
       })),
     [embedded],
   );
+  /**
+   * Elements the link index registers from diagram declarations are derived, not edited, so
+   * recording them must not mark a project that was just saved as having unsaved changes.
+   */
+  const registerElements = useCallback(
+    (elements: readonly ProjectElement[]) =>
+      embedded.updateDerivedProject((current) => ({
+        ...current,
+        elements: elements as PortableProjectElement[],
+      })),
+    [embedded],
+  );
   const applyRenameMappings = useCallback(
     async (documentId: string, mappings: readonly IdentityMapping[], source: string) => {
       if (!mappings.length) return;
@@ -564,6 +576,7 @@ export function useSingleFileProject({
       openMember: embedded.openMember,
       updateLinks,
       updateElements,
+      registerElements,
       applyRenameMappings,
       renameDiagram,
       deleteDiagram,
@@ -595,6 +608,7 @@ export function useSingleFileProject({
       saveProject,
       saveProjectAs,
       updateElements,
+      registerElements,
       applyRenameMappings,
       updateLinks,
       unlockRequest,

@@ -83,6 +83,44 @@ describe("useEmbeddedProject lifecycle", () => {
     expect(result.current.dirty).toBe(true);
   });
 
+  it("keeps a saved project clean when derived elements are registered after the save", async () => {
+    const tabs = {
+      documents: [] as DocumentSnapshot[],
+      addDocument: vi.fn(() => "tab-1"),
+      activateDocument: vi.fn(),
+      closeDocument: vi.fn(),
+    };
+    const { result } = renderHook(() => useEmbeddedProject(tabs));
+
+    act(() => result.current.openProject(projectWithDiagram()));
+    await waitFor(() => expect(result.current.project).toBeDefined());
+    act(() => result.current.updateProject((current) => ({ ...current, name: "Edited" })));
+    const snapshot = await result.current.captureSaveSnapshot();
+    act(() => result.current.markSaved(snapshot!.revision));
+    expect(result.current.dirty).toBe(false);
+
+    // The link index resolves after the save finished and records the diagram's declarations.
+    const element = {
+      id: "55555555-5555-4555-8555-555555555555",
+      documentId: projectWithDiagram().diagrams[0]!.id,
+      kind: "gantt-task" as const,
+      locator: {
+        symbolKey: "Plan task",
+        keyType: "semantic-key" as const,
+        declarationHash: "c".repeat(64),
+        sourceHash: "d".repeat(64),
+        from: 12,
+        to: 30,
+      },
+    };
+    act(() => result.current.updateDerivedProject((current) => ({ ...current, elements: [element] })));
+
+    expect(result.current.project?.elements).toEqual([element]);
+    expect(result.current.currentRevision()).toBe(snapshot!.revision);
+    expect(result.current.dirty).toBe(false);
+    expect((await result.current.captureSaveSnapshot())?.project.elements).toEqual([element]);
+  });
+
   it("marks project metadata changes in an open member dirty", async () => {
     const value = projectWithDiagram();
     const historyId = `project-history-${value.projectId}-${value.diagrams[0]!.id}`;

@@ -2629,7 +2629,11 @@ export function App() {
           onLinksChange={updateLinks}
           onElementsChange={updateElements}
           {...(usingSingleFileProject
-            ? { onRename: singleFileProject.renameDiagram, onDelete: singleFileProject.deleteDiagram }
+            ? {
+                onElementsRegistered: singleFileProject.registerElements,
+                onRename: singleFileProject.renameDiagram,
+                onDelete: singleFileProject.deleteDiagram,
+              }
             : {})}
         />
       )}
