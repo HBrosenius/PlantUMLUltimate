@@ -2765,7 +2765,11 @@ export function App() {
           }}
           onClose={tabs.setOnboarded}
           onPreview={(settings) => {
-            setWorkspace((current) => ({ ...current, theme: settings.theme, defaultDiagramTheme: settings.defaultDiagramTheme }));
+            setWorkspace((current) => ({
+              ...current,
+              theme: settings.theme,
+              defaultDiagramTheme: settings.defaultDiagramTheme,
+            }));
             const themedSource = setPlantUmlTheme(workspace.source, settings.defaultDiagramTheme);
             if (themedSource !== workspace.source) commitSource(themedSource, "Preview diagram theme", false);
           }}
