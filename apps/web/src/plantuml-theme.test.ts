@@ -12,6 +12,13 @@ describe("PlantUML themes", () => {
     );
   });
 
+  it("adds a theme after any diagram start directive", () => {
+    expect(setPlantUmlTheme("@startwbs\n* Root\n@endwbs", "sketchy")).toBe(
+      "@startwbs\n!theme sketchy\n* Root\n@endwbs",
+    );
+    expect(setPlantUmlTheme("@startuml\nclass A\n@enduml", "mono")).toBe("@startuml\n!theme mono\nclass A\n@enduml");
+  });
+
   it("updates an existing theme without duplicating it", () => {
     expect(setPlantUmlTheme("@startgantt\n!theme plain\n[A] lasts 2 days\n@endgantt", "vibrant")).toBe(
       "@startgantt\n!theme vibrant\n[A] lasts 2 days\n@endgantt",

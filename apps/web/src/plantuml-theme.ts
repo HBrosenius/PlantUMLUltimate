@@ -45,7 +45,7 @@ export const PLANTUML_THEMES = [
 ] as const;
 
 const THEME_DIRECTIVE = /^\s*!theme\s+([a-z0-9_-]+)\s*$/i;
-const START_DIRECTIVE = /^\s*@start(?:uml|gantt)\b/i;
+const START_DIRECTIVE = /^\s*@start[a-z]+\b/i;
 
 export function plantUmlTheme(source: string): string | undefined {
   for (const line of source.split(/\r?\n/)) {

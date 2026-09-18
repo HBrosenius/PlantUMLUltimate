@@ -1,7 +1,33 @@
 import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
-import { PLANTUML_THEMES } from "./plantuml-theme";
+import type { DiagramKind } from "./model";
+import { PLANTUML_THEMES, setPlantUmlTheme } from "./plantuml-theme";
 import { useRenderer } from "./render/use-renderer";
+
+const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
+  gantt: [
+    "@startgantt",
+    "Project starts 2026-09-01",
+    "[Plan] lasts 3 days",
+    "[Build] starts at [Plan]'s end",
+    "[Build] lasts 4 days",
+    "@endgantt",
+  ].join("\n"),
+  sequence: [
+    "@startuml",
+    "actor User",
+    "participant App",
+    "User -> App: Request",
+    "App --> User: Response",
+    "@enduml",
+  ].join("\n"),
+  usecase: ["@startuml", "actor User", "(Sign in) as Login", "User --> Login", "@enduml"].join("\n"),
+  class: ["@startuml", "class Order {", "  +total(): Money", "}", "class Item", "Order *-- Item", "@enduml"].join("\n"),
+  activity: ["@startuml", "start", ":Plan;", "if (Approved?) then (yes)", "  :Build;", "endif", "stop", "@enduml"].join(
+    "\n",
+  ),
+  wbs: ["@startwbs", "* Project", "** Discovery", "** Delivery", "@endwbs"].join("\n"),
+};
 
 export interface DocumentFormatSettings {
   compression: "gzip" | "none";
@@ -14,10 +40,12 @@ export interface DocumentFormatSettings {
 
 export function DocumentSettingsDialog({
   current,
+  diagramKind = "gantt",
   onApply,
   onClose,
 }: {
   current: Omit<DocumentFormatSettings, "password">;
+  diagramKind?: DiagramKind;
   onApply(settings: DocumentFormatSettings): Promise<void>;
   onClose(): void;
 }) {
@@ -32,17 +60,8 @@ export function DocumentSettingsDialog({
   const [diagramTheme, setDiagramTheme] = useState(current.diagramTheme ?? "");
   const customDiagramTheme = diagramTheme && !PLANTUML_THEMES.some((theme) => theme === diagramTheme);
   const previewSource = useMemo(
-    () =>
-      [
-        "@startgantt",
-        ...(diagramTheme ? [`!theme ${diagramTheme}`] : []),
-        "Project starts 2026-09-01",
-        "[Plan] lasts 3 days",
-        "[Build] starts at [Plan]'s end",
-        "[Build] lasts 4 days",
-        "@endgantt",
-      ].join("\n"),
-    [diagramTheme],
+    () => setPlantUmlTheme(THEME_PREVIEW_SOURCES[diagramKind], diagramTheme || undefined),
+    [diagramKind, diagramTheme],
   );
   const themePreview = useRenderer(previewSource, current.diagramTheme !== undefined, "native");
   const [busy, setBusy] = useState(false);
