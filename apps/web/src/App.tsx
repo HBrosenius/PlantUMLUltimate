@@ -2711,15 +2711,14 @@ export function App() {
             encrypted: activeDocument.encrypted === true,
             maxVersions: activeDocument.historyMaxVersions ?? 100,
             maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
-            ...(workspace.diagramKind === "gantt" ? { diagramTheme: plantUmlTheme(workspace.source) ?? "" } : {}),
+            diagramTheme: plantUmlTheme(workspace.source) ?? "",
           }}
+          diagramKind={workspace.diagramKind}
           onApply={async (settings) => {
             try {
               await configureDocumentFormat(settings);
-              if (workspace.diagramKind === "gantt") {
-                const themedSource = setPlantUmlTheme(workspace.source, settings.diagramTheme);
-                if (themedSource !== workspace.source) commitSource(themedSource, "Change diagram theme", false);
-              }
+              const themedSource = setPlantUmlTheme(workspace.source, settings.diagramTheme);
+              if (themedSource !== workspace.source) commitSource(themedSource, "Change diagram theme", false);
             } catch (error) {
               reportFileError(error);
               throw error;

@@ -132,10 +132,9 @@ export function useWorkspaceDocuments({
   const createDocument = useCallback(
     (diagramKind: DiagramKind) => {
       const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
-      const source =
-        defaultDiagramTheme && diagramKind !== "wbs"
-          ? setPlantUmlTheme(starterSource(diagramKind), defaultDiagramTheme)
-          : starterSource(diagramKind);
+      const source = defaultDiagramTheme
+        ? setPlantUmlTheme(starterSource(diagramKind), defaultDiagramTheme)
+        : starterSource(diagramKind);
       tabs.addDocument({
         diagramKind,
         source,
