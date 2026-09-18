@@ -239,6 +239,8 @@ function describeGanttChange(
   removedDependencies: GanttDependencyItem[],
   addedDependencies: GanttDependencyItem[],
   leftItems: GanttItem[] = [],
+  rightItems: GanttItem[] = [],
+  rightDependencies: GanttDependencyItem[] = [],
 ): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
   if (!removedDependencies.length && addedDependencies.length === 1) {
     const dependency = addedDependencies[0]!.value;
@@ -437,6 +439,36 @@ function describeGanttChange(
   }
   if (removed.length && !added.length) {
     const tasks = new Map(removed.map((item) => [item.value.id, item.value]));
+    const survivors = [...tasks.values()].filter((task) => rightItems.some((item) => item.value.id === task.id));
+    if (survivors.length === tasks.size) {
+      if (tasks.size === 1) {
+        const task = survivors[0]!;
+        const kinds = [...new Set(removed.map((item) => item.declarationKind))];
+        const replacedByDependency =
+          kinds.length === 1 &&
+          kinds[0] === "start" &&
+          rightDependencies.find((item) => item.value.successorTaskId === task.id)?.value;
+        if (replacedByDependency)
+          return {
+            title: `Add dependency ${replacedByDependency.predecessor.value} → ${replacedByDependency.successor.value}`,
+            detail: `${task.label}'s explicit start is removed here; the dependency that replaces it is added in another change.`,
+            confidence: "confirmed",
+          };
+        const knownKinds = kinds.filter((kind) => kind !== "unknown");
+        return {
+          title: `Modify task ${task.label}`,
+          detail: knownKinds.length
+            ? `The task still exists; its ${knownKinds.join(" and ")} declaration was removed.`
+            : "The task still exists; one of its declarations was removed.",
+          confidence: "confirmed",
+        };
+      }
+      return {
+        title: `Modify tasks (${tasks.size})`,
+        detail: "All removed declarations belong to tasks that still exist.",
+        confidence: "confirmed",
+      };
+    }
     return {
       title: tasks.size === 1 ? `Remove task ${[...tasks.values()][0]!.label}` : `Remove tasks (${tasks.size})`,
       detail: "All removed declarations belong to recognized Gantt tasks.",
@@ -473,6 +505,77 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     rightGanttDependencies = ganttDependencyItems(rightSource);
   }
   const groups: ReviewGroup[] = [];
+  const beforeTheme = plantUmlTheme(leftSource);
+  const afterTheme = plantUmlTheme(rightSource);
+  const createGroup = (
+    id: string,
+    startLeft: number,
+    startRight: number,
+    deleteCount: number,
+    replacement: string[],
+  ): ReviewGroup => {
+    const removed = leftItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
+    const added = rightItems.filter((item) => item.line >= startRight && item.line < startRight + replacement.length);
+    const removedGantt = leftGanttItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
+    const addedGantt = rightGanttItems.filter(
+      (item) => item.line >= startRight && item.line < startRight + replacement.length,
+    );
+    const removedGanttDependencies = leftGanttDependencies.filter(
+      (item) => item.line >= startLeft && item.line < startLeft + deleteCount,
+    );
+    const addedGanttDependencies = rightGanttDependencies.filter(
+      (item) => item.line >= startRight && item.line < startRight + replacement.length,
+    );
+    const changedLeftLines = leftSource.split("\n").slice(startLeft, startLeft + deleteCount);
+    const themeOnly = [...changedLeftLines, ...replacement]
+      .filter((line) => line.trim())
+      .every((line) => /^\s*!theme\b/i.test(line));
+    const description =
+      themeOnly && beforeTheme !== afterTheme
+        ? {
+            title: beforeTheme
+              ? afterTheme
+                ? `Change diagram theme from ${beforeTheme} to ${afterTheme}`
+                : `Remove diagram theme ${beforeTheme}`
+              : `Set diagram theme to ${afterTheme}`,
+            detail: "The changed source is a native PlantUML theme directive.",
+            confidence: "confirmed" as const,
+          }
+        : kind === "sequence"
+          ? describeSequenceChange(removed, added)
+          : kind === "gantt"
+            ? describeGanttChange(
+                removedGantt,
+                addedGantt,
+                removedGanttDependencies,
+                addedGanttDependencies,
+                leftGanttItems,
+                rightGanttItems,
+                rightGanttDependencies,
+              )
+            : describeSequenceChange([], []);
+    return {
+      id,
+      ...description,
+      changeKind: deleteCount === 0 ? "added" : replacement.length === 0 ? "removed" : "modified",
+      startLeft,
+      startRight,
+      deleteCount,
+      replacement,
+      leftTargets:
+        kind === "sequence"
+          ? sequenceTargets(removed)
+          : kind === "gantt"
+            ? ganttTargets(removedGantt, removedGanttDependencies)
+            : [],
+      rightTargets:
+        kind === "sequence"
+          ? sequenceTargets(added)
+          : kind === "gantt"
+            ? ganttTargets(addedGantt, addedGanttDependencies)
+            : [],
+    };
+  };
   let leftCursor = 0;
   let rightCursor = 0;
   let index = 0;
@@ -499,67 +602,7 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       }
       index += 1;
     }
-    const removed = leftItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
-    const added = rightItems.filter((item) => item.line >= startRight && item.line < startRight + replacement.length);
-    const removedGantt = leftGanttItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
-    const addedGantt = rightGanttItems.filter(
-      (item) => item.line >= startRight && item.line < startRight + replacement.length,
-    );
-    const removedGanttDependencies = leftGanttDependencies.filter(
-      (item) => item.line >= startLeft && item.line < startLeft + deleteCount,
-    );
-    const addedGanttDependencies = rightGanttDependencies.filter(
-      (item) => item.line >= startRight && item.line < startRight + replacement.length,
-    );
-    const changedLeftLines = leftSource.split("\n").slice(startLeft, startLeft + deleteCount);
-    const themeOnly = [...changedLeftLines, ...replacement]
-      .filter((line) => line.trim())
-      .every((line) => /^\s*!theme\b/i.test(line));
-    const beforeTheme = plantUmlTheme(leftSource);
-    const afterTheme = plantUmlTheme(rightSource);
-    const description =
-      themeOnly && beforeTheme !== afterTheme
-        ? {
-            title: beforeTheme
-              ? afterTheme
-                ? `Change diagram theme from ${beforeTheme} to ${afterTheme}`
-                : `Remove diagram theme ${beforeTheme}`
-              : `Set diagram theme to ${afterTheme}`,
-            detail: "The changed source is a native PlantUML theme directive.",
-            confidence: "confirmed" as const,
-          }
-        : kind === "sequence"
-          ? describeSequenceChange(removed, added)
-          : kind === "gantt"
-            ? describeGanttChange(
-                removedGantt,
-                addedGantt,
-                removedGanttDependencies,
-                addedGanttDependencies,
-                leftGanttItems,
-              )
-            : describeSequenceChange([], []);
-    groups.push({
-      id: `change-${groups.length + 1}`,
-      ...description,
-      changeKind: deleteCount === 0 ? "added" : replacement.length === 0 ? "removed" : "modified",
-      startLeft,
-      startRight,
-      deleteCount,
-      replacement,
-      leftTargets:
-        kind === "sequence"
-          ? sequenceTargets(removed)
-          : kind === "gantt"
-            ? ganttTargets(removedGantt, removedGanttDependencies)
-            : [],
-      rightTargets:
-        kind === "sequence"
-          ? sequenceTargets(added)
-          : kind === "gantt"
-            ? ganttTargets(addedGantt, addedGanttDependencies)
-            : [],
-    });
+    groups.push(createGroup(`change-${groups.length + 1}`, startLeft, startRight, deleteCount, replacement));
   }
   if (kind !== "gantt") return groups;
   const rightLines = rightSource.split("\n");
@@ -669,23 +712,45 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         item.line >= removal.startLeft &&
         item.line < removal.startLeft + removal.deleteCount,
     );
-    const addedDependencies = addition
-      ? rightGanttDependencies.filter(
-          (item) => item.line >= addition.startRight && item.line < addition.startRight + addition.replacement.length,
-        )
-      : [];
     const replacesOnlyStart =
       removal.deleteCount === 1 && removal.replacement.every((line) => !line.trim()) && removedStarts.length === 1;
-    const addsOnlyDependency =
-      addition?.deleteCount === 0 && addition.replacement.length === 1 && addedDependencies.length === 1;
-    const dependency = addedDependencies[0]?.value;
-    if (
-      addition &&
-      replacesOnlyStart &&
-      addsOnlyDependency &&
-      dependency?.successorTaskId === removedStarts[0]!.value.id
-    ) {
-      const replacementEnd = addition.startRight + addition.replacement.length;
+    const matchingDependencies =
+      addition && addition.deleteCount === 0 && replacesOnlyStart
+        ? rightGanttDependencies.filter(
+            (item) =>
+              item.line >= addition.startRight &&
+              item.line < addition.startRight + addition.replacement.length &&
+              item.value.successorTaskId === removedStarts[0]!.value.id,
+          )
+        : [];
+    const dependencyItem = matchingDependencies.length === 1 ? matchingDependencies[0] : undefined;
+    // The addition hunk may carry other changes besides the dependency that replaces the removed
+    // start (for example a task added in a later revision). Carve the dependency line, plus any
+    // blank lines around it, out of the hunk so the pairing is reviewed as one "Add dependency"
+    // change and the remaining lines keep their own semantic description.
+    const isBlank = (line: string) => !line.trim();
+    let before = dependencyItem ? addition!.replacement.slice(0, dependencyItem.line - addition!.startRight) : [];
+    let after = dependencyItem ? addition!.replacement.slice(dependencyItem.line - addition!.startRight + 1) : [];
+    let leadingBlanks: string[] = [];
+    let trailingBlanks: string[] = [];
+    while (before.length && isBlank(before[before.length - 1]!)) leadingBlanks = [before.pop()!, ...leadingBlanks];
+    while (after.length && isBlank(after[0]!)) trailingBlanks.push(after.shift()!);
+    if (before.every(isBlank)) {
+      leadingBlanks = [...before, ...leadingBlanks];
+      before = [];
+    }
+    if (after.every(isBlank)) {
+      trailingBlanks = [...trailingBlanks, ...after];
+      after = [];
+    }
+    // When lines precede the dependency inside the hunk they must be applied as a separate group
+    // that lands before the merged one, which only works when the removal preserves line count.
+    const canSplit = !before.length || removal.deleteCount === removal.replacement.length;
+    if (addition && dependencyItem && canSplit) {
+      const dependency = dependencyItem.value;
+      const dependencyLine = rightLines[dependencyItem.line]!;
+      const dependencyTarget = ganttTargets([], [dependencyItem]);
+      if (before.length) merged.push(createGroup(addition.id, addition.startLeft, addition.startRight, 0, [...before]));
       merged.push({
         id: removal.id,
         title: `Add dependency ${dependency.predecessor.value} → ${dependency.successor.value}`,
@@ -694,11 +759,26 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
         confidence: "confirmed",
         startLeft: removal.startLeft,
         startRight: removal.startRight,
-        deleteCount: addition.startLeft + addition.deleteCount - removal.startLeft,
-        replacement: rightLines.slice(removal.startRight, replacementEnd),
+        deleteCount: addition.startLeft - removal.startLeft,
+        replacement: [
+          ...rightLines.slice(removal.startRight, addition.startRight),
+          ...leadingBlanks,
+          dependencyLine,
+          ...trailingBlanks,
+        ],
         leftTargets: removal.leftTargets,
-        rightTargets: addition.rightTargets,
+        rightTargets: dependencyTarget,
       });
+      if (after.length)
+        merged.push(
+          createGroup(
+            `${addition.id}${before.length ? "-b" : ""}`,
+            addition.startLeft,
+            addition.startRight + addition.replacement.length - after.length,
+            0,
+            [...after],
+          ),
+        );
       index += 1;
       continue;
     }
