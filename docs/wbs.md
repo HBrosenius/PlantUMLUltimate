@@ -20,4 +20,4 @@ Stereotypes and `<style>` blocks (PlantUML's CSS-like selector mechanism, e.g. `
 
 Source editing remains available for the wider PlantUML WBS language, including `<img:url>` embedded images, `<style>` blocks, and stereotypes.
 
-WBS is marked Beta while the visual syntax matrix is expanded. Unsupported valid lines remain in the document and continue to render through PlantUML.
+WBS is a production diagram type. The visual editor covers its common structural, annotation, layout, and style workflows; unsupported valid lines remain in the document and continue to render through PlantUML.

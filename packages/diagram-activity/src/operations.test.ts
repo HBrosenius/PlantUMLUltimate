@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectActivitySymbolOccurrences,
+  connectActivityActions,
   deleteActivityNode,
   deleteActivityControlBlock,
   insertActivityAction,
@@ -138,6 +139,13 @@ describe("activity operations", () => {
       lineStyle: "dashed",
     });
     expect(updated).toContain(":A;\n-[#Blue,dashed]-> [next]\n:B;");
+  });
+  it("connects two actions by making the target the next structured flow item", () => {
+    const source = "@startuml\n:A;\n:B;\n:C;\n@enduml";
+    const document = parseActivity(source);
+    const updated = connectActivityActions(source, document, document.nodes[0]!, document.nodes[2]!);
+    expect(updated).toContain(":A;\n-->\n:C;\n:B;");
+    expect(parseActivity(updated).diagnostics).toHaveLength(0);
   });
   it("drag-reorders an action into another partition", () => {
     const source = '@startuml\npartition "One" {\n:A;\n}\npartition "Two" {\n:B;\n}\n@enduml';

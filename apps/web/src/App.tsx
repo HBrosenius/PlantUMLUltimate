@@ -1257,6 +1257,8 @@ export function App() {
     applyActivityArrow,
     removeActivityArrow,
     reorderActivityActionByDrag,
+    connectActivityActionsByDrag,
+    attachActivityNoteByDrag,
   } = useActivityActions({
     source: workspace.source,
     document: activityDocument,
@@ -2412,6 +2414,8 @@ export function App() {
               }}
               onBackgroundSelect={clearSelectedActivityObject}
               onReorder={reorderActivityActionByDrag}
+              onConnect={connectActivityActionsByDrag}
+              onAttachNote={attachActivityNoteByDrag}
             />
           ) : (
             <WbsDiagramPreview

@@ -3047,19 +3047,6 @@ textarea:focus-visible,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.diagram-kind-beta {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  z-index: 2;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #6d28d9;
-  color: white !important;
-  font-size: 10px;
-  font-weight: 750;
-  text-transform: uppercase;
-}
 @media (max-width: 760px) {
   .diagram-kind-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3272,7 +3259,11 @@ textarea:focus-visible,
   pointer-events: all;
   cursor: pointer;
 }
-.activity-semantic-hit[data-activity-object-type="action"] {
+.activity-semantic-label {
+  user-select: none;
+}
+.activity-semantic-hit[data-activity-object-type="action"],
+.activity-semantic-hit[data-activity-object-type="control"] {
   cursor: grab;
 }
 .activity-dragging-move .activity-semantic-hit[data-activity-object-type="action"] {
@@ -3291,6 +3282,47 @@ textarea:focus-visible,
   stroke-width: 2;
   cursor: grab;
   pointer-events: all;
+}
+.activity-connect-handle {
+  fill: #2563eb;
+  stroke: white;
+  stroke-width: 2px;
+  cursor: crosshair;
+  pointer-events: all;
+}
+.activity-connection-preview {
+  stroke: #2563eb;
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+.activity-semantic-hit.activity-drop-target {
+  fill: rgb(34 197 94 / 14%);
+  stroke: #16a34a;
+  stroke-width: 2px;
+  stroke-dasharray: 5 3;
+}
+.activity-placement-preview {
+  position: fixed;
+  z-index: 22;
+  height: 4px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 85%);
+  pointer-events: none;
+}
+.activity-drag-preview {
+  position: fixed;
+  z-index: 23;
+  max-width: 280px;
+  padding: 7px 10px;
+  border: 1px solid rgb(37 99 235 / 45%);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 18%);
+  color: var(--text);
+  font-size: 12px;
+  pointer-events: none;
 }
 .activity-dragging-move .activity-semantic-hit[data-activity-object-type="action"] {
   fill: rgb(34 197 94 / 12%);

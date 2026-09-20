@@ -66,12 +66,70 @@ test("reorders Activity actions with the keyboard", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Select action Second step" })).toBeFocused();
 });
 
+test("keeps Activity actions selectable after zooming", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await setSource(page, "@startuml\n:Receive order;\n:Review order;\n@enduml");
+
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByRole("button", { name: "Select action Review order" })).toBeVisible();
+  await page.getByRole("button", { name: "Select action Review order" }).click();
+  await expect(page.getByRole("complementary", { name: "Activity action inspector" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Zoom out" }).click({ clickCount: 2 });
+  await expect(page.getByRole("button", { name: "Select action Receive order" })).toBeVisible();
+  await page.getByRole("button", { name: "Select action Receive order" }).click();
+  await expect(page.getByRole("complementary", { name: "Activity action inspector" }).getByLabel("Text")).toHaveValue(
+    "Receive order",
+  );
+});
+
+test("reorders actions with a preview and creates a structured transition by drag", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await setSource(page, "@startuml\n:First;\n:Second;\n:Third;\n@enduml");
+  const third = page.getByLabel("Drag to reorder Third");
+  const first = page.getByRole("button", { name: "Select action First" });
+  const thirdBox = await third.boundingBox();
+  const firstBox = await first.boundingBox();
+  expect(thirdBox).not.toBeNull();
+  expect(firstBox).not.toBeNull();
+  await page.mouse.move(thirdBox!.x + thirdBox!.width / 2, thirdBox!.y + thirdBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(firstBox!.x + firstBox!.width / 2, firstBox!.y + firstBox!.height / 4, { steps: 8 });
+  await expect(page.locator(".activity-drag-preview")).toContainText("Place before First");
+  await expect(page.locator(".activity-placement-preview")).toBeVisible();
+  await page.mouse.up();
+  await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/:Third;[\s\S]*:First;/);
+
+  const connect = page.getByRole("button", { name: "Drag to connect Third" });
+  await expect(connect).toBeVisible();
+  const connectBox = await connect.boundingBox();
+  const secondBox = await page.getByRole("button", { name: "Select action Second" }).boundingBox();
+  expect(connectBox).not.toBeNull();
+  expect(secondBox).not.toBeNull();
+  await page.mouse.move(connectBox!.x + connectBox!.width / 2, connectBox!.y + connectBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(secondBox!.x + secondBox!.width / 2, secondBox!.y + secondBox!.height / 2, { steps: 8 });
+  await expect(page.locator(".activity-drag-preview")).toContainText("Connect to Second");
+  await expect(page.locator(".activity-connection-preview")).toHaveCount(1);
+  await page.mouse.up();
+  await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/:Third;[\s\S]*-->[\s\S]*:Second;/);
+});
+
 test("creates and edits Activity actions, partitions, and notes", async ({ page }) => {
   test.setTimeout(60_000);
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const activityChoice = chooser.getByRole("button", { name: /Activity diagram/ });
-  await expect(activityChoice.getByText("Beta", { exact: true })).toBeVisible();
+  await expect(activityChoice.getByText("Beta", { exact: true })).toHaveCount(0);
   await activityChoice.click();
   await expect(page.getByRole("region", { name: "Activity diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText(":Receive order;");
@@ -124,11 +182,11 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await secondAction.getByLabel("Text").fill("Index archive");
   await secondAction.getByLabel("Partition").selectOption("operations-team");
   await secondAction.getByRole("button", { name: "Add action" }).click();
-  const secondActionHit = page.locator('[data-activity-object-id="action-6"]');
+  const secondActionHit = page.locator('.activity-semantic-hit[data-activity-object-id="action-6"]');
   await expect(secondActionHit).toBeVisible({ timeout: 20_000 });
   await secondActionHit.scrollIntoViewIfNeeded();
   const handleBox = await secondActionHit.boundingBox();
-  const targetBox = await page.locator('[data-activity-object-id="action-5"]').boundingBox();
+  const targetBox = await page.locator('.activity-semantic-hit[data-activity-object-id="action-5"]').boundingBox();
   expect(handleBox).not.toBeNull();
   expect(targetBox).not.toBeNull();
   await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
