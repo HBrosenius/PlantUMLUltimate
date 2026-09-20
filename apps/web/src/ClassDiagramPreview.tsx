@@ -148,8 +148,14 @@ export function ClassDiagramPreview({
       if (member) continue;
       if (!entity) continue;
       const h = documentNode("circle");
+      const entityBox = group?.getBBox();
       h.setAttribute("class", "class-connect-handle");
-      attrs(h, { "data-class-connect-from": entity.id, cx: b.x + b.width + 14, cy: b.y + b.height / 2, r: 8 });
+      attrs(h, {
+        "data-class-connect-from": entity.id,
+        cx: entityBox ? entityBox.x + entityBox.width - 10 : b.x + b.width + 6,
+        cy: b.y + b.height / 2,
+        r: 8,
+      });
       rendered.append(h);
       const moveHandle = documentNode("rect");
       moveHandle.setAttribute("class", "class-move-handle");
@@ -208,6 +214,11 @@ export function ClassDiagramPreview({
         addEndpoint(rendered, end, relation.id, firstIsFrom ? "to" : "from");
       }
     }
+    // Relationship hit paths are appended after entity controls and may cross a class edge. Keep the
+    // draggable controls on top so an existing relationship cannot intercept a new connection gesture.
+    rendered
+      .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
+      .forEach((control) => rendered.append(control));
   }, [document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as Element).closest("[data-class-object-id]");
@@ -218,6 +229,7 @@ export function ClassDiagramPreview({
     else onBackgroundSelect();
   };
   const down = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     const target = e.target as Element;
     const reconnect = target.closest<SVGGraphicsElement>("[data-class-relationship-endpoint]");
     const h = target.closest<SVGGraphicsElement>("[data-class-connect-from]");
@@ -229,6 +241,7 @@ export function ClassDiagramPreview({
       kind = reconnect ? "reconnect" : h ? "connect" : "move";
     const svgRoot = (reconnect ?? h ?? moveHandle)?.ownerSVGElement;
     if (!id || !svgRoot) return;
+    e.stopPropagation();
     const p = center((reconnect ?? h ?? moveHandle)!, svgRoot),
       line = documentNode("line");
     if (kind !== "move") {
@@ -303,6 +316,7 @@ export function ClassDiagramPreview({
     drag.current = undefined;
     d.line?.remove();
     clearDragPresentation();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     const target = targetAt(root.current, e.clientX, e.clientY),
       id = target?.getAttribute("data-class-object-id");
     if (!id || id === d.id || Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 5) return;

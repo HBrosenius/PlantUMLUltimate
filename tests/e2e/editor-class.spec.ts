@@ -303,3 +303,28 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await settings.getByLabel("Layout direction").selectOption("left-to-right");
   await expect(page.locator(".cm-content")).toContainText("left to right direction");
 });
+
+test("creates a Class relationship by dragging between classes", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Class diagram/ })
+    .click();
+  await setSource(page, "@startuml\nleft to right direction\nclass Customer\nclass Invoice\n@enduml");
+
+  const connect = page.locator('[data-class-connect-from="customer"]');
+  const target = page.locator('[data-class-object-type="entity"][data-class-object-id="invoice"]');
+  await expect(connect).toBeVisible({ timeout: 20_000 });
+  await expect(target).toBeVisible();
+  const connectBox = await connect.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(connectBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(connectBox!.x + connectBox!.width / 2, connectBox!.y + connectBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 7 });
+  await expect(page.locator(".class-connection-preview")).toBeVisible();
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-content")).toContainText("Customer --> Invoice");
+});
