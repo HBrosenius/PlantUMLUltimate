@@ -5,3 +5,5 @@ playwright-report
 test-results
 package-lock.json
 apps/web/public
+.claude
+graft

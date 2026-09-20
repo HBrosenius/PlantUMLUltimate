@@ -1043,7 +1043,7 @@ export function App() {
       }
     }
     return links;
-  }, [activeDocument.historyId, parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  }, [activeDocument.historyId, parseResult, project, workspace.diagramKind, workspace.fileName]);
   useEffect(() => {
     if (project) setProjectNavigatorOpen(true);
   }, [project]);
@@ -1663,6 +1663,7 @@ export function App() {
     toggleCommandPalette,
     undo,
     update,
+    usingSingleFileProject,
     workspace.diagramKind,
   ]);
 

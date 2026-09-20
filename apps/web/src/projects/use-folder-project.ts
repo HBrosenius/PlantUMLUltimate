@@ -526,7 +526,7 @@ export function useFolderProject({
     } catch (error) {
       reportError(error);
     }
-  }, [project, reportError, setInteractionMessage, tabs.documents]);
+  }, [project, reportError, setInteractionMessage, tabs]);
   const saveFolderProject = useCallback(async () => {
     if (!project || !("root" in project)) return;
     try {
@@ -555,7 +555,7 @@ export function useFolderProject({
     } catch (error) {
       reportError(error);
     }
-  }, [project, reportError, setInteractionMessage, tabs.documents]);
+  }, [project, reportError, setInteractionMessage, tabs]);
 
   const updateProjectManifest = useCallback((patch: Partial<Pick<ActiveProject["manifest"], "links" | "elements">>) => {
     const current = projectRef.current;
