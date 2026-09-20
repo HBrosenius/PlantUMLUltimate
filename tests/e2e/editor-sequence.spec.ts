@@ -450,21 +450,19 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.getByText("Message: (unlabelled)", { exact: true })).toBeVisible();
 
   const systemParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="system"]').first();
-  const refreshedUserParticipant = page
-    .locator('[data-sequence-drag-hit][data-sequence-participant-id="user"]')
-    .first();
-  const systemBox = await systemParticipant.boundingBox();
-  const refreshedUserBox = await refreshedUserParticipant.boundingBox();
   const sequenceSvgBeforeParticipantReorder = await page.locator(".sequence-diagram svg").innerHTML();
-  expect(systemBox).not.toBeNull();
-  expect(refreshedUserBox).not.toBeNull();
-  await page.mouse.move(systemBox!.x + systemBox!.width / 2, systemBox!.y + systemBox!.height / 2);
+  const reorderTargetBox = await senderParticipant.boundingBox();
+  expect(reorderTargetBox).not.toBeNull();
+  await systemParticipant.hover();
   await page.mouse.down();
+  // Drop on the user's lifeline anchor: the participant header can sit beneath
+  // the preview toolbar in Firefox at the CI viewport size.
   await page.mouse.move(
-    refreshedUserBox!.x + refreshedUserBox!.width / 2,
-    refreshedUserBox!.y + refreshedUserBox!.height / 2,
+    reorderTargetBox!.x + reorderTargetBox!.width / 2,
+    reorderTargetBox!.y + reorderTargetBox!.height / 2,
     { steps: 6 },
   );
+  await expect(page.locator(".interaction-feedback")).toContainText("Drop on a participant to reorder");
   await page.mouse.up();
   await expect(page.getByText("Participant: System", { exact: true })).toBeVisible();
   await expect(page.locator('[data-sequence-participant-id="system"].sequence-selected-participant')).toBeVisible();
