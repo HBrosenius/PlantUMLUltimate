@@ -203,11 +203,15 @@ test("reorders a WBS branch and moves it from left to right with one drag", asyn
 
   const research = page.locator("text[data-wbs-node-id]", { hasText: "Research" }).first();
   const delivery = page.locator("text[data-wbs-node-id]", { hasText: "Delivery" }).first();
-  const from = await research.boundingBox();
-  const to = await delivery.boundingBox();
+  const researchId = await research.getAttribute("data-wbs-node-id");
+  const deliveryId = await delivery.getAttribute("data-wbs-node-id");
+  const from = await page.locator(`.wbs-node-hit[data-wbs-node-id="${researchId}"]`).boundingBox();
+  const to = await page.locator(`.wbs-node-hit[data-wbs-node-id="${deliveryId}"]`).boundingBox();
   expect(from).not.toBeNull();
   expect(to).not.toBeNull();
-  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  // Start in the hit area's padding rather than on the SVG text. WebKit otherwise
+  // starts a native text selection and never delivers the pointer drag to React.
+  await page.mouse.move(from!.x + 4, from!.y + from!.height / 2);
   await page.mouse.down();
   await page.mouse.move(to!.x + to!.width / 2, to!.y + 1, { steps: 8 });
   await expect(page.locator(".wbs-drag-preview")).toContainText("Place before Delivery on the right");
@@ -228,13 +232,15 @@ test("moves a WBS branch to the left by dropping in empty space beside the root"
   const research = page.locator("text[data-wbs-node-id]", { hasText: "Research" }).first();
   const root = page.locator("text[data-wbs-node-id]", { hasText: "Project" }).first();
   const svg = page.locator(".wbs-diagram svg");
-  const from = await research.boundingBox();
-  const rootBox = await root.boundingBox();
+  const researchId = await research.getAttribute("data-wbs-node-id");
+  const rootId = await root.getAttribute("data-wbs-node-id");
+  const from = await page.locator(`.wbs-node-hit[data-wbs-node-id="${researchId}"]`).boundingBox();
+  const rootBox = await page.locator(`.wbs-node-hit[data-wbs-node-id="${rootId}"]`).boundingBox();
   const svgBox = await svg.boundingBox();
   expect(from).not.toBeNull();
   expect(rootBox).not.toBeNull();
   expect(svgBox).not.toBeNull();
-  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.move(from!.x + 4, from!.y + from!.height / 2);
   await page.mouse.down();
   await page.mouse.move(svgBox!.x + 8, rootBox!.y + rootBox!.height / 2, { steps: 8 });
   await expect(page.locator(".wbs-drag-preview")).toContainText("Move to the left side of Project");
