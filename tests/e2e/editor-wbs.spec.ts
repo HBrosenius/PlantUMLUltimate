@@ -45,7 +45,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const choice = chooser.getByRole("button", { name: "WBS diagram" });
-  await expect(choice.getByText("Beta", { exact: true })).toBeVisible();
+  await expect(choice.getByText("Beta", { exact: true })).toHaveCount(0);
   await choice.click();
   await expect(page.getByRole("region", { name: "WBS diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("@startwbs");

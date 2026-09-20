@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import {
+  connectActivityActions,
   deleteActivityArrow,
   deleteActivityControlBlock,
   deleteActivityNode,
@@ -211,6 +212,38 @@ export function useActivityActions({
     },
     [commitSource, document, source],
   );
+  const connectActivityActionsByDrag = useCallback(
+    (fromId: string, toId: string) => {
+      const from = document.nodes.find((node) => node.id === fromId);
+      const to = document.nodes.find((node) => node.id === toId);
+      if (!from || !to) return;
+      const updated = connectActivityActions(source, document, from, to);
+      if (updated === source) {
+        reportMessage("Activity transitions can connect distinct actions in the same partition");
+        return;
+      }
+      commitSource(updated, `Connect Activity actions ${from.label} to ${to.label}`);
+      reportMessage(`Connected ${from.label} to ${to.label}`);
+    },
+    [commitSource, document, reportMessage, source],
+  );
+  const attachActivityNoteByDrag = useCallback(
+    (noteId: string, targetId: string) => {
+      const note = document.notes.find((item) => item.id === noteId);
+      const target = document.nodes.find((item) => item.id === targetId && item.kind === "action");
+      if (!note || !target) return;
+      const updated = updateActivityNoteWithTarget(source, document, note, {
+        text: note.text,
+        placement: note.placement,
+        ...(note.color ? { color: note.color } : {}),
+        targetId: target.id,
+        ...(note.floating ? { floating: true } : {}),
+      });
+      commitSource(updated, `Attach Activity note to ${target.label}`);
+      reportMessage(`Attached note to ${target.label}`);
+    },
+    [commitSource, document, reportMessage, source],
+  );
 
   return {
     applyActivitySettings,
@@ -234,5 +267,7 @@ export function useActivityActions({
     applyActivityArrow,
     removeActivityArrow,
     reorderActivityActionByDrag,
+    connectActivityActionsByDrag,
+    attachActivityNoteByDrag,
   };
 }

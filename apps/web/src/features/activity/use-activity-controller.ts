@@ -40,6 +40,7 @@ export function useActivityController(diagramKind: DiagramKind, document: Activi
   }, []);
   const selectObject = useCallback((id: string | undefined) => {
     setSettingsOpen(false);
+    setSourceHighlightedId(undefined);
     setSelectedObjectId(id);
   }, []);
   const selectFromSource = useCallback((highlightedId: string | undefined, fallbackObjectId?: string) => {

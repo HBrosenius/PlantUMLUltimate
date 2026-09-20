@@ -58,9 +58,6 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
           <div className="diagram-kind-options">
             {OPTIONS.map((option, index) => (
               <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
-                {(option.kind === "activity" || option.kind === "wbs") && (
-                  <span className="diagram-kind-beta">Beta</span>
-                )}
                 <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>

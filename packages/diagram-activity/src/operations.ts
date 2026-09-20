@@ -291,3 +291,20 @@ export function reorderActivityAction(
   const at = targetAt > to ? targetAt - (to - from) : targetAt;
   return without.slice(0, at) + block + "\n" + without.slice(at);
 }
+
+export function connectActivityActions(
+  source: string,
+  document: ActivityDocument,
+  from: ActivityNode,
+  to: ActivityNode,
+) {
+  if (from.id === to.id || from.kind !== "action" || to.kind !== "action") return source;
+  if (from.partitionId !== to.partitionId) return source;
+  const fromRange = actionBlockRange(source, document, from);
+  const toRange = actionBlockRange(source, document, to);
+  const targetBlock = source.slice(toRange.from, toRange.to).trimEnd();
+  const withoutTarget = replace(source, toRange, "");
+  const removedLength = toRange.to - toRange.from;
+  const insertionPoint = fromRange.to > toRange.to ? fromRange.to - removedLength : fromRange.to;
+  return insert(withoutTarget, `${arrowLine({})}\n${targetBlock}`, insertionPoint);
+}
