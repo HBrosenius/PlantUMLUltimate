@@ -2323,7 +2323,12 @@ export function App() {
               participants={sequenceDocument.participants}
               messages={sequenceDocument.messages}
               structures={sequenceStructures}
-              selectedParticipantId={sourceHighlightedSequenceParticipantId ?? selectedSequenceParticipantId}
+              selectedParticipantId={
+                selectedSequenceParticipantId ??
+                (!selectedSequenceMessageId && !selectedSequenceStructureId
+                  ? sourceHighlightedSequenceParticipantId
+                  : undefined)
+              }
               selectedMessageId={selectedSequenceMessageId}
               selectedStructureId={selectedSequenceStructureId}
               onParticipantSelect={selectSequenceParticipant}

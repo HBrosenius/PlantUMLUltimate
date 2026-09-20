@@ -39,7 +39,7 @@ export function SequenceDiagramPreview({
   selectedParticipantId?: string | undefined;
   selectedMessageId?: string | undefined;
   selectedStructureId?: string | undefined;
-  onParticipantSelect(id: string): void;
+  onParticipantSelect(id: string, reveal?: boolean): void;
   onMessageSelect(id: string): void;
   onStructureSelect(id: string): void;
   onParticipantReorder(id: string, targetId: string, placement?: "before" | "after"): void;
@@ -108,6 +108,17 @@ export function SequenceDiagramPreview({
     root
       .querySelectorAll("[data-sequence-drag-hit], .sequence-selected-structure")
       .forEach((element) => element.remove());
+    const renderedMessages = [...root.querySelectorAll<SVGGElement>("g.message")].filter((group) =>
+      group.querySelector("line, path, polygon, polyline"),
+    );
+    if (renderedMessages.length === messages.length) {
+      renderedMessages.forEach((group, index) => {
+        const message = messages[index]!;
+        group.setAttribute("data-sequence-message-id", message.id);
+        group.setAttribute("data-draggable", "true");
+        group.setAttribute("aria-label", `Drag message ${message.label || "unlabelled"} vertically to reorder`);
+      });
+    }
     for (const text of root.querySelectorAll<SVGTextElement>("text")) {
       text.removeAttribute("data-sequence-participant-id");
       text.removeAttribute("data-sequence-message-id");
@@ -115,7 +126,11 @@ export function SequenceDiagramPreview({
       text.removeAttribute("data-draggable");
       text.removeAttribute("aria-label");
       const content = text.textContent?.trim() ?? "";
-      const participant = participants.find((item) => content === item.label || content === (item.alias ?? item.label));
+      const renderedMessage = text.closest<SVGGElement>("g.message[data-sequence-message-id]");
+      const renderedMessageId = renderedMessage?.getAttribute("data-sequence-message-id");
+      const participant = renderedMessage
+        ? undefined
+        : participants.find((item) => content === item.label || content === (item.alias ?? item.label));
       if (participant) {
         text.setAttribute("data-sequence-participant-id", participant.id);
         text.setAttribute("data-draggable", "true");
@@ -129,6 +144,9 @@ export function SequenceDiagramPreview({
           18,
           false,
         );
+      } else if (renderedMessageId) {
+        text.setAttribute("data-sequence-message-id", renderedMessageId);
+        text.setAttribute("data-draggable", "true");
       } else {
         const message = messages.find((item) => item.label && (content === item.label || content.endsWith(item.label)));
         if (message) {
@@ -156,6 +174,27 @@ export function SequenceDiagramPreview({
           }
         }
       }
+    }
+    if (renderedMessages.length === messages.length) {
+      renderedMessages.forEach((group, index) => {
+        const message = messages[index]!;
+        addDragHitTarget(
+          group,
+          "data-sequence-message-id",
+          message.id,
+          `Drag message ${message.label || "unlabelled"}`,
+          18,
+          11,
+          true,
+        );
+      });
+    }
+    if (selectedParticipantId) {
+      root
+        .querySelectorAll(
+          `[data-sequence-drag-hit][data-sequence-participant-id="${CSS.escape(selectedParticipantId)}"]`,
+        )
+        .forEach((element) => element.classList.add("sequence-selected-participant"));
     }
     addStructureTimelineGrips(root, structures, selectedStructureId);
     addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
@@ -513,6 +552,7 @@ export function SequenceDiagramPreview({
         );
         const targetBox = target?.getBoundingClientRect();
         const placement = targetBox && event.clientX > targetBox.left + targetBox.width / 2 + 4 ? "after" : "before";
+        onParticipantSelect(drag.id, false);
         onParticipantReorder(drag.id, participantId, placement);
       }
       return;
@@ -980,13 +1020,13 @@ function addMessageReconnectAnchors(
 ) {
   if (!selectedMessageId) return;
   const message = messages.find((item) => item.id === selectedMessageId);
-  const messageText = root.querySelector<SVGTextElement>(
-    `text[data-sequence-message-id="${CSS.escape(selectedMessageId)}"]`,
-  );
-  const svg = messageText?.ownerSVGElement;
-  if (!message || !messageText || !svg) return;
+  const messageElement =
+    root.querySelector<SVGTextElement>(`text[data-sequence-message-id="${CSS.escape(selectedMessageId)}"]`) ??
+    root.querySelector<SVGGElement>(`g.message[data-sequence-message-id="${CSS.escape(selectedMessageId)}"]`);
+  const svg = messageElement?.ownerSVGElement;
+  if (!message || !messageElement || !svg) return;
   try {
-    const messageBox = messageText.getBBox();
+    const messageBox = messageElement.getBBox();
     const y = messageBox.y + messageBox.height + 6;
     const positions = participants
       .map((participant) => {
@@ -1259,7 +1299,7 @@ function OrderList({
 }
 
 function addDragHitTarget(
-  text: SVGTextElement,
+  element: SVGGraphicsElement,
   attribute: "data-sequence-participant-id" | "data-sequence-message-id" | "data-sequence-structure-id",
   id: string,
   label: string,
@@ -1268,9 +1308,9 @@ function addDragHitTarget(
   fullRow: boolean,
 ) {
   try {
-    const box = text.getBBox();
+    const box = element.getBBox();
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    const svg = text.ownerSVGElement;
+    const svg = element.ownerSVGElement;
     const viewBox = svg?.viewBox.baseVal;
     rect.setAttribute("x", String(fullRow && viewBox?.width ? viewBox.x : box.x - horizontalPadding));
     rect.setAttribute("y", String(box.y - verticalPadding));
@@ -1285,10 +1325,10 @@ function addDragHitTarget(
     rect.setAttribute("aria-label", label);
     rect.setAttribute("tabindex", "0");
     rect.setAttribute("role", "button");
-    const transform = text.getAttribute("transform");
+    const transform = element.getAttribute("transform");
     if (transform) rect.setAttribute("transform", transform);
     // Appending makes the transparent target the topmost SVG hit surface while leaving the diagram visible.
-    (svg ?? text.parentElement)?.appendChild(rect);
+    (svg ?? element.parentElement)?.appendChild(rect);
   } catch {
     // Some SVG implementations cannot measure text until after first paint; the text itself remains draggable.
   }

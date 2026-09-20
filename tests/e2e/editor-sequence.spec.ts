@@ -433,6 +433,21 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await standardMessage.getByLabel("Message", { exact: true }).fill("New message");
   await standardMessage.getByRole("button", { name: "Add message" }).click();
   await expect(page.locator(".cm-content")).toContainText("User -> Orders: New message");
+  const renderedNewMessage = page.locator('[data-sequence-drag-hit][aria-label="Drag message New message"]');
+  await expect(renderedNewMessage).toHaveCount(1);
+  await renderedNewMessage.click();
+  await expect(page.getByRole("complementary", { name: "Message inspector" })).toBeVisible();
+  await expect(page.getByText("Message: New message", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Message…" }).click();
+  const unlabelledMessage = page.getByRole("dialog", { name: "Add message" });
+  await unlabelledMessage.getByLabel("From", { exact: true }).fill("User");
+  await unlabelledMessage.getByLabel("To", { exact: true }).fill("Orders");
+  await unlabelledMessage.getByRole("button", { name: "Add message" }).click();
+  const renderedUnlabelledMessage = page.locator('[data-sequence-drag-hit][aria-label="Drag message unlabelled"]');
+  await expect(renderedUnlabelledMessage).toHaveCount(1);
+  await renderedUnlabelledMessage.click();
+  await expect(page.getByText("Message: (unlabelled)", { exact: true })).toBeVisible();
 
   const systemParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="system"]').first();
   const refreshedUserParticipant = page
@@ -451,6 +466,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     { steps: 6 },
   );
   await page.mouse.up();
+  await expect(page.getByText("Participant: System", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-sequence-participant-id="system"].sequence-selected-participant')).toBeVisible();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();

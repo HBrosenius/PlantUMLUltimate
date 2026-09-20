@@ -949,6 +949,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   fill: transparent;
   pointer-events: all;
 }
+.sequence-diagram .sequence-selected-participant {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2px;
+  rx: 5px;
+}
 .sequence-diagram .sequence-participant-anchor {
   fill: var(--panel);
   stroke: var(--accent);
