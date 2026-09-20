@@ -108,6 +108,7 @@ test("reorders actions with a preview and creates a structured transition by dra
   await expect(page.locator(".activity-placement-preview")).toBeVisible();
   await page.mouse.up();
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/:Third;[\s\S]*:First;/);
+  await expect(page.locator(".statusbar")).not.toContainText("Rendering…");
 
   const connect = page.getByRole("button", { name: "Drag to connect Third" });
   await expect(connect).toBeVisible();

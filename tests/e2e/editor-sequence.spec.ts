@@ -448,20 +448,25 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(renderedUnlabelledMessage).toHaveCount(1);
   await renderedUnlabelledMessage.click();
   await expect(page.getByText("Message: (unlabelled)", { exact: true })).toBeVisible();
+  await page
+    .getByRole("complementary", { name: "Message inspector" })
+    .getByRole("button", { name: "Close message inspector" })
+    .click();
 
   const systemParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="system"]').first();
+  const userParticipant = page.locator('[data-sequence-drag-hit][data-sequence-participant-id="user"]').first();
   const sequenceSvgBeforeParticipantReorder = await page.locator(".sequence-diagram svg").innerHTML();
-  const reorderTargetBox = await senderParticipant.boundingBox();
+  const reorderTargetBox = await userParticipant.boundingBox();
+  const sequenceBox = await page.locator(".sequence-diagram svg").boundingBox();
   expect(reorderTargetBox).not.toBeNull();
+  expect(sequenceBox).not.toBeNull();
   await systemParticipant.hover();
   await page.mouse.down();
-  // Drop on the user's lifeline anchor: the participant header can sit beneath
-  // the preview toolbar in Firefox at the CI viewport size.
-  await page.mouse.move(
-    reorderTargetBox!.x + reorderTargetBox!.width / 2,
-    reorderTargetBox!.y + reorderTargetBox!.height / 2,
-    { steps: 6 },
-  );
+  // Drop on the user's lifeline below the participant headers. This avoids the
+  // preview toolbar while the reorder fallback still resolves the nearest participant by x.
+  await page.mouse.move(reorderTargetBox!.x + reorderTargetBox!.width / 2, sequenceBox!.y + sequenceBox!.height - 24, {
+    steps: 6,
+  });
   await expect(page.locator(".interaction-feedback")).toContainText("Drop on a participant to reorder");
   await page.mouse.up();
   await expect(page.getByText("Participant: System", { exact: true })).toBeVisible();
