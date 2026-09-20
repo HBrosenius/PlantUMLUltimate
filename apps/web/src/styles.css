@@ -5120,3 +5120,24 @@ textarea:focus-visible,
   color: var(--muted-text, #64748b);
   font-size: 0.75rem;
 }
+
+.wbs-placement-preview {
+  position: fixed;
+  z-index: 999;
+  border-radius: 999px;
+  background: var(--accent, #2563eb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+  pointer-events: none;
+}
+
+.wbs-placement-inside {
+  border: 2px dashed var(--accent, #2563eb);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 18%, var(--panel, #fff));
+}
+
+.wbs-placement-side {
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}

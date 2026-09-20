@@ -197,6 +197,7 @@ export function moveWbsSubtree(
   node: WbsNode,
   parent?: WbsNode,
   before?: WbsNode,
+  side?: "left" | "right",
 ): string {
   if (
     parent &&
@@ -206,7 +207,14 @@ export function moveWbsSubtree(
     return source;
   const block = source.slice(node.subtreeRange.from, lineEnd(source, node.subtreeRange.to)).replace(/\n$/, "");
   const newDepth = parent ? parent.depth + 1 : (before?.depth ?? 1);
-  const inheritedFamily = parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*";
+  const inheritedFamily =
+    newDepth === 1
+      ? "*"
+      : side === "left"
+        ? "-"
+        : side === "right"
+          ? "+"
+          : (parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*");
   const depthDelta = newDepth - node.depth;
   // Only the moved node's own line adopts its new parent's family — each descendant keeps its
   // own side (relative to its own parent, which didn't change) and just gets re-sized for depth.

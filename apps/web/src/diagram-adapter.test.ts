@@ -46,6 +46,17 @@ describe("diagram adapter architecture", () => {
     expect(operation.edits).not.toEqual([{ range: { from: 0, to: source.length }, text: next }]);
   });
 
+  it("routes WBS subtree moves across branch sides", () => {
+    const source = "@startwbs\n* Project\n-- Research\n++ Delivery\n@endwbs";
+    const parsed = applicationWbsAdapter.parse(source);
+    const operation = applicationWbsAdapter.applyVisualOperation(
+      { kind: "move-subtree", nodeId: "wbs-1", parentId: "wbs-0", beforeNodeId: "wbs-2", side: "right" },
+      parsed.document,
+      source,
+    );
+    expect(applySourceEdits(source, operation.edits)).toContain("++ Research\n++ Delivery");
+  });
+
   it("rejects invalid and unsupported WBS adapter targets without edits", () => {
     const source = "@startwbs\n*(project) Project\n**(plan) Plan\n@endwbs";
     const parsed = applicationWbsAdapter.parse(source);

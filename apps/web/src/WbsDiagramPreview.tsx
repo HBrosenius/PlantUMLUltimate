@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
@@ -15,7 +15,7 @@ interface Props {
   onZoomChange(value: number): void;
   onSelect(id?: string): void;
   onRelationshipSelect(id?: string): void;
-  onMove(nodeId: string, parentId?: string, beforeId?: string): void;
+  onMove(nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right"): void;
   onRelationshipCreate(fromId: string, toId: string): void;
   onRelationshipReconnect(relationshipId: string, endpoint: "from" | "to", targetId: string): void;
 }
@@ -52,19 +52,35 @@ export function WbsDiagramPreview({
     | undefined
   >(undefined);
   const dropTarget = useRef<Element | undefined>(undefined);
+  const dropPlan = useRef<
+    | {
+        parentId?: string;
+        beforeId?: string;
+        side?: "left" | "right";
+        mode: "before" | "inside" | "after" | "side";
+      }
+    | undefined
+  >(undefined);
   const focusAfterRender = useRef<string | undefined>(undefined);
   const [dragPreview, setDragPreview] = useState<{
     label: string;
     x: number;
     y: number;
     destination?: string;
+    placement?: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      mode: "before" | "inside" | "after" | "side";
+    };
   }>();
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const clearDropTarget = () => {
     dropTarget.current?.classList.remove("wbs-drop-target");
     dropTarget.current = undefined;
   };
-  const nodeElementAt = (x: number, y: number) => {
+  const nodeElementAt = useCallback((x: number, y: number) => {
     const nodes = [...(root.current?.querySelectorAll<SVGTextElement>("text[data-wbs-node-id]") ?? [])];
     let closest: SVGTextElement | undefined;
     let closestDistance = Number.POSITIVE_INFINITY;
@@ -77,7 +93,106 @@ export function WbsDiagramPreview({
       }
     }
     return closestDistance <= 80 ? closest : undefined;
-  };
+  }, []);
+  const planMove = useCallback(
+    (sourceId: string, x: number, y: number, forceBefore: boolean) => {
+      const source = document.nodes.find((item) => item.id === sourceId);
+      const targetElement = nodeElementAt(x, y);
+      const target = document.nodes.find((item) => item.id === targetElement?.dataset.wbsNodeId);
+      const rootNode = document.nodes.find((item) => item.depth === 1);
+      const parentNode = document.nodes.find((item) => item.id === source?.parentId);
+      const parentElement = parentNode
+        ? root.current?.querySelector<SVGTextElement>(`text[data-wbs-node-id="${CSS.escape(parentNode.id)}"]`)
+        : undefined;
+      const parentBounds = parentElement?.getBoundingClientRect();
+      if (!source || !rootNode || source.id === rootNode.id) return undefined;
+      if (!target && parentNode && parentBounds) {
+        const svgBounds = root.current?.querySelector("svg")?.getBoundingClientRect();
+        const desiredSide: "left" | "right" | undefined =
+          x < parentBounds.left - 20 ? "left" : x > parentBounds.right + 20 ? "right" : undefined;
+        const insideDiagram =
+          svgBounds &&
+          x >= svgBounds.left - 24 &&
+          x <= svgBounds.right + 24 &&
+          y >= svgBounds.top - 24 &&
+          y <= svgBounds.bottom + 24;
+        if (desiredSide && insideDiagram) {
+          const sideStart = desiredSide === "left" ? svgBounds.left : parentBounds.right + 18;
+          const sideEnd = desiredSide === "left" ? parentBounds.left - 18 : svgBounds.right;
+          return {
+            parentId: parentNode.id,
+            ...(desiredSide !== source.side ? { side: desiredSide } : {}),
+            mode: "side",
+            destination: `Move to the ${desiredSide} side of ${parentNode.label}`,
+            placement: {
+              left: Math.min(sideStart, sideEnd),
+              top: svgBounds.top + 8,
+              width: Math.max(48, Math.abs(sideEnd - sideStart)),
+              height: Math.max(40, svgBounds.height - 16),
+              mode: "side",
+            },
+          } as const;
+        }
+      }
+      if (!target || source.id === target.id) return undefined;
+      if (target.sourceRange.from > source.sourceRange.from && target.sourceRange.from <= source.subtreeRange.to)
+        return undefined;
+      const bounds = targetElement!.getBoundingClientRect();
+      const fraction = bounds.height ? (y - bounds.top) / bounds.height : 0.5;
+      const mode = forceBefore || fraction < 0.3 ? "before" : fraction > 0.7 ? "after" : "inside";
+      const targetCenter = bounds.left + bounds.width / 2;
+      const desiredSide =
+        source.depth <= 1
+          ? undefined
+          : target.id === source.parentId
+            ? x < targetCenter
+              ? "left"
+              : "right"
+            : target.side === "root"
+              ? source.side === "left"
+                ? "left"
+                : "right"
+              : target.side === "left"
+                ? "left"
+                : "right";
+      const side = desiredSide && desiredSide !== source.side ? desiredSide : undefined;
+      if (mode === "inside") {
+        return {
+          parentId: target.id,
+          side,
+          mode,
+          destination: `Move inside ${target.label}${side ? ` on the ${side}` : ""}`,
+          placement: {
+            left: desiredSide === "left" ? bounds.left - 34 : bounds.right + 10,
+            top: bounds.top + bounds.height / 2 - 13,
+            width: 24,
+            height: 26,
+            mode,
+          },
+        } as const;
+      }
+      const siblings = document.nodes.filter(
+        (item) => item.parentId === target.parentId && item.depth === target.depth && item.side === target.side,
+      );
+      const targetIndex = siblings.findIndex((item) => item.id === target.id);
+      const beforeId = mode === "before" ? target.id : siblings[targetIndex + 1]?.id;
+      return {
+        parentId: target.parentId,
+        ...(beforeId ? { beforeId } : {}),
+        side,
+        mode,
+        destination: `${mode === "before" ? "Place before" : "Place after"} ${target.label}${side ? ` on the ${side}` : ""}`,
+        placement: {
+          left: bounds.left - 10,
+          top: mode === "before" ? bounds.top - 7 : bounds.bottom + 3,
+          width: bounds.width + 20,
+          height: 4,
+          mode,
+        },
+      } as const;
+    },
+    [document.nodes, nodeElementAt],
+  );
   useLayoutEffect(() => {
     const host = root.current;
     if (!host) return;
@@ -261,16 +376,20 @@ export function WbsDiagramPreview({
         return;
       }
       const sourceNode = document.nodes.find((item) => item.id === current.id);
-      const targetNode = document.nodes.find((item) => item.id === target?.dataset.wbsNodeId);
+      const plan = planMove(current.id, event.clientX, event.clientY, event.shiftKey);
+      dropPlan.current = plan
+        ? {
+            ...(plan.parentId ? { parentId: plan.parentId } : {}),
+            ...("beforeId" in plan && plan.beforeId ? { beforeId: plan.beforeId } : {}),
+            ...(plan.side ? { side: plan.side } : {}),
+            mode: plan.mode,
+          }
+        : undefined;
       setDragPreview({
         label: sourceNode?.label ?? "WBS node",
         x: event.clientX + 16,
         y: event.clientY + 16,
-        ...(targetNode
-          ? {
-              destination: event.shiftKey ? `Place before ${targetNode.label}` : `Move inside ${targetNode.label}`,
-            }
-          : {}),
+        ...(plan ? { destination: plan.destination, placement: plan.placement } : {}),
       });
       if (target?.dataset.wbsNodeId && target.dataset.wbsNodeId !== current.id) {
         target.classList.add("wbs-drop-target");
@@ -284,24 +403,27 @@ export function WbsDiagramPreview({
       current.line?.remove();
       setDragPreview(undefined);
       const target = nodeElementAt(event.clientX, event.clientY)?.dataset.wbsNodeId;
+      const plan = dropPlan.current;
+      dropPlan.current = undefined;
       clearDropTarget();
-      if (!current.active || !target) return;
+      if (!current.active) return;
       if (current.kind === "reconnect" && current.endpoint) {
+        if (!target) return;
         onRelationshipReconnect(current.id, current.endpoint, target);
         return;
       }
       if (current.id === target) return;
       if (current.kind === "connect") {
+        if (!target) return;
         onRelationshipCreate(current.id, target);
         return;
       }
-      const targetNode = document.nodes.find((item) => item.id === target);
-      if (event.shiftKey) onMove(current.id, targetNode?.parentId, target);
-      else onMove(current.id, target);
+      if (plan) onMove(current.id, plan.parentId, plan.beforeId, plan.side);
     };
     const cancel = () => {
       drag.current?.line?.remove();
       drag.current = undefined;
+      dropPlan.current = undefined;
       setDragPreview(undefined);
       clearDropTarget();
     };
@@ -313,7 +435,7 @@ export function WbsDiagramPreview({
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", cancel, true);
     };
-  }, [document, onMove, onRelationshipCreate, onRelationshipReconnect, renderStatus]);
+  }, [document, nodeElementAt, onMove, onRelationshipCreate, onRelationshipReconnect, planMove, renderStatus]);
   return (
     <section className="preview wbs-preview" aria-label="WBS diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
@@ -426,7 +548,6 @@ export function WbsDiagramPreview({
                   active: false,
                   ...(line ? { line } : {}),
                 };
-                if (!handle) onSelect(id);
               } else {
                 onSelect(undefined);
                 onRelationshipSelect(undefined);
@@ -482,20 +603,28 @@ export function WbsDiagramPreview({
         )}
       </div>
       {dragPreview && (
-        <div
-          className="wbs-drag-preview"
-          style={{ left: dragPreview.x, top: dragPreview.y }}
-          role="status"
-          aria-live="polite"
-        >
-          <strong>{dragPreview.label}</strong>
-          <span>{dragPreview.destination ?? "Choose a destination"}</span>
-        </div>
+        <>
+          {dragPreview.placement && (
+            <div
+              className={`wbs-placement-preview wbs-placement-${dragPreview.placement.mode}`}
+              style={dragPreview.placement}
+            />
+          )}
+          <div
+            className="wbs-drag-preview"
+            style={{ left: dragPreview.x, top: dragPreview.y }}
+            role="status"
+            aria-live="polite"
+          >
+            <strong>{dragPreview.label}</strong>
+            <span>{dragPreview.destination ?? "Choose a destination"}</span>
+          </div>
+        </>
       )}
       <p className="preview-hint">
         {keyboardConnectFrom
           ? "Choose a target and press Enter · Esc cancels"
-          : "Drag a node to move it · Alt+↑/↓ reorders · focus a node and press C to connect"}
+          : "Drop above/below to reorder · drop in the middle to nest · drop left/right of the parent to change side"}
       </p>
     </section>
   );

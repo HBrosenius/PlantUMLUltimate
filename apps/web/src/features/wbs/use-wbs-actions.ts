@@ -115,7 +115,7 @@ export function useWbsActions({
   ]);
 
   const moveWbsNode = useCallback(
-    (nodeId: string, parentId?: string, beforeId?: string) => {
+    (nodeId: string, parentId?: string, beforeId?: string, side?: "left" | "right") => {
       const node = document.nodes.find((item) => item.id === nodeId);
       const parent = parentId ? document.nodes.find((item) => item.id === parentId) : undefined;
       const before = beforeId ? document.nodes.find((item) => item.id === beforeId) : undefined;
@@ -126,6 +126,7 @@ export function useWbsActions({
           nodeId,
           ...(parentId ? { parentId } : {}),
           ...(beforeId ? { beforeNodeId: beforeId } : {}),
+          ...(side ? { side } : {}),
         },
         document,
         source,
@@ -137,7 +138,9 @@ export function useWbsActions({
       }
       commitSource(updated, `Move WBS subtree ${node.label}`);
       reportMessage(
-        before ? `Reordered ${node.label}` : `Moved ${node.label}${parent ? ` under ${parent.label}` : " to the root"}`,
+        before
+          ? `Reordered ${node.label}${side ? ` on the ${side}` : ""}`
+          : `Moved ${node.label}${parent ? ` under ${parent.label}` : " to the root"}${side ? ` on the ${side}` : ""}`,
       );
     },
     [commitSource, document, reportMessage, source],

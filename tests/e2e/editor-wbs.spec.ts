@@ -72,6 +72,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 8 });
   await expect(page.locator(".wbs-drag-preview")).toContainText("Experience design");
   await expect(page.locator(".wbs-drag-preview")).toContainText("Place before Discovery");
+  await expect(page.locator(".wbs-placement-before")).toBeVisible();
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await expect
@@ -89,6 +90,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.mouse.down();
   await page.mouse.move(parentBox!.x + parentBox!.width / 2, parentBox!.y + parentBox!.height / 2, { steps: 8 });
   await expect(page.locator(".wbs-drag-preview")).toContainText("Move inside Discovery");
+  await expect(page.locator(".wbs-placement-inside")).toBeVisible();
   await page.mouse.up();
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/\*\* Discovery[\s\S]*\*\*\* Delivery/);
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -103,6 +105,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await connectionSource.focus();
   await page.keyboard.press("Enter");
   const connectHandle = page.locator('[aria-label="Drag to connect Discovery"]');
+  await expect(connectHandle).toBeVisible();
   const connectFrom = await connectHandle.boundingBox();
   const connectTo = await page
     .locator("text[data-wbs-node-id]", { hasText: "Experience design" })
@@ -188,6 +191,57 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await settings.getByLabel("Diagram title").fill("Delivery breakdown");
   await settings.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("title Delivery breakdown");
+});
+
+test("reorders a WBS branch and moves it from left to right with one drag", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n-- Research\n++ Delivery\n@endwbs");
+
+  const research = page.locator("text[data-wbs-node-id]", { hasText: "Research" }).first();
+  const delivery = page.locator("text[data-wbs-node-id]", { hasText: "Delivery" }).first();
+  const from = await research.boundingBox();
+  const to = await delivery.boundingBox();
+  expect(from).not.toBeNull();
+  expect(to).not.toBeNull();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + 1, { steps: 8 });
+  await expect(page.locator(".wbs-drag-preview")).toContainText("Place before Delivery on the right");
+  await expect(page.locator(".wbs-placement-before")).toBeVisible();
+  await page.mouse.up();
+
+  await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/\+\+ Research[\s\S]*\+\+ Delivery/);
+});
+
+test("moves a WBS branch to the left by dropping in empty space beside the root", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n* Project\n++ Research\n++ Delivery\n@endwbs");
+
+  const research = page.locator("text[data-wbs-node-id]", { hasText: "Research" }).first();
+  const root = page.locator("text[data-wbs-node-id]", { hasText: "Project" }).first();
+  const svg = page.locator(".wbs-diagram svg");
+  const from = await research.boundingBox();
+  const rootBox = await root.boundingBox();
+  const svgBox = await svg.boundingBox();
+  expect(from).not.toBeNull();
+  expect(rootBox).not.toBeNull();
+  expect(svgBox).not.toBeNull();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(svgBox!.x + 8, rootBox!.y + rootBox!.height / 2, { steps: 8 });
+  await expect(page.locator(".wbs-drag-preview")).toContainText("Move to the left side of Project");
+  await expect(page.locator(".wbs-placement-side")).toBeVisible();
+  await page.mouse.up();
+
+  await expect(page.locator(".cm-content")).toContainText("-- Research");
 });
 
 test("edits and clears a WBS node link", async ({ page }) => {

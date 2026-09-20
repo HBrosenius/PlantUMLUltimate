@@ -26,7 +26,13 @@ export type WbsVisualOperation = VisualOperation &
     | { kind: "update-node"; nodeId: string; value: WbsNodeInput }
     | { kind: "delete-node"; nodeId: string }
     | { kind: "reorder-node"; nodeId: string; beforeNodeId?: string }
-    | { kind: "move-subtree"; nodeId: string; parentId?: string; beforeNodeId?: string }
+    | {
+        kind: "move-subtree";
+        nodeId: string;
+        parentId?: string;
+        beforeNodeId?: string;
+        side?: "left" | "right";
+      }
     | { kind: "create-relationship"; fromNodeId: string; toNodeId: string }
     | { kind: "update-relationship-color"; relationshipId: string; color: string }
     | {
@@ -130,7 +136,7 @@ export const wbsAdapter: DiagramAdapter<WbsDocument, WbsVisualOperation> = {
     } else if (operation.kind === "move-subtree") {
       const parent = operation.parentId ? model.nodes.find((item) => item.id === operation.parentId) : undefined;
       if (operation.parentId && !parent) return { edits: [], unavailableReason: "WBS parent node not found" };
-      next = moveWbsSubtree(source, model, node, parent, before);
+      next = moveWbsSubtree(source, model, node, parent, before, operation.side);
     } else {
       return { edits: [], unavailableReason: `Unsupported WBS operation: ${operationKind}` };
     }

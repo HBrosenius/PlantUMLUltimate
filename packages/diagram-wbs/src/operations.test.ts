@@ -133,6 +133,15 @@ describe("WBS operations", () => {
     expect(moved).toContain("++++ Task A");
     expect(moved).toContain("---- Task B");
   });
+  it("moves a subtree across the root while changing its branch side", () => {
+    const mixed = "@startwbs\n* Project\n-- Research\n++ Delivery\n@endwbs";
+    const document = parseWbs(mixed);
+    const research = document.nodes.find((node) => node.label === "Research")!;
+    const delivery = document.nodes.find((node) => node.label === "Delivery")!;
+    const moved = moveWbsSubtree(mixed, document, research, document.nodes[0], delivery, "right");
+    expect(moved).toContain("++ Research\n++ Delivery");
+    expect(parseWbs(moved).nodes.find((node) => node.label === "Research")).toMatchObject({ side: "right" });
+  });
   it("adds stable aliases and an arrow between nodes", () => {
     const document = parseWbs(source);
     const connected = insertWbsRelationship(source, document, document.nodes[1]!, document.nodes[3]!);
