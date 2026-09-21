@@ -62,6 +62,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
 
   await page.locator('[data-class-object-type="entity"][data-class-object-id="payments"]').click({ force: true });
   const componentInspector = page.getByRole("complementary", { name: "Component object inspector" });
+  await expect(componentInspector).toBeVisible();
   await componentInspector.getByLabel("Package").selectOption("");
   await expect
     .poll(() => page.locator(".cm-content").innerText())

@@ -291,8 +291,13 @@ export function ClassDiagramPreview({
     };
     root.current?.classList.toggle("class-dragging-move", kind === "move");
     root.current?.classList.toggle("class-dragging-connection", kind !== "move");
-    e.currentTarget.setPointerCapture(e.pointerId);
-    e.preventDefault();
+    // Capturing immediately retargets the eventual click to the container in Firefox and WebKit,
+    // hiding which Component body was clicked. Bare bodies acquire capture after movement instead.
+    if (!componentBody || moveHandle || h || reconnect) e.currentTarget.setPointerCapture(e.pointerId);
+    // Firefox and WebKit suppress the subsequent click when a bare Component body prevents the
+    // pointer-down default. Preserve that click so selection is consistent across browsers; the
+    // captured pointer still drives body drag gestures.
+    if (!componentBody || moveHandle || h || reconnect) e.preventDefault();
   };
   const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const target = (event.target as Element).closest<SVGElement>("[data-class-object-id]");
@@ -327,6 +332,12 @@ export function ClassDiagramPreview({
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
+    if (
+      d?.selectOnClick &&
+      Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 &&
+      !e.currentTarget.hasPointerCapture(e.pointerId)
+    )
+      e.currentTarget.setPointerCapture(e.pointerId);
     window.document
       .querySelectorAll(".class-active-drop")
       .forEach((item) => item.classList.remove("class-active-drop"));

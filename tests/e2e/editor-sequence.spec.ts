@@ -275,7 +275,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
-  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(6);
+  await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(7);
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
