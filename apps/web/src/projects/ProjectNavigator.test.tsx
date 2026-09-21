@@ -43,6 +43,7 @@ describe("ProjectNavigator", () => {
     expect([...type.querySelectorAll("option")].map((option) => option.value)).toEqual([
       "gantt",
       "class",
+      "component",
       "sequence",
       "usecase",
       "activity",

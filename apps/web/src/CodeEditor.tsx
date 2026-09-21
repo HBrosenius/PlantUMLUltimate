@@ -189,7 +189,7 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? plantUmlSequenceMode
         : kind === "usecase"
           ? plantUmlUseCaseMode
-          : kind === "class"
+          : kind === "class" || kind === "component"
             ? plantUmlClassMode
             : kind === "activity"
               ? plantUmlActivityMode
@@ -201,7 +201,7 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? plantUmlSequenceHighlightStyle
         : kind === "usecase"
           ? plantUmlUseCaseHighlightStyle
-          : kind === "class"
+          : kind === "class" || kind === "component"
             ? plantUmlClassHighlightStyle
             : kind === "activity"
               ? plantUmlActivityHighlightStyle
@@ -213,7 +213,7 @@ function languageExtensions(kind: DiagramKind): Extension {
         ? sequenceCompletions
         : kind === "usecase"
           ? useCaseCompletions
-          : kind === "class"
+          : kind === "class" || kind === "component"
             ? classCompletions
             : kind === "activity"
               ? activityCompletions

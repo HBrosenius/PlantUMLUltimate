@@ -47,7 +47,7 @@ export class DocumentFormatError extends Error {
   }
 }
 
-export type PortableDiagramKind = "gantt" | "sequence" | "usecase" | "class" | "activity" | "wbs";
+export type PortableDiagramKind = "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs";
 export type PortableVersionReason = "opened" | "saved" | "manual" | "before-restore" | "restored" | "collaboration";
 
 export interface UnencryptedEnvelopeHeader {

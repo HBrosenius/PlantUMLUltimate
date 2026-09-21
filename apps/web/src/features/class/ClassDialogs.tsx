@@ -15,6 +15,7 @@ import {
 export type ClassDialogKind = "entity" | "relationship" | "package" | "note";
 
 interface ClassDialogsProps {
+  componentMode?: boolean;
   active: ClassDialogKind | undefined;
   document: ClassDocument;
   onAddEntity(value: ClassEntityInput): void;
@@ -25,6 +26,7 @@ interface ClassDialogsProps {
 }
 
 export function ClassDialogs({
+  componentMode = false,
   active,
   document,
   onAddEntity,
@@ -33,7 +35,8 @@ export function ClassDialogs({
   onAddNote,
   onClose,
 }: ClassDialogsProps) {
-  if (active === "entity") return <AddClassEntityDialog onAdd={onAddEntity} onClose={onClose} />;
+  if (active === "entity")
+    return <AddClassEntityDialog componentMode={componentMode} onAdd={onAddEntity} onClose={onClose} />;
   if (active === "relationship")
     return <AddClassRelationshipDialog document={document} onAdd={onAddRelationship} onClose={onClose} />;
   if (active === "package") return <AddClassPackageDialog document={document} onAdd={onAddPackage} onClose={onClose} />;

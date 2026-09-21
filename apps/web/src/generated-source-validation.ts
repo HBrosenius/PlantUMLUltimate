@@ -19,6 +19,7 @@ const markers: Record<DiagramKind, [string, string]> = {
   sequence: ["@startuml", "@enduml"],
   usecase: ["@startuml", "@enduml"],
   class: ["@startuml", "@enduml"],
+  component: ["@startuml", "@enduml"],
   activity: ["@startuml", "@enduml"],
 };
 
@@ -32,7 +33,7 @@ function preservedSyntax(kind: DiagramKind, source: string): string[] {
       ? parseGantt(source).document.unknown
       : kind === "usecase"
         ? parseUseCase(source).unknown
-        : kind === "class"
+        : kind === "class" || kind === "component"
           ? parseClassDiagram(source).unknown
           : kind === "activity"
             ? parseActivity(source).unknown

@@ -28,7 +28,7 @@ export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagno
     ? sequenceDiagnostics(source)
     : kind === "usecase"
       ? collectUseCaseDiagnostics(source)
-      : kind === "class"
+      : kind === "class" || kind === "component"
         ? classDiagnostics(source)
         : kind === "activity"
           ? activityDiagnostics(source)
@@ -42,7 +42,7 @@ export const quickFixesForDiagram = (kind: DiagramKind, source: string): Diagram
       ? sequenceQuickFixes(source)
       : kind === "usecase"
         ? getUseCaseQuickFixes(source)
-        : kind === "class"
+        : kind === "class" || kind === "component"
           ? classQuickFixes(source)
           : kind === "activity"
             ? activityQuickFixes(source)

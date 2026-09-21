@@ -139,6 +139,7 @@ function collectOccurrences(context: ProviderContext): SemanticSymbolOccurrence[
     case "usecase":
       return collectUseCaseSymbolOccurrences(context.source, context.useCase);
     case "class":
+    case "component":
       return collectClassSymbolOccurrences(context.source, context.classDiagram);
     case "activity":
       return collectActivitySymbolOccurrences(context.source, context.activity);

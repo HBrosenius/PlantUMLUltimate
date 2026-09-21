@@ -16,7 +16,15 @@ import {
 const UTF8 = new TextEncoder();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[0-9a-f]{64}$/;
-const DIAGRAM_KINDS = new Set<PortableDiagramKind>(["gantt", "sequence", "usecase", "class", "activity", "wbs"]);
+const DIAGRAM_KINDS = new Set<PortableDiagramKind>([
+  "gantt",
+  "sequence",
+  "usecase",
+  "class",
+  "component",
+  "activity",
+  "wbs",
+]);
 const VERSION_REASONS = new Set<PortableVersionReason>([
   "opened",
   "saved",

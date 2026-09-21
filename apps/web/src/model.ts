@@ -1,7 +1,7 @@
 export type ViewMode = "code" | "split" | "diagram";
 export type Theme = "light" | "dark" | "system";
 export type RenderStatus = "idle" | "rendering" | "error";
-export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "activity" | "wbs";
+export type DiagramKind = "gantt" | "sequence" | "usecase" | "class" | "component" | "activity" | "wbs";
 
 export interface RenderRequest {
   requestId: number;
@@ -78,6 +78,21 @@ package "Ordering" {
 
 Order "1" *-- "many" OrderLine
 OrderRepository ..> Order : persists
+@enduml`;
+
+export const DEFAULT_COMPONENT_SOURCE = `@startuml
+left to right direction
+
+package "Ordering system" {
+  component "Web application" as Web
+  component "Order service" as Orders
+  database "Order database" as Database
+  queue "Order events" as Events
+}
+
+Web --> Orders : HTTPS
+Orders --> Database : reads and writes
+Orders ..> Events : publishes
 @enduml`;
 
 export const DEFAULT_ACTIVITY_SOURCE = `@startuml

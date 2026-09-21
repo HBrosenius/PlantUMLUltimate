@@ -22,9 +22,45 @@ import {
   type StructuredClassParameter,
 } from "./class-parameters";
 
-const kinds: ClassEntityKind[] = ["class", "abstract", "interface", "enum", "annotation"];
-export function AddClassEntityDialog({ onAdd, onClose }: { onAdd(v: ClassEntityInput): void; onClose(): void }) {
-  const [kind, setKind] = useState<ClassEntityKind>("class"),
+const kinds: ClassEntityKind[] = [
+  "class",
+  "abstract",
+  "interface",
+  "enum",
+  "annotation",
+  "component",
+  "database",
+  "queue",
+  "cloud",
+  "node",
+  "artifact",
+  "file",
+  "folder",
+  "rectangle",
+];
+const componentKinds: ClassEntityKind[] = [
+  "component",
+  "interface",
+  "database",
+  "queue",
+  "cloud",
+  "node",
+  "artifact",
+  "file",
+  "folder",
+  "rectangle",
+];
+export function AddClassEntityDialog({
+  componentMode = false,
+  onAdd,
+  onClose,
+}: {
+  componentMode?: boolean;
+  onAdd(v: ClassEntityInput): void;
+  onClose(): void;
+}) {
+  const availableKinds = componentMode ? componentKinds : kinds.slice(0, 5);
+  const [kind, setKind] = useState<ClassEntityKind>(componentMode ? "component" : "class"),
     [label, setLabel] = useState(""),
     [alias, setAlias] = useState(""),
     [generic, setGeneric] = useState(""),
@@ -40,7 +76,7 @@ export function AddClassEntityDialog({ onAdd, onClose }: { onAdd(v: ClassEntityI
         className="task-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Add Class object"
+        aria-label={`Add ${componentMode ? "Component" : "Class"} object`}
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -55,15 +91,15 @@ export function AddClassEntityDialog({ onAdd, onClose }: { onAdd(v: ClassEntityI
           });
         }}
       >
-        <h2>Add Class object</h2>
+        <h2>Add {componentMode ? "Component" : "Class"} object</h2>
         <label>
           Type
           <select
-            aria-label="Class object type"
+            aria-label={`${componentMode ? "Component" : "Class"} object type`}
             value={kind}
             onChange={(e) => setKind(e.target.value as ClassEntityKind)}
           >
-            {kinds.map((x) => (
+            {availableKinds.map((x) => (
               <option key={x} value={x}>
                 {x}
               </option>
@@ -118,6 +154,7 @@ const entityValue = (x: ClassEntity): ClassEntityInput => ({
   members: x.members.map((m) => m.text),
 });
 export function ClassEntityInspector({
+  componentMode = false,
   entity,
   entities,
   packages,
@@ -131,6 +168,7 @@ export function ClassEntityInspector({
   onMemberReveal,
   onClose,
 }: {
+  componentMode?: boolean;
   entity: ClassEntity;
   entities: ClassEntity[];
   packages: ClassPackage[];
@@ -153,6 +191,7 @@ export function ClassEntityInspector({
   const labelMissing = !v.label.trim();
   useEffect(() => setV(entityValue(entity)), [entity]);
   const save = () => v.label.trim() && onChange(v);
+  const availableKinds = componentMode ? componentKinds : kinds.slice(0, 5);
   const typeSuggestions = entities.map((item) => ({
     identity: item.alias ?? item.label,
     label: item.alias ? item.label : undefined,
@@ -161,11 +200,14 @@ export function ClassEntityInspector({
       .replace(/^[A-Z]/, (character) => character.toLowerCase()),
   }));
   return (
-    <aside className="task-inspector usecase-element-inspector" aria-label="Class object inspector">
+    <aside
+      className="task-inspector usecase-element-inspector"
+      aria-label={`${componentMode ? "Component" : "Class"} object inspector`}
+    >
       <header>
         <div>
           <strong>{entity.kind} inspector</strong>
-          <small>Edit identity, members, appearance, and package</small>
+          <small>Edit identity, appearance, and placement{componentMode ? "" : ", including members"}</small>
         </div>
         <button onClick={onClose}>×</button>
       </header>
@@ -182,7 +224,7 @@ export function ClassEntityInspector({
                 onChange(n);
               }}
             >
-              {kinds.map((x) => (
+              {availableKinds.map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
@@ -207,90 +249,94 @@ export function ClassEntityInspector({
             Alias
             <input value={v.alias ?? ""} onChange={(e) => setV({ ...v, alias: e.target.value })} onBlur={save} />
           </label>
-          <label>
-            Generic type
-            <input
-              list={typeListId}
-              value={v.generic ?? ""}
-              onChange={(e) => setV({ ...v, generic: e.target.value })}
-              onBlur={save}
-            />
-          </label>
-        </fieldset>
-        <fieldset>
-          <legend>Members</legend>
-          <div className="class-member-list" role="list" aria-label="Class members">
-            {entity.members.map((member, index) => (
-              <ClassMemberRow
-                key={`${member.id}:${member.text}`}
-                member={member}
-                typeListId={typeListId}
-                parameterListId={parameterListId}
-                first={index === 0}
-                last={index === entity.members.length - 1}
-                onChange={(value) => onMemberChange(member, value)}
-                onDelete={() => onMemberDelete(member)}
-                onMove={(direction) => onMemberMove(member, direction)}
-                onReveal={() => onMemberReveal(member)}
-              />
-            ))}
-          </div>
-          <div className="class-member-add" role="group" aria-label="Add class member">
-            <select
-              aria-label="New member kind"
-              value={newMemberKind}
-              onChange={(event) => setNewMemberKind(event.target.value as ClassMemberInput["kind"])}
-            >
-              <option value="field">Field</option>
-              <option value="method">Method</option>
-              <option value="raw">Raw declaration</option>
-            </select>
-            <input
-              aria-label={newMemberKind === "raw" ? "New raw declaration" : "New member name"}
-              value={newMemberName}
-              onChange={(event) => setNewMemberName(event.target.value)}
-              placeholder={newMemberKind === "raw" ? "{static} +value: Type" : "name"}
-            />
-            {newMemberKind !== "raw" && (
+          {!componentMode && (
+            <label>
+              Generic type
               <input
-                aria-label="New member type"
                 list={typeListId}
-                value={newMemberType}
-                onChange={(event) => setNewMemberType(event.target.value)}
-                placeholder="type"
+                value={v.generic ?? ""}
+                onChange={(e) => setV({ ...v, generic: e.target.value })}
+                onBlur={save}
               />
-            )}
-            <button
-              type="button"
-              disabled={!newMemberName.trim()}
-              onClick={() => {
-                onMemberAdd(
-                  newMemberKind === "raw"
-                    ? { kind: "raw", text: newMemberName }
-                    : { kind: newMemberKind, name: newMemberName, type: newMemberType },
-                );
-                setNewMemberName("");
-                setNewMemberType("");
-              }}
-            >
-              Add member
-            </button>
-          </div>
-          <datalist id={typeListId}>
-            {typeSuggestions.map((item) => (
-              <option key={item.identity} value={item.identity} label={item.label} />
-            ))}
-          </datalist>
-          <datalist id={parameterListId}>
-            {typeSuggestions.map((item) => (
-              <option
-                key={item.identity}
-                value={`${item.parameterName || "value"}: ${item.identity}`}
-                label={item.label}
-              />
-            ))}
-          </datalist>
+            </label>
+          )}
         </fieldset>
+        {!componentMode && (
+          <fieldset>
+            <legend>Members</legend>
+            <div className="class-member-list" role="list" aria-label="Class members">
+              {entity.members.map((member, index) => (
+                <ClassMemberRow
+                  key={`${member.id}:${member.text}`}
+                  member={member}
+                  typeListId={typeListId}
+                  parameterListId={parameterListId}
+                  first={index === 0}
+                  last={index === entity.members.length - 1}
+                  onChange={(value) => onMemberChange(member, value)}
+                  onDelete={() => onMemberDelete(member)}
+                  onMove={(direction) => onMemberMove(member, direction)}
+                  onReveal={() => onMemberReveal(member)}
+                />
+              ))}
+            </div>
+            <div className="class-member-add" role="group" aria-label="Add class member">
+              <select
+                aria-label="New member kind"
+                value={newMemberKind}
+                onChange={(event) => setNewMemberKind(event.target.value as ClassMemberInput["kind"])}
+              >
+                <option value="field">Field</option>
+                <option value="method">Method</option>
+                <option value="raw">Raw declaration</option>
+              </select>
+              <input
+                aria-label={newMemberKind === "raw" ? "New raw declaration" : "New member name"}
+                value={newMemberName}
+                onChange={(event) => setNewMemberName(event.target.value)}
+                placeholder={newMemberKind === "raw" ? "{static} +value: Type" : "name"}
+              />
+              {newMemberKind !== "raw" && (
+                <input
+                  aria-label="New member type"
+                  list={typeListId}
+                  value={newMemberType}
+                  onChange={(event) => setNewMemberType(event.target.value)}
+                  placeholder="type"
+                />
+              )}
+              <button
+                type="button"
+                disabled={!newMemberName.trim()}
+                onClick={() => {
+                  onMemberAdd(
+                    newMemberKind === "raw"
+                      ? { kind: "raw", text: newMemberName }
+                      : { kind: newMemberKind, name: newMemberName, type: newMemberType },
+                  );
+                  setNewMemberName("");
+                  setNewMemberType("");
+                }}
+              >
+                Add member
+              </button>
+            </div>
+            <datalist id={typeListId}>
+              {typeSuggestions.map((item) => (
+                <option key={item.identity} value={item.identity} label={item.label} />
+              ))}
+            </datalist>
+            <datalist id={parameterListId}>
+              {typeSuggestions.map((item) => (
+                <option
+                  key={item.identity}
+                  value={`${item.parameterName || "value"}: ${item.identity}`}
+                  label={item.label}
+                />
+              ))}
+            </datalist>
+          </fieldset>
+        )}
         <fieldset>
           <legend>Appearance</legend>
           <label>

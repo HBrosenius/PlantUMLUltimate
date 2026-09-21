@@ -71,7 +71,7 @@ async function declarationsFor(source: string, kind: DiagramKind): Promise<reado
       ),
     );
   }
-  if (kind === "class") {
+  if (kind === "class" || kind === "component") {
     return Promise.all(
       parseClassDiagram(source).entities.map((item) =>
         declaration("class-entity", item.alias ?? item.id, source, item.sourceRange),

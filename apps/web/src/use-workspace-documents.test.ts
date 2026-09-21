@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ACTIVITY_SOURCE,
   DEFAULT_CLASS_SOURCE,
+  DEFAULT_COMPONENT_SOURCE,
   DEFAULT_SEQUENCE_SOURCE,
   DEFAULT_SOURCE,
   DEFAULT_USECASE_SOURCE,
@@ -12,7 +13,7 @@ import { diagramKindDisplayName, starterSource } from "./use-workspace-documents
 describe("new workspace documents", () => {
   it("maps every diagram kind to its starter source", () => {
     expect(
-      ["gantt", "sequence", "usecase", "class", "activity", "wbs"].map((kind) =>
+      ["gantt", "sequence", "usecase", "class", "component", "activity", "wbs"].map((kind) =>
         starterSource(kind as Parameters<typeof starterSource>[0]),
       ),
     ).toEqual([
@@ -20,6 +21,7 @@ describe("new workspace documents", () => {
       DEFAULT_SEQUENCE_SOURCE,
       DEFAULT_USECASE_SOURCE,
       DEFAULT_CLASS_SOURCE,
+      DEFAULT_COMPONENT_SOURCE,
       DEFAULT_ACTIVITY_SOURCE,
       DEFAULT_WBS_SOURCE,
     ]);

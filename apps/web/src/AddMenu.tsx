@@ -202,16 +202,18 @@ export function AddMenu({
                 <span>Note…</span>
               </button>
             </>
-          ) : diagramKind === "class" ? (
+          ) : diagramKind === "class" || diagramKind === "component" ? (
             <>
               <button role="menuitem" onClick={() => run(onClassEntity)}>
-                <span>Class, interface, or enum…</span>
+                <span>
+                  {diagramKind === "component" ? "Component or infrastructure…" : "Class, interface, or enum…"}
+                </span>
               </button>
               <button role="menuitem" onClick={() => run(onClassRelationship)}>
                 <span>Relationship…</span>
               </button>
               <button role="menuitem" onClick={() => run(onClassPackage)}>
-                <span>Package or namespace…</span>
+                <span>{diagramKind === "component" ? "Package or node…" : "Package or namespace…"}</span>
               </button>
               <button role="menuitem" onClick={() => run(onClassNote)}>
                 <span>Note…</span>

@@ -16,6 +16,11 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
   },
   { kind: "class", title: "Class diagram", description: "Design types, members, packages, and relationships." },
   {
+    kind: "component",
+    title: "Component diagram",
+    description: "Describe software components, infrastructure, interfaces, and dependencies.",
+  },
+  {
     kind: "activity",
     title: "Activity diagram",
     description: "Model workflows, decisions, parallel work, loops, partitions, and outcomes.",
@@ -232,6 +237,25 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
         </text>
         <text x="153" y="66">
           +save()
+        </text>
+      </svg>
+    );
+  if (kind === "component")
+    return (
+      <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
+        <rect className="preview-canvas" x="1" y="1" width="238" height="110" rx="10" />
+        <g fill="none" stroke="#64748b">
+          <rect x="18" y="26" width="72" height="48" rx="5" />
+          <rect x="82" y="38" width="14" height="10" />
+          <rect x="82" y="54" width="14" height="10" />
+          <path d="M96 50h44m-8-5 8 5-8 5" />
+          <path d="M148 31c0-8 70-8 70 0v40c0 8-70 8-70 0zM148 31c0 8 70 8 70 0" />
+        </g>
+        <text x="52" y="54" textAnchor="middle">
+          Service
+        </text>
+        <text x="183" y="57" textAnchor="middle">
+          Database
         </text>
       </svg>
     );

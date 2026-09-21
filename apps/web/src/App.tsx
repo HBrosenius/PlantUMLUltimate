@@ -241,7 +241,10 @@ export function App() {
   } = useRenderer(
     workspace.source,
     hydrated && dialog?.kind !== "new-document" && workspace.viewMode !== "code",
-    workspace.diagramKind === "class" || workspace.diagramKind === "usecase" || workspace.diagramKind === "activity"
+    workspace.diagramKind === "class" ||
+      workspace.diagramKind === "component" ||
+      workspace.diagramKind === "usecase" ||
+      workspace.diagramKind === "activity"
       ? "graphviz"
       : "native",
   );
@@ -602,7 +605,7 @@ export function App() {
       ? parseResult.document.unknown.length
       : workspace.diagramKind === "usecase"
         ? useCaseDocument.unknown.length
-        : workspace.diagramKind === "class"
+        : workspace.diagramKind === "class" || workspace.diagramKind === "component"
           ? classDocument.unknown.length
           : workspace.diagramKind === "activity"
             ? activityDocument.unknown.length
@@ -1912,9 +1915,9 @@ export function App() {
               Use Case
             </button>
           )}
-          {workspace.diagramKind === "class" && (
+          {(workspace.diagramKind === "class" || workspace.diagramKind === "component") && (
             <button data-inspector-trigger onClick={openClassSettingsFromToolbar}>
-              Class
+              {workspace.diagramKind === "component" ? "Component" : "Class"}
             </button>
           )}
           {workspace.diagramKind === "activity" && (
@@ -2139,6 +2142,7 @@ export function App() {
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
               workspace.diagramKind === "class" ||
+              workspace.diagramKind === "component" ||
               workspace.diagramKind === "activity" ||
               workspace.diagramKind === "wbs"
                 ? requestSymbolRename
@@ -2149,6 +2153,7 @@ export function App() {
               workspace.diagramKind === "sequence" ||
               workspace.diagramKind === "usecase" ||
               workspace.diagramKind === "class" ||
+              workspace.diagramKind === "component" ||
               workspace.diagramKind === "activity" ||
               workspace.diagramKind === "wbs"
                 ? (position, x, y) => {
@@ -2187,7 +2192,7 @@ export function App() {
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
                 selectUseCaseFromSource(occurrence?.key, findUseCaseObjectAt(useCaseDocument, position)?.id);
-              } else if (workspace.diagramKind === "class") {
+              } else if (workspace.diagramKind === "class" || workspace.diagramKind === "component") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
@@ -2368,8 +2373,9 @@ export function App() {
               onMoveToPackage={moveUseCaseElementByDrag}
               onReorder={reorderUseCaseElementByDrag}
             />
-          ) : workspace.diagramKind === "class" ? (
+          ) : workspace.diagramKind === "class" || workspace.diagramKind === "component" ? (
             <ClassDiagramPreview
+              diagramKind={workspace.diagramKind}
               svg={result?.svg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
@@ -2481,8 +2487,10 @@ export function App() {
             ? "Sequence"
             : workspace.diagramKind === "usecase"
               ? "Use Case"
-              : workspace.diagramKind === "class"
-                ? "Class"
+              : workspace.diagramKind === "class" || workspace.diagramKind === "component"
+                ? workspace.diagramKind === "component"
+                  ? "Component"
+                  : "Class"
                 : workspace.diagramKind === "activity"
                   ? "Activity"
                   : workspace.diagramKind === "wbs"
@@ -2867,6 +2875,7 @@ export function App() {
         onCloseSelection={clearSelectedUseCaseObject}
       />
       <ClassInspectors
+        componentMode={workspace.diagramKind === "component"}
         settingsOpen={classSettingsOpen}
         settings={parseClassSettings(workspace.source)}
         document={classDocument}
@@ -2924,6 +2933,7 @@ export function App() {
         onCloseSelection={clearSelectedActivityObject}
       />
       <ClassDialogs
+        componentMode={workspace.diagramKind === "component"}
         active={classDialogKind}
         document={classDocument}
         onAddEntity={addClassEntity}

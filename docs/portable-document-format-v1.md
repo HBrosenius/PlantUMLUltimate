@@ -43,7 +43,7 @@ V1 accepts only `{ "compression": "gzip" | "none", "encryption": "none" }` or th
 
 `schemaVersion` is `1`. `documentId` and version IDs are UUIDs. Content IDs and source hashes are lowercase SHA-256 hex over exact UTF-8 bytes. Versions are stored oldest-to-newest and sorted by integer `sequence`, then ID; imported legacy ties are allowed. Parent versions must occur earlier. A baseline and every version content ID must resolve within the retained document.
 
-Resource-capacity keys are non-empty and at most 256 characters; values are integers from 1–500, matching the current UI. The only allowed diagram kinds are Gantt, Sequence, Use Case, Class, Activity, and WBS. The portable reason vocabulary matches the six current checkpoint reasons.
+Resource-capacity keys are non-empty and at most 256 characters; values are integers from 1–500, matching the current UI. The only allowed diagram kinds are Gantt, Sequence, Use Case, Class, Component, Activity, and WBS. The portable reason vocabulary matches the current checkpoint reasons.
 
 Reader and policy bounds are defined by `DOCUMENT_LIMITS` and `DEFAULT_HISTORY_POLICY`: 80 MiB file/header-decoded payload, 5 MiB per source, 500 versions, 500 content records, 64 MiB expanded unique historical source, nine delta applications, default 100 versions, and a default 16 MiB logical history budget. Policy inputs permit 10–500 versions and 1–64 MiB.
 

@@ -21,6 +21,7 @@ import {
 } from "../../ClassEditors";
 
 interface ClassInspectorsProps {
+  componentMode?: boolean;
   settingsOpen: boolean;
   settings: ClassSettings;
   document: ClassDocument;
@@ -49,6 +50,7 @@ interface ClassInspectorsProps {
 }
 
 export function ClassInspectors({
+  componentMode = false,
   settingsOpen,
   settings,
   document,
@@ -82,6 +84,7 @@ export function ClassInspectors({
       )}
       {selectedEntity && (
         <ClassEntityInspector
+          componentMode={componentMode}
           entity={selectedEntity}
           entities={document.entities}
           packages={document.packages}

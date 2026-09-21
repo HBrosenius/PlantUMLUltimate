@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { findClassObjectAt, parseClassDiagram } from "./parser";
 describe("parseClassDiagram", () => {
+  it("parses component diagram elements with aliases, stereotypes, and relationships", () => {
+    const document = parseClassDiagram(`@startuml
+component "Web application" as Web <<frontend>>
+database "Orders" as Db
+queue Events
+Web --> Db : reads
+Web ..> Events : publishes
+@enduml`);
+
+    expect(document.entities.map(({ kind, label, alias }) => ({ kind, label, alias }))).toEqual([
+      { kind: "component", label: "Web application", alias: "Web" },
+      { kind: "database", label: "Orders", alias: "Db" },
+      { kind: "queue", label: "Events", alias: undefined },
+    ]);
+    expect(document.relationships).toHaveLength(2);
+    expect(document.unknown).toHaveLength(0);
+  });
+
   it("rejects oversized input before applying grammar expressions", () => {
     expect(() => parseClassDiagram(" ".repeat(100_001))).toThrow(/100,000 character limit/);
   });

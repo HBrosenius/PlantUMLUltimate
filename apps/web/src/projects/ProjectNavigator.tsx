@@ -132,6 +132,7 @@ export function ProjectNavigator({
               >
                 <option value="gantt">Gantt</option>
                 <option value="class">Class</option>
+                <option value="component">Component</option>
                 <option value="sequence">Sequence</option>
                 <option value="usecase">Use Case</option>
                 <option value="activity">Activity</option>

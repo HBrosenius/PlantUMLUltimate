@@ -3,6 +3,7 @@ import { downloadText, openWorkspaceBackupFile, type FileSnapshot, type Writable
 import {
   DEFAULT_ACTIVITY_SOURCE,
   DEFAULT_CLASS_SOURCE,
+  DEFAULT_COMPONENT_SOURCE,
   DEFAULT_SEQUENCE_SOURCE,
   DEFAULT_SOURCE,
   DEFAULT_USECASE_SOURCE,
@@ -49,6 +50,7 @@ export function starterSource(diagramKind: DiagramKind): string {
   if (diagramKind === "sequence") return DEFAULT_SEQUENCE_SOURCE;
   if (diagramKind === "usecase") return DEFAULT_USECASE_SOURCE;
   if (diagramKind === "class") return DEFAULT_CLASS_SOURCE;
+  if (diagramKind === "component") return DEFAULT_COMPONENT_SOURCE;
   if (diagramKind === "activity") return DEFAULT_ACTIVITY_SOURCE;
   if (diagramKind === "wbs") return DEFAULT_WBS_SOURCE;
   return DEFAULT_SOURCE;

@@ -74,7 +74,7 @@ export function useClassController(
   }, []);
 
   useEffect(() => {
-    if (diagramKind === "class") return;
+    if (diagramKind === "class" || diagramKind === "component") return;
     dismissInspector();
   }, [diagramKind, dismissInspector]);
 

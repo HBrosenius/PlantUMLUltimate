@@ -23,6 +23,15 @@ const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
   ].join("\n"),
   usecase: ["@startuml", "actor User", "(Sign in) as Login", "User --> Login", "@enduml"].join("\n"),
   class: ["@startuml", "class Order {", "  +total(): Money", "}", "class Item", "Order *-- Item", "@enduml"].join("\n"),
+  component: [
+    "@startuml",
+    'component "Web application" as Web',
+    'component "Order service" as Orders',
+    'database "Orders" as Database',
+    "Web --> Orders",
+    "Orders --> Database",
+    "@enduml",
+  ].join("\n"),
   activity: ["@startuml", "start", ":Plan;", "if (Approved?) then (yes)", "  :Build;", "endif", "stop", "@enduml"].join(
     "\n",
   ),

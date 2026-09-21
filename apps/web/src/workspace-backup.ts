@@ -10,7 +10,7 @@ interface WorkspaceBackup {
 }
 
 const VERSION_REASONS = new Set(["opened", "saved", "manual", "before-restore", "restored", "collaboration"]);
-const DIAGRAM_KINDS = new Set(["gantt", "sequence", "usecase", "class", "activity", "wbs"]);
+const DIAGRAM_KINDS = new Set(["gantt", "sequence", "usecase", "class", "component", "activity", "wbs"]);
 
 function validVersion(value: unknown, historyIds: ReadonlySet<string>): value is DocumentVersion {
   if (!value || typeof value !== "object") return false;

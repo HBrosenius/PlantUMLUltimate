@@ -1,6 +1,6 @@
 # PlantUML Ultimate
 
-PlantUML Ultimate is a local-first, browser-based editor for creating and maintaining PlantUML Gantt, Sequence, Use Case, Class, Activity, and WBS diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
+PlantUML Ultimate is a local-first, browser-based editor for creating and maintaining PlantUML Gantt, Sequence, Use Case, Class, Component, Activity, and WBS diagrams. It combines a source-code editor with a directly interactive diagram while keeping the PlantUML text as the single source of truth.
 
 The application runs entirely in the browser. Diagram rendering, editing, workspace recovery, and exports do not require a PlantUML server.
 
@@ -8,7 +8,7 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 
 ## Highlights
 
-- Diagram-type chooser for Gantt, Sequence, Use Case, Class, Activity, and WBS documents
+- Diagram-type chooser for Gantt, Sequence, Use Case, Class, Component, Activity, and WBS documents
 - CodeMirror editor with diagram-specific syntax highlighting, diagnostics, quick fixes, and context-aware completion
 - Semantic reference highlighting, navigation, and document-wide rename actions
 - Conservative Sequence semantic review with grouped acceptance and local patch/report export
@@ -96,7 +96,7 @@ Set `VITE_COLLABORATION_URL` when the web app should use an endpoint other than 
 
 ## Getting started
 
-Creating a document opens a diagram-type chooser. The toolbar, Add menu, settings, editor assistance, preview, and visual inspectors adapt to Gantt, Sequence, Use Case, Class, Activity, or WBS editing.
+Creating a document opens a diagram-type chooser. The toolbar, Add menu, settings, editor assistance, preview, and visual inspectors adapt to Gantt, Sequence, Use Case, Class, Component, Activity, or WBS editing.
 
 Enter or paste a complete PlantUML Gantt document in the code editor:
 
@@ -135,12 +135,13 @@ Sequence documents support the common PlantUML object and interaction families t
 
 The Add menu creates participants, messages, fragments, activations, notes, references, participant boxes, and timeline controls. Clicking supported diagram objects opens their inspector; participants and messages can also be reordered or reconnected by dragging. The code editor remains the authoritative escape hatch for valid PlantUML syntax that does not need a dedicated visual control.
 
-## Use Case, Class, Activity, and WBS diagrams
+## Use Case, Class, Component, Activity, and WBS diagrams
 
 The other diagram editors provide the same source-first workflow with diagram-specific creation tools and inspectors:
 
 - **Use Case** supports actors, use cases, packages, notes, relationships, endpoint reconnection, reordering, and general diagram settings.
 - **Class** supports classes and related entity kinds, packages, notes, relationships, structured fields and methods, member parameters, type completion, and general diagram settings.
+- **Component** supports software components, interfaces, databases, queues, clouds, nodes, artifacts, files, folders, rectangles, packages, notes, relationships, and general diagram settings.
 - **Activity** supports actions, partitions, notes, control structures, terminals, arrows, visual reordering, and connection workflows.
 - **WBS** supports node creation, structured branch editing, subtree movement, relationships, colors, and keyboard or pointer reordering.
 
@@ -451,7 +452,7 @@ This keeps saved files portable: they remain regular PlantUML documents that can
 
 ## Current scope
 
-The visual interaction layer supports PlantUML Gantt, Sequence, Use Case, Class, Activity, and WBS diagrams. Each implementation targets its commonly used structural, annotation, layout, and style families; it does not claim a dedicated screen for every obscure PlantUML grammar combination. Valid source remains editable and renderable even when a construct has no specialized visual control.
+The visual interaction layer supports PlantUML Gantt, Sequence, Use Case, Class, Component, Activity, and WBS diagrams. Each implementation targets its commonly used structural, annotation, layout, and style families; it does not claim a dedicated screen for every obscure PlantUML grammar combination. Valid source remains editable and renderable even when a construct has no specialized visual control.
 
 Large renderer assets are expected in the production build because PlantUML and Graphviz run locally in the browser.
 

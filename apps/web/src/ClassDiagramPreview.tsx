@@ -17,6 +17,7 @@ function classMemberRenderedText(member: ClassDocument["entities"][number]["memb
   return `${body}${member.type ? `: ${member.type}` : ""}`;
 }
 export function ClassDiagramPreview({
+  diagramKind = "class",
   svg,
   zoom,
   onZoomChange,
@@ -34,6 +35,7 @@ export function ClassDiagramPreview({
   onMoveToPackage,
   onReorder,
 }: {
+  diagramKind?: "class" | "component";
   svg?: string | undefined;
   zoom: number;
   onZoomChange(v: number): void;
@@ -154,7 +156,10 @@ export function ClassDiagramPreview({
         "data-class-connect-from": entity.id,
         cx: entityBox ? entityBox.x + entityBox.width - 10 : b.x + b.width + 6,
         cy: b.y + b.height / 2,
-        r: 8,
+        r: diagramKind === "component" ? 10 : 8,
+        role: "button",
+        tabindex: 0,
+        "aria-label": `Connect from ${entity.label}`,
       });
       rendered.append(h);
       const moveHandle = documentNode("rect");
@@ -219,7 +224,7 @@ export function ClassDiagramPreview({
     rendered
       .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
       .forEach((control) => rendered.append(control));
-  }, [document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
+  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as Element).closest("[data-class-object-id]");
     const id = target?.getAttribute("data-class-object-id");
@@ -234,15 +239,21 @@ export function ClassDiagramPreview({
     const reconnect = target.closest<SVGGraphicsElement>("[data-class-relationship-endpoint]");
     const h = target.closest<SVGGraphicsElement>("[data-class-connect-from]");
     const moveHandle = target.closest<SVGGraphicsElement>("[data-class-move-id]");
+    const componentBody =
+      diagramKind === "component"
+        ? target.closest<SVGGraphicsElement>('[data-class-object-type="entity"][data-class-object-id]')
+        : null;
     const id =
         reconnect?.getAttribute("data-class-relationship-id") ??
         h?.getAttribute("data-class-connect-from") ??
-        moveHandle?.getAttribute("data-class-move-id"),
+        moveHandle?.getAttribute("data-class-move-id") ??
+        componentBody?.getAttribute("data-class-object-id"),
       kind = reconnect ? "reconnect" : h ? "connect" : "move";
-    const svgRoot = (reconnect ?? h ?? moveHandle)?.ownerSVGElement;
+    const dragTarget = reconnect ?? h ?? moveHandle ?? componentBody;
+    const svgRoot = dragTarget?.ownerSVGElement;
     if (!id || !svgRoot) return;
     e.stopPropagation();
-    const p = center((reconnect ?? h ?? moveHandle)!, svgRoot),
+    const p = center(dragTarget!, svgRoot),
       line = documentNode("line");
     if (kind !== "move") {
       line.setAttribute("class", "class-connection-preview");
@@ -324,6 +335,7 @@ export function ClassDiagramPreview({
     if (d.kind === "connect" && type === "entity") onRelationshipCreate(d.id, id);
     else if (d.kind === "reconnect" && d.endpoint && type === "entity") onRelationshipReconnect(d.id, d.endpoint, id);
     else if (d.kind === "move" && type === "package") onMoveToPackage(d.id, id);
+    else if (d.kind === "move" && type === "entity" && diagramKind === "component") onRelationshipCreate(d.id, id);
     else if (d.kind === "move" && type === "entity") {
       const box = target!.getBoundingClientRect();
       onReorder(d.id, id, e.clientY < box.top + box.height / 2 ? "before" : "after");
@@ -336,7 +348,10 @@ export function ClassDiagramPreview({
       .forEach((item) => item.classList.remove("class-active-drop"));
   };
   return (
-    <section className="preview class-preview" aria-label="Class diagram preview">
+    <section
+      className="preview class-preview"
+      aria-label={`${diagramKind === "component" ? "Component" : "Class"} diagram preview`}
+    >
       <div className="preview-tools">
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
@@ -348,7 +363,11 @@ export function ClassDiagramPreview({
           +
         </button>
         {document.packages.length > 0 && (
-          <div className="class-package-tray" role="group" aria-label="Class containers">
+          <div
+            className="class-package-tray"
+            role="group"
+            aria-label={`${diagramKind === "component" ? "Component" : "Class"} containers`}
+          >
             <span>Containers</span>
             {document.packages.map((item) => (
               <button
@@ -370,8 +389,10 @@ export function ClassDiagramPreview({
         )}
         <span className="usecase-keyboard-help">
           {keyboardConnectFrom
-            ? "Choose another class and press Enter · Esc cancels"
-            : "Drag an anchor or press C to connect"}
+            ? `Choose another ${diagramKind === "component" ? "component" : "class"} and press Enter · Esc cancels`
+            : diagramKind === "component"
+              ? "Drop a component on a package to move it · drop it on another component to connect"
+              : "Drag the square handle to move · drag a blue anchor or press C to connect"}
         </span>
       </div>
       <div
@@ -400,13 +421,15 @@ export function ClassDiagramPreview({
           />
         ) : renderError ? (
           <div className="render-error" role="alert">
-            <strong>Could not render this Class diagram.</strong>
+            <strong>Could not render this {diagramKind === "component" ? "Component" : "Class"} diagram.</strong>
             <p>{renderError}</p>
             <button onClick={onRenderRetry}>Retry</button>
           </div>
         ) : (
           <div className="render-placeholder">
-            {renderStatus === "rendering" ? "Rendering Class diagram…" : "Enter Class source to render a preview."}
+            {renderStatus === "rendering"
+              ? `Rendering ${diagramKind === "component" ? "Component" : "Class"} diagram…`
+              : `Enter ${diagramKind === "component" ? "Component" : "Class"} source to render a preview.`}
           </div>
         )}
       </div>

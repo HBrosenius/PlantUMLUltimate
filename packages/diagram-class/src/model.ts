@@ -1,6 +1,20 @@
 import type { LanguageDiagnostic, TextRange } from "@plantuml-studio/language-core";
 
-export type ClassEntityKind = "class" | "abstract" | "interface" | "enum" | "annotation";
+export type ClassEntityKind =
+  | "class"
+  | "abstract"
+  | "interface"
+  | "enum"
+  | "annotation"
+  | "component"
+  | "database"
+  | "queue"
+  | "cloud"
+  | "node"
+  | "artifact"
+  | "file"
+  | "folder"
+  | "rectangle";
 export interface ClassMember {
   id: string;
   text: string;

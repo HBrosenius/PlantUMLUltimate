@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { detectDiagramKind, normalizeDiagramKind } from "./diagram-kind";
 
 describe("diagram kind detection", () => {
-  it("detects Gantt, Sequence, Use Case, and Class sources", () => {
+  it("detects all supported diagram sources", () => {
     expect(detectDiagramKind("@startgantt\n@endgantt")).toBe("gantt");
     expect(detectDiagramKind("@startwbs\n* Project\n@endwbs")).toBe("wbs");
     expect(detectDiagramKind("@startuml\nactor User\nUser -> API: Request\n@enduml")).toBe("sequence");
     expect(detectDiagramKind("@startuml\nactor User\nusecase Login\nUser --> Login\n@enduml")).toBe("usecase");
     expect(detectDiagramKind("@startuml\n:User: --> (Log in)\n@enduml")).toBe("usecase");
     expect(detectDiagramKind("@startuml\nclass User\ninterface Repository\n@enduml")).toBe("class");
+    expect(detectDiagramKind('@startuml\ncomponent "Web app" as Web\ndatabase Orders\nWeb --> Orders\n@enduml')).toBe(
+      "component",
+    );
+    expect(detectDiagramKind("@startuml\ndatabase DB\nAPI -> DB: Query\n@enduml")).toBe("sequence");
     expect(detectDiagramKind("@startuml\nstart\n:Validate order;\nstop\n@enduml")).toBe("activity");
     expect(detectDiagramKind("@startuml\nclass Job {\n+start(): void\n}\n@enduml")).toBe("class");
   });
@@ -17,6 +21,7 @@ describe("diagram kind detection", () => {
     expect(normalizeDiagramKind("sequence", "@startuml\n@enduml")).toBe("sequence");
     expect(normalizeDiagramKind("usecase", "@startuml\nactor User\n@enduml")).toBe("usecase");
     expect(normalizeDiagramKind("class", "@startuml\n@enduml")).toBe("class");
+    expect(normalizeDiagramKind("component", "@startuml\n@enduml")).toBe("component");
     expect(normalizeDiagramKind("activity", "@startuml\n@enduml")).toBe("activity");
     expect(normalizeDiagramKind("wbs", "@startwbs\n@endwbs")).toBe("wbs");
   });

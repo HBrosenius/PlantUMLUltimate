@@ -46,6 +46,7 @@ describe("generated source validation", () => {
     ["sequence", "@startuml\nalt Ready\nend\n@enduml", "@startuml\nalt Ready\n@enduml"],
     ["usecase", "@startuml\npackage System {\n}\n@enduml", "@startuml\npackage System {\n@enduml"],
     ["class", "@startuml\nclass Order\n@enduml", "@startuml\nclass Order {\n@enduml"],
+    ["component", "@startuml\ncomponent API\n@enduml", "@startuml\npackage System {\ncomponent API\n@enduml"],
     ["activity", "@startuml\nstart\nstop\n@enduml", "@startuml\nwhile (More?)\n:Work;\n@enduml"],
     ["wbs", "@startwbs\n* Root\n@endwbs", "@startwbs\n*** Orphan\n@endwbs"],
   ] as const)("rejects newly introduced %s parser errors", (kind, before, after) => {

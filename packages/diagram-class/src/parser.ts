@@ -181,7 +181,7 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       continue;
     }
     const decl = line.text.match(
-      /^\s*(abstract\s+class|abstract|class|interface|enum|annotation)\s+("[^"]+"|[^\s{#<]+)(?:\s+as\s+([^\s{#<]+))?(?:\s*<([^>{}]+)>)?(.*?)(\{)?\s*$/i,
+      /^\s*(abstract\s+class|abstract|class|interface|enum|annotation|component|database|queue|cloud|node|artifact|file|folder|rectangle)\s+("[^"]+"|[^\s{#<]+)(?:\s+as\s+([^\s{#<]+))?(?:\s*<([^>{}]+)>)?(.*?)(\{)?\s*$/i,
     );
     if (decl) {
       const kind = (
