@@ -354,6 +354,32 @@ test("creates standalone tasks with a movable project-start date", async ({ page
   await expect(page.locator(".cm-content")).not.toContainText("[New task] starts 2026-09-01");
 });
 
+test("places a newly added task on the selected task row", async ({ page }) => {
+  await openAddDialog(page, "Task…");
+  const dialog = page.getByRole("dialog", { name: "Add task" });
+  await dialog.getByLabel("Name").fill("New task");
+  await dialog.getByRole("button", { name: "Add task" }).click();
+
+  await page.locator('[data-task-id="new task"] .bar').click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByLabel("Display on same row as").selectOption("architecture");
+  await expect(page.locator(".render-notice.rendering")).toBeHidden();
+
+  await expect(page.locator(".cm-content")).toContainText("[New task] displays on same row as [Architecture]");
+  await expect(page.locator(".cm-content")).toContainText("[New task] starts at [Architecture]'s end");
+  await expect
+    .poll(async () => {
+      const architecture = await page.locator('[data-task-id="architecture"] .bar').boundingBox();
+      const newTask = await page.locator('[data-task-id="new task"] .bar').boundingBox();
+      if (!architecture || !newTask) return undefined;
+      return {
+        sameRow: Math.abs(architecture.y - newTask.y) < 2,
+        separated: newTask.x >= architecture.x + architecture.width,
+      };
+    })
+    .toEqual({ sameRow: true, separated: true });
+});
+
 test("suggests inline task continuations after a fixed start date", async ({ page }) => {
   await setSource(page, source("[New task] starts 2026-09-01"));
   const taskLine = page.locator(".cm-line").filter({ hasText: "[New task] starts 2026-09-01" });

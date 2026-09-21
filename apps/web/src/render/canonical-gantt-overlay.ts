@@ -1,5 +1,6 @@
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
+import { resolveTaskDates } from "../gantt-schedule";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -237,6 +238,7 @@ export function addCanonicalGanttOverlay(
   const geometry = new Map<string, Geometry>();
   const gridDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
+  const resolvedDates = calendar ? resolveTaskDates(tasks, dependencies, projectStart, calendar) : undefined;
 
   const numberedDates = texts.flatMap((text) => {
     const day = Number(text.textContent?.trim());
@@ -376,27 +378,64 @@ export function addCanonicalGanttOverlay(
     if (label) claimedLabels.add(label);
     const textY = label ? numberAttribute(label, "y") : undefined;
     if (!label || textY === undefined) continue;
+    const taskDates = resolvedDates?.get(task.id);
+    const startColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.start);
+    const endColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.end);
+    const withinTaskDates = (bounds: Geometry | undefined) => {
+      if (!bounds || !startColumn || !endColumn || !canonicalDayWidth) return true;
+      const center = bounds.x + bounds.width / 2;
+      return center >= startColumn.x - canonicalDayWidth / 2 && center <= endColumn.x + canonicalDayWidth / 2;
+    };
     const rowBars = rects.filter((rect) => {
       const y = numberAttribute(rect, "y");
       const height = numberAttribute(rect, "height");
-      return y !== undefined && height !== undefined && height <= 30 && textY >= y && textY <= y + height;
+      const x = numberAttribute(rect, "x");
+      const width = numberAttribute(rect, "width");
+      return (
+        y !== undefined &&
+        height !== undefined &&
+        x !== undefined &&
+        width !== undefined &&
+        height <= 30 &&
+        textY >= y &&
+        textY <= y + height &&
+        withinTaskDates({ x, y, width, height })
+      );
     });
     const rowPolygons = task.milestone
       ? []
       : paintedPolygons.filter((polygon) => {
           const bounds = polygonBounds(polygon);
-          return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
+          return (
+            bounds &&
+            bounds.height <= 30 &&
+            textY >= bounds.y &&
+            textY <= bounds.y + bounds.height &&
+            withinTaskDates(bounds)
+          );
         });
     const rowPaths = task.milestone
       ? []
       : paintedPaths.filter((path) => {
           const bounds = pathBounds(path);
-          return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
+          return (
+            bounds &&
+            bounds.height <= 30 &&
+            textY >= bounds.y &&
+            textY <= bounds.y + bounds.height &&
+            withinTaskDates(bounds)
+          );
         });
     const milestoneShapes = task.milestone
       ? polygons.filter((polygon) => {
           const bounds = polygonBounds(polygon);
-          return bounds && bounds.height <= 30 && textY >= bounds.y && textY <= bounds.y + bounds.height;
+          return (
+            bounds &&
+            bounds.height <= 30 &&
+            textY >= bounds.y &&
+            textY <= bounds.y + bounds.height &&
+            withinTaskDates(bounds)
+          );
         })
       : [];
     const labelBounds =

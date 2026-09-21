@@ -212,19 +212,34 @@ export function useGanttScheduleActions(options: Options) {
       const existingDependency = parseGantt(nextSource).document.dependencies.find(
         (item) => item.successorTaskId === currentId,
       );
+      const selectedSameRowTask = value.sameRowTaskId
+        ? parseGantt(nextSource).document.symbols.tasks.get(value.sameRowTaskId)
+        : undefined;
+      const selectedDates = resolvedTaskDates.get(selectedTaskId);
+      const sameRowDates = selectedSameRowTask ? resolvedTaskDates.get(selectedSameRowTask.id) : undefined;
+      const sameRowOverlap = Boolean(
+        selectedDates?.start &&
+        selectedDates.end &&
+        sameRowDates?.start &&
+        sameRowDates.end &&
+        selectedDates.start <= sameRowDates.end &&
+        sameRowDates.start <= selectedDates.end,
+      );
       const predecessor = value.predecessorId
         ? parseGantt(nextSource).document.symbols.tasks.get(value.predecessorId)
-        : undefined;
+        : !existingDependency && sameRowOverlap
+          ? selectedSameRowTask
+          : undefined;
+      const dependencyRelation = value.predecessorId ? value.dependencyRelation : "start-after-end";
       if (
         existingDependency &&
         predecessor &&
-        (existingDependency.predecessorTaskId !== predecessor.id ||
-          existingDependency.relation !== value.dependencyRelation)
+        (existingDependency.predecessorTaskId !== predecessor.id || existingDependency.relation !== dependencyRelation)
       ) {
         const dependencyOperation = updateDependency(nextSource, existingDependency, {
           predecessorLabel: predecessor.alias?.value ?? predecessor.label,
           successorLabel: current()?.alias?.value ?? current()?.label ?? value.label,
-          relation: value.dependencyRelation,
+          relation: dependencyRelation,
           offset: existingDependency.offset?.value ?? 0,
           direction: existingDependency.direction ?? "after",
           ...(existingDependency.color?.value ? { color: existingDependency.color.value } : {}),
@@ -249,8 +264,8 @@ export function useGanttScheduleActions(options: Options) {
       };
       const derivedStart = resolvedTaskDates.get(selectedTaskId)?.start ?? "";
       if (predecessor) {
-        const endsTask = value.dependencyRelation.startsWith("end-");
-        const linkedAnchor = value.dependencyRelation.endsWith("-start") ? "start" : "end";
+        const endsTask = dependencyRelation.startsWith("end-");
+        const linkedAnchor = dependencyRelation.endsWith("-start") ? "start" : "end";
         const linkedStatement = `${endsTask ? "ends" : "starts"} at [${predecessor.alias?.value ?? predecessor.label}]'s ${linkedAnchor}`;
         if (existingDependency) {
           applyDeclaration(
@@ -291,12 +306,11 @@ export function useGanttScheduleActions(options: Options) {
       );
       applyDeclaration("completion", completion !== undefined ? `is ${completion}% completed` : undefined);
       applyDeclaration("color", value.color.trim() ? `is colored in ${value.color.trim()}` : undefined);
-      const sameRowTask = value.sameRowTaskId
-        ? parseGantt(nextSource).document.symbols.tasks.get(value.sameRowTaskId)
-        : undefined;
       applyDeclaration(
         "same-row",
-        sameRowTask ? `displays on same row as [${sameRowTask.alias?.value ?? sameRowTask.label}]` : undefined,
+        selectedSameRowTask
+          ? `displays on same row as [${selectedSameRowTask.alias?.value ?? selectedSameRowTask.label}]`
+          : undefined,
       );
       const pauseOperation = current()
         ? setTaskPauses(nextSource, current()!, value.pauses.map((pause) => pause.value.trim()).filter(Boolean))
