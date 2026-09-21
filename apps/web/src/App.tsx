@@ -1906,7 +1906,6 @@ export function App() {
               <button data-inspector-trigger onClick={openResourcePanel}>
                 Resources
               </button>
-              <button onClick={() => openDialog({ kind: "delivery-scenario" })}>Scenario</button>
             </>
           )}
           {workspace.diagramKind === "sequence" && (
