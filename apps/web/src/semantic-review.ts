@@ -1,5 +1,11 @@
 import { parseSequence, type SequenceMessage, type SequenceParticipant } from "@plantuml-studio/diagram-sequence";
 import { parseGantt, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
+import {
+  parseClassDiagram,
+  type ClassEntity,
+  type ClassPackage,
+  type ClassRelationship,
+} from "@plantuml-studio/diagram-class";
 import type { DiagramKind } from "./model";
 import { diffVersionSources, type VersionDiffLine } from "./version-diff";
 import { plantUmlTheme } from "./plantuml-theme";
@@ -22,7 +28,10 @@ export type ReviewTarget =
   | { kind: "sequence-participant"; id: string; label: string; alias?: string }
   | { kind: "sequence-message"; id: string; label: string }
   | { kind: "gantt-task"; id: string; label: string }
-  | { kind: "gantt-dependency"; predecessorId: string; successorId: string };
+  | { kind: "gantt-dependency"; predecessorId: string; successorId: string }
+  | { kind: "class-entity"; id: string; label: string; alias?: string }
+  | { kind: "class-package"; id: string; label: string; alias?: string }
+  | { kind: "class-relationship"; from: string; to: string; label?: string };
 
 type SequenceItem =
   | { kind: "participant"; line: number; value: SequenceParticipant }
@@ -34,6 +43,10 @@ type GanttItem = {
   value: GanttTask;
 };
 type GanttDependencyItem = { line: number; value: GanttDependency };
+type ClassItem =
+  | { kind: "entity"; line: number; value: ClassEntity }
+  | { kind: "package"; line: number; value: ClassPackage }
+  | { kind: "relationship"; line: number; value: ClassRelationship };
 
 const lineAt = (source: string, offset: number) => source.slice(0, offset).split("\n").length - 1;
 
@@ -129,6 +142,23 @@ function ganttDependencyItems(source: string): GanttDependencyItem[] {
   }));
 }
 
+function classItems(source: string): ClassItem[] {
+  const parsed = parseClassDiagram(source);
+  return [
+    ...parsed.entities.map((value) => ({ kind: "entity" as const, line: lineAt(source, value.openRange.from), value })),
+    ...parsed.packages.map((value) => ({
+      kind: "package" as const,
+      line: lineAt(source, value.openRange.from),
+      value,
+    })),
+    ...parsed.relationships.map((value) => ({
+      kind: "relationship" as const,
+      line: lineAt(source, value.sourceRange.from),
+      value,
+    })),
+  ];
+}
+
 function sequenceTargets(items: readonly SequenceItem[]): ReviewTarget[] {
   const targets: ReviewTarget[] = [];
   for (const item of items) {
@@ -157,6 +187,123 @@ function ganttTargets(items: readonly GanttItem[], dependencies: readonly GanttD
       successorId: value.successorTaskId,
     })),
   ];
+}
+
+function classTargets(items: readonly ClassItem[]): ReviewTarget[] {
+  return items.map((item) => {
+    if (item.kind === "relationship")
+      return {
+        kind: "class-relationship" as const,
+        from: item.value.from,
+        to: item.value.to,
+        ...(item.value.label ? { label: item.value.label } : {}),
+      };
+    return {
+      kind: item.kind === "entity" ? ("class-entity" as const) : ("class-package" as const),
+      id: item.value.id,
+      label: item.value.label,
+      ...(item.value.alias ? { alias: item.value.alias } : {}),
+    };
+  });
+}
+
+function describeComponentChange(
+  removed: ClassItem[],
+  added: ClassItem[],
+): Pick<ReviewGroup, "title" | "detail" | "confidence"> {
+  if (removed.length === 1 && added.length === 1 && removed[0]!.kind === added[0]!.kind) {
+    const before = removed[0]!;
+    const after = added[0]!;
+    if (before.kind === "entity" && after.kind === "entity") {
+      const stableAlias = before.value.alias && before.value.alias === after.value.alias;
+      const stableId = before.value.id === after.value.id;
+      if (stableAlias || stableId) {
+        const renamed = before.value.label !== after.value.label;
+        return {
+          title: renamed
+            ? `Rename ${after.value.kind} ${before.value.label} to ${after.value.label}`
+            : `Modify ${after.value.kind} ${after.value.label}`,
+          detail: `The unchanged ${stableAlias ? "alias" : "identifier"} confirms the component object's identity.`,
+          confidence: "confirmed",
+        };
+      }
+      if (before.value.kind === after.value.kind)
+        return {
+          title: `Possible ${after.value.kind} rename: ${before.value.label} → ${after.value.label}`,
+          detail: "The declaration remains the same kind, but no stable alias confirms its identity.",
+          confidence: "probable",
+        };
+    }
+    if (before.kind === "package" && after.kind === "package") {
+      const stableAlias = before.value.alias && before.value.alias === after.value.alias;
+      if (stableAlias || before.value.id === after.value.id)
+        return {
+          title:
+            before.value.label === after.value.label
+              ? `Modify container ${after.value.label}`
+              : `Rename container ${before.value.label} to ${after.value.label}`,
+          detail: `The unchanged ${stableAlias ? "alias" : "identifier"} confirms the container's identity.`,
+          confidence: "confirmed",
+        };
+    }
+    if (before.kind === "relationship" && after.kind === "relationship") {
+      const sameEndpoints = before.value.from === after.value.from && before.value.to === after.value.to;
+      return {
+        title: sameEndpoints
+          ? `Change connection ${after.value.from} → ${after.value.to}`
+          : `Reconnect ${before.value.from} → ${before.value.to} as ${after.value.from} → ${after.value.to}`,
+        detail: sameEndpoints
+          ? "Both endpoints retain their parsed component identities."
+          : "One recognized component connection is replaced by another.",
+        confidence: "confirmed",
+      };
+    }
+  }
+  if (!removed.length && added.length) {
+    if (added.every((item) => item.kind === "entity"))
+      return {
+        title:
+          added.length === 1
+            ? `Add ${added[0]!.value.kind} ${added[0]!.value.label}`
+            : `Add component objects (${added.length})`,
+        detail: "All added lines are recognized component object declarations.",
+        confidence: "confirmed",
+      };
+    if (added.every((item) => item.kind === "relationship"))
+      return {
+        title:
+          added.length === 1
+            ? `Add connection ${added[0]!.value.from} → ${added[0]!.value.to}`
+            : `Add component connections (${added.length})`,
+        detail: "All added lines are recognized component connections.",
+        confidence: "confirmed",
+      };
+  }
+  if (!added.length && removed.length) {
+    if (removed.every((item) => item.kind === "entity"))
+      return {
+        title:
+          removed.length === 1
+            ? `Remove ${removed[0]!.value.kind} ${removed[0]!.value.label}`
+            : `Remove component objects (${removed.length})`,
+        detail: "All removed lines are recognized component object declarations.",
+        confidence: "confirmed",
+      };
+    if (removed.every((item) => item.kind === "relationship"))
+      return {
+        title:
+          removed.length === 1
+            ? `Remove connection ${removed[0]!.value.from} → ${removed[0]!.value.to}`
+            : `Remove component connections (${removed.length})`,
+        detail: "All removed lines are recognized component connections.",
+        confidence: "confirmed",
+      };
+  }
+  return {
+    title: "Unclassified source change",
+    detail: "Review the source lines directly. This change is not eligible for partial semantic acceptance.",
+    confidence: "unclassified",
+  };
 }
 
 function describeSequenceChange(
@@ -490,6 +637,8 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
   let rightGanttItems: GanttItem[] = [];
   let leftGanttDependencies: GanttDependencyItem[] = [];
   let rightGanttDependencies: GanttDependencyItem[] = [];
+  let leftClassItems: ClassItem[] = [];
+  let rightClassItems: ClassItem[] = [];
   if (kind === "sequence") {
     try {
       leftItems = sequenceItems(leftSource);
@@ -503,6 +652,14 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     rightGanttItems = ganttItems(rightSource);
     leftGanttDependencies = ganttDependencyItems(leftSource);
     rightGanttDependencies = ganttDependencyItems(rightSource);
+  }
+  if (kind === "component") {
+    try {
+      leftClassItems = classItems(leftSource);
+      rightClassItems = classItems(rightSource);
+    } catch {
+      // Oversized or otherwise unparseable input still receives a bounded raw-source review.
+    }
   }
   const groups: ReviewGroup[] = [];
   const beforeTheme = plantUmlTheme(leftSource);
@@ -524,6 +681,10 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
       (item) => item.line >= startLeft && item.line < startLeft + deleteCount,
     );
     const addedGanttDependencies = rightGanttDependencies.filter(
+      (item) => item.line >= startRight && item.line < startRight + replacement.length,
+    );
+    const removedClass = leftClassItems.filter((item) => item.line >= startLeft && item.line < startLeft + deleteCount);
+    const addedClass = rightClassItems.filter(
       (item) => item.line >= startRight && item.line < startRight + replacement.length,
     );
     const changedLeftLines = leftSource.split("\n").slice(startLeft, startLeft + deleteCount);
@@ -553,7 +714,9 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
                 rightGanttItems,
                 rightGanttDependencies,
               )
-            : describeSequenceChange([], []);
+            : kind === "component"
+              ? describeComponentChange(removedClass, addedClass)
+              : describeSequenceChange([], []);
     return {
       id,
       ...description,
@@ -567,13 +730,17 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
           ? sequenceTargets(removed)
           : kind === "gantt"
             ? ganttTargets(removedGantt, removedGanttDependencies)
-            : [],
+            : kind === "component"
+              ? classTargets(removedClass)
+              : [],
       rightTargets:
         kind === "sequence"
           ? sequenceTargets(added)
           : kind === "gantt"
             ? ganttTargets(addedGantt, addedGanttDependencies)
-            : [],
+            : kind === "component"
+              ? classTargets(addedClass)
+              : [],
     };
   };
   let leftCursor = 0;

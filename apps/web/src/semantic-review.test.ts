@@ -389,6 +389,33 @@ describe("semantic review", () => {
     expect(buildReviewGroups(before, after, "sequence")).toMatchObject([{ confidence: "unclassified" }]);
   });
 
+  it("classifies Component object and connection changes", () => {
+    const before =
+      '@startuml\ncomponent "Order service" as Orders\ndatabase "Order records" as Db\nOrders --> Db : reads\n\n@enduml';
+    const after =
+      '@startuml\ncomponent "Checkout service" as Orders\ndatabase "Order records" as Db\nOrders ..> Db : queries\n\nqueue Events\n@enduml';
+
+    expect(buildReviewGroups(before, after, "component")).toMatchObject([
+      {
+        title: "Rename component Order service to Checkout service",
+        confidence: "confirmed",
+        leftTargets: [{ kind: "class-entity", id: "orders", label: "Order service", alias: "Orders" }],
+        rightTargets: [{ kind: "class-entity", id: "orders", label: "Checkout service", alias: "Orders" }],
+      },
+      {
+        title: "Change connection orders → db",
+        confidence: "confirmed",
+        leftTargets: [{ kind: "class-relationship", from: "orders", to: "db", label: "reads" }],
+        rightTargets: [{ kind: "class-relationship", from: "orders", to: "db", label: "queries" }],
+      },
+      {
+        title: "Add queue Events",
+        confidence: "confirmed",
+        rightTargets: [{ kind: "class-entity", id: "events", label: "Events" }],
+      },
+    ]);
+  });
+
   it("escapes document content in standalone reports", () => {
     const before = "@startuml\nA -> B: <old>\n@enduml";
     const after = "@startuml\nA -> B: <script>alert('x')</script>\n@enduml";

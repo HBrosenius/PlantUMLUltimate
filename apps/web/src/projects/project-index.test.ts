@@ -49,6 +49,37 @@ describe("virtual project index", () => {
     await expect(indexVirtualProject("{", new Map())).rejects.toThrow("Manifest is not valid JSON");
   });
 
+  it("detects and indexes Component diagram declarations", async () => {
+    const componentManifest = JSON.stringify({
+      ...JSON.parse(manifest),
+      documents: [{ id: id(4), path: "architecture.puml", format: "plantuml", observedSourceHash: hash }],
+      elements: [],
+      links: [],
+    });
+    const project = await indexVirtualProject(
+      componentManifest,
+      new Map([
+        [
+          "architecture.puml",
+          {
+            state: "available" as const,
+            source:
+              '@startuml\ncomponent "Order service" as Orders\ndatabase "Order records" as Db\nOrders --> Db\n@enduml',
+          },
+        ],
+      ]),
+    );
+
+    expect(project.members[0]).toMatchObject({
+      state: "available",
+      diagramKind: "component",
+      declarations: [
+        { kind: "class-entity", symbolKey: "Orders" },
+        { kind: "class-entity", symbolKey: "Db" },
+      ],
+    });
+  });
+
   it("cancels obsolete indexing before publishing a result", async () => {
     const controller = new AbortController();
     controller.abort();

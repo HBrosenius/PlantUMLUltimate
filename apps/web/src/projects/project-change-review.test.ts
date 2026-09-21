@@ -109,6 +109,36 @@ describe("project change review", () => {
     });
   });
 
+  it("uses semantic summaries for Component diagram changes", async () => {
+    const before = await projectFromPlantUml(
+      '@startuml\ncomponent "Order service" as Orders\ndatabase "Order records" as Db\nOrders --> Db\n@enduml',
+      "component",
+      "Architecture",
+    );
+    const diagram = before.diagrams[0]!;
+    const after = {
+      ...before,
+      diagrams: [
+        {
+          ...diagram,
+          document: {
+            ...diagram.document,
+            current: {
+              ...diagram.document.current,
+              source:
+                '@startuml\ncomponent "Checkout service" as Orders\ndatabase "Order records" as Db\nOrders --> Db\n@enduml',
+            },
+          },
+        },
+      ],
+    };
+
+    expect(reviewProjectChanges(before, after).diagrams[0]?.sourceComparison).toMatchObject({
+      mode: "semantic",
+      summaries: [{ title: "Rename component Order service to Checkout service", confidence: "confirmed" }],
+    });
+  });
+
   it("creates a standalone escaped report with semantic, patch, relationship, and impact details", async () => {
     const before = await fixture();
     const first = before.diagrams[0]!;

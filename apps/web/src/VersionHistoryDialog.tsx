@@ -824,6 +824,18 @@ function highlightReviewSvg(svg: string, highlights: readonly ReviewHighlight[])
       if (matches.length > 0 && matches.length <= 2) matches.forEach((element) => mark(element, state));
       continue;
     }
+    if (target.kind === "class-entity" || target.kind === "class-package") {
+      const labels = new Set([target.label.trim(), target.alias?.trim()].filter(Boolean));
+      const matches = text.filter((element) => labels.has(element.textContent?.trim() ?? ""));
+      if (matches.length === 1) mark(matches[0], state);
+      continue;
+    }
+    if (target.kind === "class-relationship") {
+      if (!target.label) continue;
+      const matches = text.filter((element) => element.textContent?.trim() === target.label);
+      if (matches.length === 1) mark(matches[0], state);
+      continue;
+    }
     const matches = text.filter((element) => {
       const content = element.textContent?.trim() ?? "";
       return content === target.label || content.endsWith(target.label);

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource, source } from "./editor-helpers";
+import { fillSource, prepareEditor } from "./editor-helpers";
 
 test("reviews project changes against the last successful save and exports a report", async ({ page }) => {
   test.setTimeout(120_000);
@@ -34,22 +34,42 @@ test("reviews project changes against the last successful save and exports a rep
   const navigator = page.getByRole("complementary", { name: "Project navigator" });
   await expect(navigator.getByText("Save this project once to create a review baseline.")).toBeVisible();
   await navigator.getByRole("button", { name: "Add diagram" }).click();
-  await navigator.getByRole("textbox", { name: "Diagram name" }).fill("Delivery");
+  await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("component");
+  await navigator.getByRole("textbox", { name: "Diagram name" }).fill("Architecture");
   await navigator.getByRole("button", { name: "Add to project" }).click();
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
-  // The link index registers the Gantt tasks as project elements shortly after the diagram is
+  // The link index registers the Component objects as project elements shortly after the diagram is
   // added; that must not flip a project saved in the meantime back to "Unsaved changes".
   await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();
   await expect(navigator.getByText("Links current")).toBeVisible();
   await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();
 
-  await setSource(page, source("[Backend] lasts 2 days"));
+  await fillSource(
+    page,
+    `@startuml
+left to right direction
+
+package "Ordering system" {
+  component "Checkout service" as Web
+  component "Order service" as Orders
+  database "Order database" as Database
+  queue "Order events" as Events
+}
+
+Web --> Orders : HTTPS
+Orders --> Database : reads and writes
+Orders ..> Events : publishes
+@enduml`,
+    "Checkout service",
+  );
+  await expect(page.locator(".diagram svg")).toBeVisible();
   await navigator.getByRole("button", { name: "Review", exact: true }).click();
   await expect(navigator.getByText("source", { exact: true })).toBeVisible();
   await expect(navigator.getByText(/Semantic review/)).toBeVisible();
+  await expect(navigator.getByText("Rename component Web application to Checkout service")).toBeVisible();
 
   const download = page.waitForEvent("download");
   await navigator.getByRole("button", { name: "Export review report" }).click();

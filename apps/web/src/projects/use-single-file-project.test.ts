@@ -52,6 +52,37 @@ describe("portable project file opening", () => {
     const decoded = await decodePortableProjectFile(encoded.bytes, "plan.pumlu", async () => "correct password");
     expect(decoded).toMatchObject({ project: input, encrypted: true });
   });
+
+  it("preserves a Component diagram through save, reopen, and project indexing", async () => {
+    const source =
+      '@startuml\ncomponent "Order service" as Orders\ndatabase "Order records" as Db\nOrders --> Db\n@enduml\n';
+    const input = await projectFromPlantUml(source, "component", "Architecture");
+    const reopened = await decodeProject((await encodeProject(input, { compression: "none" })).bytes);
+    const diagram = reopened.project.diagrams[0]!;
+    const indexed = await indexVirtualProject(
+      JSON.stringify({
+        format: PROJECT_FORMAT,
+        schemaVersion: 1,
+        projectId: reopened.project.projectId,
+        revisionId: reopened.project.revisionId,
+        name: reopened.project.name,
+        documents: [{ id: diagram.id, path: diagram.name, format: "pumlu" }],
+        elements: [],
+        links: [],
+      }),
+      new Map([[diagram.name, { state: "available" as const, source: diagram.document.current.source }]]),
+    );
+
+    expect(diagram.document.current).toMatchObject({ diagramKind: "component", source });
+    expect(indexed.members[0]).toMatchObject({
+      state: "available",
+      diagramKind: "component",
+      declarations: [
+        { kind: "class-entity", symbolKey: "Orders" },
+        { kind: "class-entity", symbolKey: "Db" },
+      ],
+    });
+  });
 });
 
 describe("single-file linked endpoint renames", () => {

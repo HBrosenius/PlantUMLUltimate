@@ -130,4 +130,10 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await page.locator('[data-class-object-type="entity"][data-class-object-id="inventory"]').click({ force: true });
   await expect(page.getByRole("complementary", { name: "Component object inspector" })).toBeVisible();
   await diagram.evaluate((element) => element.classList.remove("class-dragging-move"));
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export" }).hover();
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "SVG" }).click();
+  await expect((await download).suggestedFilename()).toMatch(/\.svg$/);
 });
