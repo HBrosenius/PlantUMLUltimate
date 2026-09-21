@@ -65,6 +65,7 @@ export function ClassDiagramPreview({
         x: number;
         y: number;
         line?: SVGLineElement;
+        selectOnClick?: boolean;
       }
     | undefined
   >(undefined);
@@ -82,6 +83,25 @@ export function ClassDiagramPreview({
     };
     window.addEventListener("keydown", cancel);
     return () => window.removeEventListener("keydown", cancel);
+  }, []);
+  useEffect(() => {
+    const cancelPointerGesture = () => {
+      drag.current?.line?.remove();
+      drag.current = undefined;
+      root.current?.classList.remove("class-dragging-move", "class-dragging-connection");
+      window.document
+        .querySelectorAll(".class-active-drop")
+        .forEach((item) => item.classList.remove("class-active-drop"));
+    };
+    const cancelWhenHidden = () => {
+      if (window.document.visibilityState === "hidden") cancelPointerGesture();
+    };
+    window.addEventListener("blur", cancelPointerGesture);
+    window.document.addEventListener("visibilitychange", cancelWhenHidden);
+    return () => {
+      window.removeEventListener("blur", cancelPointerGesture);
+      window.document.removeEventListener("visibilitychange", cancelWhenHidden);
+    };
   }, []);
   useEffect(() => {
     const retry = window.setTimeout(() => {
@@ -266,6 +286,7 @@ export function ClassDiagramPreview({
       ...(reconnect ? { endpoint: reconnect.getAttribute("data-class-relationship-endpoint") as "from" | "to" } : {}),
       x: e.clientX,
       y: e.clientY,
+      ...(componentBody && !moveHandle && !h && !reconnect ? { selectOnClick: true } : {}),
       ...(kind !== "move" ? { line } : {}),
     };
     root.current?.classList.toggle("class-dragging-move", kind === "move");
@@ -330,7 +351,12 @@ export function ClassDiagramPreview({
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     const target = targetAt(root.current, e.clientX, e.clientY),
       id = target?.getAttribute("data-class-object-id");
-    if (!id || id === d.id || Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 5) return;
+    const distance = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+    if (distance <= 5) {
+      if (d.selectOnClick) onSelect(d.id);
+      return;
+    }
+    if (!id || id === d.id) return;
     const type = target?.getAttribute("data-class-object-type");
     if (d.kind === "connect" && type === "entity") onRelationshipCreate(d.id, id);
     else if (d.kind === "reconnect" && d.endpoint && type === "entity") onRelationshipReconnect(d.id, d.endpoint, id);
@@ -413,6 +439,12 @@ export function ClassDiagramPreview({
             onPointerUp={up}
             onPointerCancel={() => {
               drag.current?.line?.remove();
+              drag.current = undefined;
+              clearDragPresentation();
+            }}
+            onLostPointerCapture={() => {
+              if (!drag.current) return;
+              drag.current.line?.remove();
               drag.current = undefined;
               clearDragPresentation();
             }}

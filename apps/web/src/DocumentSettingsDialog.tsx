@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
 import type { DiagramKind } from "./model";
 import { PLANTUML_THEMES, setPlantUmlTheme } from "./plantuml-theme";
-import { useRenderer } from "./render/use-renderer";
+import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
 
 const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
   gantt: [
@@ -72,7 +72,11 @@ export function DocumentSettingsDialog({
     () => setPlantUmlTheme(THEME_PREVIEW_SOURCES[diagramKind], diagramTheme || undefined),
     [diagramKind, diagramTheme],
   );
-  const themePreview = useRenderer(previewSource, current.diagramTheme !== undefined, "native");
+  const themePreview = useRenderer(
+    previewSource,
+    current.diagramTheme !== undefined,
+    rendererLayoutEngineForDiagramKind(diagramKind),
+  );
   const [busy, setBusy] = useState(false);
   const needsPassword = encrypted && (!current.encrypted || Boolean(password));
   const passwordError = needsPassword && (password.length < 12 || password !== confirmation);

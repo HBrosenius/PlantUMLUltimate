@@ -80,7 +80,12 @@ export function ClassInspectors({
   return (
     <>
       {settingsOpen && (
-        <ClassSettingsInspector settings={settings} onChange={onSettingsChange} onClose={onCloseSettings} />
+        <ClassSettingsInspector
+          componentMode={componentMode}
+          settings={settings}
+          onChange={onSettingsChange}
+          onClose={onCloseSettings}
+        />
       )}
       {selectedEntity && (
         <ClassEntityInspector
@@ -101,6 +106,8 @@ export function ClassInspectors({
       )}
       {selectedRelationship && (
         <ClassRelationshipInspector
+          key={selectedRelationship.id}
+          componentMode={componentMode}
           item={selectedRelationship}
           document={document}
           onChange={onRelationshipChange}
@@ -110,6 +117,7 @@ export function ClassInspectors({
       )}
       {selectedPackage && (
         <ClassPackageInspector
+          componentMode={componentMode}
           item={selectedPackage}
           packages={document.packages}
           onChange={onPackageChange}
@@ -120,6 +128,7 @@ export function ClassInspectors({
       )}
       {selectedNote && (
         <ClassNoteInspector
+          componentMode={componentMode}
           item={selectedNote}
           document={document}
           onChange={onNoteChange}

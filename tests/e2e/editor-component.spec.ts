@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("creates and visually edits a Component diagram", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.getByRole("button", { name: "New document tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await chooser.getByRole("button", { name: /Component diagram/ }).click();
@@ -14,6 +15,22 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Component diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText('component "Order service" as Orders');
   await expect(page.locator(".cm-content")).toContainText('database "Order database" as Database');
+
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Document settings…" }).click();
+  const documentSettings = page.getByRole("dialog", { name: "Document settings" });
+  await documentSettings.getByLabel("PlantUML theme").selectOption("blueprint");
+  await expect(documentSettings.getByLabel("Theme preview").locator("svg")).toBeVisible();
+  await expect
+    .poll(() =>
+      documentSettings
+        .getByLabel("Theme preview")
+        .locator("svg")
+        .evaluate((element) => element.outerHTML),
+    )
+    .toContain("#003153");
+  await documentSettings.getByRole("button", { name: "Cancel" }).click();
+
   await openAddDialog(page, "Component or infrastructure…");
   const dialog = page.getByRole("dialog", { name: "Add Component object" });
   await expect(dialog.getByLabel("Component object type")).toHaveValue("component");
@@ -43,6 +60,13 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
     .poll(() => page.locator(".cm-content").innerText())
     .toMatch(/package "Ordering system" \{[\s\S]*component "Payment service" as Payments[\s\S]*\}/);
 
+  await page.locator('[data-class-object-type="entity"][data-class-object-id="payments"]').click({ force: true });
+  const componentInspector = page.getByRole("complementary", { name: "Component object inspector" });
+  await componentInspector.getByLabel("Package").selectOption("");
+  await expect
+    .poll(() => page.locator(".cm-content").innerText())
+    .toMatch(/package "Ordering system" \{[\s\S]*\}[\s\S]*component "Payment service" as Payments/);
+
   await openAddDialog(page, "Component or infrastructure…");
   const secondDialog = page.getByRole("dialog", { name: "Add Component object" });
   await secondDialog.getByLabel("Name").fill("Inventory service");
@@ -67,4 +91,43 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await expect(movedPayment).toHaveClass(/class-active-drop/);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("Inventory --> Payments");
+
+  await page.locator('[data-class-object-id="relationship-3"]').click({ force: true });
+  const connectionInspector = page.getByRole("complementary", { name: "Component connection inspector" });
+  await expect(connectionInspector.getByLabel("Connection type")).toHaveValue("directed");
+  await connectionInspector.getByLabel("Connection type").selectOption("dependency");
+  await expect(page.locator(".cm-content")).toContainText("Inventory ..> Payments");
+  await expect(connectionInspector.getByLabel("Connection type")).toHaveValue("dependency");
+  await connectionInspector.getByLabel("Label").fill("requests stock");
+  await connectionInspector.getByLabel("Label").blur();
+  await expect(page.locator(".cm-content")).toContainText("Inventory ..> Payments : requests stock");
+  await connectionInspector.getByLabel("Line style").selectOption("dotted");
+  await expect(page.locator(".cm-content")).toContainText("Inventory .[dotted].> Payments : requests stock");
+  await expect(connectionInspector.getByLabel("Connection type")).toHaveValue("dependency");
+  await connectionInspector.getByRole("button", { name: "Reverse direction" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Inventory .[dotted].> Payments : requests stock");
+  await page.getByRole("button", { name: "Redo" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");
+
+  await page.getByRole("button", { name: "Component", exact: true }).click();
+  const settings = page.getByRole("complementary", { name: "Component settings" });
+  await expect(settings.getByRole("group", { name: "Members" })).toHaveCount(0);
+  await expect(settings.getByLabel("Component fill", { exact: true })).toBeVisible();
+
+  const diagram = page.locator(".class-diagram");
+  await diagram.evaluate((element) => element.classList.add("class-dragging-move"));
+  await expect
+    .poll(() =>
+      page
+        .locator(".class-package-drop-hit")
+        .first()
+        .evaluate((element) => getComputedStyle(element).pointerEvents),
+    )
+    .toBe("none");
+  await page.locator('[data-class-object-type="entity"][data-class-object-id="inventory"]').click({ force: true });
+  await expect(page.getByRole("complementary", { name: "Component object inspector" })).toBeVisible();
+  await diagram.evaluate((element) => element.classList.remove("class-dragging-move"));
 });

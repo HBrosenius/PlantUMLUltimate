@@ -2,10 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { ClassSettings } from "./class-settings";
 export function ClassSettingsInspector({
+  componentMode = false,
   settings,
   onChange,
   onClose,
 }: {
+  componentMode?: boolean;
   settings: ClassSettings;
   onChange(v: ClassSettings): void;
   onClose(): void;
@@ -20,11 +22,14 @@ export function ClassSettingsInspector({
   };
   const save = () => onChange(v);
   return (
-    <aside className="task-inspector sequence-settings-inspector" aria-label="Class settings">
+    <aside
+      className="task-inspector sequence-settings-inspector"
+      aria-label={`${componentMode ? "Component" : "Class"} settings`}
+    >
       <header>
         <div>
-          <strong>Class settings</strong>
-          <small>Presentation, members, typography, and colors</small>
+          <strong>{componentMode ? "Component" : "Class"} settings</strong>
+          <small>Presentation, typography, and colors{componentMode ? "" : ", including members"}</small>
         </div>
         <button onClick={onClose}>×</button>
       </header>
@@ -57,24 +62,26 @@ export function ClassSettingsInspector({
             </label>
           </div>
         </fieldset>
-        <fieldset>
-          <legend>Members</legend>
-          {[
-            ["hideEmptyFields", "Hide empty field sections"],
-            ["hideEmptyMethods", "Hide empty method sections"],
-            ["attributeIcons", "Show member visibility icons"],
-            ["shadowing", "Show shadows"],
-          ].map(([k, l]) => (
-            <label className="checkbox-row" key={k}>
-              <input
-                type="checkbox"
-                checked={v[k as keyof ClassSettings] as boolean}
-                onChange={(e) => up(k as keyof ClassSettings, e.target.checked as never, true)}
-              />
-              <span>{l}</span>
-            </label>
-          ))}
-        </fieldset>
+        {!componentMode && (
+          <fieldset>
+            <legend>Members</legend>
+            {[
+              ["hideEmptyFields", "Hide empty field sections"],
+              ["hideEmptyMethods", "Hide empty method sections"],
+              ["attributeIcons", "Show member visibility icons"],
+              ["shadowing", "Show shadows"],
+            ].map(([k, l]) => (
+              <label className="checkbox-row" key={k}>
+                <input
+                  type="checkbox"
+                  checked={v[k as keyof ClassSettings] as boolean}
+                  onChange={(e) => up(k as keyof ClassSettings, e.target.checked as never, true)}
+                />
+                <span>{l}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
         <fieldset>
           <legend>Typography</legend>
           {[
@@ -94,8 +101,8 @@ export function ClassSettingsInspector({
         <fieldset>
           <legend>Colors</legend>
           {[
-            ["classBackgroundColor", "Class fill"],
-            ["classBorderColor", "Class border"],
+            ["classBackgroundColor", `${componentMode ? "Component" : "Class"} fill`],
+            ["classBorderColor", `${componentMode ? "Component" : "Class"} border`],
             ["arrowColor", "Arrow color"],
           ].map(([k, l]) => (
             <ColorField

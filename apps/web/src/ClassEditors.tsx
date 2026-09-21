@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type {
   ClassDocument,
   ClassEntity,
@@ -354,7 +354,7 @@ export function ClassEntityInspector({
           <label>
             Package
             <select value={entity.packageId ?? ""} onChange={(e) => onPackageChange(e.target.value || undefined)}>
-              <option value="">Outside packages</option>
+              <option value="">Outside {componentMode ? "containers" : "packages"}</option>
               {packages.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -619,11 +619,52 @@ function ClassMemberRow({
     </div>
   );
 }
+type ComponentConnectionType = "directed" | "dependency" | "bidirectional" | "plain";
+const componentConnectionOptions: Array<{ value: ComponentConnectionType; label: string }> = [
+  { value: "directed", label: "Directed connection" },
+  { value: "dependency", label: "Dependency" },
+  { value: "bidirectional", label: "Bidirectional connection" },
+  { value: "plain", label: "Undirected connection" },
+];
+const componentConnectionType = (relationship: Pick<ClassRelationship, "arrow" | "kind">): ComponentConnectionType =>
+  relationship.arrow.includes("<") && relationship.arrow.includes(">")
+    ? "bidirectional"
+    : relationship.kind === "dependency"
+      ? "dependency"
+      : relationship.arrow.includes(">")
+        ? "directed"
+        : "plain";
+const componentConnectionArrow = (
+  type: ComponentConnectionType,
+  lineStyle: ClassRelationshipInput["lineStyle"],
+  color?: string,
+) => {
+  const style = [
+    color?.trim() ? (color.startsWith("#") ? color : `#${color}`) : undefined,
+    lineStyle && lineStyle !== "solid" ? lineStyle : undefined,
+  ].filter(Boolean);
+  const modifier = style.length ? `[${style.join(",")}]` : "";
+  if (type === "dependency") return `.${modifier}.>`;
+  if (type === "bidirectional") return `<-${modifier}->`;
+  if (type === "plain") return `-${modifier}-`;
+  return `-${modifier}->`;
+};
+const componentRelationshipValue = (
+  value: ClassRelationshipInput,
+  type: ComponentConnectionType,
+): ClassRelationshipInput => ({
+  ...value,
+  kind: type === "dependency" ? "dependency" : "association",
+  arrow: componentConnectionArrow(type, value.lineStyle, value.color),
+});
+
 export function AddClassRelationshipDialog({
+  componentMode = false,
   document,
   onAdd,
   onClose,
 }: {
+  componentMode?: boolean;
   document: ClassDocument;
   onAdd(v: ClassRelationshipInput): void;
   onClose(): void;
@@ -635,7 +676,8 @@ export function AddClassRelationshipDialog({
     [fromMultiplicity, setFromMultiplicity] = useState(""),
     [toMultiplicity, setToMultiplicity] = useState(""),
     [color, setColor] = useState(""),
-    [lineStyle, setLineStyle] = useState<ClassRelationshipInput["lineStyle"]>("solid");
+    [lineStyle, setLineStyle] = useState<ClassRelationshipInput["lineStyle"]>("solid"),
+    [componentType, setComponentType] = useState<ComponentConnectionType>("directed");
   const ref = useRef<HTMLFormElement>(null);
   useDialogFocus(ref, onClose);
   return (
@@ -644,11 +686,11 @@ export function AddClassRelationshipDialog({
         ref={ref}
         className="task-dialog"
         role="dialog"
-        aria-label="Add Class relationship"
+        aria-label={`Add ${componentMode ? "Component connection" : "Class relationship"}`}
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
-          onAdd({
+          const value: ClassRelationshipInput = {
             from,
             to,
             kind,
@@ -657,7 +699,8 @@ export function AddClassRelationshipDialog({
             ...(toMultiplicity ? { toMultiplicity } : {}),
             ...(color ? { color } : {}),
             ...(lineStyle ? { lineStyle } : {}),
-          });
+          };
+          onAdd(componentMode ? componentRelationshipValue(value, componentType) : value);
         }}
       >
         <h2>Add relationship</h2>
@@ -682,31 +725,43 @@ export function AddClassRelationshipDialog({
           </select>
         </label>
         <label>
-          Relationship
+          {componentMode ? "Connection type" : "Relationship"}
           <select
-            aria-label="Relationship"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as ClassRelationshipKind)}
+            aria-label={componentMode ? "Connection type" : "Relationship"}
+            value={componentMode ? componentType : kind}
+            onChange={(e) =>
+              componentMode
+                ? setComponentType(e.target.value as ComponentConnectionType)
+                : setKind(e.target.value as ClassRelationshipKind)
+            }
           >
-            {["association", "inheritance", "implementation", "composition", "aggregation", "dependency"].map((x) => (
-              <option key={x}>{x}</option>
-            ))}
+            {componentMode
+              ? componentConnectionOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))
+              : ["association", "inheritance", "implementation", "composition", "aggregation", "dependency"].map(
+                  (value) => <option key={value}>{value}</option>,
+                )}
           </select>
         </label>
         <label>
           Label
           <input value={label} onChange={(e) => setLabel(e.target.value)} />
         </label>
-        <div className="usecase-endpoint-grid">
-          <label>
-            From multiplicity
-            <input value={fromMultiplicity} onChange={(e) => setFromMultiplicity(e.target.value)} />
-          </label>
-          <label>
-            To multiplicity
-            <input value={toMultiplicity} onChange={(e) => setToMultiplicity(e.target.value)} />
-          </label>
-        </div>
+        {!componentMode && (
+          <div className="usecase-endpoint-grid">
+            <label>
+              From multiplicity
+              <input value={fromMultiplicity} onChange={(e) => setFromMultiplicity(e.target.value)} />
+            </label>
+            <label>
+              To multiplicity
+              <input value={toMultiplicity} onChange={(e) => setToMultiplicity(e.target.value)} />
+            </label>
+          </div>
+        )}
         <label>
           Line style
           <select
@@ -741,12 +796,14 @@ const relationValue = (x: ClassRelationship): ClassRelationshipInput => ({
   arrow: x.arrow,
 });
 export function ClassRelationshipInspector({
+  componentMode = false,
   item,
   document,
   onChange,
   onDelete,
   onClose,
 }: {
+  componentMode?: boolean;
   item: ClassRelationship;
   document: ClassDocument;
   onChange(v: ClassRelationshipInput): void;
@@ -754,17 +811,41 @@ export function ClassRelationshipInspector({
   onClose(): void;
 }) {
   const [v, setV] = useState(() => relationValue(item));
-  useEffect(() => setV(relationValue(item)), [item]);
+  const componentTypeRef = useRef(componentConnectionType(item));
   const change = (n: ClassRelationshipInput) => {
-    setV(n);
-    onChange(n);
+    const next = componentMode ? componentRelationshipValue(n, componentTypeRef.current) : n;
+    setV(next);
+    onChange(next);
+  };
+  const reverseComponentConnection = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form;
+    const value = (name: string) =>
+      (form?.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null)?.value;
+    const type = (value("component-connection-type") ?? "directed") as ComponentConnectionType;
+    componentTypeRef.current = type;
+    const { label: _label, lineStyle: _lineStyle, ...base } = v;
+    const label = value("connection-label");
+    const lineStyle = value("connection-style") as ClassRelationshipInput["lineStyle"];
+    const current: ClassRelationshipInput = {
+      ...base,
+      from: value("connection-from") ?? v.from,
+      to: value("connection-to") ?? v.to,
+      ...(label ? { label } : {}),
+      ...(lineStyle ? { lineStyle } : {}),
+    };
+    const next = componentRelationshipValue({ ...current, from: current.to, to: current.from }, type);
+    setV(next);
+    onChange(next);
   };
   return (
-    <aside className="task-inspector usecase-relationship-inspector" aria-label="Class relationship inspector">
+    <aside
+      className="task-inspector usecase-relationship-inspector"
+      aria-label={`${componentMode ? "Component connection" : "Class relationship"} inspector`}
+    >
       <header>
         <div>
-          <strong>Relationship inspector</strong>
-          <small>Endpoints, relationship type, and multiplicity</small>
+          <strong>{componentMode ? "Connection" : "Relationship"} inspector</strong>
+          <small>Endpoints, {componentMode ? "direction" : "relationship type and multiplicity"}, and appearance</small>
         </div>
         <button onClick={onClose}>×</button>
       </header>
@@ -774,7 +855,7 @@ export function ClassRelationshipInspector({
           {(["from", "to"] as const).map((k) => (
             <label key={k}>
               {k}
-              <select value={v[k]} onChange={(e) => change({ ...v, [k]: e.target.value })}>
+              <select name={`connection-${k}`} value={v[k]} onChange={(e) => change({ ...v, [k]: e.target.value })}>
                 {document.entities.map((x) => (
                   <option key={x.id} value={x.id}>
                     {x.label}
@@ -784,57 +865,81 @@ export function ClassRelationshipInspector({
             </label>
           ))}
           <label>
-            Relationship
+            {componentMode ? "Connection type" : "Relationship"}
             <select
-              value={v.kind}
-              onChange={(e) => change({ ...v, kind: e.target.value as ClassRelationshipKind, arrow: undefined })}
+              name="component-connection-type"
+              value={componentMode ? componentConnectionType({ arrow: v.arrow ?? "-->", kind: v.kind }) : v.kind}
+              onChange={(e) => {
+                if (componentMode) {
+                  const type = e.target.value as ComponentConnectionType;
+                  componentTypeRef.current = type;
+                  const next = componentRelationshipValue(v, type);
+                  setV(next);
+                  onChange(next);
+                } else change({ ...v, kind: e.target.value as ClassRelationshipKind, arrow: undefined });
+              }}
             >
-              {["association", "inheritance", "implementation", "composition", "aggregation", "dependency"].map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {componentMode
+                ? componentConnectionOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))
+                : ["association", "inheritance", "implementation", "composition", "aggregation", "dependency"].map(
+                    (value) => <option key={value}>{value}</option>,
+                  )}
             </select>
           </label>
+          {componentMode && (
+            <button type="button" onClick={reverseComponentConnection}>
+              Reverse direction
+            </button>
+          )}
           <label>
             Label
             <input
+              name="connection-label"
               value={v.label ?? ""}
               onChange={(e) => setV({ ...v, label: e.target.value })}
               onBlur={() => onChange(v)}
             />
           </label>
         </fieldset>
-        <fieldset>
-          <legend>Multiplicity</legend>
-          <div className="usecase-endpoint-grid">
-            <label>
-              From
-              <input
-                value={v.fromMultiplicity ?? ""}
-                onChange={(e) => setV({ ...v, fromMultiplicity: e.target.value })}
-                onBlur={() => onChange(v)}
-              />
-            </label>
-            <label>
-              To
-              <input
-                value={v.toMultiplicity ?? ""}
-                onChange={(e) => setV({ ...v, toMultiplicity: e.target.value })}
-                onBlur={() => onChange(v)}
-              />
-            </label>
-          </div>
-        </fieldset>
+        {!componentMode && (
+          <fieldset>
+            <legend>Multiplicity</legend>
+            <div className="usecase-endpoint-grid">
+              <label>
+                From
+                <input
+                  value={v.fromMultiplicity ?? ""}
+                  onChange={(e) => setV({ ...v, fromMultiplicity: e.target.value })}
+                  onBlur={() => onChange(v)}
+                />
+              </label>
+              <label>
+                To
+                <input
+                  value={v.toMultiplicity ?? ""}
+                  onChange={(e) => setV({ ...v, toMultiplicity: e.target.value })}
+                  onBlur={() => onChange(v)}
+                />
+              </label>
+            </div>
+          </fieldset>
+        )}
         <fieldset>
           <legend>Appearance</legend>
           <label>
             Line style
             <select
+              name="connection-style"
               value={v.lineStyle ?? "solid"}
               onChange={(e) =>
                 change({
                   ...v,
                   lineStyle: e.target.value as NonNullable<ClassRelationshipInput["lineStyle"]>,
-                  arrow: undefined,
+                  arrow: componentMode ? v.arrow : undefined,
                 })
               }
             >
@@ -846,7 +951,7 @@ export function ClassRelationshipInspector({
           <ColorField
             value={v.color ?? ""}
             onChange={(color) => setV({ ...v, color, arrow: undefined })}
-            onBlur={() => onChange(v)}
+            onBlur={() => onChange(componentMode ? componentRelationshipValue(v, componentTypeRef.current) : v)}
           />
         </fieldset>
         <div className="inspector-actions">
@@ -860,10 +965,12 @@ export function ClassRelationshipInspector({
 }
 
 export function AddClassPackageDialog({
+  componentMode = false,
   document,
   onAdd,
   onClose,
 }: {
+  componentMode?: boolean;
   document: ClassDocument;
   onAdd(v: ClassPackageInput): void;
   onClose(): void;
@@ -878,7 +985,7 @@ export function AddClassPackageDialog({
       <form
         className="task-dialog"
         role="dialog"
-        aria-label="Add Class package"
+        aria-label={`Add ${componentMode ? "Component container" : "Class package"}`}
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -891,7 +998,7 @@ export function AddClassPackageDialog({
           });
         }}
       >
-        <h2>Add package</h2>
+        <h2>Add {componentMode ? "container" : "package"}</h2>
         <label>
           Type
           <select
@@ -941,6 +1048,7 @@ export function AddClassPackageDialog({
   );
 }
 export function ClassPackageInspector({
+  componentMode = false,
   item,
   packages,
   onChange,
@@ -948,6 +1056,7 @@ export function ClassPackageInspector({
   onDelete,
   onClose,
 }: {
+  componentMode?: boolean;
   item: ClassPackage;
   packages: ClassPackage[];
   onChange(v: ClassPackageInput): void;
@@ -973,10 +1082,13 @@ export function ClassPackageInspector({
   );
   const save = () => onChange(v);
   return (
-    <aside className="task-inspector usecase-package-inspector" aria-label="Class package inspector">
+    <aside
+      className="task-inspector usecase-package-inspector"
+      aria-label={`${componentMode ? "Component container" : "Class package"} inspector`}
+    >
       <header>
         <div>
-          <strong>Package inspector</strong>
+          <strong>{componentMode ? "Container" : "Package"} inspector</strong>
           <small>Container identity and appearance</small>
         </div>
         <button onClick={onClose}>×</button>
@@ -1035,7 +1147,7 @@ export function ClassPackageInspector({
         </fieldset>
         <div className="inspector-actions">
           <button type="button" className="danger" onClick={onDelete}>
-            Remove package
+            Remove {componentMode ? "container" : "package"}
           </button>
         </div>
       </form>
@@ -1051,10 +1163,12 @@ const isPackageDescendant = (packages: ClassPackage[], candidate: ClassPackage, 
   return false;
 };
 export function AddClassNoteDialog({
+  componentMode = false,
   document,
   onAdd,
   onClose,
 }: {
+  componentMode?: boolean;
   document: ClassDocument;
   onAdd(v: ClassNoteInput): void;
   onClose(): void;
@@ -1068,7 +1182,7 @@ export function AddClassNoteDialog({
       <form
         className="task-dialog"
         role="dialog"
-        aria-label="Add Class note"
+        aria-label={`Add ${componentMode ? "Component" : "Class"} note`}
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -1117,12 +1231,14 @@ export function AddClassNoteDialog({
   );
 }
 export function ClassNoteInspector({
+  componentMode = false,
   item,
   document,
   onChange,
   onDelete,
   onClose,
 }: {
+  componentMode?: boolean;
   item: ClassNote;
   document: ClassDocument;
   onChange(v: ClassNoteInput): void;
@@ -1150,7 +1266,10 @@ export function ClassNoteInspector({
     onChange(n);
   };
   return (
-    <aside className="task-inspector usecase-note-inspector" aria-label="Class note inspector">
+    <aside
+      className="task-inspector usecase-note-inspector"
+      aria-label={`${componentMode ? "Component" : "Class"} note inspector`}
+    >
       <header>
         <div>
           <strong>Note inspector</strong>

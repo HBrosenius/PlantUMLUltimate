@@ -64,7 +64,7 @@ import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { parseProjectSettings } from "./project-settings";
 import type { Theme, ViewMode } from "./model";
-import { useRenderer } from "./render/use-renderer";
+import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
 import { useAppDialog } from "./use-app-dialog";
@@ -241,12 +241,7 @@ export function App() {
   } = useRenderer(
     workspace.source,
     hydrated && dialog?.kind !== "new-document" && workspace.viewMode !== "code",
-    workspace.diagramKind === "class" ||
-      workspace.diagramKind === "component" ||
-      workspace.diagramKind === "usecase" ||
-      workspace.diagramKind === "activity"
-      ? "graphviz"
-      : "native",
+    rendererLayoutEngineForDiagramKind(workspace.diagramKind),
   );
   useEffect(() => {
     const selector = pendingDiagramFocusSelector.current;
@@ -1221,6 +1216,7 @@ export function App() {
     applyClassNote,
     removeClassNote,
   } = useClassActions({
+    componentMode: workspace.diagramKind === "component",
     source: workspace.source,
     document: classDocument,
     selectedEntity: selectedClassEntity,

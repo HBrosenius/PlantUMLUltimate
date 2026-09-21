@@ -88,6 +88,13 @@ function expectCode(action: () => unknown, code: DocumentFormatError["code"]): v
 }
 
 describe("validateDocument", () => {
+  it("accepts Component diagrams in current state and history", () => {
+    const value = validDocument();
+    value.current.diagramKind = "component";
+    value.versions[0]!.diagramKind = "component";
+    expect(validateDocument(value).current.diagramKind).toBe("component");
+  });
+
   it("accepts the complete v1 schema and preserves sequence ties ordered by ID", () => {
     const value = validDocument();
     value.versions.push({

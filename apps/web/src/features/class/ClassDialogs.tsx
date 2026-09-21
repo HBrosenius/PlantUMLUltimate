@@ -38,8 +38,19 @@ export function ClassDialogs({
   if (active === "entity")
     return <AddClassEntityDialog componentMode={componentMode} onAdd={onAddEntity} onClose={onClose} />;
   if (active === "relationship")
-    return <AddClassRelationshipDialog document={document} onAdd={onAddRelationship} onClose={onClose} />;
-  if (active === "package") return <AddClassPackageDialog document={document} onAdd={onAddPackage} onClose={onClose} />;
-  if (active === "note") return <AddClassNoteDialog document={document} onAdd={onAddNote} onClose={onClose} />;
+    return (
+      <AddClassRelationshipDialog
+        componentMode={componentMode}
+        document={document}
+        onAdd={onAddRelationship}
+        onClose={onClose}
+      />
+    );
+  if (active === "package")
+    return (
+      <AddClassPackageDialog componentMode={componentMode} document={document} onAdd={onAddPackage} onClose={onClose} />
+    );
+  if (active === "note")
+    return <AddClassNoteDialog componentMode={componentMode} document={document} onAdd={onAddNote} onClose={onClose} />;
   return null;
 }

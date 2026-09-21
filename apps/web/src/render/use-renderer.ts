@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import type { RenderResult, RenderStatus } from "../model";
+import type { DiagramKind, RenderResult, RenderStatus } from "../model";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
 import { sanitizeSvg } from "./sanitize-svg";
 
 export type RendererLayoutEngine = "native" | "graphviz";
+
+export function rendererLayoutEngineForDiagramKind(diagramKind: DiagramKind): RendererLayoutEngine {
+  return diagramKind === "gantt" || diagramKind === "sequence" || diagramKind === "wbs" ? "native" : "graphviz";
+}
 
 interface FrameMessage {
   channel: string;

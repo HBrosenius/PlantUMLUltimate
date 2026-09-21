@@ -36,6 +36,7 @@ import { updateClassSettings, type ClassSettings } from "../../class-settings";
 import type { ClassDialogKind } from "./ClassDialogs";
 
 interface UseClassActionsOptions {
+  componentMode?: boolean;
   source: string;
   document: ClassDocument;
   selectedEntity: ClassEntity | undefined;
@@ -56,6 +57,7 @@ interface UseClassActionsOptions {
 
 export function useClassActions(options: UseClassActionsOptions) {
   const {
+    componentMode = false,
     source,
     document,
     selectedEntity,
@@ -73,11 +75,11 @@ export function useClassActions(options: UseClassActionsOptions) {
     (from: string, to: string) => {
       commitSource(
         insertClassRelationship(source, document, { from, to, kind: "association" }),
-        "Connect Class objects",
+        componentMode ? "Connect components" : "Connect Class objects",
       );
-      reportMessage("Added Class association");
+      reportMessage(componentMode ? "Added Component connection" : "Added Class association");
     },
-    [commitSource, document, reportMessage, source],
+    [commitSource, componentMode, document, reportMessage, source],
   );
   const reconnectClassRelationshipByDrag = useCallback(
     (id: string, endpoint: "from" | "to", targetId: string) => {
@@ -227,10 +229,13 @@ export function useClassActions(options: UseClassActionsOptions) {
   );
   const applyClassSettings = useCallback(
     (value: ClassSettings) => {
-      commitSource(updateClassSettings(source, value), "Update Class settings");
-      reportMessage("Updated Class settings");
+      commitSource(
+        updateClassSettings(source, value),
+        componentMode ? "Update Component settings" : "Update Class settings",
+      );
+      reportMessage(componentMode ? "Updated Component settings" : "Updated Class settings");
     },
-    [commitSource, reportMessage, source],
+    [commitSource, componentMode, reportMessage, source],
   );
   const addClassNote = useCallback(
     (value: ClassNoteInput) => {

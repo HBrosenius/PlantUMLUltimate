@@ -3383,9 +3383,6 @@ textarea:focus-visible,
   stroke: transparent;
   pointer-events: none;
 }
-.class-dragging-move .class-package-drop-hit {
-  pointer-events: all;
-}
 .class-package-tray {
   display: flex;
   align-items: center;
