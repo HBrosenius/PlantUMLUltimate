@@ -238,6 +238,11 @@ test("duplicates a task from source and diagram context menus", async ({ page })
 
 test("reports added, removed, moved, and out-of-range baseline tasks", async ({ page }) => {
   await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 2 days\n[B] starts 2026-09-04\n[B] lasts 2 days"));
+  // setSource deliberately accepts the previous successful SVG while a new render is pending.
+  // Wait for this fixture's semantic overlay before capturing the version so slow CI browsers do
+  // not accidentally store the default diagram as the baseline.
+  await expect(page.locator('[data-task-id="a"]')).toBeVisible();
+  await expect(page.locator('[data-task-id="b"]')).toBeVisible();
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   const history = page.getByRole("dialog", { name: "Version history" });
