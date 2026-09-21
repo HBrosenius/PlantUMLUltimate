@@ -32,6 +32,7 @@ import { CommandPalette } from "./CommandPalette";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
+import { DeliveryScenarioDialog } from "./DeliveryScenarioDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
@@ -1418,6 +1419,12 @@ export function App() {
             { id: "edit.project-calendar", label: "Project & calendar…", category: "Edit", run: openProjectInspector },
             { id: "edit.legend", label: "Legend labels…", category: "Edit", run: () => setLegendInspectorOpen(true) },
             { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
+            {
+              id: "view.delivery-scenario",
+              label: "Delivery Scenario Lab…",
+              category: "View",
+              run: () => openDialog({ kind: "delivery-scenario" }),
+            },
           ]
         : workspace.diagramKind === "wbs"
           ? [
@@ -1899,6 +1906,7 @@ export function App() {
               <button data-inspector-trigger onClick={openResourcePanel}>
                 Resources
               </button>
+              <button onClick={() => openDialog({ kind: "delivery-scenario" })}>Scenario</button>
             </>
           )}
           {workspace.diagramKind === "sequence" && (
@@ -3081,6 +3089,19 @@ export function App() {
               setSchedulePreview(undefined);
           }}
           onClose={() => setSchedulePreview(undefined)}
+        />
+      )}
+      {dialog?.kind === "delivery-scenario" && (
+        <DeliveryScenarioDialog
+          currentSource={workspace.source}
+          capacities={resourceCapacities}
+          onApply={(source) => {
+            if (!commitSource(source, "Apply delivery scenario")) return false;
+            closeDialog("delivery-scenario");
+            setInteractionMessage("Applied delivery scenario");
+            return true;
+          }}
+          onClose={() => closeDialog("delivery-scenario")}
         />
       )}
       {dialog?.kind === "help" && <HelpDialog onClose={() => closeDialog("help")} />}

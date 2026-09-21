@@ -10,6 +10,7 @@ export type AppDialog =
   | { kind: "add-task" }
   | { kind: "add-divider" }
   | { kind: "add-milestone" }
+  | { kind: "delivery-scenario" }
   | { kind: "add-wbs-node" }
   | { kind: "add-activity-action" }
   | { kind: "add-activity-partition" }

@@ -2948,6 +2948,219 @@ textarea:focus-visible,
   border-color: var(--accent);
   color: white;
 }
+.scenario-backdrop {
+  padding-top: 20px;
+}
+.delivery-scenario-dialog {
+  display: grid;
+  width: min(1180px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  gap: 16px;
+  overflow: auto;
+}
+.delivery-scenario-dialog > header,
+.delivery-scenario-dialog > header > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.delivery-scenario-dialog > header > div {
+  display: block;
+}
+.delivery-scenario-dialog > header h2,
+.delivery-scenario-dialog > header p,
+.scenario-impact p {
+  margin: 0;
+}
+.delivery-scenario-dialog > header p,
+.scenario-editors small,
+.scenario-results small,
+.scenario-results p,
+.scenario-empty {
+  color: var(--muted);
+}
+.delivery-scenario-dialog > header > button {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 22px;
+}
+.scenario-editors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.scenario-view-switch {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--bg);
+}
+.scenario-view-switch button {
+  padding: 7px 11px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+}
+.scenario-view-switch button.active {
+  background: var(--panel);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 14%);
+}
+.scenario-rendered {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.scenario-rendered > section {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.scenario-rendered h3 {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.scenario-render-canvas {
+  min-height: 300px;
+  max-height: 480px;
+  overflow: auto;
+  padding: 12px;
+  background: white;
+}
+.scenario-render-canvas svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scenario-render-error {
+  color: #dc2626;
+}
+.scenario-review {
+  display: grid;
+  min-height: 300px;
+  max-height: 500px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.scenario-review > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.scenario-review h3,
+.scenario-review p {
+  margin: 0;
+}
+.scenario-review p,
+.scenario-review header > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.scenario-diff {
+  overflow: auto;
+  padding: 8px 0;
+  font:
+    12px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+}
+.scenario-diff > div {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  padding: 1px 10px;
+  white-space: pre-wrap;
+}
+.scenario-diff > .added {
+  background: color-mix(in srgb, #22c55e 16%, transparent);
+}
+.scenario-diff > .removed {
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+}
+.scenario-editors label {
+  display: grid;
+  gap: 7px;
+  font-weight: 600;
+}
+.scenario-editors label > span {
+  display: flex;
+  justify-content: space-between;
+}
+.scenario-editors textarea {
+  min-height: 260px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.scenario-editors textarea[readonly] {
+  opacity: 0.72;
+}
+.scenario-impact {
+  display: grid;
+  gap: 14px;
+}
+.scenario-summary,
+.scenario-results {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.scenario-summary > span,
+.scenario-results > section,
+.scenario-issues,
+.scenario-empty {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+}
+.scenario-summary strong {
+  display: block;
+  font-size: 18px;
+}
+.scenario-results {
+  grid-template-columns: 1fr 1fr;
+}
+.scenario-results h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.scenario-results ul,
+.scenario-issues ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.scenario-results li + li {
+  margin-top: 6px;
+}
+.scenario-results small {
+  display: block;
+}
+.scenario-issues {
+  border-color: #dc2626;
+}
+@media (max-width: 760px) {
+  .scenario-editors,
+  .scenario-rendered,
+  .scenario-results {
+    grid-template-columns: 1fr;
+  }
+  .scenario-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 .new-document-dialog {
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
