@@ -16,6 +16,7 @@ const shortcuts = () => [
   ["⌘/Ctrl + 1", "Code view"],
   ["⌘/Ctrl + 2", "Split view"],
   ["⌘/Ctrl + 3", "Diagram view"],
+  ["⌘/Ctrl + ⇧ + O", "Diagram outline"],
   ["⌘/Ctrl + ⇧ + P", "Command palette"],
   ["↑ / ↓", "Move between diagram tasks"],
   ["Enter / Space", "Select focused task"],

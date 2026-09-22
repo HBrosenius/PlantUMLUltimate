@@ -89,7 +89,7 @@ export function DiagramOutlineDialog({
         <div className="diagram-outline-results" role="list" aria-label="Diagram elements">
           {matches.map((entry) => (
             <div key={entry.id} role="listitem">
-              <button type="button" onClick={() => onSelect(entry.occurrence)}>
+              <button data-inspector-trigger type="button" onClick={() => onSelect(entry.occurrence)}>
                 <span>
                   <strong>{entry.label}</strong>
                   <small>

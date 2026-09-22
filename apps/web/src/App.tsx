@@ -1535,6 +1535,7 @@ export function App() {
         id: "view.diagram-outline",
         label: "Diagram outline…",
         category: "View",
+        shortcut: "⇧⌘O",
         run: () => openDialog({ kind: "diagram-outline" }),
       },
       ...diagramCommands,
@@ -1658,6 +1659,11 @@ export function App() {
         }
       }
       if (!(event.ctrlKey || event.metaKey)) return;
+      if (event.shiftKey && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        openDialog({ kind: "diagram-outline" });
+        return;
+      }
       if (event.shiftKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
         toggleCommandPalette();

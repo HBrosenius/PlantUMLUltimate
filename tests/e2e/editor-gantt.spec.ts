@@ -128,7 +128,7 @@ test("keeps the split divider fixed while source selection highlights tasks", as
 test("searches the diagram outline and jumps to source and rendered selection", async ({ page }) => {
   await page.getByRole("button", { name: "3 · diagram" }).click();
   await expect(page.locator(".cm-content")).toHaveCount(0);
-  await page.getByRole("button", { name: "Outline", exact: true }).click();
+  await page.keyboard.press("Control+Shift+o");
   const outline = page.getByRole("dialog", { name: "Diagram outline" });
   await outline.getByLabel("Search diagram elements").fill("Architecture");
   await expect(outline.getByRole("list", { name: "Diagram elements" }).getByRole("listitem")).toHaveCount(1);
@@ -138,6 +138,9 @@ test("searches the diagram outline and jumps to source and rendered selection", 
   await expect(page.locator(".cm-content")).toBeVisible();
   await expect(page.locator(".cm-selectionBackground").first()).toBeVisible();
   await expect(page.locator('[data-task-id="architecture"]')).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue(
+    "Architecture",
+  );
 });
 
 test("highlights and renames task and person references from the editor", async ({ page }) => {
