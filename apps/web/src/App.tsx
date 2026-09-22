@@ -1859,6 +1859,9 @@ export function App() {
             onSaveAs={() => void (usingSingleFileProject ? singleFileProject.saveProjectAs() : saveDocumentAs())}
             onVersionHistory={() => void openVersionHistory()}
             onDocumentSettings={() => setDocumentSettingsOpen(true)}
+            onDeliveryScenario={
+              workspace.diagramKind === "gantt" ? () => openDialog({ kind: "delivery-scenario" }) : undefined
+            }
             onSettings={() => setSettingsOpen(true)}
             onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}

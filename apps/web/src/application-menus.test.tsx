@@ -47,6 +47,7 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onSave: vi.fn(),
   onSaveAs: vi.fn(),
   onVersionHistory: vi.fn(),
+  onDeliveryScenario: vi.fn(),
   onSettings: vi.fn(),
   onJira: vi.fn(),
   onBackup: vi.fn(),
@@ -102,5 +103,27 @@ describe("application menus", () => {
     expect(screen.getByRole("menuitem", { name: "New" })).toHaveFocus();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("opens the Delivery Scenario Lab from File when available", async () => {
+    const user = userEvent.setup();
+    const callbacks = fileActions();
+    render(<FileMenu canExport {...callbacks} />);
+
+    await user.click(screen.getByRole("button", { name: "File" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delivery Scenario Lab…" }));
+
+    expect(callbacks.onDeliveryScenario).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu", { name: "File" })).not.toBeInTheDocument();
+  });
+
+  it("hides the Delivery Scenario Lab when no diagram-specific action is provided", async () => {
+    const user = userEvent.setup();
+    const callbacks = fileActions();
+    delete callbacks.onDeliveryScenario;
+    render(<FileMenu canExport {...callbacks} />);
+
+    await user.click(screen.getByRole("button", { name: "File" }));
+    expect(screen.queryByRole("menuitem", { name: "Delivery Scenario Lab…" })).not.toBeInTheDocument();
   });
 });

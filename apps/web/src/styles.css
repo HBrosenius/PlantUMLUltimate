@@ -2991,6 +2991,119 @@ textarea:focus-visible,
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.scenario-editor {
+  display: grid;
+  gap: 12px;
+}
+.scenario-editor-mode {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--bg);
+}
+.scenario-editor-mode button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+.scenario-editor-mode button.active {
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
+}
+.scenario-structured-editor {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.scenario-task-picker,
+.scenario-task-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.scenario-task-picker select,
+.scenario-task-form input,
+.scenario-task-form select {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+.scenario-task-form {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+}
+.scenario-task-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.scenario-task-form label small {
+  color: var(--muted);
+  font-weight: normal;
+}
+.scenario-duration-field,
+.scenario-completion-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.scenario-resources {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.scenario-resources legend {
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.scenario-resources p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.scenario-resources > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px auto auto;
+  gap: 6px;
+  align-items: center;
+}
+.scenario-resources > button {
+  width: fit-content;
+}
+.scenario-task-submit {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.scenario-task-submit span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.scenario-task-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 12px;
+}
 .scenario-view-switch {
   display: flex;
   gap: 4px;
@@ -3009,6 +3122,11 @@ textarea:focus-visible,
   background: var(--panel);
   box-shadow: 0 1px 4px rgb(0 0 0 / 14%);
 }
+.scenario-apply-hint {
+  margin: -8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 .scenario-rendered {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3021,10 +3139,19 @@ textarea:focus-visible,
   overflow: hidden;
 }
 .scenario-rendered h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   font-size: 13px;
+}
+.scenario-rendered h3 small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
 }
 .scenario-render-canvas {
   min-height: 300px;
@@ -3037,6 +3164,21 @@ textarea:focus-visible,
   display: block;
   width: 100%;
   height: auto;
+}
+.scenario-interactive-canvas {
+  height: 430px;
+  min-height: 300px;
+}
+.scenario-interactive-canvas .preview {
+  height: 100%;
+  min-height: 300px;
+}
+.scenario-interaction-message {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
 }
 .scenario-render-error {
   color: #dc2626;
@@ -3151,10 +3293,38 @@ textarea:focus-visible,
 .scenario-issues {
   border-color: #dc2626;
 }
+.scenario-discard-confirmation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d97706;
+  border-radius: 7px;
+  background: color-mix(in srgb, #f59e0b 10%, var(--panel));
+}
+.scenario-discard-confirmation > span {
+  flex: 1;
+}
+.scenario-discard-confirmation button {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
+}
+.scenario-discard-confirmation button.danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+.scenario-actions > :first-child {
+  margin-right: auto;
+}
 @media (max-width: 760px) {
   .scenario-editors,
   .scenario-rendered,
-  .scenario-results {
+  .scenario-results,
+  .scenario-structured-editor,
+  .scenario-task-fields {
     grid-template-columns: 1fr;
   }
   .scenario-summary {

@@ -13,6 +13,7 @@ export function FileMenu({
   onSaveAs,
   onVersionHistory,
   onDocumentSettings,
+  onDeliveryScenario,
   onSettings,
   onJira,
   onBackup,
@@ -33,6 +34,7 @@ export function FileMenu({
   onSaveAs(): void;
   onVersionHistory(): void;
   onDocumentSettings?: (() => void) | undefined;
+  onDeliveryScenario?: (() => void) | undefined;
   onSettings(): void;
   onJira?: (() => void) | undefined;
   onBackup(): void;
@@ -208,6 +210,11 @@ export function FileMenu({
           <button role="menuitem" onClick={() => run(() => onDocumentSettings?.())}>
             Document settings…
           </button>
+          {onDeliveryScenario && (
+            <button role="menuitem" onClick={() => run(onDeliveryScenario)}>
+              Delivery Scenario Lab…
+            </button>
+          )}
           {onJira && (
             <button role="menuitem" onClick={() => run(onJira)}>
               Jira…
