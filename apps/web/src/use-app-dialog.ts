@@ -4,6 +4,7 @@ import type { UseCaseElementKind } from "@plantuml-studio/diagram-usecase";
 
 export type AppDialog =
   | { kind: "command-palette" }
+  | { kind: "diagram-outline" }
   | { kind: "new-document"; replaceActiveDocument: boolean }
   | { kind: "help" }
   | { kind: "new-project" }

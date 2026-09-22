@@ -1808,6 +1808,7 @@ textarea:focus-visible,
   padding: 0 20px 18px;
 }
 .command-palette,
+.diagram-outline-dialog,
 .task-dialog {
   width: min(560px, calc(100vw - 32px));
   border: 1px solid var(--line);
@@ -1815,6 +1816,102 @@ textarea:focus-visible,
   background: var(--panel);
   color: var(--text);
   box-shadow: 0 18px 60px rgb(0 0 0 / 30%);
+}
+.diagram-outline-dialog {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto auto minmax(180px, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 30%);
+}
+.diagram-outline-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.diagram-outline-dialog h2,
+.diagram-outline-dialog p {
+  margin: 0;
+}
+.diagram-outline-dialog header p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.diagram-outline-dialog header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+}
+.diagram-outline-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.diagram-outline-search input,
+.diagram-outline-search select {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+}
+.diagram-outline-results {
+  overflow: auto;
+  padding: 6px;
+}
+.diagram-outline-results button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.diagram-outline-results button:hover,
+.diagram-outline-results button:focus-visible {
+  background: var(--bg);
+}
+.diagram-outline-results button > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.diagram-outline-results strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagram-outline-results small,
+.diagram-outline-dialog > footer {
+  color: var(--muted);
+  font-size: 11px;
+}
+.diagram-outline-results > p {
+  padding: 22px 10px;
+  color: var(--muted);
+  text-align: center;
+}
+.diagram-outline-dialog > footer {
+  padding: 9px 16px;
+  border-top: 1px solid var(--line);
 }
 .command-palette > input {
   width: 100%;

@@ -29,6 +29,7 @@ import { findResourceConflicts } from "./features/gantt/gantt-resource-conflicts
 import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
+import { DiagramOutlineDialog } from "./DiagramOutlineDialog";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
@@ -831,6 +832,37 @@ export function App() {
     setSelectionRequest(declaration ? { ...declaration.range } : { ...task.sourceRange });
   };
 
+  const revealOutlineOccurrence = (occurrence: SemanticSymbolOccurrence) => {
+    if (workspace.viewMode === "diagram") update("viewMode", "split");
+    setSourceSymbol({ kind: occurrence.kind, key: occurrence.key });
+    setSourceSymbolPosition(occurrence.range.from);
+    setSelectionRequest({ ...occurrence.range });
+    switch (occurrence.kind) {
+      case "task":
+        selectTask(occurrence.key);
+        break;
+      case "participant":
+        selectSequenceParticipant(occurrence.key);
+        break;
+      case "actor":
+      case "usecase":
+      case "usecase-package":
+        selectUseCaseObject(occurrence.key);
+        break;
+      case "class-entity":
+      case "class-package":
+        selectClassObject(occurrence.key);
+        break;
+      case "activity-action":
+      case "activity-partition":
+        selectActivityObject(occurrence.key);
+        break;
+      case "wbs-node":
+        selectWbsNode(occurrence.key);
+        break;
+    }
+  };
+
   const openProjectInspector = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
@@ -1499,6 +1531,12 @@ export function App() {
         category: "Collaboration",
         run: () => setCollaborationDialogOpen(true),
       },
+      {
+        id: "view.diagram-outline",
+        label: "Diagram outline…",
+        category: "View",
+        run: () => openDialog({ kind: "diagram-outline" }),
+      },
       ...diagramCommands,
       {
         id: "help.reference",
@@ -1901,6 +1939,13 @@ export function App() {
             onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
             onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
           />
+          <button
+            type="button"
+            className={dialog?.kind === "diagram-outline" ? "active" : ""}
+            onClick={() => openDialog({ kind: "diagram-outline" })}
+          >
+            Outline
+          </button>
           {workspace.diagramKind === "gantt" && (
             <>
               <button data-inspector-trigger onClick={openProjectInspector}>
@@ -2541,6 +2586,18 @@ export function App() {
       </footer>
       {dialog?.kind === "command-palette" && (
         <CommandPalette commands={commands} onClose={() => closeDialog("command-palette")} />
+      )}
+      {dialog?.kind === "diagram-outline" && (
+        <DiagramOutlineDialog
+          source={workspace.source}
+          diagramKind={workspace.diagramKind}
+          occurrences={symbolOccurrences}
+          onSelect={(occurrence) => {
+            closeDialog("diagram-outline");
+            revealOutlineOccurrence(occurrence);
+          }}
+          onClose={() => closeDialog("diagram-outline")}
+        />
       )}
       {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={closeNewDocumentDialog} />}
       {dialog?.kind === "add-wbs-node" && (
