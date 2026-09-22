@@ -57,6 +57,19 @@ describe("Jira document binding", () => {
     expect(performance.now() - start).toBeLessThan(200);
   });
 
+  it("does not let the separator and the value overlap on a whitespace-only directive (CodeQL #39/#40)", () => {
+    // `[ \t]+(.+)` let both quantifiers consume the same run of tabs, so a directive line made
+    // only of tabs (or tabs followed by a stray CR) retried every split point. The value must
+    // now begin with a non-whitespace character, which makes the split unambiguous.
+    const tabsOnly = `@startgantt\n' @studio-jira${"\t".repeat(50_000)}\n@endgantt\n`;
+    const tabsThenCR = `@startgantt\n' @studio-jira${"\t".repeat(50_000)}\rX\n@endgantt\n`;
+    const start = performance.now();
+    expect(parseJiraDocumentBinding(tabsOnly)).toBeUndefined();
+    expect(parseJiraDocumentBinding(tabsThenCR)).toBeUndefined();
+    expect(performance.now() - start).toBeLessThan(200);
+    expect(() => setJiraDocumentBinding(tabsOnly, binding)).not.toThrow();
+  });
+
   it("uses immutable numeric issue IDs for aliases", () => {
     expect(jiraTaskAlias("10042")).toBe("jira_10042");
     expect(issueIdFromJiraTaskAlias("JIRA_10042")).toBe("10042");

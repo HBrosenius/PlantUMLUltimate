@@ -1,12 +1,13 @@
 import type { JiraDocumentBinding } from "./types";
 
-// The captured value is matched greedily to end-of-line and trimmed in JS afterward (see
-// callers) rather than trimming trailing spaces/tabs inside the regex itself. A lazy capture
-// followed by an overlapping `[ \t]*` (both can match the same space/tab characters) is a
-// classic polynomial ReDoS shape: for an attacker-controlled line that fails to match, the
-// engine retries the split point between the two quantifiers up to O(n) times, each retry
-// itself doing an O(n) scan, for O(n^2) work. `source` here is untrusted PlantUML text.
-const DIRECTIVE = /^[ \t]*'[ \t]*@studio-jira[ \t]+(.+)\r?$/m;
+// The captured value must start with a non-whitespace character and runs to end-of-line; it
+// is trimmed in JS afterward (see callers). Requiring `\S` first keeps the separator `[ \t]+`
+// and the capture from overlapping: two adjacent quantifiers that can both consume the same
+// spaces/tabs are a classic polynomial ReDoS shape (CodeQL js/polynomial-redos), where a
+// non-matching line forces O(n) retries of the split point, each an O(n) scan. `source` here
+// is untrusted PlantUML text. `$` in multiline mode already matches before `\r`, so CRLF
+// sources need no explicit `\r?`.
+const DIRECTIVE = /^[ \t]*'[ \t]*@studio-jira[ \t]+(\S.*)$/m;
 
 function isHttpsOrigin(value: string): boolean {
   try {
