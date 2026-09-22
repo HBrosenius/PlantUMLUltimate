@@ -1,30 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SemanticSymbolOccurrence } from "./semantic-symbol-provider";
 import { useDialogFocus } from "./use-dialog-focus";
-import { buildDiagramOutlineEntries } from "./diagram-outline";
-import type { DiagramKind } from "./model";
+import type { DiagramOutlineEntry } from "./diagram-outline";
 
 export function DiagramOutlineDialog({
-  source,
-  diagramKind,
-  occurrences,
+  entries,
   onSelect,
   onClose,
 }: {
-  source: string;
-  diagramKind: DiagramKind;
-  occurrences: readonly SemanticSymbolOccurrence[];
-  onSelect(occurrence: SemanticSymbolOccurrence): void;
+  entries: readonly DiagramOutlineEntry[];
+  onSelect(entry: DiagramOutlineEntry): void;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLElement>(null);
   const search = useRef<HTMLInputElement>(null);
+  const resultButtons = useRef<Array<HTMLButtonElement | null>>([]);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("all");
-  const entries = useMemo(
-    () => buildDiagramOutlineEntries(source, occurrences, diagramKind),
-    [diagramKind, occurrences, source],
-  );
+  const [activeIndex, setActiveIndex] = useState(0);
   const types = useMemo(
     () =>
       [...new Map(entries.map((entry) => [entry.kind, entry.typeLabel])).entries()].map(([value, label]) => ({
@@ -42,7 +34,14 @@ export function DiagramOutlineDialog({
     );
   }, [entries, kind, query]);
   useDialogFocus(dialog, onClose);
-  useEffect(() => search.current?.focus(), []);
+  useEffect(() => setActiveIndex(0), [kind, query]);
+
+  const moveActive = (next: number) => {
+    if (!matches.length) return;
+    const index = (next + matches.length) % matches.length;
+    setActiveIndex(index);
+    resultButtons.current[index]?.scrollIntoView?.({ block: "nearest" });
+  };
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -67,11 +66,25 @@ export function DiagramOutlineDialog({
         <div className="diagram-outline-search">
           <input
             ref={search}
+            autoFocus
+            data-dialog-autofocus
             type="search"
             aria-label="Search diagram elements"
             placeholder="Search elements…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                moveActive(activeIndex + 1);
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                moveActive(activeIndex - 1);
+              } else if (event.key === "Enter" && matches[activeIndex]) {
+                event.preventDefault();
+                onSelect(matches[activeIndex]);
+              }
+            }}
           />
           <select
             aria-label="Filter diagram element type"
@@ -87,13 +100,24 @@ export function DiagramOutlineDialog({
           </select>
         </div>
         <div className="diagram-outline-results" role="list" aria-label="Diagram elements">
-          {matches.map((entry) => (
+          {matches.map((entry, index) => (
             <div key={entry.id} role="listitem">
-              <button data-inspector-trigger type="button" onClick={() => onSelect(entry.occurrence)}>
+              <button
+                ref={(element) => {
+                  resultButtons.current[index] = element;
+                }}
+                data-inspector-trigger
+                data-active={index === activeIndex || undefined}
+                type="button"
+                onMouseEnter={() => setActiveIndex(index)}
+                onFocus={() => setActiveIndex(index)}
+                onClick={() => onSelect(entry)}
+              >
                 <span>
                   <strong>{entry.label}</strong>
                   <small>
-                    {entry.typeLabel} · Line {entry.line}
+                    {entry.typeLabel}
+                    {entry.group ? ` · ${entry.group}` : ""} · Line {entry.line}
                   </small>
                 </span>
                 <span aria-hidden="true">→</span>

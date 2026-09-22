@@ -1886,7 +1886,8 @@ textarea:focus-visible,
   text-align: left;
 }
 .diagram-outline-results button:hover,
-.diagram-outline-results button:focus-visible {
+.diagram-outline-results button:focus-visible,
+.diagram-outline-results button[data-active="true"] {
   background: var(--bg);
 }
 .diagram-outline-results button > span:first-child {

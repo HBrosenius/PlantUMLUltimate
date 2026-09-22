@@ -130,7 +130,9 @@ test("searches the diagram outline and jumps to source and rendered selection", 
   await expect(page.locator(".cm-content")).toHaveCount(0);
   await page.keyboard.press("Control+Shift+o");
   const outline = page.getByRole("dialog", { name: "Diagram outline" });
-  await outline.getByLabel("Search diagram elements").fill("Architecture");
+  const outlineSearch = outline.getByLabel("Search diagram elements");
+  await expect(outlineSearch).toBeFocused();
+  await outlineSearch.fill("Architecture");
   await expect(outline.getByRole("list", { name: "Diagram elements" }).getByRole("listitem")).toHaveCount(1);
   await outline.getByRole("button", { name: /Architecture/ }).click();
 
@@ -141,6 +143,12 @@ test("searches the diagram outline and jumps to source and rendered selection", 
   await expect(page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Name")).toHaveValue(
     "Architecture",
   );
+
+  await page.keyboard.press("Control+Shift+o");
+  await expect(outlineSearch).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(outline).toBeHidden();
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toHaveCount(0);
 });
 
 test("highlights and renames task and person references from the editor", async ({ page }) => {

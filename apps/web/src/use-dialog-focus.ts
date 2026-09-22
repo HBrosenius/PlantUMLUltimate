@@ -18,7 +18,7 @@ export function useDialogFocus(container: RefObject<HTMLElement | null>, onClose
     const previous =
       active && !active.closest('[role="dialog"], [role="alertdialog"]') ? active : lastFocusedOutsideDialog;
     const frame = requestAnimationFrame(() => {
-      const preferred = container.current?.querySelector<HTMLElement>("[autofocus]");
+      const preferred = container.current?.querySelector<HTMLElement>("[data-dialog-autofocus], [autofocus]");
       (preferred ?? container.current?.querySelector<HTMLElement>(focusable) ?? container.current)?.focus();
     });
     const keydown = (event: KeyboardEvent) => {

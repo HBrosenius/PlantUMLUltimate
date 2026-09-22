@@ -30,6 +30,7 @@ import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-act
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
 import { DiagramOutlineDialog } from "./DiagramOutlineDialog";
+import { buildDiagramOutlineEntries, outlineLine, type DiagramOutlineEntry } from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
@@ -758,6 +759,24 @@ export function App() {
     };
   }, [symbolMenu]);
 
+  const dismissAllInspectors = useCallback(() => {
+    dismissInspectorSelection();
+    dismissSequenceInspector();
+    dismissUseCaseInspector();
+    dismissClassInspector();
+    dismissActivityInspector();
+    setProjectInspectorOpen(false);
+    setFocusNoteTaskId(undefined);
+  }, [
+    dismissActivityInspector,
+    dismissClassInspector,
+    dismissInspectorSelection,
+    dismissSequenceInspector,
+    dismissUseCaseInspector,
+    setFocusNoteTaskId,
+    setProjectInspectorOpen,
+  ]);
+
   useEffect(() => {
     if (
       !selectedTaskId &&
@@ -785,13 +804,7 @@ export function App() {
         "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
-      dismissInspectorSelection();
-      dismissSequenceInspector();
-      dismissUseCaseInspector();
-      dismissClassInspector();
-      dismissActivityInspector();
-      setProjectInspectorOpen(false);
-      setFocusNoteTaskId(undefined);
+      dismissAllInspectors();
     };
     document.addEventListener("click", dismissInspector);
     return () => document.removeEventListener("click", dismissInspector);
@@ -808,13 +821,7 @@ export function App() {
     selectedActivityObjectId,
     classSettingsOpen,
     activitySettingsOpen,
-    dismissInspectorSelection,
-    dismissSequenceInspector,
-    dismissUseCaseInspector,
-    dismissClassInspector,
-    dismissActivityInspector,
-    setFocusNoteTaskId,
-    setProjectInspectorOpen,
+    dismissAllInspectors,
     selectedTaskId,
     selectedVerticalSeparatorIndex,
   ]);
@@ -831,6 +838,258 @@ export function App() {
     const declaration = task.declarations[0];
     setSelectionRequest(declaration ? { ...declaration.range } : { ...task.sourceRange });
   };
+
+  const diagramOutlineEntries = useMemo(() => {
+    const source = workspace.source;
+    const semantic = buildDiagramOutlineEntries(source, symbolOccurrences, workspace.diagramKind);
+    const entry = (
+      id: string,
+      kind: string,
+      typeLabel: string,
+      label: string,
+      range: { from: number; to: number },
+      target: DiagramOutlineEntry["target"],
+      group?: string,
+    ): DiagramOutlineEntry => ({
+      id,
+      kind,
+      typeLabel,
+      label,
+      range,
+      target,
+      ...(group ? { group } : {}),
+      line: outlineLine(source, range),
+    });
+    const named = (id: string) =>
+      parseResult.document.tasks.find((item) => item.id === id)?.label ??
+      sequenceDocument.participants.find((item) => item.id === id)?.label ??
+      useCaseDocument.elements.find((item) => item.id === id)?.label ??
+      classDocument.entities.find((item) => item.id === id)?.label ??
+      wbsDocument.nodes.find((item) => item.id === id)?.label ??
+      id;
+    const extras: DiagramOutlineEntry[] = [];
+
+    if (workspace.diagramKind === "gantt") {
+      parseResult.document.dependencies.forEach((item, index) =>
+        extras.push(
+          entry(
+            `dependency:${index}`,
+            "gantt-dependency",
+            "Dependency",
+            `${named(item.predecessorTaskId)} → ${named(item.successorTaskId)}`,
+            item.sourceRange,
+            { type: "gantt-dependency", index },
+            "Dependencies",
+          ),
+        ),
+      );
+      parseResult.document.dividers.forEach((item, index) =>
+        extras.push(
+          entry(`divider:${index}`, "gantt-divider", "Divider", item.label, item.sourceRange, {
+            type: "gantt-divider",
+            index,
+          }),
+        ),
+      );
+      parseResult.document.verticalSeparators.forEach((item, index) =>
+        extras.push(
+          entry(
+            `separator:${index}`,
+            "gantt-separator",
+            "Separator",
+            `${item.taskLabel} ${item.anchor} ${item.direction} ${Math.abs(item.offset)} day${Math.abs(item.offset) === 1 ? "" : "s"}`,
+            item.sourceRange,
+            { type: "gantt-separator", index },
+          ),
+        ),
+      );
+    } else if (workspace.diagramKind === "sequence") {
+      sequenceDocument.messages.forEach((item) =>
+        extras.push(
+          entry(
+            `message:${item.id}`,
+            "sequence-message",
+            "Message",
+            item.label || `${named(item.from)} → ${named(item.to)}`,
+            item.sourceRange,
+            { type: "sequence-message", id: item.id },
+            `${named(item.from)} → ${named(item.to)}`,
+          ),
+        ),
+      );
+      sequenceStructures.forEach((item) => {
+        const typeLabel =
+          "branches" in item
+            ? "Fragment"
+            : "placement" in item
+              ? "Note"
+              : "participant" in item && "kind" in item
+                ? "Activation"
+                : "fromAnchor" in item
+                  ? "Duration"
+                  : "participants" in item && "multiline" in item
+                    ? "Reference"
+                    : "participants" in item
+                      ? "Participant box"
+                      : "command" in item
+                        ? "Autonumber"
+                        : "participantKind" in item
+                          ? "Creation"
+                          : "Timeline item";
+        const label =
+          "text" in item
+            ? item.text
+            : "label" in item && item.label
+              ? item.label
+              : "participant" in item
+                ? `${"kind" in item ? item.kind : "create"} ${item.participant}`
+                : "command" in item
+                  ? `${item.command} ${item.value}`.trim()
+                  : typeLabel;
+        extras.push(
+          entry(
+            `structure:${item.id}`,
+            `sequence-${typeLabel.toLowerCase().replaceAll(" ", "-")}`,
+            typeLabel,
+            label,
+            item.sourceRange,
+            {
+              type: "sequence-structure",
+              id: item.id,
+            },
+          ),
+        );
+      });
+    } else if (workspace.diagramKind === "usecase") {
+      useCaseDocument.relationships.forEach((item) =>
+        extras.push(
+          entry(
+            `usecase:${item.id}`,
+            "usecase-relationship",
+            "Relationship",
+            item.label || `${named(item.from)} → ${named(item.to)}`,
+            item.sourceRange,
+            {
+              type: "usecase-object",
+              id: item.id,
+            },
+          ),
+        ),
+      );
+      useCaseDocument.notes.forEach((item) =>
+        extras.push(
+          entry(`usecase:${item.id}`, "usecase-note", "Note", item.text, item.sourceRange, {
+            type: "usecase-object",
+            id: item.id,
+          }),
+        ),
+      );
+    } else if (workspace.diagramKind === "class" || workspace.diagramKind === "component") {
+      classDocument.relationships.forEach((item) =>
+        extras.push(
+          entry(
+            `class:${item.id}`,
+            "class-relationship",
+            "Relationship",
+            item.label || `${named(item.from)} → ${named(item.to)}`,
+            item.sourceRange,
+            {
+              type: "class-object",
+              id: item.id,
+            },
+          ),
+        ),
+      );
+      classDocument.notes.forEach((item) =>
+        extras.push(
+          entry(`class:${item.id}`, "class-note", "Note", item.text, item.sourceRange, {
+            type: "class-object",
+            id: item.id,
+          }),
+        ),
+      );
+    } else if (workspace.diagramKind === "activity") {
+      activityDocument.controls.forEach((item) =>
+        extras.push(
+          entry(
+            `activity:${item.id}`,
+            "activity-control",
+            "Control",
+            item.condition ?? item.label ?? item.kind,
+            item.sourceRange,
+            {
+              type: "activity-object",
+              id: item.id,
+            },
+          ),
+        ),
+      );
+      activityDocument.notes.forEach((item) =>
+        extras.push(
+          entry(`activity:${item.id}`, "activity-note", "Note", item.text, item.sourceRange, {
+            type: "activity-object",
+            id: item.id,
+          }),
+        ),
+      );
+      activityDocument.arrows.forEach((item) =>
+        extras.push(
+          entry(`activity:${item.id}`, "activity-arrow", "Arrow", item.label ?? "Arrow", item.sourceRange, {
+            type: "activity-object",
+            id: item.id,
+          }),
+        ),
+      );
+    } else if (workspace.diagramKind === "wbs") {
+      wbsDocument.relationships.forEach((item) =>
+        extras.push(
+          entry(
+            `wbs:${item.id}`,
+            "wbs-relationship",
+            "Relationship",
+            `${named(item.from)} → ${named(item.to)}`,
+            item.sourceRange,
+            {
+              type: "wbs-relationship",
+              id: item.id,
+            },
+          ),
+        ),
+      );
+    }
+
+    const groupedSemantic = semantic.map((item) => {
+      const key = item.target.type === "semantic" ? item.target.occurrence.key : "";
+      const task = parseResult.document.tasks.find((object) => object.id === key);
+      const activityNode = activityDocument.nodes.find((object) => object.id === key);
+      const parentId =
+        useCaseDocument.elements.find((object) => object.id === key)?.packageId ??
+        useCaseDocument.packages.find((object) => object.id === key)?.parentId ??
+        classDocument.entities.find((object) => object.id === key)?.packageId ??
+        classDocument.packages.find((object) => object.id === key)?.parentId ??
+        activityDocument.nodes.find((object) => object.id === key)?.partitionId ??
+        activityDocument.partitions.find((object) => object.id === key)?.parentId ??
+        wbsDocument.nodes.find((object) => object.id === key)?.parentId;
+      return {
+        ...item,
+        ...(task?.milestone ? { kind: "gantt-milestone", typeLabel: "Milestone" } : {}),
+        ...(activityNode && activityNode.kind !== "action" ? { kind: "activity-terminal", typeLabel: "Terminal" } : {}),
+        ...(parentId ? { group: named(parentId) } : {}),
+      };
+    });
+    return [...groupedSemantic, ...extras].sort((left, right) => left.range.from - right.range.from);
+  }, [
+    activityDocument,
+    classDocument,
+    parseResult.document,
+    sequenceDocument,
+    sequenceStructures,
+    symbolOccurrences,
+    useCaseDocument,
+    wbsDocument,
+    workspace.diagramKind,
+    workspace.source,
+  ]);
 
   const revealOutlineOccurrence = (occurrence: SemanticSymbolOccurrence) => {
     if (workspace.viewMode === "diagram") update("viewMode", "split");
@@ -859,6 +1118,52 @@ export function App() {
         break;
       case "wbs-node":
         selectWbsNode(occurrence.key);
+        break;
+    }
+  };
+
+  const revealOutlineEntry = (entry: DiagramOutlineEntry) => {
+    if (workspace.viewMode === "diagram") update("viewMode", "split");
+    setSelectionRequest({ ...entry.range });
+    switch (entry.target.type) {
+      case "semantic":
+        revealOutlineOccurrence(entry.target.occurrence);
+        break;
+      case "gantt-dependency":
+        setSelectedTaskId(undefined);
+        setSelectedDividerIndex(undefined);
+        setSelectedVerticalSeparatorIndex(undefined);
+        setSelectedDependencyIndex(entry.target.index);
+        break;
+      case "gantt-divider":
+        setSelectedTaskId(undefined);
+        setSelectedDependencyIndex(undefined);
+        setSelectedVerticalSeparatorIndex(undefined);
+        setSelectedDividerIndex(entry.target.index);
+        break;
+      case "gantt-separator":
+        setSelectedTaskId(undefined);
+        setSelectedDependencyIndex(undefined);
+        setSelectedDividerIndex(undefined);
+        setSelectedVerticalSeparatorIndex(entry.target.index);
+        break;
+      case "sequence-message":
+        selectSequenceMessage(entry.target.id);
+        break;
+      case "sequence-structure":
+        selectSequenceStructure(entry.target.id);
+        break;
+      case "usecase-object":
+        selectUseCaseObject(entry.target.id);
+        break;
+      case "class-object":
+        selectClassObject(entry.target.id);
+        break;
+      case "activity-object":
+        selectActivityObject(entry.target.id);
+        break;
+      case "wbs-relationship":
+        selectWbsRelationship(entry.target.id);
         break;
     }
   };
@@ -1613,6 +1918,10 @@ export function App() {
         event.target instanceof HTMLSelectElement ||
         (target?.isContentEditable && !target.closest(".cm-editor"));
       const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
+      if (event.key === "Escape") {
+        dismissAllInspectors();
+        return;
+      }
       if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !editing) {
         event.preventDefault();
         openDialog({ kind: "help" });
@@ -1705,6 +2014,7 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [
     closeTab,
+    dismissAllInspectors,
     newDocument,
     openDialog,
     openDocument,
@@ -2595,12 +2905,10 @@ export function App() {
       )}
       {dialog?.kind === "diagram-outline" && (
         <DiagramOutlineDialog
-          source={workspace.source}
-          diagramKind={workspace.diagramKind}
-          occurrences={symbolOccurrences}
-          onSelect={(occurrence) => {
+          entries={diagramOutlineEntries}
+          onSelect={(entry) => {
             closeDialog("diagram-outline");
-            revealOutlineOccurrence(occurrence);
+            revealOutlineEntry(entry);
           }}
           onClose={() => closeDialog("diagram-outline")}
         />

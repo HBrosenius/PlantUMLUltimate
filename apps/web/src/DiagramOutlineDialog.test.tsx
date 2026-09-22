@@ -25,19 +25,32 @@ describe("DiagramOutlineDialog", () => {
 
   it("searches elements and selects their declaration", () => {
     const onSelect = vi.fn();
+    const entries = buildDiagramOutlineEntries(source, occurrences, "gantt");
+    render(<DiagramOutlineDialog entries={entries} onSelect={onSelect} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Search diagram elements"), { target: { value: "release" } });
+    expect(screen.queryByRole("button", { name: /Build/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Release/ }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: { type: "semantic", occurrence: expect.objectContaining({ key: "release" }) },
+      }),
+    );
+  });
+
+  it("navigates filtered results with arrow keys and selects with Enter", () => {
+    const onSelect = vi.fn();
     render(
       <DiagramOutlineDialog
-        source={source}
-        diagramKind="gantt"
-        occurrences={occurrences}
+        entries={buildDiagramOutlineEntries(source, occurrences, "gantt")}
         onSelect={onSelect}
         onClose={vi.fn()}
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Search diagram elements"), { target: { value: "release" } });
-    expect(screen.queryByRole("button", { name: /Build/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Release/ }));
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ key: "release", role: "declaration" }));
+    const search = screen.getByLabelText("Search diagram elements");
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ label: "Release" }));
   });
 });

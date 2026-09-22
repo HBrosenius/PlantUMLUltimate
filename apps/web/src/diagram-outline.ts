@@ -3,12 +3,26 @@ import type { DiagramKind } from "./model";
 
 export interface DiagramOutlineEntry {
   id: string;
-  kind: SemanticSymbolOccurrence["kind"];
+  kind: string;
   typeLabel: string;
   label: string;
   line: number;
-  occurrence: SemanticSymbolOccurrence;
+  range: { from: number; to: number };
+  target: DiagramOutlineTarget;
+  group?: string;
 }
+
+export type DiagramOutlineTarget =
+  | { type: "semantic"; occurrence: SemanticSymbolOccurrence }
+  | { type: "gantt-dependency"; index: number }
+  | { type: "gantt-divider"; index: number }
+  | { type: "gantt-separator"; index: number }
+  | { type: "sequence-message"; id: string }
+  | { type: "sequence-structure"; id: string }
+  | { type: "usecase-object"; id: string }
+  | { type: "class-object"; id: string }
+  | { type: "activity-object"; id: string }
+  | { type: "wbs-relationship"; id: string };
 
 export const diagramOutlineTypeLabels: Record<SemanticSymbolOccurrence["kind"], string> = {
   task: "Task",
@@ -47,8 +61,13 @@ export function buildDiagramOutlineEntries(
             : diagramOutlineTypeLabels[occurrence.kind],
         label: occurrence.value,
         line: source.slice(0, occurrence.range.from).split(/\r?\n/).length,
-        occurrence,
+        range: occurrence.range,
+        target: { type: "semantic" as const, occurrence },
       };
     })
-    .sort((left, right) => left.occurrence.range.from - right.occurrence.range.from);
+    .sort((left, right) => left.range.from - right.range.from);
+}
+
+export function outlineLine(source: string, range: { from: number }): number {
+  return source.slice(0, range.from).split(/\r?\n/).length;
 }
