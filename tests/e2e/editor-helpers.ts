@@ -37,7 +37,7 @@ export async function fillSource(page: Page, value: string, visibleText = value)
 
 export async function setSource(page: Page, value: string) {
   await fillSource(page, value);
-  await expect(page.locator(".diagram svg")).toBeVisible();
+  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
 }
 

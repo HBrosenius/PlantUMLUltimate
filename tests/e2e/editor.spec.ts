@@ -183,6 +183,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Save›",
     "Version history…",
     "Document settings…",
+    "Delivery Scenario Lab…",
     "Jira…",
     "Backup workspace…",
     "Restore workspace…",

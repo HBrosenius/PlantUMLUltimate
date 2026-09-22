@@ -881,6 +881,58 @@ test("shows a persistent live preview while moving a task horizontally", async (
   await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-01");
 });
 
+test("edits, reviews, and applies a delivery scenario from the rendered preview", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
+  await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 2 days"));
+
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Delivery Scenario Lab…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Delivery Scenario Lab" });
+  await dialog.getByRole("button", { name: "Rendered preview" }).click();
+  const scenario = dialog.getByLabel("Scenario preview");
+  await expect(scenario.locator("svg")).toBeVisible({ timeout: 20_000 });
+
+  const firstDate = await scenario.locator('[data-timeline-header="top"]').nth(0).boundingBox();
+  const secondDate = await scenario.locator('[data-timeline-header="top"]').nth(1).boundingBox();
+  const bar = await scenario.locator('[data-task-id="a"] .bar').boundingBox();
+  expect(firstDate).not.toBeNull();
+  expect(secondDate).not.toBeNull();
+  expect(bar).not.toBeNull();
+  const dayPixels = Math.abs(secondDate!.x - firstDate!.x);
+  await page.mouse.move(bar!.x + bar!.width / 2, bar!.y + bar!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bar!.x + bar!.width / 2 + dayPixels * 2, bar!.y + bar!.height / 2, { steps: 4 });
+  await page.mouse.up();
+
+  await dialog.getByRole("button", { name: "Edit scenario" }).click();
+  await dialog.getByRole("button", { name: "Edit PlantUML source" }).click();
+  await expect(dialog.getByLabel("Scenario source")).toContainText("[A] starts 2026-09-03");
+
+  await dialog.getByRole("button", { name: "Rendered preview" }).click();
+  await scenario.locator('[data-task-id="a"] .bar').click();
+  const resizeHandle = await scenario.locator('[data-task-id="a"] [data-resize-handle]').boundingBox();
+  expect(resizeHandle).not.toBeNull();
+  await page.mouse.move(resizeHandle!.x + resizeHandle!.width / 2, resizeHandle!.y + resizeHandle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    resizeHandle!.x + resizeHandle!.width / 2 + dayPixels,
+    resizeHandle!.y + resizeHandle!.height / 2,
+    { steps: 3 },
+  );
+  await page.mouse.up();
+
+  await dialog.getByRole("button", { name: "Edit scenario" }).click();
+  await expect(dialog.getByLabel("Scenario source")).toContainText("[A] lasts 4 days");
+  await dialog.getByRole("button", { name: "Review and apply…" }).click();
+  await expect(dialog.getByLabel("Scenario source patch")).toContainText("[A] starts 2026-09-03");
+  await expect(dialog.getByLabel("Scenario source patch")).toContainText("[A] lasts 4 days");
+  await dialog.getByRole("button", { name: "Apply scenario" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-03");
+  await expect(page.locator(".cm-content")).toContainText("[A] lasts 4 days");
+});
+
 test("snaps a Monday task to the previous Friday using dated timeline columns", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 3 days"));
