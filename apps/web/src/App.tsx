@@ -1919,6 +1919,7 @@ export function App() {
         (target?.isContentEditable && !target.closest(".cm-editor"));
       const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       if (event.key === "Escape") {
+        if (event.defaultPrevented) return;
         dismissAllInspectors();
         return;
       }

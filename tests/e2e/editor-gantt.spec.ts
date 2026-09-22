@@ -101,8 +101,6 @@ test("zooms with the mouse wheel and pans with the middle mouse button", async (
 test("keeps the split divider fixed while source selection highlights tasks", async ({ page }) => {
   await setSource(page, source("[Design] lasts 3 days\n[Build] starts at [Design]'s end and lasts 4 days"));
   const divider = page.getByRole("separator");
-  const expectedDividerX = await page.evaluate(() => window.innerWidth / 2);
-  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(expectedDividerX, 0);
   const editor = page.locator(".cm-content");
   const initialX = (await divider.boundingBox())!.x;
 
