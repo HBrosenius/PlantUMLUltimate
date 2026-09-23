@@ -98,9 +98,7 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
 
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   await expect(page.getByRole("complementary", { name: "Activity partition inspector" })).toBeVisible();
-  const actionText = await page.locator(".activity-diagram svg text").filter({ hasText: "Review order" }).boundingBox();
-  expect(actionText).not.toBeNull();
-  await page.mouse.click(actionText!.x + actionText!.width / 2, actionText!.y + actionText!.height / 2);
+  await page.getByRole("button", { name: "Select action Review order" }).click();
   await expect(page.getByRole("complementary", { name: "Activity action inspector" }).getByLabel("Text")).toHaveValue(
     "Review order",
   );
