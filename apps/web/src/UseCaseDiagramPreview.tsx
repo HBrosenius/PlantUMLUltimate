@@ -191,6 +191,7 @@ export function UseCaseDiagramPreview({
     const cancel = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || (!drag.current && !keyboardConnectFrom)) return;
       event.preventDefault();
+      event.stopImmediatePropagation();
       if (drag.current) cancelActiveDrag();
       setKeyboardConnectFrom(undefined);
     };
