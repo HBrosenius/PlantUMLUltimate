@@ -67,17 +67,7 @@ export function ActivityDiagramPreview({
           ("text" in item && item.text.split("\n").some((line) => line.trim() === value)),
       );
       if (!object) continue;
-      const box = text.getBBox();
-      const rootTransform = rendered.getCTM();
-      const textTransform = text.getCTM();
-      const transform = rootTransform && textTransform ? rootTransform.inverse().multiply(textTransform) : null;
-      const applyTextTransform = (element: SVGElement) => {
-        if (transform)
-          element.setAttribute(
-            "transform",
-            `matrix(${transform.a} ${transform.b} ${transform.c} ${transform.d} ${transform.e} ${transform.f})`,
-          );
-      };
+      const box = boxInSvg(text, rendered);
       const objectType = document.arrows.some((arrow) => arrow.id === object.id)
         ? "arrow"
         : "text" in object
@@ -99,7 +89,6 @@ export function ActivityDiagramPreview({
       hit.setAttribute("width", String(Math.max(34, box.width + 18)));
       hit.setAttribute("height", String(Math.max(26, box.height + 14)));
       hit.setAttribute("rx", "7");
-      applyTextTransform(hit);
       hit.setAttribute("role", "button");
       hit.setAttribute("tabindex", "0");
       hit.setAttribute(
@@ -114,7 +103,6 @@ export function ActivityDiagramPreview({
         connect.setAttribute("cx", String(box.x + box.width + 18));
         connect.setAttribute("cy", String(box.y + box.height / 2));
         connect.setAttribute("r", "8");
-        applyTextTransform(connect);
         connect.setAttribute("role", "button");
         connect.setAttribute("aria-label", `Drag to connect ${activityText(object)[0] ?? "action"}`);
         rendered.append(connect);
@@ -131,7 +119,6 @@ export function ActivityDiagramPreview({
       handle.setAttribute("width", "12");
       handle.setAttribute("height", "12");
       handle.setAttribute("rx", "3");
-      applyTextTransform(handle);
       handle.setAttribute("aria-label", `Drag to reorder ${activityText(object)[0] ?? "flow item"}`);
       rendered.append(handle);
     }
@@ -484,6 +471,20 @@ export function ActivityDiagramPreview({
     </section>
   );
 }
+
+const boxInSvg = (element: SVGGraphicsElement, svg: SVGSVGElement) => {
+  const bounds = element.getBoundingClientRect();
+  const inverse = svg.getScreenCTM()?.inverse();
+  if (!inverse) return element.getBBox();
+  const topLeft = new DOMPoint(bounds.left, bounds.top).matrixTransform(inverse);
+  const bottomRight = new DOMPoint(bounds.right, bounds.bottom).matrixTransform(inverse);
+  return {
+    x: Math.min(topLeft.x, bottomRight.x),
+    y: Math.min(topLeft.y, bottomRight.y),
+    width: Math.abs(bottomRight.x - topLeft.x),
+    height: Math.abs(bottomRight.y - topLeft.y),
+  };
+};
 
 const activityText = (
   item:

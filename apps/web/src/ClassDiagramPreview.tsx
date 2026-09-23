@@ -11,6 +11,9 @@ import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
 
+const classInteractionSelector =
+  ".class-semantic-hit,.class-connect-handle,.class-move-handle,.class-relationship-hit,.class-relationship-endpoint,.class-connection-preview,.class-package-drop-hit";
+
 function classMemberRenderedText(member: ClassDocument["entities"][number]["members"][number]) {
   if (member.kind === "raw") return member.text;
   const body = member.kind === "method" ? `${member.name ?? ""}(${member.parameters ?? ""})` : (member.name ?? "");
@@ -55,6 +58,7 @@ export function ClassDiagramPreview({
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
+  const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
     | {
@@ -68,6 +72,23 @@ export function ClassDiagramPreview({
       }
     | undefined
   >(undefined);
+  useEffect(() => {
+    const host = root.current;
+    if (!host) return;
+    const observer = new MutationObserver((records) => {
+      const rendererChanged = records.some((record) =>
+        [...record.addedNodes, ...record.removedNodes].some(
+          (node) => !(node instanceof Element && node.matches(classInteractionSelector)),
+        ),
+      );
+      if (rendererChanged) setRenderRevision((value) => value + 1);
+    });
+    observer.observe(host, { childList: true, subtree: true });
+    // Rebuild once after passive effects in case the renderer replaced the SVG
+    // between the initial layout effect and observer registration.
+    setRenderRevision((value) => value + 1);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
       if (event.key === "Escape") setKeyboardConnectFrom(undefined);
@@ -94,15 +115,28 @@ export function ClassDiagramPreview({
       window.document.removeEventListener("visibilitychange", cancelWhenHidden);
     };
   }, []);
+  useEffect(() => {
+    const retry = window.setTimeout(() => {
+      const host = root.current;
+      if (!host?.querySelector("svg")) return;
+      const missingMemberHighlight =
+        highlightedMemberId !== undefined &&
+        !host.querySelector(`[data-class-member-id="${CSS.escape(highlightedMemberId)}"].class-selected-object`);
+      const selectedRelationship = document.relationships.some((item) => item.id === selectedId);
+      if (
+        !host.querySelector(".class-semantic-hit") ||
+        missingMemberHighlight ||
+        (selectedRelationship && host.querySelectorAll(".class-relationship-endpoint").length !== 2)
+      )
+        setRenderRevision((value) => value + 1);
+    }, 150);
+    return () => window.clearTimeout(retry);
+  }, [document, highlightedMemberId, selectedId, svg]);
   useLayoutEffect(() => {
     const host = root.current,
       rendered = host?.querySelector("svg");
     if (!host || !rendered) return;
-    rendered
-      .querySelectorAll(
-        ".class-semantic-hit,.class-connect-handle,.class-move-handle,.class-relationship-hit,.class-relationship-endpoint,.class-connection-preview,.class-package-drop-hit",
-      )
-      .forEach((x) => x.remove());
+    rendered.querySelectorAll(classInteractionSelector).forEach((x) => x.remove());
     const entityMap = new Map<string, string>();
     const entitiesByText = indexByText(document.entities, (item) => [item.label, item.alias]);
     const packagesByText = indexByText(document.packages, (item) => [item.label, item.alias]);
@@ -125,12 +159,18 @@ export function ClassDiagramPreview({
       const object = entity ?? note ?? pkg;
       if (!object && !member) continue;
       const group = text.closest<SVGGElement>("g.entity[data-qualified-name]");
-      if (group?.id && entity) entityMap.set(group.id, entity.id);
-      const textBox = text.getBBox();
-      const entityGroup = entity ? text.closest<SVGGElement>("g.entity[data-qualified-name]") : null;
-      const packageGroup = pkg ? text.closest<SVGGElement>("g.cluster[data-qualified-name]") : null;
-      const b = member ? textBox : (entityGroup?.getBBox() ?? packageGroup?.getBBox() ?? textBox);
-      const hit = documentNode("rect");
+      if (group?.id && entity) {
+        entityMap.set(group.id, entity.id);
+        attrs(group, {
+          "data-class-hit-id": entity.id,
+          "data-class-hit-type": "entity",
+          tabindex: 0,
+          role: "button",
+          "aria-label": `Select ${entity.kind} ${entity.label}`,
+        });
+      }
+      const b = text.getBBox(),
+        hit = documentNode("rect");
       const objectId = memberOwner?.id ?? object!.id;
       hit.setAttribute(
         "class",
@@ -140,10 +180,10 @@ export function ClassDiagramPreview({
         "data-class-object-id": objectId,
         "data-class-object-type": member ? "member" : entity ? "entity" : note ? "note" : "package",
         ...(member ? { "data-class-member-id": member.id } : {}),
-        x: b.x - (member ? 8 : 2),
-        y: b.y - (member ? 6 : 2),
-        width: Math.max(30, b.width + (member ? 16 : 4)),
-        height: Math.max(24, b.height + (member ? 12 : 4)),
+        x: b.x - 8,
+        y: b.y - 6,
+        width: Math.max(30, b.width + 16),
+        height: Math.max(24, b.height + 12),
         rx: 5,
         tabindex: 0,
         role: "button",
@@ -189,6 +229,13 @@ export function ClassDiagramPreview({
       });
       const boundary = group?.querySelector<SVGGraphicsElement>(":scope > rect, :scope > path");
       if (!group || !boundary) continue;
+      attrs(group, {
+        "data-class-hit-id": pkg.id,
+        "data-class-hit-type": "package",
+        tabindex: 0,
+        role: "button",
+        "aria-label": `Select package ${pkg.label}`,
+      });
       const drop = boundary.cloneNode(false) as SVGGraphicsElement;
       drop.setAttribute("class", "class-package-drop-hit");
       attrs(drop, { "data-class-object-id": pkg.id, "data-class-object-type": "package", "aria-hidden": "true" });
@@ -230,10 +277,10 @@ export function ClassDiagramPreview({
     rendered
       .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
       .forEach((control) => rendered.append(control));
-  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderStatus, selectedId, svg]);
+  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
-    const target = (e.target as Element).closest("[data-class-object-id]");
-    const id = target?.getAttribute("data-class-object-id");
+    const target = (e.target as Element).closest("[data-class-object-id],[data-class-hit-id]");
+    const id = classObjectId(target);
     const memberId = target?.getAttribute("data-class-member-id");
     if (id && memberId) onMemberSelect(id, memberId);
     else if (id) onSelect(id);
@@ -247,13 +294,15 @@ export function ClassDiagramPreview({
     const moveHandle = target.closest<SVGGraphicsElement>("[data-class-move-id]");
     const componentBody =
       diagramKind === "component"
-        ? target.closest<SVGGraphicsElement>('[data-class-object-type="entity"][data-class-object-id]')
+        ? target.closest<SVGGraphicsElement>(
+            '[data-class-object-type="entity"][data-class-object-id],[data-class-hit-type="entity"][data-class-hit-id]',
+          )
         : null;
     const id =
         reconnect?.getAttribute("data-class-relationship-id") ??
         h?.getAttribute("data-class-connect-from") ??
         moveHandle?.getAttribute("data-class-move-id") ??
-        componentBody?.getAttribute("data-class-object-id"),
+        classObjectId(componentBody),
       kind = reconnect ? "reconnect" : h ? "connect" : "move";
     const dragTarget = reconnect ?? h ?? moveHandle ?? componentBody;
     const svgRoot = dragTarget?.ownerSVGElement;
@@ -286,9 +335,9 @@ export function ClassDiagramPreview({
     if (!componentBody || moveHandle || h || reconnect) e.preventDefault();
   };
   const keyboardSelect = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    const target = (event.target as Element).closest<SVGElement>("[data-class-object-id]");
-    const id = target?.getAttribute("data-class-object-id");
-    const type = target?.getAttribute("data-class-object-type");
+    const target = (event.target as Element).closest<SVGElement>("[data-class-object-id],[data-class-hit-id]");
+    const id = classObjectId(target);
+    const type = classObjectType(target);
     const memberId = target?.getAttribute("data-class-member-id");
     if (!id) return;
     if (event.key.toLowerCase() === "c" && type === "entity") {
@@ -332,7 +381,7 @@ export function ClassDiagramPreview({
     if (!d?.line) return;
     const s = d.line.ownerSVGElement;
     const target = targetAt(root.current, e.clientX, e.clientY),
-      id = target?.getAttribute("data-class-object-id"),
+      id = classObjectId(target),
       anchor = id
         ? root.current?.querySelector<SVGGraphicsElement>(`[data-class-connect-from="${CSS.escape(id)}"]`)
         : undefined,
@@ -347,14 +396,14 @@ export function ClassDiagramPreview({
     clearDragPresentation();
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     const target = targetAt(root.current, e.clientX, e.clientY),
-      id = target?.getAttribute("data-class-object-id");
+      id = classObjectId(target);
     const distance = Math.hypot(e.clientX - d.x, e.clientY - d.y);
     if (distance <= 5) {
       if (d.selectOnClick) onSelect(d.id);
       return;
     }
     if (!id || id === d.id) return;
-    const type = target?.getAttribute("data-class-object-type");
+    const type = classObjectType(target);
     if (d.kind === "connect" && type === "entity") onRelationshipCreate(d.id, id);
     else if (d.kind === "reconnect" && d.endpoint && type === "entity") onRelationshipReconnect(d.id, d.endpoint, id);
     else if (d.kind === "move" && type === "package") onMoveToPackage(d.id, id);
@@ -469,6 +518,10 @@ const documentNode = <K extends keyof SVGElementTagNameMap>(n: K) =>
   window.document.createElementNS("http://www.w3.org/2000/svg", n);
 const attrs = (e: Element, a: Record<string, string | number>) =>
   Object.entries(a).forEach(([k, v]) => e.setAttribute(k, String(v)));
+const classObjectId = (element: Element | null | undefined) =>
+  element?.getAttribute("data-class-object-id") ?? element?.getAttribute("data-class-hit-id") ?? undefined;
+const classObjectType = (element: Element | null | undefined) =>
+  element?.getAttribute("data-class-object-type") ?? element?.getAttribute("data-class-hit-type") ?? undefined;
 const norm = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
 const indexByText = <T,>(items: T[], values: (item: T) => Array<string | undefined>) => {
   const result = new Map<string, T>();
@@ -506,7 +559,7 @@ const center = (e: SVGGraphicsElement, s: SVGSVGElement | null) => {
 const targetAt = (_r: HTMLDivElement | null, x: number, y: number) =>
   [
     ...window.document.querySelectorAll<Element>(
-      ".class-diagram .class-semantic-hit,.class-diagram .class-package-drop-hit,.class-package-tray [data-class-object-id]",
+      ".class-diagram .class-semantic-hit,.class-diagram .class-package-drop-hit,.class-diagram [data-class-hit-id],.class-package-tray [data-class-object-id]",
     ),
   ]
     .reverse()
