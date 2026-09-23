@@ -2302,6 +2302,36 @@ export function App() {
     unsupportedOpen ||
     problemsOpen,
   );
+  const menuOccurrence =
+    symbolMenu?.occurrence ?? (symbolMenu?.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
+  const menuWbsNode =
+    workspace.diagramKind === "wbs" && menuOccurrence?.kind === "wbs-node"
+      ? wbsDocument.nodes.find((node) => node.id === menuOccurrence.key)
+      : undefined;
+  const menuGanttTask =
+    workspace.diagramKind === "gantt" && menuOccurrence?.kind === "task"
+      ? parseResult.document.symbols.tasks.get(menuOccurrence.key)
+      : undefined;
+  const menuLinkedGantt = menuWbsNode?.alias
+    ? linkedGantt?.wbsGanttLinks?.find((link) => link.wbsAlias === menuWbsNode.alias)
+    : undefined;
+  const menuLinkedWbs = menuGanttTask
+    ? activeDocument.wbsGanttLinks?.find((link) => link.ganttAlias.toLowerCase() === menuGanttTask.id)
+    : undefined;
+  const openLinkedGanttTask = (alias: string) => {
+    const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === alias);
+    if (!link || !linkedGantt) return;
+    tabs.activateDocument(linkedGantt.id);
+    window.setTimeout(() => setSelectedTaskId(link.ganttAlias.toLowerCase()), 0);
+  };
+  const openLinkedWbsNode = (taskId: string) => {
+    if (!linkedWbs) return;
+    const link = activeDocument.wbsGanttLinks?.find((item) => item.ganttAlias.toLowerCase() === taskId);
+    if (!link) return;
+    const node = parseWbs(linkedWbs.source).nodes.find((item) => item.alias === link.wbsAlias);
+    tabs.activateDocument(linkedWbs.id);
+    if (node) window.setTimeout(() => selectWbsNode(node.id), 100);
+  };
   return (
     <div
       className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
@@ -3117,12 +3147,7 @@ export function App() {
             });
             setInteractionMessage(`Linked ${selectedWbsNode.label} to ${task.label}`);
           }}
-          onOpenLinkedTask={() => {
-            const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
-            if (!link || !linkedGantt) return;
-            tabs.activateDocument(linkedGantt.id);
-            window.setTimeout(() => setSelectedTaskId(link.ganttAlias.toLowerCase()), 0);
-          }}
+          onOpenLinkedTask={() => selectedWbsNode.alias && openLinkedGanttTask(selectedWbsNode.alias)}
           onApply={(value) => {
             applyWbsNode(value);
             if (!linkedGantt || !selectedWbsNode.alias || value.label === selectedWbsNode.label) return;
@@ -3572,14 +3597,7 @@ export function App() {
               })()
             : undefined
         }
-        onOpenLinkedWbs={() => {
-          if (!selectedTask || !linkedWbs) return;
-          const link = activeDocument.wbsGanttLinks?.find((item) => item.ganttAlias.toLowerCase() === selectedTask.id);
-          if (!link) return;
-          const node = parseWbs(linkedWbs.source).nodes.find((item) => item.alias === link.wbsAlias);
-          tabs.activateDocument(linkedWbs.id);
-          if (node) window.setTimeout(() => selectWbsNode(node.id), 100);
-        }}
+        onOpenLinkedWbs={() => selectedTask && openLinkedWbsNode(selectedTask.id)}
         selectedDependency={selectedDependency}
         selectedDivider={selectedDivider}
         selectedVerticalSeparator={selectedVerticalSeparator}
@@ -3786,6 +3804,28 @@ export function App() {
             if (event.key === "Escape") setSymbolMenu(undefined);
           }}
         >
+          {menuLinkedGantt && menuWbsNode?.alias && (
+            <button
+              role="menuitem"
+              onClick={() => {
+                openLinkedGanttTask(menuWbsNode.alias!);
+                setSymbolMenu(undefined);
+              }}
+            >
+              Open linked Gantt task
+            </button>
+          )}
+          {menuLinkedWbs && linkedWbs && menuGanttTask && (
+            <button
+              role="menuitem"
+              onClick={() => {
+                openLinkedWbsNode(menuGanttTask.id);
+                setSymbolMenu(undefined);
+              }}
+            >
+              Open linked WBS node
+            </button>
+          )}
           {workspace.diagramKind === "gantt" &&
             (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
               ?.kind === "task" && (
