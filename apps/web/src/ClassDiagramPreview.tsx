@@ -55,7 +55,6 @@ export function ClassDiagramPreview({
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
-  const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
     | {
@@ -69,14 +68,6 @@ export function ClassDiagramPreview({
       }
     | undefined
   >(undefined);
-  useEffect(() => {
-    const host = root.current;
-    if (!host) return;
-    const observer = new MutationObserver(() => setRenderRevision((value) => value + 1));
-    observer.observe(host, { childList: true });
-    setRenderRevision((value) => value + 1);
-    return () => observer.disconnect();
-  }, []);
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
       if (event.key === "Escape") setKeyboardConnectFrom(undefined);
@@ -103,14 +94,6 @@ export function ClassDiagramPreview({
       window.document.removeEventListener("visibilitychange", cancelWhenHidden);
     };
   }, []);
-  useEffect(() => {
-    const retry = window.setTimeout(() => {
-      const host = root.current;
-      if (host?.querySelector("svg") && !host.querySelector(".class-semantic-hit"))
-        setRenderRevision((value) => value + 1);
-    }, 150);
-    return () => window.clearTimeout(retry);
-  }, [document, selectedId, svg]);
   useLayoutEffect(() => {
     const host = root.current,
       rendered = host?.querySelector("svg");
@@ -143,8 +126,11 @@ export function ClassDiagramPreview({
       if (!object && !member) continue;
       const group = text.closest<SVGGElement>("g.entity[data-qualified-name]");
       if (group?.id && entity) entityMap.set(group.id, entity.id);
-      const b = text.getBBox(),
-        hit = documentNode("rect");
+      const textBox = text.getBBox();
+      const entityGroup = entity ? text.closest<SVGGElement>("g.entity[data-qualified-name]") : null;
+      const packageGroup = pkg ? text.closest<SVGGElement>("g.cluster[data-qualified-name]") : null;
+      const b = member ? textBox : (entityGroup?.getBBox() ?? packageGroup?.getBBox() ?? textBox);
+      const hit = documentNode("rect");
       const objectId = memberOwner?.id ?? object!.id;
       hit.setAttribute(
         "class",
@@ -154,10 +140,10 @@ export function ClassDiagramPreview({
         "data-class-object-id": objectId,
         "data-class-object-type": member ? "member" : entity ? "entity" : note ? "note" : "package",
         ...(member ? { "data-class-member-id": member.id } : {}),
-        x: b.x - 8,
-        y: b.y - 6,
-        width: Math.max(30, b.width + 16),
-        height: Math.max(24, b.height + 12),
+        x: b.x - (member ? 8 : 2),
+        y: b.y - (member ? 6 : 2),
+        width: Math.max(30, b.width + (member ? 16 : 4)),
+        height: Math.max(24, b.height + (member ? 12 : 4)),
         rx: 5,
         tabindex: 0,
         role: "button",
@@ -244,7 +230,7 @@ export function ClassDiagramPreview({
     rendered
       .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
       .forEach((control) => rendered.append(control));
-  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
+  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as Element).closest("[data-class-object-id]");
     const id = target?.getAttribute("data-class-object-id");
