@@ -78,6 +78,9 @@ export function usePersistedWorkspace() {
       dirty: input?.dirty ?? false,
       zoom: input?.zoom ?? 1,
       cursor: input?.cursor ?? { line: 1, column: 1 },
+      ...(input?.linkedWbsDocumentId ? { linkedWbsDocumentId: input.linkedWbsDocumentId } : {}),
+      ...(input?.wbsGanttLinks ? { wbsGanttLinks: input.wbsGanttLinks } : {}),
+      ...(input?.wbsGanttDependencies ? { wbsGanttDependencies: input.wbsGanttDependencies } : {}),
     };
     setSession((current) => ({ ...current, documents: [...current.documents, document], activeDocumentId: id }));
     return id;

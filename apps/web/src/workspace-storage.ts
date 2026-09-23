@@ -34,6 +34,9 @@ export interface DocumentSnapshot {
   historyMaxLogicalBytes?: number | undefined;
   revision?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
+  linkedWbsDocumentId?: string | undefined;
+  wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
+  wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
 }
 
 export interface WorkspaceSession {
@@ -187,6 +190,21 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             : {}),
           ...(item.resourceCapacities && typeof item.resourceCapacities === "object"
             ? { resourceCapacities: item.resourceCapacities }
+            : {}),
+          ...(typeof item.linkedWbsDocumentId === "string" ? { linkedWbsDocumentId: item.linkedWbsDocumentId } : {}),
+          ...(Array.isArray(item.wbsGanttLinks)
+            ? {
+                wbsGanttLinks: item.wbsGanttLinks.filter(
+                  (link) => link && typeof link.wbsAlias === "string" && typeof link.ganttAlias === "string",
+                ),
+              }
+            : {}),
+          ...(Array.isArray(item.wbsGanttDependencies)
+            ? {
+                wbsGanttDependencies: item.wbsGanttDependencies.filter(
+                  (edge) => edge && typeof edge.from === "string" && typeof edge.to === "string",
+                ),
+              }
             : {}),
           ...(Number.isSafeInteger(item.revision) ? { revision: Math.max(0, Number(item.revision)) } : {}),
         };

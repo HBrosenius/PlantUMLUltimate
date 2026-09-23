@@ -19,6 +19,8 @@ export function MilestoneInspector({
   onApply,
   onDelete,
   onClose,
+  linkedWbsLabel,
+  onOpenLinkedWbs,
 }: {
   milestone: GanttTask;
   tasks: readonly GanttTask[];
@@ -26,6 +28,8 @@ export function MilestoneInspector({
   onApply(value: MilestoneInspectorValue): void;
   onDelete(): void;
   onClose(): void;
+  linkedWbsLabel?: string | undefined;
+  onOpenLinkedWbs?: (() => void) | undefined;
 }) {
   const initial = (): MilestoneInspectorValue => {
     const fixed = Boolean(milestone.milestone && "resolved" in milestone.milestone);
@@ -163,6 +167,11 @@ export function MilestoneInspector({
           />
         </label>
         <div className="inspector-actions">
+          {linkedWbsLabel && (
+            <button type="button" onClick={onOpenLinkedWbs}>
+              Open linked WBS node: {linkedWbsLabel}
+            </button>
+          )}
           <button type="button" className="danger" onClick={onDelete}>
             Delete
           </button>

@@ -5398,6 +5398,31 @@ textarea:focus-visible,
   color: #dc2626;
   border-color: #dc2626;
 }
+.wbs-node-inspector .wbs-link-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.wbs-node-inspector .wbs-link-section h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.wbs-node-inspector .wbs-link-section button {
+  justify-self: start;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+.wbs-node-inspector .wbs-node-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
 .project-inspector {
   width: min(500px, calc(100vw - 24px));
 }

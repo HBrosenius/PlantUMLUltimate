@@ -561,6 +561,7 @@ export function DiagramPreview({
         showFeedback();
         draggingRef.current = false;
         setHoveredTask(undefined);
+        suppressGestureClick();
         if (moved) onDividerReorder(index, targetId);
         else onDividerSelect(index);
       };

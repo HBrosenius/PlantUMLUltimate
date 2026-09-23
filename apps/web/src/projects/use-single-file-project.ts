@@ -38,6 +38,8 @@ import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-
 import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
 import { embeddedDiagramDisplayName } from "./embedded-project";
+import { embeddedMemberHistoryId } from "./embedded-project";
+import type { WbsGanttConversion } from "../wbs-gantt";
 
 type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
@@ -268,6 +270,55 @@ export function useSingleFileProject({
       setInteractionMessage(`Created ${projectName(name)}. Add a diagram to begin.`);
     },
     [embedded, resetSelection, setInteractionMessage],
+  );
+
+  const createWbsGanttProject = useCallback(
+    async (name: string, converted: WbsGanttConversion, sourceTabId: string) => {
+      const title = projectName(name);
+      const wbs = await projectFromPlantUml(converted.wbsSource, "wbs", `${title} WBS`);
+      const gantt = await projectFromPlantUml(converted.ganttSource, "gantt", `${title} schedule`);
+      const wbsDiagram = wbs.diagrams[0]!;
+      const ganttDiagram = {
+        ...gantt.diagrams[0]!,
+        wbsGantt: { wbsDiagramId: wbsDiagram.id, links: converted.links, dependencies: converted.dependencies },
+      };
+      const project: PortableProject = {
+        ...wbs,
+        name: title,
+        revisionId: crypto.randomUUID(),
+        diagrams: [wbsDiagram, ganttDiagram],
+      };
+      embedded.openProject(project);
+      embedded.updateProject((current) => ({ ...current, revisionId: crypto.randomUUID() }));
+      handle.current = undefined;
+      unlockedKey.current = undefined;
+      setSavedBaseline(undefined);
+      const wbsTabId = tabs.addDocument({
+        historyId: embeddedMemberHistoryId(project.projectId, wbsDiagram.id),
+        diagramKind: "wbs",
+        source: converted.wbsSource,
+        fileName: wbsDiagram.name,
+        dirty: true,
+        portableDocumentId: wbsDiagram.document.documentId,
+      });
+      tabs.addDocument({
+        historyId: embeddedMemberHistoryId(project.projectId, ganttDiagram.id),
+        diagramKind: "gantt",
+        source: converted.ganttSource,
+        fileName: ganttDiagram.name,
+        dirty: true,
+        portableDocumentId: ganttDiagram.document.documentId,
+        linkedWbsDocumentId: wbsTabId,
+        wbsGanttLinks: converted.links,
+        wbsGanttDependencies: converted.dependencies,
+      });
+      tabs.closeDocument(sourceTabId);
+      resetSelection();
+      setInteractionMessage(
+        `Created ${title} with linked WBS and Gantt diagrams. Save the project to keep them together.`,
+      );
+    },
+    [embedded, resetSelection, setInteractionMessage, tabs],
   );
 
   const requestPassword = useCallback((fileName: string) => {
@@ -568,6 +619,7 @@ export function useSingleFileProject({
       dirty: embedded.dirty,
       saving,
       newProject,
+      createWbsGanttProject,
       addProjectDiagram,
       importDiagram,
       openProject,
@@ -601,6 +653,7 @@ export function useSingleFileProject({
       indexStatus,
       saving,
       newProject,
+      createWbsGanttProject,
       openProject,
       openOpenedProject,
       openPortableProject,

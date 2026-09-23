@@ -28,6 +28,8 @@ function persistentTabState(tab: {
   historyMaxVersions?: number | undefined;
   historyMaxLogicalBytes?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
+  wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
+  wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
 }): string {
   return JSON.stringify([
     tab.source,
@@ -35,6 +37,8 @@ function persistentTabState(tab: {
     tab.historyMaxVersions,
     tab.historyMaxLogicalBytes,
     Object.entries(tab.resourceCapacities ?? {}).sort(([left], [right]) => left.localeCompare(right)),
+    tab.wbsGanttLinks,
+    tab.wbsGanttDependencies,
   ]);
 }
 
@@ -72,6 +76,8 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
             historyMaxVersions: member.document.historyPolicy.maxVersions,
             historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
             resourceCapacities: member.document.settings.resourceCapacities,
+            wbsGanttLinks: member.wbsGantt?.links,
+            wbsGanttDependencies: member.wbsGantt?.dependencies,
           }),
         ]),
       );
@@ -111,6 +117,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
 
   useEffect(() => {
     if (!project) return;
+    memberTabs.current = new Map([...memberTabs.current, ...embeddedMemberTabs(project, tabs.documents)]);
     const byId = new Map(tabs.documents.map((tab) => [tab.id, tab]));
     let changed = false;
     for (const member of project.diagrams) {
@@ -176,7 +183,19 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     async (memberId: string) => {
       if (!project) return undefined;
       await historyReady.current;
-      return openEmbeddedMember(
+      const member = project.diagrams.find((item) => item.id === memberId);
+      const wbsGantt = member?.wbsGantt;
+      const wbsTabId = wbsGantt
+        ? openEmbeddedMember(
+            project,
+            wbsGantt.wbsDiagramId,
+            tabs,
+            memberTabs.current,
+            encrypted,
+            baselineByMember.current.get(wbsGantt.wbsDiagramId),
+          )
+        : undefined;
+      const tabId = openEmbeddedMember(
         project,
         memberId,
         tabs,
@@ -184,6 +203,14 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
         encrypted,
         baselineByMember.current.get(memberId),
       );
+      if (tabId && wbsGantt && wbsTabId) {
+        tabs.updateDocumentFormat?.(tabId, {
+          linkedWbsDocumentId: wbsTabId,
+          wbsGanttLinks: wbsGantt.links,
+          wbsGanttDependencies: wbsGantt.dependencies,
+        });
+      }
+      return tabId;
     },
     [encrypted, project, tabs],
   );
@@ -277,6 +304,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     if (!current) return undefined;
     const revision = revisionRef.current;
     await historyReady.current;
+    memberTabs.current = new Map([...memberTabs.current, ...embeddedMemberTabs(current, tabs.documents)]);
     return {
       projectId: current.projectId,
       revision,

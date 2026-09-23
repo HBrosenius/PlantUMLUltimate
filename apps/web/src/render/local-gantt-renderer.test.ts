@@ -28,4 +28,14 @@ describe("renderLocalGantt", () => {
     expect(svg).toContain("Init and write tests report");
     expect(svg).toContain('data-dependency-index="0"');
   });
+
+  it("shows unscheduled aliased WBS entries and their dependency", () => {
+    const svg = renderLocalGantt(
+      "@startgantt\n[Project] as [wbs_project]\n[  Design] as [wbs_design]\n[wbs_design] starts at [wbs_project]'s end\n@endgantt",
+    );
+    expect(svg).toContain('data-task-id="wbs_project"');
+    expect(svg).toContain('data-task-id="wbs_design"');
+    expect(svg).toContain('data-dependency-index="0"');
+    expect(svg).not.toContain("0d");
+  });
 });

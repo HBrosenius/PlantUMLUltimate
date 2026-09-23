@@ -25,6 +25,15 @@ export function renderLocalGantt(source: string): string {
   }> = [];
   const projectStart = source.match(/^\s*Project\s+starts\s+(\d{4}-\d{2}-\d{2})\s*$/im)?.[1];
   for (const line of source.split(/\r?\n/)) {
+    const declaration = line.match(/^\s*\[([^\]]+)](?:\s+as\s+\[([^\]]+)])?(?:\s+requires\s+(\d+)\s+days?)?\s*$/i);
+    if (declaration?.[1] && !tasks.has(declaration[1]))
+      tasks.set(declaration[1], {
+        id: normalizeTaskId(declaration[2] ?? declaration[1]),
+        label: declaration[1],
+        duration: Number(declaration[3] ?? 0),
+        durationUnit: "day",
+        row: tasks.size,
+      });
     const dependencyMatch = line.match(/^\s*\[([^\]]+)]\s+(starts|ends)\s+at\s+\[([^\]]+)]'s\s+(start|end)\s*$/i);
     if (dependencyMatch?.[1] && dependencyMatch[2] && dependencyMatch[3] && dependencyMatch[4]) {
       const successor = dependencyMatch[1];
@@ -34,7 +43,7 @@ export function renderLocalGantt(source: string): string {
         predecessor: dependencyMatch[3],
         predecessorEdge: dependencyMatch[4].toLowerCase() === "start" ? "start" : "end",
       });
-      if (!tasks.has(successor))
+      if (![...tasks.values()].some((task) => task.id === normalizeTaskId(successor) || task.label === successor))
         tasks.set(successor, {
           id: normalizeTaskId(successor),
           label: successor,
@@ -50,7 +59,7 @@ export function renderLocalGantt(source: string): string {
       const durationUnit = match[3].toLowerCase().startsWith("week") ? "week" : "day";
       const duration = Number(match[2]) * (durationUnit === "week" ? 7 : 1);
       tasks.set(label, {
-        id: normalizeTaskId(label),
+        id: existing?.id ?? normalizeTaskId(label),
         label,
         duration,
         durationUnit,
@@ -64,7 +73,7 @@ export function renderLocalGantt(source: string): string {
       const label = startMatch[1];
       const existing = tasks.get(label);
       tasks.set(label, {
-        id: normalizeTaskId(label),
+        id: existing?.id ?? normalizeTaskId(label),
         label,
         duration: existing?.duration ?? 1,
         durationUnit: existing?.durationUnit ?? "day",
@@ -86,13 +95,19 @@ export function renderLocalGantt(source: string): string {
           ? Math.round((Date.parse(`${task.start}T00:00:00Z`) - Date.parse(`${projectStart}T00:00:00Z`)) / 86_400_000)
           : 0;
       const barX = 210 + Math.max(0, offset) * 22;
-      return `<g class="task" data-task-id="${escapeXml(task.id)}" data-draggable="${task.start ? "true" : "false"}" data-duration-unit="${task.durationUnit}" tabindex="0" role="button" aria-label="Select ${escapeXml(task.label)}"><text x="18" y="${y + 16}" class="label">${escapeXml(task.label)}</text><rect x="${barX}" y="${y}" width="${barWidth}" height="24" rx="2" class="bar"/><text x="${barX + 8}" y="${y + 16}" class="duration">${task.duration}d</text><rect data-resize-handle="end" x="${barX + barWidth - 5}" y="${y}" width="10" height="24" class="resize-handle"/><circle data-dependency-handle="start" data-dependency-target-handle="start" cx="${barX - 8}" cy="${y + 12}" r="6" class="dependency-handle dependency-handle-start"/><circle data-dependency-handle="end" data-dependency-target-handle="end" cx="${barX + barWidth + 8}" cy="${y + 12}" r="6" class="dependency-handle dependency-handle-end"/></g>`;
+      const bar =
+        task.duration > 0
+          ? `<rect x="${barX}" y="${y}" width="${barWidth}" height="24" rx="2" class="bar"/><text x="${barX + 8}" y="${y + 16}" class="duration">${task.duration}d</text><rect data-resize-handle="end" x="${barX + barWidth - 5}" y="${y}" width="10" height="24" class="resize-handle"/><circle data-dependency-handle="start" data-dependency-target-handle="start" cx="${barX - 8}" cy="${y + 12}" r="6" class="dependency-handle dependency-handle-start"/><circle data-dependency-handle="end" data-dependency-target-handle="end" cx="${barX + barWidth + 8}" cy="${y + 12}" r="6" class="dependency-handle dependency-handle-end"/>`
+          : "";
+      return `<g class="task" data-task-id="${escapeXml(task.id)}" data-draggable="${task.start ? "true" : "false"}" data-duration-unit="${task.durationUnit}" tabindex="0" role="button" aria-label="Select ${escapeXml(task.label)}"><text x="18" y="${y + 16}" class="label">${escapeXml(task.label)}</text>${bar}</g>`;
     })
     .join("");
   const arrows = dependencies
     .map((dependency, index) => {
-      const predecessor = tasks.get(dependency.predecessor);
-      const successor = tasks.get(dependency.successor);
+      const predecessor =
+        tasks.get(dependency.predecessor) ?? items.find((task) => task.id === normalizeTaskId(dependency.predecessor));
+      const successor =
+        tasks.get(dependency.successor) ?? items.find((task) => task.id === normalizeTaskId(dependency.successor));
       if (!predecessor || !successor) return "";
       const x1 = dependency.predecessorEdge === "start" ? 210 : 210 + predecessor.duration * 22;
       const y1 = 74 + predecessor.row * 42;

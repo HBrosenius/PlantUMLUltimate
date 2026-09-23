@@ -36,6 +36,8 @@ export function TaskInspector({
   onApply,
   onDelete,
   onClose,
+  linkedWbsLabel,
+  onOpenLinkedWbs,
   focusNote = false,
 }: {
   task: GanttTask;
@@ -51,6 +53,8 @@ export function TaskInspector({
   onApply(value: TaskInspectorValue): void;
   onDelete(): void;
   onClose(): void;
+  linkedWbsLabel?: string | undefined;
+  onOpenLinkedWbs?: (() => void) | undefined;
   focusNote?: boolean;
 }) {
   const resourceListId = useId();
@@ -493,6 +497,11 @@ export function TaskInspector({
         </p>
         <p className="calculated-hint">Text and number fields are saved when you leave the field.</p>
         <div className="inspector-actions">
+          {linkedWbsLabel && (
+            <button type="button" onClick={onOpenLinkedWbs}>
+              Open linked WBS node: {linkedWbsLabel}
+            </button>
+          )}
           <button type="button" className="danger" onClick={onDelete}>
             Delete
           </button>

@@ -33,6 +33,33 @@ describe("single-file project diagram names", () => {
 });
 
 describe("portable project file opening", () => {
+  it("retains WBS–Gantt diagram links in one saved project file", async () => {
+    const wbs = await projectFromPlantUml("@startwbs\n*(plan) Plan\n@endwbs", "wbs", "Plan WBS");
+    const gantt = await projectFromPlantUml(
+      "@startgantt\n[Plan] as [wbs_plan] requires 1 day\n@endgantt",
+      "gantt",
+      "Plan schedule",
+    );
+    const input: PortableProject = {
+      ...wbs,
+      name: "Plan project",
+      diagrams: [
+        wbs.diagrams[0]!,
+        {
+          ...gantt.diagrams[0]!,
+          wbsGantt: {
+            wbsDiagramId: wbs.diagrams[0]!.id,
+            links: [{ wbsAlias: "plan", ganttAlias: "wbs_plan" }],
+            dependencies: [],
+          },
+        },
+      ],
+    };
+    const decoded = await decodeProject((await encodeProject(input, { compression: "none" })).bytes);
+    expect(decoded.project.diagrams).toHaveLength(2);
+    expect(decoded.project.diagrams[1]?.wbsGantt).toEqual(input.diagrams[1]?.wbsGantt);
+  });
+
   it("does not request a password for an unencrypted project", async () => {
     const input = await projectFromPlantUml("@startgantt\n@endgantt\n", "gantt", "Plan");
     const encoded = await encodeProject(input, { compression: "none" });

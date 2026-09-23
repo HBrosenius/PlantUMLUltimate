@@ -161,6 +161,11 @@ export interface PortableProjectDiagram {
   id: string;
   name: string;
   document: PortableDocument;
+  wbsGantt?: {
+    wbsDiagramId: string;
+    links: Array<{ wbsAlias: string; ganttAlias: string }>;
+    dependencies: Array<{ from: string; to: string }>;
+  };
 }
 
 /** Logical v2 payload, before the common envelope is compressed and optionally encrypted. */

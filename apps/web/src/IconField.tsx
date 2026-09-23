@@ -28,11 +28,15 @@ function IconGlyph({ name, className }: { name: string | undefined; className?: 
 export function IconField({
   value,
   onChange,
+  onBlur,
+  onPick,
   invalid,
   describedBy,
 }: {
   value: string;
   onChange(value: string): void;
+  onBlur?(): void;
+  onPick?(value: string): void;
   invalid?: boolean;
   describedBy?: string;
 }) {
@@ -70,9 +74,11 @@ export function IconField({
   }, [query]);
 
   const pick = (name: string) => {
+    const next = `&${name}`;
     setOpen(false);
     setQuery("");
-    onChange(`&${name}`);
+    onChange(next);
+    onPick?.(next);
   };
 
   return (
@@ -85,6 +91,7 @@ export function IconField({
           placeholder="&home"
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
         />
         <button
           ref={trigger}

@@ -303,7 +303,7 @@ export function validateProject(value: unknown): PortableProject {
   let expandedBytes = 0;
   const diagrams = project.diagrams.map((value, index) => {
     const item = record(value, `diagrams[${index}]`);
-    exactKeys(item, ["id", "name", "document"], `diagrams[${index}]`);
+    exactKeys(item, ["id", "name", "document", "wbsGantt"], `diagrams[${index}]`);
     const id = identifier(item.id, `diagrams[${index}].id`);
     if (diagramIds.has(id)) invalid(`diagrams contains duplicate ID ${id}`);
     diagramIds.add(id);
@@ -312,8 +312,44 @@ export function validateProject(value: unknown): PortableProject {
     const document = validateDocument(item.document);
     expandedBytes += UTF8.encode(document.current.source).byteLength;
     expandedBytes += document.contents.reduce((total, content) => total + content.byteLength, 0);
-    return { id, name: item.name, document };
+    let wbsGantt: PortableProject["diagrams"][number]["wbsGantt"];
+    if (item.wbsGantt !== undefined) {
+      const link = record(item.wbsGantt, `diagrams[${index}].wbsGantt`);
+      exactKeys(link, ["wbsDiagramId", "links", "dependencies"], `diagrams[${index}].wbsGantt`);
+      const wbsDiagramId = identifier(link.wbsDiagramId, `diagrams[${index}].wbsGantt.wbsDiagramId`);
+      if (!Array.isArray(link.links) || !Array.isArray(link.dependencies))
+        invalid(`diagrams[${index}].wbsGantt has invalid lists`);
+      if (
+        link.links.length > DOCUMENT_LIMITS.maxProjectElements ||
+        link.dependencies.length > DOCUMENT_LIMITS.maxProjectLinks
+      )
+        limit(`diagrams[${index}].wbsGantt contains too many links`);
+      const links = link.links.map((value, linkIndex) => {
+        const entry = record(value, `diagrams[${index}].wbsGantt.links[${linkIndex}]`);
+        exactKeys(entry, ["wbsAlias", "ganttAlias"], `diagrams[${index}].wbsGantt.links[${linkIndex}]`);
+        return {
+          wbsAlias: string(entry.wbsAlias, "wbsAlias", 256),
+          ganttAlias: string(entry.ganttAlias, "ganttAlias", 256),
+        };
+      });
+      const dependencies = link.dependencies.map((value, linkIndex) => {
+        const entry = record(value, `diagrams[${index}].wbsGantt.dependencies[${linkIndex}]`);
+        exactKeys(entry, ["from", "to"], `diagrams[${index}].wbsGantt.dependencies[${linkIndex}]`);
+        return { from: string(entry.from, "from", 256), to: string(entry.to, "to", 256) };
+      });
+      wbsGantt = { wbsDiagramId, links, dependencies };
+    }
+    return { id, name: item.name, document, ...(wbsGantt ? { wbsGantt } : {}) };
   });
+  for (const [index, diagram] of diagrams.entries()) {
+    if (
+      diagram.wbsGantt &&
+      !diagrams.some(
+        (item) => item.id === diagram.wbsGantt!.wbsDiagramId && item.document.current.diagramKind === "wbs",
+      )
+    )
+      invalid(`diagrams[${index}].wbsGantt references an unknown WBS diagram`);
+  }
   if (expandedBytes > DOCUMENT_LIMITS.maxProjectExpandedBytes) limit("project history exceeds aggregate limit");
   if (!Array.isArray(project.elements)) invalid("project.elements must be an array");
   if (project.elements.length > DOCUMENT_LIMITS.maxProjectElements) limit("project contains too many elements");

@@ -42,6 +42,46 @@ const project = (): PortableProject => ({
 });
 
 describe("embedded project tabs", () => {
+  it("snapshots edited Gantt source and WBS links into the same project", async () => {
+    const input = project();
+    const wbsId = "55555555-5555-4555-8555-555555555555";
+    input.diagrams.unshift({
+      ...input.diagrams[0]!,
+      id: wbsId,
+      name: "Plan WBS",
+      document: {
+        ...input.diagrams[0]!.document,
+        current: {
+          ...input.diagrams[0]!.document.current,
+          diagramKind: "wbs",
+          source: "@startwbs\n*(plan) Plan\n@endwbs",
+        },
+      },
+    });
+    input.diagrams[1]!.wbsGantt = {
+      wbsDiagramId: wbsId,
+      links: [{ wbsAlias: "plan", ganttAlias: "wbs_plan" }],
+      dependencies: [],
+    };
+    const gantt = input.diagrams[1]!;
+    const tab = {
+      id: "gantt-tab",
+      historyId: embeddedMemberHistoryId(input.projectId, gantt.id),
+      diagramKind: "gantt",
+      fileName: "Plan schedule",
+      dirty: true,
+      zoom: 1,
+      cursor: { line: 1, column: 1 },
+      source: "@startgantt\n[Plan] as [wbs_plan] starts 2026-09-23\n@endgantt",
+      wbsGanttLinks: [{ wbsAlias: "plan", ganttAlias: "wbs_plan" }],
+      wbsGanttDependencies: [],
+    } satisfies DocumentSnapshot;
+    const saved = await snapshotEmbeddedProject(input, new Map([[gantt.id, tab.id]]), [tab], undefined, async () => []);
+    expect(saved.diagrams).toHaveLength(2);
+    expect(saved.diagrams[1]?.document.current.source).toBe(tab.source);
+    expect(saved.diagrams[1]?.wbsGantt).toEqual(gantt.wbsGantt);
+  });
+
   it.each(["Plan.puml", "Plan.plantuml", "Plan.pumlu"])("shows %s as a clean diagram name", (name) => {
     expect(embeddedDiagramDisplayName(name)).toBe("Plan");
   });

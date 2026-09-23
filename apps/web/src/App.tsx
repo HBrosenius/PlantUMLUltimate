@@ -6,6 +6,7 @@ import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
+import { applyWbsGroupRollups, convertWbsToGantt, rollupWbsGroupDates } from "./wbs-gantt";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
@@ -77,6 +78,7 @@ import {
   findTaskAt,
   moveVerticalSeparatorByDays,
   parseGantt,
+  renameTask,
   renameResource,
 } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
@@ -93,7 +95,7 @@ import {
   type FileSnapshot,
   type OpenedFileBytes,
 } from "./file-service";
-import { findWbsNodeAt } from "@plantuml-studio/diagram-wbs";
+import { findWbsNodeAt, parseWbs, updateWbsNode } from "@plantuml-studio/diagram-wbs";
 import { findSequenceObjectAt, parseSequence } from "@plantuml-studio/diagram-sequence";
 import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
 import { findClassObjectAt, parseClassDiagram } from "@plantuml-studio/diagram-class";
@@ -295,6 +297,99 @@ export function App() {
     selectRelationship: selectWbsRelationship,
     selectFromSource: selectWbsFromSource,
   } = useWbsController(workspace.diagramKind, wbsDocument);
+  const linkedGantt = tabs.documents.find(
+    (item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId,
+  );
+  const linkedWbs = activeDocument.linkedWbsDocumentId
+    ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
+    : undefined;
+  useEffect(() => {
+    if (workspace.diagramKind !== "gantt" || !linkedWbs || !activeDocument.wbsGanttLinks?.length) return;
+    if (parseResult.diagnostics.some((item) => item.severity === "error")) return;
+    const timer = window.setTimeout(() => {
+      let next = linkedWbs.source;
+      for (const link of activeDocument.wbsGanttLinks ?? []) {
+        const task = parseResult.document.symbols.tasks.get(link.ganttAlias.toLowerCase());
+        const node = parseWbs(next).nodes.find((item) => item.alias === link.wbsAlias);
+        if (!task || !node) continue;
+        const label = task.label.replace(/^(?:↳\s*)+/, "").trim();
+        if (!label || label === node.label) continue;
+        next = updateWbsNode(next, node, {
+          label,
+          ...(node.color ? { color: node.color } : {}),
+          ...(node.textColor ? { textColor: node.textColor } : {}),
+          ...(node.stereotype ? { stereotype: node.stereotype } : {}),
+          ...(node.link ? { link: node.link } : {}),
+          ...(node.icon ? { icon: node.icon } : {}),
+          side: node.side === "left" ? "left" : "right",
+        });
+      }
+      if (next !== linkedWbs.source) tabs.updateDocumentSource(linkedWbs.id, next, "wbs");
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [activeDocument.wbsGanttLinks, linkedWbs, parseResult, tabs, workspace.diagramKind]);
+  const convertCurrentWbs = () => {
+    const converted = convertWbsToGantt(
+      workspace.source,
+      linkedGantt?.source,
+      linkedGantt?.wbsGanttLinks,
+      linkedGantt?.wbsGanttDependencies,
+    );
+    if (converted.wbsSource !== workspace.source) tabs.updateDocumentSource(tabs.activeId, converted.wbsSource, "wbs");
+    if (linkedGantt) {
+      tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
+      tabs.updateDocumentFormat(linkedGantt.id, {
+        wbsGanttLinks: converted.links,
+        wbsGanttDependencies: converted.dependencies,
+      });
+      tabs.activateDocument(linkedGantt.id);
+    } else {
+      tabs.addDocument({
+        diagramKind: "gantt",
+        source: converted.ganttSource,
+        fileName: `${workspace.fileName.replace(/\.[^.]+$/, "")}-schedule.pumlu`,
+        dirty: true,
+        linkedWbsDocumentId: tabs.activeId,
+        wbsGanttLinks: converted.links,
+        wbsGanttDependencies: converted.dependencies,
+      });
+    }
+    setInteractionMessage(
+      converted.warnings.length
+        ? `Created Gantt chart. ${converted.warnings.join(" ")}`
+        : `Linked ${converted.links.length} WBS nodes to Gantt entries`,
+    );
+  };
+  useEffect(() => {
+    if (
+      workspace.diagramKind !== "wbs" ||
+      !linkedGantt?.wbsGanttLinks?.some((link) => link.ganttAlias === `wbs_${link.wbsAlias}`) ||
+      wbsDocument.diagnostics.some((item) => item.severity === "error")
+    )
+      return;
+    const timer = window.setTimeout(() => {
+      const converted = convertWbsToGantt(
+        workspace.source,
+        linkedGantt.source,
+        linkedGantt.wbsGanttLinks,
+        linkedGantt.wbsGanttDependencies,
+      );
+      if (converted.wbsSource !== workspace.source)
+        tabs.updateDocumentSource(tabs.activeId, converted.wbsSource, "wbs");
+      if (converted.ganttSource !== linkedGantt.source)
+        tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
+      if (
+        JSON.stringify(converted.links) !== JSON.stringify(linkedGantt.wbsGanttLinks) ||
+        JSON.stringify(converted.dependencies) !== JSON.stringify(linkedGantt.wbsGanttDependencies)
+      )
+        tabs.updateDocumentFormat(linkedGantt.id, {
+          wbsGanttLinks: converted.links,
+          wbsGanttDependencies: converted.dependencies,
+        });
+      if (converted.warnings.length) setInteractionMessage(converted.warnings.join(" "));
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [linkedGantt, tabs, wbsDocument.diagnostics, workspace.diagramKind, workspace.source]);
   const symbolProvider = useMemo(
     () =>
       createSemanticSymbolProvider({
@@ -629,16 +724,39 @@ export function App() {
     [selectedTask, parseResult.document.tasks],
   );
   const ganttCalendar = useMemo(() => parseGanttCalendar(workspace.source), [workspace.source]);
-  const resolvedTaskDates = useMemo(
-    () =>
-      resolveTaskDates(
-        parseResult.document.tasks,
-        parseResult.document.dependencies,
-        parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined,
-        ganttCalendar,
-      ),
-    [ganttCalendar, parseResult.document],
-  );
+  const resolvedTaskDates = useMemo(() => {
+    const dates = resolveTaskDates(
+      parseResult.document.tasks,
+      parseResult.document.dependencies,
+      parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined,
+      ganttCalendar,
+    );
+    return linkedWbs && activeDocument.wbsGanttLinks
+      ? rollupWbsGroupDates(linkedWbs.source, activeDocument.wbsGanttLinks, dates)
+      : dates;
+  }, [activeDocument.wbsGanttLinks, ganttCalendar, linkedWbs, parseResult.document]);
+  useEffect(() => {
+    if (workspace.diagramKind !== "gantt" || !linkedWbs || !activeDocument.wbsGanttLinks) return;
+    if (parseResult.diagnostics.some((item) => item.severity === "error")) return;
+    const timer = window.setTimeout(() => {
+      const next = applyWbsGroupRollups(
+        workspace.source,
+        linkedWbs.source,
+        activeDocument.wbsGanttLinks!,
+        resolvedTaskDates,
+      );
+      if (next !== workspace.source) tabs.updateDocumentSource(tabs.activeId, next, "gantt");
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeDocument.wbsGanttLinks,
+    linkedWbs,
+    parseResult.diagnostics,
+    resolvedTaskDates,
+    tabs,
+    workspace.diagramKind,
+    workspace.source,
+  ]);
   const resourceOverAllocations = useMemo(
     () =>
       buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
@@ -1380,9 +1498,10 @@ export function App() {
     }
     return links;
   }, [activeDocument.historyId, parseResult, project, workspace.diagramKind, workspace.fileName]);
+  const activeProjectId = project?.manifest.projectId;
   useEffect(() => {
-    if (project) setProjectNavigatorOpen(true);
-  }, [project]);
+    if (activeProjectId) setProjectNavigatorOpen(true);
+  }, [activeProjectId]);
   const mapProjectRename = useCallback(
     async (
       kind: "class-entity" | "sequence-participant" | "gantt-task",
@@ -1919,7 +2038,11 @@ export function App() {
         (target?.isContentEditable && !target.closest(".cm-editor"));
       const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       if (event.key === "Escape") {
+        if (document.querySelector(".icon-field-panel, .color-field-panel")) return;
         dismissAllInspectors();
+        clearSelectedWbsNode();
+        clearSelectedWbsRelationship();
+        closeWbsSettings();
         return;
       }
       if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !editing) {
@@ -2015,6 +2138,9 @@ export function App() {
   }, [
     closeTab,
     dismissAllInspectors,
+    clearSelectedWbsNode,
+    clearSelectedWbsRelationship,
+    closeWbsSettings,
     newDocument,
     openDialog,
     openDocument,
@@ -2290,6 +2416,18 @@ export function App() {
           {workspace.diagramKind === "activity" && (
             <button data-inspector-trigger onClick={openActivitySettingsFromToolbar}>
               Activity
+            </button>
+          )}
+          {workspace.diagramKind === "wbs" && (
+            <button
+              type="button"
+              onClick={() =>
+                linkedGantt && isProjectMemberTab(tabs.activeId)
+                  ? convertCurrentWbs()
+                  : openDialog({ kind: "wbs-gantt-project" })
+              }
+            >
+              Create Gantt chart from WBS
             </button>
           )}
           {workspace.diagramKind === "wbs" && (
@@ -2615,7 +2753,16 @@ export function App() {
                 setFocusNoteTaskId(undefined);
               }}
               onTaskMove={moveGanttTask}
-              onTaskReorder={reorderGanttTask}
+              onTaskReorder={(taskId, beforeTaskId) => {
+                if (
+                  linkedWbs &&
+                  activeDocument.wbsGanttLinks?.some((link) => link.ganttAlias.toLowerCase() === taskId)
+                ) {
+                  setInteractionMessage("Reorder linked work in the WBS; the Gantt chart updates automatically");
+                  return;
+                }
+                reorderGanttTask(taskId, beforeTaskId);
+              }}
               onDividerReorder={reorderDiagramDivider}
               onVerticalSeparatorMove={(index, days) => {
                 const separator = parseResult.document.verticalSeparators[index];
@@ -2927,9 +3074,67 @@ export function App() {
       )}
       {selectedWbsNode && (
         <WbsNodeInspector
-          key={`${selectedWbsNode.id}:${selectedWbsNode.sourceRange.to}`}
+          key={selectedWbsNode.id}
           node={selectedWbsNode}
-          onApply={applyWbsNode}
+          linkedTask={linkedGantt?.wbsGanttLinks?.find((link) => link.wbsAlias === selectedWbsNode.alias)}
+          ganttTargets={tabs.documents
+            .filter(
+              (item) =>
+                item.diagramKind === "gantt" &&
+                (!item.linkedWbsDocumentId || item.linkedWbsDocumentId === tabs.activeId),
+            )
+            .flatMap((item) =>
+              parseGantt(item.source).document.tasks.map((task) => ({
+                key: `${item.id}:${task.id}`,
+                label: `${item.fileName} · ${task.label}`,
+              })),
+            )}
+          onLinkGanttTask={(key) => {
+            const split = key.indexOf(":");
+            const document = tabs.documents.find((item) => item.id === key.slice(0, split));
+            const task =
+              document && parseGantt(document.source).document.tasks.find((item) => item.id === key.slice(split + 1));
+            if (!document || !task) return;
+            const aliasedWbs = convertWbsToGantt(workspace.source).wbsSource;
+            const alias = parseWbs(aliasedWbs).nodes[wbsDocument.nodes.indexOf(selectedWbsNode)]?.alias;
+            if (!alias) return;
+            if (aliasedWbs !== workspace.source) tabs.updateDocumentSource(tabs.activeId, aliasedWbs, "wbs");
+            const ganttAlias = task.alias?.value ?? `wbs_link_${Date.now().toString(36)}`;
+            if (!task.alias) {
+              const at = task.labelRange.to + 1;
+              tabs.updateDocumentSource(
+                document.id,
+                `${document.source.slice(0, at)} as [${ganttAlias}]${document.source.slice(at)}`,
+                "gantt",
+              );
+            }
+            const links = (document.wbsGanttLinks ?? []).filter(
+              (item) => item.wbsAlias !== alias && item.ganttAlias !== ganttAlias,
+            );
+            tabs.updateDocumentFormat(document.id, {
+              linkedWbsDocumentId: tabs.activeId,
+              wbsGanttLinks: [...links, { wbsAlias: alias, ganttAlias }],
+            });
+            setInteractionMessage(`Linked ${selectedWbsNode.label} to ${task.label}`);
+          }}
+          onOpenLinkedTask={() => {
+            const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
+            if (!link || !linkedGantt) return;
+            tabs.activateDocument(linkedGantt.id);
+            window.setTimeout(() => setSelectedTaskId(link.ganttAlias.toLowerCase()), 0);
+          }}
+          onApply={(value) => {
+            applyWbsNode(value);
+            if (!linkedGantt || !selectedWbsNode.alias || value.label === selectedWbsNode.label) return;
+            const link = linkedGantt.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
+            const parsed = parseGantt(linkedGantt.source).document;
+            const task = link && parsed.symbols.tasks.get(link.ganttAlias.toLowerCase());
+            if (!task) return;
+            const label = `${"↳ ".repeat(Math.max(0, selectedWbsNode.depth - 1))}${value.label.replaceAll("]", ")").replaceAll("\n", " ").trim()}`;
+            const result = renameTask(linkedGantt.source, parsed, task, label);
+            if (!result.unavailableReason && result.edits.length)
+              tabs.updateDocumentSource(linkedGantt.id, applySourceEdits(linkedGantt.source, result.edits), "gantt");
+          }}
           onDelete={removeWbsNode}
           onAddChild={() => openDialog({ kind: "add-wbs-node" })}
           onClose={clearSelectedWbsNode}
@@ -3042,6 +3247,20 @@ export function App() {
             void singleFileProject.newProject(name);
           }}
           onClose={() => closeDialog("new-project")}
+        />
+      )}
+      {dialog?.kind === "wbs-gantt-project" && (
+        <ProjectNameDialog
+          title="Create project from WBS"
+          initialValue={workspace.fileName.replace(/\.[^.]+$/, "") || "WBS project"}
+          submitLabel="Create Gantt chart"
+          onSubmit={(name) => {
+            const converted = convertWbsToGantt(workspace.source);
+            const sourceTabId = tabs.activeId;
+            closeDialog("wbs-gantt-project");
+            void singleFileProject.createWbsGanttProject(name, converted, sourceTabId).catch(reportFileError);
+          }}
+          onClose={() => closeDialog("wbs-gantt-project")}
         />
       )}
       {singleFileProject.unlockRequest && (
@@ -3341,6 +3560,26 @@ export function App() {
       />
       <GanttInspectors
         selectedTask={selectedTask}
+        linkedWbsLabel={
+          selectedTask && linkedWbs
+            ? (() => {
+                const link = activeDocument.wbsGanttLinks?.find(
+                  (item) => item.ganttAlias.toLowerCase() === selectedTask.id,
+                );
+                return link
+                  ? parseWbs(linkedWbs.source).nodes.find((node) => node.alias === link.wbsAlias)?.label
+                  : undefined;
+              })()
+            : undefined
+        }
+        onOpenLinkedWbs={() => {
+          if (!selectedTask || !linkedWbs) return;
+          const link = activeDocument.wbsGanttLinks?.find((item) => item.ganttAlias.toLowerCase() === selectedTask.id);
+          if (!link) return;
+          const node = parseWbs(linkedWbs.source).nodes.find((item) => item.alias === link.wbsAlias);
+          tabs.activateDocument(linkedWbs.id);
+          if (node) window.setTimeout(() => selectWbsNode(node.id), 100);
+        }}
         selectedDependency={selectedDependency}
         selectedDivider={selectedDivider}
         selectedVerticalSeparator={selectedVerticalSeparator}
@@ -3370,7 +3609,27 @@ export function App() {
         legendEntries={legendEntries}
         legendFocusColor={legendFocusColor}
         onMilestoneApply={applyGanttMilestoneInspector}
-        onTaskApply={applyGanttTaskInspector}
+        onTaskApply={(value) => {
+          applyGanttTaskInspector(value);
+          if (!selectedTask || !linkedWbs || value.label.trim() === selectedTask.label.trim()) return;
+          const link = activeDocument.wbsGanttLinks?.find((item) => item.ganttAlias.toLowerCase() === selectedTask.id);
+          const document = parseWbs(linkedWbs.source);
+          const node = link && document.nodes.find((item) => item.alias === link.wbsAlias);
+          if (!node) return;
+          tabs.updateDocumentSource(
+            linkedWbs.id,
+            updateWbsNode(linkedWbs.source, node, {
+              label: value.label.replace(/^(?:↳\s*)+/, "").trim(),
+              ...(node.color ? { color: node.color } : {}),
+              ...(node.textColor ? { textColor: node.textColor } : {}),
+              ...(node.stereotype ? { stereotype: node.stereotype } : {}),
+              ...(node.link ? { link: node.link } : {}),
+              ...(node.icon ? { icon: node.icon } : {}),
+              side: node.side === "left" ? "left" : "right",
+            }),
+            "wbs",
+          );
+        }}
         onTaskDelete={deleteSelectedTask}
         onDependencyApply={applyDependencyInspector}
         onDependencyDelete={deleteDependency}

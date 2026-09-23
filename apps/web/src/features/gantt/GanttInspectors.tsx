@@ -10,6 +10,8 @@ import type { LegendEntry } from "../../legend";
 
 interface GanttInspectorsProps {
   selectedTask: GanttTask | undefined;
+  linkedWbsLabel?: string | undefined;
+  onOpenLinkedWbs?(): void;
   selectedDependency: GanttDependency | undefined;
   selectedDivider: GanttDivider | undefined;
   selectedVerticalSeparator: GanttVerticalSeparator | undefined;
@@ -76,6 +78,8 @@ export function GanttInspectors(props: GanttInspectorsProps) {
           onApply={props.onMilestoneApply}
           onDelete={props.onTaskDelete}
           onClose={props.onCloseTask}
+          linkedWbsLabel={props.linkedWbsLabel}
+          onOpenLinkedWbs={props.onOpenLinkedWbs}
         />
       )}
       {selectedTask && !selectedTask.milestone && (
@@ -95,6 +99,8 @@ export function GanttInspectors(props: GanttInspectorsProps) {
           onApply={props.onTaskApply}
           onDelete={props.onTaskDelete}
           onClose={props.onCloseTask}
+          linkedWbsLabel={props.linkedWbsLabel}
+          onOpenLinkedWbs={props.onOpenLinkedWbs}
         />
       )}
       {selectedDependency && (

@@ -8,6 +8,7 @@ export type AppDialog =
   | { kind: "new-document"; replaceActiveDocument: boolean }
   | { kind: "help" }
   | { kind: "new-project" }
+  | { kind: "wbs-gantt-project" }
   | { kind: "add-task" }
   | { kind: "add-divider" }
   | { kind: "add-milestone" }

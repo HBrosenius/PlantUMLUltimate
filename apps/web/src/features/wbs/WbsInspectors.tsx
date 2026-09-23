@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsRelationship } from "@plantuml-studio/diagram-wbs";
 import { ColorField } from "../../ColorField";
 import { IconField } from "../../IconField";
@@ -8,12 +8,20 @@ export function WbsNodeInspector({
   onApply,
   onDelete,
   onAddChild,
+  linkedTask,
+  onOpenLinkedTask,
+  ganttTargets = [],
+  onLinkGanttTask,
   onClose,
 }: {
   node: WbsNode;
   onApply(value: WbsNodeInput): void;
   onDelete(): void;
   onAddChild(): void;
+  linkedTask?: { ganttAlias: string } | undefined;
+  onOpenLinkedTask?(): void;
+  ganttTargets?: Array<{ key: string; label: string }>;
+  onLinkGanttTask?(key: string): void;
   onClose(): void;
 }) {
   const [label, setLabel] = useState(node.label);
@@ -25,9 +33,31 @@ export function WbsNodeInspector({
   const [link, setLink] = useState(node.link ?? "");
   const [icon, setIcon] = useState(node.icon ?? "");
   const [side, setSide] = useState<"left" | "right">(node.side === "left" ? "left" : "right");
+  useEffect(() => {
+    setLabel(node.label);
+    setColor(node.color ?? "");
+    setTextColor(node.textColor ?? "");
+    setLink(node.link ?? "");
+    setIcon(node.icon ?? "");
+    setSide(node.side === "left" ? "left" : "right");
+  }, [node.label, node.color, node.textColor, node.link, node.icon, node.side]);
   const labelMissing = !label.trim();
   const iconTrimmed = icon.trim();
   const iconInvalid = iconTrimmed.length > 0 && !/^[$&][\w-]+$/.test(iconTrimmed);
+  const commit = (override: Partial<WbsNodeInput> = {}) => {
+    const next = { label, color, textColor, stereotype, link, icon, side, ...override };
+    if (!next.label.trim() || (next.icon.trim() && !/^[$&][\w-]+$/.test(next.icon.trim()))) return;
+    if (
+      next.label === node.label &&
+      next.color === (node.color ?? "") &&
+      next.textColor === (node.textColor ?? "") &&
+      next.link === (node.link ?? "") &&
+      next.icon === (node.icon ?? "") &&
+      next.side === (node.side === "left" ? "left" : "right")
+    )
+      return;
+    onApply(next);
+  };
   return (
     <aside className="task-inspector wbs-node-inspector" aria-label="WBS node inspector">
       <header>
@@ -45,6 +75,7 @@ export function WbsNodeInspector({
           aria-describedby={labelMissing ? "wbs-label-error" : undefined}
           value={label}
           onChange={(event) => setLabel(event.target.value)}
+          onBlur={() => commit()}
         />
         {labelMissing && (
           <span id="wbs-label-error" className="field-error" role="alert">
@@ -57,14 +88,18 @@ export function WbsNodeInspector({
         <select
           value={side}
           disabled={node.depth === 1}
-          onChange={(event) => setSide(event.target.value as "left" | "right")}
+          onChange={(event) => {
+            const next = event.target.value as "left" | "right";
+            setSide(next);
+            commit({ side: next });
+          }}
         >
           <option value="right">Right</option>
           <option value="left">Left</option>
         </select>
       </label>
-      <ColorField label="Background color" value={color} onChange={setColor} />
-      <ColorField label="Text color" value={textColor} onChange={setTextColor} />
+      <ColorField label="Background color" value={color} onChange={setColor} onBlur={() => commit()} />
+      <ColorField label="Text color" value={textColor} onChange={setTextColor} onBlur={() => commit()} />
       <label>
         Link URL
         <input
@@ -72,6 +107,7 @@ export function WbsNodeInspector({
           placeholder="https://example.com"
           value={link}
           onChange={(event) => setLink(event.target.value)}
+          onBlur={() => commit()}
         />
       </label>
       <label>
@@ -79,6 +115,8 @@ export function WbsNodeInspector({
         <IconField
           value={icon}
           onChange={setIcon}
+          onBlur={() => commit()}
+          onPick={(next) => commit({ icon: next })}
           invalid={iconInvalid}
           {...(iconInvalid ? { describedBy: "wbs-icon-error" } : {})}
         />
@@ -89,15 +127,35 @@ export function WbsNodeInspector({
           sprite (e.g. <code>$my-sprite</code>).
         </span>
       )}
-      <div className="inspector-actions">
-        <button onClick={onAddChild}>Add child…</button>
-        <button
-          disabled={labelMissing || iconInvalid}
-          onClick={() => onApply({ label, color, textColor, stereotype, link, icon, side })}
-        >
-          Apply
+      <p className="calculated-hint">Changes are saved when you leave a field.</p>
+      {(linkedTask || ganttTargets.length > 0) && (
+        <section className="wbs-link-section" aria-label="Gantt link">
+          <h3>Gantt link</h3>
+          {linkedTask && (
+            <button type="button" onClick={onOpenLinkedTask}>
+              Open linked Gantt task
+            </button>
+          )}
+          {ganttTargets.length > 0 && (
+            <label>
+              Linked Gantt task
+              <select value="" onChange={(event) => onLinkGanttTask?.(event.target.value)}>
+                <option value="">Choose a task…</option>
+                {ganttTargets.map((target) => (
+                  <option key={target.key} value={target.key}>
+                    {target.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </section>
+      )}
+      <div className="inspector-actions wbs-node-actions">
+        <button type="button" onClick={onAddChild}>
+          Add child…
         </button>
-        <button className="danger" onClick={onDelete}>
+        <button type="button" className="danger" onClick={onDelete}>
           Delete subtree
         </button>
       </div>

@@ -7,6 +7,7 @@ export type EmbeddedProjectTabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
   activateDocument(id: string): void;
   closeDocument?(id: string): void;
+  updateDocumentFormat?(id: string, patch: Partial<DocumentSnapshot>): void;
   documents: readonly DocumentSnapshot[];
 };
 
@@ -85,10 +86,30 @@ export function projectWithOpenTabSources(
   const byTabId = new Map(tabs.map((tab) => [tab.id, tab]));
   let changed = false;
   const diagrams = project.diagrams.map((member) => {
-    const source = byTabId.get(memberTabs.get(member.id) ?? "")?.source;
-    if (source === undefined || source === member.document.current.source) return member;
+    const tab = byTabId.get(memberTabs.get(member.id) ?? "");
+    const source = tab?.source;
+    const wbsGantt =
+      member.wbsGantt && tab
+        ? {
+            ...member.wbsGantt,
+            links: tab.wbsGanttLinks ?? member.wbsGantt.links,
+            dependencies: tab.wbsGanttDependencies ?? member.wbsGantt.dependencies,
+          }
+        : member.wbsGantt;
+    if (
+      (source === undefined || source === member.document.current.source) &&
+      JSON.stringify(wbsGantt) === JSON.stringify(member.wbsGantt)
+    )
+      return member;
     changed = true;
-    return { ...member, document: { ...member.document, current: { ...member.document.current, source } } };
+    return {
+      ...member,
+      ...(wbsGantt ? { wbsGantt } : {}),
+      document: {
+        ...member.document,
+        current: { ...member.document.current, source: source ?? member.document.current.source },
+      },
+    };
   });
   return changed ? { ...project, diagrams } : project;
 }
@@ -110,6 +131,7 @@ export function projectContentEqual(a: PortableProject, b: PortableProject): boo
     if (!other) return false;
     return (
       diagram.name === other.name &&
+      JSON.stringify(diagram.wbsGantt) === JSON.stringify(other.wbsGantt) &&
       diagram.document.current.source === other.document.current.source &&
       diagram.document.current.diagramKind === other.document.current.diagramKind &&
       diagram.document.current.baselineVersionId === other.document.current.baselineVersionId &&
@@ -139,6 +161,15 @@ export async function snapshotEmbeddedProject(
       if (!versions.length)
         return {
           ...member,
+          ...(member.wbsGantt
+            ? {
+                wbsGantt: {
+                  ...member.wbsGantt,
+                  links: tab.wbsGanttLinks ?? member.wbsGantt.links,
+                  dependencies: tab.wbsGanttDependencies ?? member.wbsGantt.dependencies,
+                },
+              }
+            : {}),
           document: {
             ...member.document,
             savedAt,
@@ -156,6 +187,15 @@ export async function snapshotEmbeddedProject(
         };
       return {
         ...member,
+        ...(member.wbsGantt
+          ? {
+              wbsGantt: {
+                ...member.wbsGantt,
+                links: tab.wbsGanttLinks ?? member.wbsGantt.links,
+                dependencies: tab.wbsGanttDependencies ?? member.wbsGantt.dependencies,
+              },
+            }
+          : {}),
         document: await assemblePortableDocument(tab, versions, undefined, savedAt),
       };
     }),
