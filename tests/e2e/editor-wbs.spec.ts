@@ -106,13 +106,19 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.keyboard.press("Enter");
   const connectHandle = page.locator('[aria-label="Drag to connect Discovery"]');
   await expect(connectHandle).toBeVisible();
-  const connectFrom = await connectHandle.boundingBox();
-  const connectTo = await page.getByRole("button", { name: "Select WBS node Experience design" }).boundingBox();
-  expect(connectFrom).not.toBeNull();
-  expect(connectTo).not.toBeNull();
-  await page.mouse.move(connectFrom!.x + connectFrom!.width / 2, connectFrom!.y + connectFrom!.height / 2);
+  const connectFrom = await connectHandle.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  });
+  const connectTo = await page
+    .getByRole("button", { name: "Select WBS node Experience design" })
+    .evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+  await page.mouse.move(connectFrom.x, connectFrom.y);
   await page.mouse.down();
-  await page.mouse.move(connectTo!.x + connectTo!.width / 2, connectTo!.y + connectTo!.height / 2, { steps: 8 });
+  await page.mouse.move(connectTo.x, connectTo.y, { steps: 8 });
   await expect(page.locator(".wbs-connection-preview")).toHaveCount(1);
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("discovery -> experience_design");
