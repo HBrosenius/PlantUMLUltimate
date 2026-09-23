@@ -11,12 +11,12 @@ export interface AddTaskValue {
 }
 
 export function AddTaskDialog({
-  taskLabels,
+  predecessors,
   defaultStartDate,
   onAdd,
   onClose,
 }: {
-  taskLabels: string[];
+  predecessors: Array<{ label: string; reference: string }>;
   defaultStartDate?: string | undefined;
   onAdd(value: AddTaskValue): void;
   onClose(): void;
@@ -68,9 +68,9 @@ export function AddTaskDialog({
           Starts after
           <select value={predecessor} onChange={(event) => setPredecessor(event.target.value)}>
             <option value="">No dependency</option>
-            {taskLabels.map((task) => (
-              <option key={task} value={task}>
-                {task}
+            {predecessors.map((task) => (
+              <option key={task.reference} value={task.reference}>
+                {task.label}
               </option>
             ))}
           </select>

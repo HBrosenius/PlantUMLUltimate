@@ -184,3 +184,28 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await context.close();
   }
 });
+
+test("adds a task after an aliased WBS summary without invalidating the Gantt", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
+  await page
+    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("button", { name: "Create Gantt chart" })
+    .click();
+  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Task…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add task" });
+  await dialog.getByRole("textbox", { name: "Name" }).fill("Test");
+  await dialog.getByLabel("Starts after").selectOption({ label: "Website redesign" });
+  await dialog.getByRole("button", { name: "Add task" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Test] starts at [wbs_website_redesign]'s end");
+  const preview = page.getByRole("region", { name: "Diagram preview" });
+  await expect(preview.locator("svg")).toContainText("Test");
+  await expect(preview.locator("svg")).not.toContainText("Syntax Error");
+});

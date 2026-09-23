@@ -27,7 +27,12 @@ export function GanttDialogs({
   const taskLabels = tasks.map((task) => task.label);
   if (active === "task")
     return (
-      <AddTaskDialog taskLabels={taskLabels} defaultStartDate={defaultStartDate} onAdd={onAddTask} onClose={onClose} />
+      <AddTaskDialog
+        predecessors={tasks.map((task) => ({ label: task.label, reference: task.alias?.value ?? task.label }))}
+        defaultStartDate={defaultStartDate}
+        onAdd={onAddTask}
+        onClose={onClose}
+      />
     );
   if (active === "divider") return <AddDividerDialog tasks={tasks} onAdd={onAddDivider} onClose={onClose} />;
   if (active === "milestone")
