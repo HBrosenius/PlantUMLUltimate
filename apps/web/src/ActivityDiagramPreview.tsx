@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
@@ -34,6 +34,8 @@ export function ActivityDiagramPreview({
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
+  // Preserve the SVG and its imperative interaction overlays on unrelated React renders.
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const drag = useRef<
     { id: string; kind: "move" | "connect"; pointerId: number; x: number; y: number; line?: SVGLineElement } | undefined
   >(undefined);
@@ -68,8 +70,8 @@ export function ActivityDiagramPreview({
       );
       if (!object) continue;
       const box = text.getBBox();
-      const rootTransform = rendered.getCTM();
-      const textTransform = text.getCTM();
+      const rootTransform = rendered.getScreenCTM();
+      const textTransform = text.getScreenCTM();
       const transform = rootTransform && textTransform ? rootTransform.inverse().multiply(textTransform) : null;
       const applyTextTransform = (element: SVGElement) => {
         if (transform)
@@ -165,7 +167,7 @@ export function ActivityDiagramPreview({
           focusAfterRender.current = undefined;
         }, 100);
     }
-  });
+  }, [document, renderStatus, selectedId, svg]);
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
       const current = drag.current;
@@ -452,7 +454,7 @@ export function ActivityDiagramPreview({
               if (id) onSelect(id);
               else onBackgroundSelect();
             }}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">

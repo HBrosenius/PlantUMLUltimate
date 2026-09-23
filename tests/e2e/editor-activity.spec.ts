@@ -74,8 +74,12 @@ test("keeps Activity actions selectable after zooming", async ({ page }) => {
     .click();
   await setSource(page, "@startuml\n:Receive order;\n:Review order;\n@enduml");
 
+  const reviewAction = page.getByRole("button", { name: "Select action Review order" });
+  await expect(reviewAction).toBeVisible();
+  const originalSvg = await page.locator(".activity-diagram svg").elementHandle();
   await page.getByRole("button", { name: "Zoom in" }).click();
-  await expect(page.getByRole("button", { name: "Select action Review order" })).toBeVisible();
+  await expect(reviewAction).toBeVisible();
+  expect(await originalSvg!.evaluate((element) => element.isConnected)).toBe(true);
   await page.getByRole("button", { name: "Select action Review order" }).click();
   await expect(page.getByRole("complementary", { name: "Activity action inspector" })).toBeVisible();
 
@@ -98,9 +102,15 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
 
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   await expect(page.getByRole("complementary", { name: "Activity partition inspector" })).toBeVisible();
-  const actionText = await page.locator(".activity-diagram svg text").filter({ hasText: "Review order" }).boundingBox();
-  expect(actionText).not.toBeNull();
-  await page.mouse.click(actionText!.x + actionText!.width / 2, actionText!.y + actionText!.height / 2);
+  // WebKit's protocol bounding box can omit SVG text offsets; use the browser's screen geometry.
+  const actionPoint = await page
+    .locator(".activity-diagram svg text")
+    .filter({ hasText: "Review order" })
+    .evaluate((text) => {
+      const box = text.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+  await page.mouse.click(actionPoint.x, actionPoint.y);
   await expect(page.getByRole("complementary", { name: "Activity action inspector" }).getByLabel("Text")).toHaveValue(
     "Review order",
   );

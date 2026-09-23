@@ -1,6 +1,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -55,6 +56,8 @@ export function ClassDiagramPreview({
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const root = useRef<HTMLDivElement>(null);
+  // Preserve the SVG and its imperative interaction overlays on unrelated React renders.
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
     | {
@@ -128,8 +131,8 @@ export function ClassDiagramPreview({
       if (group?.id && entity) entityMap.set(group.id, entity.id);
       const textBox = text.getBBox();
       const entityGroup = entity ? text.closest<SVGGElement>("g.entity[data-qualified-name]") : null;
-      const packageGroup = pkg ? text.closest<SVGGElement>("g.cluster[data-qualified-name]") : null;
-      const b = member ? textBox : (entityGroup?.getBBox() ?? packageGroup?.getBBox() ?? textBox);
+      // A package-wide foreground hit would cover the relationships inside the package.
+      const b = member ? textBox : (entityGroup?.getBBox() ?? textBox);
       const hit = documentNode("rect");
       const objectId = memberOwner?.id ?? object!.id;
       hit.setAttribute(
@@ -446,7 +449,7 @@ export function ClassDiagramPreview({
               clearDragPresentation();
             }}
             onKeyDown={keyboardSelect}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">

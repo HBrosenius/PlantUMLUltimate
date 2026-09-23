@@ -56,6 +56,10 @@ test("edits structured Class members and reveals rendered members", async ({ pag
   const methodSource = await pointInText(page, 3, "open");
   await page.mouse.click(methodSource.x, methodSource.y);
   await expect(page.locator('[data-class-member-id="account:member-1"].class-selected-object')).toBeVisible();
+  const originalSvg = await page.locator(".class-diagram svg").elementHandle();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  expect(await originalSvg!.evaluate((element) => element.isConnected)).toBe(true);
+  await expect(page.locator('[data-class-member-id="account:member-1"].class-selected-object')).toBeVisible();
   await renderedMember.click({ button: "right" });
   const actions = page.getByRole("menu", { name: "Class member actions" });
   await expect(actions.getByRole("menuitem")).toHaveCount(2);
@@ -259,6 +263,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
       'package "Reporting" as Reports #Lavender {enum "OrderStatus" as Status',
     );
 
+    // Moving a class changes relationship geometry; wait for the updated SVG before reconnecting.
+    await expect(page.locator(".class-diagram").locator("..")).not.toHaveClass(/stale-preview/);
     await page.locator(".class-relationship-hit").first().click({ force: true });
     await expect(page.locator(".class-relationship-endpoint")).toHaveCount(2);
     const fromEndpoint = page.locator('[data-class-relationship-endpoint="from"]');
