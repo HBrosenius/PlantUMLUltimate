@@ -87,6 +87,25 @@ test("keeps Activity actions selectable after zooming", async ({ page }) => {
   );
 });
 
+test("selects actions inside a partition from the rendered diagram", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await setSource(page, '@startuml\npartition "Operations" {\n:Receive order;\n:Review order;\n}\n@enduml');
+
+  await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
+  await expect(page.getByRole("complementary", { name: "Activity partition inspector" })).toBeVisible();
+  const actionText = await page.locator(".activity-diagram svg text").filter({ hasText: "Review order" }).boundingBox();
+  expect(actionText).not.toBeNull();
+  await page.mouse.click(actionText!.x + actionText!.width / 2, actionText!.y + actionText!.height / 2);
+  await expect(page.getByRole("complementary", { name: "Activity action inspector" }).getByLabel("Text")).toHaveValue(
+    "Review order",
+  );
+});
+
 test("reorders actions with a preview and creates a structured transition by drag", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.getByRole("button", { name: "New document tab" }).click();

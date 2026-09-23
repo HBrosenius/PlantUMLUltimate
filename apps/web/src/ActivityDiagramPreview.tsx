@@ -68,6 +68,16 @@ export function ActivityDiagramPreview({
       );
       if (!object) continue;
       const box = text.getBBox();
+      const rootTransform = rendered.getCTM();
+      const textTransform = text.getCTM();
+      const transform = rootTransform && textTransform ? rootTransform.inverse().multiply(textTransform) : null;
+      const applyTextTransform = (element: SVGElement) => {
+        if (transform)
+          element.setAttribute(
+            "transform",
+            `matrix(${transform.a} ${transform.b} ${transform.c} ${transform.d} ${transform.e} ${transform.f})`,
+          );
+      };
       const objectType = document.arrows.some((arrow) => arrow.id === object.id)
         ? "arrow"
         : "text" in object
@@ -89,6 +99,7 @@ export function ActivityDiagramPreview({
       hit.setAttribute("width", String(Math.max(34, box.width + 18)));
       hit.setAttribute("height", String(Math.max(26, box.height + 14)));
       hit.setAttribute("rx", "7");
+      applyTextTransform(hit);
       hit.setAttribute("role", "button");
       hit.setAttribute("tabindex", "0");
       hit.setAttribute(
@@ -103,6 +114,7 @@ export function ActivityDiagramPreview({
         connect.setAttribute("cx", String(box.x + box.width + 18));
         connect.setAttribute("cy", String(box.y + box.height / 2));
         connect.setAttribute("r", "8");
+        applyTextTransform(connect);
         connect.setAttribute("role", "button");
         connect.setAttribute("aria-label", `Drag to connect ${activityText(object)[0] ?? "action"}`);
         rendered.append(connect);
@@ -119,6 +131,7 @@ export function ActivityDiagramPreview({
       handle.setAttribute("width", "12");
       handle.setAttribute("height", "12");
       handle.setAttribute("rx", "3");
+      applyTextTransform(handle);
       handle.setAttribute("aria-label", `Drag to reorder ${activityText(object)[0] ?? "flow item"}`);
       rendered.append(handle);
     }
@@ -152,7 +165,7 @@ export function ActivityDiagramPreview({
           focusAfterRender.current = undefined;
         }, 100);
     }
-  }, [document, dragFeedback, renderStatus, selectedId, svg, zoom]);
+  });
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
       const current = drag.current;
