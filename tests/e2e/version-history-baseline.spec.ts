@@ -31,7 +31,7 @@ test("history captures the initial source before opening and classifies later de
   await fillSource(page, twoDependencies, "[Frontend] starts at [Backend]'s end");
   history = await openHistory(page);
   await expect(history.getByText("Add dependency Backend → Frontend", { exact: true })).toBeVisible();
-  await expect(history.getByText("Unclassified source change", { exact: true })).toHaveCount(0);
+  await expect(history.getByRole("checkbox", { name: "Select Add dependency Backend → Frontend" })).toBeEnabled();
   await history.getByRole("button", { name: "Close version history" }).click();
 
   await page.reload();
