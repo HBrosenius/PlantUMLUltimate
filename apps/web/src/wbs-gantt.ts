@@ -30,6 +30,7 @@ export function addMissingGanttTasksToWbs(
   ganttSource: string,
   existingLinks: readonly WbsGanttLink[],
   importedDependencies: readonly { from: string; to: string }[] = [],
+  selectedTaskIds?: readonly string[],
 ): GanttWbsImport {
   let nextWbs = ensureWbsAliases(wbsSource);
   let nextGantt = ganttSource;
@@ -38,6 +39,7 @@ export function addMissingGanttTasksToWbs(
   let addedCount = 0;
   const tasks = parseGantt(ganttSource).document.tasks;
   for (const [index, original] of tasks.entries()) {
+    if (selectedTaskIds && !selectedTaskIds.includes(original.id)) continue;
     const currentAliases = new Set(parseWbs(nextWbs).nodes.flatMap((node) => (node.alias ? [node.alias] : [])));
     if (links.some((link) => link.ganttAlias.toLowerCase() === original.id && currentAliases.has(link.wbsAlias)))
       continue;
@@ -211,14 +213,25 @@ export function convertWbsToGantt(
   importedDependencies: readonly { from: string; to: string }[] = [],
   removedTaskPolicy: RemovedWbsTaskPolicy = "keep-scheduled",
   includeUnlinkedNodes = true,
+  selectedNodeIds?: readonly string[],
 ): WbsGanttConversion {
   const wbsSource = ensureWbsAliases(source);
   const document = parseWbs(wbsSource);
   const priorLinks = new Map(existingLinks.map((link) => [link.wbsAlias, link.ganttAlias]));
-  const importedNodes =
-    existingGanttSource && !includeUnlinkedNodes
-      ? document.nodes.filter((node) => priorLinks.has(node.alias!))
-      : document.nodes;
+  const selected = new Set(selectedNodeIds);
+  for (const node of document.nodes) {
+    if (!selected.has(node.id)) continue;
+    let parentId = node.parentId;
+    while (parentId) {
+      selected.add(parentId);
+      parentId = document.nodes.find((candidate) => candidate.id === parentId)?.parentId;
+    }
+  }
+  const importedNodes = document.nodes.filter(
+    (node) =>
+      (!existingGanttSource || includeUnlinkedNodes || priorLinks.has(node.alias!)) &&
+      (!selectedNodeIds || priorLinks.has(node.alias!) || selected.has(node.id)),
+  );
   let synchronizedSource = existingGanttSource;
   const warnings: string[] = [];
   if (synchronizedSource) {

@@ -164,6 +164,8 @@ Names and supported work details, identifiers, and dependencies carry across. De
 
 After adding nodes to a linked WBS, choose **Add missing WBS tasks to Gantt**. After adding tasks to the Gantt chart, choose **Add missing Gantt tasks to WBS**. These actions reuse existing links so repeated runs do not duplicate tasks. Deleting a linked item asks whether to keep its counterpart or delete both.
 
+The Project navigator's **WBS–Gantt coverage** section counts unlinked nodes and tasks, including work in project diagrams that are not open as tabs. Open an item, link it to existing work in the other diagram, or add just that item. Adding a WBS child also adds any missing ancestors needed to keep its hierarchy.
+
 Use the view buttons in the toolbar to switch between:
 
 - `1 · code` — editor only; the heavy renderer is unloaded

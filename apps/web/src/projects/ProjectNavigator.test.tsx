@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProjectNavigator } from "./ProjectNavigator";
 import type { VirtualProject } from "./project-index";
@@ -23,6 +23,51 @@ const project: VirtualProject = {
 afterEach(cleanup);
 
 describe("ProjectNavigator", () => {
+  it("shows unlinked work and provides open, link, and add actions", () => {
+    const onOpenWbsGanttLink = vi.fn();
+    const onLinkMissingWbsGanttItem = vi.fn();
+    const onAddMissingWbsGanttItem = vi.fn();
+    const item = {
+      kind: "wbs" as const,
+      key: "wbs-2",
+      label: "Build",
+      documentId: "wbs",
+      counterpartDocumentId: "gantt",
+      diagramName: "Breakdown",
+    };
+    const ganttItem = {
+      kind: "gantt" as const,
+      key: "review",
+      label: "Review",
+      documentId: "gantt",
+      counterpartDocumentId: "wbs",
+      diagramName: "Schedule",
+    };
+    render(
+      <ProjectNavigator
+        project={project}
+        onOpen={vi.fn()}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+        wbsGanttMissing={[item, ganttItem]}
+        onOpenWbsGanttLink={onOpenWbsGanttLink}
+        onLinkMissingWbsGanttItem={onLinkMissingWbsGanttItem}
+        onAddMissingWbsGanttItem={onAddMissingWbsGanttItem}
+      />,
+    );
+    const section = screen.getByRole("region", { name: "WBS–Gantt coverage" });
+    expect(section.textContent).toContain("Unlinked: 1 WBS node · 1 Gantt task");
+    const buildRow = within(section).getByText("Build").closest("li")!;
+    fireEvent.click(within(buildRow).getByRole("button", { name: "Open" }));
+    fireEvent.click(within(buildRow).getByRole("button", { name: "Link existing" }));
+    fireEvent.click(within(buildRow).getByRole("button", { name: "Add to Gantt" }));
+    expect(onOpenWbsGanttLink).toHaveBeenCalledWith("wbs", "wbs", "wbs-2");
+    expect(onLinkMissingWbsGanttItem).toHaveBeenCalledWith(item);
+    expect(onAddMissingWbsGanttItem).toHaveBeenCalledWith(item);
+  });
+
   it("offers every supported diagram type and submits a clean display name", async () => {
     const onAdd = vi.fn();
     render(

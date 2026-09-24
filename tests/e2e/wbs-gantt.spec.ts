@@ -112,6 +112,91 @@ test("links an existing WBS node to an existing Gantt task", async ({ page }) =>
   ).toBeVisible();
 });
 
+test("shows unlinked work in the project and adds selected items in either direction", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
+  await page
+    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("button", { name: "Create Gantt chart" })
+    .click();
+  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Task…" }).click();
+  const add = page.getByRole("dialog", { name: "Add task" });
+  await add.getByLabel("Name").fill("Review");
+  await add.getByLabel("Starts after").selectOption({ label: "↳ Design" });
+  await add.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Project: / }).click();
+  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  const coverage = page.getByRole("region", { name: "WBS–Gantt coverage" });
+  await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 1 Gantt task");
+  const review = coverage.locator("li", { hasText: "Review" });
+  await review.getByRole("button", { name: "Add to WBS" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Review");
+  await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 0 Gantt tasks");
+  await page.getByRole("button", { name: "Close project navigator" }).click();
+  const wbsSource = await page.locator(".cm-content").innerText();
+  await setSource(page, wbsSource.replace("@endwbs", "**(build) Build\n@endwbs"));
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Project: / }).click();
+  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await expect(coverage).toContainText("Unlinked: 1 WBS node · 0 Gantt tasks");
+  await coverage.locator("li", { hasText: "Build" }).getByRole("button", { name: "Add to Gantt" }).click();
+  await expect(page.locator(".cm-content")).toContainText("[↳ Build] as [wbs_build]");
+  await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 0 Gantt tasks");
+});
+
+test("links two existing unlinked items from project coverage", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
+  await page
+    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("button", { name: "Create Gantt chart" })
+    .click();
+  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Task…" }).click();
+  const add = page.getByRole("dialog", { name: "Add task" });
+  await add.getByLabel("Name").fill("Review");
+  await add.getByLabel("Starts after").selectOption({ label: "↳ Design" });
+  await add.getByRole("button", { name: "Add task" }).click();
+  await page
+    .getByRole("navigation", { name: "Open documents" })
+    .getByRole("button", { name: /WBS Project/ })
+    .click();
+  const wbsSource = await page.locator(".cm-content").innerText();
+  await setSource(page, wbsSource.replace("@endwbs", "**(build) Build\n@endwbs"));
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Project: / }).click();
+  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  const coverage = page.getByRole("region", { name: "WBS–Gantt coverage" });
+  await expect(coverage).toContainText("Unlinked: 1 WBS node · 1 Gantt task");
+  await coverage.locator("li", { hasText: "Build" }).getByRole("button", { name: "Link existing" }).click();
+  const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  const reviewOption = await inspector
+    .getByLabel("Linked Gantt task")
+    .locator("option", { hasText: "Review" })
+    .getAttribute("value");
+  await inspector.getByLabel("Linked Gantt task").selectOption(reviewOption!);
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Project: / }).click();
+  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 0 Gantt tasks");
+});
+
 test("adds unlinked Gantt tasks and dependencies to the linked WBS once", async ({ page }) => {
   await prepareEditor(page);
   await page.getByRole("button", { name: "New document tab" }).click();
@@ -508,6 +593,9 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await expect(navigator).toContainText("Work breakdown");
     await expect(navigator).toContainText("Linked plan schedule");
     await expect(navigator.getByRole("region", { name: "Existing links" }).locator("li")).toHaveCount(2);
+    await expect(navigator.getByRole("region", { name: "WBS–Gantt coverage" })).toContainText(
+      "Unlinked: 0 WBS nodes · 0 Gantt tasks",
+    );
     await navigator.getByRole("button", { name: "Linked plan schedule: ↳ Build" }).click();
     await expect(reopened.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
     await navigator.getByRole("button", { name: "Work breakdown: Build" }).click();

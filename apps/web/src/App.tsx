@@ -55,6 +55,7 @@ import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
 import type { WbsGanttProjectLink } from "./projects/wbs-gantt-project-links";
+import { collectMissingWbsGanttItems, type WbsGanttMissingItem } from "./projects/wbs-gantt-missing";
 import { embeddedMemberHistoryId } from "./projects/embedded-project";
 import { collectWbsGanttIssues, type WbsGanttIssue } from "./wbs-gantt-health";
 import { ProjectNameDialog } from "./projects/ProjectNameDialog";
@@ -1551,6 +1552,69 @@ export function App() {
         });
       })
     : [];
+  const projectWbsGanttMissing: WbsGanttMissingItem[] = portable
+    ? portable.diagrams.flatMap((gantt) => {
+        const connection = gantt.wbsGantt;
+        const wbs = portable.diagrams.find((item) => item.id === connection?.wbsDiagramId);
+        if (!connection || !wbs) return [];
+        const wbsTab = tabs.documents.find(
+          (item) => item.historyId === embeddedMemberHistoryId(portable.projectId, wbs.id),
+        );
+        const ganttTab = tabs.documents.find(
+          (item) => item.historyId === embeddedMemberHistoryId(portable.projectId, gantt.id),
+        );
+        return collectMissingWbsGanttItems(
+          { id: wbs.id, name: wbs.name, source: wbsTab?.source ?? wbs.document.current.source },
+          { id: gantt.id, name: gantt.name, source: ganttTab?.source ?? gantt.document.current.source },
+          ganttTab?.wbsGanttLinks ?? connection.links,
+        );
+      })
+    : [];
+  const addMissingProjectItem = async (item: WbsGanttMissingItem) => {
+    if (!portable) return;
+    const wbsId = item.kind === "wbs" ? item.documentId : item.counterpartDocumentId;
+    const ganttId = item.kind === "gantt" ? item.documentId : item.counterpartDocumentId;
+    const wbs = portable.diagrams.find((diagram) => diagram.id === wbsId);
+    const gantt = portable.diagrams.find((diagram) => diagram.id === ganttId);
+    if (!wbs || !gantt?.wbsGantt) return;
+    const ganttTabId = await singleFileProject.openMember(ganttId);
+    const wbsTabId = await singleFileProject.openMember(wbsId);
+    if (!ganttTabId || !wbsTabId) return;
+    const wbsTab = tabs.documents.find((tab) => tab.id === wbsTabId);
+    const ganttTab = tabs.documents.find((tab) => tab.id === ganttTabId);
+    const wbsSource = wbsTab?.source ?? wbs.document.current.source;
+    const ganttSource = ganttTab?.source ?? gantt.document.current.source;
+    const links = ganttTab?.wbsGanttLinks ?? gantt.wbsGantt.links;
+    const dependencies = ganttTab?.wbsGanttDependencies ?? gantt.wbsGantt.dependencies;
+    try {
+      const result =
+        item.kind === "wbs"
+          ? convertWbsToGantt(wbsSource, ganttSource, links, dependencies, "keep-scheduled", true, [item.key])
+          : addMissingGanttTasksToWbs(wbsSource, ganttSource, links, dependencies, [item.key]);
+      if (result.wbsSource !== wbsSource) tabs.updateDocumentSource(wbsTabId, result.wbsSource, "wbs");
+      if (result.ganttSource !== ganttSource) tabs.updateDocumentSource(ganttTabId, result.ganttSource, "gantt");
+      tabs.updateDocumentFormat(ganttTabId, {
+        wbsGanttLinks: result.links,
+        wbsGanttDependencies: result.dependencies,
+      });
+      setInteractionMessage(
+        `Added ${item.label} to ${item.kind === "wbs" ? gantt.name : wbs.name}${result.warnings.length ? `. ${result.warnings.join(" ")}` : ""}`,
+      );
+      if (item.kind === "wbs") {
+        const alias = parseWbs(result.wbsSource).nodes.find((node) => node.id === item.key)?.alias;
+        const taskAlias = result.links.find((link) => link.wbsAlias === alias)?.ganttAlias;
+        tabs.activateDocument(ganttTabId);
+        if (taskAlias) window.setTimeout(() => setSelectedTaskId(taskAlias.toLowerCase()), 100);
+      } else {
+        const alias = result.links.find((link) => link.ganttAlias.toLowerCase() === item.key)?.wbsAlias;
+        const node = parseWbs(result.wbsSource).nodes.find((candidate) => candidate.alias === alias);
+        tabs.activateDocument(wbsTabId);
+        if (node) setPendingProjectWbsSelection({ tabId: wbsTabId, nodeId: node.id });
+      }
+    } catch (error) {
+      setInteractionMessage(error instanceof Error ? error.message : "Could not add linked work");
+    }
+  };
   const projectWbsGanttIssues: (WbsGanttIssue & { documentId: string })[] = project
     ? tabs.documents.flatMap((gantt) => {
         if (gantt.diagramKind !== "gantt" || !gantt.linkedWbsDocumentId || !isProjectMemberTab(gantt.id)) return [];
@@ -3607,6 +3671,18 @@ export function App() {
           project={project}
           wbsGanttIssues={projectWbsGanttIssues}
           wbsGanttLinks={projectWbsGanttLinks}
+          {...(portable?.diagrams.some((diagram) => diagram.wbsGantt)
+            ? { wbsGanttMissing: projectWbsGanttMissing }
+            : {})}
+          onAddMissingWbsGanttItem={(item) => void addMissingProjectItem(item)}
+          onLinkMissingWbsGanttItem={async (item) => {
+            await singleFileProject.openMember(item.kind === "wbs" ? item.counterpartDocumentId : item.documentId);
+            const tabId = await singleFileProject.openMember(item.documentId);
+            if (!tabId) return;
+            setProjectNavigatorOpen(false);
+            if (item.kind === "wbs") setPendingProjectWbsSelection({ tabId, nodeId: item.key });
+            else window.setTimeout(() => setSelectedTaskId(item.key), 100);
+          }}
           onOpenWbsGanttLink={async (documentId, kind, key) => {
             const tabId = await singleFileProject.openMember(documentId);
             if (!tabId) return;

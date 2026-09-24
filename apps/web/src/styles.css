@@ -4195,6 +4195,28 @@ textarea:focus-visible,
   cursor: not-allowed;
   opacity: 0.6;
 }
+.project-missing-work-list li {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.project-missing-work-list li strong {
+  font-size: 12px;
+}
+.project-missing-work-list li small {
+  color: var(--muted);
+}
+.project-missing-work-list li > div {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.project-missing-work-list li button {
+  width: auto;
+  padding: 5px 7px;
+  font-size: 11px;
+}
 .diagram-link-icon {
   fill: none;
   stroke: #38bdf8;

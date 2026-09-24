@@ -11,6 +11,28 @@ import {
 } from "./wbs-gantt";
 
 describe("WBS to Gantt conversion", () => {
+  it("adds only a selected WBS node and its missing ancestors", () => {
+    const initial = convertWbsToGantt("@startwbs\n*(project) Project\n@endwbs");
+    const wbs = initial.wbsSource.replace("@endwbs", "**(design) Design\n***(draft) Draft\n**(build) Build\n@endwbs");
+    const imported = convertWbsToGantt(wbs, initial.ganttSource, initial.links, [], "keep-scheduled", true, ["wbs-2"]);
+    expect(imported.ganttSource).toContain("[↳ Design] as [wbs_design]");
+    expect(imported.ganttSource).toContain("[↳ ↳ Draft] as [wbs_draft]");
+    expect(imported.ganttSource).not.toContain("[↳ Build] as [wbs_build]");
+    expect(imported.links).toHaveLength(3);
+  });
+
+  it("adds only the selected unlinked Gantt task to WBS", () => {
+    const initial = convertWbsToGantt("@startwbs\n*(project) Project\n@endwbs");
+    const gantt = initial.ganttSource.replace(
+      "@endgantt",
+      "[Review] as [review] requires 3 days\n[Launch] as [launch] requires 2 days\n@endgantt",
+    );
+    const imported = addMissingGanttTasksToWbs(initial.wbsSource, gantt, initial.links, [], ["review"]);
+    expect(imported.wbsSource).toContain("Review");
+    expect(imported.wbsSource).not.toContain("Launch");
+    expect(imported.addedCount).toBe(1);
+  });
+
   it("imports missing Gantt tasks into WBS once and keeps valid dependencies", () => {
     const converted = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
     const gantt = converted.ganttSource.replace(

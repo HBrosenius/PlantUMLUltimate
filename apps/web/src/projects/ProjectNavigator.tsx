@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { DiagramKind } from "../model";
 import type { WbsGanttIssue } from "../wbs-gantt-health";
 import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
+import type { WbsGanttMissingItem } from "./wbs-gantt-missing";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
 import { ProjectNameDialog } from "./ProjectNameDialog";
@@ -31,6 +32,9 @@ export function ProjectNavigator({
   onOpenWbsGanttIssue,
   wbsGanttLinks,
   onOpenWbsGanttLink,
+  wbsGanttMissing,
+  onAddMissingWbsGanttItem,
+  onLinkMissingWbsGanttItem,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -54,6 +58,9 @@ export function ProjectNavigator({
   onOpenWbsGanttIssue?(issue: WbsGanttIssue & { documentId: string }): void;
   wbsGanttLinks?: readonly WbsGanttProjectLink[];
   onOpenWbsGanttLink?(documentId: string, kind: "wbs" | "gantt", key: string): void;
+  wbsGanttMissing?: readonly WbsGanttMissingItem[];
+  onAddMissingWbsGanttItem?(item: WbsGanttMissingItem): void;
+  onLinkMissingWbsGanttItem?(item: WbsGanttMissingItem): void;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -61,6 +68,8 @@ export function ProjectNavigator({
   const [renaming, setRenaming] = useState<{ id: string; name: string }>();
   const [review, setReview] = useState<ProjectChangeReview>();
   const [reviewing, setReviewing] = useState(false);
+  const unlinkedWbsCount = wbsGanttMissing?.filter((item) => item.kind === "wbs").length ?? 0;
+  const unlinkedGanttCount = wbsGanttMissing?.filter((item) => item.kind === "gantt").length ?? 0;
   return (
     <aside className="project-navigator" aria-label="Project navigator">
       <header>
@@ -196,6 +205,55 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
+      {wbsGanttMissing && onOpenWbsGanttLink && onAddMissingWbsGanttItem && onLinkMissingWbsGanttItem && (
+        <section className="project-navigator-section" aria-labelledby="project-wbs-gantt-missing-heading">
+          <div className="project-section-heading">
+            <div>
+              <h2 id="project-wbs-gantt-missing-heading">WBS–Gantt coverage</h2>
+              <p>
+                Unlinked: {unlinkedWbsCount} WBS {unlinkedWbsCount === 1 ? "node" : "nodes"} · {unlinkedGanttCount}{" "}
+                Gantt {unlinkedGanttCount === 1 ? "task" : "tasks"}
+              </p>
+            </div>
+          </div>
+          {wbsGanttMissing.length ? (
+            <ul className="project-missing-work-list">
+              {wbsGanttMissing.map((item) => (
+                <li key={`${item.documentId}:${item.kind}:${item.key}`}>
+                  <strong>{item.label}</strong>
+                  <small>
+                    {item.diagramName} · {item.kind === "wbs" ? "WBS node" : "Gantt task"}
+                  </small>
+                  <div>
+                    <button type="button" onClick={() => onOpenWbsGanttLink(item.documentId, item.kind, item.key)}>
+                      Open
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        !wbsGanttMissing.some(
+                          (candidate) =>
+                            candidate.kind !== item.kind &&
+                            candidate.documentId === item.counterpartDocumentId &&
+                            candidate.counterpartDocumentId === item.documentId,
+                        )
+                      }
+                      onClick={() => onLinkMissingWbsGanttItem(item)}
+                    >
+                      Link existing
+                    </button>
+                    <button type="button" onClick={() => onAddMissingWbsGanttItem(item)}>
+                      Add to {item.kind === "wbs" ? "Gantt" : "WBS"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Every WBS node and Gantt task in linked diagrams has a counterpart.</p>
+          )}
+        </section>
+      )}
       {wbsGanttIssues && onOpenWbsGanttIssue && (
         <section className="project-navigator-section" aria-labelledby="project-wbs-gantt-issues-heading">
           <div className="project-section-heading">
