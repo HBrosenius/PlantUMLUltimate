@@ -504,36 +504,45 @@ export function TaskInspector({
           {conflicts.length ? `⚠ Overlaps: ${conflicts.join(", ")}` : "No detected resource conflicts"}
         </p>
         <p className="calculated-hint">Text and number fields are saved when you leave the field.</p>
+        {(wbsLinkStatus || wbsTargets.length > 0) && (
+          <section className="wbs-inspector-link-section" aria-label="WBS connection">
+            {linkedWbsLabel && (
+              <div className="wbs-inspector-link-row">
+                <span className="wbs-inspector-link-name" title={linkedWbsLabel}>
+                  ↗ {linkedWbsLabel}
+                </span>
+                <button type="button" onClick={onOpenLinkedWbs} aria-label={`Open linked WBS node: ${linkedWbsLabel}`}>
+                  Open WBS <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+            )}
+            {wbsTargets.length > 0 && (
+              <label>
+                Linked WBS node
+                <select value={linkedWbsAlias ?? ""} onChange={(event) => onLinkWbsNode?.(event.target.value)}>
+                  <option value="">Choose a node…</option>
+                  {linkedWbsAlias && !wbsTargets.some((target) => target.key === linkedWbsAlias) && (
+                    <option value={linkedWbsAlias} disabled>
+                      Missing node: {linkedWbsAlias}
+                    </option>
+                  )}
+                  {wbsTargets.map((target) => (
+                    <option key={target.key} value={target.key}>
+                      {target.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="calculated-hint">Choosing another node replaces this task’s current link.</span>
+              </label>
+            )}
+            {wbsLinkStatus && (
+              <p role="status" className="calculated-hint">
+                {wbsLinkStatus} Names sync with WBS; dates and assignments stay in Gantt.
+              </p>
+            )}
+          </section>
+        )}
         <div className="inspector-actions">
-          {wbsLinkStatus && (
-            <p role="status" className="calculated-hint">
-              {wbsLinkStatus} Names sync with WBS; dates and assignments stay in Gantt.
-            </p>
-          )}
-          {linkedWbsLabel && (
-            <button type="button" onClick={onOpenLinkedWbs}>
-              Open linked WBS node: {linkedWbsLabel}
-            </button>
-          )}
-          {wbsTargets.length > 0 && (
-            <label>
-              Linked WBS node
-              <select value={linkedWbsAlias ?? ""} onChange={(event) => onLinkWbsNode?.(event.target.value)}>
-                <option value="">Choose a node…</option>
-                {linkedWbsAlias && !wbsTargets.some((target) => target.key === linkedWbsAlias) && (
-                  <option value={linkedWbsAlias} disabled>
-                    Missing node: {linkedWbsAlias}
-                  </option>
-                )}
-                {wbsTargets.map((target) => (
-                  <option key={target.key} value={target.key}>
-                    {target.label}
-                  </option>
-                ))}
-              </select>
-              <span className="calculated-hint">Choosing another node replaces this task’s current link.</span>
-            </label>
-          )}
           <button type="button" className="danger" onClick={onDelete}>
             Delete
           </button>

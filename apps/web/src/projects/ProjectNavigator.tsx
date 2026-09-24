@@ -1,6 +1,8 @@
 import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
 import { useState } from "react";
 import type { DiagramKind } from "../model";
+import type { WbsGanttIssue } from "../wbs-gantt-health";
+import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
 import { ProjectNameDialog } from "./ProjectNameDialog";
@@ -25,6 +27,10 @@ export function ProjectNavigator({
   onReviewChanges,
   hasReviewBaseline,
   onExportReview,
+  wbsGanttIssues,
+  onOpenWbsGanttIssue,
+  wbsGanttLinks,
+  onOpenWbsGanttLink,
 }: {
   project: VirtualProject;
   onOpen(documentId: string): void;
@@ -44,6 +50,10 @@ export function ProjectNavigator({
   onReviewChanges?(): Promise<ProjectChangeReview | undefined>;
   hasReviewBaseline?: boolean;
   onExportReview?(): void | Promise<void>;
+  wbsGanttIssues?: readonly (WbsGanttIssue & { documentId: string })[];
+  onOpenWbsGanttIssue?(issue: WbsGanttIssue & { documentId: string }): void;
+  wbsGanttLinks?: readonly WbsGanttProjectLink[];
+  onOpenWbsGanttLink?(documentId: string, kind: "wbs" | "gantt", key: string): void;
 }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<DiagramKind>("gantt");
@@ -80,9 +90,9 @@ export function ProjectNavigator({
             <small className="project-index-error">{indexStatus.message}</small>
           )}
           <small>
-            {project.members.length} diagram{project.members.length === 1 ? "" : "s"} · {project.manifest.links.length}{" "}
-            connection
-            {project.manifest.links.length === 1 ? "" : "s"}
+            {project.members.length} diagram{project.members.length === 1 ? "" : "s"} ·{" "}
+            {project.manifest.links.length + (wbsGanttLinks?.length ?? 0)} connection
+            {project.manifest.links.length + (wbsGanttLinks?.length ?? 0) === 1 ? "" : "s"}
           </small>
         </div>
         <button type="button" onClick={onClose} aria-label="Close project navigator">
@@ -159,7 +169,7 @@ export function ProjectNavigator({
                   <span>{member.path}</span>
                   <small>
                     {member.state === "available"
-                      ? `${member.diagramKind} · ${member.linkCount} links`
+                      ? `${member.diagramKind} · ${member.linkCount + (wbsGanttLinks?.filter((link) => link.wbsDocumentId === member.documentId || link.ganttDocumentId === member.documentId).length ?? 0)} links`
                       : (member.reason ?? member.state)}
                   </small>
                 </button>
@@ -186,6 +196,29 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
+      {wbsGanttIssues && onOpenWbsGanttIssue && (
+        <section className="project-navigator-section" aria-labelledby="project-wbs-gantt-issues-heading">
+          <div className="project-section-heading">
+            <div>
+              <h2 id="project-wbs-gantt-issues-heading">WBS–Gantt issues</h2>
+              <p>Broken links and dependency warnings in open linked diagrams</p>
+            </div>
+          </div>
+          {wbsGanttIssues.length ? (
+            <ul>
+              {wbsGanttIssues.map((issue, index) => (
+                <li key={`${issue.documentId}-${issue.kind}-${issue.key ?? index}-${index}`}>
+                  <button type="button" onClick={() => onOpenWbsGanttIssue(issue)}>
+                    {issue.message}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No issues in open linked diagrams.</p>
+          )}
+        </section>
+      )}
       {onReviewChanges && (
         <section className="project-navigator-section project-change-review" aria-labelledby="project-review-heading">
           <div className="project-section-heading">
@@ -271,6 +304,8 @@ export function ProjectNavigator({
       )}
       <ProjectLinksPanel
         project={project}
+        {...(wbsGanttLinks ? { wbsGanttLinks } : {})}
+        {...(onOpenWbsGanttLink ? { onOpenWbsGanttLink } : {})}
         onChange={onLinksChange}
         onElementsChange={onElementsChange}
         {...(onElementsRegistered ? { onElementsRegistered } : {})}

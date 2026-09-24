@@ -2,13 +2,60 @@ import { describe, expect, it } from "vitest";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import {
+  addMissingGanttTasksToWbs,
   applyWbsGroupRollups,
   convertWbsToGantt,
   ensureLinkedGanttProjectStart,
+  relinkWbsGanttTask,
   rollupWbsGroupDates,
 } from "./wbs-gantt";
 
 describe("WBS to Gantt conversion", () => {
+  it("imports missing Gantt tasks into WBS once and keeps valid dependencies", () => {
+    const converted = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    const gantt = converted.ganttSource.replace(
+      "@endgantt",
+      "[Review] as [review] requires 3 days\n[Launch] requires 2 days\n[Review] starts at [wbs_design]'s end\n[Launch] starts at [Review]'s end\n@endgantt",
+    );
+    const first = addMissingGanttTasksToWbs(converted.wbsSource, gantt, converted.links);
+    expect(first.addedCount).toBe(2);
+    expect(parseWbs(first.wbsSource).nodes.map((node) => node.label)).toEqual([
+      "Project",
+      "Design",
+      "Review",
+      "Launch",
+    ]);
+    expect(first.links).toHaveLength(4);
+    expect(parseWbs(first.wbsSource).relationships).toHaveLength(2);
+    const again = addMissingGanttTasksToWbs(first.wbsSource, first.ganttSource, first.links, first.dependencies);
+    expect(again.addedCount).toBe(0);
+    expect(again.wbsSource).toBe(first.wbsSource);
+    expect(again.links).toEqual(first.links);
+  });
+  it("relinks a WBS node while explicitly keeping or removing its former Gantt task", () => {
+    const converted = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    const source = converted.ganttSource.replace("@endgantt", "[Replacement] as [replacement] lasts 2 days\n@endgantt");
+    const kept = relinkWbsGanttTask(source, converted.links, "design", "replacement", "keep");
+    expect(kept.error).toBeUndefined();
+    expect(kept.links).toContainEqual({ wbsAlias: "design", ganttAlias: "replacement" });
+    expect(parseGantt(kept.ganttSource).document.tasks).toHaveLength(3);
+    const deleted = relinkWbsGanttTask(source, converted.links, "design", "replacement", "delete");
+    expect(deleted.error).toBeUndefined();
+    expect(deleted.links).toContainEqual({ wbsAlias: "design", ganttAlias: "replacement" });
+    expect(parseGantt(deleted.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual([
+      "wbs_project",
+      "replacement",
+    ]);
+    expect(relinkWbsGanttTask(source, converted.links, "project", "wbs_design").error).toBe(
+      "That Gantt task is already linked to another WBS node",
+    );
+  });
+  it("assigns a stable alias when linking a task without one", () => {
+    const result = relinkWbsGanttTask("@startgantt\n[Design] lasts 2 days\n@endgantt", [], "design", "design");
+    expect(result.error).toBeUndefined();
+    expect(result.links).toEqual([{ wbsAlias: "design", ganttAlias: "wbs_link_design" }]);
+    expect(parseGantt(result.ganttSource).document.tasks[0]?.alias?.value).toBe("wbs_link_design");
+  });
   it("infers a project start when the first dated leaf is scheduled", () => {
     const converted = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
     expect(ensureLinkedGanttProjectStart(converted.ganttSource)).toBe(converted.ganttSource);
@@ -49,6 +96,18 @@ build -> draft
     expect(parseGantt(next.ganttSource).document.tasks).toHaveLength(3);
     expect(next.links).toHaveLength(3);
     expect(convertWbsToGantt(next.wbsSource, next.ganttSource).ganttSource).toBe(next.ganttSource);
+  });
+
+  it("does not recreate an intentionally unlinked WBS node during background synchronization", () => {
+    const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    const gantt = first.ganttSource.replace("[↳ Design] as [wbs_design] requires 5 days\n", "");
+    const remaining = first.links.filter((link) => link.wbsAlias !== "design");
+    const synced = convertWbsToGantt(first.wbsSource, gantt, remaining, [], "keep-scheduled", false);
+    expect(synced.links).toEqual(remaining);
+    expect(parseGantt(synced.ganttSource).document.tasks).toHaveLength(1);
+    const imported = convertWbsToGantt(first.wbsSource, synced.ganttSource, remaining);
+    expect(imported.links).toHaveLength(2);
+    expect(parseGantt(imported.ganttSource).document.tasks).toHaveLength(2);
   });
 
   it("rolls parent dates up from scheduled children", () => {

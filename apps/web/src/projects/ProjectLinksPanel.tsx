@@ -2,6 +2,7 @@ import { hashSource } from "@plantuml-studio/document-format";
 import { canCreateLink, reverseImpact, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
 import { useEffect, useMemo, useState } from "react";
 import type { VirtualProject } from "./project-index";
+import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
 
 function elementState(project: VirtualProject, elementId: string): string {
   const element = project.manifest.elements.find((item) => item.id === elementId);
@@ -39,6 +40,8 @@ export function ProjectLinksPanel({
   onChange,
   onElementsChange,
   onElementsRegistered = onElementsChange,
+  wbsGanttLinks = [],
+  onOpenWbsGanttLink,
 }: {
   project: VirtualProject;
   onChange(links: readonly ProjectLink[]): void;
@@ -49,6 +52,8 @@ export function ProjectLinksPanel({
    * that arrives asynchronously, so hosts may route it separately from user edits.
    */
   onElementsRegistered?(elements: readonly ProjectElement[]): void;
+  wbsGanttLinks?: readonly WbsGanttProjectLink[];
+  onOpenWbsGanttLink?(documentId: string, kind: "wbs" | "gantt", key: string): void;
 }) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
@@ -134,7 +139,7 @@ export function ProjectLinksPanel({
           <h2>Links between diagram items</h2>
           <p>Keep related tasks and model elements connected across diagrams.</p>
         </div>
-        <span className="project-count">{project.manifest.links.length}</span>
+        <span className="project-count">{project.manifest.links.length + wbsGanttLinks.length}</span>
       </div>
       <div className="project-links-workflow">
         <p className="project-links-help">
@@ -189,12 +194,33 @@ export function ProjectLinksPanel({
       <section className="project-existing-links" aria-labelledby="project-existing-links-heading">
         <div className="project-subsection-heading">
           <h3 id="project-existing-links-heading">Existing links</h3>
-          <span>{project.manifest.links.length}</span>
+          <span>{project.manifest.links.length + wbsGanttLinks.length}</span>
         </div>
-        {project.manifest.links.length === 0 ? (
+        {project.manifest.links.length === 0 && wbsGanttLinks.length === 0 ? (
           <p className="project-links-empty">No links created yet.</p>
         ) : (
           <ul className="project-link-list">
+            {wbsGanttLinks.map((link) => (
+              <li key={link.id}>
+                <span className="project-link-route">
+                  <button
+                    type="button"
+                    className="project-link-endpoint"
+                    onClick={() => onOpenWbsGanttLink?.(link.wbsDocumentId, "wbs", link.wbsNodeId)}
+                  >
+                    {link.wbsDiagramName}: {link.wbsLabel}
+                  </button>
+                  <span className="project-link-kind">scheduled as →</span>
+                  <button
+                    type="button"
+                    className="project-link-endpoint"
+                    onClick={() => onOpenWbsGanttLink?.(link.ganttDocumentId, "gantt", link.ganttTaskId)}
+                  >
+                    {link.ganttDiagramName}: {link.ganttLabel}
+                  </button>
+                </span>
+              </li>
+            ))}
             {project.manifest.links.map((link) => (
               <li key={link.id}>
                 <span className="project-link-route">

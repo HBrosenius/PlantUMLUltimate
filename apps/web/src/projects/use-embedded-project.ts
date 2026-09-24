@@ -244,21 +244,26 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     [encrypted, tabs],
   );
 
-  const renameDiagram = useCallback((memberId: string, name: string) => {
-    const value = name.trim();
-    if (!value) return false;
-    const current = projectRef.current;
-    if (!current?.diagrams.some((diagram) => diagram.id === memberId)) return false;
-    revisionRef.current += 1;
-    setRevision(revisionRef.current);
-    setProject({
-      ...current,
-      revisionId: crypto.randomUUID(),
-      savedAt: new Date().toISOString(),
-      diagrams: current.diagrams.map((diagram) => (diagram.id === memberId ? { ...diagram, name: value } : diagram)),
-    });
-    return true;
-  }, []);
+  const renameDiagram = useCallback(
+    (memberId: string, name: string) => {
+      const value = name.trim();
+      if (!value) return false;
+      const current = projectRef.current;
+      if (!current?.diagrams.some((diagram) => diagram.id === memberId)) return false;
+      revisionRef.current += 1;
+      setRevision(revisionRef.current);
+      setProject({
+        ...current,
+        revisionId: crypto.randomUUID(),
+        savedAt: new Date().toISOString(),
+        diagrams: current.diagrams.map((diagram) => (diagram.id === memberId ? { ...diagram, name: value } : diagram)),
+      });
+      const tabId = memberTabs.current.get(memberId);
+      if (tabId) tabs.updateDocumentFormat?.(tabId, { fileName: value });
+      return true;
+    },
+    [tabs],
+  );
 
   const deleteDiagram = useCallback(
     (memberId: string) => {

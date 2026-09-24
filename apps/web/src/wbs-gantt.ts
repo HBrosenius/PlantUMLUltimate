@@ -1,4 +1,4 @@
-import { parseWbs, type WbsNode } from "@plantuml-studio/diagram-wbs";
+import { insertWbsNode, insertWbsRelationship, parseWbs, type WbsNode } from "@plantuml-studio/diagram-wbs";
 import { applySourceEdits, deleteTask, parseGantt, removeDependency, renameTask } from "@plantuml-studio/diagram-gantt";
 import type { ResolvedTaskDates } from "./gantt-schedule";
 
@@ -15,7 +15,144 @@ export interface WbsGanttConversion {
   warnings: string[];
 }
 
+export interface GanttWbsImport {
+  wbsSource: string;
+  ganttSource: string;
+  links: WbsGanttLink[];
+  dependencies: Array<{ from: string; to: string }>;
+  addedCount: number;
+  warnings: string[];
+}
+
+/** Add currently unlinked Gantt tasks beneath the WBS root, preserving their Gantt order. */
+export function addMissingGanttTasksToWbs(
+  wbsSource: string,
+  ganttSource: string,
+  existingLinks: readonly WbsGanttLink[],
+  importedDependencies: readonly { from: string; to: string }[] = [],
+): GanttWbsImport {
+  let nextWbs = ensureWbsAliases(wbsSource);
+  let nextGantt = ganttSource;
+  let links = [...existingLinks];
+  const warnings: string[] = [];
+  let addedCount = 0;
+  const tasks = parseGantt(ganttSource).document.tasks;
+  for (const [index, original] of tasks.entries()) {
+    const currentAliases = new Set(parseWbs(nextWbs).nodes.flatMap((node) => (node.alias ? [node.alias] : [])));
+    if (links.some((link) => link.ganttAlias.toLowerCase() === original.id && currentAliases.has(link.wbsAlias)))
+      continue;
+    const current = parseGantt(nextGantt).document.tasks[index];
+    if (!current) continue;
+    const document = parseWbs(nextWbs);
+    const parent = document.roots[0];
+    const label = original.label.replace(/^(?:↳\s*)+/, "").trim();
+    if (!label) {
+      warnings.push(`Skipped an unnamed Gantt task (${original.id}).`);
+      continue;
+    }
+    const usedAliases = new Set(document.nodes.flatMap((node) => (node.alias ? [node.alias] : [])));
+    nextWbs = ensureWbsAliases(
+      insertWbsNode(nextWbs, document, { label, ...(original.color ? { color: original.color.value } : {}) }, parent),
+    );
+    const node = parseWbs(nextWbs).nodes.find((item) => item.alias && !usedAliases.has(item.alias));
+    if (!node?.alias) throw new Error(`Could not identify imported WBS node for ${label}`);
+    const linked = relinkWbsGanttTask(nextGantt, links, node.alias, current.id);
+    if (linked.error) throw new Error(linked.error);
+    nextGantt = linked.ganttSource;
+    links = linked.links;
+    addedCount += 1;
+  }
+  const wbs = parseWbs(nextWbs);
+  const edges = new Map<string, Set<string>>();
+  for (const relationship of wbs.relationships)
+    edges.set(relationship.from, new Set([...(edges.get(relationship.from) ?? []), relationship.to]));
+  const byGantt = new Map(links.map((link) => [link.ganttAlias.toLowerCase(), link.wbsAlias]));
+  for (const dependency of parseGantt(nextGantt).document.dependencies) {
+    const from = byGantt.get(dependency.predecessorTaskId);
+    const to = byGantt.get(dependency.successorTaskId);
+    if (!from || !to) continue;
+    if (dependency.relation !== "start-after-end") {
+      warnings.push(`Could not copy ${from} → ${to}: WBS supports finish-to-start links only.`);
+      continue;
+    }
+    if (edges.get(from)?.has(to)) continue;
+    if (cyclic(from, to, edges)) {
+      warnings.push(`Could not copy ${from} → ${to}: it would create a cycle.`);
+      continue;
+    }
+    const currentWbs = parseWbs(nextWbs);
+    const fromNode = currentWbs.nodes.find((node) => node.alias === from);
+    const toNode = currentWbs.nodes.find((node) => node.alias === to);
+    if (!fromNode || !toNode) continue;
+    nextWbs = insertWbsRelationship(nextWbs, currentWbs, fromNode, toNode);
+    edges.set(from, new Set([...(edges.get(from) ?? []), to]));
+  }
+  const dependencies = parseWbs(nextWbs)
+    .relationships.filter(
+      (relationship) =>
+        links.some((link) => link.wbsAlias === relationship.from) &&
+        links.some((link) => link.wbsAlias === relationship.to),
+    )
+    .map((relationship) => ({ from: relationship.from, to: relationship.to }));
+  return {
+    wbsSource: nextWbs,
+    ganttSource: nextGantt,
+    links,
+    dependencies: [
+      ...importedDependencies,
+      ...dependencies.filter(
+        (item) => !importedDependencies.some((prior) => prior.from === item.from && prior.to === item.to),
+      ),
+    ],
+    addedCount,
+    warnings,
+  };
+}
+
 export type RemovedWbsTaskPolicy = "keep-scheduled" | "keep" | "delete";
+
+export function relinkWbsGanttTask(
+  ganttSource: string,
+  existingLinks: readonly WbsGanttLink[],
+  wbsAlias: string,
+  targetTaskId: string,
+  oldTaskPolicy: "keep" | "delete" = "keep",
+): { ganttSource: string; links: WbsGanttLink[]; error?: string } {
+  const parsed = parseGantt(ganttSource).document;
+  const target = parsed.symbols.tasks.get(targetTaskId);
+  if (!target) return { ganttSource, links: [...existingLinks], error: "Gantt task was not found" };
+  if (existingLinks.some((link) => link.ganttAlias.toLowerCase() === target.id && link.wbsAlias !== wbsAlias))
+    return { ganttSource, links: [...existingLinks], error: "That Gantt task is already linked to another WBS node" };
+  let nextSource = ganttSource;
+  let ganttAlias = target.alias?.value;
+  if (!ganttAlias) {
+    const base = `wbs_link_${safeAlias(wbsAlias)}`;
+    ganttAlias = base;
+    for (let index = 2; parsed.symbols.tasks.has(ganttAlias.toLowerCase()); index += 1) ganttAlias = `${base}_${index}`;
+    const at = target.labelRange.to + 1;
+    nextSource = `${nextSource.slice(0, at)} as [${ganttAlias}]${nextSource.slice(at)}`;
+  }
+  const oldLink = existingLinks.find((link) => link.wbsAlias === wbsAlias);
+  if (oldLink && oldLink.ganttAlias.toLowerCase() !== ganttAlias.toLowerCase() && oldTaskPolicy === "delete") {
+    const updated = parseGantt(nextSource).document;
+    const oldTask = updated.symbols.tasks.get(oldLink.ganttAlias.toLowerCase());
+    if (oldTask) {
+      const removal = deleteTask(nextSource, updated, oldTask);
+      if (removal.unavailableReason)
+        return { ganttSource, links: [...existingLinks], error: removal.unavailableReason };
+      nextSource = applySourceEdits(nextSource, removal.edits);
+    }
+  }
+  return {
+    ganttSource: nextSource,
+    links: [
+      ...existingLinks.filter(
+        (link) => link.wbsAlias !== wbsAlias && link.ganttAlias.toLowerCase() !== ganttAlias.toLowerCase(),
+      ),
+      { wbsAlias, ganttAlias },
+    ],
+  };
+}
 
 const safeAlias = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").replace(/^[^A-Za-z_]/, "_$&");
 const safeLabel = (value: string) => value.replaceAll("]", ")").replaceAll("\n", " ").trim();
@@ -73,10 +210,15 @@ export function convertWbsToGantt(
   existingLinks: readonly WbsGanttLink[] = [],
   importedDependencies: readonly { from: string; to: string }[] = [],
   removedTaskPolicy: RemovedWbsTaskPolicy = "keep-scheduled",
+  includeUnlinkedNodes = true,
 ): WbsGanttConversion {
   const wbsSource = ensureWbsAliases(source);
   const document = parseWbs(wbsSource);
   const priorLinks = new Map(existingLinks.map((link) => [link.wbsAlias, link.ganttAlias]));
+  const importedNodes =
+    existingGanttSource && !includeUnlinkedNodes
+      ? document.nodes.filter((node) => priorLinks.has(node.alias!))
+      : document.nodes;
   let synchronizedSource = existingGanttSource;
   const warnings: string[] = [];
   if (synchronizedSource) {
@@ -113,7 +255,7 @@ export function convertWbsToGantt(
       const removal = deleteTask(synchronizedSource, parsed, task);
       if (!removal.unavailableReason) synchronizedSource = applySourceEdits(synchronizedSource, removal.edits);
     }
-    for (const node of document.nodes) {
+    for (const node of importedNodes) {
       const parsed = parseGantt(synchronizedSource).document;
       const task = parsed.symbols.tasks.get((priorLinks.get(node.alias!) ?? `wbs_${node.alias}`).toLowerCase());
       const label = hierarchyLabel(node);
@@ -126,7 +268,7 @@ export function convertWbsToGantt(
   const existingDependencies = new Set(
     existing?.dependencies.map((item) => `${item.predecessorTaskId}:${item.successorTaskId}`) ?? [],
   );
-  const links = document.nodes.map((node) => ({
+  const links = importedNodes.map((node) => ({
     wbsAlias: node.alias!,
     ganttAlias: priorLinks.get(node.alias!) ?? `wbs_${node.alias}`,
   }));
@@ -140,7 +282,7 @@ export function convertWbsToGantt(
   const declarations: string[] = [];
   const dependencyLines: string[] = [];
   const dependencies: Array<{ from: string; to: string }> = [];
-  for (const node of document.nodes) {
+  for (const node of importedNodes) {
     const alias = byAlias.get(node.alias!)!;
     if (children.has(node.id)) {
       declarations.push(`' WBS summary: ${alias}`);

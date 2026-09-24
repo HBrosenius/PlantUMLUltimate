@@ -8,13 +8,16 @@ import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
 import {
   applyWbsGroupRollups,
+  addMissingGanttTasksToWbs,
   convertWbsToGantt,
   ensureLinkedGanttProjectStart,
+  relinkWbsGanttTask,
   rollupWbsGroupDates,
 } from "./wbs-gantt";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { WbsLinkedDeleteDialog } from "./features/wbs/WbsLinkedDeleteDialog";
+import { WbsRelinkDialog } from "./features/wbs/WbsRelinkDialog";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
 import { parseActivitySettings } from "./activity-settings";
@@ -28,6 +31,7 @@ import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
+import { GanttLinkedDeleteDialog } from "./features/gantt/GanttLinkedDeleteDialog";
 import { GanttInspectors } from "./features/gantt/GanttInspectors";
 import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
 import { useGanttController } from "./features/gantt/use-gantt-controller";
@@ -50,6 +54,9 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
+import type { WbsGanttProjectLink } from "./projects/wbs-gantt-project-links";
+import { embeddedMemberHistoryId } from "./projects/embedded-project";
+import { collectWbsGanttIssues, type WbsGanttIssue } from "./wbs-gantt-health";
 import { ProjectNameDialog } from "./projects/ProjectNameDialog";
 import { ProjectUnlockDialog } from "./projects/ProjectUnlockDialog";
 import { useFolderProject } from "./projects/use-folder-project";
@@ -81,6 +88,7 @@ import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
+  deleteTask,
   findTaskAt,
   moveVerticalSeparatorByDays,
   parseGantt,
@@ -149,6 +157,13 @@ export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const [pendingWbsDeleteId, setPendingWbsDeleteId] = useState<string>();
+  const [pendingGanttDeleteTaskId, setPendingGanttDeleteTaskId] = useState<string>();
+  const [pendingWbsRelink, setPendingWbsRelink] = useState<{
+    nodeId: string;
+    documentId: string;
+    targetTaskId: string;
+  }>();
+  const [pendingProjectWbsSelection, setPendingProjectWbsSelection] = useState<{ tabId: string; nodeId: string }>();
   const activeDocument = tabs.documents.find((document) => document.id === tabs.activeId)!;
   const projectLaunchRef = useRef<((opened: OpenedFileBytes) => Promise<boolean>) | undefined>(undefined);
   const {
@@ -304,6 +319,16 @@ export function App() {
     selectRelationship: selectWbsRelationship,
     selectFromSource: selectWbsFromSource,
   } = useWbsController(workspace.diagramKind, wbsDocument);
+  useEffect(() => {
+    if (!pendingProjectWbsSelection || tabs.activeId !== pendingProjectWbsSelection.tabId) return;
+    if (
+      workspace.diagramKind !== "wbs" ||
+      !wbsDocument.nodes.some((node) => node.id === pendingProjectWbsSelection.nodeId)
+    )
+      return;
+    selectWbsNode(pendingProjectWbsSelection.nodeId);
+    setPendingProjectWbsSelection(undefined);
+  }, [pendingProjectWbsSelection, selectWbsNode, tabs.activeId, wbsDocument.nodes, workspace.diagramKind]);
   const linkedGantt = tabs.documents.find(
     (item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId,
   );
@@ -318,6 +343,8 @@ export function App() {
       linkedGantt.source,
       linkedGantt.wbsGanttLinks,
       linkedGantt.wbsGanttDependencies,
+      "keep-scheduled",
+      false,
     );
     for (const relationship of wbsDocument.relationships) {
       const warning = conversion.warnings.find((message) =>
@@ -384,6 +411,36 @@ export function App() {
         : `Linked ${converted.links.length} WBS nodes to Gantt entries`,
     );
   };
+  const importCurrentGanttToWbs = () => {
+    if (!linkedWbs) return;
+    try {
+      const imported = addMissingGanttTasksToWbs(
+        linkedWbs.source,
+        workspace.source,
+        activeDocument.wbsGanttLinks ?? [],
+        activeDocument.wbsGanttDependencies ?? [],
+      );
+      if (!imported.addedCount) {
+        setInteractionMessage("All Gantt tasks already have WBS nodes");
+        return;
+      }
+      if (
+        imported.ganttSource !== workspace.source &&
+        !commitGeneratedSource(imported.ganttSource, "Link Gantt tasks to WBS")
+      )
+        return;
+      tabs.updateDocumentSource(linkedWbs.id, imported.wbsSource, "wbs");
+      tabs.updateDocumentFormat(tabs.activeId, {
+        wbsGanttLinks: imported.links,
+        wbsGanttDependencies: imported.dependencies,
+      });
+      setInteractionMessage(
+        `Added ${imported.addedCount} Gantt ${imported.addedCount === 1 ? "task" : "tasks"} to WBS${imported.warnings.length ? `. ${imported.warnings.join(" ")}` : ""}`,
+      );
+    } catch (error) {
+      setInteractionMessage(error instanceof Error ? error.message : "Could not add Gantt tasks to WBS");
+    }
+  };
   useEffect(() => {
     if (
       workspace.diagramKind !== "wbs" ||
@@ -397,6 +454,8 @@ export function App() {
         linkedGantt.source,
         linkedGantt.wbsGanttLinks,
         linkedGantt.wbsGanttDependencies,
+        "keep-scheduled",
+        false,
       );
       if (converted.wbsSource !== workspace.source)
         tabs.updateDocumentSource(tabs.activeId, converted.wbsSource, "wbs");
@@ -762,16 +821,13 @@ export function App() {
   useEffect(() => {
     if (workspace.diagramKind !== "gantt" || !linkedWbs || !activeDocument.wbsGanttLinks) return;
     if (parseResult.diagnostics.some((item) => item.severity === "error")) return;
-    const timer = window.setTimeout(() => {
-      const next = applyWbsGroupRollups(
-        workspace.source,
-        linkedWbs.source,
-        activeDocument.wbsGanttLinks!,
-        resolvedTaskDates,
-      );
-      if (next !== workspace.source) tabs.updateDocumentSource(tabs.activeId, next, "gantt");
-    }, 400);
-    return () => window.clearTimeout(timer);
+    const next = applyWbsGroupRollups(
+      workspace.source,
+      linkedWbs.source,
+      activeDocument.wbsGanttLinks,
+      resolvedTaskDates,
+    );
+    if (next !== workspace.source) tabs.updateDocumentSource(tabs.activeId, next, "gantt");
   }, [
     activeDocument.wbsGanttLinks,
     linkedWbs,
@@ -1457,6 +1513,67 @@ export function App() {
     ? (id: string) =>
         tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
     : isLegacyProjectMemberTab;
+  const portable = singleFileProject.portableProject;
+  const projectWbsGanttLinks: WbsGanttProjectLink[] = portable
+    ? portable.diagrams.flatMap((gantt) => {
+        const connection = gantt.wbsGantt;
+        const wbs = portable.diagrams.find((item) => item.id === connection?.wbsDiagramId);
+        if (!connection || !wbs) return [];
+        const wbsTab = tabs.documents.find(
+          (item) => item.historyId === embeddedMemberHistoryId(portable.projectId, wbs.id),
+        );
+        const ganttTab = tabs.documents.find(
+          (item) => item.historyId === embeddedMemberHistoryId(portable.projectId, gantt.id),
+        );
+        const nodes = new Map(
+          parseWbs(wbsTab?.source ?? wbs.document.current.source)
+            .nodes.filter((node) => node.alias)
+            .map((node) => [node.alias!, node]),
+        );
+        const tasks = parseGantt(ganttTab?.source ?? gantt.document.current.source).document.symbols.tasks;
+        return (ganttTab?.wbsGanttLinks ?? connection.links).flatMap((link) => {
+          const node = nodes.get(link.wbsAlias);
+          const task = tasks.get(link.ganttAlias.toLowerCase());
+          if (!node || !task) return [];
+          return [
+            {
+              id: `${gantt.id}:${link.wbsAlias}:${link.ganttAlias}`,
+              wbsLabel: node.label,
+              ganttLabel: task.label,
+              wbsDiagramName: wbs.name,
+              ganttDiagramName: gantt.name,
+              wbsDocumentId: wbs.id,
+              ganttDocumentId: gantt.id,
+              wbsNodeId: node.id,
+              ganttTaskId: task.id,
+            },
+          ];
+        });
+      })
+    : [];
+  const projectWbsGanttIssues: (WbsGanttIssue & { documentId: string })[] = project
+    ? tabs.documents.flatMap((gantt) => {
+        if (gantt.diagramKind !== "gantt" || !gantt.linkedWbsDocumentId || !isProjectMemberTab(gantt.id)) return [];
+        const wbs = tabs.documents.find(
+          (item) => item.id === gantt.linkedWbsDocumentId && item.diagramKind === "wbs" && isProjectMemberTab(item.id),
+        );
+        if (!wbs)
+          return [
+            {
+              message: `Linked WBS diagram for ${gantt.fileName} is missing.`,
+              diagram: "gantt" as const,
+              kind: "document" as const,
+              documentId: gantt.id,
+            },
+          ];
+        return collectWbsGanttIssues(
+          wbs.source,
+          gantt.source,
+          gantt.wbsGanttLinks ?? [],
+          gantt.wbsGanttDependencies ?? [],
+        ).map((issue) => ({ ...issue, documentId: issue.diagram === "wbs" ? wbs.id : gantt.id }));
+      })
+    : [];
   const updateLinks = usingSingleFileProject ? singleFileProject.updateLinks : updateLegacyLinks;
   const updateElements = usingSingleFileProject ? singleFileProject.updateElements : updateLegacyElements;
   const applyActiveProjectRenameMappings = usingSingleFileProject
@@ -2369,6 +2486,42 @@ export function App() {
     tabs.activateDocument(linkedWbs.id);
     if (node) window.setTimeout(() => selectWbsNode(node.id), 100);
   };
+  const applyWbsRelink = (nodeId: string, documentId: string, targetTaskId: string, policy: "keep" | "delete") => {
+    const node = wbsDocument.nodes.find((item) => item.id === nodeId);
+    const document = tabs.documents.find((item) => item.id === documentId && item.diagramKind === "gantt");
+    if (!node || !document) return;
+    const aliasedWbs = convertWbsToGantt(workspace.source).wbsSource;
+    const alias = parseWbs(aliasedWbs).nodes[wbsDocument.nodes.indexOf(node)]?.alias;
+    if (!alias) return;
+    const result = relinkWbsGanttTask(document.source, document.wbsGanttLinks ?? [], alias, targetTaskId, policy);
+    if (result.error) return setInteractionMessage(result.error);
+    const synchronized =
+      linkedGantt?.id === document.id
+        ? convertWbsToGantt(
+            aliasedWbs,
+            result.ganttSource,
+            result.links,
+            document.wbsGanttDependencies,
+            "keep-scheduled",
+            false,
+          )
+        : undefined;
+    const nextGanttSource = synchronized?.ganttSource ?? result.ganttSource;
+    const nextLinks = synchronized?.links ?? result.links;
+    if (aliasedWbs !== workspace.source) tabs.updateDocumentSource(tabs.activeId, aliasedWbs, "wbs");
+    if (nextGanttSource !== document.source) tabs.updateDocumentSource(document.id, nextGanttSource, "gantt");
+    tabs.updateDocumentFormat(document.id, {
+      linkedWbsDocumentId: tabs.activeId,
+      wbsGanttLinks: nextLinks,
+      ...(synchronized ? { wbsGanttDependencies: synchronized.dependencies } : {}),
+    });
+    const target = parseGantt(nextGanttSource).document.symbols.tasks.get(
+      nextLinks.find((link) => link.wbsAlias === alias)!.ganttAlias.toLowerCase(),
+    );
+    setInteractionMessage(
+      `Linked ${node.label} to ${target?.label ?? "Gantt task"}${policy === "delete" ? "; removed the former task" : ""}`,
+    );
+  };
   return (
     <div
       className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
@@ -2494,7 +2647,14 @@ export function App() {
                   : openDialog({ kind: "wbs-gantt-project" })
               }
             >
-              Create Gantt chart from WBS
+              {linkedGantt && isProjectMemberTab(tabs.activeId)
+                ? "Add missing WBS tasks to Gantt"
+                : "Create Gantt chart from WBS"}
+            </button>
+          )}
+          {workspace.diagramKind === "gantt" && linkedWbs && (
+            <button type="button" onClick={importCurrentGanttToWbs}>
+              Add missing Gantt tasks to WBS
             </button>
           )}
           {workspace.diagramKind === "wbs" && (
@@ -3170,6 +3330,7 @@ export function App() {
             .filter(
               (item) =>
                 item.diagramKind === "gantt" &&
+                (!linkedGantt || item.id === linkedGantt.id) &&
                 (!item.linkedWbsDocumentId || item.linkedWbsDocumentId === tabs.activeId),
             )
             .flatMap((item) =>
@@ -3191,35 +3352,11 @@ export function App() {
             const task =
               document && parseGantt(document.source).document.tasks.find((item) => item.id === key.slice(split + 1));
             if (!document || !task) return;
-            if (
-              document.wbsGanttLinks?.some(
-                (link) => link.ganttAlias.toLowerCase() === task.id && link.wbsAlias !== selectedWbsNode.alias,
-              )
-            ) {
-              setInteractionMessage("That Gantt task is already linked to another WBS node");
-              return;
-            }
-            const aliasedWbs = convertWbsToGantt(workspace.source).wbsSource;
-            const alias = parseWbs(aliasedWbs).nodes[wbsDocument.nodes.indexOf(selectedWbsNode)]?.alias;
-            if (!alias) return;
-            if (aliasedWbs !== workspace.source) tabs.updateDocumentSource(tabs.activeId, aliasedWbs, "wbs");
-            const ganttAlias = task.alias?.value ?? `wbs_link_${Date.now().toString(36)}`;
-            if (!task.alias) {
-              const at = task.labelRange.to + 1;
-              tabs.updateDocumentSource(
-                document.id,
-                `${document.source.slice(0, at)} as [${ganttAlias}]${document.source.slice(at)}`,
-                "gantt",
-              );
-            }
-            const links = (document.wbsGanttLinks ?? []).filter(
-              (item) => item.wbsAlias !== alias && item.ganttAlias !== ganttAlias,
-            );
-            tabs.updateDocumentFormat(document.id, {
-              linkedWbsDocumentId: tabs.activeId,
-              wbsGanttLinks: [...links, { wbsAlias: alias, ganttAlias }],
-            });
-            setInteractionMessage(`Linked ${selectedWbsNode.label} to ${task.label}`);
+            const oldLink = document.wbsGanttLinks?.find((link) => link.wbsAlias === selectedWbsNode.alias);
+            if (oldLink?.ganttAlias.toLowerCase() === task.id) return;
+            if (oldLink)
+              setPendingWbsRelink({ nodeId: selectedWbsNode.id, documentId: document.id, targetTaskId: task.id });
+            else applyWbsRelink(selectedWbsNode.id, document.id, task.id, "keep");
           }}
           onOpenLinkedTask={() => selectedWbsNode.alias && openLinkedGanttTask(selectedWbsNode.alias)}
           onApply={(value) => {
@@ -3248,6 +3385,28 @@ export function App() {
           onClose={clearSelectedWbsNode}
         />
       )}
+      {pendingWbsRelink &&
+        (() => {
+          const node = wbsDocument.nodes.find((item) => item.id === pendingWbsRelink.nodeId);
+          const document = tabs.documents.find((item) => item.id === pendingWbsRelink.documentId);
+          const parsed = document ? parseGantt(document.source).document : undefined;
+          const oldLink = document?.wbsGanttLinks?.find((link) => link.wbsAlias === node?.alias);
+          const oldTask = oldLink && parsed?.symbols.tasks.get(oldLink.ganttAlias.toLowerCase());
+          const newTask = parsed?.symbols.tasks.get(pendingWbsRelink.targetTaskId);
+          if (!node || !document || !oldLink || !newTask) return null;
+          return (
+            <WbsRelinkDialog
+              nodeLabel={node.label}
+              oldTaskLabel={oldTask?.label ?? oldLink.ganttAlias}
+              newTaskLabel={newTask.label}
+              onClose={() => setPendingWbsRelink(undefined)}
+              onChoose={(policy) => {
+                applyWbsRelink(node.id, document.id, newTask.id, policy);
+                setPendingWbsRelink(undefined);
+              }}
+            />
+          );
+        })()}
       {pendingWbsDeleteId &&
         (() => {
           const node = wbsDocument.nodes.find((item) => item.id === pendingWbsDeleteId);
@@ -3280,6 +3439,7 @@ export function App() {
                   linkedGantt.wbsGanttLinks,
                   linkedGantt.wbsGanttDependencies,
                   policy,
+                  false,
                 );
                 if (!commitSource(converted.wbsSource, `Delete WBS subtree ${node.label}`)) return;
                 tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
@@ -3295,6 +3455,77 @@ export function App() {
                     ? `Deleted WBS subtree; kept ${affected.length} unlinked Gantt tasks`
                     : `Deleted WBS subtree and ${affected.length} linked Gantt tasks`,
                 );
+              }}
+            />
+          );
+        })()}
+      {pendingGanttDeleteTaskId &&
+        (() => {
+          const task = parseResult.document.symbols.tasks.get(pendingGanttDeleteTaskId);
+          const link = activeDocument.wbsGanttLinks?.find(
+            (item) => item.ganttAlias.toLowerCase() === pendingGanttDeleteTaskId,
+          );
+          const wbs = linkedWbs && parseWbs(linkedWbs.source);
+          const node = wbs?.nodes.find((item) => item.alias === link?.wbsAlias);
+          if (!task || !link || !linkedWbs || !wbs || !node) return null;
+          const subtree = wbs.nodes.filter(
+            (item) => item.sourceRange.from >= node.sourceRange.from && item.sourceRange.to <= node.subtreeRange.to,
+          );
+          const affected =
+            activeDocument.wbsGanttLinks?.filter((item) =>
+              subtree.some((descendant) => descendant.alias === item.wbsAlias),
+            ) ?? [];
+          return (
+            <GanttLinkedDeleteDialog
+              taskLabel={task.label}
+              nodeCount={subtree.length}
+              taskCount={affected.length}
+              onClose={() => setPendingGanttDeleteTaskId(undefined)}
+              onChoose={(policy) => {
+                if (policy === "keep") {
+                  const operation = deleteTask(workspace.source, parseResult.document, task);
+                  if (operation.unavailableReason) return setInteractionMessage(operation.unavailableReason);
+                  const nextLinks = (activeDocument.wbsGanttLinks ?? []).filter((item) => item !== link);
+                  const converted = convertWbsToGantt(
+                    linkedWbs.source,
+                    applySourceEdits(workspace.source, operation.edits),
+                    nextLinks,
+                    activeDocument.wbsGanttDependencies,
+                    "keep-scheduled",
+                    false,
+                  );
+                  if (!commitGeneratedSource(converted.ganttSource, `Delete ${task.label}`)) return;
+                  tabs.updateDocumentFormat(tabs.activeId, {
+                    wbsGanttLinks: converted.links,
+                    wbsGanttDependencies: converted.dependencies,
+                  });
+                  setInteractionMessage(`Deleted ${task.label}; kept its WBS node unlinked`);
+                } else {
+                  const deletion = applicationWbsAdapter.applyVisualOperation(
+                    { kind: "delete-node", nodeId: node.id },
+                    wbs,
+                    linkedWbs.source,
+                  );
+                  if (deletion.unavailableReason) return setInteractionMessage(deletion.unavailableReason);
+                  const converted = convertWbsToGantt(
+                    applySourceEdits(linkedWbs.source, deletion.edits),
+                    workspace.source,
+                    activeDocument.wbsGanttLinks,
+                    activeDocument.wbsGanttDependencies,
+                    "delete",
+                    false,
+                  );
+                  if (!commitGeneratedSource(converted.ganttSource, `Delete linked work ${task.label}`)) return;
+                  tabs.updateDocumentSource(linkedWbs.id, converted.wbsSource, "wbs");
+                  tabs.updateDocumentFormat(tabs.activeId, {
+                    wbsGanttLinks: converted.links,
+                    wbsGanttDependencies: converted.dependencies,
+                  });
+                  setInteractionMessage(`Deleted WBS subtree and ${affected.length} linked Gantt tasks`);
+                }
+                setSelectedTaskId(undefined);
+                setSelectedDependencyIndex(undefined);
+                setPendingGanttDeleteTaskId(undefined);
               }}
             />
           );
@@ -3374,6 +3605,22 @@ export function App() {
       {project && projectNavigatorOpen && (
         <ProjectNavigator
           project={project}
+          wbsGanttIssues={projectWbsGanttIssues}
+          wbsGanttLinks={projectWbsGanttLinks}
+          onOpenWbsGanttLink={async (documentId, kind, key) => {
+            const tabId = await singleFileProject.openMember(documentId);
+            if (!tabId) return;
+            if (kind === "wbs") setPendingProjectWbsSelection({ tabId, nodeId: key });
+            else window.setTimeout(() => setSelectedTaskId(key), 100);
+          }}
+          onOpenWbsGanttIssue={(issue) => {
+            tabs.activateDocument(issue.documentId);
+            window.setTimeout(() => {
+              if (issue.kind === "task") setSelectedTaskId(issue.key);
+              if (issue.kind === "node" && issue.key) selectWbsNode(issue.key);
+              if (issue.kind === "relationship" && issue.key) selectWbsRelationship(issue.key);
+            }, 100);
+          }}
           {...(usingSingleFileProject
             ? {
                 dirty: singleFileProject.dirty,
@@ -3847,7 +4094,15 @@ export function App() {
             "wbs",
           );
         }}
-        onTaskDelete={deleteSelectedTask}
+        onTaskDelete={() => {
+          if (
+            selectedTask &&
+            linkedWbs &&
+            activeDocument.wbsGanttLinks?.some((item) => item.ganttAlias.toLowerCase() === selectedTask.id)
+          )
+            setPendingGanttDeleteTaskId(selectedTask.id);
+          else deleteSelectedTask();
+        }}
         onDependencyApply={applyDependencyInspector}
         onDependencyDelete={deleteDependency}
         onDividerApply={applyDividerInspector}
