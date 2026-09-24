@@ -2,10 +2,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 
 interface Props {
   svg: string | undefined;
   document: WbsDocument;
+  linkedNodeIds?: ReadonlySet<string>;
+  dependencyWarnings?: ReadonlyMap<string, string>;
   selectedId: string | undefined;
   selectedRelationshipId: string | undefined;
   zoom: number;
@@ -23,6 +26,8 @@ interface Props {
 export function WbsDiagramPreview({
   svg,
   document,
+  linkedNodeIds = new Set(),
+  dependencyWarnings = new Map(),
   selectedId,
   selectedRelationshipId,
   zoom,
@@ -197,7 +202,9 @@ export function WbsDiagramPreview({
     const host = root.current;
     if (!host) return;
     host
-      .querySelectorAll(".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint")
+      .querySelectorAll(
+        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon",
+      )
       .forEach((item) => item.remove());
     const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
     const claimed = new Set<SVGTextElement>();
@@ -231,6 +238,7 @@ export function WbsDiagramPreview({
       text.setAttribute("tabindex", "0");
       text.setAttribute("role", "button");
       text.setAttribute("aria-label", `Select WBS node ${node.label}`);
+      if (linkedNodeIds.has(node.id)) appendDiagramLinkIcon(matched.at(-1)!);
       const boxes = matched.map((candidate) => candidate.getBBox());
       const bounds = boxes.slice(1).reduce(
         (union, box) => {
@@ -269,7 +277,7 @@ export function WbsDiagramPreview({
     }
     const svgRoot = host.querySelector<SVGSVGElement>("svg");
     const candidates = [...(svgRoot?.querySelectorAll<SVGGeometryElement>("line, path") ?? [])].filter(
-      (element) => !element.classList.contains("wbs-connection-preview"),
+      (element) => !element.classList.contains("wbs-connection-preview") && !element.closest(".diagram-link-icon"),
     );
     const distanceToBox = (point: DOMPoint, box: DOMRect) =>
       Math.hypot(
@@ -316,6 +324,25 @@ export function WbsDiagramPreview({
       hit.setAttribute("role", "button");
       hit.setAttribute("aria-label", `Select WBS arrow from ${relationship.from} to ${relationship.to}`);
       svgRoot.append(hit);
+      const warning = dependencyWarnings.get(relationship.id);
+      if (warning) {
+        const [first, second] = endpoints(rendered.element);
+        const marker = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "g");
+        marker.setAttribute("class", "wbs-dependency-warning");
+        marker.setAttribute("transform", `translate(${(first.x + second.x) / 2} ${(first.y + second.y) / 2})`);
+        marker.setAttribute("role", "button");
+        marker.setAttribute("tabindex", "0");
+        marker.setAttribute("aria-label", `Inspect WBS dependency warning: ${warning}`);
+        marker.dataset.wbsRelationshipId = relationship.id;
+        const circle = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("r", "9");
+        const symbol = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "text");
+        symbol.setAttribute("text-anchor", "middle");
+        symbol.setAttribute("y", "4");
+        symbol.textContent = "!";
+        marker.append(circle, symbol);
+        svgRoot.append(marker);
+      }
       if (relationship.id === selectedRelationshipId) {
         const [first, second] = endpoints(rendered.element);
         const direct = distanceToBox(first, fromBox) + distanceToBox(second, toBox);

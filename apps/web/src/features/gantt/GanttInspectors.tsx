@@ -11,6 +11,10 @@ import type { LegendEntry } from "../../legend";
 interface GanttInspectorsProps {
   selectedTask: GanttTask | undefined;
   linkedWbsLabel?: string | undefined;
+  wbsLinkStatus?: string | undefined;
+  linkedWbsAlias?: string | undefined;
+  wbsTargets?: Array<{ key: string; label: string }>;
+  onLinkWbsNode?(key: string): void;
   onOpenLinkedWbs?(): void;
   selectedDependency: GanttDependency | undefined;
   selectedDivider: GanttDivider | undefined;
@@ -79,6 +83,10 @@ export function GanttInspectors(props: GanttInspectorsProps) {
           onDelete={props.onTaskDelete}
           onClose={props.onCloseTask}
           linkedWbsLabel={props.linkedWbsLabel}
+          wbsLinkStatus={props.wbsLinkStatus}
+          linkedWbsAlias={props.linkedWbsAlias}
+          wbsTargets={props.wbsTargets ?? []}
+          onLinkWbsNode={(key) => props.onLinkWbsNode?.(key)}
           onOpenLinkedWbs={props.onOpenLinkedWbs}
         />
       )}
@@ -100,6 +108,10 @@ export function GanttInspectors(props: GanttInspectorsProps) {
           onDelete={props.onTaskDelete}
           onClose={props.onCloseTask}
           linkedWbsLabel={props.linkedWbsLabel}
+          wbsLinkStatus={props.wbsLinkStatus}
+          linkedWbsAlias={props.linkedWbsAlias}
+          wbsTargets={props.wbsTargets ?? []}
+          onLinkWbsNode={(key) => props.onLinkWbsNode?.(key)}
           onOpenLinkedWbs={props.onOpenLinkedWbs}
         />
       )}

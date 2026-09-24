@@ -20,6 +20,10 @@ export function MilestoneInspector({
   onDelete,
   onClose,
   linkedWbsLabel,
+  wbsLinkStatus,
+  linkedWbsAlias,
+  wbsTargets = [],
+  onLinkWbsNode,
   onOpenLinkedWbs,
 }: {
   milestone: GanttTask;
@@ -29,6 +33,10 @@ export function MilestoneInspector({
   onDelete(): void;
   onClose(): void;
   linkedWbsLabel?: string | undefined;
+  wbsLinkStatus?: string | undefined;
+  linkedWbsAlias?: string | undefined;
+  wbsTargets?: Array<{ key: string; label: string }>;
+  onLinkWbsNode?(key: string): void;
   onOpenLinkedWbs?: (() => void) | undefined;
 }) {
   const initial = (): MilestoneInspectorValue => {
@@ -167,10 +175,34 @@ export function MilestoneInspector({
           />
         </label>
         <div className="inspector-actions">
+          {wbsLinkStatus && (
+            <p role="status" className="calculated-hint">
+              {wbsLinkStatus} Names sync with WBS; dates stay in Gantt.
+            </p>
+          )}
           {linkedWbsLabel && (
             <button type="button" onClick={onOpenLinkedWbs}>
               Open linked WBS node: {linkedWbsLabel}
             </button>
+          )}
+          {wbsTargets.length > 0 && (
+            <label>
+              Linked WBS node
+              <select value={linkedWbsAlias ?? ""} onChange={(event) => onLinkWbsNode?.(event.target.value)}>
+                <option value="">Choose a node…</option>
+                {linkedWbsAlias && !wbsTargets.some((target) => target.key === linkedWbsAlias) && (
+                  <option value={linkedWbsAlias} disabled>
+                    Missing node: {linkedWbsAlias}
+                  </option>
+                )}
+                {wbsTargets.map((target) => (
+                  <option key={target.key} value={target.key}>
+                    {target.label}
+                  </option>
+                ))}
+              </select>
+              <span className="calculated-hint">Choosing another node replaces this task’s current link.</span>
+            </label>
           )}
           <button type="button" className="danger" onClick={onDelete}>
             Delete

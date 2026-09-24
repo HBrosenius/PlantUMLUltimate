@@ -15,6 +15,8 @@ export interface WbsGanttConversion {
   warnings: string[];
 }
 
+export type RemovedWbsTaskPolicy = "keep-scheduled" | "keep" | "delete";
+
 const safeAlias = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").replace(/^[^A-Za-z_]/, "_$&");
 const safeLabel = (value: string) => value.replaceAll("]", ")").replaceAll("\n", " ").trim();
 const hierarchyLabel = (node: WbsNode) => `${"↳ ".repeat(Math.max(0, node.depth - 1))}${safeLabel(node.label)}`;
@@ -56,18 +58,44 @@ export function convertWbsToGantt(
   existingGanttSource?: string,
   existingLinks: readonly WbsGanttLink[] = [],
   importedDependencies: readonly { from: string; to: string }[] = [],
+  removedTaskPolicy: RemovedWbsTaskPolicy = "keep-scheduled",
 ): WbsGanttConversion {
   const wbsSource = ensureWbsAliases(source);
   const document = parseWbs(wbsSource);
   const priorLinks = new Map(existingLinks.map((link) => [link.wbsAlias, link.ganttAlias]));
   let synchronizedSource = existingGanttSource;
+  const warnings: string[] = [];
   if (synchronizedSource) {
     const currentAliases = new Set(document.nodes.map((node) => node.alias));
     for (const link of existingLinks) {
-      if (currentAliases.has(link.wbsAlias) || link.ganttAlias !== `wbs_${link.wbsAlias}`) continue;
+      if (currentAliases.has(link.wbsAlias)) continue;
+      if (removedTaskPolicy === "keep") {
+        warnings.push(`Kept Gantt task ${link.ganttAlias} after its WBS node was removed; it is now unlinked.`);
+        continue;
+      }
+      if (removedTaskPolicy === "keep-scheduled" && link.ganttAlias !== `wbs_${link.wbsAlias}`) continue;
       const parsed = parseGantt(synchronizedSource).document;
       const task = parsed.symbols.tasks.get(link.ganttAlias.toLowerCase());
       if (!task) continue;
+      const hasSchedule =
+        Boolean(
+          task.start ||
+          task.end ||
+          task.resources?.length ||
+          task.notes?.length ||
+          task.links?.length ||
+          task.pauses?.length ||
+          task.completion ||
+          task.color,
+        ) ||
+        (task.duration !== undefined && (task.duration.value !== 5 || task.duration.unit !== "day")) ||
+        parsed.dependencies.some(
+          (dependency) => dependency.predecessorTaskId === task.id || dependency.successorTaskId === task.id,
+        );
+      if (removedTaskPolicy === "keep-scheduled" && hasSchedule) {
+        warnings.push(`Kept scheduled Gantt task ${task.label} after its WBS node was removed; it is now unlinked.`);
+        continue;
+      }
       const removal = deleteTask(synchronizedSource, parsed, task);
       if (!removal.unavailableReason) synchronizedSource = applySourceEdits(synchronizedSource, removal.edits);
     }
@@ -98,7 +126,6 @@ export function convertWbsToGantt(
   const declarations: string[] = [];
   const dependencyLines: string[] = [];
   const dependencies: Array<{ from: string; to: string }> = [];
-  const warnings: string[] = [];
   for (const node of document.nodes) {
     const alias = byAlias.get(node.alias!)!;
     if (children.has(node.id)) {

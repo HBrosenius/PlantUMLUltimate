@@ -4187,14 +4187,13 @@ textarea:focus-visible,
   cursor: not-allowed;
   opacity: 0.6;
 }
-.preview [data-project-linked="true"] .bar {
-  stroke: #38bdf8 !important;
-  stroke-width: 3px !important;
-  filter: drop-shadow(0 0 2px rgb(2 132 199 / 80%));
-}
-.preview [data-project-linked="true"] .label {
-  font-weight: 700;
-  text-decoration: underline;
+.diagram-link-icon {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 .project-navigator-section,
 .project-links {
@@ -5404,6 +5403,20 @@ textarea:focus-visible,
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
+}
+.wbs-diagram svg .wbs-dependency-warning {
+  cursor: pointer;
+}
+.wbs-diagram svg .wbs-dependency-warning circle {
+  fill: #f59e0b;
+  stroke: #78350f;
+  stroke-width: 1;
+}
+.wbs-diagram svg .wbs-dependency-warning text {
+  fill: #1c1917;
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
 }
 .wbs-node-inspector .wbs-link-section h3 {
   margin: 0;

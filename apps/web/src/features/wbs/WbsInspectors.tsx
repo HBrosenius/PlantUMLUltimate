@@ -9,6 +9,8 @@ export function WbsNodeInspector({
   onDelete,
   onAddChild,
   linkedTask,
+  linkedTaskLabel,
+  linkedTaskTargetKey,
   onOpenLinkedTask,
   ganttTargets = [],
   onLinkGanttTask,
@@ -19,6 +21,8 @@ export function WbsNodeInspector({
   onDelete(): void;
   onAddChild(): void;
   linkedTask?: { ganttAlias: string } | undefined;
+  linkedTaskLabel?: string | undefined;
+  linkedTaskTargetKey?: string | undefined;
   onOpenLinkedTask?(): void;
   ganttTargets?: Array<{ key: string; label: string }>;
   onLinkGanttTask?(key: string): void;
@@ -127,11 +131,21 @@ export function WbsNodeInspector({
           sprite (e.g. <code>$my-sprite</code>).
         </span>
       )}
-      <p className="calculated-hint">Changes are saved when you leave a field.</p>
+      <p className="calculated-hint">
+        Changes are saved when you leave a field. Names and hierarchy sync with Gantt; dates and assignments stay in
+        Gantt.
+      </p>
       {(linkedTask || ganttTargets.length > 0) && (
         <section className="wbs-link-section" aria-label="Gantt link">
           <h3>Gantt link</h3>
-          {linkedTask && (
+          <p role="status" className="calculated-hint">
+            {linkedTask
+              ? linkedTaskLabel
+                ? `Linked to ${linkedTaskLabel}`
+                : `Missing Gantt task (${linkedTask.ganttAlias})`
+              : "Unlinked"}
+          </p>
+          {linkedTaskLabel && (
             <button type="button" onClick={onOpenLinkedTask}>
               Open linked Gantt task
             </button>
@@ -139,14 +153,23 @@ export function WbsNodeInspector({
           {ganttTargets.length > 0 && (
             <label>
               Linked Gantt task
-              <select value="" onChange={(event) => onLinkGanttTask?.(event.target.value)}>
+              <select
+                value={linkedTaskTargetKey ?? (linkedTask ? "missing" : "")}
+                onChange={(event) => onLinkGanttTask?.(event.target.value)}
+              >
                 <option value="">Choose a task…</option>
+                {linkedTask && !linkedTaskTargetKey && (
+                  <option value="missing" disabled>
+                    Missing task: {linkedTask.ganttAlias}
+                  </option>
+                )}
                 {ganttTargets.map((target) => (
                   <option key={target.key} value={target.key}>
                     {target.label}
                   </option>
                 ))}
               </select>
+              <span className="calculated-hint">Choosing another task replaces this node’s current link.</span>
             </label>
           )}
         </section>
@@ -195,12 +218,14 @@ export function WbsSettingsInspector({
 export function WbsRelationshipInspector({
   relationship,
   document,
+  dependencyStatus,
   onApply,
   onDelete,
   onClose,
 }: {
   relationship: WbsRelationship;
   document: WbsDocument;
+  dependencyStatus?: string | undefined;
   onApply(color: string): void;
   onDelete(): void;
   onClose(): void;
@@ -219,6 +244,11 @@ export function WbsRelationshipInspector({
       <p className="inspector-summary">
         {from} → {to}
       </p>
+      {dependencyStatus && (
+        <p role="status" className="calculated-hint">
+          {dependencyStatus}
+        </p>
+      )}
       <ColorField label="Arrow color" value={color} onChange={setColor} />
       <div className="inspector-actions">
         <button onClick={() => onApply(color)}>Apply</button>

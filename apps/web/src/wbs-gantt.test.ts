@@ -84,6 +84,48 @@ build -> draft
     expect(updated.links).toHaveLength(1);
   });
 
+  it("keeps scheduled tasks as unlinked work when their WBS nodes are deleted", () => {
+    const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    const scheduled = first.ganttSource.replace(
+      "[↳ Design] as [wbs_design] requires 5 days",
+      "[↳ Design] as [wbs_design] requires 8 days",
+    );
+    const updated = convertWbsToGantt("@startwbs\n*(project) Project\n@endwbs", scheduled, first.links);
+    expect(parseGantt(updated.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual([
+      "wbs_project",
+      "wbs_design",
+    ]);
+    expect(updated.links).toHaveLength(1);
+    expect(updated.warnings).toContain(
+      "Kept scheduled Gantt task ↳ Design after its WBS node was removed; it is now unlinked.",
+    );
+  });
+
+  it("lets a linked subtree deletion keep or delete its Gantt tasks", () => {
+    const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    const remainingWbs = "@startwbs\n*(project) Project\n@endwbs";
+    const kept = convertWbsToGantt(remainingWbs, first.ganttSource, first.links, [], "keep");
+    expect(parseGantt(kept.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual([
+      "wbs_project",
+      "wbs_design",
+    ]);
+    expect(kept.links).toHaveLength(1);
+    const deleted = convertWbsToGantt(remainingWbs, first.ganttSource, first.links, [], "delete");
+    expect(parseGantt(deleted.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual(["wbs_project"]);
+    expect(deleted.links).toHaveLength(1);
+    const manual = convertWbsToGantt(
+      remainingWbs,
+      "@startgantt\n[Project] as [wbs_project] requires 5 days\n[Design] as [manual_design] requires 3 days\n@endgantt",
+      [
+        { wbsAlias: "project", ganttAlias: "wbs_project" },
+        { wbsAlias: "design", ganttAlias: "manual_design" },
+      ],
+      [],
+      "delete",
+    );
+    expect(parseGantt(manual.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual(["wbs_project"]);
+  });
+
   it("removes an imported dependency when its WBS arrow is removed", () => {
     const first = convertWbsToGantt("@startwbs\n*(p) Project\n**(a) A\n**(b) B\na -> b\n@endwbs");
     const updated = convertWbsToGantt(

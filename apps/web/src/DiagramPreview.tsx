@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
@@ -15,6 +15,7 @@ import {
 import { useRenderer } from "./render/use-renderer";
 import { decorateRemoteEditBadge } from "./render/remote-edit-badge";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 
 interface Props {
   svg: string | undefined;
@@ -1028,7 +1029,7 @@ export function DiagramPreview({
               }
             }}
           >
-            <MemoizedSvgMarkup svg={selectedSvg} />
+            <MemoizedSvgMarkup svg={selectedSvg} linkedTaskIds={projectLinkedTaskIds} />
           </div>
         ) : (
           <div className="diagram" style={{ transform: `scale(${zoom})` }}>
@@ -1281,8 +1282,26 @@ export function DiagramPreview({
   );
 }
 
-const MemoizedSvgMarkup = memo(function SvgMarkup({ svg }: { svg: string }) {
-  return <div className="diagram-svg-host" dangerouslySetInnerHTML={{ __html: svg }} />;
+const MemoizedSvgMarkup = memo(function SvgMarkup({
+  svg,
+  linkedTaskIds,
+}: {
+  svg: string;
+  linkedTaskIds: ReadonlySet<string>;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = host.current;
+    if (!root) return;
+    root.querySelectorAll(".diagram-link-icon").forEach((icon) => icon.remove());
+    for (const taskId of linkedTaskIds) {
+      const label = root.querySelector<SVGTextElement>(
+        `text[data-visual-task-id="${CSS.escape(taskId)}"], [data-task-id="${CSS.escape(taskId)}"] text.label`,
+      );
+      if (label) appendDiagramLinkIcon(label);
+    }
+  }, [svg, linkedTaskIds]);
+  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={{ __html: svg }} />;
 });
 
 export function taskHoverDetails(
