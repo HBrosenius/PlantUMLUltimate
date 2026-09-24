@@ -15,6 +15,11 @@ Try the hosted application at [plantuml.brosenius.se](https://plantuml.brosenius
 - Official PlantUML rendering through the browser-local `@plantuml/core` engine
 - Code, split, and diagram-only views
 - Multiple open documents with reorderable tabs and independent per-document settings
+- Single-file `.pumlu` projects containing multiple diagrams, history, settings, and links
+- Linked WBS and Gantt diagrams with two-way task creation and shared work details
+- Searchable diagram outline, version history, and project change review
+- Delivery Scenario Lab for comparing possible Gantt schedules
+- Jira Cloud import, change review, and optional publishing for Gantt schedules
 - Visual task and milestone editing with immediate drag feedback
 - Dependency creation and editing directly on the diagram
 - Task, dependency, and divider notes
@@ -147,6 +152,18 @@ The other diagram editors provide the same source-first workflow with diagram-sp
 
 Supported objects can be selected directly in the preview. Visual edits generate minimal PlantUML source changes and participate in the same undo history as code edits.
 
+## Projects and linked diagrams
+
+Choose **File → New → Project** to create a project containing multiple diagrams. The Project navigator lets you add or import diagrams, rename them, and manage links between diagrams. **Save project** writes the diagrams, their settings and retained history, and their links to one portable `.pumlu` file. Reopen it through **File → Open → Diagram** or **File → Open → Project**. The navigator can review changes since the last save, show links and WBS–Gantt issues, and export a review report. See [Single-file projects](docs/single-file-projects.md).
+
+### Turn a WBS into a Gantt chart
+
+Open a WBS diagram and choose **Create Gantt chart from WBS** in its toolbar. Enter a project name when prompted. Studio creates a project containing the WBS and a linked Gantt chart. Every WBS node gets a Gantt entry in the same order and hierarchy: parents become summary groups, and leaf nodes become schedulable tasks. New tasks start without dates and with a five-day duration; you can then set dates, durations, and assignments in Gantt. Summary dates roll up from their children.
+
+Names and supported work details, identifiers, and dependencies carry across. Dependencies that cannot be mapped or would create a cycle are reported for review. Changes to shared task details and hierarchy appear in both views, while Gantt dates remain schedule information. A small link icon marks linked items; use the item inspector, context menu, or Project navigator to open its counterpart.
+
+After adding nodes to a linked WBS, choose **Add missing WBS tasks to Gantt**. After adding tasks to the Gantt chart, choose **Add missing Gantt tasks to WBS**. These actions reuse existing links so repeated runs do not duplicate tasks. Deleting a linked item asks whether to keep its counterpart or delete both.
+
 Use the view buttons in the toolbar to switch between:
 
 - `1 · code` — editor only; the heavy renderer is unloaded
@@ -157,10 +174,12 @@ Use the view buttons in the toolbar to switch between:
 
 ### File
 
-- **New** creates another document tab.
-- **Open…** opens a portable `.pumlu` document or imports a `.puml`/`.plantuml` source in a new tab.
-- **Save** writes to the current file when the browser has a file handle. Otherwise it behaves like Save As.
-- **Save As…** chooses a new file or downloads the current source, depending on browser support.
+- **New → Diagram / Project** creates a diagram tab or a multi-diagram project.
+- **Open → Diagram / Project** opens a portable `.pumlu` file or imports PlantUML source; project import also supports legacy folder and ZIP projects.
+- **Save → Save diagram / Save project** writes the active diagram or the entire project. **Save As** chooses a new `.pumlu` destination or downloads one, depending on browser support.
+- **Version history…** compares, restores, and exports saved checkpoints.
+- **Delivery Scenario Lab…** explores possible Gantt schedule changes before applying them.
+- **Jira…** connects a Gantt diagram to Jira Cloud for reviewed import and optional publishing.
 - **Backup workspace…** downloads a JSON backup containing every open document and shared workspace settings.
 - **Restore workspace…** replaces the current open workspace with a previously created backup.
 - **Export → SVG / PNG** exports the latest successful diagram render.
@@ -312,9 +331,17 @@ PlantUML syntax that is not understood by the visual Gantt adapter is preserved 
 
 Semantic reference and rename support currently covers Gantt tasks and people, Sequence participants, Use Case actors, use cases and packages, Class entities and packages, Activity actions and partitions, and WBS nodes. Renames are syntax-aware and update declarations and references without replacing unrelated text.
 
+Open **Diagram outline** from the command palette to search or filter diagram elements and jump to their source or rendered position. **File → Version history** stores checkpoints and compares source or rendered diagrams. For supported Gantt and Sequence edits, semantic review groups related changes so they can be inspected and accepted together; comparisons can also be exported as a patch or report. See [Semantic review](docs/semantic-review.md).
+
+## Delivery Scenario Lab and Jira
+
+For a Gantt diagram, **File → Delivery Scenario Lab** lets you adjust a candidate schedule and compare it with the current one. It shows task and dependency changes, milestone movement, critical-path effects, and resource conflicts. Apply a reviewed source patch when the scenario is ready.
+
+Use **File → Jira** to connect a Gantt diagram to a Jira Cloud site, import issues selected by JQL, and review mapped fields and conflicts before updating the diagram. Later changes can be compared with Jira and, if you choose, published back. Jira authorization uses the integration service; ordinary local diagram editing does not require a Jira connection.
+
 ## Tabs, persistence, and document safety
 
-Each open file has its own tab. Tabs can be reordered by dragging and provide context-menu actions for duplicate, close, and close other tabs.
+Each open diagram has its own tab. Tabs can be reordered by dragging and provide context-menu actions for duplicate, close, and close other tabs. In a project, tabs share one `.pumlu` save destination.
 
 The workspace is saved locally in IndexedDB, with local-storage fallback when IndexedDB is unavailable. Recovery includes open documents, source, filenames, dirty state, view mode, split position, zoom, cursor position, and theme.
 
@@ -446,9 +473,7 @@ examples/                    Example PlantUML documents
 
 ## Design principle
 
-PlantUML source is the persistent document representation. The parser, diagnostics, completions, renderer, inspectors, and diagram interactions all consume that source. Visual operations generate source edits instead of maintaining a second hidden project model.
-
-This keeps saved files portable: they remain regular PlantUML documents that can be opened in other compatible tools.
+PlantUML source remains authoritative within each diagram. The parser, diagnostics, completions, renderer, inspectors, and diagram interactions consume that source, and visual operations generate source edits. Native `.pumlu` files package source with retained history, settings, and, for projects, multiple diagrams and their links. Use **Export → Source** for a plain PlantUML file that other compatible tools can open.
 
 ## Current scope
 
