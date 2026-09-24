@@ -1469,6 +1469,14 @@ export function App() {
     );
     return new Set(parseResult.document.tasks.filter((task) => symbols.has(task.label)).map((task) => task.id));
   }, [parseResult.document.tasks, project, workspace.diagramKind, workspace.fileName]);
+  const linkedGanttTaskIds = useMemo(
+    () =>
+      new Set([
+        ...projectLinkedTaskIds,
+        ...(activeDocument.wbsGanttLinks ?? []).map((link) => link.ganttAlias.toLowerCase()),
+      ]),
+    [activeDocument.wbsGanttLinks, projectLinkedTaskIds],
+  );
   const projectDiagramLinks = useMemo(() => {
     const links = new Map<string, Array<{ documentId: string; path: string; label: string; relationship: string }>>();
     if (!project || workspace.diagramKind !== "gantt") return links;
@@ -2878,12 +2886,7 @@ export function App() {
               onChangeBaseline={() => void openVersionHistory()}
               onClearBaseline={clearBaseline}
               jiraTaskStatuses={jiraDiagramStatuses}
-              projectLinkedTaskIds={
-                new Set([
-                  ...projectLinkedTaskIds,
-                  ...(activeDocument.wbsGanttLinks ?? []).map((link) => link.ganttAlias.toLowerCase()),
-                ])
-              }
+              projectLinkedTaskIds={linkedGanttTaskIds}
               projectDiagramLinks={projectDiagramLinks}
               onOpenProjectDiagram={openMember}
             />
