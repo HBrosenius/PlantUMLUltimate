@@ -251,6 +251,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 2px;
 }
+.file-tools > .application-menu {
+  flex-shrink: 0;
+}
 .application-menu,
 .application-submenu {
   position: relative;

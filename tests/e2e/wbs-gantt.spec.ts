@@ -6,6 +6,18 @@ async function selectWbsNode(page: import("@playwright/test").Page, name: string
   await page.keyboard.press("Enter");
 }
 
+async function expectToolbarButtonInViewport(page: import("@playwright/test").Page, name: string) {
+  const button = page.getByRole("button", { name, exact: true });
+  await expect
+    .poll(() =>
+      button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.left >= 0 && rect.right <= window.innerWidth;
+      }),
+    )
+    .toBe(true);
+}
+
 test("converts a nested WBS into linked Gantt entries without explicit dates", async ({ page }) => {
   await prepareEditor(page);
   await page.getByRole("button", { name: "New document tab" }).click();
@@ -121,6 +133,7 @@ test("adds unlinked Gantt tasks and dependencies to the linked WBS once", async 
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
   await page.getByRole("button", { name: "Close project navigator" }).click();
+  await expectToolbarButtonInViewport(page, "Add");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Task…" }).click();
   const addTask = page.getByRole("dialog", { name: "Add task" });
@@ -219,6 +232,7 @@ for (const policy of ["keep", "delete"] as const) {
       .getByRole("button", { name: "Create Gantt chart" })
       .click();
     await page.getByRole("button", { name: "Close project navigator" }).click();
+    await expectToolbarButtonInViewport(page, "Add");
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("menuitem", { name: "Task…" }).click();
     const add = page.getByRole("dialog", { name: "Add task" });
@@ -459,6 +473,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await task.getByLabel("Start", { exact: true }).fill("2026-09-23");
   await task.getByLabel("Start", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("2026-09-23");
+  await expectToolbarButtonInViewport(page, "File");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
@@ -532,6 +547,7 @@ test("adds a task after an aliased WBS summary without invalidating the Gantt", 
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
   await page.getByRole("button", { name: "Close project navigator" }).click();
+  await expectToolbarButtonInViewport(page, "Add");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Task…" }).click();
   const dialog = page.getByRole("dialog", { name: "Add task" });
