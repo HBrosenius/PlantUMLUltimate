@@ -8,14 +8,7 @@ async function selectWbsNode(page: import("@playwright/test").Page, name: string
 
 async function expectToolbarButtonInViewport(page: import("@playwright/test").Page, name: string) {
   const button = page.getByRole("button", { name, exact: true });
-  await expect
-    .poll(() =>
-      button.evaluate((element) => {
-        const rect = element.getBoundingClientRect();
-        return rect.width > 0 && rect.left >= 0 && rect.right <= window.innerWidth;
-      }),
-    )
-    .toBe(true);
+  await expect(button).toBeInViewport();
 }
 
 test("converts a nested WBS into linked Gantt entries without explicit dates", async ({ page }) => {

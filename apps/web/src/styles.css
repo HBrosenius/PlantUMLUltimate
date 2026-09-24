@@ -249,6 +249,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .file-tools {
   display: flex;
+  flex-shrink: 0;
   gap: 2px;
 }
 .file-tools > .application-menu {
