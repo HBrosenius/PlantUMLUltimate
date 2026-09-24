@@ -67,7 +67,11 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     .getByLabel("Start", { exact: true })
     .fill("2026-09-01");
   await page.getByRole("complementary", { name: "Task inspector" }).getByLabel("Start", { exact: true }).blur();
+  await expect(page.locator(".cm-content")).toContainText("Project starts 2026-09-01");
   await expect(page.locator(".cm-content")).toContainText("[Project] as [wbs_project] starts 2026-09-01");
+  const scheduledPreview = page.getByRole("region", { name: "Diagram preview" }).locator("svg");
+  await expect(scheduledPreview).toContainText("Draft");
+  await expect(scheduledPreview).not.toContainText("No starting date for the project");
 });
 
 test("links an existing WBS node to an existing Gantt task", async ({ page }) => {
@@ -106,14 +110,11 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
   await page.getByRole("button", { name: "Close project navigator" }).click();
-  await setSource(
-    page,
-    "@startgantt\nProject starts 2026-09-24\n[Project] as [wbs_project] requires 5 days\n[↳ Design] as [wbs_design] requires 5 days\n@endgantt",
-  );
   await page.locator('[data-task-id="wbs_design"]').first().click();
   const task = page.getByRole("complementary", { name: "Task inspector" });
   await task.getByLabel("Start", { exact: true }).fill("2026-09-24");
   await task.getByLabel("Start", { exact: true }).blur();
+  await expect(page.locator(".cm-content")).toContainText("Project starts 2026-09-24");
   await task.getByRole("button", { name: "Open linked WBS node: Design" }).click();
   await page
     .getByRole("complementary", { name: "WBS node inspector" })

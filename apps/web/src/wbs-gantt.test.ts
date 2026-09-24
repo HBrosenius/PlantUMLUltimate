@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
-import { applyWbsGroupRollups, convertWbsToGantt, rollupWbsGroupDates } from "./wbs-gantt";
+import {
+  applyWbsGroupRollups,
+  convertWbsToGantt,
+  ensureLinkedGanttProjectStart,
+  rollupWbsGroupDates,
+} from "./wbs-gantt";
 
 describe("WBS to Gantt conversion", () => {
+  it("infers a project start when the first dated leaf is scheduled", () => {
+    const converted = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
+    expect(ensureLinkedGanttProjectStart(converted.ganttSource)).toBe(converted.ganttSource);
+    const dated = converted.ganttSource.replace("@endgantt", "[wbs_design] starts 2026-09-24\n@endgantt");
+    const inferred = ensureLinkedGanttProjectStart(dated);
+    expect(inferred).toContain("@startgantt\nProject starts 2026-09-24\n");
+    expect(parseGantt(inferred).document.projectStart?.value).toBe("2026-09-24");
+    expect(ensureLinkedGanttProjectStart(inferred)).toBe(inferred);
+    const explicit = dated.replace("@startgantt\n", "@startgantt\nProject starts 2026-09-01\n");
+    expect(ensureLinkedGanttProjectStart(explicit)).toBe(explicit);
+  });
   it("creates an entry without explicit dates for each nested node and retains valid dependencies", () => {
     const source = `@startwbs
 *(project) Project

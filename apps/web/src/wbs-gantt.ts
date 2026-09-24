@@ -21,6 +21,20 @@ const safeAlias = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").repla
 const safeLabel = (value: string) => value.replaceAll("]", ")").replaceAll("\n", " ").trim();
 const hierarchyLabel = (node: WbsNode) => `${"↳ ".repeat(Math.max(0, node.depth - 1))}${safeLabel(node.label)}`;
 
+/** PlantUML needs a project start before it can render earlier undated tasks beside a dated leaf. */
+export function ensureLinkedGanttProjectStart(source: string): string {
+  const document = parseGantt(source).document;
+  if (document.projectStart) return source;
+  const firstDate = document.tasks
+    .flatMap((task) => {
+      const start = task.start?.value;
+      return start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? [start] : [];
+    })
+    .sort()[0];
+  if (!firstDate) return source;
+  return source.replace(/(^\s*@startgantt[^\n]*\n)/im, `$1Project starts ${firstDate}\n`);
+}
+
 /** Give every WBS node a persistent identity before establishing cross-diagram links. */
 export function ensureWbsAliases(source: string): string {
   const document = parseWbs(source);

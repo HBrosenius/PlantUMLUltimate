@@ -6,7 +6,12 @@ import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
-import { applyWbsGroupRollups, convertWbsToGantt, rollupWbsGroupDates } from "./wbs-gantt";
+import {
+  applyWbsGroupRollups,
+  convertWbsToGantt,
+  ensureLinkedGanttProjectStart,
+  rollupWbsGroupDates,
+} from "./wbs-gantt";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
 import { WbsLinkedDeleteDialog } from "./features/wbs/WbsLinkedDeleteDialog";
@@ -1356,6 +1361,11 @@ export function App() {
     captureBeforeCommit,
     refreshHistoryControls,
   });
+  const commitLinkedGanttSchedule = useCallback(
+    (nextSource: string, description: string) =>
+      commitGeneratedSource(linkedWbs ? ensureLinkedGanttProjectStart(nextSource) : nextSource, description),
+    [commitGeneratedSource, linkedWbs],
+  );
 
   const {
     versionHistoryOpen,
@@ -1804,7 +1814,7 @@ export function App() {
     document: parseResult.document,
     selectedTask,
     diagramKind: workspace.diagramKind,
-    commitGeneratedSource,
+    commitGeneratedSource: commitLinkedGanttSchedule,
     closeDialog: closeGanttTaskDialog,
     selectTask: setSelectedTaskId,
     selectDependency: setSelectedDependencyIndex,
@@ -1829,7 +1839,7 @@ export function App() {
     selectedDependencyIndex,
     selectedDividerIndex,
     selectedVerticalSeparatorIndex,
-    commit: commitGeneratedSource,
+    commit: commitLinkedGanttSchedule,
     closeAddDivider: closeGanttDividerDialog,
     selectDependency: setSelectedDependencyIndex,
     selectDivider: setSelectedDividerIndex,
@@ -1866,7 +1876,7 @@ export function App() {
     selectedTaskId,
     resolvedTaskDates,
     scheduleMode,
-    commit: commitGeneratedSource,
+    commit: commitLinkedGanttSchedule,
     showSchedulePreview: setSchedulePreview,
     selectTask: setSelectedTaskId,
     rememberSelectedTask,
