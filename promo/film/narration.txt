@@ -1,0 +1,13 @@
+Ideas begin as scribbles, questions, and what-ifs.
+
+Meet PlantUML Ultimate: a browser-based studio where code and diagrams work together. Write PlantUML, or move things directly on the canvas. Your source stays in sync.
+
+Sketch the work as a WBS, then turn it into a linked Gantt schedule. The structure and task names stay connected while dates and assignments live in the schedule.
+
+As a diagram grows, Outline helps you search its elements and jump straight to them in the source and diagram.
+
+With Version History, compare checkpoints, see what changed, and restore an earlier version.
+
+Create sequence, activity, class, component, use case, Gantt, and WBS diagrams. Render locally in your browser, export as SVG or PNG, and collaborate live.
+
+PlantUML Ultimate. Diagram with your hands. Keep the power of code.

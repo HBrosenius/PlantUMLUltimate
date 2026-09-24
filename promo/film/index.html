@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PlantUML Ultimate — an animated introduction</title>
+    <style>
+      :root { color-scheme: dark; font-family: "Avenir Next", Avenir, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #172735; color: #f7efd9; min-height: 100vh; display: grid; place-items: center; }
+      main { width: min(100vw, 1500px); padding: clamp(12px, 2vw, 28px); }
+      h1 { font-size: 18px; letter-spacing: .08em; font-weight: 700; margin: 0 0 12px; }
+      canvas { display: block; width: 100%; aspect-ratio: 16 / 9; background: #f6ecd9; border-radius: 5px; box-shadow: 0 22px 70px #0008; }
+      .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 17px; }
+      button { border: 1px solid #f7efd966; background: #273b48; color: #f7efd9; padding: 10px 16px; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+      button:hover { background: #365261; }
+      button:disabled { opacity: .45; cursor: default; }
+      input[type=range] { flex: 1; min-width: 160px; accent-color: #f1ad63; }
+      output { font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: right; }
+      #status { width: 100%; color: #c9d7d1; font-size: 13px; }
+      a { color: #f6c783; }
+      @media (max-width: 600px) { h1 { font-size: 15px; } button { padding: 8px 12px; font-size: 13px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>PLANTUML ULTIMATE / THE IDEA MACHINE</h1>
+      <canvas id="film" width="1600" height="900" aria-label="Animated film about PlantUML Ultimate"></canvas>
+      <div class="controls">
+        <button id="play">▶ Play film</button>
+        <button id="export">↓ Export video</button>
+        <input id="scrub" type="range" min="0" max="59" step="0.01" value="0" aria-label="Film position" />
+        <output id="time">0:00 / 0:59</output>
+        <div id="status" role="status">Press play for narration, music, and sound effects. Export records a 59-second video with audio.</div>
+      </div>
+    </main>
+    <script src="./voice-data.js"></script>
+    <script src="./film.js"></script>
+  </body>
+</html>
