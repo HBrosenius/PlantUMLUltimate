@@ -11,6 +11,10 @@ interface Props {
   document: WbsDocument;
   linkedNodeIds?: ReadonlySet<string>;
   nodeCompletion?: ReadonlyMap<string, number>;
+  nodeSchedule?: ReadonlyMap<
+    string,
+    { label: string; dates: string; duration: string; completion: string; resources: string }
+  >;
   dependencyWarnings?: ReadonlyMap<string, string>;
   selectedId: string | undefined;
   selectedRelationshipId: string | undefined;
@@ -31,6 +35,7 @@ export function WbsDiagramPreview({
   document,
   linkedNodeIds = new Set(),
   nodeCompletion = new Map(),
+  nodeSchedule = new Map(),
   dependencyWarnings = new Map(),
   selectedId,
   selectedRelationshipId,
@@ -85,6 +90,17 @@ export function WbsDiagramPreview({
     };
   }>();
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
+  const [hoveredNode, setHoveredNode] = useState<{ id: string; x: number; y: number }>();
+  const hoverDetails = hoveredNode ? nodeSchedule.get(hoveredNode.id) : undefined;
+  useEffect(() => {
+    if (!hoveredNode) return;
+    const clearWhenLeavingNode = (event: PointerEvent) => {
+      const id = (event.target as Element).closest?.("[data-wbs-node-id]")?.getAttribute("data-wbs-node-id");
+      if (id !== hoveredNode.id) setHoveredNode(undefined);
+    };
+    window.addEventListener("pointermove", clearWhenLeavingNode, true);
+    return () => window.removeEventListener("pointermove", clearWhenLeavingNode, true);
+  }, [hoveredNode]);
   const clearDropTarget = () => {
     dropTarget.current?.classList.remove("wbs-drop-target");
     dropTarget.current = undefined;
@@ -487,7 +503,10 @@ export function WbsDiagramPreview({
       const plan = dropPlan.current;
       dropPlan.current = undefined;
       clearDropTarget();
-      if (!current.active) return;
+      if (!current.active) {
+        if (current.kind === "move") onSelect(current.id);
+        return;
+      }
       if (current.kind === "reconnect" && current.endpoint) {
         if (!target) return;
         onRelationshipReconnect(current.id, current.endpoint, target);
@@ -516,7 +535,16 @@ export function WbsDiagramPreview({
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", cancel, true);
     };
-  }, [document, nodeElementAt, onMove, onRelationshipCreate, onRelationshipReconnect, planMove, renderStatus]);
+  }, [
+    document,
+    nodeElementAt,
+    onMove,
+    onRelationshipCreate,
+    onRelationshipReconnect,
+    onSelect,
+    planMove,
+    renderStatus,
+  ]);
   return (
     <section className="preview wbs-preview" aria-label="WBS diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
@@ -567,6 +595,7 @@ export function WbsDiagramPreview({
             }}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
+              setHoveredNode(undefined);
               const target = event.target as Element;
               const endpointHandle = target.closest<SVGCircleElement>("[data-wbs-relationship-endpoint]");
               const endpoint = endpointHandle?.dataset.wbsRelationshipEndpoint as "from" | "to" | undefined;
@@ -634,6 +663,28 @@ export function WbsDiagramPreview({
                 onRelationshipSelect(undefined);
               }
             }}
+            onPointerOver={(event) => {
+              if (drag.current) return;
+              const node = (event.target as Element).closest<SVGElement>("[data-wbs-node-id]");
+              const id = node?.dataset.wbsNodeId;
+              if (!id || !nodeSchedule.has(id)) return;
+              const preview = event.currentTarget.closest<HTMLElement>(".wbs-preview")?.getBoundingClientRect();
+              if (!preview) return;
+              const rect = node.getBoundingClientRect();
+              setHoveredNode({
+                id,
+                x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
+                y: Math.max(8, rect.top - preview.top),
+              });
+            }}
+            onPointerOut={(event) => {
+              const from = (event.target as Element).closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
+              const to = (event.relatedTarget as Element | null)
+                ?.closest?.<SVGElement>("[data-wbs-node-id]")
+                ?.getAttribute("data-wbs-node-id");
+              if (from && from !== to) setHoveredNode(undefined);
+            }}
+            onPointerLeave={() => setHoveredNode(undefined)}
             onKeyDown={(event) => {
               const id = (event.target as Element).closest<SVGTextElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
               const relationshipId = (event.target as Element).closest<SVGElement>("[data-wbs-relationship-id]")
@@ -683,6 +734,33 @@ export function WbsDiagramPreview({
           />
         )}
       </div>
+      {hoverDetails && hoveredNode && !dragPreview && (
+        <aside
+          className="task-hover-card"
+          style={{ left: hoveredNode.x, top: hoveredNode.y }}
+          aria-label={`Task details for ${hoverDetails.label}`}
+        >
+          <strong>{hoverDetails.label}</strong>
+          <dl>
+            <div>
+              <dt>Dates</dt>
+              <dd>{hoverDetails.dates}</dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>{hoverDetails.duration}</dd>
+            </div>
+            <div>
+              <dt>Complete</dt>
+              <dd>{hoverDetails.completion}</dd>
+            </div>
+            <div>
+              <dt>People</dt>
+              <dd>{hoverDetails.resources}</dd>
+            </div>
+          </dl>
+        </aside>
+      )}
       {dragPreview && (
         <>
           {dragPreview.placement && (

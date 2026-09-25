@@ -21,6 +21,11 @@ export interface WbsGanttConversion {
   warnings: string[];
 }
 
+/** Add a chosen project start to a newly generated Gantt chart. */
+export function setGeneratedGanttProjectStart(source: string, startDate: string): string {
+  return source.replace(/^@startgantt\n/, `@startgantt\nProject starts ${startDate}\n`);
+}
+
 export interface GanttWbsImport {
   wbsSource: string;
   ganttSource: string;
@@ -134,7 +139,7 @@ export function relinkWbsGanttTask(
 
 const safeAlias = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_").replace(/^[^A-Za-z_]/, "_$&");
 const safeLabel = (value: string) => value.replaceAll("]", ")").replaceAll("\n", " ").trim();
-const hierarchyLabel = (node: WbsNode) => `${"↳ ".repeat(Math.max(0, node.depth - 1))}${safeLabel(node.label)}`;
+const hierarchyLabel = (node: WbsNode) => safeLabel(node.label);
 
 /** PlantUML needs a project start before it can render earlier undated tasks beside a dated leaf. */
 export function ensureLinkedGanttProjectStart(source: string): string {
@@ -321,7 +326,7 @@ export function convertWbsToGantt(
   }
   let ganttSource: string;
   if (!synchronizedSource) {
-    ganttSource = `@startgantt\n${[...declarations, ...dependencyLines].join("\n")}\n@endgantt`;
+    ganttSource = `@startgantt\nsaturday are closed\nsunday are closed\n${[...declarations, ...dependencyLines].join("\n")}\n@endgantt`;
   } else {
     const autoAliases = new Set(links.map((link) => link.ganttAlias));
     const retained: string[] = [];

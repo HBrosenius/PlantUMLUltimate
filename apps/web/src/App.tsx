@@ -1,7 +1,7 @@
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
-import { DiagramPreview } from "./DiagramPreview";
+import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 import { ClassDiagramPreview } from "./ClassDiagramPreview";
@@ -12,6 +12,7 @@ import {
   convertWbsToGantt,
   ensureLinkedGanttProjectStart,
   relinkWbsGanttTask,
+  setGeneratedGanttProjectStart,
 } from "./wbs-gantt";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
@@ -342,6 +343,25 @@ export function App() {
       if (node && value !== undefined) completion.set(node.id, value);
     }
     return completion;
+  }, [linkedGantt, wbsDocument.nodes]);
+  const wbsNodeSchedule = useMemo(() => {
+    const details = new Map<string, NonNullable<ReturnType<typeof taskHoverDetails>>>();
+    if (!linkedGantt) return details;
+    const gantt = parseGantt(linkedGantt.source).document;
+    const dates = resolveTaskDates(
+      gantt.tasks,
+      gantt.dependencies,
+      gantt.projectStart?.resolved ? gantt.projectStart.value : undefined,
+      parseGanttCalendar(linkedGantt.source),
+    );
+    for (const link of linkedGantt.wbsGanttLinks ?? []) {
+      const node = wbsDocument.nodes.find((item) => item.alias === link.wbsAlias);
+      const task = gantt.symbols.tasks.get(link.ganttAlias.toLowerCase());
+      if (!node || !task) continue;
+      const summary = taskHoverDetails(task, gantt.dependencies, gantt.tasks, dates.get(task.id));
+      if (summary) details.set(node.id, summary);
+    }
+    return details;
   }, [linkedGantt, wbsDocument.nodes]);
   const linkedWbs = activeDocument.linkedWbsDocumentId
     ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
@@ -3233,6 +3253,7 @@ export function App() {
               document={wbsDocument}
               dependencyWarnings={wbsDependencyWarnings}
               nodeCompletion={wbsNodeCompletion}
+              nodeSchedule={wbsNodeSchedule}
               linkedNodeIds={
                 new Set(
                   wbsDocument.nodes
@@ -3430,7 +3451,7 @@ export function App() {
             const parsed = parseGantt(linkedGantt.source).document;
             const task = link && parsed.symbols.tasks.get(link.ganttAlias.toLowerCase());
             if (!task) return;
-            const label = `${"↳ ".repeat(Math.max(0, selectedWbsNode.depth - 1))}${value.label.replaceAll("]", ")").replaceAll("\n", " ").trim()}`;
+            const label = value.label.replaceAll("]", ")").replaceAll("\n", " ").trim();
             const result = renameTask(linkedGantt.source, parsed, task, label);
             if (!result.unavailableReason && result.edits.length)
               tabs.updateDocumentSource(linkedGantt.id, applySourceEdits(linkedGantt.source, result.edits), "gantt");
@@ -3740,9 +3761,14 @@ export function App() {
         <ProjectNameDialog
           title="Create project from WBS"
           initialValue={workspace.fileName.replace(/\.[^.]+$/, "") || "WBS project"}
+          initialStartDate={(() => {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          })()}
           submitLabel="Create Gantt chart"
-          onSubmit={(name) => {
+          onSubmit={(name, startDate) => {
             const converted = convertWbsToGantt(workspace.source);
+            converted.ganttSource = setGeneratedGanttProjectStart(converted.ganttSource, startDate);
             const sourceTabId = tabs.activeId;
             closeDialog("wbs-gantt-project");
             void singleFileProject.createWbsGanttProject(name, converted, sourceTabId).catch(reportFileError);

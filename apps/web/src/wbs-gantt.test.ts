@@ -9,16 +9,24 @@ import {
   convertWbsToGantt,
   ensureLinkedGanttProjectStart,
   relinkWbsGanttTask,
+  setGeneratedGanttProjectStart,
 } from "./wbs-gantt";
 
 describe("WBS to Gantt conversion", () => {
+  it("starts a generated schedule on the chosen date with weekends closed", () => {
+    const converted = convertWbsToGantt("@startwbs\n* Project\n@endwbs");
+    const scheduled = setGeneratedGanttProjectStart(converted.ganttSource, "2026-09-01");
+    expect(scheduled).toContain("@startgantt\nProject starts 2026-09-01\nsaturday are closed\nsunday are closed\n");
+    expect(parseGantt(scheduled).document.projectStart?.value).toBe("2026-09-01");
+    expect(parseGanttCalendar(scheduled).closedWeekdays).toEqual(new Set([0, 6]));
+  });
   it("adds only a selected WBS node and its missing ancestors", () => {
     const initial = convertWbsToGantt("@startwbs\n*(project) Project\n@endwbs");
     const wbs = initial.wbsSource.replace("@endwbs", "**(design) Design\n***(draft) Draft\n**(build) Build\n@endwbs");
     const imported = convertWbsToGantt(wbs, initial.ganttSource, initial.links, [], "keep-scheduled", true, ["wbs-2"]);
-    expect(imported.ganttSource).toContain("[↳ Design] as [wbs_design]");
-    expect(imported.ganttSource).toContain("[↳ ↳ Draft] as [wbs_draft]");
-    expect(imported.ganttSource).not.toContain("[↳ Build] as [wbs_build]");
+    expect(imported.ganttSource).toContain("[Design] as [wbs_design]");
+    expect(imported.ganttSource).toContain("[Draft] as [wbs_draft]");
+    expect(imported.ganttSource).not.toContain("[Build] as [wbs_build]");
     expect(imported.links).toHaveLength(3);
   });
 
@@ -167,7 +175,7 @@ build -> draft
 
   it("does not recreate an intentionally unlinked WBS node during background synchronization", () => {
     const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
-    const gantt = first.ganttSource.replace("[↳ Design] as [wbs_design] requires 5 days\n", "");
+    const gantt = first.ganttSource.replace("[Design] as [wbs_design] requires 5 days\n", "");
     const remaining = first.links.filter((link) => link.wbsAlias !== "design");
     const synced = convertWbsToGantt(first.wbsSource, gantt, remaining, first.dependencies, "keep-scheduled", false);
     expect(synced.links).toEqual(remaining);
@@ -207,14 +215,28 @@ build -> draft
   it("updates WBS order while retaining Gantt scheduling", () => {
     const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(a) A\n**(b) B\n@endwbs");
     const scheduled = first.ganttSource
-      .replace("[↳ A] as [wbs_a] requires 5 days", "[↳ A] as [wbs_a] requires 3 days")
-      .replace("@endgantt", "[↳ A] starts 2026-09-02\n@endgantt");
+      .replace("[A] as [wbs_a] requires 5 days", "[A] as [wbs_a] requires 3 days")
+      .replace("@endgantt", "[A] starts 2026-09-02\n@endgantt");
     const updated = convertWbsToGantt("@startwbs\n*(project) Project\n**(b) B\n**(a) Alpha\n@endwbs", scheduled);
     const tasks = parseGantt(updated.ganttSource).document.tasks;
     expect(tasks.map((task) => task.alias?.value)).toEqual(["wbs_project", "wbs_b", "wbs_a"]);
     expect(tasks.find((task) => task.alias?.value === "wbs_a")?.duration?.value).toBe(3);
-    expect(updated.ganttSource).toContain("[↳ Alpha] as [wbs_a] requires 3 days");
+    expect(updated.ganttSource).toContain("[Alpha] as [wbs_a] requires 3 days");
     expect(updated.ganttSource).toContain("starts 2026-09-02");
+  });
+
+  it("removes old level markers from linked task names without losing dependencies", () => {
+    const wbs = "@startwbs\n*(project) Project\n**(design) Design\n***(draft) Draft\n@endwbs";
+    const first = convertWbsToGantt(wbs);
+    const legacy = first.ganttSource
+      .replace("[Design] as [wbs_design]", "[↳ Design] as [wbs_design]")
+      .replace("[Draft] as [wbs_draft]", "[↳ ↳ Draft] as [wbs_draft]");
+    const updated = convertWbsToGantt(wbs, legacy, first.links, first.dependencies);
+    expect(updated.ganttSource).toContain("[Design] as [wbs_design]");
+    expect(updated.ganttSource).toContain("[Draft] as [wbs_draft]");
+    expect(updated.ganttSource).not.toContain("↳");
+    expect(parseGantt(updated.ganttSource).document.tasks).toHaveLength(3);
+    expect(parseGantt(updated.ganttSource).document.dependencies).toHaveLength(2);
   });
 
   it("reuses a manually linked task when filling the rest of a WBS", () => {
@@ -245,8 +267,8 @@ build -> draft
   it("keeps scheduled tasks as unlinked work when their WBS nodes are deleted", () => {
     const first = convertWbsToGantt("@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
     const scheduled = first.ganttSource.replace(
-      "[↳ Design] as [wbs_design] requires 5 days",
-      "[↳ Design] as [wbs_design] requires 8 days",
+      "[Design] as [wbs_design] requires 5 days",
+      "[Design] as [wbs_design] requires 8 days",
     );
     const updated = convertWbsToGantt("@startwbs\n*(project) Project\n@endwbs", scheduled, first.links);
     expect(parseGantt(updated.ganttSource).document.tasks.map((task) => task.alias?.value)).toEqual([
@@ -255,7 +277,7 @@ build -> draft
     ]);
     expect(updated.links).toHaveLength(1);
     expect(updated.warnings).toContain(
-      "Kept scheduled Gantt task ↳ Design after its WBS node was removed; it is now unlinked.",
+      "Kept scheduled Gantt task Design after its WBS node was removed; it is now unlinked.",
     );
   });
 
