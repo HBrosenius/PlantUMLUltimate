@@ -3345,14 +3345,16 @@ textarea:focus-visible,
   display: flex;
   justify-content: space-between;
 }
-.scenario-editors textarea {
+.scenario-source-host {
   min-height: 260px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.45;
+  height: 260px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
 }
-.scenario-editors textarea[readonly] {
+.scenario-source-host .cm-scroller {
+  overflow: auto;
+}
+.scenario-source-readonly {
   opacity: 0.72;
 }
 .scenario-impact {

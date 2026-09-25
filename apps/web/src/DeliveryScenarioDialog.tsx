@@ -10,6 +10,7 @@ import { applyScenarioVisualOperation, updateScenarioTask, type ScenarioTaskInpu
 import { DiagramPreview } from "./DiagramPreview";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveTaskDates } from "./gantt-schedule";
+import { ScenarioSourceEditor } from "./ScenarioSourceEditor";
 
 function signed(value: number | undefined): string {
   if (value === undefined) return "Changed";
@@ -331,21 +332,19 @@ export function DeliveryScenarioDialog({
                   <span>
                     Current plan <small>snapshot</small>
                   </span>
-                  <textarea aria-label="Current plan source" value={currentSource} readOnly spellCheck={false} />
+                  <ScenarioSourceEditor label="Current plan source" value={currentSource} readOnly />
                 </label>
                 <label>
                   <span>
                     Scenario <small>{changed ? "modified" : "unchanged"}</small>
                   </span>
-                  <textarea
-                    aria-label="Scenario source"
-                    autoFocus
+                  <ScenarioSourceEditor
+                    label="Scenario source"
                     value={scenarioSource}
-                    onChange={(event) => {
-                      setScenarioSource(event.target.value);
+                    onChange={(source) => {
+                      setScenarioSource(source);
                       setDiscardRequested(false);
                     }}
-                    spellCheck={false}
                   />
                 </label>
               </div>

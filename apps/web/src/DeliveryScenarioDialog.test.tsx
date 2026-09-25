@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeliveryScenarioDialog } from "./DeliveryScenarioDialog";
+import { EditorView } from "@codemirror/view";
 
 afterEach(cleanup);
 
@@ -12,17 +13,29 @@ Project starts 2026-09-01
 [Release] happens at [Build]'s end
 @endgantt`;
 
+function sourceEditor(label: string): EditorView {
+  const content = screen.getByLabelText(label);
+  const editor = EditorView.findFromDOM(content);
+  if (!editor) throw new Error(`Missing ${label} CodeMirror view`);
+  return editor;
+}
+
+function editScenario(value: string): void {
+  const editor = sourceEditor("Scenario source");
+  act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } }));
+}
+
 describe("DeliveryScenarioDialog", () => {
   it("keeps the current plan immutable and updates impact from scenario edits", () => {
     render(<DeliveryScenarioDialog currentSource={source} capacities={{}} onApply={vi.fn()} onClose={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit PlantUML source" }));
-    expect((screen.getByLabelText("Current plan source") as HTMLTextAreaElement).readOnly).toBe(true);
+    expect(sourceEditor("Current plan source").state.readOnly).toBe(true);
+    expect(sourceEditor("Scenario source").state.readOnly).toBe(false);
+    expect(screen.getByLabelText("Scenario source").getAttribute("data-language")).toBe("plantuml-gantt");
     expect(screen.getByText(/will not change until you review and apply/)).toBeTruthy();
     expect(screen.getByText("Edit the scenario source to see delivery impact.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Scenario source"), {
-      target: { value: source.replace("3 days", "5 days") },
-    });
+    editScenario(source.replace("3 days", "5 days"));
     expect(screen.getByRole("heading", { name: "Milestones" }).closest("section")?.textContent).toContain("+2 days");
     expect(screen.getByText(/Because:/).textContent).toContain("Changed duration");
   });
@@ -31,10 +44,9 @@ describe("DeliveryScenarioDialog", () => {
     const onClose = vi.fn();
     render(<DeliveryScenarioDialog currentSource={source} capacities={{}} onApply={vi.fn()} onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit PlantUML source" }));
-    const scenario = screen.getByLabelText("Scenario source") as HTMLTextAreaElement;
-    fireEvent.change(scenario, { target: { value: source.replace("3 days", "7 days") } });
+    editScenario(source.replace("3 days", "7 days"));
     fireEvent.click(screen.getByRole("button", { name: "Reset scenario" }));
-    expect(scenario.value).toBe(source);
+    expect(sourceEditor("Scenario source").state.doc.toString()).toBe(source);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -43,9 +55,7 @@ describe("DeliveryScenarioDialog", () => {
     const onApply = vi.fn(() => true);
     render(<DeliveryScenarioDialog currentSource={source} capacities={{}} onApply={onApply} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit PlantUML source" }));
-    fireEvent.change(screen.getByLabelText("Scenario source"), {
-      target: { value: source.replace("3 days", "5 days") },
-    });
+    editScenario(source.replace("3 days", "5 days"));
     fireEvent.click(screen.getByRole("button", { name: "Review and apply…" }));
     expect(screen.getByLabelText("Scenario source patch").textContent).toContain("[Build] lasts 5 days");
     expect(screen.getByLabelText("Scenario source patch").textContent).toContain("[Build] lasts 3 days");
@@ -68,9 +78,7 @@ describe("DeliveryScenarioDialog", () => {
     const onClose = vi.fn();
     render(<DeliveryScenarioDialog currentSource={source} capacities={{}} onApply={vi.fn()} onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit PlantUML source" }));
-    fireEvent.change(screen.getByLabelText("Scenario source"), {
-      target: { value: source.replace("3 days", "5 days") },
-    });
+    editScenario(source.replace("3 days", "5 days"));
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).not.toHaveBeenCalled();
@@ -95,7 +103,7 @@ describe("DeliveryScenarioDialog", () => {
 
     expect(screen.getByText(/tasks changed/).parentElement?.textContent).toContain("1");
     fireEvent.click(screen.getByRole("button", { name: "Edit PlantUML source" }));
-    const scenario = (screen.getByLabelText("Scenario source") as HTMLTextAreaElement).value;
+    const scenario = sourceEditor("Scenario source").state.doc.toString();
     expect(scenario).toContain("lasts 6 days");
     expect(scenario).toContain("[Build] is 50% completed");
     expect(scenario).toContain("[Build] on {Alice:100%}");
