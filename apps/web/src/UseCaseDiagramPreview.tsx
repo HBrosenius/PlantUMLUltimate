@@ -263,7 +263,7 @@ export function UseCaseDiagramPreview({
     const type = hit?.getAttribute("data-usecase-object-type");
     if (!id || (!reconnectId && !connection && !moveHandle && type !== "actor" && type !== "usecase")) return;
     event.stopPropagation();
-    const kind = reconnectId ? "reconnect" : connection ? "connect" : "move";
+    const kind = reconnectId ? "reconnect" : moveHandle ? "move" : "connect";
     const preview =
       kind === "connect" || kind === "reconnect" ? createConnectionPreview(target as SVGGraphicsElement) : undefined;
     drag.current = {
@@ -385,7 +385,7 @@ export function UseCaseDiagramPreview({
         <span className="usecase-keyboard-help" role="status" aria-live="polite">
           {keyboardConnectFrom
             ? "Choose a target and press Enter · Esc cancels"
-            : "Focus an object and press C to connect"}
+            : "Drag between objects to connect · C for keyboard"}
         </span>
       </div>
       <div

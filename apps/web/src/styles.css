@@ -3646,7 +3646,7 @@ textarea:focus-visible,
 .usecase-semantic-hit {
   fill: transparent;
   stroke: transparent;
-  cursor: pointer;
+  cursor: crosshair;
   pointer-events: all;
 }
 .usecase-semantic-hit:hover {

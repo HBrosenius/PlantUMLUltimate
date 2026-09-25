@@ -6,6 +6,42 @@ test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
 });
 
+test("connects Browse products to Process payment in a nested ordering system", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await setSource(
+    page,
+    `@startuml
+left to right direction
+actor Customer
+rectangle "Ordering system" {
+  usecase "Browse products" as Browse
+  usecase "Place order" as Order
+  usecase "Process payment" as Payment
+}
+Customer --> Browse
+Customer --> Order
+Order ..> Payment : <<include>>
+actor "actor"
+actor --> Browse
+@enduml`,
+  );
+  const source = page.locator('.usecase-semantic-hit[data-usecase-object-id="browse"]');
+  const target = page.locator('.usecase-semantic-hit[data-usecase-object-id="payment"]');
+  await expect(source).toBeVisible();
+  await expect(target).toBeVisible();
+  const start = await source.boundingBox();
+  const end = await target.boundingBox();
+  await page.mouse.move(start!.x + start!.width / 2, start!.y + start!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end!.x + end!.width / 2, end!.y + end!.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("Browse --> Payment");
+});
+
 test("highlights, finds, and renames Use Case actor references", async ({ page }) => {
   await page.getByRole("button", { name: "New document tab" }).click();
   await page
@@ -330,7 +366,7 @@ test("selects and reorders Use Case objects with the keyboard", async ({ page })
   await secondActor.focus();
   await page.keyboard.press("c");
   await page.keyboard.press("Escape");
-  await expect(page.getByText("Focus an object and press C to connect")).toBeVisible();
+  await expect(page.getByText("Drag between objects to connect · C for keyboard")).toBeVisible();
 });
 
 test("keeps Use Case selection aligned after zoom and responsive resizing", async ({ page }) => {
