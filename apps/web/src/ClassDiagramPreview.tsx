@@ -10,6 +10,7 @@ import {
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 const classInteractionSelector =
   ".class-semantic-hit,.class-connect-handle,.class-move-handle,.class-relationship-hit,.class-relationship-endpoint,.class-connection-preview,.class-package-drop-hit";
@@ -431,7 +432,7 @@ export function ClassDiagramPreview({
         <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
           {Math.round(zoom * 100)}%
         </button>
-        <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
+        <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
           +
         </button>
         {document.packages.length > 0 && (

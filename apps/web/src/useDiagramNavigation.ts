@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
 
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 3;
+import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) => void) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -36,7 +35,7 @@ export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) 
       const viewport = viewportRef.current;
       if (!viewport || event.deltaY === 0) return;
       event.preventDefault();
-      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * Math.exp(-event.deltaY * 0.0015)));
+      const nextZoom = Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, zoom * Math.exp(-event.deltaY * 0.0015)));
       if (Math.abs(nextZoom - zoom) < 0.001) return;
       const bounds = viewport.getBoundingClientRect();
       const cursorX = event.clientX - bounds.left;

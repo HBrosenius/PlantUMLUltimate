@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function SequenceDiagramPreview({
   svg,
@@ -595,7 +596,7 @@ export function SequenceDiagramPreview({
         <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
           {Math.round(zoom * 100)}%
         </button>
-        <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
+        <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
           +
         </button>
         <button

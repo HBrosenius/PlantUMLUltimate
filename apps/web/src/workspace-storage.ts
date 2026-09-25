@@ -1,3 +1,4 @@
+import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/diagram-gantt";
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
@@ -144,7 +145,7 @@ export function normalizeWorkspace(value: unknown): WorkspaceSnapshot {
     ),
     cursor: { ...DEFAULT_WORKSPACE.cursor, ...candidate.cursor },
     splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
-    zoom: Math.min(3, Math.max(0.25, Number(candidate.zoom) || 1)),
+    zoom: Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, Number(candidate.zoom) || 1)),
     advancedMode: candidate.advancedMode ?? DEFAULT_WORKSPACE.advancedMode,
     defaultDiagramTheme:
       typeof candidate.defaultDiagramTheme === "string"
@@ -174,7 +175,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           source,
           fileName: item.fileName || "untitled.puml",
           dirty: Boolean(item.dirty) || source !== item.source,
-          zoom: Math.min(3, Math.max(0.25, Number(item.zoom) || 1)),
+          zoom: Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, Number(item.zoom) || 1)),
           cursor: {
             line: Math.max(1, Number(item.cursor?.line) || 1),
             column: Math.max(1, Number(item.cursor?.column) || 1),

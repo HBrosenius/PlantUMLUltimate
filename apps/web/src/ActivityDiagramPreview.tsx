@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, ty
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
+import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function ActivityDiagramPreview({
   svg,
@@ -219,7 +220,7 @@ export function ActivityDiagramPreview({
         <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
           {Math.round(zoom * 100)}%
         </button>
-        <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} aria-label="Zoom in">
+        <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
           +
         </button>
         {document.partitions.length > 0 && (

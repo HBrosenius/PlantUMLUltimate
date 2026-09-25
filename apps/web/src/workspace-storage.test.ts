@@ -41,7 +41,8 @@ describe("normalizeWorkspace", () => {
 
   it("clamps persisted layout values", () => {
     expect(normalizeWorkspace({ splitPercent: 500, zoom: 0 }).splitPercent).toBe(80);
-    expect(normalizeWorkspace({ zoom: 9 }).zoom).toBe(3);
+    expect(normalizeWorkspace({ zoom: 9 }).zoom).toBe(9);
+    expect(normalizeWorkspace({ zoom: 15 }).zoom).toBe(10);
   });
 
   it("falls back safely for invalid values", () => {

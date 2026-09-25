@@ -1,3 +1,4 @@
+import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { DiagramPreview } from "./DiagramPreview";
@@ -2201,7 +2202,7 @@ export function App() {
         id: "view.zoom-in",
         label: "Zoom in",
         category: "View",
-        run: () => update("zoom", Math.min(2, workspace.zoom + 0.1)),
+        run: () => update("zoom", Math.min(MAX_DIAGRAM_ZOOM, workspace.zoom + 0.1)),
       },
       {
         id: "view.zoom-out",
