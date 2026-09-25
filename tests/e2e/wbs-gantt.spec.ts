@@ -536,7 +536,10 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
-  await setSource(page, "@startwbs\n*(plan) Plan\n**(build) Build\n@endwbs");
+  await setSource(
+    page,
+    "@startwbs\n<style>\nwbsDiagram {\n  node {\n    BackgroundColor #224466\n  }\n}\n</style>\n*(plan) Plan\n**(build) Build\n@endwbs",
+  );
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   const name = page.getByRole("dialog", { name: "Create project from WBS" });
   await name.getByLabel("Name").fill("Linked plan");
@@ -612,7 +615,24 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
       .click();
     await selectWbsNode(reopened, "Build");
     await expect(reopened.getByRole("button", { name: "Open linked Gantt task" })).toBeVisible();
-    await expect(reopened.getByText("60%", { exact: true })).toBeVisible();
+    const progress = reopened.locator('.wbs-node-progress[aria-label="Build: 60% complete"]');
+    await expect(progress).toBeVisible();
+    const geometry = await progress.evaluate((element) => {
+      const node = (element.previousElementSibling as SVGRectElement).getBBox();
+      const track = element.querySelector<SVGRectElement>(".wbs-node-progress-track")!.getBBox();
+      const fill = element.querySelector<SVGRectElement>(".wbs-node-progress-fill")!.getBBox();
+      return {
+        node: { x: node.x, y: node.y, right: node.x + node.width, bottom: node.y + node.height },
+        track: { x: track.x, y: track.y, width: track.width, height: track.height },
+        fill: { width: fill.width },
+      };
+    });
+    expect(geometry.fill.width / geometry.track.width).toBeCloseTo(0.6);
+    expect(geometry.track.x).toBeGreaterThan(geometry.node.x);
+    expect(geometry.track.y).toBeGreaterThan(geometry.node.y);
+    expect(geometry.track.x + geometry.track.width).toBeLessThan(geometry.node.right);
+    expect(geometry.track.y + geometry.track.height).toBeLessThan(geometry.node.bottom);
+    await expect(progress.locator(".wbs-node-progress-fill")).toHaveAttribute("fill", "#ffffff");
   } finally {
     await context.close();
   }

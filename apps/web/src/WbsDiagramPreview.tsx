@@ -4,6 +4,7 @@ import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
+import { wbsProgressInk } from "./wbs-progress";
 
 interface Props {
   svg: string | undefined;
@@ -206,7 +207,7 @@ export function WbsDiagramPreview({
     if (!host) return;
     host
       .querySelectorAll(
-        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-completion",
+        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-progress",
       )
       .forEach((item) => item.remove());
     const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
@@ -240,21 +241,10 @@ export function WbsDiagramPreview({
       renderedNodes.set(node.id, text);
       text.setAttribute("tabindex", "0");
       text.setAttribute("role", "button");
+      const completion = linkedNodeIds.has(node.id) ? nodeCompletion.get(node.id) : undefined;
       text.setAttribute("aria-label", `Select WBS node ${node.label}`);
       if (linkedNodeIds.has(node.id)) {
-        const lastLine = matched.at(-1)!;
-        appendDiagramLinkIcon(lastLine);
-        const completion = nodeCompletion.get(node.id);
-        if (completion !== undefined) {
-          const box = lastLine.getBBox();
-          const label = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "text");
-          label.setAttribute("class", "wbs-node-completion");
-          label.setAttribute("x", String(box.x + box.width + 24));
-          label.setAttribute("y", String(box.y + box.height / 2 + 4));
-          label.setAttribute("aria-label", `${node.label}: ${completion}% complete`);
-          label.textContent = `${completion}%`;
-          lastLine.parentNode?.append(label);
-        }
+        appendDiagramLinkIcon(matched.at(-1)!);
       }
       const boxes = matched.map((candidate) => candidate.getBBox());
       const bounds = boxes.slice(1).reduce(
@@ -270,6 +260,53 @@ export function WbsDiagramPreview({
         },
         { x: boxes[0]!.x, y: boxes[0]!.y, width: boxes[0]!.width, height: boxes[0]!.height },
       );
+      if (completion !== undefined) {
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        const shape = [
+          ...(text.ownerSVGElement?.querySelectorAll<SVGRectElement>(
+            "rect:not(.wbs-node-hit):not(.wbs-node-progress-track):not(.wbs-node-progress-fill)",
+          ) ?? []),
+        ]
+          .filter((rect) => {
+            const box = rect.getBBox();
+            return (
+              centerX >= box.x && centerX <= box.x + box.width && centerY >= box.y && centerY <= box.y + box.height
+            );
+          })
+          .sort((left, right) => {
+            const a = left.getBBox();
+            const b = right.getBBox();
+            return a.width * a.height - b.width * b.height;
+          })[0];
+        if (shape) {
+          const box = shape.getBBox();
+          const width = Math.max(0, box.width - 3);
+          const ink = wbsProgressInk(getComputedStyle(shape).fill);
+          const group = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.setAttribute("class", "wbs-node-progress");
+          group.setAttribute("role", "img");
+          group.setAttribute("aria-label", `${node.label}: ${completion}% complete`);
+          const title = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "title");
+          title.textContent = `${node.label}: ${completion}% complete`;
+          group.append(title);
+          for (const [kind, barWidth] of [
+            ["track", width],
+            ["fill", (width * Math.min(100, Math.max(0, completion))) / 100],
+          ] as const) {
+            const bar = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bar.setAttribute("class", `wbs-node-progress-${kind}`);
+            bar.setAttribute("x", String(box.x + 1.5));
+            bar.setAttribute("y", String(box.y + box.height - 6.5));
+            bar.setAttribute("width", String(barWidth));
+            bar.setAttribute("height", "4");
+            bar.setAttribute("rx", "1.5");
+            bar.setAttribute("fill", ink);
+            group.append(bar);
+          }
+          shape.after(group);
+        }
+      }
       const hit = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "rect");
       hit.setAttribute("x", String(bounds.x - 12));
       hit.setAttribute("y", String(bounds.y - 8));
