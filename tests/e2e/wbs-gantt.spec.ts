@@ -99,6 +99,48 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
   await expect(page.getByRole("complementary", { name: "Task details for Build" })).toBeHidden();
 });
 
+test("keeps a generated task's dependency and position when completion changes", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await setSource(
+    page,
+    "@startwbs\n* Website redesign\n** Discovery\n*** Stakeholder interviews\n*** Content inventory\n** Design\n*** Information architecture\n*** Visual design\n** Delivery\n*** Frontend implementation\n*** Quality assurance\n@endwbs",
+  );
+  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
+  const project = page.getByRole("dialog", { name: "Create project from WBS" });
+  await project.getByLabel("Project start date").fill("2026-10-05");
+  await project.getByRole("button", { name: "Create Gantt chart" }).click();
+  await page.getByRole("button", { name: "Close project navigator" }).click();
+
+  const code = page.locator(".cm-content");
+  const dependency = "[wbs_content_inventory] starts at [wbs_discovery]'s end";
+  await expect(code).toContainText(dependency);
+  await page.locator('[data-task-id="wbs_content_inventory"]').first().click();
+  const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
+  const startBefore = await inspector.getByLabel("Start", { exact: true }).inputValue();
+  await inspector.getByLabel("Complete").fill("40");
+  await inspector.getByLabel("Complete").blur();
+  await expect(code).toContainText(dependency);
+  await expect(inspector.getByLabel("Start", { exact: true })).toHaveValue(startBefore);
+  await expect(inspector.getByLabel("Linked task")).toHaveValue("wbs_discovery");
+  await inspector.getByRole("button", { name: "Close task inspector" }).click();
+  await page.locator('[data-task-id="wbs_content_inventory"] .label-hit').click();
+  await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
+  await inspector.getByRole("button", { name: "Close task inspector" }).click();
+  const handle = await page
+    .locator('[data-task-id="wbs_content_inventory"] [data-dependency-handle]')
+    .first()
+    .boundingBox();
+  expect(handle).toBeTruthy();
+  await page.mouse.click(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
+});
+
 test("links an existing WBS node to an existing Gantt task", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, "@startgantt\n[Design] lasts 2 days\n@endgantt");

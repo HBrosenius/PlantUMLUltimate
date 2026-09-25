@@ -7,6 +7,7 @@ import {
   type ProjectManifest,
 } from "./types";
 import { portablePathKey, validateProjectPath } from "./paths";
+import { canCreateLink } from "./links";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const hash = /^[0-9a-f]{64}$/i;
@@ -48,7 +49,12 @@ function optionalHash(value: unknown, label: string): string | undefined {
 function element(value: unknown): ProjectElement {
   const item = record(value, "Element");
   exactKeys(item, ["id", "documentId", "kind", "locator"], "Element");
-  if (item.kind !== "sequence-participant" && item.kind !== "class-entity" && item.kind !== "gantt-task")
+  if (
+    item.kind !== "sequence-participant" &&
+    item.kind !== "class-entity" &&
+    item.kind !== "gantt-task" &&
+    item.kind !== "wbs-node"
+  )
     throw new ProjectFormatError("Element kind is unsupported");
   const locator = record(item.locator, "Element locator");
   exactKeys(locator, ["symbolKey", "keyType", "declarationHash", "sourceHash", "from", "to"], "Element locator");
@@ -80,10 +86,7 @@ function element(value: unknown): ProjectElement {
 function validEndpoints(link: ProjectLink, elements: Map<string, ProjectElement>): boolean {
   const from = elements.get(link.from);
   const to = elements.get(link.to);
-  return link.kind === "represents"
-    ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
-    : from?.kind === "gantt-task" &&
-        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
+  return canCreateLink(link.kind, from, to);
 }
 
 export function parseProjectManifest(value: unknown): ProjectManifest {
@@ -161,7 +164,8 @@ export function parseProjectManifest(value: unknown): ProjectManifest {
   const links = root.links.map((value) => {
     const item = record(value, "Link");
     exactKeys(item, ["id", "kind", "from", "to"], "Link");
-    if (item.kind !== "represents" && item.kind !== "implements") throw new ProjectFormatError("Link kind is invalid");
+    if (item.kind !== "represents" && item.kind !== "implements" && item.kind !== "relates")
+      throw new ProjectFormatError("Link kind is invalid");
     return {
       id: id(item.id, "Link id"),
       kind: item.kind,

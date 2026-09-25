@@ -37,8 +37,9 @@ const PROJECT_ELEMENT_KINDS = new Set<PortableProjectElementKind>([
   "sequence-participant",
   "class-entity",
   "gantt-task",
+  "wbs-node",
 ]);
-const PROJECT_LINK_KINDS = new Set<PortableProjectLinkKind>(["represents", "implements"]);
+const PROJECT_LINK_KINDS = new Set<PortableProjectLinkKind>(["represents", "implements", "relates"]);
 
 function invalid(message: string): never {
   throw new DocumentFormatError("invalid-file", message);
@@ -271,10 +272,14 @@ function validateProjectElement(value: unknown, index: number): PortableProjectE
 function validProjectLink(link: PortableProjectLink, elements: ReadonlyMap<string, PortableProjectElement>): boolean {
   const from = elements.get(link.from);
   const to = elements.get(link.to);
-  return link.kind === "represents"
-    ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
-    : from?.kind === "gantt-task" &&
-        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
+  if (!from || !to) return false;
+  if (link.kind === "relates")
+    return from.kind === "wbs-node" && to.kind === "wbs-node" && from.documentId !== to.documentId;
+  if (link.kind === "represents") return from.kind === "sequence-participant" && to.kind === "class-entity";
+  return (
+    from.kind === "gantt-task" &&
+    (to.kind === "gantt-task" || to.kind === "sequence-participant" || to.kind === "class-entity")
+  );
 }
 
 export function validateProject(value: unknown): PortableProject {

@@ -1533,6 +1533,13 @@ export function App() {
         tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
     : isLegacyProjectMemberTab;
   const portable = singleFileProject.portableProject;
+  const portableWbsDiagramId =
+    portable && activeDocument.historyId.startsWith(`project-history-${portable.projectId}-`)
+      ? activeDocument.historyId.slice(`project-history-${portable.projectId}-`.length)
+      : undefined;
+  const existingProjectGantt = portable?.diagrams.find(
+    (diagram) => diagram.wbsGantt?.wbsDiagramId === portableWbsDiagramId,
+  );
   const projectWbsGanttLinks: WbsGanttProjectLink[] = portable
     ? portable.diagrams.flatMap((gantt) => {
         const connection = gantt.wbsGantt;
@@ -1740,17 +1747,29 @@ export function App() {
   }, [activeProjectId]);
   const mapProjectRename = useCallback(
     async (
-      kind: "class-entity" | "sequence-participant" | "gantt-task",
+      kind: "class-entity" | "sequence-participant" | "gantt-task" | "wbs-node",
       from: number,
       declaration: { symbolKey: string; from: number; to: number },
       source: string,
     ) => {
-      const document = project?.manifest.documents.find((item) => item.path === workspace.fileName);
+      const projectHistoryPrefix = project && `project-history-${project.manifest.projectId}-`;
+      const memberId =
+        projectHistoryPrefix && activeDocument.historyId.startsWith(projectHistoryPrefix)
+          ? activeDocument.historyId.slice(projectHistoryPrefix.length)
+          : undefined;
+      const document = project?.manifest.documents.find(
+        (item) => item.id === memberId || (!memberId && item.path === workspace.fileName),
+      );
       const element =
         document &&
-        project?.manifest.elements.find(
-          (item) => item.documentId === document.id && item.kind === kind && item.locator.from === from,
-        );
+        project?.manifest.elements.find((item) => {
+          const resolution = project.resolutions.get(item.id);
+          return (
+            item.documentId === document.id &&
+            item.kind === kind &&
+            (resolution?.state === "resolved" ? resolution.declaration.from === from : item.locator.from === from)
+          );
+        });
       if (!document || !element) return;
       await applyActiveProjectRenameMappings(
         document.id,
@@ -1767,8 +1786,22 @@ export function App() {
         source,
       );
     },
-    [applyActiveProjectRenameMappings, project, workspace.fileName],
+    [activeDocument.historyId, applyActiveProjectRenameMappings, project, workspace.fileName],
   );
+  const mapWbsProjectEdit = (node: (typeof wbsDocument.nodes)[number], source: string) => {
+    const nextNode = parseWbs(source).nodes.find((item) => item.sourceRange.from === node.sourceRange.from);
+    if (!nextNode) return;
+    void mapProjectRename(
+      "wbs-node",
+      node.sourceRange.from,
+      {
+        symbolKey: nextNode.alias ?? nextNode.label,
+        from: nextNode.sourceRange.from,
+        to: nextNode.sourceRange.to,
+      },
+      source,
+    );
+  };
 
   const exportSource = useCallback(() => {
     if (
@@ -2554,6 +2587,48 @@ export function App() {
   const menuLinkedWbs = menuGanttTask
     ? activeDocument.wbsGanttLinks?.find((link) => link.ganttAlias.toLowerCase() === menuGanttTask.id)
     : undefined;
+  const menuProjectWbsLinks = (() => {
+    if (!project || !menuWbsNode) return [];
+    const historyPrefix = `project-history-${project.manifest.projectId}-`;
+    const memberId = activeDocument.historyId.startsWith(historyPrefix)
+      ? activeDocument.historyId.slice(historyPrefix.length)
+      : project.members.find((member) => member.path === workspace.fileName)?.documentId;
+    const element = project.manifest.elements.find((item) => {
+      const resolution = project.resolutions.get(item.id);
+      return (
+        item.documentId === memberId &&
+        item.kind === "wbs-node" &&
+        resolution?.state === "resolved" &&
+        resolution.declaration.from === menuWbsNode.sourceRange.from
+      );
+    });
+    if (!element) return [];
+    return project.manifest.links.flatMap((link) => {
+      if (link.kind !== "relates" || (link.from !== element.id && link.to !== element.id)) return [];
+      const target = project.manifest.elements.find(
+        (item) => item.id === (link.from === element.id ? link.to : link.from),
+      );
+      const member = project.members.find((item) => item.documentId === target?.documentId);
+      const resolution = target && project.resolutions.get(target.id);
+      if (!target || !member || resolution?.state !== "resolved") return [];
+      return [
+        { linkId: link.id, documentId: member.documentId, path: member.path, declaration: resolution.declaration },
+      ];
+    });
+  })();
+  const openProjectWbsNode = async (link: (typeof menuProjectWbsLinks)[number]) => {
+    const member = project?.members.find((item) => item.documentId === link.documentId);
+    const node =
+      member?.source && parseWbs(member.source).nodes.find((item) => item.sourceRange.from === link.declaration.from);
+    if (!node) return;
+    if (usingSingleFileProject) {
+      const tabId = await singleFileProject.openMember(link.documentId);
+      if (tabId) setPendingProjectWbsSelection({ tabId, nodeId: node.id });
+    } else {
+      await openLegacyMember(link.documentId);
+      window.setTimeout(() => selectWbsNode(node.id), 100);
+    }
+  };
   const openLinkedGanttTask = (alias: string) => {
     const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === alias);
     if (!link || !linkedGantt) return;
@@ -2727,12 +2802,16 @@ export function App() {
               onClick={() =>
                 linkedGantt && isProjectMemberTab(tabs.activeId)
                   ? convertCurrentWbs()
-                  : openDialog({ kind: "wbs-gantt-project" })
+                  : existingProjectGantt
+                    ? void singleFileProject.openMember(existingProjectGantt.id)
+                    : openDialog({ kind: "wbs-gantt-project" })
               }
             >
               {linkedGantt && isProjectMemberTab(tabs.activeId)
                 ? `Add missing WBS tasks to Gantt (${missingWbsTaskCount})`
-                : "Create Gantt chart from WBS"}
+                : existingProjectGantt
+                  ? "Open linked Gantt chart"
+                  : "Create Gantt chart from WBS"}
             </button>
           )}
           {workspace.diagramKind === "gantt" && linkedWbs && (
@@ -3445,7 +3524,9 @@ export function App() {
           }}
           onOpenLinkedTask={() => selectedWbsNode.alias && openLinkedGanttTask(selectedWbsNode.alias)}
           onApply={(value) => {
-            applyWbsNode(value);
+            const updated = applyWbsNode(value);
+            if (!updated) return;
+            mapWbsProjectEdit(selectedWbsNode, updated);
             if (!linkedGantt || !selectedWbsNode.alias || value.label === selectedWbsNode.label) return;
             const link = linkedGantt.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
             const parsed = parseGantt(linkedGantt.source).document;
@@ -3759,19 +3840,25 @@ export function App() {
       )}
       {dialog?.kind === "wbs-gantt-project" && (
         <ProjectNameDialog
-          title="Create project from WBS"
+          title={portableWbsDiagramId ? "Create Gantt chart from WBS" : "Create project from WBS"}
           initialValue={workspace.fileName.replace(/\.[^.]+$/, "") || "WBS project"}
+          hideName={Boolean(portableWbsDiagramId)}
           initialStartDate={(() => {
             const now = new Date();
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
           })()}
           submitLabel="Create Gantt chart"
           onSubmit={(name, startDate) => {
+            if (!startDate) return;
             const converted = convertWbsToGantt(workspace.source);
             converted.ganttSource = setGeneratedGanttProjectStart(converted.ganttSource, startDate);
             const sourceTabId = tabs.activeId;
             closeDialog("wbs-gantt-project");
-            void singleFileProject.createWbsGanttProject(name, converted, sourceTabId).catch(reportFileError);
+            void (
+              portableWbsDiagramId
+                ? singleFileProject.addGanttFromWbs(portableWbsDiagramId, converted, sourceTabId)
+                : singleFileProject.createWbsGanttProject(name, converted, sourceTabId)
+            ).catch(reportFileError);
           }}
           onClose={() => closeDialog("wbs-gantt-project")}
         />
@@ -4371,6 +4458,18 @@ export function App() {
               Open linked Gantt task
             </button>
           )}
+          {menuProjectWbsLinks.map((link) => (
+            <button
+              key={link.linkId}
+              role="menuitem"
+              onClick={() => {
+                void openProjectWbsNode(link);
+                setSymbolMenu(undefined);
+              }}
+            >
+              Open linked WBS node in {link.path}: {link.declaration.symbolKey}
+            </button>
+          ))}
           {menuLinkedWbs && linkedWbs && menuGanttTask && (
             <button
               role="menuitem"
@@ -4504,6 +4603,10 @@ export function App() {
             if (result.validateGenerated) {
               if (!commitGeneratedSource(result.source, `Rename ${target.mode}`)) return;
             } else commitSource(result.source, `Rename ${target.mode}`);
+            if (target.occurrence.kind === "wbs-node") {
+              const node = wbsDocument.nodes.find((item) => item.id === target.occurrence.key);
+              if (node) mapWbsProjectEdit(node, result.source);
+            }
             if (result.personRename) {
               renameCapacity(result.personRename.from, result.personRename.to);
               setResourceFilter((current) =>

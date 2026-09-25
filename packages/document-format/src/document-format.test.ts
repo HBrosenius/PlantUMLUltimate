@@ -159,6 +159,37 @@ describe("validateProject", () => {
     expect(validateProject(validProject())).toMatchObject({ schemaVersion: 2, name: "Release plan" });
   });
 
+  it("round-trips a link between WBS nodes in different diagrams", async () => {
+    const project = validProject();
+    project.diagrams[0]!.document.current.diagramKind = "wbs";
+    const secondDiagram = {
+      ...project.diagrams[0]!,
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Other WBS",
+      document: {
+        ...validDocument(),
+        documentId: "99999999-9999-4999-8999-999999999999",
+        current: { ...validDocument().current, diagramKind: "wbs" as const },
+      },
+    };
+    project.diagrams.push(secondDiagram);
+    project.elements[0]!.kind = "wbs-node";
+    project.elements.push({
+      ...project.elements[0]!,
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      documentId: secondDiagram.id,
+    });
+    project.links.push({
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      kind: "relates",
+      from: project.elements[0]!.id,
+      to: project.elements[1]!.id,
+    });
+    expect(validateProject(project).links[0]?.kind).toBe("relates");
+    const encoded = await encodeProject(project, { compression: "none" });
+    expect((await decodeProject(encoded.bytes)).project.links).toEqual(project.links);
+  });
+
   it("keeps the project schema strict and validates graph references", () => {
     expectCode(() => validateProject({ ...validProject(), unexpected: true }), "invalid-file");
     const unknownDiagram = validProject();

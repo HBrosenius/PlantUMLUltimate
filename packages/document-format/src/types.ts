@@ -133,8 +133,8 @@ export interface PortableDocument {
   contents: ContentRecord[];
 }
 
-export type PortableProjectElementKind = "sequence-participant" | "class-entity" | "gantt-task";
-export type PortableProjectLinkKind = "represents" | "implements";
+export type PortableProjectElementKind = "sequence-participant" | "class-entity" | "gantt-task" | "wbs-node";
+export type PortableProjectLinkKind = "represents" | "implements" | "relates";
 
 export interface PortableProjectElement {
   id: string;

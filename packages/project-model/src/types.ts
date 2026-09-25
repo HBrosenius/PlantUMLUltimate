@@ -12,8 +12,8 @@ export const PROJECT_LIMITS = {
 } as const;
 
 export type ProjectDocumentFormat = "plantuml" | "pumlu";
-export type ProjectElementKind = "sequence-participant" | "class-entity" | "gantt-task";
-export type ProjectLinkKind = "represents" | "implements";
+export type ProjectElementKind = "sequence-participant" | "class-entity" | "gantt-task" | "wbs-node";
+export type ProjectLinkKind = "represents" | "implements" | "relates";
 export type LocatorKeyType = "alias" | "semantic-key";
 
 export interface ProjectDocument {

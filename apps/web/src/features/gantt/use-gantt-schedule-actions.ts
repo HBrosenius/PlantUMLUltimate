@@ -247,7 +247,7 @@ export function useGanttScheduleActions(options: Options) {
         });
         if (dependencyOperation.unavailableReason) return report(dependencyOperation.unavailableReason);
         nextSource = applySourceEdits(nextSource, dependencyOperation.edits);
-      } else if (existingDependency) {
+      } else if (existingDependency && !predecessor) {
         nextSource = applySourceEdits(
           nextSource,
           removeDependency(nextSource, existingDependency.sourceRange, existingDependency.notes).edits,

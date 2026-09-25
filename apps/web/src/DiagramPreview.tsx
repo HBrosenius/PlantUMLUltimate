@@ -452,6 +452,16 @@ export function DiagramPreview({
     }
     const dependency = target.closest("[data-dependency-index]");
     if (dependency) {
+      const click = event.nativeEvent;
+      if (click instanceof MouseEvent) {
+        const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
+        const taskId = taskIdAtPoint(svg, click.clientX, click.clientY);
+        if (taskId) {
+          onDependencySelect(undefined);
+          onTaskSelect(taskId);
+          return;
+        }
+      }
       const index = Number(dependency.getAttribute("data-dependency-index"));
       if (Number.isInteger(index)) onDependencySelect(index);
       return;
@@ -578,6 +588,7 @@ export function DiagramPreview({
     const dependencyHandle = target.closest<SVGGraphicsElement>("[data-dependency-handle]");
     if (dependencyHandle) {
       const predecessorAnchor = dependencyHandle.getAttribute("data-dependency-handle") === "start" ? "start" : "end";
+      const pointerStart = { x: event.clientX, y: event.clientY };
       event.preventDefault();
       safelyCapturePointer(event.currentTarget, event.pointerId);
       const previewRect = previewRef.current?.getBoundingClientRect();
@@ -624,6 +635,14 @@ export function DiagramPreview({
         window.removeEventListener("pointermove", moveConnection);
         window.removeEventListener("pointerup", endConnection);
         setConnection(undefined);
+        if (Math.hypot(upEvent.clientX - pointerStart.x, upEvent.clientY - pointerStart.y) < 5) {
+          highlightConnectionTarget(task.ownerSVGElement, undefined);
+          task.ownerSVGElement?.classList.remove("connection-active");
+          onInteractionMessage(undefined);
+          onDependencySelect(undefined);
+          onTaskSelect(id);
+          return;
+        }
         const liveSvg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
         const exactTarget = dependencyAnchorAtPoint(liveSvg, upEvent.clientX, upEvent.clientY, id);
         const fallbackId = exactTarget ? undefined : taskIdAtPoint(liveSvg, upEvent.clientX, upEvent.clientY);

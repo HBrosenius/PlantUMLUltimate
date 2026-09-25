@@ -80,6 +80,25 @@ describe("virtual project index", () => {
     });
   });
 
+  it("indexes WBS nodes for links across WBS diagrams", async () => {
+    const wbsManifest = JSON.stringify({
+      ...JSON.parse(manifest),
+      documents: [{ id: id(3), path: "planning.puml", format: "plantuml", observedSourceHash: hash }],
+      elements: [],
+      links: [],
+    });
+    const project = await indexVirtualProject(
+      wbsManifest,
+      new Map([
+        ["planning.puml", { state: "available" as const, source: "@startwbs\n*(plan) Plan\n** Review\n@endwbs" }],
+      ]),
+    );
+    expect(project.members[0]?.declarations).toMatchObject([
+      { kind: "wbs-node", symbolKey: "plan" },
+      { kind: "wbs-node", symbolKey: "Review" },
+    ]);
+  });
+
   it("cancels obsolete indexing before publishing a result", async () => {
     const controller = new AbortController();
     controller.abort();

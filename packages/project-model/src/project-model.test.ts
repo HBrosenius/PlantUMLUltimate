@@ -168,4 +168,14 @@ describe("project link compatibility", () => {
     const second = { ...first!, id: id(12) };
     expect(canCreateLink("implements", first, second)).toBe(true);
   });
+  it("allows WBS nodes in different diagrams to relate", () => {
+    const first = { ...manifest().elements[0]!, id: id(11), kind: "wbs-node" as const };
+    const second = { ...first, id: id(12), documentId: id(4) };
+    expect(canCreateLink("relates", first, second)).toBe(true);
+    expect(canCreateLink("relates", first, { ...second, documentId: first.documentId })).toBe(false);
+    const value = parseProjectManifest(manifest());
+    value.elements.push(first, second);
+    value.links.push({ id: id(13), kind: "relates", from: first.id, to: second.id });
+    expect(parseProjectManifest(value).links.at(-1)?.kind).toBe("relates");
+  });
 });

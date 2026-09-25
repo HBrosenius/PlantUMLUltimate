@@ -60,15 +60,23 @@ export function ProjectLinksPanel({
   const elements = project.manifest.elements;
   const from = elements.find((item) => item.id === fromId);
   const compatible = useMemo(
-    () => elements.filter((item) => canCreateLink("represents", from, item) || canCreateLink("implements", from, item)),
+    () =>
+      elements.filter(
+        (item) =>
+          canCreateLink("relates", from, item) ||
+          canCreateLink("represents", from, item) ||
+          canCreateLink("implements", from, item),
+      ),
     [elements, from],
   );
   const to = elements.find((item) => item.id === toId);
-  const kind = canCreateLink("represents", from, to)
-    ? "represents"
-    : canCreateLink("implements", from, to)
-      ? "implements"
-      : undefined;
+  const kind = canCreateLink("relates", from, to)
+    ? "relates"
+    : canCreateLink("represents", from, to)
+      ? "represents"
+      : canCreateLink("implements", from, to)
+        ? "implements"
+        : undefined;
   const registrations = project.members.flatMap((member) =>
     member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
   );
@@ -186,7 +194,7 @@ export function ProjectLinksPanel({
               </select>
             </label>
             <button type="submit" className="project-create-link" disabled={!kind}>
-              Create {kind ?? ""} link
+              {kind === "relates" ? "Create WBS link" : `Create ${kind ?? ""} link`}
             </button>
           </form>
         )}

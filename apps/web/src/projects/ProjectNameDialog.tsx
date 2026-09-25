@@ -6,6 +6,7 @@ export function ProjectNameDialog({
   initialValue,
   submitLabel,
   initialStartDate,
+  hideName = false,
   onSubmit,
   onClose,
 }: {
@@ -13,7 +14,8 @@ export function ProjectNameDialog({
   initialValue: string;
   submitLabel: string;
   initialStartDate?: string;
-  onSubmit(value: string, startDate: string): void;
+  hideName?: boolean;
+  onSubmit(value: string, startDate?: string): void;
   onClose(): void;
 }) {
   const [value, setValue] = useState(initialValue);
@@ -34,18 +36,29 @@ export function ProjectNameDialog({
         aria-labelledby="project-name-dialog-title"
         onSubmit={(event) => {
           event.preventDefault();
-          if (value.trim()) onSubmit(value.trim(), startDate);
+          if (value.trim()) {
+            if (initialStartDate !== undefined) onSubmit(value.trim(), startDate);
+            else onSubmit(value.trim());
+          }
         }}
       >
         <h2 id="project-name-dialog-title">{title}</h2>
-        <label>
-          Name
-          <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} required />
-        </label>
+        {!hideName && (
+          <label>
+            Name
+            <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} required />
+          </label>
+        )}
         {initialStartDate !== undefined && (
           <label>
             Project start date
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
+            <input
+              type="date"
+              autoFocus={hideName}
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              required
+            />
           </label>
         )}
         <footer>

@@ -5,10 +5,14 @@ export function canCreateLink(
   from: ProjectElement | undefined,
   to: ProjectElement | undefined,
 ): boolean {
-  return kind === "represents"
-    ? from?.kind === "sequence-participant" && to?.kind === "class-entity"
-    : from?.kind === "gantt-task" &&
-        (to?.kind === "gantt-task" || to?.kind === "sequence-participant" || to?.kind === "class-entity");
+  if (!from || !to) return false;
+  if (kind === "relates")
+    return from.kind === "wbs-node" && to.kind === "wbs-node" && from.documentId !== to.documentId;
+  if (kind === "represents") return from.kind === "sequence-participant" && to.kind === "class-entity";
+  return (
+    from.kind === "gantt-task" &&
+    (to.kind === "gantt-task" || to.kind === "sequence-participant" || to.kind === "class-entity")
+  );
 }
 
 export function hasLink(links: readonly ProjectLink[], kind: ProjectLinkKind, from: string, to: string): boolean {

@@ -76,8 +76,9 @@ export function useWbsActions({
         ),
       );
       if (updated === undefined) return;
-      commitSource(updated, `Update WBS node ${selectedNode.label}`);
+      if (!commitSource(updated, `Update WBS node ${selectedNode.label}`)) return;
       reportMessage(`Updated WBS node ${value.label}`);
+      return updated;
     },
     [applyOperation, commitSource, document, reportMessage, selectedNode, source],
   );

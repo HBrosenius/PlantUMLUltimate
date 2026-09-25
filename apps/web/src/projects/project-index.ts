@@ -1,6 +1,7 @@
 import { parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
+import { parseWbs } from "@plantuml-studio/diagram-wbs";
 import { sha256 } from "@plantuml-studio/document-format";
 import {
   parseProjectManifestJson,
@@ -83,6 +84,11 @@ async function declarationsFor(source: string, kind: DiagramKind): Promise<reado
       parseGantt(source)
         .document.tasks.filter((item) => !item.milestone)
         .map((item) => declaration("gantt-task", item.alias?.value ?? item.label, source, item.sourceRange)),
+    );
+  }
+  if (kind === "wbs") {
+    return Promise.all(
+      parseWbs(source).nodes.map((node) => declaration("wbs-node", node.alias ?? node.label, source, node.sourceRange)),
     );
   }
   return [];

@@ -45,6 +45,8 @@ type Tabs = {
   addDocument(input?: Partial<Omit<DocumentSnapshot, "id">>): string;
   activateDocument(id: string): void;
   closeDocument(id: string): void;
+  updateDocumentSource(id: string, source: string, diagramKind: DiagramKind): void;
+  updateDocumentFormat(id: string, patch: Partial<DocumentSnapshot>): void;
   documents: readonly DocumentSnapshot[];
 };
 
@@ -317,6 +319,39 @@ export function useSingleFileProject({
       setInteractionMessage(
         `Created ${title} with linked WBS and Gantt diagrams. Save the project to keep them together.`,
       );
+    },
+    [embedded, resetSelection, setInteractionMessage, tabs],
+  );
+
+  const addGanttFromWbs = useCallback(
+    async (wbsDiagramId: string, converted: WbsGanttConversion, sourceTabId: string) => {
+      const current = embedded.project;
+      const wbs = current?.diagrams.find((diagram) => diagram.id === wbsDiagramId);
+      if (!current || !wbs) throw new Error("The WBS diagram is no longer in this project");
+      if (current.diagrams.some((diagram) => diagram.wbsGantt?.wbsDiagramId === wbsDiagramId))
+        throw new Error("This WBS diagram already has a linked Gantt chart");
+      const baseName = `${wbs.name} schedule`;
+      let name = baseName;
+      for (let suffix = 2; current.diagrams.some((diagram) => diagram.name === name); suffix++)
+        name = `${baseName} ${suffix}`;
+      const staged = await projectFromPlantUml(converted.ganttSource, "gantt", name);
+      const gantt = {
+        ...staged.diagrams[0]!,
+        name,
+        wbsGantt: { wbsDiagramId, links: converted.links, dependencies: converted.dependencies },
+      };
+      if (converted.wbsSource !== tabs.documents.find((tab) => tab.id === sourceTabId)?.source)
+        tabs.updateDocumentSource(sourceTabId, converted.wbsSource, "wbs");
+      const ganttTabId = embedded.addDiagram(gantt);
+      if (!ganttTabId) throw new Error("Could not add the Gantt chart to this project");
+      tabs.updateDocumentFormat(ganttTabId, {
+        linkedWbsDocumentId: sourceTabId,
+        wbsGanttLinks: converted.links,
+        wbsGanttDependencies: converted.dependencies,
+      });
+      setIndexed(immediateIndex({ ...current, diagrams: [...current.diagrams, gantt] }));
+      resetSelection();
+      setInteractionMessage(`Added ${name} to ${current.name}. Save the project to keep the linked chart.`);
     },
     [embedded, resetSelection, setInteractionMessage, tabs],
   );
@@ -620,6 +655,7 @@ export function useSingleFileProject({
       saving,
       newProject,
       createWbsGanttProject,
+      addGanttFromWbs,
       addProjectDiagram,
       importDiagram,
       openProject,
@@ -654,6 +690,7 @@ export function useSingleFileProject({
       saving,
       newProject,
       createWbsGanttProject,
+      addGanttFromWbs,
       openProject,
       openOpenedProject,
       openPortableProject,

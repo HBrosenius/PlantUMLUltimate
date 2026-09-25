@@ -205,6 +205,14 @@ export function ProjectNavigator({
           ))}
         </ul>
       </section>
+      <ProjectLinksPanel
+        project={project}
+        {...(wbsGanttLinks ? { wbsGanttLinks } : {})}
+        {...(onOpenWbsGanttLink ? { onOpenWbsGanttLink } : {})}
+        onChange={onLinksChange}
+        onElementsChange={onElementsChange}
+        {...(onElementsRegistered ? { onElementsRegistered } : {})}
+      />
       {wbsGanttMissing && onOpenWbsGanttLink && onAddMissingWbsGanttItem && onLinkMissingWbsGanttItem && (
         <section className="project-navigator-section" aria-labelledby="project-wbs-gantt-missing-heading">
           <div className="project-section-heading">
@@ -360,14 +368,6 @@ export function ProjectNavigator({
           ) : null}
         </section>
       )}
-      <ProjectLinksPanel
-        project={project}
-        {...(wbsGanttLinks ? { wbsGanttLinks } : {})}
-        {...(onOpenWbsGanttLink ? { onOpenWbsGanttLink } : {})}
-        onChange={onLinksChange}
-        onElementsChange={onElementsChange}
-        {...(onElementsRegistered ? { onElementsRegistered } : {})}
-      />
       {renaming && onRename && (
         <ProjectNameDialog
           title="Rename diagram"
