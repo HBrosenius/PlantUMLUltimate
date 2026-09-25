@@ -3,7 +3,13 @@ import type { DiagramKind } from "./model";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> = [
+  { kind: "wbs", title: "WBS diagram", description: "Break a project into visual work packages and deliverables." },
   { kind: "gantt", title: "Gantt diagram", description: "Plan tasks, milestones, dependencies, and resources." },
+  {
+    kind: "activity",
+    title: "Activity diagram",
+    description: "Model workflows, decisions, parallel work, loops, partitions, and outcomes.",
+  },
   {
     kind: "sequence",
     title: "Sequence diagram",
@@ -20,12 +26,6 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
     title: "Component diagram",
     description: "Describe software components, infrastructure, interfaces, and dependencies.",
   },
-  {
-    kind: "activity",
-    title: "Activity diagram",
-    description: "Model workflows, decisions, parallel work, loops, partitions, and outcomes.",
-  },
-  { kind: "wbs", title: "WBS diagram", description: "Break a project into visual work packages and deliverables." },
 ];
 
 export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
