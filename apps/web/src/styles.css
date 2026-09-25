@@ -768,6 +768,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--muted);
   transition: transform 80ms ease;
 }
+.diagram-wheel-zooming .diagram {
+  transition: none;
+}
 .diagram svg {
   width: 100%;
   height: auto;
