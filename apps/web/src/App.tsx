@@ -8,12 +8,10 @@ import { ClassDiagramPreview } from "./ClassDiagramPreview";
 import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { WbsDiagramPreview } from "./WbsDiagramPreview";
 import {
-  applyWbsGroupRollups,
   addMissingGanttTasksToWbs,
   convertWbsToGantt,
   ensureLinkedGanttProjectStart,
   relinkWbsGanttTask,
-  rollupWbsGroupDates,
 } from "./wbs-gantt";
 import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
 import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
@@ -348,6 +346,16 @@ export function App() {
   const linkedWbs = activeDocument.linkedWbsDocumentId
     ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
     : undefined;
+  const missingWbsTaskCount = useMemo(() => {
+    if (!linkedGantt) return 0;
+    const linked = new Set(linkedGantt.wbsGanttLinks?.map((link) => link.wbsAlias));
+    return wbsDocument.nodes.filter((node) => !node.alias || !linked.has(node.alias)).length;
+  }, [linkedGantt, wbsDocument.nodes]);
+  const missingGanttTaskCount = useMemo(() => {
+    if (!linkedWbs) return 0;
+    const linked = new Set(activeDocument.wbsGanttLinks?.map((link) => link.ganttAlias.toLowerCase()));
+    return parseResult.document.tasks.filter((task) => !linked.has(task.id)).length;
+  }, [activeDocument.wbsGanttLinks, linkedWbs, parseResult.document.tasks]);
   const wbsDependencyWarnings = useMemo(() => {
     const warnings = new Map<string, string>();
     if (workspace.diagramKind !== "wbs" || !linkedGantt) return warnings;
@@ -821,35 +829,13 @@ export function App() {
   );
   const ganttCalendar = useMemo(() => parseGanttCalendar(workspace.source), [workspace.source]);
   const resolvedTaskDates = useMemo(() => {
-    const dates = resolveTaskDates(
+    return resolveTaskDates(
       parseResult.document.tasks,
       parseResult.document.dependencies,
       parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined,
       ganttCalendar,
     );
-    return linkedWbs && activeDocument.wbsGanttLinks
-      ? rollupWbsGroupDates(linkedWbs.source, activeDocument.wbsGanttLinks, dates)
-      : dates;
-  }, [activeDocument.wbsGanttLinks, ganttCalendar, linkedWbs, parseResult.document]);
-  useEffect(() => {
-    if (workspace.diagramKind !== "gantt" || !linkedWbs || !activeDocument.wbsGanttLinks) return;
-    if (parseResult.diagnostics.some((item) => item.severity === "error")) return;
-    const next = applyWbsGroupRollups(
-      workspace.source,
-      linkedWbs.source,
-      activeDocument.wbsGanttLinks,
-      resolvedTaskDates,
-    );
-    if (next !== workspace.source) tabs.updateDocumentSource(tabs.activeId, next, "gantt");
-  }, [
-    activeDocument.wbsGanttLinks,
-    linkedWbs,
-    parseResult.diagnostics,
-    resolvedTaskDates,
-    tabs,
-    workspace.diagramKind,
-    workspace.source,
-  ]);
+  }, [ganttCalendar, parseResult.document]);
   const resourceOverAllocations = useMemo(
     () =>
       buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
@@ -2717,6 +2703,7 @@ export function App() {
           {workspace.diagramKind === "wbs" && (
             <button
               type="button"
+              disabled={Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0)}
               onClick={() =>
                 linkedGantt && isProjectMemberTab(tabs.activeId)
                   ? convertCurrentWbs()
@@ -2724,13 +2711,13 @@ export function App() {
               }
             >
               {linkedGantt && isProjectMemberTab(tabs.activeId)
-                ? "Add missing WBS tasks to Gantt"
+                ? `Add missing WBS tasks to Gantt (${missingWbsTaskCount})`
                 : "Create Gantt chart from WBS"}
             </button>
           )}
           {workspace.diagramKind === "gantt" && linkedWbs && (
-            <button type="button" onClick={importCurrentGanttToWbs}>
-              Add missing Gantt tasks to WBS
+            <button type="button" disabled={missingGanttTaskCount === 0} onClick={importCurrentGanttToWbs}>
+              Add missing Gantt tasks to WBS ({missingGanttTaskCount})
             </button>
           )}
           {workspace.diagramKind === "wbs" && (

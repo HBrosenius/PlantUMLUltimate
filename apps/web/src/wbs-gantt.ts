@@ -1,6 +1,12 @@
-import { insertWbsNode, insertWbsRelationship, parseWbs, type WbsNode } from "@plantuml-studio/diagram-wbs";
-import { applySourceEdits, deleteTask, parseGantt, removeDependency, renameTask } from "@plantuml-studio/diagram-gantt";
-import type { ResolvedTaskDates } from "./gantt-schedule";
+import { insertWbsNode, parseWbs, type WbsNode } from "@plantuml-studio/diagram-wbs";
+import {
+  applySourceEdits,
+  deleteTask,
+  parseGantt,
+  removeDependency,
+  renameTask,
+  taskOccurrences,
+} from "@plantuml-studio/diagram-gantt";
 
 export interface WbsGanttLink {
   wbsAlias: string;
@@ -24,7 +30,7 @@ export interface GanttWbsImport {
   warnings: string[];
 }
 
-/** Add currently unlinked Gantt tasks beneath the WBS root, preserving their Gantt order. */
+/** Place unlinked Gantt tasks beneath a single linked predecessor, or beneath the WBS root. */
 export function addMissingGanttTasksToWbs(
   wbsSource: string,
   ganttSource: string,
@@ -37,7 +43,8 @@ export function addMissingGanttTasksToWbs(
   let links = [...existingLinks];
   const warnings: string[] = [];
   let addedCount = 0;
-  const tasks = parseGantt(ganttSource).document.tasks;
+  const gantt = parseGantt(ganttSource).document;
+  const tasks = gantt.tasks;
   for (const [index, original] of tasks.entries()) {
     if (selectedTaskIds && !selectedTaskIds.includes(original.id)) continue;
     const currentAliases = new Set(parseWbs(nextWbs).nodes.flatMap((node) => (node.alias ? [node.alias] : [])));
@@ -46,7 +53,13 @@ export function addMissingGanttTasksToWbs(
     const current = parseGantt(nextGantt).document.tasks[index];
     if (!current) continue;
     const document = parseWbs(nextWbs);
-    const parent = document.roots[0];
+    const predecessors = gantt.dependencies.filter((dependency) => dependency.successorTaskId === original.id);
+    const predecessor =
+      predecessors.length === 1 && predecessors[0]?.relation === "start-after-end"
+        ? predecessors[0].predecessorTaskId
+        : undefined;
+    const parentLink = links.find((link) => link.ganttAlias.toLowerCase() === predecessor);
+    const parent = document.nodes.find((node) => node.alias === parentLink?.wbsAlias) ?? document.roots[0];
     const label = original.label.replace(/^(?:↳\s*)+/, "").trim();
     if (!label) {
       warnings.push(`Skipped an unnamed Gantt task (${original.id}).`);
@@ -64,48 +77,11 @@ export function addMissingGanttTasksToWbs(
     links = linked.links;
     addedCount += 1;
   }
-  const wbs = parseWbs(nextWbs);
-  const edges = new Map<string, Set<string>>();
-  for (const relationship of wbs.relationships)
-    edges.set(relationship.from, new Set([...(edges.get(relationship.from) ?? []), relationship.to]));
-  const byGantt = new Map(links.map((link) => [link.ganttAlias.toLowerCase(), link.wbsAlias]));
-  for (const dependency of parseGantt(nextGantt).document.dependencies) {
-    const from = byGantt.get(dependency.predecessorTaskId);
-    const to = byGantt.get(dependency.successorTaskId);
-    if (!from || !to) continue;
-    if (dependency.relation !== "start-after-end") {
-      warnings.push(`Could not copy ${from} → ${to}: WBS supports finish-to-start links only.`);
-      continue;
-    }
-    if (edges.get(from)?.has(to)) continue;
-    if (cyclic(from, to, edges)) {
-      warnings.push(`Could not copy ${from} → ${to}: it would create a cycle.`);
-      continue;
-    }
-    const currentWbs = parseWbs(nextWbs);
-    const fromNode = currentWbs.nodes.find((node) => node.alias === from);
-    const toNode = currentWbs.nodes.find((node) => node.alias === to);
-    if (!fromNode || !toNode) continue;
-    nextWbs = insertWbsRelationship(nextWbs, currentWbs, fromNode, toNode);
-    edges.set(from, new Set([...(edges.get(from) ?? []), to]));
-  }
-  const dependencies = parseWbs(nextWbs)
-    .relationships.filter(
-      (relationship) =>
-        links.some((link) => link.wbsAlias === relationship.from) &&
-        links.some((link) => link.wbsAlias === relationship.to),
-    )
-    .map((relationship) => ({ from: relationship.from, to: relationship.to }));
   return {
     wbsSource: nextWbs,
     ganttSource: nextGantt,
     links,
-    dependencies: [
-      ...importedDependencies,
-      ...dependencies.filter(
-        (item) => !importedDependencies.some((prior) => prior.from === item.from && prior.to === item.to),
-      ),
-    ],
+    dependencies: [...importedDependencies],
     addedCount,
     warnings,
   };
@@ -218,6 +194,12 @@ export function convertWbsToGantt(
   const wbsSource = ensureWbsAliases(source);
   const document = parseWbs(wbsSource);
   const priorLinks = new Map(existingLinks.map((link) => [link.wbsAlias, link.ganttAlias]));
+  const managedDependencies = new Set(
+    importedDependencies.map(
+      ({ from, to }) =>
+        `${(priorLinks.get(from) ?? `wbs_${from}`).toLowerCase()}:${(priorLinks.get(to) ?? `wbs_${to}`).toLowerCase()}`,
+    ),
+  );
   const selected = new Set(selectedNodeIds);
   for (const node of document.nodes) {
     if (!selected.has(node.id)) continue;
@@ -259,7 +241,9 @@ export function convertWbsToGantt(
         ) ||
         (task.duration !== undefined && (task.duration.value !== 5 || task.duration.unit !== "day")) ||
         parsed.dependencies.some(
-          (dependency) => dependency.predecessorTaskId === task.id || dependency.successorTaskId === task.id,
+          (dependency) =>
+            (dependency.predecessorTaskId === task.id || dependency.successorTaskId === task.id) &&
+            !managedDependencies.has(`${dependency.predecessorTaskId}:${dependency.successorTaskId}`),
         );
       if (removedTaskPolicy === "keep-scheduled" && hasSchedule) {
         warnings.push(`Kept scheduled Gantt task ${task.label} after its WBS node was removed; it is now unlinked.`);
@@ -273,8 +257,15 @@ export function convertWbsToGantt(
       const task = parsed.symbols.tasks.get((priorLinks.get(node.alias!) ?? `wbs_${node.alias}`).toLowerCase());
       const label = hierarchyLabel(node);
       if (!task || task.label === label) continue;
-      const rename = renameTask(synchronizedSource, parsed, task, label);
-      if (!rename.unavailableReason) synchronizedSource = applySourceEdits(synchronizedSource, rename.edits);
+      if (task.alias) {
+        const references = taskOccurrences(synchronizedSource, parsed, task)
+          .filter((item) => item.role === "reference" && item.value === task.label)
+          .map((item) => ({ range: item.range, text: task.alias!.value }));
+        synchronizedSource = applySourceEdits(synchronizedSource, references);
+      } else {
+        const rename = renameTask(synchronizedSource, parsed, task, label);
+        if (!rename.unavailableReason) synchronizedSource = applySourceEdits(synchronizedSource, rename.edits);
+      }
     }
   }
   const existing = synchronizedSource ? parseGantt(synchronizedSource).document : undefined;
@@ -304,21 +295,29 @@ export function convertWbsToGantt(
     declarations.push(`[${hierarchyLabel(node)}] as [${alias}] ${existingSuffixes.get(alias) ?? "requires 5 days"}`);
   }
   const edges = new Map<string, Set<string>>();
-  for (const relationship of document.relationships) {
-    const from = byAlias.get(relationship.from);
-    const to = byAlias.get(relationship.to);
+  const addDependency = (fromAlias: string, toAlias: string, reason: string) => {
+    const from = byAlias.get(fromAlias);
+    const to = byAlias.get(toAlias);
     if (!from || !to) {
-      warnings.push(`Dependency ${relationship.from} → ${relationship.to} could not be mapped.`);
-      continue;
+      warnings.push(`${reason} ${fromAlias} → ${toAlias} could not be mapped.`);
+      return;
     }
+    if (edges.get(from)?.has(to)) return;
     if (cyclic(from, to, edges)) {
-      warnings.push(`Dependency ${relationship.from} → ${relationship.to} would create a cycle.`);
-      continue;
+      warnings.push(`${reason} ${fromAlias} → ${toAlias} would create a cycle.`);
+      return;
     }
     edges.set(from, new Set([...(edges.get(from) ?? []), to]));
-    dependencies.push({ from: relationship.from, to: relationship.to });
+    dependencies.push({ from: fromAlias, to: toAlias });
     if (!existingDependencies.has(`${from.toLowerCase()}:${to.toLowerCase()}`))
       dependencyLines.push(`[${to}] starts at [${from}]'s end`);
+  };
+  for (const node of importedNodes) {
+    const parent = document.nodes.find((candidate) => candidate.id === node.parentId);
+    if (parent?.alias && node.alias) addDependency(parent.alias, node.alias, "Hierarchy dependency");
+  }
+  for (const relationship of document.relationships) {
+    addDependency(relationship.from, relationship.to, "Dependency");
   }
   let ganttSource: string;
   if (!synchronizedSource) {
@@ -363,68 +362,4 @@ export function convertWbsToGantt(
 
 export function linkedWbsNode(nodes: readonly WbsNode[], alias: string): WbsNode | undefined {
   return nodes.find((node) => node.alias === alias);
-}
-
-/** Summary dates are derived from scheduled descendants; leaf dates stay owned by Gantt. */
-export function rollupWbsGroupDates(
-  wbsSource: string,
-  links: readonly WbsGanttLink[],
-  dates: ReadonlyMap<string, ResolvedTaskDates>,
-): Map<string, ResolvedTaskDates> {
-  const result = new Map(dates);
-  const nodes = parseWbs(wbsSource).nodes;
-  const linkByAlias = new Map(links.map((link) => [link.wbsAlias, link.ganttAlias.toLowerCase()]));
-  for (const node of [...nodes].reverse()) {
-    const descendants = nodes.filter((item) => {
-      let parent = item.parentId;
-      while (parent) {
-        if (parent === node.id) return true;
-        parent = nodes.find((candidate) => candidate.id === parent)?.parentId;
-      }
-      return false;
-    });
-    if (!descendants.length || !node.alias) continue;
-    const alias = linkByAlias.get(node.alias);
-    if (!alias) continue;
-    const scheduled = descendants
-      .flatMap((item) => (item.alias ? [result.get(linkByAlias.get(item.alias) ?? "")] : []))
-      .filter((item): item is ResolvedTaskDates => Boolean(item?.start && item.end));
-    if (!scheduled.length) continue;
-    result.set(alias, {
-      start: scheduled.map((item) => item.start!).sort()[0]!,
-      end: scheduled
-        .map((item) => item.end!)
-        .sort()
-        .at(-1)!,
-      derived: true,
-    });
-  }
-  return result;
-}
-
-/** Reflect derived group spans in the PlantUML bars after children are scheduled. */
-export function applyWbsGroupRollups(
-  ganttSource: string,
-  wbsSource: string,
-  links: readonly WbsGanttLink[],
-  dates: ReadonlyMap<string, ResolvedTaskDates>,
-): string {
-  const nodes = parseWbs(wbsSource).nodes;
-  const groups = new Set(nodes.flatMap((node) => (node.parentId ? [node.parentId] : [])));
-  const byAlias = new Map(links.map((link) => [link.wbsAlias, link.ganttAlias.toLowerCase()]));
-  const groupTasks = new Map(
-    nodes
-      .filter((node) => groups.has(node.id) && node.alias)
-      .map((node) => [byAlias.get(node.alias!) ?? "", dates.get(byAlias.get(node.alias!) ?? "")] as const),
-  );
-  return ganttSource
-    .split("\n")
-    .map((line) => {
-      const declaration = line.match(/^(\[[^\]\n]+\]\s+as\s+\[([^\]\n]+)\])\s+.+$/i);
-      if (!declaration?.[1] || !declaration[2]) return line;
-      const span = groupTasks.get(declaration[2].toLowerCase());
-      if (!span?.start || !span.end) return line;
-      return `${declaration[1]} starts ${span.start} and ends ${span.end}`;
-    })
-    .join("\n");
 }

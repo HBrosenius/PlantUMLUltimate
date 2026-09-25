@@ -158,7 +158,7 @@ Choose **File → New → Project** to create a project containing multiple diag
 
 ### Turn a WBS into a Gantt chart
 
-Open a WBS diagram and choose **Create Gantt chart from WBS** in its toolbar. Enter a project name when prompted. Studio creates a project containing the WBS and a linked Gantt chart. Every WBS node gets a Gantt entry in the same order and hierarchy: parents become summary groups, and leaf nodes become schedulable tasks. New tasks start without dates and with a five-day duration; you can then set dates, durations, and assignments in Gantt. Summary dates roll up from their children.
+Open a WBS diagram and choose **Create Gantt chart from WBS** in its toolbar. Enter a project name when prompted. Studio creates a project containing the WBS and a linked Gantt chart. Every WBS node gets a Gantt entry in the same order and hierarchy: parents become groups, and child tasks depend on their parent task finishing. New tasks start without dates and with a five-day duration; you can then set dates, durations, and assignments in Gantt. Parent task dates are scheduled independently of their children.
 
 Names and supported work details, identifiers, and dependencies carry across. Dependencies that cannot be mapped or would create a cycle are reported for review. Changes to shared task details and hierarchy appear in both views, while Gantt dates remain schedule information. A small link icon marks linked items; use the item inspector, context menu, or Project navigator to open its counterpart.
 

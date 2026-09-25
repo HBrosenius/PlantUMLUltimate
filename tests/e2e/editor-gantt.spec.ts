@@ -303,11 +303,19 @@ test("clears baseline variance when a moved task returns to its original dates",
 
   const task = page.locator('[data-task-id="frontend"]');
   const dragByDays = async (days: number) => {
-    const firstDate = await page.locator('[data-timeline-header="top"]').nth(0).boundingBox();
-    const secondDate = await page.locator('[data-timeline-header="top"]').nth(1).boundingBox();
-    expect(firstDate).not.toBeNull();
-    expect(secondDate).not.toBeNull();
-    const pixels = (secondDate!.x - firstDate!.x) * days;
+    const headers = page.locator('[data-timeline-header="top"]');
+    await expect(headers.nth(1)).toBeVisible();
+    let dayWidth = 0;
+    await expect
+      .poll(async () => {
+        dayWidth = await headers.evaluateAll((elements) => {
+          if (elements.length < 2) return 0;
+          return elements[1].getBoundingClientRect().x - elements[0].getBoundingClientRect().x;
+        });
+        return dayWidth;
+      })
+      .toBeGreaterThan(0);
+    const pixels = dayWidth * days;
     const box = await task.locator(".bar").boundingBox();
     expect(box).not.toBeNull();
     const x = box!.x + box!.width / 2;
