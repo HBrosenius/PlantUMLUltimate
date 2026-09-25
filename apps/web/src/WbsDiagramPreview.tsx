@@ -9,6 +9,7 @@ interface Props {
   svg: string | undefined;
   document: WbsDocument;
   linkedNodeIds?: ReadonlySet<string>;
+  nodeCompletion?: ReadonlyMap<string, number>;
   dependencyWarnings?: ReadonlyMap<string, string>;
   selectedId: string | undefined;
   selectedRelationshipId: string | undefined;
@@ -28,6 +29,7 @@ export function WbsDiagramPreview({
   svg,
   document,
   linkedNodeIds = new Set(),
+  nodeCompletion = new Map(),
   dependencyWarnings = new Map(),
   selectedId,
   selectedRelationshipId,
@@ -204,7 +206,7 @@ export function WbsDiagramPreview({
     if (!host) return;
     host
       .querySelectorAll(
-        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon",
+        ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-completion",
       )
       .forEach((item) => item.remove());
     const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
@@ -239,7 +241,21 @@ export function WbsDiagramPreview({
       text.setAttribute("tabindex", "0");
       text.setAttribute("role", "button");
       text.setAttribute("aria-label", `Select WBS node ${node.label}`);
-      if (linkedNodeIds.has(node.id)) appendDiagramLinkIcon(matched.at(-1)!);
+      if (linkedNodeIds.has(node.id)) {
+        const lastLine = matched.at(-1)!;
+        appendDiagramLinkIcon(lastLine);
+        const completion = nodeCompletion.get(node.id);
+        if (completion !== undefined) {
+          const box = lastLine.getBBox();
+          const label = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("class", "wbs-node-completion");
+          label.setAttribute("x", String(box.x + box.width + 24));
+          label.setAttribute("y", String(box.y + box.height / 2 + 4));
+          label.setAttribute("aria-label", `${node.label}: ${completion}% complete`);
+          label.textContent = `${completion}%`;
+          lastLine.parentNode?.append(label);
+        }
+      }
       const boxes = matched.map((candidate) => candidate.getBBox());
       const bounds = boxes.slice(1).reduce(
         (union, box) => {

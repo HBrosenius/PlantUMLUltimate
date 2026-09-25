@@ -550,6 +550,8 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   const task = page.getByRole("complementary", { name: "Task inspector" });
   await task.getByLabel("Start", { exact: true }).fill("2026-09-23");
   await task.getByLabel("Start", { exact: true }).blur();
+  await task.getByLabel("Complete", { exact: true }).fill("60");
+  await task.getByLabel("Complete", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("2026-09-23");
   await expectToolbarButtonInViewport(page, "File");
   await page.getByRole("button", { name: "File", exact: true }).click();
@@ -610,6 +612,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
       .click();
     await selectWbsNode(reopened, "Build");
     await expect(reopened.getByRole("button", { name: "Open linked Gantt task" })).toBeVisible();
+    await expect(reopened.getByText("60%", { exact: true })).toBeVisible();
   } finally {
     await context.close();
   }

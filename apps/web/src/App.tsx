@@ -334,6 +334,17 @@ export function App() {
   const linkedGantt = tabs.documents.find(
     (item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId,
   );
+  const wbsNodeCompletion = useMemo(() => {
+    const completion = new Map<string, number>();
+    if (!linkedGantt) return completion;
+    const tasks = parseGantt(linkedGantt.source).document.symbols.tasks;
+    for (const link of linkedGantt.wbsGanttLinks ?? []) {
+      const node = wbsDocument.nodes.find((item) => item.alias === link.wbsAlias);
+      const value = tasks.get(link.ganttAlias.toLowerCase())?.completion?.value;
+      if (node && value !== undefined) completion.set(node.id, value);
+    }
+    return completion;
+  }, [linkedGantt, wbsDocument.nodes]);
   const linkedWbs = activeDocument.linkedWbsDocumentId
     ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
     : undefined;
@@ -3234,6 +3245,7 @@ export function App() {
               svg={result?.svg}
               document={wbsDocument}
               dependencyWarnings={wbsDependencyWarnings}
+              nodeCompletion={wbsNodeCompletion}
               linkedNodeIds={
                 new Set(
                   wbsDocument.nodes
