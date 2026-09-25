@@ -578,14 +578,14 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   try {
     const reopened = await context.newPage();
     await reopened.goto("/");
-    await expect(reopened.getByRole("button", { name: "File", exact: true })).toBeVisible();
     const welcome = reopened.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
+    const chooser = reopened.getByRole("dialog", { name: "Choose a diagram type" });
+    await Promise.race([welcome.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
     if (await welcome.isVisible()) {
       await welcome.getByRole("checkbox", { name: "Advanced mode" }).check();
       await welcome.getByRole("button", { name: "Get started" }).click();
     }
-    const chooser = reopened.getByRole("dialog", { name: "Choose a diagram type" });
-    if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+    await chooser.getByRole("button", { name: "Gantt diagram" }).click();
     await reopened.getByRole("button", { name: "File", exact: true }).click();
     await reopened.getByRole("menuitem", { name: "Open", exact: true }).click();
     await reopened.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Project…" }).click();
