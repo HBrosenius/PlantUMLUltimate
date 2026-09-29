@@ -38,4 +38,27 @@ describe("portable document assembly", () => {
     expect(decoded.document.settings.resourceCapacities).toEqual({ Alice: 80 });
     expect(decoded.document.current.baselineVersionId).toBe(local.portableId);
   });
+
+  it("preserves the document forecast setting and task estimates", async () => {
+    const document = await assemblePortableDocument(
+      {
+        id: "tab",
+        historyId: "h",
+        source: "@startgantt\n@endgantt",
+        diagramKind: "gantt",
+        fileName: "plan.pumlu",
+        dirty: true,
+        zoom: 1,
+        cursor: { line: 1, column: 1 },
+        progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3 } },
+      },
+      [],
+    );
+    const decoded = await decodeDocument((await encodeDocument(document)).bytes);
+    expect(decoded.document.settings.progressForecast).toEqual({
+      enabled: true,
+      asOf: "2026-09-29",
+      remainingDays: { design: 3 },
+    });
+  });
 });

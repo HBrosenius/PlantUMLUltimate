@@ -28,6 +28,7 @@ function persistentTabState(tab: {
   historyMaxVersions?: number | undefined;
   historyMaxLogicalBytes?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
+  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string } | undefined;
   wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
   wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
 }): string {
@@ -37,6 +38,7 @@ function persistentTabState(tab: {
     tab.historyMaxVersions,
     tab.historyMaxLogicalBytes,
     Object.entries(tab.resourceCapacities ?? {}).sort(([left], [right]) => left.localeCompare(right)),
+    tab.progressForecast,
     tab.wbsGanttLinks,
     tab.wbsGanttDependencies,
   ]);
@@ -76,6 +78,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
             historyMaxVersions: member.document.historyPolicy.maxVersions,
             historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
             resourceCapacities: member.document.settings.resourceCapacities,
+            progressForecast: member.document.settings.progressForecast,
             wbsGanttLinks: member.wbsGantt?.links,
             wbsGanttDependencies: member.wbsGantt?.dependencies,
           }),
@@ -234,6 +237,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
           historyMaxVersions: diagram.document.historyPolicy.maxVersions,
           historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
           resourceCapacities: diagram.document.settings.resourceCapacities,
+          progressForecast: diagram.document.settings.progressForecast,
         }),
       );
       revisionRef.current += 1;

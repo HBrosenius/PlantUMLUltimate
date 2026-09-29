@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PortableProject } from "@plantuml-studio/document-format";
+import { decodeProject, encodeProject, type PortableProject } from "@plantuml-studio/document-format";
 import type { DocumentSnapshot } from "../workspace-storage";
 import {
   embeddedMemberHistoryId,
@@ -179,6 +179,7 @@ describe("embedded project tabs", () => {
           historyMaxVersions: 25,
           historyMaxLogicalBytes: 2 * 1024 * 1024,
           resourceCapacities: { Alice: 80 },
+          progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3 } },
         },
       ],
       "2026-09-13T09:00:00.000Z",
@@ -202,6 +203,30 @@ describe("embedded project tabs", () => {
     expect(document.current.source).toBe(source);
     expect(document.current.baselineVersionId).toBe("55555555-5555-4555-8555-555555555555");
     expect(document.settings.resourceCapacities).toEqual({ Alice: 80 });
+    expect(document.settings.progressForecast).toEqual({
+      enabled: true,
+      asOf: "2026-09-29",
+      remainingDays: { design: 3 },
+    });
+    const reopened = await decodeProject((await encodeProject(snapshot)).bytes);
+    expect(reopened.project.diagrams[0]?.document.settings.progressForecast).toEqual(
+      document.settings.progressForecast,
+    );
+    const created: Array<Partial<DocumentSnapshot>> = [];
+    openEmbeddedMember(
+      reopened.project,
+      memberId,
+      {
+        documents: [],
+        addDocument(input: Partial<DocumentSnapshot>) {
+          created.push(input);
+          return "reopened-tab";
+        },
+        activateDocument() {},
+      } as never,
+      new Map(),
+    );
+    expect(created[0]?.progressForecast).toEqual(document.settings.progressForecast);
     expect(document.historyPolicy).toEqual({ maxVersions: 25, maxLogicalBytes: 2 * 1024 * 1024 });
     expect(document.versions).toHaveLength(1);
     expect(document.versions[0]).toMatchObject({ reason: "manual", pinned: true });

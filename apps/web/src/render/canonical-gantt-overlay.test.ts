@@ -66,3 +66,55 @@ describe("addCanonicalGanttOverlay with themed rounded-rect bars", () => {
     expect(result).toContain(`data-visual-task-id="${tasks[0]!.id}"`);
   });
 });
+
+describe("Gantt task completion", () => {
+  it("marks 100% tasks and fills only the completed portion of partial tasks", () => {
+    const tasks = parseGantt(`@startgantt
+[Architecture] lasts 4 days
+[Architecture] is 100% completed
+[Backend] lasts 4 days
+[Backend] is 50% completed
+[Frontend] lasts 4 days
+[Frontend] is 0% completed
+[Testing] lasts 4 days
+@endgantt`).document.tasks;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text x="10" y="30">Architecture</text>
+      <rect x="120" y="20" width="100" height="13" fill="#aaa" />
+      <text x="10" y="60">Backend</text>
+      <rect x="120" y="50" width="40" height="13" fill="#123456" />
+      <rect x="180" y="50" width="40" height="13" fill="#123456" />
+      <text x="10" y="90">Frontend</text>
+      <rect x="120" y="80" width="100" height="13" fill="#aaa" />
+      <text x="10" y="120">Testing</text>
+      <rect x="120" y="110" width="100" height="13" fill="#aaa" />
+    </svg>`;
+    const result = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    expect(result.querySelector(`[data-visual-task-id="${tasks[0]!.id}"] .gantt-completion-label`)?.textContent).toBe(
+      "100% ✓ Done",
+    );
+    expect(result.querySelector(`[data-completion-marker="${tasks[0]!.id}"]`)).not.toBeNull();
+    expect(result.querySelector(`[data-visual-task-id="${tasks[1]!.id}"] .gantt-completion-label`)?.textContent).toBe(
+      "50%",
+    );
+    expect(result.querySelector(`[data-completion-marker="${tasks[1]!.id}"]`)).toBeNull();
+    expect(result.querySelector(`[data-visual-task-id="${tasks[2]!.id}"] .gantt-completion-label`)?.textContent).toBe(
+      "0%",
+    );
+    expect(result.querySelector(`[data-visual-task-id="${tasks[3]!.id}"] .gantt-completion-label`)).toBeNull();
+    const progress = result.querySelector(`[data-progress-task-id="${tasks[1]!.id}"]`);
+    expect(progress?.getAttribute("x")).toBe("120");
+    expect(progress?.getAttribute("width")).toBe("50");
+    expect(progress?.getAttribute("fill")).toBe("#ffffff");
+    expect(result.querySelectorAll("clipPath rect")).toHaveLength(2);
+    expect(result.querySelector(`[data-task-id="${tasks[1]!.id}"]`)?.getAttribute("aria-label")).toBe(
+      "Select Backend, 50% complete",
+    );
+    const second = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    expect(second.querySelector(`[data-progress-task-id="${tasks[1]!.id}"]`)?.getAttribute("clip-path")).not.toBe(
+      progress?.getAttribute("clip-path"),
+    );
+    expect(result.querySelector(`[data-progress-task-id="${tasks[0]!.id}"]`)).toBeNull();
+    expect(result.querySelector(`[data-progress-task-id="${tasks[2]!.id}"]`)).toBeNull();
+  });
+});

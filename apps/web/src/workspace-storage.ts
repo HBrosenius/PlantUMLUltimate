@@ -35,6 +35,7 @@ export interface DocumentSnapshot {
   historyMaxLogicalBytes?: number | undefined;
   revision?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
+  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string } | undefined;
   linkedWbsDocumentId?: string | undefined;
   wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
   wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
@@ -191,6 +192,30 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             : {}),
           ...(item.resourceCapacities && typeof item.resourceCapacities === "object"
             ? { resourceCapacities: item.resourceCapacities }
+            : {}),
+          ...(item.progressForecast &&
+          typeof item.progressForecast === "object" &&
+          typeof item.progressForecast.enabled === "boolean" &&
+          item.progressForecast.remainingDays &&
+          typeof item.progressForecast.remainingDays === "object" &&
+          !Array.isArray(item.progressForecast.remainingDays)
+            ? {
+                progressForecast: {
+                  enabled: item.progressForecast.enabled,
+                  remainingDays: Object.fromEntries(
+                    Object.entries(item.progressForecast.remainingDays).filter(
+                      ([id, days]) => id.length <= 128 && Number.isSafeInteger(days) && days >= 1 && days <= 10_000,
+                    ),
+                  ),
+                  ...(typeof item.progressForecast.asOf === "string" &&
+                  /^\d{4}-\d{2}-\d{2}$/.test(item.progressForecast.asOf) &&
+                  !Number.isNaN(Date.parse(`${item.progressForecast.asOf}T00:00:00Z`)) &&
+                  new Date(`${item.progressForecast.asOf}T00:00:00Z`).toISOString().slice(0, 10) ===
+                    item.progressForecast.asOf
+                    ? { asOf: item.progressForecast.asOf }
+                    : {}),
+                },
+              }
             : {}),
           ...(typeof item.linkedWbsDocumentId === "string" ? { linkedWbsDocumentId: item.linkedWbsDocumentId } : {}),
           ...(Array.isArray(item.wbsGanttLinks)

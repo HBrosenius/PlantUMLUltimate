@@ -33,6 +33,12 @@ describe("composed document codec", () => {
     expect((await decodeDocument(encoded.bytes)).document).toEqual(input);
   });
 
+  it("rejects an impossible saved forecast date", async () => {
+    const input = await document();
+    input.settings.progressForecast = { enabled: true, asOf: "2026-02-30", remainingDays: {} };
+    await expect(encodeDocument(input)).rejects.toThrow("settings.progressForecast.asOf must be a valid ISO date");
+  });
+
   it("encrypts deterministically with injected randomness and varies normal saves", async () => {
     const input = await document();
     const deterministic = (length: number) => new Uint8Array(length).fill(length);

@@ -232,6 +232,7 @@ export function useDocumentFiles({
         historyMaxVersions: decoded.document.historyPolicy.maxVersions,
         historyMaxLogicalBytes: decoded.document.historyPolicy.maxLogicalBytes,
         resourceCapacities: decoded.document.settings.resourceCapacities,
+        progressForecast: decoded.document.settings.progressForecast,
         ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
       });
       if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
@@ -513,6 +514,7 @@ export function useDocumentFiles({
             compression: decoded.compression,
             encrypted: Boolean(decoded.unlockedKey),
             resourceCapacities: decoded.document.settings.resourceCapacities,
+            progressForecast: decoded.document.settings.progressForecast,
             dirty: false,
           });
           if (decoded.unlockedKey) rememberDocumentKey(documentId, decoded.unlockedKey);
@@ -615,6 +617,7 @@ export function useDocumentFiles({
           compression: decoded.compression,
           encrypted: Boolean(decoded.unlockedKey),
           resourceCapacities: decoded.document.settings.resourceCapacities,
+          progressForecast: decoded.document.settings.progressForecast,
           dirty: false,
         });
         if (decoded.unlockedKey) rememberDocumentKey(documentSnapshot.id, decoded.unlockedKey);

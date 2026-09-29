@@ -3221,6 +3221,10 @@ export function App() {
               projectLinkedTaskIds={linkedGanttTaskIds}
               projectDiagramLinks={projectDiagramLinks}
               onOpenProjectDiagram={openMember}
+              progressForecast={activeDocument.progressForecast}
+              onProgressForecastChange={(value) =>
+                tabs.updateDocumentFormat(tabs.activeId, { progressForecast: value, dirty: true })
+              }
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview

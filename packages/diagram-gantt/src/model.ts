@@ -84,6 +84,7 @@ export interface GanttTask {
   completion?: SourceValue<number>;
   color?: SourceValue<string>;
   milestone?: TaskReference | DateExpression;
+  milestoneAnchor?: "start" | "end";
   resources?: Array<SourceValue<string> & { allocation?: number }>;
   pauses?: DateExpression[];
   sameRowTaskId?: string;

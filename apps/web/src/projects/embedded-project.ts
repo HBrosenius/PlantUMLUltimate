@@ -71,6 +71,7 @@ export function openEmbeddedMember(
     historyMaxVersions: member.document.historyPolicy.maxVersions,
     historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
     resourceCapacities: member.document.settings.resourceCapacities,
+    progressForecast: member.document.settings.progressForecast,
     ...(baselineVersionId ? { baselineVersionId } : {}),
   });
   knownTabs.set(memberId, tabId);
@@ -138,7 +139,9 @@ export function projectContentEqual(a: PortableProject, b: PortableProject): boo
       diagram.document.historyPolicy.maxVersions === other.document.historyPolicy.maxVersions &&
       diagram.document.historyPolicy.maxLogicalBytes === other.document.historyPolicy.maxLogicalBytes &&
       JSON.stringify(diagram.document.settings.resourceCapacities) ===
-        JSON.stringify(other.document.settings.resourceCapacities)
+        JSON.stringify(other.document.settings.resourceCapacities) &&
+      JSON.stringify(diagram.document.settings.progressForecast) ===
+        JSON.stringify(other.document.settings.progressForecast)
     );
   });
 }
@@ -178,7 +181,10 @@ export async function snapshotEmbeddedProject(
               source: tab.source,
               sourceHash: await hashSource(tab.source),
             },
-            settings: { resourceCapacities: tab.resourceCapacities ?? {} },
+            settings: {
+              resourceCapacities: tab.resourceCapacities ?? {},
+              ...(tab.progressForecast ? { progressForecast: tab.progressForecast } : {}),
+            },
             historyPolicy: {
               maxVersions: tab.historyMaxVersions ?? member.document.historyPolicy.maxVersions,
               maxLogicalBytes: tab.historyMaxLogicalBytes ?? member.document.historyPolicy.maxLogicalBytes,

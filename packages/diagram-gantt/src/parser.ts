@@ -451,6 +451,7 @@ export function parseGantt(source: string): ParseResult {
       if (relativeMilestone?.[1]) {
         const referenceStart = line.text.indexOf(relativeMilestone[1], labelRange.to - line.from);
         task.milestone = taskReference(relativeMilestone[1], range(line, referenceStart, relativeMilestone[1]));
+        task.milestoneAnchor = relativeMilestone[2]?.toLowerCase() === "start" ? "start" : "end";
         declaration(task, "milestone", lineRange);
         continue;
       }

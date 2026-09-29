@@ -3,6 +3,7 @@ import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
 import { resolveTaskDates } from "../gantt-schedule";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+let progressOverlayInstance = 0;
 
 function numberAttribute(element: Element, name: string): number | undefined {
   const value = Number(element.getAttribute(name));
@@ -16,6 +17,16 @@ function hasVisiblePaint(element: Element): boolean {
     visible(element.getAttribute("fill")?.toLowerCase() ?? null) ||
     visible(element.getAttribute("stroke")?.toLowerCase() ?? null)
   );
+}
+
+function progressShade(shapes: readonly Element[]): { fill: string; opacity: string } {
+  const color = shapes.map((shape) => shape.getAttribute("fill")).find((fill) => fill && /^#[0-9a-f]{6}$/i.test(fill));
+  if (!color) return { fill: "#0f172a", opacity: "0.32" };
+  const red = Number.parseInt(color.slice(1, 3), 16);
+  const green = Number.parseInt(color.slice(3, 5), 16);
+  const blue = Number.parseInt(color.slice(5, 7), 16);
+  const brightness = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+  return brightness < 128 ? { fill: "#ffffff", opacity: "0.38" } : { fill: "#0f172a", opacity: "0.32" };
 }
 
 function durationInDays(task: GanttTask): number | undefined {
@@ -370,6 +381,8 @@ export function addCanonicalGanttOverlay(
     root.append(group);
   }
 
+  const progressClipPrefix = `plantuml-ultimate-progress-${++progressOverlayInstance}`;
+  let progressClipIndex = 0;
   for (const task of tasks) {
     const label = texts.find((text) => {
       const value = text.textContent?.trim();
@@ -502,6 +515,83 @@ export function addCanonicalGanttOverlay(
     });
     label.setAttribute("data-visual-task-id", task.id);
     label.setAttribute("data-resource-match", String(resourceMatch));
+    const completion = task.completion?.value;
+    if (completion !== undefined && completion > 0 && completion < 100 && !task.milestone) {
+      const progressShapes: Element[] = rowBars.length ? rowBars : rowPaths.length ? rowPaths : rowPolygons;
+      const progressBounds = progressShapes.flatMap((shape) => {
+        if (shape.tagName === "rect") {
+          const shapeX = numberAttribute(shape, "x");
+          const shapeY = numberAttribute(shape, "y");
+          const shapeWidth = numberAttribute(shape, "width");
+          const shapeHeight = numberAttribute(shape, "height");
+          return shapeX === undefined || shapeY === undefined || shapeWidth === undefined || shapeHeight === undefined
+            ? []
+            : [{ x: shapeX, y: shapeY, width: shapeWidth, height: shapeHeight }];
+        }
+        const shapeBounds =
+          shape.tagName === "path" ? pathBounds(shape as SVGPathElement) : polygonBounds(shape as SVGPolygonElement);
+        return shapeBounds ? [shapeBounds] : [];
+      });
+      if (progressBounds.length) {
+        const progressX = Math.min(...progressBounds.map((part) => part.x));
+        const progressY = Math.min(...progressBounds.map((part) => part.y));
+        const progressRight = Math.max(...progressBounds.map((part) => part.x + part.width));
+        const progressBottom = Math.max(...progressBounds.map((part) => part.y + part.height));
+        const clipId = `${progressClipPrefix}-${progressClipIndex++}`;
+        let definitions = root.querySelector("defs");
+        if (!definitions) {
+          definitions = document.createElementNS(SVG_NS, "defs");
+          root.prepend(definitions);
+        }
+        const clip = document.createElementNS(SVG_NS, "clipPath");
+        clip.setAttribute("id", clipId);
+        clip.setAttribute("clipPathUnits", "userSpaceOnUse");
+        for (const shape of progressShapes) {
+          const copy = document.createElementNS(SVG_NS, shape.tagName.toLowerCase());
+          const attributes =
+            shape.tagName === "rect"
+              ? ["x", "y", "width", "height", "rx", "ry"]
+              : shape.tagName === "path"
+                ? ["d"]
+                : ["points"];
+          for (const name of attributes) {
+            const value = shape.getAttribute(name);
+            if (value !== null) copy.setAttribute(name, value);
+          }
+          const transform = shape.getAttribute("transform");
+          if (transform) copy.setAttribute("transform", transform);
+          copy.setAttribute("fill", "#ffffff");
+          clip.append(copy);
+        }
+        definitions.append(clip);
+        const progress = document.createElementNS(SVG_NS, "rect");
+        progress.setAttribute("class", "gantt-task-progress");
+        progress.setAttribute("data-progress-task-id", task.id);
+        progress.setAttribute("data-completion", String(completion));
+        progress.setAttribute("data-resource-match", String(resourceMatch));
+        progress.setAttribute("x", String(progressX));
+        progress.setAttribute("y", String(progressY));
+        progress.setAttribute("width", String(((progressRight - progressX) * completion) / 100));
+        progress.setAttribute("height", String(progressBottom - progressY));
+        progress.setAttribute("clip-path", `url(#${clipId})`);
+        progress.setAttribute("pointer-events", "none");
+        const shade = progressShade(progressShapes);
+        progress.setAttribute("fill", shade.fill);
+        progress.setAttribute("fill-opacity", shade.opacity);
+        label.parentNode?.insertBefore(progress, label);
+      }
+    }
+    if (completion !== undefined) {
+      const completionLabel = document.createElementNS(SVG_NS, "tspan");
+      completionLabel.setAttribute("class", "gantt-completion-label");
+      completionLabel.setAttribute("data-completion-state", completion === 100 ? "done" : "open");
+      completionLabel.setAttribute("dx", "8");
+      completionLabel.setAttribute("font-size", "0.65em");
+      completionLabel.setAttribute("font-weight", "700");
+      completionLabel.setAttribute("fill", completion === 100 ? "#166534" : "#334155");
+      completionLabel.textContent = completion === 100 ? "100% ✓ Done" : `${completion}%`;
+      label.append(completionLabel);
+    }
 
     const duration = durationInDays(task);
     const dayWidth = canonicalDayWidth ?? (duration ? (width + 4) / duration : 16);
@@ -530,7 +620,10 @@ export function addCanonicalGanttOverlay(
     group.setAttribute("data-day-width", String(dayWidth));
     group.setAttribute("tabindex", "0");
     group.setAttribute("role", "button");
-    group.setAttribute("aria-label", `Select ${task.label}`);
+    group.setAttribute(
+      "aria-label",
+      `Select ${task.label}${completion === 100 ? ", 100% complete, done" : completion === undefined ? "" : `, ${completion}% complete`}`,
+    );
     group.setAttribute(
       "aria-keyshortcuts",
       "Enter Space Alt+ArrowLeft Alt+ArrowRight Control+ArrowUp Control+ArrowDown",
@@ -579,6 +672,34 @@ export function addCanonicalGanttOverlay(
       group.append(dependency);
     }
     root.append(group);
+    if (task.completion?.value === 100 && !task.milestone && visibleWidth >= 12 && visibleHeight >= 10) {
+      const marker = document.createElementNS(SVG_NS, "g");
+      marker.setAttribute("class", "gantt-done-marker");
+      marker.setAttribute("data-completion-marker", task.id);
+      marker.setAttribute("data-resource-match", String(resourceMatch));
+      marker.setAttribute("pointer-events", "none");
+      const markerRadius = Math.min(6, (visibleHeight - 2) / 2);
+      const centerX = right - markerRadius - 2;
+      const centerY = y + visibleHeight / 2;
+      const circle = document.createElementNS(SVG_NS, "circle");
+      circle.setAttribute("cx", String(centerX));
+      circle.setAttribute("cy", String(centerY));
+      circle.setAttribute("r", String(markerRadius));
+      circle.setAttribute("fill", "#15803d");
+      circle.setAttribute("stroke", "#ffffff");
+      circle.setAttribute("stroke-width", "1.5");
+      const check = document.createElementNS(SVG_NS, "text");
+      check.setAttribute("x", String(centerX));
+      check.setAttribute("y", String(centerY));
+      check.setAttribute("text-anchor", "middle");
+      check.setAttribute("dominant-baseline", "central");
+      check.setAttribute("font-size", String(markerRadius * 1.5));
+      check.setAttribute("font-weight", "700");
+      check.setAttribute("fill", "#ffffff");
+      check.textContent = "✓";
+      marker.append(circle, check);
+      root.append(marker);
+    }
   }
 
   const viewBoxWidth =

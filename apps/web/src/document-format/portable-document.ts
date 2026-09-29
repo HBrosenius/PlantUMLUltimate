@@ -13,7 +13,10 @@ import { mapLocalHistoryForRetention } from "./history-mapping";
 export async function assemblePortableDocument(
   document: DocumentSnapshot,
   localVersions: readonly DocumentVersion[],
-  settings: PortableDocumentSettings = { resourceCapacities: document.resourceCapacities ?? {} },
+  settings: PortableDocumentSettings = {
+    resourceCapacities: document.resourceCapacities ?? {},
+    ...(document.progressForecast ? { progressForecast: document.progressForecast } : {}),
+  },
   savedAt = new Date().toISOString(),
 ): Promise<PortableDocument> {
   const candidates = mapLocalHistoryForRetention(localVersions);

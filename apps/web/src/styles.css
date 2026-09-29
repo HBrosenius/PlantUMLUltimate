@@ -793,6 +793,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   fill: transparent;
   pointer-events: all;
 }
+.app[data-theme="dark"] svg .gantt-completion-label {
+  fill: #cbd5e1;
+}
+.app[data-theme="dark"] svg .gantt-completion-label[data-completion-state="done"] {
+  fill: #86efac;
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-theme="system"] svg .gantt-completion-label {
+    fill: #cbd5e1;
+  }
+  .app[data-theme="system"] svg .gantt-completion-label[data-completion-state="done"] {
+    fill: #86efac;
+  }
+}
 .diagram svg .task:hover .bar {
   filter: brightness(1.08);
   stroke: #1d4ed8;
@@ -1433,6 +1447,293 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--panel);
   box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
   font-size: 0.82rem;
+}
+.gantt-forecast-date-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.4rem;
+  font-size: 0.78rem;
+}
+.gantt-forecast-date-label input {
+  max-width: 125px;
+  border: 0;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.gantt-forecast-view {
+  position: absolute;
+  inset: 50px 0 0;
+  overflow: auto;
+  background: var(--diagram-bg);
+  color: var(--text);
+  font-size: 0.83rem;
+}
+.gantt-forecast-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.gantt-forecast-shift {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.gantt-forecast-shift[data-shift="on-plan"] {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.gantt-forecast-shift[data-shift="delayed"] {
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+.app[data-theme="dark"] .gantt-forecast-shift[data-shift="on-plan"] {
+  color: #86efac;
+  background: #14532d;
+  border-color: #166534;
+}
+.app[data-theme="dark"] .gantt-forecast-shift[data-shift="delayed"] {
+  color: #fca5a5;
+  background: #7f1d1d;
+  border-color: #991b1b;
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-theme="system"] .gantt-forecast-shift[data-shift="on-plan"] {
+    color: #86efac;
+    background: #14532d;
+    border-color: #166534;
+  }
+  .app[data-theme="system"] .gantt-forecast-shift[data-shift="delayed"] {
+    color: #fca5a5;
+    background: #7f1d1d;
+    border-color: #991b1b;
+  }
+}
+.gantt-forecast-filter {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+.gantt-forecast-start-conflict {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  color: var(--text);
+  background: color-mix(in srgb, #b46b13 22%, var(--panel));
+  border-bottom: 1px solid var(--line);
+}
+.gantt-forecast-layout {
+  display: grid;
+  grid-template-columns: minmax(400px, 1fr) 250px;
+  min-height: 370px;
+}
+.gantt-forecast-chart {
+  min-width: 0;
+  padding: 0.8rem;
+  overflow-x: auto;
+}
+.gantt-forecast-heading,
+.gantt-forecast-row {
+  display: grid;
+  grid-template-columns: 155px minmax(300px, 1fr);
+  width: 100%;
+}
+.gantt-forecast-heading {
+  height: 33px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.gantt-forecast-heading > div {
+  position: relative;
+}
+.gantt-forecast-heading > div span {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-30%);
+  font-size: 0.71rem;
+}
+.gantt-forecast-row {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-height: 53px;
+}
+.gantt-forecast-row:hover,
+.gantt-forecast-row[data-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.gantt-forecast-row[data-cause-chain="true"] .gantt-forecast-task {
+  border-left: 3px solid var(--accent);
+  padding-left: 5px;
+}
+.gantt-forecast-task {
+  min-width: 0;
+  padding: 7px 8px 5px 0;
+}
+.gantt-forecast-task strong,
+.gantt-forecast-task small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gantt-forecast-task small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gantt-forecast-track {
+  position: relative;
+  min-height: 52px;
+  background: repeating-linear-gradient(to right, transparent 0, transparent calc(14.28% - 1px), var(--line) 14.28%);
+}
+.gantt-forecast-plan-bar,
+.gantt-forecast-result-bar {
+  position: absolute;
+  border-radius: 3px;
+  min-width: 3px;
+}
+.gantt-forecast-plan-bar {
+  top: 13px;
+  height: 7px;
+  background: #aebaca;
+}
+.gantt-forecast-result-bar {
+  top: 28px;
+  height: 10px;
+  background: #2d72d9;
+}
+.gantt-forecast-result-bar.overdue {
+  background: repeating-linear-gradient(135deg, #b46b13 0 5px, #f9dcae 5px 10px);
+}
+.gantt-forecast-missed {
+  position: absolute;
+  top: 24px;
+  width: 2px;
+  height: 17px;
+  background: #b46b13;
+}
+.gantt-forecast-asof-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #b46b13;
+  pointer-events: none;
+}
+.gantt-forecast-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gantt-forecast-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.gantt-forecast-legend i {
+  display: inline-block;
+  width: 15px;
+  height: 7px;
+  border-radius: 2px;
+}
+.gantt-forecast-legend .plan {
+  background: #aebaca;
+}
+.gantt-forecast-legend .forecast {
+  background: #2d72d9;
+}
+.gantt-forecast-legend .overdue {
+  background: repeating-linear-gradient(135deg, #b46b13 0 4px, #f9dcae 4px 8px);
+}
+.gantt-forecast-inspector {
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.9rem;
+}
+.gantt-forecast-inspector h3 {
+  margin: 0.15rem 0 0.8rem;
+  font-size: 1rem;
+}
+.gantt-forecast-inspector p {
+  line-height: 1.45;
+}
+.gantt-forecast-chain {
+  padding: 0.4rem;
+  background: var(--diagram-bg);
+  border-radius: 4px;
+}
+.gantt-forecast-chain small {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.gantt-forecast-inspector small {
+  color: var(--muted);
+}
+.gantt-forecast-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.gantt-forecast-dates span {
+  display: block;
+  padding: 0.5rem;
+  background: var(--diagram-bg);
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+.gantt-forecast-dates small {
+  display: block;
+}
+.gantt-forecast-warning {
+  color: #a15c0d;
+  font-weight: 600;
+}
+.gantt-forecast-override {
+  display: block;
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+}
+.gantt-forecast-override input {
+  display: block;
+  width: 80px;
+  padding: 0.25rem;
+  margin-top: 0.3rem;
+}
+.gantt-forecast-override button {
+  margin-top: 0.4rem;
+}
+.gantt-forecast-note {
+  margin: 0;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+@media (max-width: 850px) {
+  .gantt-forecast-layout {
+    grid-template-columns: 1fr;
+  }
+  .gantt-forecast-inspector {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
 }
 .schedule-analysis-report > summary {
   cursor: pointer;

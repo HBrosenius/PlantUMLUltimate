@@ -204,11 +204,31 @@ export function validateDocument(value: unknown): PortableDocument {
       : identifier(current.baselineVersionId, "current.baselineVersionId");
 
   const settings = record(document.settings, "settings");
-  exactKeys(settings, ["resourceCapacities"], "settings");
+  exactKeys(settings, ["resourceCapacities", "progressForecast"], "settings");
   const capacities = record(settings.resourceCapacities, "settings.resourceCapacities");
   for (const [name, capacity] of Object.entries(capacities)) {
     if (!name || name.length > DOCUMENT_LIMITS.maxAuthorNameCharacters) limit("Resource capacity name is too long");
     integer(capacity, `settings.resourceCapacities.${name}`, 1, 500);
+  }
+  if (settings.progressForecast !== undefined) {
+    const progress = record(settings.progressForecast, "settings.progressForecast");
+    exactKeys(progress, ["enabled", "remainingDays", "asOf"], "settings.progressForecast");
+    if (typeof progress.enabled !== "boolean") invalid("settings.progressForecast.enabled must be a boolean");
+    if (progress.asOf !== undefined) {
+      const asOf = string(progress.asOf, "settings.progressForecast.asOf", 10);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(asOf) ||
+        Number.isNaN(Date.parse(`${asOf}T00:00:00Z`)) ||
+        new Date(`${asOf}T00:00:00Z`).toISOString().slice(0, 10) !== asOf
+      )
+        invalid("settings.progressForecast.asOf must be a valid ISO date");
+    }
+    const remaining = record(progress.remainingDays, "settings.progressForecast.remainingDays");
+    if (Object.keys(remaining).length > 5_000) limit("Too many remaining-work overrides");
+    for (const [taskId, days] of Object.entries(remaining)) {
+      string(taskId, "settings.progressForecast task ID", DOCUMENT_LIMITS.maxIdentifierCharacters);
+      integer(days, `settings.progressForecast.remainingDays.${taskId}`, 1, 10_000);
+    }
   }
 
   const historyPolicy = record(document.historyPolicy, "historyPolicy");

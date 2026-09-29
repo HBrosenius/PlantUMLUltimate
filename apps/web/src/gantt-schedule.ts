@@ -1,4 +1,5 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
+import { normalizeTaskId } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface ResolvedTaskDates {
@@ -78,6 +79,17 @@ export function resolveTaskDates(
       if (milestoneDate) {
         start = milestoneDate;
         end = milestoneDate;
+      }
+    }
+    if (!start && !end && task.milestone && !("resolved" in task.milestone)) {
+      const referenceId = normalizeTaskId(task.milestone.value);
+      const reference = tasks.find(
+        (item) => item.id === referenceId || normalizeTaskId(item.alias?.value ?? "") === referenceId,
+      );
+      const anchor = reference ? solve(reference)[task.milestoneAnchor ?? "end"] : undefined;
+      if (anchor) {
+        start = anchor;
+        end = anchor;
       }
     }
     const derived = !start || !end;

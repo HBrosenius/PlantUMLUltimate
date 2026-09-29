@@ -76,6 +76,37 @@ describe("normalizeSession", () => {
     expect(activeWorkspace(session).source).toBe("B");
   });
 
+  it("restores forecast settings and drops invalid remaining-work values", () => {
+    const session = normalizeSession({
+      version: 7,
+      documents: [
+        {
+          id: "gantt",
+          source: "@startgantt\n@endgantt",
+          fileName: "plan.pumlu",
+          progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3, invalid: -2 } },
+        },
+      ],
+      activeDocumentId: "gantt",
+    });
+    expect(session.documents[0]?.progressForecast).toEqual({
+      enabled: true,
+      asOf: "2026-09-29",
+      remainingDays: { design: 3 },
+    });
+    const invalid = normalizeSession({
+      version: 7,
+      documents: [
+        {
+          id: "gantt",
+          source: "@startgantt\n@endgantt",
+          progressForecast: { enabled: true, asOf: "2026-02-30", remainingDays: {} },
+        },
+      ],
+    });
+    expect(invalid.documents[0]?.progressForecast).toEqual({ enabled: true, remainingDays: {} });
+  });
+
   it("restores WBS documents as a first-class diagram kind", () => {
     const session = normalizeSession({
       version: 5,
