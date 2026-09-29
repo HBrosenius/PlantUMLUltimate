@@ -1636,6 +1636,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .gantt-forecast-layout[data-display="details"] .gantt-forecast-inspector {
   min-width: 0;
   border-left: 0;
+  padding: 0.55rem 0.7rem;
 }
 .gantt-forecast-shift {
   padding: 0.15rem 0.5rem;
@@ -1844,6 +1845,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .gantt-forecast-inspector small {
   color: var(--muted);
+}
+.gantt-forecast-project-causes > p {
+  margin: 0.25rem 0 0.4rem;
+}
+.gantt-forecast-project-causes ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gantt-forecast-project-causes li button {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid #d97706;
+  border-radius: 4px;
+  background: var(--diagram-bg);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.gantt-forecast-project-causes li button:hover,
+.gantt-forecast-project-causes li button:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--diagram-bg));
+}
+.gantt-forecast-project-causes li button span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gantt-forecast-project-causes .gantt-forecast-cause-note {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 .gantt-forecast-dates {
   display: grid;

@@ -93,3 +93,25 @@ sunday are closed
     expect(html).not.toContain("Progress not reported");
   });
 });
+
+describe("Gantt project finish causes", () => {
+  it("names the unfinished root and its affected milestone in the default inspector", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Design] starts 2026-09-21
+[Design] lasts 4 days
+[Design] is 50% completed
+[Build] starts at [Design]'s end
+[Build] lasts 3 days
+[Release] happens at [Build]'s end
+@endgantt`;
+    const html = render(source);
+    expect(html).toContain('aria-label="Project finish causes"');
+    expect(html).toContain("1 root cause affecting finish");
+    expect(html).toContain("Milestones: Release");
+    expect(html).toContain("The project shift is counted once.");
+    expect(render(source, {}, "build")).toContain('aria-label="View project finish causes"');
+  });
+});

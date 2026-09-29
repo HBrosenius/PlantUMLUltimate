@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { forecastWorkingDaysBetween, type ProgressForecast } from "./gantt-progress-forecast";
 import type { GanttCalendar } from "./gantt-calendar";
+import { summarizeFinishCauses } from "./gantt-forecast-causes";
 
 interface Props {
   tasks: readonly GanttTask[];
@@ -64,15 +65,8 @@ export function GanttForecastView({
   const causeLabels = selected?.causeTaskIds.map((id) => tasks.find((task) => task.id === id)?.label ?? id) ?? [];
   const selectedChain = selected ? causeChain(selected.taskId, forecast) : [];
   const selectedChainLabels = selectedChain.map((id) => tasks.find((task) => task.id === id)?.label ?? id);
-  const finishRoots = new Set(
-    tasks
-      .filter((task) => forecast.tasks.get(task.id)?.end === forecast.forecastFinish)
-      .flatMap((task) => causeChain(task.id, forecast))
-      .filter((id) => {
-        const item = forecast.tasks.get(id);
-        return item && !item.causeTaskIds.length && item.plannedEnd && item.end && item.end > item.plannedEnd;
-      }),
-  );
+  const finishCauses = summarizeFinishCauses(tasks, forecast);
+  const taskLabels = new Map(tasks.map((task) => [task.id, task.label]));
   const releaseShift =
     forecast.plannedFinish && forecast.forecastFinish
       ? forecastWorkingDaysBetween(forecast.plannedFinish, forecast.forecastFinish, calendar)
@@ -100,9 +94,14 @@ export function GanttForecastView({
             {forecast.missingProgress} missing progress{showMissingOnly ? " · Show all" : ""}
           </button>
         )}
-        <span>
-          {finishRoots.size} root cause{finishRoots.size === 1 ? "" : "s"} affecting finish
-        </span>
+        <button
+          type="button"
+          className="gantt-forecast-filter"
+          onClick={() => onTaskSelect("")}
+          aria-label="View project finish causes"
+        >
+          {finishCauses.causes.length} root cause{finishCauses.causes.length === 1 ? "" : "s"} affecting finish
+        </button>
         {manualEstimates > 0 && (
           <span className="gantt-forecast-warning">
             {manualEstimates} manual remaining-work estimate{manualEstimates === 1 ? "" : "s"}
@@ -348,7 +347,54 @@ export function GanttForecastView({
               )}
             </>
           ) : (
-            <p>Select a task to see its planned dates, forecast, and cause of any delay.</p>
+            <section className="gantt-forecast-project-causes" aria-label="Project finish causes">
+              <small>PROJECT FINISH CAUSES</small>
+              {finishCauses.causes.length ? (
+                <>
+                  <p>
+                    {finishCauses.causes.length} unfinished root task{finishCauses.causes.length === 1 ? "" : "s"}
+                    {finishCauses.affectedMilestoneIds.length
+                      ? ` · ${finishCauses.affectedMilestoneIds.length} affected milestone${finishCauses.affectedMilestoneIds.length === 1 ? "" : "s"}`
+                      : ""}
+                  </p>
+                  <ul>
+                    {finishCauses.causes.map((cause) => {
+                      const item = forecast.tasks.get(cause.taskId);
+                      const milestoneLabels = cause.affectedMilestoneIds.map((id) => taskLabels.get(id) ?? id);
+                      return (
+                        <li key={cause.taskId}>
+                          <button type="button" onClick={() => onTaskSelect(cause.taskId)}>
+                            <strong>{taskLabels.get(cause.taskId) ?? cause.taskId}</strong>
+                            <span>
+                              {item?.completion ?? 0}% complete · {item?.remainingDays ?? "?"} working days remain
+                            </span>
+                            <span>
+                              {cause.affectedTaskIds.length - 1} linked successor
+                              {cause.affectedTaskIds.length === 2 ? "" : "s"} ·{" "}
+                              {milestoneLabels.length
+                                ? `Milestones: ${milestoneLabels.join(", ")}`
+                                : "No downstream milestones"}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="gantt-forecast-cause-note">
+                    Shared dependency paths can appear under more than one cause. The project shift is counted once.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  {releaseShift
+                    ? "No finish-impacting root task can be identified from the available forecast."
+                    : "No unfinished task moves the project finish for this status date."}
+                </p>
+              )}
+              {forecast.unavailable > 0 && (
+                <p>Some tasks cannot be forecast, so the project finish may be incomplete.</p>
+              )}
+            </section>
           )}
         </aside>
       </div>

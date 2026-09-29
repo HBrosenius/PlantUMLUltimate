@@ -4,7 +4,7 @@ Status: first implementation available for local testing, 2026-09-29. The agreed
 
 ## First build status
 
-The Gantt preview now has a document-level Progress forecast toggle, adjustable status date, read-only forecast marks over the editable Gantt chart, a cause panel, manual remaining-work estimates, and missed-date diagnostics. Portable documents, embedded projects, and local workspace recovery preserve the setting, a chosen status date, and overrides. The current WBS editor reads and edits the linked Gantt completion value, so there are not two stored percentages that could conflict; the mismatch dialog below remains a future requirement if WBS gains an independent completion field.
+The Gantt preview now has a document-level Progress forecast toggle, adjustable status date, read-only forecast marks over the editable Gantt chart, a project-level root cause summary with affected milestones, a task cause panel, manual remaining-work estimates, and missed-date diagnostics. Portable documents, embedded projects, and local workspace recovery preserve the setting, a chosen status date, and overrides. The current WBS editor reads and edits the linked Gantt completion value, so there are not two stored percentages that could conflict; the mismatch dialog below remains a future requirement if WBS gains an independent completion field.
 
 ## Goal
 
