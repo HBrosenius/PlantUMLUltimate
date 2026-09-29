@@ -14,7 +14,14 @@ function render(source: string, overrides: Record<string, number> = {}, selected
   return renderToStaticMarkup(
     <GanttForecastView
       tasks={document.tasks}
-      forecast={calculateProgressForecast(document.tasks, document.dependencies, plan, calendar, "2026-09-29", overrides)}
+      forecast={calculateProgressForecast(
+        document.tasks,
+        document.dependencies,
+        plan,
+        calendar,
+        "2026-09-29",
+        overrides,
+      )}
       calendar={calendar}
       asOf="2026-09-29"
       projectStart={projectStart}

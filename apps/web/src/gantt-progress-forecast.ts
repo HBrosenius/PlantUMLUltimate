@@ -185,12 +185,26 @@ export function calculateProgressForecast(
     start = nextAvailable(start, calendar, pauses) ?? start;
     const computedEnd = remainingDays > 0 ? workEnd(start, remainingDays, calendar, pauses) : start;
     if (!computedEnd) {
-      const result = { ...base, missingCompletion, remainingDays, automaticRemainingDays, issue: "No working date available" };
+      const result = {
+        ...base,
+        missingCompletion,
+        remainingDays,
+        automaticRemainingDays,
+        issue: "No working date available",
+      };
       forecast.set(task.id, result);
       return result;
     }
     const end = computedEnd > planned.end ? computedEnd : planned.end;
-    const result = { ...base, missingCompletion, start, end, remainingDays, automaticRemainingDays, causeTaskIds: [...new Set(causes)] };
+    const result = {
+      ...base,
+      missingCompletion,
+      start,
+      end,
+      remainingDays,
+      automaticRemainingDays,
+      causeTaskIds: [...new Set(causes)],
+    };
     forecast.set(task.id, result);
     return result;
   };

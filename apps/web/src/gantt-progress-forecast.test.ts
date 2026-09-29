@@ -67,7 +67,11 @@ today is colored in #AAF
         .replace("[Backend] is 50% completed", "[Backend] is 10% completed"),
       "2026-09-29",
     );
-    expect(behind.tasks.get("backend")).toMatchObject({ plannedEnd: "2026-10-06", end: "2026-10-08", remainingDays: 8 });
+    expect(behind.tasks.get("backend")).toMatchObject({
+      plannedEnd: "2026-10-06",
+      end: "2026-10-08",
+      remainingDays: 8,
+    });
     expect(behind.plannedFinish).toBe("2026-10-27");
     expect(behind.forecastFinish).toBe("2026-10-29");
     expect(behind.missingProgress).toBe(0);

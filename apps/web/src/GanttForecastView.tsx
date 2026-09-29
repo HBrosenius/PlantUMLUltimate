@@ -130,7 +130,10 @@ export function GanttForecastView({
             </div>
           </div>
           {tasks
-            .filter((task) => !showMissingOnly || forecast.missingProgress === 0 || forecast.tasks.get(task.id)?.missingCompletion)
+            .filter(
+              (task) =>
+                !showMissingOnly || forecast.missingProgress === 0 || forecast.tasks.get(task.id)?.missingCompletion,
+            )
             .map((task) => {
               const item = forecast.tasks.get(task.id);
               if (!item) return null;
