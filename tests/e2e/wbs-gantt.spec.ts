@@ -521,8 +521,8 @@ test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
     .click();
   const marker = page.locator(".wbs-dependency-warning");
   await expect(marker).toHaveCount(1);
-  await marker.focus();
-  await page.keyboard.press("Enter");
+  await expect(page.locator(".wbs-preview")).toHaveAttribute("data-render-status", "idle");
+  await marker.press("Enter");
   await expect(page.getByRole("complementary", { name: "WBS arrow inspector" }).getByRole("status")).toContainText(
     "would create a cycle",
   );
