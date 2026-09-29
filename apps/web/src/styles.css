@@ -621,8 +621,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   position: relative;
   top: auto;
   right: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  width: calc(100% - 16px);
   flex: none;
-  margin: 8px 8px 0 auto;
+  margin: 8px 8px 0;
+}
+.gantt-preview-tools-main {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.gantt-preview-tools-forecast {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.gantt-preview-tools-forecast > button {
+  width: 170px;
 }
 .gantt-preview .preview-viewport {
   flex: 1;
@@ -633,8 +650,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .gantt-preview .gantt-forecast-view {
   position: relative;
   inset: auto;
-  flex: 1;
+  flex: none;
   min-height: 0;
+}
+.gantt-preview .gantt-forecast-view[data-display="details"] {
+  max-height: min(30vh, 220px);
+  border-top: 1px solid var(--line);
 }
 .activity-preview .preview-tools {
   left: 8px;
@@ -1451,6 +1472,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   stroke: #334155;
   stroke-width: 2.5;
 }
+.diagram svg .gantt-forecast-task-mark {
+  pointer-events: none;
+}
+.diagram svg .gantt-forecast-plan-stripe {
+  fill: #94a3b8;
+  stroke: #f8fafc;
+  stroke-width: 0.6;
+}
+.diagram svg .gantt-forecast-result-stripe {
+  fill: #2563eb;
+}
+.diagram svg .gantt-forecast-done-stripe {
+  fill: #15803d;
+}
+.diagram svg .gantt-forecast-overdue-stripe {
+  stroke: #92400e;
+  stroke-width: 0.7;
+}
+.diagram svg .gantt-forecast-missed-marker {
+  stroke: #b45309;
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}
+.diagram svg .gantt-forecast-asof-guide {
+  stroke: #7c3aed;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.diagram svg .gantt-forecast-axis-weekday,
+.diagram svg .gantt-forecast-axis-month {
+  fill: var(--muted);
+  font-family: sans-serif;
+  font-size: 8px;
+  pointer-events: none;
+}
+.diagram svg .gantt-forecast-axis-month {
+  font-weight: 700;
+}
+.diagram svg .gantt-forecast-extended-axis [data-closed-date="true"] {
+  fill: #94a3b8;
+}
+.diagram svg .gantt-forecast-cause-link {
+  fill: none;
+  stroke: #d97706;
+  stroke-width: 1.6;
+}
+.diagram svg .gantt-forecast-task-mark[data-cause-chain="true"] rect,
+.diagram svg .gantt-forecast-task-mark[data-selected="true"] rect {
+  stroke: #d97706;
+  stroke-width: 0.8;
+}
+.diagram svg .interaction-task[data-forecast-cause-chain="true"] .bar {
+  stroke: #d97706;
+  stroke-width: 1.5;
+}
 .diagram svg [data-critical-path="true"].task .bar {
   stroke: #dc2626;
   stroke-width: 3;
@@ -1500,6 +1577,65 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
+}
+.gantt-forecast-inline-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gantt-forecast-inline-legend i {
+  width: 15px;
+  height: 6px;
+  border-radius: 2px;
+}
+.gantt-forecast-inline-legend .plan {
+  background: #94a3b8;
+}
+.gantt-forecast-inline-legend .forecast {
+  background: #2563eb;
+}
+.gantt-forecast-inline-legend .overdue {
+  background: repeating-linear-gradient(135deg, #b45309 0 4px, #fde68a 4px 8px);
+}
+.gantt-forecast-layout[data-display="details"] {
+  grid-template-columns: minmax(150px, 28%) minmax(0, 1fr);
+  min-height: 0;
+}
+.gantt-forecast-task-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+}
+.gantt-forecast-task-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.gantt-forecast-task-list button[data-selected="true"],
+.gantt-forecast-task-list button:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+.gantt-forecast-task-list button[data-cause-chain="true"] {
+  border-left: 3px solid #d97706;
+}
+.gantt-forecast-task-list button span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gantt-forecast-layout[data-display="details"] .gantt-forecast-inspector {
+  min-width: 0;
+  border-left: 0;
 }
 .gantt-forecast-shift {
   padding: 0.15rem 0.5rem;

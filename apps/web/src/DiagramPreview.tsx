@@ -19,6 +19,7 @@ import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
+import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
 
 interface Props {
   svg: string | undefined;
@@ -335,9 +336,13 @@ export function DiagramPreview({
       renderedBaselineGeometry,
       baselineLabels,
     );
-    return remoteEditTaskId && remoteEditColor && remoteEditName
-      ? decorateRemoteEditBadge(analyzed, remoteEditTaskId, remoteEditColor, remoteEditName)
-      : analyzed;
+    const decorated =
+      remoteEditTaskId && remoteEditColor && remoteEditName
+        ? decorateRemoteEditBadge(analyzed, remoteEditTaskId, remoteEditColor, remoteEditName)
+        : analyzed;
+    return progressForecastResult
+      ? addGanttForecastOverlay(decorated, progressForecastResult, forecastAsOf, calendar, forecastSelectedTaskId)
+      : decorated;
   }, [
     interactiveSvg,
     selectedTaskId,
@@ -354,6 +359,10 @@ export function DiagramPreview({
     baselineLabels,
     jiraTaskStatuses,
     projectLinkedTaskIds,
+    progressForecastResult,
+    forecastAsOf,
+    forecastSelectedTaskId,
+    calendar,
   ]);
   const visibleTimelineDates = useMemo(() => {
     if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();
@@ -907,113 +916,246 @@ export function DiagramPreview({
   return (
     <section className="preview gantt-preview" ref={previewRef} aria-label="Diagram preview">
       <div className="preview-tools">
-        {!progressForecast?.enabled && (
-          <>
-            <button data-inspector-trigger onClick={() => adjacentTask(-1)} aria-label="Previous task">
-              ↑
+        <div className="gantt-preview-tools-main">
+          {!progressForecast?.enabled && (
+            <>
+              <button data-inspector-trigger onClick={() => adjacentTask(-1)} aria-label="Previous task">
+                ↑
+              </button>
+              <button data-inspector-trigger onClick={() => adjacentTask(1)} aria-label="Next task">
+                ↓
+              </button>
+              <button
+                data-inspector-trigger
+                onClick={() => revealTask(selectedTaskId)}
+                disabled={!selectedTaskId}
+                aria-label="Jump to selected task"
+              >
+                Selected
+              </button>
+            </>
+          )}
+          <button
+            onClick={() =>
+              progressForecast?.enabled
+                ? onProgressForecastChange?.({ enabled: true, remainingDays: progressForecast.remainingDays })
+                : jumpToday()
+            }
+            aria-label={progressForecast?.enabled ? "Set forecast date to today" : "Jump to today"}
+          >
+            Today
+          </button>
+          {!progressForecast?.enabled && (
+            <>
+              <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
+                −
+              </button>
+              <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
+                {Math.round(zoom * 100)}%
+              </button>
+              <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
+                +
+              </button>
+              <select
+                aria-label="Timeline zoom preset"
+                value=""
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "fit") {
+                    onZoomChange(1);
+                    viewportRef.current?.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+                  } else onZoomChange(value === "day" ? 2 : value === "week" ? 1.35 : 0.8);
+                }}
+              >
+                <option value="" disabled>
+                  View
+                </option>
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+                <option value="fit">Fit project</option>
+              </select>
+              <button
+                type="button"
+                aria-pressed={showCriticalPath}
+                onClick={() => setShowCriticalPath((value) => !value)}
+              >
+                Critical path
+              </button>
+            </>
+          )}
+          {selectedDependencyIndex !== undefined && (
+            <button onClick={onDependencyDelete} aria-label="Delete dependency">
+              Delete link
             </button>
-            <button data-inspector-trigger onClick={() => adjacentTask(1)} aria-label="Next task">
-              ↓
-            </button>
-            <button
-              data-inspector-trigger
-              onClick={() => revealTask(selectedTaskId)}
-              disabled={!selectedTaskId}
-              aria-label="Jump to selected task"
-            >
-              Selected
-            </button>
-          </>
-        )}
-        <button
-          onClick={() =>
-            progressForecast?.enabled
-              ? onProgressForecastChange?.({ enabled: true, remainingDays: progressForecast.remainingDays })
-              : jumpToday()
-          }
-          aria-label={progressForecast?.enabled ? "Set forecast date to today" : "Jump to today"}
-        >
-          Today
-        </button>
-        {!progressForecast?.enabled && (
-          <>
-            <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
-              −
-            </button>
-            <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
-              {Math.round(zoom * 100)}%
-            </button>
-            <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
-              +
-            </button>
-            <select
-              aria-label="Timeline zoom preset"
-              value=""
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === "fit") {
-                  onZoomChange(1);
-                  viewportRef.current?.scrollTo({ left: 0, top: 0, behavior: "smooth" });
-                } else onZoomChange(value === "day" ? 2 : value === "week" ? 1.35 : 0.8);
-              }}
-            >
-              <option value="" disabled>
-                View
-              </option>
-              <option value="day">Day</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-              <option value="fit">Fit project</option>
-            </select>
+          )}
+        </div>
+        <div className="gantt-preview-tools-forecast">
+          {progressForecast?.enabled && (
+            <label className="gantt-forecast-date-label">
+              As of{" "}
+              <input
+                aria-label="Forecast as of date"
+                type="date"
+                value={forecastAsOf}
+                onChange={(event) => {
+                  if (event.target.value)
+                    onProgressForecastChange?.({
+                      enabled: true,
+                      remainingDays: progressForecast.remainingDays,
+                      asOf: event.target.value,
+                    });
+                }}
+              />
+            </label>
+          )}
+          {onProgressForecastChange && (
             <button
               type="button"
-              aria-pressed={showCriticalPath}
-              onClick={() => setShowCriticalPath((value) => !value)}
+              aria-pressed={Boolean(progressForecast?.enabled)}
+              onClick={() =>
+                onProgressForecastChange({
+                  enabled: !progressForecast?.enabled,
+                  remainingDays: progressForecast?.remainingDays ?? {},
+                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+                })
+              }
             >
-              Critical path
+              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
             </button>
-          </>
-        )}
-        {onProgressForecastChange && (
-          <button
-            type="button"
-            aria-pressed={Boolean(progressForecast?.enabled)}
-            onClick={() =>
-              onProgressForecastChange({
-                enabled: !progressForecast?.enabled,
-                remainingDays: progressForecast?.remainingDays ?? {},
-                ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
-              })
-            }
+          )}
+        </div>
+      </div>
+      <div
+        className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
+        ref={viewportRef}
+        onWheel={navigation.onWheel}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          setScrollPercent(
+            element.scrollWidth <= element.clientWidth
+              ? 0
+              : (element.scrollLeft / (element.scrollWidth - element.clientWidth)) * 100,
+          );
+        }}
+      >
+        {selectedSvg ? (
+          <div
+            className="diagram"
+            data-selected-task={selectedTaskId}
+            style={{ transform: `scale(${zoom})` }}
+            onClick={(event) => {
+              const target = event.target as Element;
+              const taskId = target.closest("[data-task-id]")?.getAttribute("data-task-id");
+              if (taskId && progressForecastResult) setForecastSelectedTaskId(taskId);
+              selectFromEvent(event);
+            }}
+            onPointerDown={startDrag}
+            onPointerUp={() => {
+              const id = pointerTaskIdRef.current;
+              pointerTaskIdRef.current = undefined;
+              if (id) {
+                if (progressForecastResult) setForecastSelectedTaskId(id);
+                onDependencySelect(undefined);
+                onTaskSelect(id);
+              }
+            }}
+            onPointerOver={(event) => {
+              if (draggingRef.current) return;
+              const baseline = (event.target as Element).closest<SVGRectElement>(".baseline-bar");
+              const preview = previewRef.current?.getBoundingClientRect();
+              if (baseline && preview) {
+                const id = baseline.getAttribute("data-baseline-task-id") ?? "";
+                const rect = baseline.getBoundingClientRect();
+                setHoveredTask(undefined);
+                setHoveredBaseline({
+                  label:
+                    tasks.find((item) => item.id === id)?.label ??
+                    baselineTasks.find((item) => item.id === id)?.label ??
+                    id,
+                  dates: baseline.getAttribute("data-baseline-dates") ?? "",
+                  x: Math.min(preview.width - 250, Math.max(8, rect.right - preview.left + 8)),
+                  y: Math.max(8, rect.top - preview.top),
+                });
+                return;
+              }
+              const group = (event.target as Element).closest<SVGGElement>("[data-task-id]");
+              const id = group?.getAttribute("data-task-id");
+              if (id && id !== selectedTaskId && preview) {
+                cancelTaskHoverClose();
+                const rect = group!.getBoundingClientRect();
+                setHoveredTask({
+                  id,
+                  x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
+                  y: Math.max(8, rect.top - preview.top),
+                });
+              }
+            }}
+            onPointerOut={(event) => {
+              if (draggingRef.current) return;
+              const baselineFrom = (event.target as Element).closest(".baseline-bar");
+              const baselineTo = (event.relatedTarget as Element | null)?.closest?.(".baseline-bar");
+              if (baselineFrom && baselineFrom !== baselineTo) setHoveredBaseline(undefined);
+              const from = (event.target as Element).closest("[data-task-id]");
+              const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id]");
+              if (from && from !== to) scheduleTaskHoverClose();
+            }}
+            onKeyDown={(event) => {
+              const date = (event.target as Element)
+                .closest("[data-timeline-date]")
+                ?.getAttribute("data-timeline-date");
+              if (date && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onDateHighlightRequest(date);
+                return;
+              }
+              if (event.key === "Enter" || event.key === " ") {
+                selectFromEvent(event);
+                return;
+              }
+              const currentId = (event.target as Element).closest("[data-task-id]")?.getAttribute("data-task-id");
+              const currentIndex = tasks.findIndex((item) => item.id === currentId);
+              if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight") && currentId) {
+                event.preventDefault();
+                const days = event.key === "ArrowRight" ? 1 : -1;
+                if (event.shiftKey) onTaskResize(currentId, days, days);
+                else onTaskMove(currentId, days);
+                return;
+              }
+              if (
+                event.ctrlKey &&
+                (event.key === "ArrowUp" || event.key === "ArrowDown") &&
+                currentId &&
+                currentIndex >= 0
+              ) {
+                event.preventDefault();
+                if (event.key === "ArrowUp" && currentIndex > 0) onTaskReorder(currentId, tasks[currentIndex - 1]!.id);
+                else if (event.key === "ArrowDown" && currentIndex < tasks.length - 1)
+                  onTaskReorder(currentId, tasks[currentIndex + 2]?.id);
+                else onInteractionMessage("The task is already at the edge of the diagram");
+                return;
+              }
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              const index = currentIndex;
+              if (index < 0) return;
+              const next = tasks[Math.min(tasks.length - 1, Math.max(0, index + (event.key === "ArrowDown" ? 1 : -1)))];
+              if (next) {
+                event.preventDefault();
+                event.currentTarget.querySelector<SVGGElement>(`[data-task-id="${CSS.escape(next.id)}"]`)?.focus();
+              }
+            }}
           >
-            Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
-          </button>
-        )}
-        {progressForecast?.enabled && (
-          <label className="gantt-forecast-date-label">
-            As of{" "}
-            <input
-              aria-label="Forecast as of date"
-              type="date"
-              value={forecastAsOf}
-              onChange={(event) => {
-                if (event.target.value)
-                  onProgressForecastChange?.({
-                    enabled: true,
-                    remainingDays: progressForecast.remainingDays,
-                    asOf: event.target.value,
-                  });
-              }}
-            />
-          </label>
-        )}
-        {selectedDependencyIndex !== undefined && (
-          <button onClick={onDependencyDelete} aria-label="Delete dependency">
-            Delete link
-          </button>
+            <MemoizedSvgMarkup svg={selectedSvg} linkedTaskIds={projectLinkedTaskIds} />
+          </div>
+        ) : (
+          <div className="diagram" style={{ transform: `scale(${zoom})` }}>
+            <span>Rendering preview…</span>
+          </div>
         )}
       </div>
-      {progressForecastResult ? (
+      {progressForecastResult && (
         <GanttForecastView
           tasks={tasks}
           forecast={progressForecastResult}
@@ -1033,133 +1175,8 @@ export function DiagramPreview({
               ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
             });
           }}
+          display="details"
         />
-      ) : (
-        <div
-          className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
-          ref={viewportRef}
-          onWheel={navigation.onWheel}
-          onPointerDown={navigation.onPointerDown}
-          onAuxClick={navigation.onAuxClick}
-          onScroll={(event) => {
-            const element = event.currentTarget;
-            setScrollPercent(
-              element.scrollWidth <= element.clientWidth
-                ? 0
-                : (element.scrollLeft / (element.scrollWidth - element.clientWidth)) * 100,
-            );
-          }}
-        >
-          {selectedSvg ? (
-            <div
-              className="diagram"
-              data-selected-task={selectedTaskId}
-              style={{ transform: `scale(${zoom})` }}
-              onClick={selectFromEvent}
-              onPointerDown={startDrag}
-              onPointerUp={() => {
-                const id = pointerTaskIdRef.current;
-                pointerTaskIdRef.current = undefined;
-                if (id) {
-                  onDependencySelect(undefined);
-                  onTaskSelect(id);
-                }
-              }}
-              onPointerOver={(event) => {
-                if (draggingRef.current) return;
-                const baseline = (event.target as Element).closest<SVGRectElement>(".baseline-bar");
-                const preview = previewRef.current?.getBoundingClientRect();
-                if (baseline && preview) {
-                  const id = baseline.getAttribute("data-baseline-task-id") ?? "";
-                  const rect = baseline.getBoundingClientRect();
-                  setHoveredTask(undefined);
-                  setHoveredBaseline({
-                    label:
-                      tasks.find((item) => item.id === id)?.label ??
-                      baselineTasks.find((item) => item.id === id)?.label ??
-                      id,
-                    dates: baseline.getAttribute("data-baseline-dates") ?? "",
-                    x: Math.min(preview.width - 250, Math.max(8, rect.right - preview.left + 8)),
-                    y: Math.max(8, rect.top - preview.top),
-                  });
-                  return;
-                }
-                const group = (event.target as Element).closest<SVGGElement>("[data-task-id]");
-                const id = group?.getAttribute("data-task-id");
-                if (id && id !== selectedTaskId && preview) {
-                  cancelTaskHoverClose();
-                  const rect = group!.getBoundingClientRect();
-                  setHoveredTask({
-                    id,
-                    x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
-                    y: Math.max(8, rect.top - preview.top),
-                  });
-                }
-              }}
-              onPointerOut={(event) => {
-                if (draggingRef.current) return;
-                const baselineFrom = (event.target as Element).closest(".baseline-bar");
-                const baselineTo = (event.relatedTarget as Element | null)?.closest?.(".baseline-bar");
-                if (baselineFrom && baselineFrom !== baselineTo) setHoveredBaseline(undefined);
-                const from = (event.target as Element).closest("[data-task-id]");
-                const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id]");
-                if (from && from !== to) scheduleTaskHoverClose();
-              }}
-              onKeyDown={(event) => {
-                const date = (event.target as Element)
-                  .closest("[data-timeline-date]")
-                  ?.getAttribute("data-timeline-date");
-                if (date && (event.key === "Enter" || event.key === " ")) {
-                  event.preventDefault();
-                  onDateHighlightRequest(date);
-                  return;
-                }
-                if (event.key === "Enter" || event.key === " ") {
-                  selectFromEvent(event);
-                  return;
-                }
-                const currentId = (event.target as Element).closest("[data-task-id]")?.getAttribute("data-task-id");
-                const currentIndex = tasks.findIndex((item) => item.id === currentId);
-                if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight") && currentId) {
-                  event.preventDefault();
-                  const days = event.key === "ArrowRight" ? 1 : -1;
-                  if (event.shiftKey) onTaskResize(currentId, days, days);
-                  else onTaskMove(currentId, days);
-                  return;
-                }
-                if (
-                  event.ctrlKey &&
-                  (event.key === "ArrowUp" || event.key === "ArrowDown") &&
-                  currentId &&
-                  currentIndex >= 0
-                ) {
-                  event.preventDefault();
-                  if (event.key === "ArrowUp" && currentIndex > 0)
-                    onTaskReorder(currentId, tasks[currentIndex - 1]!.id);
-                  else if (event.key === "ArrowDown" && currentIndex < tasks.length - 1)
-                    onTaskReorder(currentId, tasks[currentIndex + 2]?.id);
-                  else onInteractionMessage("The task is already at the edge of the diagram");
-                  return;
-                }
-                if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-                const index = currentIndex;
-                if (index < 0) return;
-                const next =
-                  tasks[Math.min(tasks.length - 1, Math.max(0, index + (event.key === "ArrowDown" ? 1 : -1)))];
-                if (next) {
-                  event.preventDefault();
-                  event.currentTarget.querySelector<SVGGElement>(`[data-task-id="${CSS.escape(next.id)}"]`)?.focus();
-                }
-              }}
-            >
-              <MemoizedSvgMarkup svg={selectedSvg} linkedTaskIds={projectLinkedTaskIds} />
-            </div>
-          ) : (
-            <div className="diagram" style={{ transform: `scale(${zoom})` }}>
-              <span>Rendering preview…</span>
-            </div>
-          )}
-        </div>
       )}
       {!progressForecast?.enabled && baselineSource && (
         <details className="schedule-analysis-report">
