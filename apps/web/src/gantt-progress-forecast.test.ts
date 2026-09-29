@@ -149,6 +149,42 @@ Project starts 2026-09-01
     });
   });
 
+  it("places an incomplete overdue milestone on the status date, even when work is closed", () => {
+    const milestone = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Gate] happens 2026-09-24
+[Work] starts at [Gate]'s end
+[Work] lasts 2 days
+@endgantt`;
+    const closedDay = run(milestone, "2026-09-26", { gate: 3 });
+    expect(closedDay.tasks.get("gate")).toMatchObject({
+      plannedEnd: "2026-09-24",
+      start: "2026-09-26",
+      end: "2026-09-26",
+      remainingDays: 0,
+      manualEstimate: false,
+    });
+    const later = run(milestone, "2026-09-29");
+    expect(later.tasks.get("gate")?.end).toBe("2026-09-29");
+    expect(later.tasks.get("work")?.start).toBe("2026-09-30");
+    expect(
+      run(milestone.replace("[Gate] happens", "[Gate] is 100% completed\n[Gate] happens"), "2026-09-29").tasks.get(
+        "gate",
+      )?.end,
+    ).toBe("2026-09-24");
+  });
+
+  it("keeps a future incomplete milestone on its planned date", () => {
+    const result = run("@startgantt\n[Gate] happens 2026-10-05\n@endgantt", "2026-09-29");
+    expect(result.tasks.get("gate")).toMatchObject({
+      plannedEnd: "2026-10-05",
+      start: "2026-10-05",
+      end: "2026-10-05",
+    });
+  });
+
   it("reports a dependency cycle instead of inventing forecast dates", () => {
     const result = run(
       `@startgantt

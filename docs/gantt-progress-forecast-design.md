@@ -19,6 +19,7 @@ The document has an optional **Aggressive tracking** setting. When enabled, the 
 - Remaining duration starts at the task's current scheduled elapsed duration multiplied by `(100 - Complete) / 100`, rounded up to a working day. A task-level remaining-work override takes precedence until cleared. A 100%-complete task has no remaining work. The forecast does not move work earlier than the current plan.
 - Missing `Complete` is treated as 0%. A task is marked **Progress not reported** only when it should already have started; future tasks are not warned.
 - An unfinished task whose remaining work cannot fit before its planned finish continues from the status date, or the next working date according to its calendar. Its forecast end moves later as needed.
+- An incomplete milestone with a past planned date forecasts at the selected status date, even when that date is closed for scheduled work. Its missed planned date remains visible; only linked successors inherit the shift. Completed and future milestones stay on plan.
 - Only explicitly linked successors respond to a predecessor's shift. Row order alone creates no scheduling relationship. Existing dependency types, offsets, pauses, and working calendars should retain their current meaning.
 - Explicit starts and deadlines remain visible as planned constraints. The forecast may pass them and must label each missed constraint; it does not rewrite the source date.
 - Linked WBS nodes and Gantt tasks share completion in a project. Unlinked Gantt tasks use their own `Complete` value.
@@ -101,9 +102,8 @@ Saving a portable document or project stores the on/off setting, a chosen status
 ## Open decisions
 
 1. **Resolving linked completion:** decide whether the user's choice writes the chosen percentage into both linked sources immediately or proposes a reviewable two-document edit.
-2. **Milestones:** decide whether an incomplete milestone with no predecessor and a date in the past forecasts at the status date or remains an overdue marker only.
-3. **Time-zone rule:** define which calendar date "today" means for collaborators in different time zones, while allowing the selected status date to be shared in a review.
-4. **Plain-source warning:** decide the exact save/export message for `.puml` so users understand which metadata remains only in the portable/project file.
+2. **Time-zone rule:** define which calendar date "today" means for collaborators in different time zones, while allowing the selected status date to be shared in a review.
+3. **Plain-source warning:** decide the exact save/export message for `.puml` so users understand which metadata remains only in the portable/project file.
 
 ## Scope boundary
 

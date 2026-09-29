@@ -115,3 +115,21 @@ sunday are closed
     expect(render(source, {}, "build")).toContain('aria-label="View project finish causes"');
   });
 });
+
+describe("overdue Gantt milestones", () => {
+  it("names the missed date and describes the milestone without inventing remaining work", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Gate] happens 2026-09-24
+[Work] starts at [Gate]'s end
+[Work] lasts 2 days
+@endgantt`;
+    const selected = render(source, {}, "gate");
+    expect(selected).toContain("Milestone date Sep 24 missed; forecast is Sep 29.");
+    expect(selected).toContain("Milestone not reported complete.");
+    expect(selected).not.toContain("No work remains.");
+    expect(render(source)).toContain("Milestone not complete · Forecast Sep 29");
+  });
+});

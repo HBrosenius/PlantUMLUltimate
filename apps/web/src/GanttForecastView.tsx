@@ -268,8 +268,16 @@ export function GanttForecastView({
                   </div>
                   {selected.plannedEnd && selected.end && selected.end > selected.plannedEnd && (
                     <p className="gantt-forecast-warning">
-                      {selectedTask?.end?.resolved ? "Explicit finish" : "Planned finish"} missed by{" "}
-                      {forecastWorkingDaysBetween(selected.plannedEnd, selected.end, calendar)} working days.
+                      {selectedTask?.milestone ? (
+                        <>
+                          Milestone date {shortDate(selected.plannedEnd)} missed; forecast is {shortDate(selected.end)}.
+                        </>
+                      ) : (
+                        <>
+                          {selectedTask?.end?.resolved ? "Explicit finish" : "Planned finish"} missed by{" "}
+                          {forecastWorkingDaysBetween(selected.plannedEnd, selected.end, calendar)} working days.
+                        </>
+                      )}
                     </p>
                   )}
                   {selectedTask?.start?.resolved &&
@@ -288,7 +296,11 @@ export function GanttForecastView({
                         ? "No progress expected yet; the forecast assumes 0%. "
                         : `${selected.completion}% complete. `}
                     {selected.remainingDays === 0
-                      ? "No work remains."
+                      ? selectedTask?.milestone
+                        ? selected.completion >= 100
+                          ? "Milestone complete."
+                          : "Milestone not reported complete."
+                        : "No work remains."
                       : `${selected.remainingDays} working day${selected.remainingDays === 1 ? "" : "s"} remain.`}
                   </p>
                   {selected.manualEstimate && (
@@ -305,8 +317,12 @@ export function GanttForecastView({
                     {causeLabels.length
                       ? `Moved by ${causeLabels.join(" and ")}. Only linked successors inherit this delay.`
                       : selected.plannedEnd && selected.end && selected.end > selected.plannedEnd
-                        ? "This task's remaining work extends beyond its planned finish."
-                        : "This task does not delay its planned finish."}
+                        ? selectedTask?.milestone
+                          ? "This milestone was due before the status date and is not yet complete."
+                          : "This task's remaining work extends beyond its planned finish."
+                        : selectedTask?.milestone
+                          ? "This milestone is on plan."
+                          : "This task does not delay its planned finish."}
                   </p>
                   {selectedChain.length > 1 && (
                     <p className="gantt-forecast-chain">
@@ -360,13 +376,16 @@ export function GanttForecastView({
                   <ul>
                     {finishCauses.causes.map((cause) => {
                       const item = forecast.tasks.get(cause.taskId);
+                      const rootTask = tasks.find((task) => task.id === cause.taskId);
                       const milestoneLabels = cause.affectedMilestoneIds.map((id) => taskLabels.get(id) ?? id);
                       return (
                         <li key={cause.taskId}>
                           <button type="button" onClick={() => onTaskSelect(cause.taskId)}>
                             <strong>{taskLabels.get(cause.taskId) ?? cause.taskId}</strong>
                             <span>
-                              {item?.completion ?? 0}% complete · {item?.remainingDays ?? "?"} working days remain
+                              {rootTask?.milestone
+                                ? `Milestone not complete · Forecast ${shortDate(item?.end)}`
+                                : `${item?.completion ?? 0}% complete · ${item?.remainingDays ?? "?"} working days remain`}
                             </span>
                             <span>
                               {cause.affectedTaskIds.length - 1} linked successor

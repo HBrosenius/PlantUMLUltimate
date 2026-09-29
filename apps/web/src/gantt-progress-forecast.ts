@@ -105,7 +105,7 @@ export function calculateProgressForecast(
       plannedEnd: planned?.end,
       completion,
       missingCompletion: false,
-      manualEstimate: completion < 100 && remainingOverrides[task.id] !== undefined,
+      manualEstimate: !task.milestone && completion < 100 && remainingOverrides[task.id] !== undefined,
       causeTaskIds: [] as string[],
     };
     if (visiting.has(task.id)) return { ...base, issue: "Dependency cycle" };
@@ -124,7 +124,7 @@ export function calculateProgressForecast(
     const override = remainingOverrides[task.id];
     const automaticRemainingDays =
       elapsed === undefined ? undefined : Math.max(1, Math.ceil((elapsed * (100 - completion)) / 100));
-    const remainingDays = override ?? automaticRemainingDays;
+    const remainingDays = milestone ? 0 : (override ?? automaticRemainingDays);
     if (remainingDays === undefined || !Number.isSafeInteger(remainingDays) || remainingDays < 0) {
       const result = { ...base, issue: "Task duration cannot be resolved" };
       forecast.set(task.id, result);
@@ -182,7 +182,9 @@ export function calculateProgressForecast(
       forecast.set(task.id, result);
       return result;
     }
-    start = nextAvailable(start, calendar, pauses) ?? start;
+    // A milestone is a dated event, so an overdue one can land exactly on the status date,
+    // including a day closed for scheduled work.
+    start = milestone ? start : (nextAvailable(start, calendar, pauses) ?? start);
     const computedEnd = remainingDays > 0 ? workEnd(start, remainingDays, calendar, pauses) : start;
     if (!computedEnd) {
       const result = {
