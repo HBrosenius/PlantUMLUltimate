@@ -613,6 +613,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid var(--line);
   border-radius: 4px;
 }
+.gantt-preview {
+  display: flex;
+  flex-direction: column;
+}
+.gantt-preview .preview-tools {
+  position: relative;
+  top: auto;
+  right: auto;
+  flex: none;
+  margin: 8px 8px 0 auto;
+}
+.gantt-preview .preview-viewport {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  padding-top: 12px;
+}
+.gantt-preview .gantt-forecast-view {
+  position: relative;
+  inset: auto;
+  flex: 1;
+  min-height: 0;
+}
 .activity-preview .preview-tools {
   left: 8px;
   max-height: 88px;

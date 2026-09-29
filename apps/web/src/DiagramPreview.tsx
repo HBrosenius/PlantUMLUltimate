@@ -905,7 +905,7 @@ export function DiagramPreview({
   };
 
   return (
-    <section className="preview" ref={previewRef} aria-label="Diagram preview">
+    <section className="preview gantt-preview" ref={previewRef} aria-label="Diagram preview">
       <div className="preview-tools">
         {!progressForecast?.enabled && (
           <>
