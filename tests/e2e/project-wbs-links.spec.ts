@@ -48,15 +48,14 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
 
   await page.getByRole("button", { name: "Close project navigator" }).click();
-  await page.getByRole("button", { name: "Select WBS node Delivery" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Delivery" }).press("Shift+F10");
   await page
     .getByRole("menu", { name: "Symbol actions" })
     .getByRole("menuitem", { name: "Open linked WBS node in Design: design" })
     .click();
   await expect(page.getByRole("complementary", { name: "WBS node inspector" })).toContainText("Design");
-  await page.getByRole("button", { name: "Select WBS node Design" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Design" }).press("Shift+F10");
+  await expect(page.getByRole("menu", { name: "Symbol actions" })).toBeVisible();
   await expect(
     page
       .getByRole("menu", { name: "Symbol actions" })
@@ -71,15 +70,14 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await inspector.getByRole("textbox", { name: "Label" }).fill("Research renamed");
   await inspector.getByRole("textbox", { name: "Label" }).blur();
   await expect(inspector.getByRole("textbox", { name: "Label" })).toHaveValue("Research renamed");
-  await page.getByRole("button", { name: "Select WBS node Research renamed" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Research renamed" }).press("Shift+F10");
   await page
     .getByRole("menu", { name: "Symbol actions" })
     .getByRole("menuitem", { name: "Open linked WBS node in Design: design" })
     .click();
   await expect(inspector).toContainText("Design");
-  await page.getByRole("button", { name: "Select WBS node Design" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Design" }).press("Shift+F10");
+  await expect(page.getByRole("menu", { name: "Symbol actions" })).toBeVisible();
   await expect(
     page
       .getByRole("menu", { name: "Symbol actions" })
@@ -89,20 +87,17 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
     .getByRole("menu", { name: "Symbol actions" })
     .getByRole("menuitem", { name: "Open linked WBS node in Research: research" })
     .click();
-  await page.getByRole("button", { name: "Select WBS node Research renamed" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Research renamed" }).press("Shift+F10");
   await page.getByRole("menu", { name: "Symbol actions" }).getByRole("menuitem", { name: "Rename…" }).click();
   const rename = page.getByRole("dialog", { name: "Rename WBS node alias" });
   await rename.getByRole("textbox", { name: "New name" }).fill("research_new");
   await rename.getByRole("button", { name: "Rename" }).click();
-  await page.getByRole("button", { name: "Select WBS node Research renamed" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Research renamed" }).press("Shift+F10");
   await page
     .getByRole("menu", { name: "Symbol actions" })
     .getByRole("menuitem", { name: "Open linked WBS node in Design: design" })
     .click();
-  await page.getByRole("button", { name: "Select WBS node Design" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await page.getByRole("button", { name: "Select WBS node Design" }).press("Shift+F10");
   await expect(
     page
       .getByRole("menu", { name: "Symbol actions" })

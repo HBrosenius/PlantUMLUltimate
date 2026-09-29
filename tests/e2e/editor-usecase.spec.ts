@@ -343,28 +343,23 @@ test("selects and reorders Use Case objects with the keyboard", async ({ page })
 
   const secondActor = page.locator('[data-usecase-object-id="second"]').first();
   await expect(secondActor).toBeVisible();
-  await secondActor.focus();
-  await page.keyboard.press("Enter");
+  await secondActor.press("Enter");
   const inspector = page.getByRole("complementary", { name: "Use Case object inspector" });
   await expect(inspector).toBeVisible();
   await expect(inspector.getByLabel("Alias")).toHaveValue("Second");
 
-  await secondActor.focus();
-  await page.keyboard.press("Alt+ArrowUp");
+  await secondActor.press("Alt+ArrowUp");
   await expect
     .poll(() => page.locator(".cm-content").innerText())
     .toMatch(/actor "User" as Second[\s\S]*actor "User" as First/);
 
-  await secondActor.focus();
-  await page.keyboard.press("c");
+  await secondActor.press("c");
   await expect(page.getByText("Choose a target and press Enter · Esc cancels")).toBeVisible();
   const review = page.locator('[data-usecase-object-id="review"]').first();
-  await review.focus();
-  await page.keyboard.press("Enter");
+  await review.press("Enter");
   await expect(page.locator(".cm-content")).toContainText("Second --> Review");
 
-  await secondActor.focus();
-  await page.keyboard.press("c");
+  await secondActor.press("c");
   await page.keyboard.press("Escape");
   await expect(page.getByText("Drag between objects to connect · C for keyboard")).toBeVisible();
 });

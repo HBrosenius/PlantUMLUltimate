@@ -6,6 +6,25 @@ async function selectWbsNode(page: import("@playwright/test").Page, name: string
   await page.keyboard.press("Enter");
 }
 
+async function wbsNodeHit(page: import("@playwright/test").Page, name: string) {
+  const id = await page.getByRole("button", { name: `Select WBS node ${name}` }).getAttribute("data-wbs-node-id");
+  if (!id) throw new Error(`WBS node ${name} has no hit target`);
+  return page.locator(`rect.wbs-node-hit[data-wbs-node-id="${id}"]`);
+}
+
+async function hoverWbsLabel(page: import("@playwright/test").Page, name: string) {
+  const point = await page.getByRole("button", { name: `Select WBS node ${name}` }).evaluate((element) => {
+    const text = element as SVGTextElement;
+    const box = text.getBBox();
+    const matrix = text.getScreenCTM();
+    if (!matrix) return undefined;
+    const screen = new DOMPoint(box.x + Math.min(5, box.width / 2), box.y + box.height / 2).matrixTransform(matrix);
+    return { x: screen.x, y: screen.y };
+  });
+  if (!point) throw new Error(`WBS node ${name} is not visible`);
+  await page.mouse.move(point.x, point.y);
+}
+
 async function expectToolbarButtonInViewport(page: import("@playwright/test").Page, name: string) {
   const button = page.getByRole("button", { name, exact: true });
   await expect(button).toBeInViewport();
@@ -88,12 +107,13 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     .getByRole("complementary", { name: "Task inspector" })
     .getByRole("button", { name: "Open linked WBS node: Design" })
     .click();
-  await page.getByRole("button", { name: "Select WBS node Design" }).hover();
+  await (await wbsNodeHit(page, "Design")).hover({ position: { x: 5, y: 5 } });
   await expect(page.getByRole("complementary", { name: "Task details for Design" })).toBeVisible();
-  await page.getByRole("button", { name: "Select WBS node Build" }).click();
+  await selectWbsNode(page, "Build");
   await expect(page.getByRole("complementary", { name: "WBS node inspector" }).getByLabel("Label")).toHaveValue(
     "Build",
   );
+  await hoverWbsLabel(page, "Build");
   await expect(page.getByRole("complementary", { name: "Task details for Build" })).toBeVisible();
   await page.mouse.move(0, 0);
   await expect(page.getByRole("complementary", { name: "Task details for Build" })).toBeHidden();
@@ -677,7 +697,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
       .click();
     await selectWbsNode(reopened, "Build");
     await expect(reopened.getByRole("button", { name: "Open linked Gantt task" })).toBeVisible();
-    await reopened.getByRole("button", { name: "Select WBS node Build" }).hover();
+    await hoverWbsLabel(reopened, "Build");
     const hover = reopened.getByRole("complementary", { name: "Task details for Build" });
     await expect(hover).toBeVisible();
     await expect(hover).toContainText("Dates");

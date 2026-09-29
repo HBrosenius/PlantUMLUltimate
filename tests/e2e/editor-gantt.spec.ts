@@ -967,15 +967,25 @@ test("edits, reviews, and applies a delivery scenario from the rendered preview"
 test("snaps a Monday task to the previous Friday using dated timeline columns", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-07\n[A] lasts 3 days"));
-  const friday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-04"]').boundingBox();
-  const monday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
-  const bar = await page.locator("[data-task-id=a] .bar").boundingBox();
-  expect(friday).not.toBeNull();
-  expect(monday).not.toBeNull();
-  expect(bar).not.toBeNull();
-  const delta = friday!.x + friday!.width / 2 - (monday!.x + monday!.width / 2);
-  const startX = bar!.x + bar!.width / 2;
-  const startY = bar!.y + bar!.height / 2;
+  const { delta, startX, startY } = await page.locator("[data-task-id=a] .bar").evaluate((element) => {
+    const bar = element as SVGGraphicsElement;
+    const svg = bar.ownerSVGElement;
+    const friday = svg?.querySelector<SVGGraphicsElement>(
+      '[data-timeline-header="top"][data-timeline-date="2026-09-04"]',
+    );
+    const monday = svg?.querySelector<SVGGraphicsElement>(
+      '[data-timeline-header="top"][data-timeline-date="2026-09-07"]',
+    );
+    if (!friday || !monday) throw new Error("Dated timeline columns are unavailable");
+    const fridayRect = friday.getBoundingClientRect();
+    const mondayRect = monday.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
+    return {
+      delta: fridayRect.x + fridayRect.width / 2 - (mondayRect.x + mondayRect.width / 2),
+      startX: barRect.x + barRect.width / 2,
+      startY: barRect.y + barRect.height / 2,
+    };
+  });
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.mouse.move(startX + delta, startY, { steps: 4 });

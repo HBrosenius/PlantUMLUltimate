@@ -92,15 +92,9 @@ export function WbsDiagramPreview({
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const [hoveredNode, setHoveredNode] = useState<{ id: string; x: number; y: number }>();
   const hoverDetails = hoveredNode ? nodeSchedule.get(hoveredNode.id) : undefined;
-  useEffect(() => {
-    if (!hoveredNode) return;
-    const clearWhenLeavingNode = (event: PointerEvent) => {
-      const id = (event.target as Element).closest?.("[data-wbs-node-id]")?.getAttribute("data-wbs-node-id");
-      if (id !== hoveredNode.id) setHoveredNode(undefined);
-    };
-    window.addEventListener("pointermove", clearWhenLeavingNode, true);
-    return () => window.removeEventListener("pointermove", clearWhenLeavingNode, true);
-  }, [hoveredNode]);
+  useLayoutEffect(() => {
+    if (root.current && svg) root.current.innerHTML = svg;
+  }, [svg]);
   const clearDropTarget = () => {
     dropTarget.current?.classList.remove("wbs-drop-target");
     dropTarget.current = undefined;
@@ -447,7 +441,16 @@ export function WbsDiagramPreview({
           focusAfterRender.current = undefined;
         }, 100);
     }
-  });
+  }, [
+    dependencyWarnings,
+    document,
+    linkedNodeIds,
+    nodeCompletion,
+    renderStatus,
+    selectedId,
+    selectedRelationshipId,
+    svg,
+  ]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       const current = drag.current;
@@ -544,6 +547,7 @@ export function WbsDiagramPreview({
     onSelect,
     planMove,
     renderStatus,
+    svg,
   ]);
   return (
     <section className="preview wbs-preview" aria-label="WBS diagram preview" data-render-status={renderStatus}>
@@ -579,7 +583,6 @@ export function WbsDiagramPreview({
             ref={root}
             className="diagram wbs-diagram"
             style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
-            dangerouslySetInnerHTML={{ __html: svg }}
             onClick={(event) => {
               const target = event.target as Element;
               const relationshipId =
@@ -663,26 +666,35 @@ export function WbsDiagramPreview({
                 onRelationshipSelect(undefined);
               }
             }}
-            onPointerOver={(event) => {
+            onPointerMove={(event) => {
               if (drag.current) return;
-              const node = (event.target as Element).closest<SVGElement>("[data-wbs-node-id]");
+              const direct = (event.target as Element).closest<SVGElement>("[data-wbs-node-id]");
+              const node = direct ?? nodeElementAt(event.clientX, event.clientY);
               const id = node?.dataset.wbsNodeId;
-              if (!id || !nodeSchedule.has(id)) return;
+              const rect = node?.getBoundingClientRect();
+              if (
+                !id ||
+                !rect ||
+                !nodeSchedule.has(id) ||
+                (!direct &&
+                  (event.clientX < rect.left - 12 ||
+                    event.clientX > rect.right + 12 ||
+                    event.clientY < rect.top - 8 ||
+                    event.clientY > rect.bottom + 8))
+              ) {
+                setHoveredNode((current) => (current ? undefined : current));
+                return;
+              }
               const preview = event.currentTarget.closest<HTMLElement>(".wbs-preview")?.getBoundingClientRect();
               if (!preview) return;
-              const rect = node.getBoundingClientRect();
-              setHoveredNode({
+              const next = {
                 id,
                 x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
                 y: Math.max(8, rect.top - preview.top),
-              });
-            }}
-            onPointerOut={(event) => {
-              const from = (event.target as Element).closest<SVGElement>("[data-wbs-node-id]")?.dataset.wbsNodeId;
-              const to = (event.relatedTarget as Element | null)
-                ?.closest?.<SVGElement>("[data-wbs-node-id]")
-                ?.getAttribute("data-wbs-node-id");
-              if (from && from !== to) setHoveredNode(undefined);
+              };
+              setHoveredNode((current) =>
+                current?.id === next.id && current.x === next.x && current.y === next.y ? current : next,
+              );
             }}
             onPointerLeave={() => setHoveredNode(undefined)}
             onKeyDown={(event) => {
