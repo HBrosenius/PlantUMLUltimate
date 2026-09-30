@@ -1,6 +1,34 @@
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource } from "./editor-helpers";
 
+test("applies a task delay without changing the project finish", async ({ page }) => {
+  await prepareEditor(page);
+  await setSource(
+    page,
+    `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Long track] starts 2026-09-21
+[Long track] lasts 20 days
+[Long track] is 100% completed
+[Short track] starts 2026-09-21
+[Short track] lasts 3 days
+[Short track] is 50% completed
+@endgantt`,
+  );
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByLabel("Forecast as of date").fill("2026-09-30");
+  await page.getByRole("button", { name: "Apply to plan…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Apply forecast to plan" });
+  await expect(dialog).toContainText("project finish unchanged");
+  await expect(dialog).toContainText("Short track");
+  await dialog.getByRole("button", { name: "Apply to plan" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".cm-content")).not.toContainText("[Short track] lasts 3 days");
+  await expect(page.locator(".cm-content")).toContainText("[Long track] lasts 20 days");
+});
+
 test("reviews and applies a delayed cause, then undoes its plan and estimate", async ({ page }) => {
   await prepareEditor(page);
   await setSource(

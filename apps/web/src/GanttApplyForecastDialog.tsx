@@ -35,9 +35,11 @@ export function GanttApplyForecastDialog({
       >
         <h2 id="apply-forecast-title">Apply forecast to plan</h2>
         <p>
-          As of {review.asOf} · planned finish {review.plannedFinish ?? "—"} → proposed finish{" "}
-          {review.proposedFinish ?? "—"}. This will change the PlantUML plan and save remaining-work estimates where a
-          duration is extended.
+          As of {review.asOf} ·{" "}
+          {review.plannedFinish && review.plannedFinish === review.proposedFinish
+            ? `project finish unchanged (${review.plannedFinish ?? "—"})`
+            : `planned finish ${review.plannedFinish ?? "—"} → proposed finish ${review.proposedFinish ?? "—"}`}
+          . This will change the PlantUML plan and save remaining-work estimates where a duration is extended.
         </p>
         {stale && (
           <p className="schedule-warning" role="alert">

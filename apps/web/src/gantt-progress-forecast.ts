@@ -25,6 +25,10 @@ export interface ProgressForecast {
   unavailable: number;
 }
 
+export function hasDelayedForecastTask(forecast: ProgressForecast): boolean {
+  return [...forecast.tasks.values()].some((task) => task.end && task.plannedEnd && task.end > task.plannedEnd);
+}
+
 function available(date: string, calendar: GanttCalendar, pauses: ReadonlySet<string>): boolean {
   return isWorkingDate(date, calendar) && !pauses.has(date);
 }

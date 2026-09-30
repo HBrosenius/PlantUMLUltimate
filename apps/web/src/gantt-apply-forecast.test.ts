@@ -22,6 +22,28 @@ saturday are closed
 @endgantt`;
 
 describe("prepareForecastApply", () => {
+  it("applies a delayed task while a completed parallel task keeps the project finish unchanged", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Long track] starts 2026-09-21
+[Long track] lasts 20 days
+[Long track] is 100% completed
+[Short track] starts 2026-09-21
+[Short track] lasts 3 days
+[Short track] is 50% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-30", {});
+    expect(review.error).toBeUndefined();
+    expect(review.plannedFinish).toBe("2026-10-16");
+    expect(review.plannedFinish).toBe(review.proposedFinish);
+    expect(review.rows.map((row) => row.taskId)).toEqual(["short track"]);
+    expect(review.rows[0]?.sourceAction).toContain("lasts");
+    expect(review.sourceAfter).toContain("[Long track] lasts 20 days");
+    expect(review.sourceAfter).not.toBe(source);
+  });
+
   it("extends the delayed cause, preserves its start and downstream links, and saves its estimate", () => {
     const review = prepareForecastApply(linkedSource, "2026-09-30", {});
     expect(review.error).toBeUndefined();

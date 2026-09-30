@@ -17,7 +17,7 @@ import { decorateRemoteEditBadge } from "./render/remote-edit-badge";
 import { useDiagramNavigation } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
-import { calculateProgressForecast } from "./gantt-progress-forecast";
+import { calculateProgressForecast, hasDelayedForecastTask } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
@@ -1012,9 +1012,9 @@ export function DiagramPreview({
           )}
         </div>
         <div className="gantt-preview-tools-forecast">
-          {progressForecastResult?.plannedFinish &&
-            progressForecastResult.forecastFinish &&
-            progressForecastResult.forecastFinish > progressForecastResult.plannedFinish &&
+          {progressForecastResult &&
+            !progressForecastResult.unavailable &&
+            hasDelayedForecastTask(progressForecastResult) &&
             onApplyForecast && (
               <button
                 type="button"

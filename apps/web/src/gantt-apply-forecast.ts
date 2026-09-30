@@ -1,6 +1,6 @@
 import { applySourceEdits, parseGantt, setTaskDeclaration, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
-import { calculateProgressForecast, type ProgressForecast } from "./gantt-progress-forecast";
+import { calculateProgressForecast, hasDelayedForecastTask, type ProgressForecast } from "./gantt-progress-forecast";
 import { resolveTaskDates, taskAllocationPercent, taskWorkloadDays } from "./gantt-schedule";
 
 export interface ForecastApplyRow {
@@ -93,8 +93,8 @@ export function prepareForecastApply(
     review.error = "All task dates must be forecastable before applying.";
     return review;
   }
-  if (forecast.forecastFinish <= forecast.plannedFinish) {
-    review.error = "The project finish has no forecast delay to apply.";
+  if (!hasDelayedForecastTask(forecast)) {
+    review.error = "No task has a forecast delay to apply.";
     return review;
   }
 
