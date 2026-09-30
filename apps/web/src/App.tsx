@@ -80,6 +80,8 @@ import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
+import { prepareForecastApply } from "./gantt-apply-forecast";
+import { forecastToday } from "./forecast-date";
 import { parseProjectSettings } from "./project-settings";
 import type { Theme, ViewMode } from "./model";
 import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
@@ -1435,6 +1437,21 @@ export function App() {
     setProblemsOpen,
     captureBeforeCommit,
     refreshHistoryControls,
+    onForecastHistoryChange: (value, previous) => {
+      const current = tabs.getDocument(tabs.activeId)?.progressForecast ?? value;
+      if (!current) return;
+      const remainingDays = { ...current.remainingDays };
+      for (const id of new Set([
+        ...Object.keys(value?.remainingDays ?? {}),
+        ...Object.keys(previous?.remainingDays ?? {}),
+      ])) {
+        if (value?.remainingDays[id] === previous?.remainingDays[id]) continue;
+        const days = value?.remainingDays[id];
+        if (days === undefined) delete remainingDays[id];
+        else remainingDays[id] = days;
+      }
+      tabs.updateDocumentFormat(tabs.activeId, { progressForecast: { ...current, remainingDays }, dirty: true });
+    },
   });
   const commitLinkedGanttSchedule = useCallback(
     (nextSource: string, description: string) =>
@@ -3228,6 +3245,37 @@ export function App() {
               progressForecast={activeDocument.progressForecast}
               onProgressForecastChange={(value) =>
                 tabs.updateDocumentFormat(tabs.activeId, { progressForecast: value, dirty: true })
+              }
+              onApplyForecast={
+                collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"
+                  ? undefined
+                  : (review) => {
+                      const settings = activeDocument.progressForecast;
+                      const asOf = settings?.asOf ?? forecastToday(settings?.timeZone ?? "UTC");
+                      if (
+                        !settings?.enabled ||
+                        workspace.source !== review.sourceBefore ||
+                        asOf !== review.asOf ||
+                        JSON.stringify(settings.remainingDays) !== JSON.stringify(review.overridesBefore)
+                      ) {
+                        setInteractionMessage("Forecast inputs changed. Recalculate the review before applying.");
+                        return false;
+                      }
+                      const fresh = prepareForecastApply(workspace.source, asOf, settings.remainingDays);
+                      if (!fresh.sourceAfter || fresh.sourceAfter !== review.sourceAfter) {
+                        setInteractionMessage(
+                          fresh.error ?? "Forecast changed. Recalculate the review before applying.",
+                        );
+                        return false;
+                      }
+                      const applied = commitGeneratedSource(fresh.sourceAfter, "Apply progress forecast to plan", {
+                        before: settings,
+                        after: { ...settings, remainingDays: fresh.overridesAfter },
+                      });
+                      if (applied)
+                        setInteractionMessage("Applied forecast to plan. Undo restores dates and estimates together.");
+                      return applied;
+                    }
               }
             />
           ) : workspace.diagramKind === "sequence" ? (

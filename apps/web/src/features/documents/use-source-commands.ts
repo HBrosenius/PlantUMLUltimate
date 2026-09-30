@@ -5,6 +5,8 @@ import { validateGeneratedSource } from "../../generated-source-validation";
 import type { DiagramKind } from "../../model";
 import type { WorkspaceSnapshot } from "../../workspace-storage";
 
+type ForecastSettings = NonNullable<import("../../workspace-storage").DocumentSnapshot["progressForecast"]>;
+
 export interface SourceProblemPreview {
   source: string;
   diagnostics: Diagnostic[];
@@ -22,6 +24,7 @@ interface UseSourceCommandsOptions {
   setProblemsOpen: Dispatch<SetStateAction<boolean>>;
   captureBeforeCommit: () => void;
   refreshHistoryControls: () => void;
+  onForecastHistoryChange?: (value: ForecastSettings | undefined, previous: ForecastSettings | undefined) => void;
 }
 
 export function useSourceCommands({
@@ -35,9 +38,15 @@ export function useSourceCommands({
   setProblemsOpen,
   captureBeforeCommit,
   refreshHistoryControls,
+  onForecastHistoryChange,
 }: UseSourceCommandsOptions) {
   const commitSource = useCallback(
-    (source: string, description: string, validate = true): boolean => {
+    (
+      source: string,
+      description: string,
+      validate = true,
+      forecastChange?: { before: ForecastSettings | undefined; after: ForecastSettings },
+    ): boolean => {
       if (readOnly) {
         setInteractionMessage("Viewing only · ask the room owner for an editor link to make changes");
         return false;
@@ -60,8 +69,9 @@ export function useSourceCommands({
       }
       captureBeforeCommit();
       setProblemPreview(undefined);
-      history.record(currentSource, source, description);
+      history.record(currentSource, source, description, forecastChange);
       setWorkspace((current) => ({ ...current, source, dirty: true }));
+      if (forecastChange) onForecastHistoryChange?.(forecastChange.after, forecastChange.before);
       refreshHistoryControls();
       return true;
     },
@@ -70,6 +80,7 @@ export function useSourceCommands({
       currentSource,
       diagramKind,
       history,
+      onForecastHistoryChange,
       readOnly,
       refreshHistoryControls,
       setInteractionMessage,
@@ -80,7 +91,11 @@ export function useSourceCommands({
   );
 
   const commitGeneratedSource = useCallback(
-    (source: string, description: string): boolean => commitSource(source, description),
+    (
+      source: string,
+      description: string,
+      forecastChange?: { before: ForecastSettings | undefined; after: ForecastSettings },
+    ): boolean => commitSource(source, description, true, forecastChange),
     [commitSource],
   );
 
@@ -89,22 +104,48 @@ export function useSourceCommands({
       setInteractionMessage("Viewing only · undo is available only to editors");
       return;
     }
-    const source = history.undo(currentSource);
-    if (source === undefined) return;
-    setWorkspace((current) => ({ ...current, source, dirty: true }));
+    const entry = history.undoEntry(currentSource);
+    if (!entry) return;
+    setWorkspace((current) => ({ ...current, source: entry.sourceBefore, dirty: true }));
+    if (entry.contextAfter !== undefined)
+      onForecastHistoryChange?.(
+        entry.contextBefore as ForecastSettings | undefined,
+        entry.contextAfter as ForecastSettings,
+      );
     refreshHistoryControls();
-  }, [currentSource, history, readOnly, refreshHistoryControls, setInteractionMessage, setWorkspace]);
+  }, [
+    currentSource,
+    history,
+    onForecastHistoryChange,
+    readOnly,
+    refreshHistoryControls,
+    setInteractionMessage,
+    setWorkspace,
+  ]);
 
   const redo = useCallback(() => {
     if (readOnly) {
       setInteractionMessage("Viewing only · redo is available only to editors");
       return;
     }
-    const source = history.redo(currentSource);
-    if (source === undefined) return;
-    setWorkspace((current) => ({ ...current, source, dirty: true }));
+    const entry = history.redoEntry(currentSource);
+    if (!entry) return;
+    setWorkspace((current) => ({ ...current, source: entry.sourceAfter, dirty: true }));
+    if (entry.contextAfter !== undefined)
+      onForecastHistoryChange?.(
+        entry.contextAfter as ForecastSettings,
+        entry.contextBefore as ForecastSettings | undefined,
+      );
     refreshHistoryControls();
-  }, [currentSource, history, readOnly, refreshHistoryControls, setInteractionMessage, setWorkspace]);
+  }, [
+    currentSource,
+    history,
+    onForecastHistoryChange,
+    readOnly,
+    refreshHistoryControls,
+    setInteractionMessage,
+    setWorkspace,
+  ]);
 
   return { commitSource, commitGeneratedSource, undo, redo };
 }

@@ -64,8 +64,8 @@ sunday are closed
     const html = render(source, { backend: 4 }, "backend");
     expect(html).toContain('class="gantt-forecast-shift" data-shift="on-plan">+0 working days from plan');
     expect(render(source)).toContain('class="gantt-forecast-shift" data-shift="delayed">+2 working days from plan');
-    expect(html).toContain("1 manual remaining-work estimate");
-    expect(html).toContain("Manual remaining-work estimate is active");
+    expect(html).toContain("1 saved remaining-work estimate");
+    expect(html).toContain("Saved remaining-work estimate is active");
     expect(html).toContain("automatic 8-day estimate from Complete");
     expect(html).toContain("Use automatic");
   });

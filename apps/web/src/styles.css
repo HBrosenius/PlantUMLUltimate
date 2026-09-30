@@ -641,6 +641,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .gantt-preview-tools-forecast > button {
   width: 170px;
 }
+.gantt-preview-tools-forecast > .gantt-apply-forecast-trigger {
+  width: auto;
+  margin-right: 8px;
+}
 .gantt-preview .preview-viewport {
   flex: 1;
   min-height: 0;
@@ -4562,6 +4566,34 @@ textarea:focus-visible,
   background: rgb(220 38 38 / 10%);
   color: #dc2626 !important;
   font-size: 12px;
+}
+.gantt-apply-forecast-dialog {
+  width: min(960px, calc(100vw - 32px));
+  max-height: min(85vh, 900px);
+  overflow: auto;
+}
+.gantt-apply-forecast-table-wrap {
+  overflow-x: auto;
+}
+.gantt-apply-forecast-dialog table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.gantt-apply-forecast-dialog th,
+.gantt-apply-forecast-dialog td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.gantt-apply-forecast-dialog pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.gantt-apply-forecast-source-change {
+  margin: 12px 0;
 }
 .task-inspector {
   position: fixed;

@@ -21,6 +21,8 @@ import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
+import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
+import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
 
 interface Props {
   svg: string | undefined;
@@ -87,6 +89,7 @@ interface Props {
     asOf?: string;
     timeZone?: string;
   }): void;
+  onApplyForecast?: ((review: ForecastApplyReview) => boolean) | undefined;
 }
 
 export type ProjectDiagramLink = {
@@ -150,6 +153,7 @@ export function DiagramPreview({
   onOpenProjectDiagram,
   progressForecast,
   onProgressForecastChange,
+  onApplyForecast,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const navigation = useDiagramNavigation(zoom, onZoomChange);
@@ -223,6 +227,7 @@ export function DiagramPreview({
   const forecastTimeZone = progressForecast?.timeZone ?? "UTC";
   const forecastAsOf = progressForecast?.asOf ?? forecastToday(forecastTimeZone);
   const [forecastSelectedTaskId, setForecastSelectedTaskId] = useState<string>();
+  const [applyReview, setApplyReview] = useState<ForecastApplyReview>();
   const progressForecastResult = useMemo(
     () =>
       progressForecast?.enabled
@@ -236,6 +241,13 @@ export function DiagramPreview({
           )
         : undefined,
     [tasks, dependencies, resolvedDates, calendar, forecastAsOf, progressForecast],
+  );
+  const applyReviewStale = Boolean(
+    applyReview &&
+    (source !== applyReview.sourceBefore ||
+      forecastAsOf !== applyReview.asOf ||
+      !progressForecast?.enabled ||
+      JSON.stringify(progressForecast.remainingDays) !== JSON.stringify(applyReview.overridesBefore)),
   );
   const baselineCalendar = useMemo(() => parseGanttCalendar(baselineSource ?? ""), [baselineSource]);
   const baselineRender = useRenderer(baselineSource ?? "", Boolean(baselineSource), "native");
@@ -1000,6 +1012,20 @@ export function DiagramPreview({
           )}
         </div>
         <div className="gantt-preview-tools-forecast">
+          {progressForecastResult?.plannedFinish &&
+            progressForecastResult.forecastFinish &&
+            progressForecastResult.forecastFinish > progressForecastResult.plannedFinish &&
+            onApplyForecast && (
+              <button
+                type="button"
+                className="gantt-apply-forecast-trigger"
+                onClick={() =>
+                  setApplyReview(prepareForecastApply(source, forecastAsOf, progressForecast!.remainingDays))
+                }
+              >
+                Apply to plan…
+              </button>
+            )}
           {progressForecast?.enabled && (
             <label className="gantt-forecast-date-label">
               As of{" "}
@@ -1432,6 +1458,19 @@ export function DiagramPreview({
         </aside>
       )}
       <output ref={feedbackRef} className="interaction-feedback" hidden aria-live="off" />
+      {applyReview && (
+        <GanttApplyForecastDialog
+          review={applyReview}
+          stale={applyReviewStale}
+          onClose={() => setApplyReview(undefined)}
+          onRecalculate={() =>
+            setApplyReview(prepareForecastApply(source, forecastAsOf, progressForecast?.remainingDays ?? {}))
+          }
+          onApply={() => {
+            if (onApplyForecast?.(applyReview)) setApplyReview(undefined);
+          }}
+        />
+      )}
     </section>
   );
 }

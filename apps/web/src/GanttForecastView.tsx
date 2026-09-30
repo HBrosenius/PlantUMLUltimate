@@ -62,7 +62,7 @@ export function GanttForecastView({
     return new Date(day * 86_400_000).toISOString().slice(0, 10);
   });
   const selected = forecast.tasks.get(selectedTaskId ?? "");
-  const manualEstimates = [...forecast.tasks.values()].filter((item) => item.manualEstimate).length;
+  const savedEstimates = [...forecast.tasks.values()].filter((item) => item.manualEstimate).length;
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
   const selectedLabel = selectedTask?.label;
   const causeLabels = selected?.causeTaskIds.map((id) => tasks.find((task) => task.id === id)?.label ?? id) ?? [];
@@ -123,9 +123,9 @@ export function GanttForecastView({
           Copy summary
         </button>
         {copyStatus && <span role="status">{copyStatus}</span>}
-        {manualEstimates > 0 && (
+        {savedEstimates > 0 && (
           <span className="gantt-forecast-warning">
-            {manualEstimates} manual remaining-work estimate{manualEstimates === 1 ? "" : "s"}
+            {savedEstimates} saved remaining-work estimate{savedEstimates === 1 ? "" : "s"}
           </span>
         )}
         {forecast.unavailable > 0 && (
@@ -186,7 +186,7 @@ export function GanttForecastView({
                           : task.completion === undefined
                             ? "Not started · 0% assumed"
                             : `${item.completion}% complete`}
-                        {item.manualEstimate ? " · Manual remaining-work estimate" : ""}
+                        {item.manualEstimate ? " · Saved remaining-work estimate" : ""}
                         {item.issue ? ` · ${item.issue}` : ""}
                       </small>
                     </span>
@@ -326,7 +326,7 @@ export function GanttForecastView({
                   </p>
                   {selected.manualEstimate && (
                     <p className="gantt-forecast-warning" role="status">
-                      Manual remaining-work estimate is active. The forecast uses {selected.remainingDays} working day
+                      Saved remaining-work estimate is active. The forecast uses {selected.remainingDays} working day
                       {selected.remainingDays === 1 ? "" : "s"} instead of{" "}
                       {selected.automaticRemainingDays === undefined
                         ? "an automatic estimate, which is unavailable for this task"

@@ -19,14 +19,20 @@ function Harness({
   history,
   captureBeforeCommit,
   refreshHistoryControls,
+  forecastTransaction = false,
 }: {
   readOnly?: boolean;
   candidate?: string;
   history: SourceHistory;
   captureBeforeCommit: () => void;
   refreshHistoryControls: () => void;
+  forecastTransaction?: boolean;
 }) {
   const [workspace, setWorkspace] = useState({ ...DEFAULT_WORKSPACE, source: initialSource });
+  const [forecastSettings, setForecastSettings] = useState({
+    enabled: true,
+    remainingDays: {} as Record<string, number>,
+  });
   const [message, setMessage] = useState<string>();
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [problemsOpen, setProblemsOpen] = useState(false);
@@ -41,14 +47,33 @@ function Harness({
     setProblemsOpen,
     captureBeforeCommit,
     refreshHistoryControls,
+    onForecastHistoryChange: (value) => {
+      if (value) setForecastSettings(value);
+    },
   });
 
   return (
     <>
-      <button onClick={() => commitGeneratedSource(candidate, "Update task")}>Commit</button>
+      <button
+        onClick={() =>
+          commitGeneratedSource(
+            candidate,
+            "Update task",
+            forecastTransaction
+              ? {
+                  before: forecastSettings,
+                  after: { ...forecastSettings, remainingDays: { first: 3 } },
+                }
+              : undefined,
+          )
+        }
+      >
+        Commit
+      </button>
       <button onClick={undo}>Undo</button>
       <button onClick={redo}>Redo</button>
       <output data-testid="source">{workspace.source}</output>
+      <output data-testid="forecast-remaining">{forecastSettings.remainingDays.first ?? "automatic"}</output>
       <output data-testid="message">{message}</output>
       <output data-testid="problem">{problemPreview?.message}</output>
       <output data-testid="problems-open">{String(problemsOpen)}</output>
@@ -139,6 +164,25 @@ describe("useSourceCommands", () => {
     expect(screen.getByTestId("source").textContent).toBe(changedSource);
     expect(otherHistory.canUndo).toBe(true);
     expect(refreshHistoryControls).toHaveBeenCalledTimes(3);
+  });
+
+  it("undoes and redoes a source change with its saved forecast estimate", () => {
+    render(
+      <Harness
+        history={new SourceHistory()}
+        captureBeforeCommit={vi.fn()}
+        refreshHistoryControls={vi.fn()}
+        forecastTransaction
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Commit" }));
+    expect(screen.getByTestId("forecast-remaining")).toHaveTextContent("3");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByTestId("source").textContent).toBe(initialSource);
+    expect(screen.getByTestId("forecast-remaining")).toHaveTextContent("automatic");
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(screen.getByTestId("source").textContent).toBe(changedSource);
+    expect(screen.getByTestId("forecast-remaining")).toHaveTextContent("3");
   });
 
   it("rejects viewer undo and redo without consuming history", () => {
