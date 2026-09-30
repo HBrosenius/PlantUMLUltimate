@@ -1,8 +1,31 @@
 import type { ClassDocument, ClassEntity, ClassMember, ClassPackage, ClassRelationshipKind } from "./model";
 
+/** Groups: 1 source endpoint, 2 source multiplicity, 3 arrow, 4 target multiplicity, 5 target endpoint, 6 label. */
+export const CLASS_RELATIONSHIP_PATTERN =
+  /^\s*("[^"]+"|[\p{L}\p{N}_.$-]+)(?:\s+"([^"]+)")?\s+([^\s]+)\s+(?:"([^"]+)"\s+)?("[^"]+"|[\p{L}\p{N}_.$-]+)(?:\s*:\s*(.*))?$/u;
+/** Names PlantUML accepts unquoted as a relationship endpoint. */
+export const BARE_CLASS_NAME = /^[\p{L}\p{N}_.$-]+$/u;
 const normalize = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
-const unquote = (v: string) => v.trim().replace(/^"(.*)"$/, "$1");
+const unquote = (v: string) =>
+  v
+    .trim()
+    .replace(/^"(.*)"$/, "$1")
+    .replaceAll("&#34;", '"');
 const MAX_SOURCE_LENGTH = 100_000;
+/**
+ * Blanks out what PlantUML ignores — `/' ... '/` block comments and every diagram after the first
+ * `@enduml` — with spaces, so the parser skips it while source offsets stay unchanged.
+ */
+const visibleSource = (source: string) => {
+  const blank = (text: string) => text.replace(/[^\r\n]/g, " ");
+  const visible = source.replace(/^[ \t]*\/'[\s\S]*?(?:'\/|(?![\s\S]))/gm, blank);
+  const end = /^[ \t]*@enduml\b.*$/im.exec(visible);
+  const after = end ? end.index + end[0].length : visible.length;
+  const later = /^[ \t]*@startuml\b/im.exec(visible.slice(after));
+  return later
+    ? { text: visible.slice(0, after) + blank(visible.slice(after)), ignored: after + later.index }
+    : { text: visible };
+};
 const member = (text: string, sourceRange: { from: number; to: number }, id: string): ClassMember => {
   const trimmed = text.trim();
   const modifiers = [...trimmed.matchAll(/\{(static|abstract)\}/gi)].map((match) => match[1]!.toLowerCase());
@@ -54,17 +77,27 @@ function parseClassDiagramUncached(source: string): ClassDocument {
   const aliases = new Map<string, string>();
   const stack: Array<{ item: ClassPackage; from: number }> = [];
   const lines: Array<{ text: string; from: number; to: number }> = [];
+  const visible = visibleSource(source);
+  if (visible.ignored !== undefined)
+    diagnostics.push({
+      severity: "warning",
+      message: "Only the first @startuml diagram is edited visually",
+      range: { from: visible.ignored, to: visible.ignored },
+      code: "multiple-diagrams",
+    });
   let offset = 0;
-  for (const text of source.split("\n")) {
+  for (const raw of visible.text.split("\n")) {
+    // Ignore the carriage return of CRLF line endings while keeping offsets in the original source.
+    const text = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
     lines.push({ text, from: offset, to: offset + text.length });
-    offset += text.length + 1;
+    offset += raw.length + 1;
   }
   const consumed = new Set<number>();
   let lastRelationshipId: string | undefined;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     const note = line.text.match(
-      /^\s*note\s+(left|right|top|bottom)\s+of\s+([^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
+      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|[^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
     );
     if (!note) continue;
     let end = i;
@@ -209,7 +242,7 @@ function parseClassDiagramUncached(source: string): ClassDocument {
         while (end < lines.length && !/^\s*}\s*$/.test(lines[end]!.text)) {
           const memberLine = lines[end++]!;
           const value = memberLine.text.trim();
-          if (!value) continue;
+          if (!value || value.startsWith("'")) continue;
           const from = memberLine.from + memberLine.text.indexOf(value);
           members.push(member(value, { from, to: from + value.length }, `${id}:member-${members.length}`));
         }
@@ -237,9 +270,7 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       i = end;
       continue;
     }
-    const rel = line.text.match(
-      /^\s*("[^"]+"|[\w.$-]+)(?:\s+"([^"]+)")?\s+([^\s]+)\s+(?:"([^"]+)"\s+)?("[^"]+"|[\w.$-]+)(?:\s*:\s*(.*))?$/,
-    );
+    const rel = line.text.match(CLASS_RELATIONSHIP_PATTERN);
     if (rel && /[-.]/.test(rel[3]!)) {
       const arrow = rel[3]!;
       const modifiers =

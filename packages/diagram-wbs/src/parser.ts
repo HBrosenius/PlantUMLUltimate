@@ -22,14 +22,17 @@ function opensMultilineLabel(content: string): boolean {
   return stripNodePrefixes(content).trimStart().startsWith(":") && !MULTILINE_CLOSE.test(content.trim());
 }
 
-function nodeDetails(value: string) {
-  const alias = value.match(/^\s*\(([A-Za-z_][\w-]*)\)\s*/)?.[1];
-  const withoutAlias = alias ? value.replace(/^\s*\([A-Za-z_][\w-]*\)\s*/, "") : value;
+function nodeDetails(value: string, isAlias: (name: string) => boolean) {
+  const aliasMatch = value.match(/^\s*\(([A-Za-z_][\w-]*)\)\s*/);
+  const alias = aliasMatch && isAlias(aliasMatch[1]!) ? aliasMatch[1] : undefined;
+  const withoutAlias = alias ? value.slice(aliasMatch![0].length) : value;
   const leadingColor = withoutAlias.match(/^\s*\[(#[\w-]+)\]\s*/)?.[1];
   const withoutLeadingColor = leadingColor ? withoutAlias.replace(/^\s*\[#[\w-]+\]\s*/, "") : withoutAlias;
   const stereotype = withoutLeadingColor.match(/\s+<<\s*(.*?)\s*>>\s*$/)?.[1];
   const withoutStereotype = stereotype ? withoutLeadingColor.replace(/\s+<<\s*.*?\s*>>\s*$/, "") : withoutLeadingColor;
-  const trailingColor = withoutStereotype.match(/\s+(#[\w-]+)\s*$/)?.[1];
+  // PlantUML colors a node with the leading `[#color]`; a trailing `#color` only follows a `:` ... `;`
+  // label, so `** Fix issue #123` keeps `#123` as label text.
+  const trailingColor = withoutStereotype.match(/;\s*(#[\w-]+)\s*$/)?.[1];
   const color = leadingColor ?? trailingColor;
   const rawLabel = (
     trailingColor ? withoutStereotype.slice(0, withoutStereotype.lastIndexOf(trailingColor)) : withoutStereotype
@@ -83,6 +86,12 @@ function parseWbsUncached(source: string): WbsDocument {
   let sawStart = false;
   let sawEnd = false;
   const lines = source.split("\n");
+  const arrowNames = new Set(
+    lines.flatMap((line) => {
+      const match = line.match(RELATIONSHIP);
+      return match ? [match[1]!, match[3]!] : [];
+    }),
+  );
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const text = lines[lineIndex]!;
     const range = { from: offset, to: offset + text.length };
@@ -130,7 +139,10 @@ function parseWbsUncached(source: string): WbsDocument {
         offset += continuation.length + 1;
       }
     }
-    const details = nodeDetails(content);
+    // `**(plan) Plan` always declares an alias; a spaced `** (draft) Plan` only does when an arrow
+    // refers to it, and otherwise `(draft)` is part of the label.
+    const spaced = /^\s*[*+-]+\s/.test(text);
+    const details = nodeDetails(content, (name) => !spaced || arrowNames.has(name));
     if (!details.label)
       diagnostics.push({ severity: "error", message: "WBS node needs a label", range, code: "empty-node" });
     // A node's parent is simply the nearest preceding node one level shallower — PlantUML nests

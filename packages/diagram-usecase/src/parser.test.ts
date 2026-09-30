@@ -111,3 +111,25 @@ footer Internal model
     expect(document.diagnostics).toEqual([]);
   });
 });
+
+describe("parseUseCase line endings", () => {
+  it("parses CRLF sources like LF sources", () => {
+    const source = "@startuml\nactor User\nusecase Login\nUser --> Login : signs in\n@enduml\n";
+    const lf = parseUseCase(source);
+    const crlf = parseUseCase(source.replace(/\n/g, "\r\n"));
+    expect(crlf.relationships).toHaveLength(1);
+    expect(crlf.relationships[0]?.label).toBe(lf.relationships[0]?.label);
+    expect(lf.relationships[0]?.label).toBeTruthy();
+    expect(crlf.elements.map((element) => element.label)).toEqual(lf.elements.map((element) => element.label));
+    expect(crlf.unknown).toEqual([]);
+  });
+});
+
+describe("parseUseCase shorthand relationships", () => {
+  it("reads shorthand actor and use-case endpoints as relationships", () => {
+    const document = parseUseCase("@startuml\n:User: --> (Login)\n(Login) .> (Verify) : <<include>>\n@enduml");
+    expect(document.relationships).toHaveLength(2);
+    expect(document.relationships[1]?.kind).toBe("include");
+    expect(document.diagnostics).toEqual([]);
+  });
+});

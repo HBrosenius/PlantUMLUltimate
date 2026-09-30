@@ -14,7 +14,11 @@ const normalizeId = (value: string) =>
     .replace(/^[:(]|[:)]$/g, "")
     .replace(/^"|"$/g, "")
     .toLowerCase();
-const unquote = (value: string) => value.trim().replace(/^"([\s\S]*)"$/, "$1");
+const unquote = (value: string) =>
+  value
+    .trim()
+    .replace(/^"([\s\S]*)"$/, "$1")
+    .replaceAll("&#34;", '"');
 const MAX_SOURCE_LENGTH = 100_000;
 const details = (value: string) => {
   const stereotype = value.match(/<<\s*(.*?)\s*>>/)?.[1];
@@ -35,6 +39,15 @@ function endpointId(value: string, aliases: ReadonlyMap<string, string>): string
 let lastSource: string | undefined;
 let lastResult: UseCaseDocument | undefined;
 
+/** Groups: 1 source endpoint, 2 arrow, 3 target endpoint, 4 label. */
+export const USECASE_RELATIONSHIP_PATTERN =
+  /^\s*("[^"]+"|:[^:]+:|\([^)]*\)|[\w.$-]+)\s+([^\s]+)\s+("[^"]+"|:[^:]+:|\([^)]*\)|[\w.$-]+)(?:\s*:\s*(.*))?$/;
+// `:Actor: --> (Use case)` starts like a shorthand declaration but is a relationship.
+const isShorthandRelationship = (text: string) => {
+  const relation = text.match(USECASE_RELATIONSHIP_PATTERN);
+  return Boolean(relation?.[2] && /[-.]/.test(relation[2]));
+};
+
 export function parseUseCase(source: string): UseCaseDocument {
   if (source === lastSource && lastResult) return lastResult;
   const result = parseUseCaseUncached(source);
@@ -48,6 +61,7 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
   const elements: UseCaseElement[] = [];
   const packages: UseCasePackage[] = [];
   const relationships: UseCaseRelationship[] = [];
+  const implicitIds = new Set<string>();
   const notes: UseCaseNote[] = [];
   const unknown: UseCaseDocument["unknown"] = [];
   const diagnostics: LanguageDiagnostic[] = [];
@@ -56,15 +70,17 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
   const noteRanges: TextRange[] = [];
   const lines: Array<{ text: string; from: number; to: number }> = [];
   let offset = 0;
-  for (const text of source.split("\n")) {
+  for (const raw of source.split("\n")) {
+    // Ignore the carriage return of CRLF line endings while keeping offsets in the original source.
+    const text = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
     lines.push({ text, from: offset, to: offset + text.length });
-    offset += text.length + 1;
+    offset += raw.length + 1;
   }
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     const attached = line.text.match(
-      /^\s*note\s+(left|right|top|bottom)\s+of\s+([^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
+      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|[^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
     );
     const floating = line.text.match(/^\s*note\s+"([^"]*)"\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
     const floatingBlock = line.text.match(/^\s*note\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
@@ -156,7 +172,7 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     const actor = line.text.match(
       /^\s*(?:(actor)(\/)?\s+("[^"]+"|:[^:]+:|[^\s#<]+)|(:[^:]+:)(\/)?)(?:\s+as\s+([^\s#<]+))?(.*)$/i,
     );
-    if (actor) {
+    if (actor && !(actor[4] && isShorthandRelationship(line.text))) {
       const token = actor[3] ?? actor[4] ?? "";
       const label = unquote(token.replace(/^:|:$/g, ""));
       const alias = actor[6];
@@ -180,7 +196,7 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     const useCase = line.text.match(
       /^\s*(?:(usecase)(\/)?\s+("[^"]+"|\([^)]*\)|[^\s#<]+)|(\([^)]*\))(\/)?)(?:\s+as\s+("[^"]+"|\([^)]*\)|[^\s#<]+))?(.*)$/i,
     );
-    if (useCase) {
+    if (useCase && !(useCase[4] && isShorthandRelationship(line.text))) {
       const token = useCase[3] ?? useCase[4] ?? "";
       const label = unquote(token.replace(/^\(|\)$/g, ""));
       const aliasToken = useCase[6];
@@ -202,9 +218,7 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       continue;
     }
 
-    const relation = line.text.match(
-      /^\s*("[^"]+"|:[^:]+:|\([^)]*\)|[\w.$-]+)\s+([^\s]+)\s+("[^"]+"|:[^:]+:|\([^)]*\)|[\w.$-]+)(?:\s*:\s*(.*))?$/,
-    );
+    const relation = line.text.match(USECASE_RELATIONSHIP_PATTERN);
     if (relation?.[1] && relation[2] && relation[3] && /[-.]/.test(relation[2])) {
       const label = relation[4]?.trim();
       const stereotype = label?.match(/^<<\s*(include|extend)\s*>>$/i)?.[1]?.toLowerCase();
@@ -221,10 +235,15 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
         .match(/(?:left|right|up|down)/i)?.[0]
         ?.toLowerCase() as UseCaseRelationship["direction"];
       const color = relation[2].match(/#[\w]+/)?.[0];
+      const from = endpointId(relation[1], aliases);
+      const to = endpointId(relation[3], aliases);
+      // PlantUML declares `:Actor:` and `(Use case)` endpoints implicitly.
+      if (/^[:(]/.test(relation[1])) implicitIds.add(from);
+      if (/^[:(]/.test(relation[3])) implicitIds.add(to);
       relationships.push({
         id: `relationship-${relationships.length}`,
-        from: endpointId(relation[1], aliases),
-        to: endpointId(relation[3], aliases),
+        from,
+        to,
         arrow: relation[2],
         kind,
         ...(label ? { label } : {}),
@@ -256,6 +275,7 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       });
     ids.add(element.id);
   }
+  for (const id of implicitIds) ids.add(id);
   for (const relationship of relationships) {
     if (!ids.has(relationship.from))
       diagnostics.push({

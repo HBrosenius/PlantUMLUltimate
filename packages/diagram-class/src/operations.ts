@@ -8,6 +8,7 @@ import type {
   ClassRelationship,
   ClassRelationshipKind,
 } from "./model";
+import { BARE_CLASS_NAME, CLASS_RELATIONSHIP_PATTERN } from "./parser";
 export interface ClassEntityInput {
   kind: ClassEntityKind;
   label: string;
@@ -52,10 +53,30 @@ export interface ClassNoteInput {
   color?: string;
 }
 const MAX_SOURCE_LENGTH = 100_000;
-const quote = (v: string) => `"${v.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+// PlantUML has no escape for `"` in a quoted name, but renders the `&#34;` character reference.
+const quote = (v: string) => `"${v.replaceAll('"', "&#34;")}"`;
+/** Writes an endpoint bare when PlantUML accepts it unquoted, otherwise quoted. */
+const endpoint = (name: string) => (BARE_CLASS_NAME.test(name) ? name : `"${name.replaceAll('"', "&#34;")}"`);
 const ref = (d: ClassDocument, id: string) => {
   const x = d.entities.find((e) => e.id === id);
-  return x?.alias ?? x?.label ?? id;
+  return endpoint(x?.alias ?? x?.label ?? id);
+};
+/** Replaces only the endpoint tokens of a relationship that refer to a renamed entity. */
+const endpointEdits = (s: string, r: ClassRelationship, id: string, token: string) => {
+  const match = new RegExp(CLASS_RELATIONSHIP_PATTERN.source, `${CLASS_RELATIONSHIP_PATTERN.flags}d`).exec(
+    s.slice(r.sourceRange.from, r.sourceRange.to),
+  );
+  if (!match?.indices) return undefined;
+  const edits: { from: number; to: number; text: string }[] = [];
+  for (const [group, endpointId] of [
+    [1, r.from],
+    [5, r.to],
+  ] as const) {
+    const range = match.indices[group];
+    if (endpointId === id && range)
+      edits.push({ from: r.sourceRange.from + range[0], to: r.sourceRange.from + range[1], text: token });
+  }
+  return edits;
 };
 const point = (s: string) => {
   if (s.length > MAX_SOURCE_LENGTH) throw new RangeError("Class source exceeds the 100,000 character limit");
@@ -98,10 +119,15 @@ const insert = (s: string, text: string) => {
 };
 export const insertClassEntity = (s: string, v: ClassEntityInput) => insert(s, entityLine(v));
 export function updateClassEntity(s: string, d: ClassDocument, e: ClassEntity, v: ClassEntityInput) {
-  const next = v.alias?.trim() || v.label.trim();
+  const next = endpoint(v.alias?.trim() || v.label.trim());
   const reps = [{ ...e.sourceRange, text: entityLine(v) }];
   for (const r of d.relationships) {
     if (r.from !== e.id && r.to !== e.id) continue;
+    const edits = endpointEdits(s, r, e.id, next);
+    if (edits) {
+      reps.push(...edits);
+      continue;
+    }
     const input: ClassRelationshipInput = {
       from: r.from === e.id ? next : r.from,
       to: r.to === e.id ? next : r.to,
@@ -124,10 +150,13 @@ export function updateClassEntity(s: string, d: ClassDocument, e: ClassEntity, v
   return replace(s, reps);
 }
 export function deleteClassEntity(s: string, d: ClassDocument, e: ClassEntity) {
+  const removed = d.relationships.filter((r) => r.from === e.id || r.to === e.id);
+  // `note on link` notes attach to the preceding relationship, so they must go with it.
+  const targets = new Set([e.id, ...removed.map((r) => r.id)]);
   const ranges = [
     e.sourceRange,
-    ...d.relationships.filter((r) => r.from === e.id || r.to === e.id).map((r) => r.sourceRange),
-    ...d.notes.filter((n) => n.targetId === e.id).map((n) => n.sourceRange),
+    ...removed.map((r) => r.sourceRange),
+    ...d.notes.filter((n) => n.targetId && targets.has(n.targetId)).map((n) => n.sourceRange),
   ];
   return replace(
     s,

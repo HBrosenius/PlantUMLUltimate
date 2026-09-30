@@ -81,3 +81,15 @@ stop
     expect(document.notes[0]?.targetId).toBeUndefined();
   });
 });
+
+describe("activity parser line endings", () => {
+  it("parses CRLF sources like LF sources", () => {
+    const source =
+      "@startuml\nstart\n:Validate order;\nif (valid?) then (yes)\n:Ship;\nelse (no)\n:Reject;\nendif\nstop\n@enduml\n";
+    const lf = parseActivity(source);
+    const crlf = parseActivity(source.replace(/\n/g, "\r\n"));
+    expect(crlf.nodes.map((node) => node.kind)).toEqual(lf.nodes.map((node) => node.kind));
+    expect(crlf.controls.map((control) => control.kind)).toEqual(lf.controls.map((control) => control.kind));
+    expect(crlf.unknown).toEqual([]);
+  });
+});

@@ -88,7 +88,7 @@ export function insertActivityStructure(source: string, document: ActivityDocume
 }
 
 const partitionLine = (value: ActivityPartitionInput) =>
-  `partition "${value.label.trim().replaceAll('"', '\\"')}"${value.color ? ` ${value.color.startsWith("#") ? value.color : `#${value.color}`}` : ""} {`;
+  `partition "${value.label.trim().replaceAll('"', "&#34;")}"${value.color ? ` ${value.color.startsWith("#") ? value.color : `#${value.color}`}` : ""} {`;
 export function insertActivityPartition(source: string, document: ActivityDocument, value: ActivityPartitionInput) {
   const parent = value.parentId ? document.partitions.find((item) => item.id === value.parentId) : undefined;
   return insert(source, `${partitionLine(value)}\n}`, parent?.closeRange.from ?? point(source));

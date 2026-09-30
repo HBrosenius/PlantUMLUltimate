@@ -557,3 +557,86 @@ describe("Sequence source operations", () => {
     expect(source).toContain("create control C");
   });
 });
+
+describe("parseSequence line endings", () => {
+  it("parses CRLF sources like LF sources", () => {
+    const source = "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob : hi\nBob --> Alice : hello\n@enduml\n";
+    const lf = parseSequence(source);
+    const crlf = parseSequence(source.replace(/\n/g, "\r\n"));
+    expect(crlf.participants.map((participant) => participant.id)).toEqual(
+      lf.participants.map((participant) => participant.id),
+    );
+    expect(crlf.messages.map((message) => message.label)).toEqual(["hi", "hello"]);
+  });
+});
+
+describe("names containing double quotes", () => {
+  it("round-trips a participant label with quotes", () => {
+    const source = insertSequenceParticipant("@startuml\n@enduml", { kind: "participant", label: 'The "Core" API' });
+    expect(source).toContain("&#34;Core&#34;");
+    expect(parseSequence(source).participants[0]?.label).toBe('The "Core" API');
+  });
+});
+
+describe("parser robustness", () => {
+  it("parses and writes non-ASCII participant names bare", () => {
+    const document = parseSequence("@startuml\nÅsa -> Bob : hej\n@enduml");
+    expect(document.messages).toMatchObject([{ from: "Åsa", to: "Bob", label: "hej" }]);
+    const inserted = insertSequenceMessage("@startuml\n@enduml", {
+      from: "Åsa",
+      to: "Björn",
+      label: "hej",
+      arrow: "->",
+    });
+    expect(inserted).toContain("Åsa -> Björn: hej");
+    expect(parseSequence(inserted).messages).toHaveLength(1);
+  });
+
+  it('resolves messages for the code-first `participant A as "Long"` form', () => {
+    const source = '@startuml\nparticipant A as "Alice Long"\nparticipant B\nA -> B : hi\n@enduml';
+    const document = parseSequence(source);
+    expect(document.participants[0]).toMatchObject({ id: "a", label: "Alice Long", alias: "A" });
+    expect(deleteSequenceParticipant(source, document, document.participants[0]!)).not.toContain("-> B");
+    const renamed = updateSequenceParticipant(source, document, document.participants[0]!, {
+      kind: "participant",
+      label: "Alice Long",
+      alias: "C",
+    });
+    expect(renamed).toContain("C -> B: hi");
+    const declarations = sequenceParticipantOccurrences(source, document).filter(
+      (item) => item.key === "a" && item.role === "declaration",
+    );
+    expect(declarations.map((item) => source.slice(item.range.from, item.range.to))).toEqual(["A", "Alice Long"]);
+  });
+
+  it("skips block comments while keeping source offsets", () => {
+    const source =
+      "@startuml\n/' participant Hidden\nHidden -> Bob : no\n'/\n/' one line '/\nAlice -> Bob : yes\n@enduml";
+    const document = parseSequence(source);
+    expect(document.participants).toEqual([]);
+    expect(document.messages.map((message) => message.label)).toEqual(["yes"]);
+    const range = document.messages[0]!.sourceRange;
+    expect(source.slice(range.from, range.to)).toBe("Alice -> Bob : yes");
+  });
+
+  it("updates a multiline note without removing the blank lines above it", () => {
+    const source = "@startuml\nA -> B : hi\n\n  \nnote left of A\nfirst\nsecond\nend note\n@enduml";
+    const document = parseSequence(source);
+    const note = document.notes[0]!;
+    expect(source.slice(note.sourceRange.from).startsWith("note left of A")).toBe(true);
+    const updated = updateSequenceStructure(source, note, {
+      kind: "note",
+      placement: "left of",
+      participants: ["A"],
+      text: "changed\ntext",
+    });
+    expect(updated).toContain("A -> B : hi\n\n  \nnote left of A\nchanged\ntext\nend note");
+  });
+
+  it("edits only the first of several @startuml diagrams", () => {
+    const source = "@startuml\nA -> B : one\n@enduml\n\n@startuml\nC -> D : two\n@enduml\n";
+    expect(parseSequence(source).messages.map((message) => message.label)).toEqual(["one"]);
+    const inserted = insertSequenceMessage(source, { from: "A", to: "B", label: "three", arrow: "->" });
+    expect(inserted).toContain("A -> B : one\nA -> B: three\n@enduml\n\n@startuml\nC -> D : two");
+  });
+});

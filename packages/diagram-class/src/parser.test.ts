@@ -89,3 +89,41 @@ end note
     );
   });
 });
+
+describe("parseClassDiagram line endings", () => {
+  it("parses CRLF sources like LF sources", () => {
+    const source = "@startuml\nclass A\nclass B {\n  +name: String\n}\nA --> B : uses\n@enduml\n";
+    const lf = parseClassDiagram(source);
+    const crlf = parseClassDiagram(source.replace(/\n/g, "\r\n"));
+    expect(crlf.relationships).toHaveLength(1);
+    expect(crlf.relationships[0]?.label).toBe(lf.relationships[0]?.label);
+    expect(lf.relationships[0]?.label).toBeTruthy();
+    expect(crlf.entities.map((entity) => entity.label)).toEqual(["A", "B"]);
+    expect(crlf.unknown).toEqual([]);
+  });
+});
+
+describe("parseClassDiagram robustness", () => {
+  it("parses relationships between non-ASCII class names", () => {
+    const document = parseClassDiagram("@startuml\nclass Åsa\nclass Björn\nÅsa --> Björn : känner\n@enduml");
+    expect(document.relationships).toMatchObject([{ from: "åsa", to: "björn", label: "känner" }]);
+    expect(document.diagnostics).toEqual([]);
+  });
+
+  it("skips block comments and comment lines inside class bodies", () => {
+    const source =
+      "@startuml\n/'\nclass Hidden\n'/\n/' class AlsoHidden '/\nclass Shown {\n  ' not a member\n  +name: String\n}\n@enduml";
+    const document = parseClassDiagram(source);
+    expect(document.entities.map((entity) => entity.label)).toEqual(["Shown"]);
+    expect(document.entities[0]!.members.map((member) => member.text)).toEqual(["+name: String"]);
+    expect(document.unknown).toEqual([]);
+    const range = document.entities[0]!.sourceRange;
+    expect(source.slice(range.from, range.from + 11)).toBe("class Shown");
+  });
+
+  it("parses only the first of several @startuml diagrams and warns", () => {
+    const document = parseClassDiagram("@startuml\nclass A\n@enduml\n@startuml\nclass B\n@enduml");
+    expect(document.entities.map((entity) => entity.label)).toEqual(["A"]);
+    expect(document.diagnostics).toMatchObject([{ severity: "warning", code: "multiple-diagrams" }]);
+  });
+});

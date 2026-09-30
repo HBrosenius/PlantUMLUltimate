@@ -120,15 +120,30 @@ export interface SequenceParticipantOccurrence {
 const PARTICIPANT =
   /^\s*(participant|actor|boundary|control|entity|database|collections|queue)\s+(?:"([^"]+)"|([^\s#<]+))(?:\s+as\s+(?:"([^"]+)"|([^\s#<]+)))?(.*)$/i;
 const MESSAGE =
-  /^\s*("[^"]+"|[\w.$:]+)\s+([^\s:]*[-.=\\/][^\s:]*)\s+("[^"]+"|[\w.$:]+)(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/i;
+  /^\s*("[^"]+"|[\p{L}\p{N}_.$:]+)\s+([^\s:]*[-.=\\/][^\s:]*)\s+("[^"]+"|[\p{L}\p{N}_.$:]+)(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/iu;
 const INCOMING_MESSAGE =
-  /^\s*([?[])\s*([^\s:]*[-.=\\/][^\s:]*)\s+("[^"]+"|[\w.$:]+)(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/i;
+  /^\s*([?[])\s*([^\s:]*[-.=\\/][^\s:]*)\s+("[^"]+"|[\p{L}\p{N}_.$:]+)(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/iu;
 const OUTGOING_MESSAGE =
-  /^\s*("[^"]+"|[\w.$:]+)\s+([^\s:]*[-.=\\/][^\s:]*)\s*([?\]])(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/i;
+  /^\s*("[^"]+"|[\p{L}\p{N}_.$:]+)\s+([^\s:]*[-.=\\/][^\s:]*)\s*([?\]])(\s*(?:(?:--|\+\+|\*\*|!!)(?:\s+#[\w]+)?\s*)*)\s*(?::\s*(.*))?$/iu;
 const MAX_SOURCE_LENGTH = 100_000;
 
 function unquote(value: string): string {
-  return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
+  return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1).replaceAll("&#34;", '"') : value;
+}
+
+/**
+ * Blanks out what PlantUML ignores — `/' ... '/` block comments and every diagram after the first
+ * `@enduml` — with spaces, so the parser skips it while source offsets stay unchanged. Only the
+ * first diagram of a multi-diagram file is edited, which is also where insertions land.
+ */
+function visibleSource(source: string): string {
+  const blank = (text: string) => text.replace(/[^\r\n]/g, " ");
+  let visible = source.replace(/^[ \t]*\/'[\s\S]*?(?:'\/|(?![\s\S]))/gm, blank);
+  const end = /^[ \t]*@enduml\b.*$/im.exec(visible);
+  const after = end ? end.index + end[0].length : visible.length;
+  if (/^[ \t]*@startuml\b/im.test(visible.slice(after)))
+    visible = visible.slice(0, after) + blank(visible.slice(after));
+  return visible;
 }
 
 function singleLineReference(line: string): { color?: string; participants: string; text: string } | undefined {
@@ -164,8 +179,9 @@ export function parseSequence(source: string): SequenceDocument {
   return result;
 }
 
-function parseSequenceUncached(source: string): SequenceDocument {
-  if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Sequence source exceeds the 100,000 character limit");
+function parseSequenceUncached(original: string): SequenceDocument {
+  if (original.length > MAX_SOURCE_LENGTH) throw new RangeError("Sequence source exceeds the 100,000 character limit");
+  const source = visibleSource(original);
   const participants: SequenceParticipant[] = [];
   const messages: SequenceMessage[] = [];
   const fragments: SequenceFragment[] = [];
@@ -178,7 +194,7 @@ function parseSequenceUncached(source: string): SequenceDocument {
   const creations: SequenceCreation[] = [];
   const durations: SequenceDuration[] = [];
   for (const match of source.matchAll(
-    /^\s*(\/\s*)?(note|hnote|rnote)\s+(left of|right of|left|right|over|across)\s*([^:#\n]*?)(?:\s+(#[\w]+))?\s*\r?\n([\s\S]*?)^\s*end\s+note\s*$/gim,
+    /^[ \t]*(\/\s*)?(note|hnote|rnote)\s+(left of|right of|left|right|over|across)\s*([^:#\n]*?)(?:\s+(#[\w]+))?\s*\r?\n([\s\S]*?)^\s*end\s+note\s*$/gim,
   )) {
     const from = match.index!;
     notes.push({
@@ -195,7 +211,9 @@ function parseSequenceUncached(source: string): SequenceDocument {
       sourceRange: { from, to: from + match[0].length },
     });
   }
-  for (const match of source.matchAll(/^\s*ref\s*(#[\w]+)?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim)) {
+  for (const match of source.matchAll(
+    /^[ \t]*ref\s*(#[\w]+)?\s+over\s+([^:\n]+)\s*\r?\n([\s\S]*?)^\s*end\s+ref\s*$/gim,
+  )) {
     const from = match.index!;
     references.push({
       id: `reference-${references.length}`,
@@ -212,18 +230,23 @@ function parseSequenceUncached(source: string): SequenceDocument {
   const fragmentStack: SequenceFragment[] = [];
   const boxStack: SequenceParticipantBox[] = [];
   let offset = 0;
-  for (const line of source.split(/\n/)) {
+  for (const rawLine of source.split(/\n/)) {
+    // Ignore the carriage return of CRLF line endings while keeping offsets in the original source.
+    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
     const range = { from: offset, to: offset + line.length };
     if (
       [...notes, ...references].some((item) => range.from >= item.sourceRange.from && range.from < item.sourceRange.to)
     ) {
-      offset += line.length + 1;
+      offset += rawLine.length + 1;
       continue;
     }
     const participant = line.match(PARTICIPANT);
     if (participant) {
-      const label = participant[2] ?? participant[3] ?? "";
-      const alias = participant[4] ?? participant[5];
+      // In the code-first form `participant A as "Long name"`, messages use A and the quoted text
+      // is only displayed; normalize it to the `participant "Long name" as A` shape.
+      const codeFirst = Boolean(participant[3] && participant[4]);
+      const label = (codeFirst ? participant[4] : participant[2])?.replaceAll("&#34;", '"') ?? participant[3] ?? "";
+      const alias = codeFirst ? participant[3] : (participant[4] ?? participant[5]);
       const details = participant[6] ?? "";
       const stereotype = details.match(/<<\s*(?:\(([^,\s]),\s*([^\s)]+)\)\s*)?(.*?)\s*>>/);
       const order = details.match(/\border\s+(-?\d+)\b/i);
@@ -433,7 +456,7 @@ function parseSequenceUncached(source: string): SequenceDocument {
         }
       }
     }
-    offset += line.length + 1;
+    offset += rawLine.length + 1;
   }
   for (const box of boxes)
     box.participants = participants
@@ -473,7 +496,8 @@ function parseSequenceUncached(source: string): SequenceDocument {
 }
 
 function quote(value: string): string {
-  return /^[\w.$:]+$/.test(value) ? value : `"${value.replaceAll('"', '\\"')}"`;
+  // PlantUML has no escape for `"` in a quoted name, but renders the `&#34;` character reference.
+  return /^[\p{L}\p{N}_.$:]+$/u.test(value) ? value : `"${value.replaceAll('"', "&#34;")}"`;
 }
 
 function insertionPoint(source: string): number {
@@ -525,8 +549,12 @@ export function sequenceParticipantOccurrences(
   );
 
   for (const participant of document.participants) {
-    const after = add(participant, participant.label, participant.sourceRange, "declaration");
-    if (participant.alias) add(participant, participant.alias, participant.sourceRange, "declaration", after);
+    const declared = source.slice(participant.sourceRange.from, participant.sourceRange.to).match(PARTICIPANT);
+    // Search past the keyword; the code-first form declares the alias before the displayed label.
+    let after = participant.sourceRange.from + (declared ? declared[0].indexOf(declared[1]!) + declared[1]!.length : 0);
+    const values = [participant.label, ...(participant.alias ? [participant.alias] : [])];
+    if (declared?.[3] && declared[4]) values.reverse();
+    for (const value of values) after = add(participant, value, participant.sourceRange, "declaration", after) ?? after;
   }
   for (const participant of createdParticipants)
     add(participant, participant.label, participant.sourceRange, "declaration");

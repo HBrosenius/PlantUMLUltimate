@@ -189,3 +189,31 @@ describe("Use Case source operations", () => {
     expect(updated).toContain("U0 --> U149");
   });
 });
+
+describe("renaming use-case elements", () => {
+  it("keeps the authored endpoint forms and quotes names that need it", () => {
+    const source =
+      '@startuml\nactor User\nusecase (Login)\nusecase "Place Order"\nUser --> (Login)\nUser --> "Place Order"\nnote right of User : main actor\n@enduml';
+    const document = parseUseCase(source);
+    const actor = document.actors.find((item) => item.label === "User")!;
+    const updated = updateUseCaseElement(source, document, actor, { kind: "actor", label: "Online Customer" });
+    expect(updated).toContain('"Online Customer" --> (Login)');
+    expect(updated).toContain('"Online Customer" --> "Place Order"');
+    expect(updated).toContain('note right of "Online Customer" : main actor');
+    const reparsed = parseUseCase(updated);
+    expect(reparsed.relationships).toHaveLength(2);
+    expect(reparsed.notes[0]?.targetIds).toEqual(["online customer"]);
+
+    const login = parseUseCase(updated).useCases.find((item) => item.label === "Login")!;
+    const renamed = updateUseCaseElement(updated, reparsed, login, { kind: "usecase", label: "Sign in" });
+    expect(renamed).toContain('"Online Customer" --> (Sign in)');
+  });
+});
+
+describe("names containing double quotes", () => {
+  it("round-trips a use-case label with quotes", () => {
+    const source = insertUseCaseElement("@startuml\n@enduml", { kind: "usecase", label: 'Print "Draft" copy' });
+    expect(source).toContain("&#34;Draft&#34;");
+    expect(parseUseCase(source).useCases[0]?.label).toBe('Print "Draft" copy');
+  });
+});

@@ -178,3 +178,12 @@ describe("activity operations", () => {
     expect(parseActivity(updated).diagnostics).toHaveLength(0);
   });
 });
+
+describe("names containing double quotes", () => {
+  it("round-trips a partition label with quotes", () => {
+    const empty = "@startuml\nstart\nstop\n@enduml";
+    const source = insertActivityPartition(empty, parseActivity(empty), { label: 'Team "Blue"' });
+    expect(source).toContain('partition "Team &#34;Blue&#34;" {');
+    expect(parseActivity(source).partitions[0]?.label).toBe('Team "Blue"');
+  });
+});

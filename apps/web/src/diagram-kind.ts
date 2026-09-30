@@ -9,9 +9,13 @@ const USECASE_DECLARATION = /^\s*(?:usecase\/?\b|\([^\n)]+\)\/?(?:\s+as\s+\S+)?\
 const USECASE_RELATION =
   /(?:<<\s*(?:include|extend)\s*>>|\([^\n)]+\)\s*(?:<?[-.]+|[-.]+>?)|(?:<?[-.]+|[-.]+>?)\s*\([^\n)]+\))/im;
 const CLASS_DECLARATION = /^\s*(?:abstract\s+class|abstract|class|interface|enum|annotation)\b/im;
-const COMPONENT_DECLARATION = /^\s*(?:component|cloud|node|artifact|file|folder|rectangle)\b/im;
+const COMPONENT_DECLARATION = /^\s*(?:component|cloud|node|artifact|file|folder)\b/im;
+// Rectangles group both use cases and components, so they only indicate a component diagram
+// when nothing identifies the source as a use-case diagram.
+const RECTANGLE_DECLARATION = /^\s*rectangle\b/im;
+// Bare `else`, `end` and `partition` are omitted: sequence diagrams use them for alt/group blocks.
 const ACTIVITY_STATEMENT =
-  /^\s*(?:(?:start|stop|end|detach|kill)\s*$|:[^;]+;|if\s*\(|elseif\s*\(|else\b|endif\b|switch\s*\(|case\s*\(|endswitch\b|fork\b|fork\s+again\b|end\s+fork\b|split\b|repeat\b|repeat\s+while\b|while\s*\(|endwhile\b|partition\b)/im;
+  /^\s*(?:(?:start|stop|detach|kill)\s*$|:[^;]+;|if\s*\(|elseif\s*\(|endif\b|switch\s*\(|case\s*\(|endswitch\b|fork\b|fork\s+again\b|end\s+fork\b|split\b|repeat\b|repeat\s+while\b|while\s*\(|endwhile\b)/im;
 
 export function detectDiagramKind(source: string): DiagramKind | undefined {
   if (/^\s*@startgantt\b/im.test(source)) return "gantt";
@@ -21,6 +25,7 @@ export function detectDiagramKind(source: string): DiagramKind | undefined {
   if (COMPONENT_DECLARATION.test(source)) return "component";
   if (CLASS_DECLARATION.test(source)) return "class";
   if (USECASE_DECLARATION.test(source) || USECASE_RELATION.test(source)) return "usecase";
+  if (RECTANGLE_DECLARATION.test(source)) return "component";
   if (SEQUENCE_DECLARATION.test(source) || SEQUENCE_STATEMENT.test(source) || SEQUENCE_MESSAGE.test(source)) {
     return "sequence";
   }

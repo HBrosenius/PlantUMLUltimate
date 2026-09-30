@@ -17,6 +17,24 @@ describe("diagram kind detection", () => {
     expect(detectDiagramKind("@startuml\nclass Job {\n+start(): void\n}\n@enduml")).toBe("class");
   });
 
+  it("does not mistake sequence blocks or use-case rectangles for other kinds", () => {
+    expect(
+      detectDiagramKind("@startuml\nA -> B : try\nalt ok\nB --> A : done\nelse failed\nB --> A : error\nend\n@enduml"),
+    ).toBe("sequence");
+    expect(detectDiagramKind("@startuml\ngroup Login\nA -> B : credentials\nend\n@enduml")).toBe("sequence");
+    expect(
+      detectDiagramKind(
+        "@startuml\nactor Customer\nrectangle Shop {\n  (Checkout)\n}\nCustomer --> (Checkout)\n@enduml",
+      ),
+    ).toBe("usecase");
+    expect(detectDiagramKind("@startuml\nrectangle Backend\nrectangle Frontend\nFrontend --> Backend\n@enduml")).toBe(
+      "component",
+    );
+    expect(
+      detectDiagramKind("@startuml\nstart\nif (valid?) then (yes)\n:Ship;\nelse (no)\n:Reject;\nendif\nend\n@enduml"),
+    ).toBe("activity");
+  });
+
   it("preserves an explicit hint for ambiguous @startuml documents", () => {
     expect(normalizeDiagramKind("sequence", "@startuml\n@enduml")).toBe("sequence");
     expect(normalizeDiagramKind("usecase", "@startuml\nactor User\n@enduml")).toBe("usecase");

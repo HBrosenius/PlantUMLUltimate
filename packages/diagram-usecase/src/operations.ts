@@ -7,6 +7,7 @@ import type {
   UseCaseRelationship,
   UseCaseRelationshipKind,
 } from "./model";
+import { USECASE_RELATIONSHIP_PATTERN } from "./parser";
 
 export interface UseCaseElementInput {
   kind: UseCaseElementKind;
@@ -45,8 +46,26 @@ export interface UseCaseNoteInput {
 }
 const MAX_SOURCE_LENGTH = 100_000;
 
-const quote = (value: string) => `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
-const reference = (element: UseCaseElement) => element.alias ?? element.label;
+// PlantUML has no escape for `"` in a quoted name, but renders the `&#34;` character reference.
+const quote = (value: string) => `"${value.replaceAll('"', "&#34;")}"`;
+const bare = (name: string) => /^[\w.$-]+$/.test(name);
+const unquoted = (name: string) => name.replaceAll('"', "&#34;");
+const reference = (element: UseCaseElement) =>
+  element.alias ??
+  (bare(element.label)
+    ? element.label
+    : element.kind === "usecase"
+      ? `(${element.label.replaceAll(")", "")})`
+      : element.kind === "actor"
+        ? `:${element.label.replaceAll(":", "")}:`
+        : `"${unquoted(element.label)}"`);
+/** Writes a renamed endpoint in the same form as the authored token: `(…)`, `:…:`, quoted or bare. */
+function endpointToken(authored: string, name: string, alias: boolean): string {
+  if (alias) return name;
+  if (authored.startsWith("(")) return `(${name.replaceAll(")", "")})`;
+  if (authored.startsWith(":")) return `:${name.replaceAll(":", "")}:`;
+  return bare(name) ? name : `"${unquoted(name)}"`;
+}
 
 function insertionPoint(source: string): number {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Use Case source exceeds the 100,000 character limit");
@@ -125,11 +144,31 @@ export function updateUseCaseElement(
   element: UseCaseElement,
   value: UseCaseElementInput,
 ): string {
-  const next = value.alias?.trim() || value.label.trim();
+  const alias = value.alias?.trim();
+  const next = alias || value.label.trim();
   const replacements = [{ ...element.sourceRange, text: statement(value) }];
   for (const relationship of document.relationships) {
+    if (relationship.from !== element.id && relationship.to !== element.id) continue;
+    const match = new RegExp(USECASE_RELATIONSHIP_PATTERN.source, "d").exec(
+      source.slice(relationship.sourceRange.from, relationship.sourceRange.to),
+    );
+    if (match?.indices) {
+      for (const [group, id] of [
+        [1, relationship.from],
+        [3, relationship.to],
+      ] as const) {
+        const range = match.indices[group];
+        if (id !== element.id || !range) continue;
+        replacements.push({
+          from: relationship.sourceRange.from + range[0],
+          to: relationship.sourceRange.from + range[1],
+          text: endpointToken(match[group]!, next, Boolean(alias)),
+        });
+      }
+      continue;
+    }
     const endpoint = (id: string) => {
-      if (id === element.id) return next;
+      if (id === element.id) return endpointToken("", next, Boolean(alias));
       const related = document.elements.find((item) => item.id === id);
       return related ? reference(related) : id;
     };
@@ -143,7 +182,10 @@ export function updateUseCaseElement(
     if (!note.targetIds.includes(element.id) || note.targetIds.length !== 1 || !note.placement) continue;
     const color = note.color ? ` ${note.color}` : "";
     const body = note.text.includes("\n") ? `\n${note.text}\nend note` : ` : ${note.text}`;
-    replacements.push({ ...note.sourceRange, text: `note ${note.placement} of ${next}${color}${body}` });
+    replacements.push({
+      ...note.sourceRange,
+      text: `note ${note.placement} of ${endpointToken("", next, Boolean(alias))}${color}${body}`,
+    });
   }
   return replaceRanges(source, replacements);
 }

@@ -244,3 +244,49 @@ describe("class operations", () => {
     expect(deleteClassEntity(linked, parsed, parsed.entities[0]!)).not.toContain("owns");
   });
 });
+
+describe("renaming class entities", () => {
+  it("quotes renamed endpoints and leaves other endpoints as authored", () => {
+    const source =
+      '@startuml\nclass A\nclass "Order Item"\nA --> "Order Item" : has\nUndeclared ..> A\nnote left of A : about\n@enduml';
+    const document = parseClassDiagram(source);
+    const updated = updateClassEntity(source, document, document.entities[0]!, {
+      kind: "class",
+      label: "My Class",
+      members: [],
+    });
+    expect(updated).toContain('"My Class" --> "Order Item" : has');
+    expect(updated).toContain('Undeclared ..> "My Class"');
+    expect(updated).toContain('note left of "My Class" : about');
+    const reparsed = parseClassDiagram(updated);
+    expect(reparsed.relationships).toHaveLength(2);
+    expect(reparsed.notes[0]?.targetId).toBe("my class");
+  });
+});
+
+describe("names containing double quotes", () => {
+  it("round-trips a class label with quotes", () => {
+    const source = insertClassEntity("@startuml\n@enduml", { kind: "class", label: 'Say "Hi"', members: [] });
+    expect(source).toContain('class "Say &#34;Hi&#34;"');
+    expect(parseClassDiagram(source).entities[0]?.label).toBe('Say "Hi"');
+  });
+});
+
+describe("class operations robustness", () => {
+  it("writes non-ASCII endpoints bare so they parse back", () => {
+    const source = "@startuml\nclass Åsa\nclass Björn\n@enduml";
+    const document = parseClassDiagram(source);
+    const inserted = insertClassRelationship(source, document, { from: "åsa", to: "björn", kind: "association" });
+    expect(inserted).toContain("Åsa --> Björn");
+    expect(parseClassDiagram(inserted).relationships).toHaveLength(1);
+  });
+
+  it("removes link notes of relationships removed with a deleted entity", () => {
+    const source =
+      "@startuml\nclass A\nclass B\nclass C\nA --> B\nnote on link : keep\nB --> C\nnote on link : drop\n@enduml";
+    const document = parseClassDiagram(source);
+    const updated = deleteClassEntity(source, document, document.entities[2]!);
+    expect(updated).not.toContain("drop");
+    expect(updated).toContain("A --> B\nnote on link : keep\n@enduml");
+  });
+});

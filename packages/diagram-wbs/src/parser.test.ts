@@ -75,4 +75,16 @@ describe("WBS parser", () => {
     expect(document.relationships).toMatchObject([{ from: "project", to: "plan", arrow: "..>", color: "#blue" }]);
     expect(document.unknown).toEqual([]);
   });
+
+  it("keeps a bare `#123` and a spaced `(text)` in the label unless PlantUML treats them as syntax", () => {
+    const document = parseWbs(
+      "@startwbs\n* Root\n** Fix issue #123\n** (draft) Plan\n** (ship) Ship\n**[#Orange] Build\nship -> ship\n@endwbs",
+    );
+    expect(document.nodes[1]).toMatchObject({ label: "Fix issue #123" });
+    expect(document.nodes[1]!.color).toBeUndefined();
+    expect(document.nodes[2]).toMatchObject({ label: "(draft) Plan" });
+    expect(document.nodes[2]!.alias).toBeUndefined();
+    expect(document.nodes[3]).toMatchObject({ label: "Ship", alias: "ship" });
+    expect(document.nodes[4]).toMatchObject({ label: "Build", color: "#Orange" });
+  });
 });

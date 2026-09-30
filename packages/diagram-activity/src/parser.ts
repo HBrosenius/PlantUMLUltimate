@@ -7,7 +7,11 @@ const id = (value: string) =>
     .replace(/^"|"$/g, "")
     .toLowerCase()
     .replace(/[^\w.-]+/g, "-");
-const unquote = (value: string) => value.trim().replace(/^"([\s\S]*)"$/, "$1");
+const unquote = (value: string) =>
+  value
+    .trim()
+    .replace(/^"([\s\S]*)"$/, "$1")
+    .replaceAll("&#34;", '"');
 const MAX_SOURCE_LENGTH = 100_000;
 
 let lastSource: string | undefined;
@@ -35,9 +39,11 @@ function parseActivityUncached(source: string): ActivityDocument {
   const partitionStack: Array<{ value: ActivityPartition; from: number }> = [];
   const controlStack: Array<{ kind: "if" | "switch" | "fork" | "split" | "repeat" | "while"; range: TextRange }> = [];
   let offset = 0;
-  for (const text of source.split("\n")) {
+  for (const raw of source.split("\n")) {
+    // Ignore the carriage return of CRLF line endings while keeping offsets in the original source.
+    const text = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
     lines.push({ text, from: offset, to: offset + text.length });
-    offset += text.length + 1;
+    offset += raw.length + 1;
   }
 
   for (let index = 0; index < lines.length; index += 1) {
