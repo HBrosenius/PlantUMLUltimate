@@ -3222,6 +3222,7 @@ export function App() {
               openDocumentCount={tabs.documents.length}
               openSourceBytes={openSourceBytes}
               resourceOverAllocations={resourceOverAllocations}
+              resourceCapacities={resourceCapacities}
               onOpenResourceWorkload={openResourcePanel}
               onDateHighlightRequest={openDateActionMenu}
               onLegendEditRequest={(color) => {

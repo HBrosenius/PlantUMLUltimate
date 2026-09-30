@@ -28,10 +28,16 @@ export interface ResourceResolvedDate {
   start?: string;
 }
 
+export interface ResourceWorkWindow {
+  start: string;
+  days: number;
+}
+
 export function buildResourceWorkloads(
   tasks: readonly GanttTask[],
   resolvedDates?: ReadonlyMap<string, ResourceResolvedDate>,
   calendar?: GanttCalendar,
+  workWindows?: ReadonlyMap<string, ResourceWorkWindow>,
 ): ResourceWorkload[] {
   const resources = new Map<string, { name: string; days: Map<string, WorkloadDay>; tasks: Map<string, GanttTask> }>();
   for (const task of tasks) {
@@ -39,9 +45,10 @@ export function buildResourceWorkloads(
       const key = assignment.value.toLocaleLowerCase();
       const resource = resources.get(key) ?? { name: assignment.value, days: new Map(), tasks: new Map() };
       resource.tasks.set(task.id, task);
-      const start = task.start?.resolved ? task.start.value : resolvedDates?.get(task.id)?.start;
-      if (start && task.duration) {
-        const duration = taskElapsedDays(task)!;
+      const window = workWindows?.get(task.id);
+      const start = window?.start ?? (task.start?.resolved ? task.start.value : resolvedDates?.get(task.id)?.start);
+      const duration = window ? window.days : taskElapsedDays(task);
+      if (start && duration && duration > 0) {
         const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
         let assignedDays = 0;
         let index = 0;

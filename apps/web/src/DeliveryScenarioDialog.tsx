@@ -433,6 +433,7 @@ export function DeliveryScenarioDialog({
                   openDocumentCount={1}
                   openSourceBytes={scenarioSource.length}
                   resourceOverAllocations={scenarioResourceConflicts}
+                  resourceCapacities={capacities}
                   onOpenResourceWorkload={() =>
                     setScenarioInteractionMessage("Resource workload is available after applying the scenario.")
                   }

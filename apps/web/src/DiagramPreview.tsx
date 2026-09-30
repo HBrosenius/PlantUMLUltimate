@@ -4,7 +4,7 @@ import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canon
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
-import type { ResourceOverAllocation } from "./ResourceWorkloadPanel";
+import type { ResourceCapacity, ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
 import {
   calculateTaskVariance,
@@ -68,6 +68,7 @@ interface Props {
   openDocumentCount: number;
   openSourceBytes: number;
   resourceOverAllocations: readonly ResourceOverAllocation[];
+  resourceCapacities: ResourceCapacity;
   onOpenResourceWorkload(): void;
   onDateHighlightRequest(date: string): void;
   onLegendEditRequest(color: string): void;
@@ -138,6 +139,7 @@ export function DiagramPreview({
   openDocumentCount,
   openSourceBytes,
   resourceOverAllocations,
+  resourceCapacities,
   onOpenResourceWorkload,
   onDateHighlightRequest,
   onLegendEditRequest,
@@ -1196,7 +1198,9 @@ export function DiagramPreview({
         <GanttForecastView
           tasks={tasks}
           forecast={progressForecastResult}
+          plannedDates={resolvedDates}
           calendar={calendar}
+          resourceCapacities={resourceCapacities}
           asOf={forecastAsOf}
           timeZone={forecastTimeZone}
           projectStart={projectStart}

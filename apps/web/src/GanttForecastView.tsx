@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { forecastWorkingDaysBetween, type ProgressForecast } from "./gantt-progress-forecast";
 import type { GanttCalendar } from "./gantt-calendar";
 import { formatForecastShareSummary, summarizeFinishCauses } from "./gantt-forecast-causes";
+import { compareForecastResourceConflicts } from "./gantt-forecast-resource-conflicts";
+import type { ResolvedTaskDates } from "./gantt-schedule";
+import type { ResourceCapacity } from "./ResourceWorkloadPanel";
 
 interface Props {
   tasks: readonly GanttTask[];
   forecast: ProgressForecast;
+  plannedDates: ReadonlyMap<string, ResolvedTaskDates>;
   calendar: GanttCalendar;
+  resourceCapacities: ResourceCapacity;
   asOf: string;
   timeZone?: string | undefined;
   projectStart?: string | undefined;
@@ -34,7 +39,9 @@ function causeChain(id: string, forecast: ProgressForecast, seen = new Set<strin
 export function GanttForecastView({
   tasks,
   forecast,
+  plannedDates,
   calendar,
+  resourceCapacities,
   asOf,
   timeZone = "UTC",
   projectStart,
@@ -76,6 +83,12 @@ export function GanttForecastView({
     forecast.plannedFinish && forecast.forecastFinish
       ? forecastWorkingDaysBetween(forecast.plannedFinish, forecast.forecastFinish, calendar)
       : undefined;
+  const resourceComparison = useMemo(
+    () => compareForecastResourceConflicts(tasks, forecast, plannedDates, calendar, resourceCapacities, asOf),
+    [tasks, forecast, plannedDates, calendar, resourceCapacities, asOf],
+  );
+  const newResourceConflicts = resourceComparison.conflicts.filter((item) => item.kind === "new").length;
+  const existingResourceConflicts = resourceComparison.conflicts.length - newResourceConflicts;
   const delayedTasks = tasks.filter((task) => {
     const item = forecast.tasks.get(task.id);
     return Boolean(item?.plannedEnd && item.end && item.end > item.plannedEnd);
@@ -172,6 +185,49 @@ export function GanttForecastView({
           </span>
         )}
       </div>
+      {resourceComparison.hasAssignments && (
+        <details className="gantt-forecast-resource-comparison">
+          <summary>
+            Resource capacity ·{" "}
+            {resourceComparison.unavailable
+              ? "comparison unavailable"
+              : resourceComparison.conflicts.length
+                ? `${newResourceConflicts} new, ${existingResourceConflicts} already in plan`
+                : "no forecast conflicts"}
+          </summary>
+          {resourceComparison.unavailable ? (
+            <p>Resolve assigned task dates and remaining work to compare resource capacity.</p>
+          ) : resourceComparison.conflicts.length ? (
+            <ul>
+              {resourceComparison.conflicts.map((item) => (
+                <li key={`${item.resource}:${item.date}`} data-kind={item.kind}>
+                  <strong>{item.kind === "new" ? "New" : "Already in plan"}</strong>
+                  <span>
+                    {item.resource} · {item.date}
+                  </span>
+                  <span>
+                    Plan {item.plannedAllocation}% → forecast {item.forecastAllocation}% / {item.capacity}% capacity
+                  </span>
+                  <span>
+                    Tasks:{" "}
+                    {item.tasks.map((task, index) => (
+                      <span key={task.id}>
+                        {index > 0 ? ", " : ""}
+                        <button type="button" onClick={() => onTaskSelect(task.id)}>
+                          {task.label}
+                        </button>
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No assigned person exceeds capacity on forecast work days from {asOf}.</p>
+          )}
+          <p>Counts unfinished assigned work from {asOf}. Capacity warnings do not move forecast dates.</p>
+        </details>
+      )}
       {projectStart && earlyExplicitStarts.length > 0 && (
         <p className="gantt-forecast-start-conflict" role="status">
           <strong>Start-date conflict.</strong> Project starts {projectStart}, but{" "}

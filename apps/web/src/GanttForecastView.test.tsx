@@ -22,7 +22,9 @@ function render(source: string, overrides: Record<string, number> = {}, selected
         "2026-09-29",
         overrides,
       )}
+      plannedDates={plan}
       calendar={calendar}
+      resourceCapacities={{}}
       asOf="2026-09-29"
       projectStart={projectStart}
       selectedTaskId={selectedTaskId}

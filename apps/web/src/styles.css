@@ -1582,6 +1582,57 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
+.gantt-forecast-resource-comparison {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.gantt-forecast-resource-comparison summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 700;
+}
+.gantt-forecast-resource-comparison ul {
+  max-height: 15rem;
+  overflow: auto;
+  margin: 0.65rem 0;
+  padding: 0;
+  list-style: none;
+}
+.gantt-forecast-resource-comparison li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--line);
+}
+.gantt-forecast-resource-comparison li[data-kind="new"] strong {
+  color: #b91c1c;
+}
+.gantt-forecast-resource-comparison li[data-kind="existing"] strong {
+  color: var(--muted);
+}
+.app[data-theme="dark"] .gantt-forecast-resource-comparison li[data-kind="new"] strong {
+  color: #fca5a5;
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-theme="system"] .gantt-forecast-resource-comparison li[data-kind="new"] strong {
+    color: #fca5a5;
+  }
+}
+.gantt-forecast-resource-comparison li button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.gantt-forecast-resource-comparison p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
 .gantt-forecast-inline-legend {
   display: inline-flex;
   align-items: center;
