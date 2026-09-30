@@ -1,5 +1,6 @@
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
-import type { ForecastTask, ProgressForecast } from "./gantt-progress-forecast";
+import { forecastWorkingDaysBetween, type ForecastTask, type ProgressForecast } from "./gantt-progress-forecast";
+import type { GanttCalendar } from "./gantt-calendar";
 
 export interface FinishCause {
   taskId: string;
@@ -69,4 +70,27 @@ export function summarizeFinishCauses(tasks: readonly GanttTask[], forecast: Pro
     return { taskId, affectedTaskIds, affectedMilestoneIds };
   });
   return { causes, affectedMilestoneIds: ordered(milestones) };
+}
+
+export function formatForecastShareSummary(
+  tasks: readonly GanttTask[],
+  forecast: ProgressForecast,
+  calendar: GanttCalendar,
+  asOf: string,
+  timeZone = "UTC",
+): string {
+  const slip =
+    forecast.plannedFinish && forecast.forecastFinish
+      ? forecastWorkingDaysBetween(forecast.plannedFinish, forecast.forecastFinish, calendar)
+      : undefined;
+  const labels = new Map(tasks.map((task) => [task.id, task.label]));
+  const causes = summarizeFinishCauses(tasks, forecast).causes;
+  return [
+    `Progress forecast (as of ${asOf})`,
+    `Automatic Today time zone: ${timeZone}`,
+    `Planned finish: ${forecast.plannedFinish ?? "Unavailable"}`,
+    `Projected finish: ${forecast.forecastFinish ?? "Unavailable"}`,
+    `Working days from plan: ${slip === undefined ? "Unavailable" : `${slip > 0 ? "+" : ""}${slip}`}`,
+    `Finish drivers: ${causes.length ? causes.map((cause) => labels.get(cause.taskId) ?? cause.taskId).join(", ") : "None identified"}`,
+  ].join("\n");
 }

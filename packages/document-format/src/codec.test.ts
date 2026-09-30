@@ -39,6 +39,14 @@ describe("composed document codec", () => {
     await expect(encodeDocument(input)).rejects.toThrow("settings.progressForecast.asOf must be a valid ISO date");
   });
 
+  it("rejects an invalid saved forecast time zone", async () => {
+    const input = await document();
+    input.settings.progressForecast = { enabled: true, timeZone: "Made/Up", remainingDays: {} };
+    await expect(encodeDocument(input)).rejects.toThrow(
+      "settings.progressForecast.timeZone must be a valid IANA time zone",
+    );
+  });
+
   it("encrypts deterministically with injected randomness and varies normal saves", async () => {
     const input = await document();
     const deterministic = (length: number) => new Uint8Array(length).fill(length);

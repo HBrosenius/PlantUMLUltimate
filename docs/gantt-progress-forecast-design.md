@@ -4,7 +4,7 @@ Status: first implementation available for local testing, 2026-09-29. The agreed
 
 ## First build status
 
-The Gantt preview now has a document-level Progress forecast toggle, adjustable status date, read-only forecast marks over the editable Gantt chart, a project-level root cause summary with affected milestones, a task cause panel, manual remaining-work estimates, and missed-date diagnostics. Portable documents, embedded projects, and local workspace recovery preserve the setting, a chosen status date, and overrides. The current WBS editor reads and edits the linked Gantt completion value, so there are not two stored percentages that could conflict; the mismatch dialog below remains a future requirement if WBS gains an independent completion field.
+The Gantt preview now has a document-level Progress forecast toggle, adjustable status date, read-only forecast marks over the editable Gantt chart, a project-level root cause summary with affected milestones, a copyable summary, a task cause panel, manual remaining-work estimates, and missed-date diagnostics. Portable documents, embedded projects, and local workspace recovery preserve the setting, a chosen status date, the document time zone, and overrides. The current WBS editor reads and edits the linked Gantt completion value, so there are not two stored percentages that could conflict; the mismatch dialog below remains a future requirement if WBS gains an independent completion field.
 
 ## Goal
 
@@ -23,9 +23,9 @@ The document has an optional **Aggressive tracking** setting. When enabled, the 
 - Only explicitly linked successors respond to a predecessor's shift. Row order alone creates no scheduling relationship. Existing dependency types, offsets, pauses, and working calendars should retain their current meaning.
 - Explicit starts and deadlines remain visible as planned constraints. The forecast may pass them and must label each missed constraint; it does not rewrite the source date.
 - Linked WBS nodes and Gantt tasks share completion in a project. Unlinked Gantt tasks use their own `Complete` value.
-- If an existing linked pair has different completion values, show a mismatch and ask the user which value is correct. Do not silently pick one or show a precise forecast for that task until it is resolved.
+- If WBS later stores completion separately and a linked pair has different values, show a mismatch and ask the user which value is correct. Do not silently pick one or show a precise forecast for that task until it is resolved.
 - Version one calculates shifts from progress, dates, calendars, and dependencies. Resource conflicts remain visible through the existing separate analysis; it does not silently level resources.
-- The setting, a chosen status date, and manual remaining-work overrides travel with portable documents and project files. **Today** clears the chosen date, so the status date advances automatically on later days. A plain `.puml` export remains source-only; the UI must explain that forecast metadata is not included.
+- The setting, a chosen status date, the document time zone, and manual remaining-work overrides travel with portable documents and project files. **Today** clears the chosen date, so the status date advances automatically on later days in the saved time zone. A plain `.puml` export remains source-only and warns that forecast metadata is not included.
 
 ## Proposed screen
 
@@ -73,11 +73,11 @@ The **As of** picker changes the working date used by the calculation and labels
 
 ### 5. Resolve data problems
 
-Selecting a missing-progress row shows **Complete not reported · assumed 0%**, its forecast effect, and a direct action to edit Complete. An existing linked WBS/Gantt mismatch shows both values, their locations, and **Choose completion**; the conflicting task and its descendants show **Forecast needs a decision** until the mismatch is resolved. The dialog must show the exact source fields that would change before applying the choice, as a single undoable edit if that behavior is approved. A missed explicit start or deadline appears in the task panel with planned date, forecast date, and the chain that pushed it past the constraint. An unresolvable cycle shows **Cannot forecast** and links to the involved tasks.
+Selecting a missing-progress row shows **Complete not reported · assumed 0%**, its forecast effect, and a direct action to edit Complete. If WBS gains independent completion in the future, a linked mismatch should show both values, their locations, and **Choose completion**; the conflicting task and its descendants should show **Forecast needs a decision** until resolved. Such a dialog would show the exact source fields changed before applying a choice. A missed explicit start or deadline appears in the task panel with planned date, forecast date, and the chain that pushed it past the constraint. An unresolvable cycle shows **Cannot forecast** and links to the involved tasks.
 
 ### 6. Save and share
 
-Saving a portable document or project stores the on/off setting, a chosen status date, and remaining-work overrides. When **Today** is selected, no fixed date is stored. The save/export flow for plain `.puml` states that it contains task source but not forecast settings or overrides. The forecast never applies its dates to the source implicitly.
+Saving a portable document or project stores the on/off setting, a chosen status date, the document time zone, and remaining-work overrides. When **Today** is selected, no fixed date is stored. Plain `.puml` export warns that it contains task source but not forecast metadata. **Copy summary** shares the status date, planned and projected finish, working days from plan, and identified finish drivers. The forecast never applies its dates to the source implicitly.
 
 ## Forecast rules to specify and test
 
@@ -96,14 +96,14 @@ Saving a portable document or project stores the on/off setting, a chosen status
 - A forecast can cross an explicit date, but the planned date remains visible and receives a missed-date explanation.
 - Closed weekends and dates affect the remaining-work finish and successor placement.
 - Switching the forecast off restores the ordinary view without source edits. Saving and reopening a portable document or project restores the setting, chosen status date, and overrides.
-- Linked WBS and Gantt completion is consistent in both views. An existing mismatch is flagged and requires a user choice before that task receives a precise forecast.
+- Linked WBS and Gantt completion is consistent in both views because the linked Gantt task owns the value.
 - The cause panel explains a diamond dependency without double-counting delay; cyclic and unresolvable schedules show diagnostics.
 
-## Open decisions
+## Resolved decisions
 
-1. **Resolving linked completion:** decide whether the user's choice writes the chosen percentage into both linked sources immediately or proposes a reviewable two-document edit.
-2. **Time-zone rule:** define which calendar date "today" means for collaborators in different time zones, while allowing the selected status date to be shared in a review.
-3. **Plain-source warning:** decide the exact save/export message for `.puml` so users understand which metadata remains only in the portable/project file.
+1. **Linked completion:** WBS displays completion from its linked Gantt task; WBS has no separate completion value. A mismatch cannot occur in the current model. If independent WBS completion is added later, require an explicit choice before forecasting that task.
+2. **Time-zone rule:** automatic "Today" uses a time zone saved with the document. New forecasts capture the creator's IANA time zone; older documents without one use UTC. A manually selected status date remains an explicit shared date.
+3. **Plain-source export:** exporting `.puml` warns when forecast metadata exists. The source keeps task completion statements, while forecast settings, status date, time zone, and remaining-work estimates stay in the portable/project file.
 
 ## Scope boundary
 

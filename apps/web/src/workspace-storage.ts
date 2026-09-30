@@ -2,6 +2,7 @@ import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/diagram-gantt";
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
+import { validForecastTimeZone } from "./forecast-date";
 
 export interface WorkspaceSnapshot {
   diagramKind: DiagramKind;
@@ -35,7 +36,8 @@ export interface DocumentSnapshot {
   historyMaxLogicalBytes?: number | undefined;
   revision?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
-  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string } | undefined;
+  progressForecast?:
+    { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string } | undefined;
   linkedWbsDocumentId?: string | undefined;
   wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
   wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
@@ -213,6 +215,9 @@ export function normalizeSession(value: unknown): WorkspaceSession {
                   new Date(`${item.progressForecast.asOf}T00:00:00Z`).toISOString().slice(0, 10) ===
                     item.progressForecast.asOf
                     ? { asOf: item.progressForecast.asOf }
+                    : {}),
+                  ...(validForecastTimeZone(item.progressForecast.timeZone)
+                    ? { timeZone: item.progressForecast.timeZone }
                     : {}),
                 },
               }

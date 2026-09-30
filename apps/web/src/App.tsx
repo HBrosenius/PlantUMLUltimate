@@ -1804,14 +1804,18 @@ export function App() {
   };
 
   const exportSource = useCallback(() => {
-    if (
-      activeDocument.encrypted &&
-      !window.confirm("This export is plaintext and is not password protected. Continue?")
-    )
-      return;
+    const warnings = [
+      ...(activeDocument.encrypted ? ["This export is plaintext and is not password protected."] : []),
+      ...(activeDocument.progressForecast
+        ? [
+            "Plain .puml source does not include the progress forecast setting, as-of date, time zone, or remaining-work estimates. Save a portable document or project to keep them.",
+          ]
+        : []),
+    ];
+    if (warnings.length > 0 && !window.confirm(`${warnings.join("\n\n")}\n\nExport source anyway?`)) return;
     downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
     setInteractionMessage("Exported PlantUML source (plaintext)");
-  }, [activeDocument.encrypted, workspace.fileName, workspace.source]);
+  }, [activeDocument.encrypted, activeDocument.progressForecast, workspace.fileName, workspace.source]);
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);

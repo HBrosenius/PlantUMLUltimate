@@ -212,7 +212,7 @@ export function validateDocument(value: unknown): PortableDocument {
   }
   if (settings.progressForecast !== undefined) {
     const progress = record(settings.progressForecast, "settings.progressForecast");
-    exactKeys(progress, ["enabled", "remainingDays", "asOf"], "settings.progressForecast");
+    exactKeys(progress, ["enabled", "remainingDays", "asOf", "timeZone"], "settings.progressForecast");
     if (typeof progress.enabled !== "boolean") invalid("settings.progressForecast.enabled must be a boolean");
     if (progress.asOf !== undefined) {
       const asOf = string(progress.asOf, "settings.progressForecast.asOf", 10);
@@ -222,6 +222,14 @@ export function validateDocument(value: unknown): PortableDocument {
         new Date(`${asOf}T00:00:00Z`).toISOString().slice(0, 10) !== asOf
       )
         invalid("settings.progressForecast.asOf must be a valid ISO date");
+    }
+    if (progress.timeZone !== undefined) {
+      const timeZone = string(progress.timeZone, "settings.progressForecast.timeZone", 100);
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone }).format();
+      } catch {
+        invalid("settings.progressForecast.timeZone must be a valid IANA time zone");
+      }
     }
     const remaining = record(progress.remainingDays, "settings.progressForecast.remainingDays");
     if (Object.keys(remaining).length > 5_000) limit("Too many remaining-work overrides");

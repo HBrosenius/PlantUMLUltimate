@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
-import { summarizeFinishCauses } from "./gantt-forecast-causes";
+import { formatForecastShareSummary, summarizeFinishCauses } from "./gantt-forecast-causes";
 import { calculateProgressForecast, type ForecastTask, type ProgressForecast } from "./gantt-progress-forecast";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveTaskDates } from "./gantt-schedule";
@@ -110,5 +110,22 @@ sunday are closed
     expect(
       summarizeFinishCauses(tasks, forecast([item("design", "2026-09-02", "2026-09-02")], "2026-09-02", "2026-09-02")),
     ).toEqual({ causes: [], affectedMilestoneIds: [] });
+  });
+
+  it("formats a shareable summary with the status date and finish driver", () => {
+    const tasks = parseGantt("@startgantt\n[Design] lasts 2 days\n@endgantt").document.tasks;
+    const text = formatForecastShareSummary(
+      tasks,
+      forecast([item("design", "2026-09-04", "2026-09-07")], "2026-09-04", "2026-09-07"),
+      parseGanttCalendar("@startgantt\n@endgantt"),
+      "2026-09-05",
+      "Europe/Stockholm",
+    );
+    expect(text).toContain("Progress forecast (as of 2026-09-05)");
+    expect(text).toContain("Automatic Today time zone: Europe/Stockholm");
+    expect(text).toContain("Planned finish: 2026-09-04");
+    expect(text).toContain("Projected finish: 2026-09-07");
+    expect(text).toContain("Working days from plan: +3");
+    expect(text).toContain("Finish drivers: Design");
   });
 });

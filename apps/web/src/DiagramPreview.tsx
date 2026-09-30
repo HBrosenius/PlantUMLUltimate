@@ -20,6 +20,7 @@ import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
+import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 
 interface Props {
   svg: string | undefined;
@@ -78,8 +79,14 @@ interface Props {
   projectLinkedTaskIds?: ReadonlySet<string> | undefined;
   projectDiagramLinks?: ReadonlyMap<string, readonly ProjectDiagramLink[]> | undefined;
   onOpenProjectDiagram?(documentId: string): void;
-  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string } | undefined;
-  onProgressForecastChange?(value: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string }): void;
+  progressForecast?:
+    { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string } | undefined;
+  onProgressForecastChange?(value: {
+    enabled: boolean;
+    remainingDays: Record<string, number>;
+    asOf?: string;
+    timeZone?: string;
+  }): void;
 }
 
 export type ProjectDiagramLink = {
@@ -87,11 +94,6 @@ export type ProjectDiagramLink = {
   path: string;
   label: string;
   relationship: string;
-};
-
-const localForecastToday = () => {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 };
 
 export function DiagramPreview({
@@ -218,7 +220,8 @@ export function DiagramPreview({
     () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
     [tasks, dependencies, projectStart, calendar],
   );
-  const forecastAsOf = progressForecast?.asOf ?? localForecastToday();
+  const forecastTimeZone = progressForecast?.timeZone ?? "UTC";
+  const forecastAsOf = progressForecast?.asOf ?? forecastToday(forecastTimeZone);
   const [forecastSelectedTaskId, setForecastSelectedTaskId] = useState<string>();
   const progressForecastResult = useMemo(
     () =>
@@ -938,10 +941,16 @@ export function DiagramPreview({
           <button
             onClick={() =>
               progressForecast?.enabled
-                ? onProgressForecastChange?.({ enabled: true, remainingDays: progressForecast.remainingDays })
+                ? onProgressForecastChange?.({
+                    enabled: true,
+                    remainingDays: progressForecast.remainingDays,
+                    ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
+                  })
                 : jumpToday()
             }
-            aria-label={progressForecast?.enabled ? "Set forecast date to today" : "Jump to today"}
+            aria-label={
+              progressForecast?.enabled ? `Set forecast date to today in ${forecastTimeZone}` : "Jump to today"
+            }
           >
             Today
           </button>
@@ -1004,6 +1013,7 @@ export function DiagramPreview({
                       enabled: true,
                       remainingDays: progressForecast.remainingDays,
                       asOf: event.target.value,
+                      ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
                     });
                 }}
               />
@@ -1018,6 +1028,7 @@ export function DiagramPreview({
                   enabled: !progressForecast?.enabled,
                   remainingDays: progressForecast?.remainingDays ?? {},
                   ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
                 })
               }
             >
@@ -1161,6 +1172,7 @@ export function DiagramPreview({
           forecast={progressForecastResult}
           calendar={calendar}
           asOf={forecastAsOf}
+          timeZone={forecastTimeZone}
           projectStart={projectStart}
           selectedTaskId={forecastSelectedTaskId}
           onTaskSelect={setForecastSelectedTaskId}
@@ -1173,6 +1185,7 @@ export function DiagramPreview({
               enabled: true,
               remainingDays,
               ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+              ...(progressForecast?.timeZone ? { timeZone: progressForecast.timeZone } : {}),
             });
           }}
           display="details"

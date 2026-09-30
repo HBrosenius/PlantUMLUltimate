@@ -28,7 +28,8 @@ function persistentTabState(tab: {
   historyMaxVersions?: number | undefined;
   historyMaxLogicalBytes?: number | undefined;
   resourceCapacities?: Record<string, number> | undefined;
-  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string } | undefined;
+  progressForecast?:
+    { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string } | undefined;
   wbsGanttLinks?: Array<{ wbsAlias: string; ganttAlias: string }> | undefined;
   wbsGanttDependencies?: Array<{ from: string; to: string }> | undefined;
 }): string {

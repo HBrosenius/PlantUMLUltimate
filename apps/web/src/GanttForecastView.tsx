@@ -2,13 +2,14 @@ import { useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { forecastWorkingDaysBetween, type ProgressForecast } from "./gantt-progress-forecast";
 import type { GanttCalendar } from "./gantt-calendar";
-import { summarizeFinishCauses } from "./gantt-forecast-causes";
+import { formatForecastShareSummary, summarizeFinishCauses } from "./gantt-forecast-causes";
 
 interface Props {
   tasks: readonly GanttTask[];
   forecast: ProgressForecast;
   calendar: GanttCalendar;
   asOf: string;
+  timeZone?: string | undefined;
   projectStart?: string | undefined;
   selectedTaskId?: string | undefined;
   onTaskSelect(id: string): void;
@@ -35,6 +36,7 @@ export function GanttForecastView({
   forecast,
   calendar,
   asOf,
+  timeZone = "UTC",
   projectStart,
   selectedTaskId,
   onTaskSelect,
@@ -43,6 +45,7 @@ export function GanttForecastView({
   display = "timeline",
 }: Props) {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [lastCopy, setLastCopy] = useState<{ summary: string; status: string }>();
   const allDates = [...forecast.tasks.values()]
     .flatMap((item) => [item.plannedStart, item.plannedEnd, item.start, item.end])
     .filter((value): value is string => Boolean(value));
@@ -66,6 +69,8 @@ export function GanttForecastView({
   const selectedChain = selected ? causeChain(selected.taskId, forecast) : [];
   const selectedChainLabels = selectedChain.map((id) => tasks.find((task) => task.id === id)?.label ?? id);
   const finishCauses = summarizeFinishCauses(tasks, forecast);
+  const shareSummary = formatForecastShareSummary(tasks, forecast, calendar, asOf, timeZone);
+  const copyStatus = lastCopy?.summary === shareSummary ? lastCopy.status : undefined;
   const taskLabels = new Map(tasks.map((task) => [task.id, task.label]));
   const releaseShift =
     forecast.plannedFinish && forecast.forecastFinish
@@ -79,6 +84,7 @@ export function GanttForecastView({
     <div className="gantt-forecast-view" data-display={display} data-inspector-trigger>
       <div className="gantt-forecast-summary" aria-live="polite">
         <strong>Projected finish {shortDate(forecast.forecastFinish)}</strong>
+        <span title="Automatic Today uses the document's saved time zone">Today in {timeZone}</span>
         {releaseShift !== undefined && (
           <span className="gantt-forecast-shift" data-shift={releaseShift === 0 ? "on-plan" : "delayed"}>
             +{releaseShift} working day{releaseShift === 1 ? "" : "s"} from plan
@@ -102,6 +108,21 @@ export function GanttForecastView({
         >
           {finishCauses.causes.length} root cause{finishCauses.causes.length === 1 ? "" : "s"} affecting finish
         </button>
+        <button
+          type="button"
+          className="gantt-forecast-filter"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(shareSummary);
+              setLastCopy({ summary: shareSummary, status: "Copied forecast summary" });
+            } catch {
+              setLastCopy({ summary: shareSummary, status: "Could not copy forecast summary" });
+            }
+          }}
+        >
+          Copy summary
+        </button>
+        {copyStatus && <span role="status">{copyStatus}</span>}
         {manualEstimates > 0 && (
           <span className="gantt-forecast-warning">
             {manualEstimates} manual remaining-work estimate{manualEstimates === 1 ? "" : "s"}

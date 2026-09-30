@@ -133,7 +133,7 @@ export function WbsNodeInspector({
       )}
       <p className="calculated-hint">
         Changes are saved when you leave a field. Names and hierarchy sync with Gantt; dates and assignments stay in
-        Gantt.
+        Gantt. Linked completion is shared from the Gantt task.
       </p>
       {(linkedTask || ganttTargets.length > 0) && (
         <section className="wbs-link-section" aria-label="Gantt link">

@@ -31,3 +31,42 @@ sunday are closed
   await page.getByRole("button", { name: "View project finish causes" }).click();
   await expect(projectCauses).toBeVisible();
 });
+
+test("warns before exporting source without forecast settings", async ({ page }) => {
+  await prepareEditor(page);
+  await setSource(page, "@startgantt\nProject starts 2026-09-21\n[Design] lasts 4 days\n@endgantt");
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByLabel("Forecast as of date").fill("2026-09-29");
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export", exact: true }).click();
+  let warning = "";
+  page.once("dialog", async (dialog) => {
+    warning = dialog.message();
+    await dialog.accept();
+  });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Source" }).click();
+  const download = await downloadPromise;
+  expect(warning).toContain("Plain .puml source does not include the progress forecast setting");
+  expect(warning).toContain("time zone");
+  expect(download.suggestedFilename()).toMatch(/\.puml$/);
+});
+
+test("copies a forecast summary with dates and the finish driver", async ({ page, context, browserName }) => {
+  test.skip(browserName !== "chromium", "Clipboard permissions are only consistently exposed by Chromium");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await prepareEditor(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-21\n[Design] starts 2026-09-21\n[Design] lasts 4 days\n[Design] is 50% completed\n@endgantt",
+  );
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByLabel("Forecast as of date").fill("2026-09-29");
+  await page.getByRole("button", { name: "Copy summary" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Copied forecast summary" })).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("Progress forecast (as of 2026-09-29)");
+  expect(copied).toContain("Planned finish:");
+  expect(copied).toContain("Projected finish:");
+  expect(copied).toContain("Finish drivers: Design");
+});

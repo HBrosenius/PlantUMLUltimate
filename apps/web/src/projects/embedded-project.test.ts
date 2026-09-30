@@ -179,7 +179,12 @@ describe("embedded project tabs", () => {
           historyMaxVersions: 25,
           historyMaxLogicalBytes: 2 * 1024 * 1024,
           resourceCapacities: { Alice: 80 },
-          progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3 } },
+          progressForecast: {
+            enabled: true,
+            asOf: "2026-09-29",
+            timeZone: "Europe/Stockholm",
+            remainingDays: { design: 3 },
+          },
         },
       ],
       "2026-09-13T09:00:00.000Z",
@@ -206,6 +211,7 @@ describe("embedded project tabs", () => {
     expect(document.settings.progressForecast).toEqual({
       enabled: true,
       asOf: "2026-09-29",
+      timeZone: "Europe/Stockholm",
       remainingDays: { design: 3 },
     });
     const reopened = await decodeProject((await encodeProject(snapshot)).bytes);

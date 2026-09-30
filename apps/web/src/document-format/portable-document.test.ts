@@ -50,7 +50,12 @@ describe("portable document assembly", () => {
         dirty: true,
         zoom: 1,
         cursor: { line: 1, column: 1 },
-        progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3 } },
+        progressForecast: {
+          enabled: true,
+          asOf: "2026-09-29",
+          timeZone: "Europe/Stockholm",
+          remainingDays: { design: 3 },
+        },
       },
       [],
     );
@@ -58,6 +63,7 @@ describe("portable document assembly", () => {
     expect(decoded.document.settings.progressForecast).toEqual({
       enabled: true,
       asOf: "2026-09-29",
+      timeZone: "Europe/Stockholm",
       remainingDays: { design: 3 },
     });
   });

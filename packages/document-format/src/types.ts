@@ -76,7 +76,7 @@ export interface PortableCurrentDocument {
 
 export interface PortableDocumentSettings {
   resourceCapacities: Record<string, number>;
-  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string };
+  progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string };
 }
 
 export interface PortableHistoryPolicy {

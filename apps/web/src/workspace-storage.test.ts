@@ -84,7 +84,12 @@ describe("normalizeSession", () => {
           id: "gantt",
           source: "@startgantt\n@endgantt",
           fileName: "plan.pumlu",
-          progressForecast: { enabled: true, asOf: "2026-09-29", remainingDays: { design: 3, invalid: -2 } },
+          progressForecast: {
+            enabled: true,
+            asOf: "2026-09-29",
+            timeZone: "Europe/Stockholm",
+            remainingDays: { design: 3, invalid: -2 },
+          },
         },
       ],
       activeDocumentId: "gantt",
@@ -92,6 +97,7 @@ describe("normalizeSession", () => {
     expect(session.documents[0]?.progressForecast).toEqual({
       enabled: true,
       asOf: "2026-09-29",
+      timeZone: "Europe/Stockholm",
       remainingDays: { design: 3 },
     });
     const invalid = normalizeSession({
@@ -100,7 +106,7 @@ describe("normalizeSession", () => {
         {
           id: "gantt",
           source: "@startgantt\n@endgantt",
-          progressForecast: { enabled: true, asOf: "2026-02-30", remainingDays: {} },
+          progressForecast: { enabled: true, asOf: "2026-02-30", timeZone: "Made/Up", remainingDays: {} },
         },
       ],
     });
