@@ -145,7 +145,9 @@ export function prepareForecastApply(
         projectStart,
         calendar,
       ).get(task.id)!;
-      if (!currentDates.start || !currentDates.end || currentDates.end >= wanted.end) continue;
+      if (!currentDates.start || !currentDates.end || currentDates.end === wanted.end) continue;
+      if (currentDates.start > wanted.end)
+        return fail(`${task.label} starts after its forecast finish. Review its dependency or fixed date.`);
       if (currentTask.end?.resolved) {
         if (!change(task.id, "end", `ends ${wanted.end}`)) return fail(`Cannot move ${task.label}'s end.`);
       } else if (currentTask.duration) {
@@ -154,7 +156,7 @@ export function prepareForecastApply(
         const days = availableDays(currentDates.start, wanted.end, source, currentTask);
         if (!days) return fail(`Cannot calculate a duration for ${task.label}.`);
         if (!change(task.id, "duration", `lasts ${days} ${days === 1 ? "day" : "days"}`))
-          return fail(`Cannot extend ${task.label}.`);
+          return fail(`Cannot resize ${task.label}.`);
         if (wanted.remainingDays !== undefined) review.overridesAfter[task.id] = wanted.remainingDays;
       } else if (
         !currentTask.end &&

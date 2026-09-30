@@ -68,4 +68,51 @@ describe("prepareForecastApply", () => {
     expect(review.error).toBeDefined();
     expect(review.sourceAfter).toBeUndefined();
   });
+
+  it("applies a 75%-complete six-day architecture task without changing linked testing", () => {
+    const source = `@startgantt
+
+Project starts 2026-09-20
+printscale daily
+sunday are closed
+saturday are closed
+today is colored in #AAF
+' plantuml-ultimate: legend hidden
+
+[Architecture] starts 2026-09-21
+[Architecture] lasts 6 days
+[Architecture] is 75% completed
+
+[Backend] lasts 8 days
+
+[Frontend] lasts 10 days
+
+[Testing] lasts 5 days
+
+[Backend] starts at [Architecture]'s end
+[Backend] is 10% completed
+[Frontend] starts at [Backend]'s end
+[Testing] starts at [Frontend]'s end
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-30", {});
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toBeDefined();
+    const withSavedTestingEstimate = prepareForecastApply(source, "2026-09-30", { testing: 3 });
+    expect(withSavedTestingEstimate.error).toBeUndefined();
+    expect(withSavedTestingEstimate.sourceAfter).toContain("[Testing] lasts 3 days");
+    expect(withSavedTestingEstimate.sourceAfter).toContain("[Testing] starts at [Frontend]'s end");
+    expect(withSavedTestingEstimate.overridesAfter.testing).toBe(3);
+    const updated = parseGantt(withSavedTestingEstimate.sourceAfter!).document;
+    const calendar = parseGanttCalendar(withSavedTestingEstimate.sourceAfter!);
+    const plan = resolveTaskDates(updated.tasks, updated.dependencies, updated.projectStart?.value, calendar);
+    const nextForecast = calculateProgressForecast(
+      updated.tasks,
+      updated.dependencies,
+      plan,
+      calendar,
+      "2026-09-30",
+      withSavedTestingEstimate.overridesAfter,
+    );
+    expect(nextForecast.forecastFinish).toBe(nextForecast.plannedFinish);
+  });
 });
