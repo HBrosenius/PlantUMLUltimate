@@ -114,14 +114,23 @@ export async function jiraSearch(
 
 export async function jiraUpdateIssues(
   endpoint: string,
-  request: { cloudId: string; updates: JiraIssueUpdate[] },
+  request: { cloudId: string; updates: JiraIssueUpdate[]; startFieldId?: string },
 ): Promise<JiraIssueUpdateResult[]> {
+  // The Worker only writes a custom field when the request names it as the start-date field.
+  const customFields = new Set(
+    request.updates.flatMap((update) => Object.keys(update.fields).filter((field) => field.startsWith("customfield_"))),
+  );
+  const startFieldId = request.startFieldId ?? (customFields.size === 1 ? [...customFields][0] : undefined);
   const results: JiraIssueUpdateResult[] = [];
   for (let offset = 0; offset < request.updates.length; offset += 25) {
     const response = await apiJson<{ results: JiraIssueUpdateResult[] }>(endpoint, "/api/issues/update", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cloudId: request.cloudId, updates: request.updates.slice(offset, offset + 25) }),
+      body: JSON.stringify({
+        cloudId: request.cloudId,
+        ...(startFieldId ? { startFieldId } : {}),
+        updates: request.updates.slice(offset, offset + 25),
+      }),
     });
     results.push(...response.results);
   }

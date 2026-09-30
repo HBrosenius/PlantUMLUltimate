@@ -3,6 +3,7 @@ import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import {
   applyJiraFieldResolutions,
   createJiraBaselines,
+  createPublishedJiraBaselines,
   detachJiraTasks,
   findMissingJiraTasks,
   findJiraLocalChangeFields,
@@ -116,5 +117,36 @@ describe("reconcileJiraTask", () => {
     expect(detached).not.toContain("acme.atlassian.net/browse/APP-123");
     expect(document.dependencies).toHaveLength(1);
     expect(document.symbols.tasks.get("local_jira_10042")?.label).toBe("Build");
+  });
+});
+
+describe("createPublishedJiraBaselines", () => {
+  it("keeps an unpublished local choice as a local change on the next pull", () => {
+    const original = {
+      id: "10042",
+      key: "APP-123",
+      summary: "Build",
+      updated: "2026-08-31T10:00:00Z",
+      startDate: "2026-09-01",
+      dueDate: "2026-09-10",
+      completion: 0,
+    };
+    const remote = { ...original, updated: "2026-09-01T10:00:00Z", completion: 50 };
+    const source = `@startgantt
+[Build locally] as [jira_10042] starts 2026-09-01
+[jira_10042] ends 2026-09-10
+[jira_10042] is 30% completed
+[jira_10042] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]
+@endgantt`;
+    const divergences = findJiraTaskDivergences(source, [remote], createJiraBaselines([original]));
+    // Summary is published to Jira; completion stays local because it is never published.
+    const baselines = createPublishedJiraBaselines([remote], divergences, [
+      { issueId: "10042", field: "summary", choice: "local" },
+    ]);
+    expect(baselines["10042"]?.state).toMatchObject({ summary: "Build locally", completion: 50 });
+
+    const next = findJiraTaskDivergences(source, [{ ...remote, summary: "Build locally" }], baselines);
+    expect(next[0]?.localChanges.map((change) => change.field)).toEqual(["completion"]);
+    expect(next[0]?.conflicts).toEqual([]);
   });
 });

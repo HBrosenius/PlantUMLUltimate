@@ -3,9 +3,41 @@ import * as Y from "yjs";
 
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const MAX_UPDATE_BYTES = 1_000_000;
-const MAX_DOCUMENT_BYTES = 5_000_000;
+// Durable Object SQLite rows are limited to 2 MB, and the state is persisted as a single row.
+const MAX_DOCUMENT_BYTES = 1_900_000;
 const MAX_NAME_LENGTH = 60;
 const COLLABORATION_PROTOCOL = "plantuml-collaboration";
+// A revocation body is just the 43-character owner token; anything much larger is refused unread.
+const MAX_REVOCATION_BODY_BYTES = 4_096;
+
+class BodyTooLargeError extends Error {}
+
+/** Reads a request body as text, refusing it once it exceeds `limit` bytes without buffering the rest. */
+async function limitedRequestText(request: Request, limit: number): Promise<string> {
+  const statedLength = Number(request.headers.get("Content-Length") ?? 0);
+  if (!Number.isFinite(statedLength) || statedLength > limit) throw new BodyTooLargeError();
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    length += value.byteLength;
+    if (length > limit) {
+      await reader.cancel().catch(() => undefined);
+      throw new BodyTooLargeError();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
 
 interface Participant {
   id: string;
@@ -156,7 +188,14 @@ export class CollaborationRoom extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     if (this.revoked) return Response.json({ error: "Room revoked" }, { status: 410 });
     if (request.method === "POST") {
-      const requestedOwnerToken = await request.text();
+      let requestedOwnerToken: string;
+      try {
+        requestedOwnerToken = await limitedRequestText(request, MAX_REVOCATION_BODY_BYTES);
+      } catch (error) {
+        if (error instanceof BodyTooLargeError)
+          return Response.json({ error: "Request body is too large" }, { status: 413 });
+        throw error;
+      }
       if (!this.ownerToken || requestedOwnerToken !== this.ownerToken)
         return Response.json({ error: "Invalid owner credential" }, { status: 403 });
       this.revoked = true;
@@ -257,17 +296,19 @@ export class CollaborationRoom extends DurableObject<Env> {
     if (connection.role === "viewer") return socket.close(1008, "Read-only collaboration");
     const update = messageBytes(message);
     if (update.byteLength > MAX_UPDATE_BYTES) return socket.close(1009, "Document update too large");
+    // Apply to a copy first: Y.applyUpdate can merge part of a malformed update before throwing.
+    const candidate = new Y.Doc();
     try {
-      const previousState = Y.encodeStateAsUpdate(this.document);
-      Y.applyUpdate(this.document, update);
-      const state = Y.encodeStateAsUpdate(this.document);
+      Y.applyUpdate(candidate, Y.encodeStateAsUpdate(this.document));
+      Y.applyUpdate(candidate, update);
+      const state = Y.encodeStateAsUpdate(candidate);
       if (state.byteLength > MAX_DOCUMENT_BYTES) {
-        this.document.destroy();
-        this.document = new Y.Doc();
-        Y.applyUpdate(this.document, previousState);
+        candidate.destroy();
         return socket.close(1009, "Document is too large");
       }
       this.persist(state);
+      this.document.destroy();
+      this.document = candidate;
       const author = connection.participant;
       const authorMessage = JSON.stringify({ type: "update-author", participant: author });
       for (const peer of this.ctx.getWebSockets()) {
@@ -280,6 +321,7 @@ export class CollaborationRoom extends DurableObject<Env> {
         }
       }
     } catch {
+      if (candidate !== this.document) candidate.destroy();
       socket.close(1007, "Invalid document update");
     }
   }

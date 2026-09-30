@@ -27,12 +27,12 @@ async function startOAuth(): Promise<{ state: string; temporaryCookie: string }>
   };
 }
 
-async function connect(): Promise<{ sessionCookie: string; state: string; temporaryCookie: string }> {
+async function connect(expiresIn = 3600): Promise<{ sessionCookie: string; state: string; temporaryCookie: string }> {
   const started = await startOAuth();
   const outbound = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "https://auth.atlassian.com/oauth/token")
-      return Response.json({ access_token: "access-token", refresh_token: "refresh-token", expires_in: 3600 });
+      return Response.json({ access_token: "access-token", refresh_token: "refresh-token", expires_in: expiresIn });
     if (url === "https://api.atlassian.com/oauth/token/accessible-resources")
       return Response.json([
         {
@@ -175,6 +175,8 @@ describe("Jira integration Worker", () => {
   it("validates and publishes reviewed Jira issue fields", async () => {
     const connected = await connect();
     const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/rest/api/3/field"))
+        return Response.json([{ id: "customfield_10042", name: "Start date", custom: true, schema: { type: "date" } }]);
       expect(String(input).endsWith("/rest/api/3/issue/10042")).toBe(true);
       expect(init?.method).toBe("PUT");
       expect(JSON.parse(String(init?.body))).toEqual({
@@ -193,6 +195,7 @@ describe("Jira integration Worker", () => {
         },
         body: JSON.stringify({
           cloudId: "cloud-1",
+          startFieldId: "customfield_10042",
           updates: [
             {
               issueId: "10042",
@@ -207,6 +210,117 @@ describe("Jira integration Worker", () => {
     await expect(response.json()).resolves.toEqual({
       results: [{ issueId: "10042", issueKey: "APP-123", ok: true }],
     });
+  });
+
+  async function publish(sessionCookie: string, body: unknown): Promise<Response> {
+    return exports.default.fetch(
+      new Request(`${WORKER_ORIGIN}/api/issues/update`, {
+        method: "POST",
+        headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${sessionCookie}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+
+  it("rejects custom fields other than the named start date field", async () => {
+    const connected = await connect();
+    const outbound = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/rest/api/3/field"))
+        return Response.json([
+          { id: "customfield_10042", name: "Start date", custom: true, schema: { type: "date" } },
+          { id: "customfield_20000", name: "Story points", custom: true, schema: { type: "number" } },
+        ]);
+      return new Response(null, { status: 204 });
+    });
+    vi.stubGlobal("fetch", outbound);
+    const update = (fields: Record<string, unknown>) => [{ issueId: "10042", issueKey: "APP-123", fields }];
+
+    const unnamed = await publish(connected.sessionCookie, {
+      cloudId: "cloud-1",
+      updates: update({ customfield_10042: null }),
+    });
+    expect(unnamed.status).toBe(400);
+    const other = await publish(connected.sessionCookie, {
+      cloudId: "cloud-1",
+      startFieldId: "customfield_10042",
+      updates: update({ customfield_20000: null }),
+    });
+    expect(other.status).toBe(400);
+    const notDate = await publish(connected.sessionCookie, {
+      cloudId: "cloud-1",
+      startFieldId: "customfield_20000",
+      updates: update({ customfield_20000: null }),
+    });
+    expect(notDate.status).toBe(400);
+    const badId = await publish(connected.sessionCookie, {
+      cloudId: "cloud-1",
+      startFieldId: "assignee",
+      updates: update({ assignee: null }),
+    });
+    expect(badId.status).toBe(400);
+    expect(outbound.mock.calls.some(([input]) => String(input).includes("/rest/api/3/issue/"))).toBe(false);
+  });
+
+  async function connectionWithRefresh(sessionCookie: string, refresh: () => Response | Promise<Response>) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input) === "https://auth.atlassian.com/oauth/token") return refresh();
+        throw new Error(`Unexpected outbound request: ${String(input)}`);
+      }),
+    );
+    return exports.default.fetch(
+      new Request(`${WORKER_ORIGIN}/api/connection`, {
+        headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${sessionCookie}` },
+      }),
+    );
+  }
+
+  it("keeps the session when token refresh is rate limited or temporarily failing", async () => {
+    const connected = await connect(30);
+    const limited = await connectionWithRefresh(connected.sessionCookie, () =>
+      Response.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "17" } }),
+    );
+    expect(limited.status).toBe(503);
+    expect(limited.headers.get("Retry-After")).toBe("17");
+    expect(limited.headers.get("Set-Cookie")).toBeNull();
+
+    const unavailable = await connectionWithRefresh(
+      connected.sessionCookie,
+      () => new Response("upstream down", { status: 502 }),
+    );
+    expect(unavailable.status).toBe(503);
+    const offline = await connectionWithRefresh(connected.sessionCookie, () => {
+      throw new TypeError("network connection lost");
+    });
+    expect(offline.status).toBe(503);
+    const opaqueBadRequest = await connectionWithRefresh(
+      connected.sessionCookie,
+      () => new Response("bad gateway page", { status: 400 }),
+    );
+    expect(opaqueBadRequest.status).toBe(503);
+
+    const recovered = await connectionWithRefresh(connected.sessionCookie, () =>
+      Response.json({ access_token: "access-token-2", refresh_token: "refresh-token-2", expires_in: 3600 }),
+    );
+    expect(recovered.status).toBe(200);
+    await expect(recovered.json()).resolves.toMatchObject({ connected: true });
+  });
+
+  it("ends the session only when the refresh token is rejected", async () => {
+    const connected = await connect(30);
+    const rejected = await connectionWithRefresh(connected.sessionCookie, () =>
+      Response.json(
+        { error: "invalid_grant", error_description: "Unknown or invalid refresh token." },
+        { status: 403 },
+      ),
+    );
+    expect(rejected.status).toBe(401);
+    expect(rejected.headers.get("Set-Cookie")).toContain("jira_session=;");
+    const after = await connectionWithRefresh(connected.sessionCookie, () =>
+      Response.json({ access_token: "access-token-2", expires_in: 3600 }),
+    );
+    expect(after.status).toBe(401);
   });
 
   it("requires an allowed origin and can disconnect the opaque session", async () => {

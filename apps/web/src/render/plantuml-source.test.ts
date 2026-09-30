@@ -32,4 +32,30 @@ describe("sourceForPlantUmlRenderer", () => {
     expect(rendered).toContain("Alice -> Bob");
     expect(rendered.split("\n")).toHaveLength(source.split("\n").length);
   });
+
+  it("blocks every include variant and file, URL or environment builtins", () => {
+    const blocked = [
+      "!includesub https://example.test/lib.puml!PART",
+      "!INCLUDESUB lib.puml!PART",
+      "!include_many https://example.test/many.puml",
+      "!include_once https://example.test/once.puml",
+      "!includedef https://example.test/def.puml",
+      "  ! include https://example.test/spaced.puml",
+      "!Import https://example.test/archive.zip",
+      "!theme spacelab from https://example.test/themes",
+      '!$data = %load_json("https://example.test/data.json")',
+      '!$secret = %getenv("SECRET")',
+      'Alice -> Bob : %GETENV("HOME")',
+      'Alice -> Bob : % getenv ("HOME")',
+      "title %dirpath() %filename()",
+      '!if %file_exists("/etc/passwd")',
+    ];
+    const source = ["@startuml", ...blocked, "Alice -> Bob : 100% done", "@enduml"].join("\n");
+    const rendered = sourceForPlantUmlRenderer(source);
+    const lines = rendered.split("\n");
+    expect(lines).toHaveLength(source.split("\n").length);
+    for (let index = 1; index <= blocked.length; index += 1)
+      expect(lines[index]).toBe("' remote resource directive blocked by PlantUML Ultimate");
+    expect(rendered).toContain("Alice -> Bob : 100% done");
+  });
 });

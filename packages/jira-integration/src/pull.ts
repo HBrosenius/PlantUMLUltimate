@@ -33,12 +33,39 @@ export function summarizeJiraPullPlan(plan: Pick<JiraPullPlan, "changes" | "warn
   };
 }
 
-function safeLabel(value: string): string {
-  return value
-    .replace(/[\r\n]+/g, " ")
+const MAX_LABEL_LENGTH = 255;
+
+/**
+ * Turns an untrusted Jira summary into a PlantUML task label that renders as plain text. PlantUML
+ * interprets several sequences inside labels: `[`/`]` end the task name, `<...>` starts creole
+ * sprites, images (`<img:url>`), icons and Unicode escapes, `%name(...)` calls preprocessor builtins
+ * such as `%getenv` or `%load_json`, and a leading `!` or `/'` can start a directive or a comment.
+ * Each is replaced by a visually similar, inert character so normal summaries stay readable.
+ */
+export function jiraTaskLabel(value: string): string {
+  const label = value
+    // Control characters (including tabs and Unicode line/paragraph separators) become spaces.
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ")
     .replaceAll("[", "(")
     .replaceAll("]", ")")
+    .replaceAll("<", "\u2039")
+    .replaceAll(">", "\u203a")
+    .replaceAll("%", "\uff05")
+    .replaceAll("/'", "/ '")
+    .trim()
+    .replace(/^[!@']+/, (prefix) => "\u01c3".repeat(prefix.length))
+    .slice(0, MAX_LABEL_LENGTH)
     .trim();
+  return label;
+}
+
+const safeLabel = jiraTaskLabel;
+
+/** Assignee names are written into `{name:100%}` resource syntax, so names PlantUML would interpret are skipped. */
+function safeResourceName(value: string | undefined): value is string {
+  // eslint-disable-next-line no-control-regex
+  return Boolean(value?.trim() && !/[{}<>%[\]!\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value));
 }
 
 function validDate(value: string | undefined): value is string {
@@ -79,7 +106,7 @@ function insertIssue(source: string, siteUrl: string, issue: JiraIssueSnapshot, 
   const alias = jiraTaskAlias(issue.id);
   const label = safeLabel(issue.summary);
   const resource =
-    options.includeAssignee && issue.assignee?.displayName && !/[{}\r\n]/.test(issue.assignee.displayName)
+    options.includeAssignee && safeResourceName(issue.assignee?.displayName)
       ? ` on {${issue.assignee.displayName}:100%}`
       : "";
   const schedule = validDate(issue.startDate)
@@ -135,11 +162,19 @@ function updateIssue(
     );
   if (options.includeAssignee && issue.assignee !== undefined) {
     const resources =
-      issue.assignee?.displayName && !/[{}\r\n]/.test(issue.assignee.displayName)
+      issue.assignee && safeResourceName(issue.assignee.displayName)
         ? [{ name: issue.assignee.displayName, allocation: 100 }]
         : [];
     const currentResources = findTask(source, issue.id)?.resources ?? [];
-    if (currentResources.length !== resources.length || currentResources[0]?.value !== resources[0]?.name)
+    // Pull writes at most one full-time assignee. Several resources or a custom allocation were
+    // edited in the chart, so they are kept rather than replaced by the Jira assignee.
+    const jiraManaged =
+      currentResources.length === 0 ||
+      (currentResources.length === 1 && (currentResources[0]!.allocation ?? 100) === 100);
+    if (
+      jiraManaged &&
+      (currentResources.length !== resources.length || currentResources[0]?.value !== resources[0]?.name)
+    )
       run("assigneeAccountId", (current) => setTaskResources(source, current, resources));
   }
   task = findTask(source, issue.id)!;

@@ -3,6 +3,7 @@ import {
   applyJiraFieldResolutions,
   buildJiraPullPlan,
   createJiraBaselines,
+  createPublishedJiraBaselines,
   detachJiraTasks,
   findMissingJiraTasks,
   findJiraTaskDivergences,
@@ -57,6 +58,9 @@ function displayJiraValue(value: JiraFieldDifference["local"]): string {
   return String(value);
 }
 
+const STALE_REVIEW_MESSAGE =
+  "The chart changed after this review was prepared. Choose Back and review again against the current chart.";
+
 export function JiraDialog({
   endpoint,
   source,
@@ -73,6 +77,9 @@ export function JiraDialog({
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
+  // The latest chart source, read after awaits so a review never overwrites concurrent edits.
+  const currentSource = useRef(source);
+  currentSource.current = source;
   useDialogFocus(dialog, onClose);
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState<JiraSite[]>([]);
@@ -248,6 +255,10 @@ export function JiraDialog({
   const applyReview = async () => {
     if (!review || readOnly || busy) return;
     if (unresolvedCount > 0 || unresolvedRemovalCount > 0) return;
+    if (currentSource.current !== review.baseSource) {
+      setError(STALE_REVIEW_MESSAGE);
+      return;
+    }
     const selected: JiraFieldResolution[] = review.divergences.flatMap((divergence) =>
       [...divergence.conflicts, ...divergence.localChanges].map((difference) => ({
         issueId: divergence.issueId,
@@ -257,19 +268,24 @@ export function JiraDialog({
     );
     const resolvedIssues = applyJiraFieldResolutions(review.issues, review.divergences, selected);
     const updatesByIssue = new Map<string, JiraIssueUpdate>();
+    const publishedResolutions: JiraFieldResolution[] = [];
     if (review.binding.mode === "review-publish") {
       for (const { divergence, difference } of reviewDifferences) {
         if (resolutions[resolutionKey(divergence.issueId, difference.field)] !== "local") continue;
         const issue = review.issues.find((candidate) => candidate.id === divergence.issueId);
         if (!issue) continue;
         const update = updatesByIssue.get(issue.id) ?? { issueId: issue.id, issueKey: issue.key, fields: {} };
+        let publishedField = true;
         if (difference.field === "summary" && typeof difference.local === "string")
           update.fields.summary = difference.local;
         else if (difference.field === "startDate" && review.binding.startFieldId)
           update.fields[review.binding.startFieldId] = typeof difference.local === "string" ? difference.local : null;
         else if (difference.field === "dueDate")
           update.fields.duedate = typeof difference.local === "string" ? difference.local : null;
-        if (Object.keys(update.fields).length > 0) updatesByIssue.set(issue.id, update);
+        else publishedField = false;
+        if (!publishedField) continue;
+        updatesByIssue.set(issue.id, update);
+        publishedResolutions.push({ issueId: issue.id, field: difference.field, choice: "local" });
       }
     }
     let published = 0;
@@ -296,6 +312,12 @@ export function JiraDialog({
         setBusy(false);
       }
     }
+    if (currentSource.current !== review.baseSource) {
+      setError(
+        `${published ? `Published ${published} issue${published === 1 ? "" : "s"} to Jira, but the` : "The"} chart changed during synchronization, so it was not updated. Choose Back and review again.`,
+      );
+      return;
+    }
     const plan = buildJiraPullPlan(review.baseSource, review.siteUrl, resolvedIssues, review.options);
     const removedIssueIds = review.missingTasks
       .filter((task) => removalChoices[task.issueId] === "remove")
@@ -304,7 +326,7 @@ export function JiraDialog({
       .filter((task) => removalChoices[task.issueId] === "keep")
       .map((task) => task.issueId);
     const handledAliases = new Set(review.missingTasks.map((task) => `jira_${task.issueId}`));
-    const publishedBaselines = createJiraBaselines(resolvedIssues.filter((issue) => updatesByIssue.has(issue.id)));
+    const publishedBaselines = createPublishedJiraBaselines(review.issues, review.divergences, publishedResolutions);
     const nextBinding = {
       ...review.binding,
       baselines: { ...review.binding.baselines, ...publishedBaselines },

@@ -34,6 +34,34 @@ interface StoredSession {
 
 class InvalidSessionError extends Error {}
 
+/** The refresh could not complete now but the stored refresh token may still be valid. */
+class TransientRefreshError extends Error {
+  constructor(
+    message: string,
+    readonly retryAfter?: string,
+  ) {
+    super(message);
+  }
+}
+
+/** OAuth error codes that mean the refresh token itself can never succeed again. */
+const REVOKED_REFRESH_ERRORS = new Set(["invalid_grant", "unauthorized_client"]);
+
+async function oauthErrorCode(response: Response): Promise<string | undefined> {
+  try {
+    const body = await limitedJson<{ error?: unknown }>(response);
+    return typeof body?.error === "string" ? body.error : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function retryAfterHeader(response: Response): string | undefined {
+  const value = response.headers.get("Retry-After")?.trim();
+  if (!value || value.length > 64) return undefined;
+  return /^\d+$/.test(value) || !Number.isNaN(Date.parse(value)) ? value : undefined;
+}
+
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
@@ -228,20 +256,30 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
 async function refreshTokens(payload: SessionPayload, env: Env): Promise<SessionPayload> {
   if (payload.accessExpiresAt > nowSeconds() + 60) return payload;
   if (!payload.refreshToken) throw new InvalidSessionError("Jira connection needs authorization again");
-  const response = await fetch("https://auth.atlassian.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      grant_type: "refresh_token",
-      client_id: env.ATLASSIAN_CLIENT_ID,
-      client_secret: env.ATLASSIAN_CLIENT_SECRET,
-      refresh_token: payload.refreshToken,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://auth.atlassian.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        client_id: env.ATLASSIAN_CLIENT_ID,
+        client_secret: env.ATLASSIAN_CLIENT_SECRET,
+        refresh_token: payload.refreshToken,
+      }),
+    });
+  } catch (error) {
+    throw new TransientRefreshError(
+      `Jira token refresh request failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
   if (!response.ok) {
-    if (response.status >= 400 && response.status < 500)
-      throw new InvalidSessionError(`Jira token refresh failed (${response.status})`);
-    throw new Error(`Jira token refresh failed (${response.status})`);
+    // Only an explicit OAuth rejection of the refresh token ends the session. Rate limits, server
+    // errors and unrecognized failures are retryable and must not force the user to reconnect.
+    const code = [400, 401, 403].includes(response.status) ? await oauthErrorCode(response) : undefined;
+    if (code && REVOKED_REFRESH_ERRORS.has(code))
+      throw new InvalidSessionError(`Jira token refresh was rejected (${response.status} ${code})`);
+    throw new TransientRefreshError(`Jira token refresh failed (${response.status})`, retryAfterHeader(response));
   }
   const token = await limitedJson<TokenResponse>(response);
   if (!token.access_token || !Number.isFinite(token.expires_in))
@@ -315,6 +353,13 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
   try {
     session = await sessionFor(request, env);
   } catch (error) {
+    if (error instanceof TransientRefreshError) {
+      console.warn(JSON.stringify({ message: "Jira token refresh is temporarily unavailable", error: error.message }));
+      return Response.json(
+        { error: "Jira is temporarily unavailable; try again shortly", retryable: true },
+        { status: 503, headers: error.retryAfter ? { "Retry-After": error.retryAfter } : {} },
+      );
+    }
     if (!(error instanceof InvalidSessionError)) throw error;
     if (rawSession)
       await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
@@ -393,6 +438,7 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/api/issues/update" && request.method === "POST") {
     let body: {
       cloudId?: string;
+      startFieldId?: string;
       updates?: Array<{ issueId?: string; issueKey?: string; fields?: Record<string, unknown> }>;
     };
     try {
@@ -403,6 +449,11 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
     const cloudId = body.cloudId ?? "";
     if (!Array.isArray(body.updates) || body.updates.length === 0 || body.updates.length > 25)
       return Response.json({ error: "Between 1 and 25 issue updates are required" }, { status: 400 });
+    // The only custom field a publish may touch is the binding's start-date field, which the
+    // request must name explicitly. Every other custom field is rejected.
+    const startFieldId = body.startFieldId;
+    if (startFieldId !== undefined && (typeof startFieldId !== "string" || !/^customfield_\d+$/.test(startFieldId)))
+      return Response.json({ error: "Start date field is invalid" }, { status: 400 });
     const updates = body.updates.flatMap((update) => {
       if (!/^\d+$/.test(update.issueId ?? "") || !/^[A-Z][A-Z0-9_]*-\d+$/i.test(update.issueKey ?? "")) return [];
       const fields = update.fields;
@@ -412,7 +463,7 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
         entries.length === 0 ||
         entries.some(([field, value]) => {
           if (field === "summary") return typeof value !== "string" || !value.trim() || value.length > 255;
-          if (field === "duedate" || /^customfield_\d+$/.test(field))
+          if (field === "duedate" || (startFieldId !== undefined && field === startFieldId))
             return value !== null && (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value));
           return true;
         })
@@ -422,6 +473,20 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
     });
     if (updates.length !== body.updates.length)
       return Response.json({ error: "One or more Jira updates are invalid" }, { status: 400 });
+    if (startFieldId !== undefined && updates.some((update) => startFieldId in update.fields)) {
+      // Confirm with Jira that the named field really is a custom date field before writing it.
+      const fieldsResponse = await jiraFetch(session.payload, cloudId, "/rest/api/3/field");
+      if (!fieldsResponse.ok)
+        return Response.json(
+          { error: "Could not verify the Jira start date field" },
+          { status: fieldsResponse.status },
+        );
+      const fields =
+        await limitedJson<Array<{ id?: string; custom?: boolean; schema?: { type?: string } }>>(fieldsResponse);
+      const startField = Array.isArray(fields) ? fields.find((field) => field.id === startFieldId) : undefined;
+      if (!startField || startField.custom !== true || startField.schema?.type !== "date")
+        return Response.json({ error: "Start date field must be a Jira custom date field" }, { status: 400 });
+    }
     const results = [];
     for (const update of updates) {
       const upstream = await jiraFetch(

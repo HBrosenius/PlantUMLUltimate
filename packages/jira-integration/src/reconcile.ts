@@ -6,6 +6,7 @@ import {
   setTaskLinks,
 } from "@plantuml-studio/diagram-gantt";
 import { isJiraBrowseUrl, jiraTaskAlias } from "./binding";
+import { jiraTaskLabel } from "./pull";
 import type {
   JiraFieldDifference,
   JiraFieldResolution,
@@ -52,11 +53,8 @@ export function reconcileJiraTask(
 export function mappedStateFromJiraIssue(issue: JiraIssueSnapshot): JiraMappedTaskState {
   return {
     key: issue.key.toUpperCase(),
-    summary: issue.summary
-      .replace(/[\r\n]+/g, " ")
-      .replaceAll("[", "(")
-      .replaceAll("]", ")")
-      .trim(),
+    // Compare with the label that pull writes, so neutralized characters don't look like local edits.
+    summary: jiraTaskLabel(issue.summary),
     ...(issue.startDate ? { startDate: issue.startDate } : {}),
     ...(issue.dueDate ? { dueDate: issue.dueDate } : {}),
     ...(issue.completion !== undefined ? { completion: issue.completion } : {}),
@@ -66,6 +64,26 @@ export function mappedStateFromJiraIssue(issue: JiraIssueSnapshot): JiraMappedTa
 export function createJiraBaselines(issues: readonly JiraIssueSnapshot[]): Record<string, JiraIssueBaseline> {
   return Object.fromEntries(
     issues.map((issue) => [issue.id, { updated: issue.updated, state: mappedStateFromJiraIssue(issue) }]),
+  );
+}
+
+/**
+ * Baselines after publishing: what Jira now holds for each published issue. Only the resolutions
+ * that were actually published take the local value; every other field keeps the remote value, so a
+ * local choice that was not published stays a local change instead of being overwritten on the next pull.
+ */
+export function createPublishedJiraBaselines(
+  issues: readonly JiraIssueSnapshot[],
+  divergences: readonly JiraTaskDivergence[],
+  published: readonly JiraFieldResolution[],
+): Record<string, JiraIssueBaseline> {
+  const publishedIssueIds = new Set(published.map((resolution) => resolution.issueId));
+  return createJiraBaselines(
+    applyJiraFieldResolutions(
+      issues.filter((issue) => publishedIssueIds.has(issue.id)),
+      divergences,
+      published,
+    ),
   );
 }
 
