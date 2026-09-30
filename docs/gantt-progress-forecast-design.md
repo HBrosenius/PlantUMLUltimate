@@ -102,7 +102,7 @@ Saving a portable document or project stores the on/off setting, a chosen status
 ## Resolved decisions
 
 1. **Linked completion:** WBS displays completion from its linked Gantt task; WBS has no separate completion value. A mismatch cannot occur in the current model. If independent WBS completion is added later, require an explicit choice before forecasting that task.
-2. **Time-zone rule:** automatic "Today" uses a time zone saved with the document. New forecasts capture the creator's IANA time zone; older documents without one use UTC. A manually selected status date remains an explicit shared date.
+2. **Time-zone rule:** automatic "Today" uses a time zone saved with the document. New forecasts capture the creator's IANA time zone; older documents without one use UTC. The zone can be changed in Document settings. A manually selected status date remains an explicit shared date.
 3. **Plain-source export:** exporting `.puml` warns when forecast metadata exists. The source keeps task completion statements, while forecast settings, status date, time zone, and remaining-work estimates stay in the portable/project file.
 
 ## Scope boundary

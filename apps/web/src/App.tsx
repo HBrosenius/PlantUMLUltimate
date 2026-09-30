@@ -3938,6 +3938,9 @@ export function App() {
             maxVersions: activeDocument.historyMaxVersions ?? 100,
             maxLogicalMiB: Math.round((activeDocument.historyMaxLogicalBytes ?? 16 * 1024 * 1024) / 1024 / 1024),
             diagramTheme: plantUmlTheme(workspace.source) ?? "",
+            ...(workspace.diagramKind === "gantt" && activeDocument.progressForecast
+              ? { forecastTimeZone: activeDocument.progressForecast.timeZone ?? "UTC" }
+              : {}),
           }}
           diagramKind={workspace.diagramKind}
           onApply={async (settings) => {

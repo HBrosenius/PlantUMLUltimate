@@ -29,6 +29,7 @@ import {
   type WritableFileHandle,
 } from "./file-service";
 import { assemblePortableDocument } from "./document-format/portable-document";
+import { validForecastTimeZone } from "./forecast-date";
 import { mapPortableHistoryToLocal } from "./document-format/history-mapping";
 import { documentKey, forgetDocumentKey, rememberDocumentKey } from "./document-format/document-keys";
 import type { DocumentVersionOverride } from "./use-document-versions";
@@ -393,15 +394,21 @@ export function useDocumentFiles({
       password?: string;
       maxVersions: number;
       maxLogicalMiB: number;
+      forecastTimeZone?: string;
     }) => {
       const active = tabs.getDocument(tabs.activeId);
       if (!active) return;
+      if (settings.forecastTimeZone !== undefined && !validForecastTimeZone(settings.forecastTimeZone))
+        throw new Error("Enter a valid forecast time zone");
       const patch: Partial<DocumentSnapshot> = {
         compression: settings.compression,
         historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
         historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
         dirty: true,
         revision: (active.revision ?? 0) + 1,
+        ...(settings.forecastTimeZone !== undefined && active.progressForecast
+          ? { progressForecast: { ...active.progressForecast, timeZone: settings.forecastTimeZone } }
+          : {}),
       };
       if (!settings.encrypted && active.encrypted) {
         await disableMemoryOnlyHistory(active.historyId);

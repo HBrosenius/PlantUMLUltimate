@@ -70,3 +70,29 @@ test("copies a forecast summary with dates and the finish driver", async ({ page
   expect(copied).toContain("Projected finish:");
   expect(copied).toContain("Finish drivers: Design");
 });
+
+test("changes and restores the document forecast time zone", async ({ page }) => {
+  await prepareEditor(page);
+  await setSource(page, "@startgantt\nProject starts 2026-09-21\n[Design] lasts 4 days\n@endgantt");
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Document settings…" }).click();
+  const settings = page.getByRole("dialog", { name: "Document settings" });
+  const zone = settings.getByRole("textbox", { name: "Forecast time zone" });
+  await zone.fill("Made/Up");
+  await expect(settings.getByRole("alert")).toContainText("Enter a valid time zone");
+  await expect(settings.getByRole("button", { name: "Apply" })).toBeDisabled();
+  await zone.fill("Pacific/Kiritimati");
+  await settings.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".gantt-forecast-summary")).toContainText("Today in Pacific/Kiritimati");
+
+  await page.reload();
+  await expect(page.locator(".gantt-forecast-summary")).toContainText("Today in Pacific/Kiritimati");
+  const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+  if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Document settings…" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Document settings" }).getByRole("textbox", { name: "Forecast time zone" }),
+  ).toHaveValue("Pacific/Kiritimati");
+});

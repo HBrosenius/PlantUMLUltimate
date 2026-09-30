@@ -3,6 +3,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import type { DiagramKind } from "./model";
 import { PLANTUML_THEMES, setPlantUmlTheme } from "./plantuml-theme";
 import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
+import { browserForecastTimeZone, validForecastTimeZone } from "./forecast-date";
 
 const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
   gantt: [
@@ -45,6 +46,7 @@ export interface DocumentFormatSettings {
   maxVersions: number;
   maxLogicalMiB: number;
   diagramTheme?: string;
+  forecastTimeZone?: string;
 }
 
 export function DocumentSettingsDialog({
@@ -67,6 +69,8 @@ export function DocumentSettingsDialog({
   const [maxVersions, setMaxVersions] = useState(current.maxVersions);
   const [maxLogicalMiB, setMaxLogicalMiB] = useState(current.maxLogicalMiB);
   const [diagramTheme, setDiagramTheme] = useState(current.diagramTheme ?? "");
+  const [forecastTimeZone, setForecastTimeZone] = useState(current.forecastTimeZone ?? "");
+  const deviceTimeZone = browserForecastTimeZone();
   const customDiagramTheme = diagramTheme && !PLANTUML_THEMES.some((theme) => theme === diagramTheme);
   const previewSource = useMemo(
     () => setPlantUmlTheme(THEME_PREVIEW_SOURCES[diagramKind], diagramTheme || undefined),
@@ -80,6 +84,7 @@ export function DocumentSettingsDialog({
   const [busy, setBusy] = useState(false);
   const needsPassword = encrypted && (!current.encrypted || Boolean(password));
   const passwordError = needsPassword && (password.length < 12 || password !== confirmation);
+  const forecastTimeZoneError = current.forecastTimeZone !== undefined && !validForecastTimeZone(forecastTimeZone);
   return (
     <div className="modal-backdrop" role="presentation">
       <form
@@ -90,7 +95,7 @@ export function DocumentSettingsDialog({
         aria-label="Document settings"
         onSubmit={(event) => {
           event.preventDefault();
-          if (passwordError) return;
+          if (passwordError || forecastTimeZoneError) return;
           setBusy(true);
           void onApply({
             compression,
@@ -99,6 +104,7 @@ export function DocumentSettingsDialog({
             maxVersions,
             maxLogicalMiB,
             ...(current.diagramTheme !== undefined ? { diagramTheme } : {}),
+            ...(current.forecastTimeZone !== undefined ? { forecastTimeZone } : {}),
           })
             .then(onClose)
             .catch(() => undefined)
@@ -139,6 +145,39 @@ export function DocumentSettingsDialog({
                 <span>Rendering theme preview…</span>
               )}
             </div>
+          </section>
+        )}
+        {current.forecastTimeZone !== undefined && (
+          <section className="document-settings-section" aria-labelledby="forecast-time-zone-heading">
+            <h3 id="forecast-time-zone-heading">Progress forecast</h3>
+            <label>
+              Forecast time zone
+              <input
+                type="text"
+                value={forecastTimeZone}
+                onChange={(event) => setForecastTimeZone(event.target.value.trim())}
+                aria-invalid={forecastTimeZoneError}
+                aria-describedby={forecastTimeZoneError ? "forecast-time-zone-error" : "forecast-time-zone-help"}
+              />
+            </label>
+            <div className="document-settings-shortcuts">
+              <button type="button" onClick={() => setForecastTimeZone(deviceTimeZone)}>
+                Use this device ({deviceTimeZone})
+              </button>
+              <button type="button" onClick={() => setForecastTimeZone("UTC")}>
+                Use UTC
+              </button>
+            </div>
+            {forecastTimeZoneError ? (
+              <p id="forecast-time-zone-error" role="alert">
+                Enter a valid time zone, such as Europe/Stockholm.
+              </p>
+            ) : (
+              <p id="forecast-time-zone-help">
+                Automatic Today uses this saved time zone for everyone opening the document. A selected As of date stays
+                fixed.
+              </p>
+            )}
           </section>
         )}
         <section className="document-settings-section" aria-labelledby="portable-format-heading">
@@ -202,7 +241,7 @@ export function DocumentSettingsDialog({
           <button type="button" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" disabled={busy || Boolean(passwordError)}>
+          <button type="submit" disabled={busy || Boolean(passwordError) || forecastTimeZoneError}>
             {busy ? "Applying…" : "Apply"}
           </button>
         </footer>

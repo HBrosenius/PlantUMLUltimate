@@ -2127,6 +2127,11 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 13px;
 }
+.document-settings-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .document-settings-section > .document-settings-checkbox {
   display: flex;
   align-items: center;
