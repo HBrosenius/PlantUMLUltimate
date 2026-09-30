@@ -15,6 +15,7 @@ import { detectDiagramKind } from "./diagram-kind";
 import type { DiagramKind } from "./model";
 import type { DocumentVersionOverride, RecordDocumentVersion } from "./use-document-versions";
 import type { DocumentSnapshot, WorkspaceSnapshot } from "./workspace-storage";
+import { savePreference } from "./browser-preferences";
 
 export type ActiveCollaboration = {
   documentId: string;
@@ -182,7 +183,7 @@ export function useCollaborationLifecycle({
       const documentId = tabs.activeId;
       const collaborationDocument = tabs.documents.find((document) => document.id === documentId)!;
       const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
-      localStorage.setItem("plantuml-studio.collaboration-participant", participantId);
+      savePreference("plantuml-studio.collaboration-participant", participantId);
       const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
       const color =
         colors[[...participantId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length]!;

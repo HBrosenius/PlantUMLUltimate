@@ -101,6 +101,8 @@ const LEGACY_KEY = "plantuml-studio.workspace.v1";
 const RECOVERY_KEY = "plantuml-studio.workspace.recovery.v6";
 const ACTIVE_PROJECT_LEGACY_KEY = "plantuml-studio.active-project.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
+/** Automatic "before-restore" pins beyond this many become ordinary, prunable versions. */
+export const BEFORE_RESTORE_PIN_LIMIT = 10;
 const memoryOnlyHistories = new Map<string, DocumentVersion[]>();
 
 function wholeLineRange(source: string, range: { from: number; to: number }): { from: number; to: number } {
@@ -424,6 +426,7 @@ export async function createDocumentVersion(
     transaction.objectStore(VERSION_STORE).put(version);
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
   });
   database.close();
   await pruneDocumentVersions(input.historyId);
@@ -468,10 +471,11 @@ export async function updateDocumentVersion(
         else delete next.label;
       }
       store.put(next);
-      resolve(next);
+      transaction.oncomplete = () => resolve(next);
     };
     request.onerror = () => reject(request.error);
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
   });
   database.close();
   return version;
@@ -491,13 +495,22 @@ export async function deleteDocumentVersion(id: string): Promise<void> {
     transaction.objectStore(VERSION_STORE).delete(id);
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
   });
   database.close();
 }
 
 export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC_VERSION_LIMIT): Promise<number> {
   const versions = await loadDocumentVersions(historyId);
-  const expired = versions.filter((version) => !version.pinned).slice(Math.max(0, limit));
+  const protectedRestorePoints = new Set(
+    versions
+      .filter((version) => version.pinned && version.reason === "before-restore")
+      .slice(0, BEFORE_RESTORE_PIN_LIMIT)
+      .map((version) => version.id),
+  );
+  const isProtected = (version: DocumentVersion) =>
+    version.pinned && (version.reason !== "before-restore" || protectedRestorePoints.has(version.id));
+  const expired = versions.filter((version) => !isProtected(version)).slice(Math.max(0, limit));
   if (!expired.length) return 0;
   const memory = memoryOnlyHistories.get(historyId);
   if (memory) {
@@ -515,6 +528,7 @@ export async function pruneDocumentVersions(historyId: string, limit = AUTOMATIC
     expired.forEach((version) => store.delete(version.id));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
   });
   database.close();
   return expired.length;
@@ -534,6 +548,7 @@ export async function importDocumentVersions(versions: readonly DocumentVersion[
     versions.forEach((version) => store.put(version));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
   });
   database.close();
 }
@@ -575,8 +590,27 @@ function persistableWorkspace(snapshot: WorkspaceSession): WorkspaceSession {
   };
 }
 
-export function saveWorkspaceRecovery(snapshot: WorkspaceSession): void {
-  globalThis.localStorage?.setItem(RECOVERY_KEY, JSON.stringify(persistableWorkspace(snapshot)));
+/**
+ * Writes or clears a synchronous recovery copy. When the write fails (for example over quota),
+ * the stale copy is removed so that loading falls through to the newer IndexedDB record.
+ */
+function writeRecoveryItem(key: string, value: string): boolean {
+  try {
+    globalThis.localStorage?.setItem(key, value);
+    return true;
+  } catch {
+    try {
+      globalThis.localStorage?.removeItem(key);
+    } catch {
+      // Storage may be entirely unavailable; IndexedDB remains the durable copy.
+    }
+    return false;
+  }
+}
+
+/** Returns false when the synchronous recovery copy could not be written. */
+export function saveWorkspaceRecovery(snapshot: WorkspaceSession): boolean {
+  return writeRecoveryItem(RECOVERY_KEY, JSON.stringify(persistableWorkspace(snapshot)));
 }
 
 export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
@@ -589,17 +623,19 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
       transaction.objectStore(STORE).put(persistable, CURRENT);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
     });
     database.close();
-  } catch {
-    localStorage.setItem(LEGACY_KEY, JSON.stringify(persistable));
+  } catch (error) {
+    if (!writeRecoveryItem(LEGACY_KEY, JSON.stringify(persistable))) throw error;
   }
 }
 
 /** Persists an active project recovery record alongside the workspace session. */
 export async function saveActiveProject(value: unknown): Promise<void> {
   // Write the small recovery record synchronously first, so an immediate reload cannot race IndexedDB.
-  localStorage.setItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
+  // A failed write clears the stale copy so loading cannot prefer an older project state.
+  const recovered = writeRecoveryItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -607,10 +643,12 @@ export async function saveActiveProject(value: unknown): Promise<void> {
       transaction.objectStore(STORE).put(value, ACTIVE_PROJECT);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
     });
     database.close();
-  } catch {
+  } catch (error) {
     // IndexedDB recovery is optional when the synchronous fallback has succeeded.
+    if (!recovered) throw error;
   }
 }
 
@@ -647,6 +685,7 @@ export async function clearActiveProject(): Promise<void> {
       transaction.objectStore(STORE).delete(ACTIVE_PROJECT);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
     });
     database.close();
   } catch {
@@ -664,6 +703,7 @@ export async function enableMemoryOnlyHistory(historyId: string): Promise<void> 
     versions.forEach((version) => store.delete(version.id));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
   });
   database.close();
   memoryOnlyHistories.set(historyId, versions);
@@ -697,6 +737,7 @@ export async function removePersistedDocument(documentId: string): Promise<void>
     request.onerror = () => reject(request.error ?? new Error("Could not remove persisted plaintext document"));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove persisted plaintext document"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Could not remove persisted plaintext document"));
   });
   database.close();
   const fallback = globalThis.localStorage?.getItem(LEGACY_KEY);
@@ -733,6 +774,7 @@ export async function disableMemoryOnlyHistory(historyId: string): Promise<void>
     versions.forEach((version) => store.put(version));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("Could not restore document history"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Could not restore document history"));
   });
   database.close();
   memoryOnlyHistories.delete(historyId);

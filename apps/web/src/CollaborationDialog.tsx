@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CollaborationConnection, CollaborationParticipant, CollaborationRole } from "./collaboration";
 import { useDialogFocus } from "./use-dialog-focus";
+import { savePreference } from "./browser-preferences";
 
 export function CollaborationDialog({
   pendingRoom,
@@ -185,8 +186,8 @@ export function CollaborationDialog({
               const trimmedName = name.trim();
               const trimmedEndpoint = endpoint.trim();
               if (!trimmedName || !trimmedEndpoint) return;
-              localStorage.setItem("plantuml-studio.collaboration-name", trimmedName);
-              if (!pendingRoom) localStorage.setItem("plantuml-studio.collaboration-server", trimmedEndpoint);
+              savePreference("plantuml-studio.collaboration-name", trimmedName);
+              if (!pendingRoom) savePreference("plantuml-studio.collaboration-server", trimmedEndpoint);
               onStart(trimmedName, trimmedEndpoint, pendingRoom, pendingAccessToken, pendingRole);
             }}
           >

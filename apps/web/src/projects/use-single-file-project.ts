@@ -8,6 +8,7 @@ import {
   hashSource,
   projectFromDocument,
   projectFromPlantUml,
+  sha256,
   type PortableProject,
   type PortableProjectElement,
   type PortableProjectLink,
@@ -25,6 +26,7 @@ import {
   isPortableDocument,
   downloadText,
   openDocumentFile,
+  readDocumentBytes,
   savePortableDocumentAs,
   type OpenedFileBytes,
   type WritableFileHandle,
@@ -181,6 +183,15 @@ function chooseDiagramFile(): Promise<File | undefined> {
 }
 
 /** The ordinary one-file project workflow. Legacy folder/ZIP projects remain separate import paths. */
+/** Raised when the project file was changed by another tab, app or synced folder since it was read. */
+class ProjectFileChangedError extends Error {
+  constructor() {
+    super(
+      "The project file changed on disk since it was opened or saved here. Use Save As to keep both versions, or reopen the file.",
+    );
+  }
+}
+
 export function useSingleFileProject({
   tabs,
   resetSelection,
@@ -203,6 +214,8 @@ export function useSingleFileProject({
   const [savedBaseline, setSavedBaseline] = useState<PortableProject>();
   const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
+  // Digest of the bytes last read from or written to `handle`, used to detect changes made elsewhere.
+  const handleDigest = useRef<string | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
   const saveAbort = useRef<AbortController | undefined>(undefined);
@@ -266,6 +279,7 @@ export function useSingleFileProject({
       embedded.openProject(project);
       setIndexed(immediateIndex(project));
       handle.current = undefined;
+      handleDigest.current = undefined;
       unlockedKey.current = undefined;
       setSavedBaseline(undefined);
       resetSelection();
@@ -293,6 +307,7 @@ export function useSingleFileProject({
       embedded.openProject(project);
       embedded.updateProject((current) => ({ ...current, revisionId: crypto.randomUUID() }));
       handle.current = undefined;
+      handleDigest.current = undefined;
       unlockedKey.current = undefined;
       setSavedBaseline(undefined);
       const wbsTabId = tabs.addDocument({
@@ -450,6 +465,7 @@ export function useSingleFileProject({
         }
         unlockedKey.current = key;
         handle.current = opened.handle;
+        handleDigest.current = opened.handle ? await sha256(opened.bytes) : undefined;
         embedded.openProject(project, { encrypted });
         setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
@@ -469,6 +485,7 @@ export function useSingleFileProject({
     (project: PortableProject) => {
       unlockedKey.current = undefined;
       handle.current = undefined;
+      handleDigest.current = undefined;
       embedded.openProject(project);
       setSavedBaseline(undefined);
       resetSelection();
@@ -553,20 +570,29 @@ export function useSingleFileProject({
     const controller = new AbortController();
     saveAbort.current = controller;
     setSaving(true);
+    const target = handle.current;
+    let writtenBytes: Uint8Array | undefined;
     try {
       const written = await saveCoordinator.current.save(
         snapshot,
-        async (value, signal) =>
-          (
+        async (value, signal) => {
+          // Checked inside the save queue so an earlier write from this tab is already reflected.
+          // An unreadable file (deleted or permission revoked) is rewritten as before.
+          const observed = handleDigest.current ? await readDocumentBytes(target).catch(() => undefined) : undefined;
+          if (observed && (await sha256(observed.bytes)) !== handleDigest.current) throw new ProjectFileChangedError();
+          writtenBytes = (
             await encodeProject(value, {
               ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
               ...(signal ? { signal } : {}),
             })
-          ).bytes,
-        handle.current,
+          ).bytes;
+          return writtenBytes;
+        },
+        target,
         embedded.currentRevision,
         controller.signal,
       );
+      if (writtenBytes && handle.current === target) handleDigest.current = await sha256(writtenBytes);
       const result = (await settleSavedRevision(snapshot, embedded))
         ? { clean: true, message: "Saved project" }
         : written;
@@ -574,6 +600,10 @@ export function useSingleFileProject({
       setInteractionMessage(result.message);
       return result;
     } catch (error) {
+      if (error instanceof ProjectFileChangedError) {
+        setInteractionMessage(error.message);
+        return { clean: false, message: error.message };
+      }
       if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
       const result = { clean: false, message: "Project save cancelled" };
       setInteractionMessage(result.message);
@@ -601,6 +631,7 @@ export function useSingleFileProject({
       const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name);
       if (!saved) return;
       handle.current = saved.handle;
+      handleDigest.current = saved.handle ? await sha256(encoded.bytes) : undefined;
       unlockedKey.current = encoded.unlockedKey;
       const clean = await settleSavedRevision(snapshot, embedded);
       setSavedBaseline(structuredClone(snapshot.project));

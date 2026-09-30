@@ -255,6 +255,32 @@ describe("workspace persistence", () => {
     await expect(loadWorkspace()).resolves.toEqual(after);
   });
 
+  it("falls back to the newer IndexedDB session when the recovery copy exceeds quota", async () => {
+    const values = new Map<string, string>();
+    let quotaExceeded = false;
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          if (quotaExceeded) throw new DOMException("Quota exceeded", "QuotaExceededError");
+          values.set(key, value);
+        },
+        removeItem: (key: string) => values.delete(key),
+      },
+    });
+    const before = { ...DEFAULT_SESSION, theme: "light" as const };
+    const after = {
+      ...before,
+      documents: before.documents.map((document) => ({ ...document, source: "large edit", dirty: true })),
+    };
+    await saveWorkspace(before);
+    quotaExceeded = true;
+    expect(saveWorkspaceRecovery(after)).toBe(false);
+    await expect(saveWorkspace(after)).resolves.toBeUndefined();
+    await expect(loadWorkspace()).resolves.toEqual(after);
+  });
+
   it("removes plaintext for a document before encryption is claimed", async () => {
     const privateDocument = {
       ...DEFAULT_SESSION.documents[0]!,
@@ -337,6 +363,33 @@ describe("document versions", () => {
 
     await deleteDocumentVersion(selected.id);
     expect((await loadDocumentVersions(historyId)).some((version) => version.id === selected.id)).toBe(false);
+  });
+
+  it("keeps only the newest automatic restore points protected", async () => {
+    const historyId = "history-restore-points";
+    for (let index = 0; index < 45; index += 1) {
+      await createDocumentVersion({
+        historyId,
+        source: `restore-${index}`,
+        fileName: "restore.puml",
+        diagramKind: "gantt",
+        reason: "before-restore",
+        pinned: true,
+        createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+      });
+    }
+    await createDocumentVersion({
+      historyId,
+      source: "manual",
+      fileName: "restore.puml",
+      diagramKind: "gantt",
+      reason: "manual",
+      createdAt: new Date(Date.UTC(2025, 0, 1)).toISOString(),
+    });
+    const versions = await loadDocumentVersions(historyId);
+    expect(versions.some((version) => version.reason === "manual")).toBe(true);
+    expect(versions.filter((version) => version.reason === "before-restore")).toHaveLength(40);
+    expect(versions.at(-2)?.source).toBe("restore-5");
   });
 
   it("reports unavailable persistent version storage clearly", async () => {

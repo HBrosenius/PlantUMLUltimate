@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ResourceCapacity } from "./ResourceWorkloadPanel";
+import { savePreference } from "./browser-preferences";
 
 const STORAGE_KEY = "plantuml-studio.resource-capacities-by-document";
 
@@ -20,7 +21,7 @@ export function useResourceCapacities(
     const persistable = memoryOnly
       ? Object.fromEntries(Object.entries(byDocument).filter(([id]) => id !== documentId))
       : byDocument;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
+    savePreference(STORAGE_KEY, JSON.stringify(persistable));
   }, [byDocument, documentId, memoryOnly]);
   const update = useCallback(
     (updater: (current: ResourceCapacity) => ResourceCapacity) => {

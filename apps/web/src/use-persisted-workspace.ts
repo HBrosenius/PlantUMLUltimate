@@ -33,7 +33,13 @@ export function usePersistedWorkspace() {
   useEffect(() => {
     if (!hydrated) return;
     saveWorkspaceRecovery(session);
-    const timer = window.setTimeout(() => void saveWorkspace(session), 350);
+    const timer = window.setTimeout(
+      () =>
+        void saveWorkspace(session).catch(() => {
+          // Browser storage is best effort; open documents stay editable and savable to files.
+        }),
+      350,
+    );
     return () => window.clearTimeout(timer);
   }, [hydrated, session]);
 

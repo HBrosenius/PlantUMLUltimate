@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DiagramKind } from "../../model";
 import type { SchedulePreview } from "../../SchedulePreviewDialog";
+import { savePreference } from "../../browser-preferences";
 
 export type GanttScheduleMode = "ask" | "single" | "cascade";
 
@@ -19,7 +20,7 @@ export function useGanttController(diagramKind: DiagramKind) {
   const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("plantuml-studio.schedule-mode", scheduleMode);
+    savePreference("plantuml-studio.schedule-mode", scheduleMode);
   }, [scheduleMode]);
 
   useEffect(() => {

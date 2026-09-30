@@ -217,11 +217,9 @@ export function useFolderProject({
 
   useEffect(() => {
     if (!project) return;
-    try {
-      void saveActiveProject(projectSession(project));
-    } catch {
+    void saveActiveProject(projectSession(project)).catch(() => {
       // Project restoration is a convenience; saving and editing remain available if browser storage is full.
-    }
+    });
   }, [project]);
 
   useEffect(() => {
