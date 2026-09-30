@@ -13,14 +13,17 @@ export function taskWorkloadDays(task: GanttTask): number | undefined {
   return task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1);
 }
 
-export function taskElapsedDays(task: GanttTask): number | undefined {
-  const workload = taskWorkloadDays(task);
-  if (!workload) return undefined;
-  const allocation = Math.max(
+export function taskAllocationPercent(task: GanttTask): number {
+  return Math.max(
     1,
     (task.resources ?? []).reduce((total, resource) => total + Math.max(1, resource.allocation ?? 100), 0) || 100,
   );
-  return Math.ceil((workload * 100) / allocation);
+}
+
+export function taskElapsedDays(task: GanttTask): number | undefined {
+  const workload = taskWorkloadDays(task);
+  if (!workload) return undefined;
+  return Math.ceil((workload * 100) / taskAllocationPercent(task));
 }
 
 function localToday(): string {

@@ -115,4 +115,114 @@ today is colored in #AAF
     );
     expect(nextForecast.forecastFinish).toBe(nextForecast.plannedFinish);
   });
+
+  it("increases resource-adjusted effort for a delayed cause and keeps its assignment", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:50%} lasts 4 days
+[Build] is 50% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-10-01", {});
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toContain("[Build] on {Alice:50%} lasts 6 days");
+    expect(review.roundingNotes).toEqual([]);
+    expect(review.overridesAfter.build).toBe(4);
+  });
+
+  it("reduces resource-adjusted effort on a linked successor with a saved estimate", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Design] starts 2026-09-21
+[Design] lasts 4 days
+[Design] is 50% completed
+[Build] on {Alice:50%} lasts 4 days
+[Build] starts at [Design]'s end
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-30", { build: 4 });
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toContain("[Build] on {Alice:50%} lasts 2 days");
+    expect(review.sourceAfter).toContain("[Build] starts at [Design]'s end");
+    expect(review.overridesAfter.build).toBe(4);
+  });
+
+  it("shows one-day allocation rounding and the actual applied finish", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:50%} lasts 4 days
+[Build] is 50% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-30", {});
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toContain("[Build] on {Alice:50%} lasts 6 days");
+    expect(review.proposedFinish).toBe("2026-10-06");
+    expect(review.roundingNotes[0]).toContain("from 2026-10-05 to 2026-10-06");
+    const updated = parseGantt(review.sourceAfter!).document;
+    const calendar = parseGanttCalendar(review.sourceAfter!);
+    const plan = resolveTaskDates(updated.tasks, updated.dependencies, updated.projectStart?.value, calendar);
+    const nextForecast = calculateProgressForecast(
+      updated.tasks,
+      updated.dependencies,
+      plan,
+      calendar,
+      "2026-09-30",
+      review.overridesAfter,
+    );
+    expect(nextForecast.forecastFinish).toBe(nextForecast.plannedFinish);
+  });
+
+  it("carries allocation rounding through linked successors", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:50%} lasts 4 days
+[Build] is 50% completed
+[Testing] starts at [Build]'s end
+[Testing] lasts 2 days
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-30", {});
+    expect(review.error).toBeUndefined();
+    expect(review.proposedFinish).toBe("2026-10-08");
+    expect(review.rows.find((row) => row.taskId === "testing")?.proposedEnd).toBe("2026-10-08");
+    expect(review.rows.find((row) => row.taskId === "testing")?.sourceAction).toBeUndefined();
+    expect(review.sourceAfter).toContain("[Testing] starts at [Build]'s end");
+  });
+
+  it("uses the combined allocation of multiple assigned resources", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:50%} {Bob} lasts 4 days
+[Build] is 50% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-25", {});
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toContain("[Build] on {Alice:50%} {Bob} lasts 8 days");
+    expect(review.roundingNotes).toEqual([]);
+  });
+
+  it("blocks a large allocation rounding gap with an actionable message", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:10%} lasts 1 day
+[Build] is 50% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-10-02", {});
+    expect(review.error).toContain("10% allocation using whole-day effort");
+    expect(review.sourceAfter).toBeUndefined();
+  });
 });

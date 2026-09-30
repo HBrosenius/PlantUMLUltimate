@@ -33,7 +33,7 @@ The review should make the difference between edits and consequences obvious:
 - Keep the forecast enabled after applying, and show the new plan against the same status date so the result can be checked immediately.
 - If a changed task has no reported `Complete`, show that the forecast assumed 0% before the editor confirms Apply. A selected past or future status date is labelled as a what-if based on current progress.
 - Keep resource-capacity warnings separate. The current forecast does not level resources, so Apply does not claim to resolve resource conflicts.
-- If a resource-adjusted duration or an incompatible dependency cannot be rewritten while preserving its link, the review explains the blocker and disables Apply. Those cases require a manual schedule edit.
+- For a resource-adjusted duration, calculate the whole-day effort that produces the reviewed finish while preserving resource assignments. If the allocation makes that finish impossible, the review may round the plan up by one working day and show the revised finish before Apply. Larger gaps and incompatible dependencies block Apply with an explanation.
 
 ## Remaining-work stability
 

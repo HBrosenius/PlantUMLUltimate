@@ -49,6 +49,11 @@ export function GanttApplyForecastDialog({
             {review.error}
           </p>
         )}
+        {review.roundingNotes.map((note) => (
+          <p className="schedule-warning" role="status" key={note}>
+            {note}
+          </p>
+        ))}
         {review.rows.length > 0 && (
           <div className="gantt-apply-forecast-table-wrap">
             <table>

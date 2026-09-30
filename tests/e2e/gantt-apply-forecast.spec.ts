@@ -75,3 +75,29 @@ saturday are closed
   await expect(page.locator(".cm-content")).toContainText("[Testing] starts at [Frontend]'s end");
   await expect(page.locator(".gantt-forecast-summary")).toContainText("+0 working days from plan");
 });
+
+test("reviews allocation rounding before applying a resource-adjusted task", async ({ page }) => {
+  await prepareEditor(page);
+  await setSource(
+    page,
+    `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Build] starts 2026-09-21
+[Build] on {Alice:50%} lasts 4 days
+[Build] is 50% completed
+@endgantt`,
+  );
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByLabel("Forecast as of date").fill("2026-09-30");
+  await page.getByRole("button", { name: "Apply to plan…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Apply forecast to plan" });
+  await expect(dialog).toContainText("whole-day effort at 50% allocation");
+  await expect(dialog).toContainText("2026-10-05 to 2026-10-06");
+  await expect(dialog).toContainText("[Build] on {Alice:50%} lasts 6 days");
+  await dialog.getByRole("button", { name: "Apply to plan" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".cm-content")).toContainText("[Build] on {Alice:50%} lasts 6 days");
+  await expect(page.locator(".gantt-forecast-summary")).toContainText("+0 working days from plan");
+});

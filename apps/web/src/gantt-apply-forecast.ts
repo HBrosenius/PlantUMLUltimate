@@ -1,7 +1,7 @@
 import { applySourceEdits, parseGantt, setTaskDeclaration, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { calculateProgressForecast, type ProgressForecast } from "./gantt-progress-forecast";
-import { resolveTaskDates } from "./gantt-schedule";
+import { resolveTaskDates, taskAllocationPercent, taskWorkloadDays } from "./gantt-schedule";
 
 export interface ForecastApplyRow {
   taskId: string;
@@ -24,6 +24,7 @@ export interface ForecastApplyReview {
   plannedFinish?: string | undefined;
   proposedFinish?: string | undefined;
   rows: ForecastApplyRow[];
+  roundingNotes: string[];
   error?: string;
 }
 
@@ -37,6 +38,23 @@ function availableDays(start: string, end: string, source: string, task: GanttTa
     date = shiftDate(date, 1)!;
   }
   return date > end && days > 0 ? days : undefined;
+}
+
+function workloadDaysForElapsed(
+  task: GanttTask,
+  elapsedDays: number,
+): { workloadDays: number; roundedDays: number } | undefined {
+  const allocation = taskAllocationPercent(task);
+  // elapsedDays = ceil(workloadDays * 100 / allocation). Find the integer
+  // workload interval that maps to the reviewed elapsed duration.
+  const minimum = Math.floor(((elapsedDays - 1) * allocation) / 100) + 1;
+  const maximum = Math.floor((elapsedDays * allocation) / 100);
+  const current = taskWorkloadDays(task) ?? minimum;
+  const workloadDays = minimum <= maximum ? Math.min(maximum, Math.max(minimum, current)) : minimum;
+  const roundedDays = Math.ceil((workloadDays * 100) / allocation) - elapsedDays;
+  return Number.isSafeInteger(workloadDays) && workloadDays >= 1 && roundedDays <= 1
+    ? { workloadDays, roundedDays }
+    : undefined;
 }
 
 /** Makes a reviewed source candidate; never writes the document. */
@@ -65,6 +83,7 @@ export function prepareForecastApply(
     plannedFinish: forecast.plannedFinish,
     proposedFinish: forecast.forecastFinish,
     rows: [],
+    roundingNotes: [],
   };
   if (original.diagnostics.some((item) => item.severity === "error")) {
     review.error = "Fix Gantt source errors before applying the forecast.";
@@ -80,6 +99,9 @@ export function prepareForecastApply(
   }
 
   let candidate = source;
+  const targetPlan = new Map(plan);
+  let targetForecast = forecast;
+  const roundingNotes = new Map<string, string>();
   const actions = new Map<string, { label: string; before: string; after: string }>();
   const fail = (message: string) => {
     review.error = message;
@@ -108,7 +130,7 @@ export function prepareForecastApply(
   for (let pass = 0; pass < original.document.tasks.length + 1; pass += 1) {
     let changed = false;
     for (const originalTask of original.document.tasks) {
-      const wanted = forecast.tasks.get(originalTask.id);
+      const wanted = targetForecast.tasks.get(originalTask.id);
       if (!wanted?.start || !wanted.end || !wanted.plannedStart || !wanted.plannedEnd) continue;
       const parsed = parseGantt(candidate);
       const task = parsed.document.symbols.tasks.get(originalTask.id);
@@ -151,13 +173,41 @@ export function prepareForecastApply(
       if (currentTask.end?.resolved) {
         if (!change(task.id, "end", `ends ${wanted.end}`)) return fail(`Cannot move ${task.label}'s end.`);
       } else if (currentTask.duration) {
-        if (currentTask.resources?.length)
-          return fail(`${task.label} uses resource-adjusted duration. Edit its estimate before applying the plan.`);
         const days = availableDays(currentDates.start, wanted.end, source, currentTask);
         if (!days) return fail(`Cannot calculate a duration for ${task.label}.`);
-        if (!change(task.id, "duration", `lasts ${days} ${days === 1 ? "day" : "days"}`))
-          return fail(`Cannot resize ${task.label}.`);
-        if (wanted.remainingDays !== undefined) review.overridesAfter[task.id] = wanted.remainingDays;
+        const adjustment = workloadDaysForElapsed(currentTask, days);
+        if (!adjustment)
+          return fail(
+            `${task.label} cannot finish near ${wanted.end} at ${taskAllocationPercent(currentTask)}% allocation using whole-day effort. Adjust its remaining-work estimate or allocation.`,
+          );
+        const { workloadDays, roundedDays } = adjustment;
+        if (currentTask.duration.unit !== "day" || currentTask.duration.value !== workloadDays) {
+          if (!change(task.id, "duration", `lasts ${workloadDays} ${workloadDays === 1 ? "day" : "days"}`))
+            return fail(`Cannot resize ${task.label}.`);
+          if (wanted.remainingDays !== undefined) review.overridesAfter[task.id] = wanted.remainingDays;
+        }
+        if (roundedDays > 0) {
+          const rounded = parseGantt(candidate).document;
+          const actual = resolveTaskDates(rounded.tasks, rounded.dependencies, projectStart, calendar).get(task.id);
+          if (!actual?.end || actual.end <= wanted.end)
+            return fail(`Cannot verify the rounded finish for ${task.label}.`);
+          targetPlan.set(task.id, { ...plan.get(task.id)!, end: actual.end });
+          targetForecast = calculateProgressForecast(
+            original.document.tasks,
+            original.document.dependencies,
+            targetPlan,
+            calendar,
+            asOf,
+            review.overridesAfter,
+          );
+          if (targetForecast.unavailable || !targetForecast.forecastFinish)
+            return fail(`Cannot forecast the rounded schedule for ${task.label}.`);
+          review.proposedFinish = targetForecast.forecastFinish;
+          roundingNotes.set(
+            task.id,
+            `${task.label}: whole-day effort at ${taskAllocationPercent(currentTask)}% allocation moves the finish from ${wanted.end} to ${actual.end}. Linked successors follow this date.`,
+          );
+        }
       } else if (
         !currentTask.end &&
         !refreshed.document.dependencies.some((item) => item.successorTaskId === task.id)
@@ -181,11 +231,12 @@ export function prepareForecastApply(
     calendar,
   );
   for (const task of original.document.tasks) {
-    const expected = forecast.tasks.get(task.id)!;
+    const expected = targetForecast.tasks.get(task.id)!;
+    const originalDates = forecast.tasks.get(task.id)!;
     const actual = proposedPlan.get(task.id);
     if (
-      !expected.plannedStart ||
-      !expected.plannedEnd ||
+      !originalDates.plannedStart ||
+      !originalDates.plannedEnd ||
       !expected.start ||
       !expected.end ||
       !actual?.start ||
@@ -194,13 +245,13 @@ export function prepareForecastApply(
       return fail(`Cannot verify the proposed dates for ${task.label}.`);
     if (actual.end !== expected.end || ((task.completion?.value ?? 0) === 0 && actual.start !== expected.start))
       return fail(`The proposed dates for ${task.label} do not match the forecast. No change was applied.`);
-    if (actual.start !== expected.plannedStart || actual.end !== expected.plannedEnd) {
+    if (actual.start !== originalDates.plannedStart || actual.end !== originalDates.plannedEnd) {
       const action = actions.get(task.id);
       review.rows.push({
         taskId: task.id,
         label: task.label,
-        plannedStart: expected.plannedStart,
-        plannedEnd: expected.plannedEnd,
+        plannedStart: originalDates.plannedStart,
+        plannedEnd: originalDates.plannedEnd,
         proposedStart: actual.start,
         proposedEnd: actual.end,
         ...(action ? { sourceAction: action.label, before: action.before, after: action.after } : {}),
@@ -208,6 +259,7 @@ export function prepareForecastApply(
     }
   }
   if (candidate === source) return fail("The forecast has no source change to apply.");
+  review.roundingNotes = [...roundingNotes.values()];
   review.sourceAfter = candidate;
   return review;
 }
