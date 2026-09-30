@@ -83,7 +83,7 @@ import { parseGanttCalendar } from "./gantt-calendar";
 import { prepareForecastApply } from "./gantt-apply-forecast";
 import { forecastToday } from "./forecast-date";
 import { parseProjectSettings } from "./project-settings";
-import type { Theme, ViewMode } from "./model";
+import type { DiagramKind, Theme, ViewMode } from "./model";
 import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
 import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
@@ -131,7 +131,11 @@ import { useCollaborationLifecycle } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
 import { useWorkspaceDocuments } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
-import { useSourceCommands, type SourceProblemPreview } from "./features/documents/use-source-commands";
+import {
+  SOURCE_EDIT_DESCRIPTION,
+  useSourceCommands,
+  type SourceProblemPreview,
+} from "./features/documents/use-source-commands";
 import { useResourceCapacities } from "./use-resource-capacities";
 import {
   createSemanticSymbolProvider,
@@ -155,6 +159,12 @@ function diagramFocusSelector(target: Element): string | undefined {
   }
   return undefined;
 }
+
+const EMPTY_SEQUENCE_DOCUMENT = parseSequence("");
+const EMPTY_USECASE_DOCUMENT = parseUseCase("");
+const EMPTY_CLASS_DOCUMENT = parseClassDiagram("");
+const EMPTY_ACTIVITY_DOCUMENT = parseActivity("");
+const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 
 export function App() {
   const pwa = usePwa();
@@ -253,7 +263,20 @@ export function App() {
   const renameReturnFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const pendingDiagramFocusSelector = useRef<string | undefined>(undefined);
   const startupSplashShown = useRef(false);
-  const { activeHistory, refreshHistoryControls, removeHistory, retainHistories } = useDocumentHistory(tabs.activeId);
+  const { activeHistory, refreshHistoryControls, removeHistory, retainHistories, recordSourceChange } =
+    useDocumentHistory(tabs.activeId);
+  // Timers read the latest tab controls through this ref, so caret moves (which rebuild `tabs`) don't restart them.
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+  /** Updates another open document's source as an undoable step in that document's own history. */
+  const updateLinkedSource = useCallback(
+    (document: { id: string; source: string }, next: string, kind: DiagramKind, description: string) => {
+      if (next === document.source) return;
+      recordSourceChange(document.id, document.source, next, description);
+      tabsRef.current.updateDocumentSource(document.id, next, kind);
+    },
+    [recordSourceChange],
+  );
   const {
     capacities: resourceCapacities,
     updateCapacities: updateResourceCapacities,
@@ -300,11 +323,29 @@ export function App() {
     document: parseResult.document,
     setInteractionMessage,
   });
-  const sequenceDocument = useMemo(() => parseSequence(workspace.source), [workspace.source]);
-  const useCaseDocument = useMemo(() => parseUseCase(workspace.source), [workspace.source]);
-  const classDocument = useMemo(() => parseClassDiagram(workspace.source), [workspace.source]);
-  const activityDocument = useMemo(() => parseActivity(workspace.source), [workspace.source]);
-  const wbsDocument = useMemo(() => applicationWbsAdapter.parse(workspace.source).document, [workspace.source]);
+  // Only the active diagram type is parsed on each edit; the other editors receive empty documents.
+  const activeKind = workspace.diagramKind;
+  const sequenceDocument = useMemo(
+    () => (activeKind === "sequence" ? parseSequence(workspace.source) : EMPTY_SEQUENCE_DOCUMENT),
+    [activeKind, workspace.source],
+  );
+  const useCaseDocument = useMemo(
+    () => (activeKind === "usecase" ? parseUseCase(workspace.source) : EMPTY_USECASE_DOCUMENT),
+    [activeKind, workspace.source],
+  );
+  const classDocument = useMemo(
+    () =>
+      activeKind === "class" || activeKind === "component" ? parseClassDiagram(workspace.source) : EMPTY_CLASS_DOCUMENT,
+    [activeKind, workspace.source],
+  );
+  const activityDocument = useMemo(
+    () => (activeKind === "activity" ? parseActivity(workspace.source) : EMPTY_ACTIVITY_DOCUMENT),
+    [activeKind, workspace.source],
+  );
+  const wbsDocument = useMemo(
+    () => (activeKind === "wbs" ? applicationWbsAdapter.parse(workspace.source).document : EMPTY_WBS_DOCUMENT),
+    [activeKind, workspace.source],
+  );
   const {
     selectedNodeId: selectedWbsNodeId,
     selectedRelationshipId: selectedWbsRelationshipId,
@@ -378,11 +419,22 @@ export function App() {
     const linked = new Set(activeDocument.wbsGanttLinks?.map((link) => link.ganttAlias.toLowerCase()));
     return parseResult.document.tasks.filter((task) => !linked.has(task.id)).length;
   }, [activeDocument.wbsGanttLinks, linkedWbs, parseResult.document.tasks]);
+  // The full WBS-to-Gantt conversion behind these warnings runs on a debounced source, off the typing path.
+  // Only a WBS with a linked Gantt chart schedules the update, so other diagrams get no extra renders.
+  const [debouncedWbs, setDebouncedWbs] = useState<{ id: string; source: string }>();
+  const wbsWarningsActive = workspace.diagramKind === "wbs" && Boolean(linkedGantt);
+  useEffect(() => {
+    if (!wbsWarningsActive) return;
+    const id = tabs.activeId;
+    const timer = window.setTimeout(() => setDebouncedWbs({ id, source: workspace.source }), 300);
+    return () => window.clearTimeout(timer);
+  }, [tabs.activeId, wbsWarningsActive, workspace.source]);
+  const debouncedWbsSource = debouncedWbs?.id === tabs.activeId ? debouncedWbs.source : undefined;
   const wbsDependencyWarnings = useMemo(() => {
     const warnings = new Map<string, string>();
-    if (workspace.diagramKind !== "wbs" || !linkedGantt) return warnings;
+    if (workspace.diagramKind !== "wbs" || !linkedGantt || debouncedWbsSource === undefined) return warnings;
     const conversion = convertWbsToGantt(
-      workspace.source,
+      debouncedWbsSource,
       linkedGantt.source,
       linkedGantt.wbsGanttLinks,
       linkedGantt.wbsGanttDependencies,
@@ -396,7 +448,7 @@ export function App() {
       if (warning) warnings.set(relationship.id, warning);
     }
     return warnings;
-  }, [linkedGantt, wbsDocument.relationships, workspace.diagramKind, workspace.source]);
+  }, [debouncedWbsSource, linkedGantt, wbsDocument.relationships, workspace.diagramKind]);
   useEffect(() => {
     if (workspace.diagramKind !== "gantt" || !linkedWbs || !activeDocument.wbsGanttLinks?.length) return;
     if (parseResult.diagnostics.some((item) => item.severity === "error")) return;
@@ -418,10 +470,10 @@ export function App() {
           side: node.side === "left" ? "left" : "right",
         });
       }
-      if (next !== linkedWbs.source) tabs.updateDocumentSource(linkedWbs.id, next, "wbs");
+      updateLinkedSource(linkedWbs, next, "wbs", "Synchronize names from linked Gantt");
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [activeDocument.wbsGanttLinks, linkedWbs, parseResult, tabs, workspace.diagramKind]);
+  }, [activeDocument.wbsGanttLinks, linkedWbs, parseResult, updateLinkedSource, workspace.diagramKind]);
   const convertCurrentWbs = () => {
     const converted = convertWbsToGantt(
       workspace.source,
@@ -429,9 +481,14 @@ export function App() {
       linkedGantt?.wbsGanttLinks,
       linkedGantt?.wbsGanttDependencies,
     );
-    if (converted.wbsSource !== workspace.source) tabs.updateDocumentSource(tabs.activeId, converted.wbsSource, "wbs");
+    updateLinkedSource(
+      { id: tabs.activeId, source: workspace.source },
+      converted.wbsSource,
+      "wbs",
+      "Add WBS aliases for Gantt",
+    );
     if (linkedGantt) {
-      tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
+      updateLinkedSource(linkedGantt, converted.ganttSource, "gantt", "Update schedule from WBS");
       tabs.updateDocumentFormat(linkedGantt.id, {
         wbsGanttLinks: converted.links,
         wbsGanttDependencies: converted.dependencies,
@@ -472,7 +529,7 @@ export function App() {
         !commitGeneratedSource(imported.ganttSource, "Link Gantt tasks to WBS")
       )
         return;
-      tabs.updateDocumentSource(linkedWbs.id, imported.wbsSource, "wbs");
+      updateLinkedSource(linkedWbs, imported.wbsSource, "wbs", "Add Gantt tasks to WBS");
       tabs.updateDocumentFormat(tabs.activeId, {
         wbsGanttLinks: imported.links,
         wbsGanttDependencies: imported.dependencies,
@@ -500,22 +557,35 @@ export function App() {
         "keep-scheduled",
         false,
       );
-      if (converted.wbsSource !== workspace.source)
-        tabs.updateDocumentSource(tabs.activeId, converted.wbsSource, "wbs");
-      if (converted.ganttSource !== linkedGantt.source)
-        tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
+      const tabControls = tabsRef.current;
+      if (converted.wbsSource !== workspace.source) {
+        // Fold generated aliases into the edit that needed them. After an undo, leave the source alone so
+        // the undo and redo history stays valid; the next edit synchronizes again.
+        if (!activeHistory.amendLast(workspace.source, converted.wbsSource) && activeHistory.canUndo) return;
+        tabControls.updateDocumentSource(tabControls.activeId, converted.wbsSource, "wbs");
+        refreshHistoryControls();
+      }
+      updateLinkedSource(linkedGantt, converted.ganttSource, "gantt", "Synchronize schedule from linked WBS");
       if (
         JSON.stringify(converted.links) !== JSON.stringify(linkedGantt.wbsGanttLinks) ||
         JSON.stringify(converted.dependencies) !== JSON.stringify(linkedGantt.wbsGanttDependencies)
       )
-        tabs.updateDocumentFormat(linkedGantt.id, {
+        tabControls.updateDocumentFormat(linkedGantt.id, {
           wbsGanttLinks: converted.links,
           wbsGanttDependencies: converted.dependencies,
         });
       if (converted.warnings.length) setInteractionMessage(converted.warnings.join(" "));
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [linkedGantt, tabs, wbsDocument.diagnostics, workspace.diagramKind, workspace.source]);
+  }, [
+    activeHistory,
+    linkedGantt,
+    refreshHistoryControls,
+    updateLinkedSource,
+    wbsDocument.diagnostics,
+    workspace.diagramKind,
+    workspace.source,
+  ]);
   const symbolProvider = useMemo(
     () =>
       createSemanticSymbolProvider({
@@ -850,14 +920,19 @@ export function App() {
     [selectedTask, parseResult.document.tasks],
   );
   const ganttCalendar = useMemo(() => parseGanttCalendar(workspace.source), [workspace.source]);
+  // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
+  const planTimeZone = activeDocument.progressForecast?.enabled
+    ? (activeDocument.progressForecast.timeZone ?? "UTC")
+    : undefined;
   const resolvedTaskDates = useMemo(() => {
     return resolveTaskDates(
       parseResult.document.tasks,
       parseResult.document.dependencies,
       parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined,
       ganttCalendar,
+      planTimeZone,
     );
-  }, [ganttCalendar, parseResult.document]);
+  }, [ganttCalendar, parseResult.document, planTimeZone]);
   const resourceOverAllocations = useMemo(
     () =>
       buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
@@ -873,18 +948,29 @@ export function App() {
     }));
   }, [parseResult.document.tasks, workspace.source]);
 
+  const legendReadOnly = collaboration?.documentId === tabs.activeId && collaboration.role === "viewer";
   useEffect(() => {
-    if (workspace.diagramKind !== "gantt") return;
+    if (workspace.diagramKind !== "gantt" || legendReadOnly) return;
     const timer = window.setTimeout(() => {
       const next = parseProjectSettings(workspace.source).showLegend
         ? synchronizeLegend(workspace.source, parseResult.document.tasks)
         : removeLegend(workspace.source);
-      if (next !== workspace.source) commitSource(next, "Synchronize legend");
+      // Fold the legend into the edit that changed the colours, so undo and redo treat them as one step.
+      // Sources that were only opened, or reached by undo, are left as they are.
+      if (next === workspace.source || !activeHistory.amendLast(workspace.source, next)) return;
+      setWorkspace((current) => ({ ...current, source: next, dirty: true }));
+      refreshHistoryControls();
     }, 400);
     return () => window.clearTimeout(timer);
-    // The effect already tracks the source used by commitSource; the callback is declared later in this component.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parseResult.document.tasks, workspace.diagramKind, workspace.source]);
+  }, [
+    activeHistory,
+    legendReadOnly,
+    parseResult.document.tasks,
+    refreshHistoryControls,
+    setWorkspace,
+    workspace.diagramKind,
+    workspace.source,
+  ]);
   const openSourceBytes = useMemo(
     () => tabs.documents.reduce((total, document) => total + document.source.length * 2, 0),
     [tabs.documents],
@@ -1633,8 +1719,13 @@ export function App() {
         item.kind === "wbs"
           ? convertWbsToGantt(wbsSource, ganttSource, links, dependencies, "keep-scheduled", true, [item.key])
           : addMissingGanttTasksToWbs(wbsSource, ganttSource, links, dependencies, [item.key]);
-      if (result.wbsSource !== wbsSource) tabs.updateDocumentSource(wbsTabId, result.wbsSource, "wbs");
-      if (result.ganttSource !== ganttSource) tabs.updateDocumentSource(ganttTabId, result.ganttSource, "gantt");
+      updateLinkedSource({ id: wbsTabId, source: wbsSource }, result.wbsSource, "wbs", "Add missing linked work");
+      updateLinkedSource(
+        { id: ganttTabId, source: ganttSource },
+        result.ganttSource,
+        "gantt",
+        "Add missing linked work",
+      );
       tabs.updateDocumentFormat(ganttTabId, {
         wbsGanttLinks: result.links,
         wbsGanttDependencies: result.dependencies,
@@ -2381,14 +2472,23 @@ export function App() {
         }
       }
       if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (event.shiftKey && key === "p") {
+        event.preventDefault();
+        toggleCommandPalette();
+        return;
+      }
+      if (modalOpen) {
+        // Document commands must not act on the document behind a dialog. Still block the browser's
+        // own save, open, new-window and close-tab shortcuts.
+        if (["s", "o", "n", "w"].includes(key)) event.preventDefault();
+        return;
+      }
+      // Text fields keep their native undo and redo.
+      if (key === "z" && editingOutsideCodeEditor) return;
       if (event.shiftKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
         openDialog({ kind: "diagram-outline" });
-        return;
-      }
-      if (event.shiftKey && event.key.toLowerCase() === "p") {
-        event.preventDefault();
-        toggleCommandPalette();
         return;
       }
       if (event.key.toLowerCase() === "n") {
@@ -2400,6 +2500,11 @@ export function App() {
         event.preventDefault();
         if (event.shiftKey) redo();
         else undo();
+        return;
+      }
+      if (key === "y" && !event.shiftKey && !editingOutsideCodeEditor) {
+        event.preventDefault();
+        redo();
         return;
       }
       if (event.key.toLowerCase() === "s") {
@@ -2686,8 +2791,8 @@ export function App() {
         : undefined;
     const nextGanttSource = synchronized?.ganttSource ?? result.ganttSource;
     const nextLinks = synchronized?.links ?? result.links;
-    if (aliasedWbs !== workspace.source) tabs.updateDocumentSource(tabs.activeId, aliasedWbs, "wbs");
-    if (nextGanttSource !== document.source) tabs.updateDocumentSource(document.id, nextGanttSource, "gantt");
+    updateLinkedSource({ id: tabs.activeId, source: workspace.source }, aliasedWbs, "wbs", "Link WBS to Gantt");
+    updateLinkedSource(document, nextGanttSource, "gantt", "Link Gantt to WBS");
     tabs.updateDocumentFormat(document.id, {
       linkedWbsDocumentId: tabs.activeId,
       wbsGanttLinks: nextLinks,
@@ -3043,7 +3148,7 @@ export function App() {
             diagramKind={workspace.diagramKind}
             value={workspace.source}
             readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
-            onChange={(source) => commitSource(source, "Edit source", false)}
+            onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
             remoteParticipants={
@@ -3262,7 +3367,12 @@ export function App() {
                         setInteractionMessage("Forecast inputs changed. Recalculate the review before applying.");
                         return false;
                       }
-                      const fresh = prepareForecastApply(workspace.source, asOf, settings.remainingDays);
+                      const fresh = prepareForecastApply(
+                        workspace.source,
+                        asOf,
+                        settings.remainingDays,
+                        settings.enabled ? (settings.timeZone ?? "UTC") : undefined,
+                      );
                       if (!fresh.sourceAfter || fresh.sourceAfter !== review.sourceAfter) {
                         setInteractionMessage(
                           fresh.error ?? "Forecast changed. Recalculate the review before applying.",
@@ -3592,7 +3702,12 @@ export function App() {
             const label = value.label.replaceAll("]", ")").replaceAll("\n", " ").trim();
             const result = renameTask(linkedGantt.source, parsed, task, label);
             if (!result.unavailableReason && result.edits.length)
-              tabs.updateDocumentSource(linkedGantt.id, applySourceEdits(linkedGantt.source, result.edits), "gantt");
+              updateLinkedSource(
+                linkedGantt,
+                applySourceEdits(linkedGantt.source, result.edits),
+                "gantt",
+                "Rename task from linked WBS",
+              );
           }}
           onDelete={() => {
             const affected = wbsDocument.nodes.filter(
@@ -3665,7 +3780,7 @@ export function App() {
                   false,
                 );
                 if (!commitSource(converted.wbsSource, `Delete WBS subtree ${node.label}`)) return;
-                tabs.updateDocumentSource(linkedGantt.id, converted.ganttSource, "gantt");
+                updateLinkedSource(linkedGantt, converted.ganttSource, "gantt", `Delete linked work ${node.label}`);
                 tabs.updateDocumentFormat(linkedGantt.id, {
                   wbsGanttLinks: converted.links,
                   wbsGanttDependencies: converted.dependencies,
@@ -3739,7 +3854,7 @@ export function App() {
                     false,
                   );
                   if (!commitGeneratedSource(converted.ganttSource, `Delete linked work ${task.label}`)) return;
-                  tabs.updateDocumentSource(linkedWbs.id, converted.wbsSource, "wbs");
+                  updateLinkedSource(linkedWbs, converted.wbsSource, "wbs", `Delete linked work ${task.label}`);
                   tabs.updateDocumentFormat(tabs.activeId, {
                     wbsGanttLinks: converted.links,
                     wbsGanttDependencies: converted.dependencies,
@@ -4048,7 +4163,11 @@ export function App() {
               defaultDiagramTheme: settings.defaultDiagramTheme,
             }));
             const themedSource = setPlantUmlTheme(workspace.source, settings.defaultDiagramTheme);
-            if (themedSource !== workspace.source) commitSource(themedSource, "Preview diagram theme", false);
+            if (themedSource === workspace.source) return;
+            // Previewing restyles the untouched welcome diagram without adding undo steps or unsaved state.
+            if (activeHistory.canUndo || activeHistory.canRedo)
+              commitSource(themedSource, "Preview diagram theme", false);
+            else setWorkspace((current) => ({ ...current, source: themedSource }));
           }}
         />
       )}
@@ -4266,10 +4385,11 @@ export function App() {
           const ganttAlias = selectedTask.alias?.value ?? `wbs_link_${Date.now().toString(36)}`;
           if (!selectedTask.alias) {
             const at = selectedTask.labelRange.to + 1;
-            tabs.updateDocumentSource(
-              tabs.activeId,
+            updateLinkedSource(
+              { id: tabs.activeId, source: workspace.source },
               `${workspace.source.slice(0, at)} as [${ganttAlias}]${workspace.source.slice(at)}`,
               "gantt",
+              "Link task to WBS",
             );
           }
           const links = (activeDocument.wbsGanttLinks ?? []).filter(
@@ -4329,8 +4449,8 @@ export function App() {
           const document = parseWbs(linkedWbs.source);
           const node = link && document.nodes.find((item) => item.alias === link.wbsAlias);
           if (!node) return;
-          tabs.updateDocumentSource(
-            linkedWbs.id,
+          updateLinkedSource(
+            linkedWbs,
             updateWbsNode(linkedWbs.source, node, {
               label: value.label.replace(/^(?:↳\s*)+/, "").trim(),
               ...(node.color ? { color: node.color } : {}),
@@ -4341,6 +4461,7 @@ export function App() {
               side: node.side === "left" ? "left" : "right",
             }),
             "wbs",
+            "Rename node from linked Gantt",
           );
         }}
         onTaskDelete={() => {

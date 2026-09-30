@@ -7,6 +7,9 @@ import type { WorkspaceSnapshot } from "../../workspace-storage";
 
 type ForecastSettings = NonNullable<import("../../workspace-storage").DocumentSnapshot["progressForecast"]>;
 
+/** History description for code-editor typing; consecutive edits merge into one undo step. */
+export const SOURCE_EDIT_DESCRIPTION = "Edit source";
+
 export interface SourceProblemPreview {
   source: string;
   diagnostics: Diagnostic[];
@@ -69,7 +72,9 @@ export function useSourceCommands({
       }
       captureBeforeCommit();
       setProblemPreview(undefined);
-      history.record(currentSource, source, description, forecastChange);
+      history.record(currentSource, source, description, forecastChange, {
+        coalesce: description === SOURCE_EDIT_DESCRIPTION,
+      });
       setWorkspace((current) => ({ ...current, source, dirty: true }));
       if (forecastChange) onForecastHistoryChange?.(forecastChange.after, forecastChange.before);
       refreshHistoryControls();

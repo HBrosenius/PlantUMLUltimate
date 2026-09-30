@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { basicSetup } from "codemirror";
-import { Compartment, EditorState, StateEffect, StateField } from "@codemirror/state";
+import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { lintGutter } from "@codemirror/lint";
+import { codeEditorSetup } from "./code-editor-setup";
 import type { DiagramKind } from "./model";
 import { quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
 import type { CollaborationParticipant } from "./collaboration";
@@ -209,7 +209,11 @@ export function CodeEditor({
       state: EditorState.create({
         doc: initialValue.current,
         extensions: [
-          basicSetup,
+          codeEditorSetup,
+          // The app's window shortcut handler performs undo and redo; keep the browser from acting on them.
+          Prec.highest(
+            keymap.of(["Mod-z", "Mod-Shift-z", "Mod-y"].map((key) => ({ key, run: () => true, preventDefault: true }))),
+          ),
           keymap.of([
             indentWithTab,
             {

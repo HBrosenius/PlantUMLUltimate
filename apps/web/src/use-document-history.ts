@@ -25,5 +25,24 @@ export function useDocumentHistory(activeDocumentId: string) {
     },
     [refresh],
   );
-  return { activeHistory: active, refreshHistoryControls: refresh, removeHistory: remove, retainHistories: retain };
+  /** Records a change made to any open document, such as a linked document updated from the active one. */
+  const recordSourceChange = useCallback(
+    (id: string, before: string, after: string, description: string) => {
+      let history = histories.current.get(id);
+      if (!history) {
+        history = new SourceHistory();
+        histories.current.set(id, history);
+      }
+      history.record(before, after, description);
+      refresh();
+    },
+    [refresh],
+  );
+  return {
+    activeHistory: active,
+    refreshHistoryControls: refresh,
+    removeHistory: remove,
+    retainHistories: retain,
+    recordSourceChange,
+  };
 }
