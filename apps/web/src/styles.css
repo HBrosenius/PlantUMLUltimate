@@ -1689,6 +1689,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   font: inherit;
 }
+.gantt-forecast-delayed-count {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  text-decoration: none;
+}
+.gantt-forecast-delayed-count[aria-pressed="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.app[data-theme="dark"] .gantt-forecast-delayed-count {
+  background: #78350f;
+  color: #fde68a;
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-theme="system"] .gantt-forecast-delayed-count {
+    background: #78350f;
+    color: #fde68a;
+  }
+}
 .gantt-forecast-start-conflict {
   margin: 0;
   padding: 0.6rem 1rem;

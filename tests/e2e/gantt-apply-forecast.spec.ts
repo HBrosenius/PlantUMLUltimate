@@ -19,6 +19,15 @@ sunday are closed
   );
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
+  await expect(page.locator(".gantt-forecast-summary")).toContainText("+0 working days from plan");
+  const delayedFilter = page.getByRole("button", { name: "1 task delayed" });
+  await delayedFilter.click();
+  const taskList = page.getByRole("navigation", { name: "Forecast tasks" });
+  await expect(taskList).toContainText("Short track");
+  await expect(taskList).not.toContainText("Long track");
+  await expect(page.locator(".gantt-forecast-inspector")).toContainText("Short track");
+  await page.getByRole("button", { name: "1 task delayed · Show all" }).click();
+  await expect(taskList).toContainText("Long track");
   await page.getByRole("button", { name: "Apply to plan…" }).click();
   const dialog = page.getByRole("dialog", { name: "Apply forecast to plan" });
   await expect(dialog).toContainText("project finish unchanged");
@@ -27,6 +36,7 @@ sunday are closed
   await expect(dialog).toBeHidden();
   await expect(page.locator(".cm-content")).not.toContainText("[Short track] lasts 3 days");
   await expect(page.locator(".cm-content")).toContainText("[Long track] lasts 20 days");
+  await expect(page.locator(".gantt-forecast-summary")).not.toContainText("task delayed");
 });
 
 test("reviews and applies a delayed cause, then undoes its plan and estimate", async ({ page }) => {

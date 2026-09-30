@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { forecastWorkingDaysBetween, type ProgressForecast } from "./gantt-progress-forecast";
 import type { GanttCalendar } from "./gantt-calendar";
@@ -44,7 +44,7 @@ export function GanttForecastView({
   onRemainingChange,
   display = "timeline",
 }: Props) {
-  const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [taskFilter, setTaskFilter] = useState<"all" | "delayed" | "missing">("all");
   const [lastCopy, setLastCopy] = useState<{ summary: string; status: string }>();
   const allDates = [...forecast.tasks.values()]
     .flatMap((item) => [item.plannedStart, item.plannedEnd, item.start, item.end])
@@ -76,6 +76,26 @@ export function GanttForecastView({
     forecast.plannedFinish && forecast.forecastFinish
       ? forecastWorkingDaysBetween(forecast.plannedFinish, forecast.forecastFinish, calendar)
       : undefined;
+  const delayedTasks = tasks.filter((task) => {
+    const item = forecast.tasks.get(task.id);
+    return Boolean(item?.plannedEnd && item.end && item.end > item.plannedEnd);
+  });
+  const activeFilter =
+    (taskFilter === "delayed" && delayedTasks.length === 0) ||
+    (taskFilter === "missing" && forecast.missingProgress === 0)
+      ? "all"
+      : taskFilter;
+  const isVisibleTask = (task: GanttTask) => {
+    const item = forecast.tasks.get(task.id);
+    return (
+      activeFilter === "all" ||
+      (activeFilter === "delayed" && Boolean(item?.plannedEnd && item.end && item.end > item.plannedEnd)) ||
+      (activeFilter === "missing" && Boolean(item?.missingCompletion))
+    );
+  };
+  useEffect(() => {
+    if (activeFilter !== taskFilter) setTaskFilter("all");
+  }, [activeFilter, taskFilter]);
   const earlyExplicitStarts = projectStart
     ? tasks.filter((task) => task.start?.resolved && task.start.value < projectStart)
     : [];
@@ -90,14 +110,28 @@ export function GanttForecastView({
             +{releaseShift} working day{releaseShift === 1 ? "" : "s"} from plan
           </span>
         )}
+        {delayedTasks.length > 0 && (
+          <button
+            type="button"
+            className="gantt-forecast-filter gantt-forecast-delayed-count"
+            aria-pressed={activeFilter === "delayed"}
+            onClick={() => {
+              setTaskFilter(activeFilter === "delayed" ? "all" : "delayed");
+              if (activeFilter !== "delayed") onTaskSelect(delayedTasks[0]!.id);
+            }}
+          >
+            {delayedTasks.length} task{delayedTasks.length === 1 ? "" : "s"} delayed
+            {activeFilter === "delayed" ? " · Show all" : ""}
+          </button>
+        )}
         {forecast.missingProgress > 0 && (
           <button
             type="button"
             className="gantt-forecast-filter"
-            aria-pressed={showMissingOnly}
-            onClick={() => setShowMissingOnly((value) => !value)}
+            aria-pressed={activeFilter === "missing"}
+            onClick={() => setTaskFilter(activeFilter === "missing" ? "all" : "missing")}
           >
-            {forecast.missingProgress} missing progress{showMissingOnly ? " · Show all" : ""}
+            {forecast.missingProgress} missing progress{activeFilter === "missing" ? " · Show all" : ""}
           </button>
         )}
         <button
@@ -158,68 +192,63 @@ export function GanttForecastView({
                 ))}
               </div>
             </div>
-            {tasks
-              .filter(
-                (task) =>
-                  !showMissingOnly || forecast.missingProgress === 0 || forecast.tasks.get(task.id)?.missingCompletion,
-              )
-              .map((task) => {
-                const item = forecast.tasks.get(task.id);
-                if (!item) return null;
-                const moved = Boolean(item.plannedEnd && item.end && item.end > item.plannedEnd);
-                const overdue = Boolean(item.plannedEnd && item.plannedEnd < asOf && item.completion < 100);
-                return (
-                  <button
-                    className="gantt-forecast-row"
-                    data-selected={selectedTaskId === task.id}
-                    data-cause-chain={selectedChain.includes(task.id)}
-                    key={task.id}
-                    type="button"
-                    onClick={() => onTaskSelect(task.id)}
-                    aria-label={`Inspect ${task.label} forecast`}
-                  >
-                    <span className="gantt-forecast-task">
-                      <strong>{task.label}</strong>
-                      <small>
-                        {item.missingCompletion
-                          ? "Progress not reported"
-                          : task.completion === undefined
-                            ? "Not started · 0% assumed"
-                            : `${item.completion}% complete`}
-                        {item.manualEstimate ? " · Saved remaining-work estimate" : ""}
-                        {item.issue ? ` · ${item.issue}` : ""}
-                      </small>
-                    </span>
-                    <span className="gantt-forecast-track">
-                      {item.plannedStart && item.plannedEnd && (
-                        <span
-                          className="gantt-forecast-plan-bar"
-                          style={{
-                            left: position(item.plannedStart),
-                            width: width(item.plannedStart, item.plannedEnd),
-                          }}
-                          title={`Plan ${item.plannedStart} to ${item.plannedEnd}`}
-                        />
-                      )}
-                      {item.start && item.end && (
-                        <span
-                          className={`gantt-forecast-result-bar${overdue ? " overdue" : ""}`}
-                          style={{ left: position(item.start), width: width(item.start, item.end) }}
-                          title={`Forecast ${item.start} to ${item.end}`}
-                        />
-                      )}
-                      {moved && item.plannedEnd && (
-                        <span
-                          className="gantt-forecast-missed"
-                          style={{ left: position(item.plannedEnd) }}
-                          title={`Planned finish ${item.plannedEnd} missed`}
-                        />
-                      )}
-                      <span className="gantt-forecast-asof-line" style={{ left: position(asOf) }} />
-                    </span>
-                  </button>
-                );
-              })}
+            {tasks.filter(isVisibleTask).map((task) => {
+              const item = forecast.tasks.get(task.id);
+              if (!item) return null;
+              const moved = Boolean(item.plannedEnd && item.end && item.end > item.plannedEnd);
+              const overdue = Boolean(item.plannedEnd && item.plannedEnd < asOf && item.completion < 100);
+              return (
+                <button
+                  className="gantt-forecast-row"
+                  data-selected={selectedTaskId === task.id}
+                  data-cause-chain={selectedChain.includes(task.id)}
+                  key={task.id}
+                  type="button"
+                  onClick={() => onTaskSelect(task.id)}
+                  aria-label={`Inspect ${task.label} forecast`}
+                >
+                  <span className="gantt-forecast-task">
+                    <strong>{task.label}</strong>
+                    <small>
+                      {item.missingCompletion
+                        ? "Progress not reported"
+                        : task.completion === undefined
+                          ? "Not started · 0% assumed"
+                          : `${item.completion}% complete`}
+                      {item.manualEstimate ? " · Saved remaining-work estimate" : ""}
+                      {item.issue ? ` · ${item.issue}` : ""}
+                    </small>
+                  </span>
+                  <span className="gantt-forecast-track">
+                    {item.plannedStart && item.plannedEnd && (
+                      <span
+                        className="gantt-forecast-plan-bar"
+                        style={{
+                          left: position(item.plannedStart),
+                          width: width(item.plannedStart, item.plannedEnd),
+                        }}
+                        title={`Plan ${item.plannedStart} to ${item.plannedEnd}`}
+                      />
+                    )}
+                    {item.start && item.end && (
+                      <span
+                        className={`gantt-forecast-result-bar${overdue ? " overdue" : ""}`}
+                        style={{ left: position(item.start), width: width(item.start, item.end) }}
+                        title={`Forecast ${item.start} to ${item.end}`}
+                      />
+                    )}
+                    {moved && item.plannedEnd && (
+                      <span
+                        className="gantt-forecast-missed"
+                        style={{ left: position(item.plannedEnd) }}
+                        title={`Planned finish ${item.plannedEnd} missed`}
+                      />
+                    )}
+                    <span className="gantt-forecast-asof-line" style={{ left: position(asOf) }} />
+                  </span>
+                </button>
+              );
+            })}
             <div className="gantt-forecast-legend">
               <span>
                 <i className="plan" />
@@ -237,35 +266,30 @@ export function GanttForecastView({
           </div>
         ) : (
           <nav className="gantt-forecast-task-list" aria-label="Forecast tasks">
-            {tasks
-              .filter(
-                (task) =>
-                  !showMissingOnly || forecast.missingProgress === 0 || forecast.tasks.get(task.id)?.missingCompletion,
-              )
-              .map((task) => {
-                const item = forecast.tasks.get(task.id);
-                if (!item) return null;
-                return (
-                  <button
-                    key={task.id}
-                    type="button"
-                    data-selected={selectedTaskId === task.id}
-                    data-cause-chain={selectedChain.includes(task.id)}
-                    onClick={() => onTaskSelect(task.id)}
-                  >
-                    <strong>{task.label}</strong>
-                    <span>
-                      {item.issue
-                        ? "Cannot forecast"
-                        : item.missingCompletion
-                          ? "Progress not reported"
-                          : item.plannedEnd && item.end && item.end > item.plannedEnd
-                            ? `Forecast ends ${shortDate(item.end)}`
-                            : "On plan"}
-                    </span>
-                  </button>
-                );
-              })}
+            {tasks.filter(isVisibleTask).map((task) => {
+              const item = forecast.tasks.get(task.id);
+              if (!item) return null;
+              return (
+                <button
+                  key={task.id}
+                  type="button"
+                  data-selected={selectedTaskId === task.id}
+                  data-cause-chain={selectedChain.includes(task.id)}
+                  onClick={() => onTaskSelect(task.id)}
+                >
+                  <strong>{task.label}</strong>
+                  <span>
+                    {item.issue
+                      ? "Cannot forecast"
+                      : item.missingCompletion
+                        ? "Progress not reported"
+                        : item.plannedEnd && item.end && item.end > item.plannedEnd
+                          ? `Forecast ends ${shortDate(item.end)}`
+                          : "On plan"}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
         )}
         <aside className="gantt-forecast-inspector" aria-live="polite">

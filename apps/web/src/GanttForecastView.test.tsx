@@ -71,6 +71,25 @@ sunday are closed
   });
 });
 
+describe("Gantt forecast task delays", () => {
+  it("shows delayed tasks separately from an unchanged project finish", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Long track] starts 2026-09-21
+[Long track] lasts 20 days
+[Long track] is 100% completed
+[Short track] starts 2026-09-21
+[Short track] lasts 3 days
+[Short track] is 50% completed
+@endgantt`;
+    const html = render(source);
+    expect(html).toContain('data-shift="on-plan">+0 working days from plan');
+    expect(html).toContain("1 task delayed");
+  });
+});
+
 describe("Gantt forecast missing progress", () => {
   it("does not warn for tasks that have not started", () => {
     const source = `@startgantt
