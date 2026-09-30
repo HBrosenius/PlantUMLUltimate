@@ -1056,6 +1056,43 @@ test("keeps the last valid drag position when pointer capture is lost", async ({
   await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-02");
 });
 
+test("leaves a task unchanged when its drag or resize is cancelled", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
+  await setSource(page, source("[A] starts 2026-09-07\n[A] lasts 3 days"));
+  const task = page.locator("[data-task-id=a]");
+  const bar = await task.locator(".bar").boundingBox();
+  const first = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
+  const second = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-08"]').boundingBox();
+  expect(bar).not.toBeNull();
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+  const dayPixels = Math.abs(second!.x - first!.x);
+  const cancel = () =>
+    page.evaluate(() =>
+      window.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1, pointerType: "mouse" })),
+    );
+
+  await page.mouse.move(bar!.x + bar!.width / 2, bar!.y + bar!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bar!.x + bar!.width / 2 + dayPixels * 2, bar!.y + bar!.height / 2, { steps: 4 });
+  await expect(page.locator(".interaction-feedback")).toHaveText("Move +2 days");
+  await cancel();
+  await page.mouse.up();
+  await expect(page.locator(".interaction-feedback")).not.toHaveText(/Move/);
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-07");
+
+  await task.locator(".bar").click();
+  const handle = await task.locator("[data-resize-handle]").boundingBox();
+  expect(handle).not.toBeNull();
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle!.x + handle!.width / 2 + dayPixels * 2, handle!.y + handle!.height / 2, { steps: 4 });
+  await cancel();
+  await page.mouse.up();
+  await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
+  await expect(page.locator(".cm-content")).toContainText("[A] starts 2026-09-07");
+});
+
 test("moves, resizes, and reorders focused tasks from the keyboard", async ({ page }) => {
   await setSource(
     page,

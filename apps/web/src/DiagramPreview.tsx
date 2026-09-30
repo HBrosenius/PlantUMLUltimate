@@ -826,10 +826,7 @@ export function DiagramPreview({
             : resizeTaskFeedback(modelTask, durationDelta),
         );
       };
-      const endResize = () => {
-        window.removeEventListener("pointermove", moveResize);
-        window.removeEventListener("pointerup", endResize);
-        window.removeEventListener("pointercancel", endResize);
+      const finishResize = (apply: boolean) => {
         bar?.setAttribute("width", String(originalWidth));
         if (visualBar && originalVisualWidth !== null && originalVisualWidth !== undefined)
           visualBar.setAttribute("width", originalVisualWidth);
@@ -838,14 +835,14 @@ export function DiagramPreview({
         previewBar?.remove();
         showFeedback();
         draggingRef.current = false;
-        suppressGestureClick();
         setHoveredTask(undefined);
+        // A cancelled gesture (touch cancel, unmount) restores the bar without changing the task.
+        if (!apply) return;
+        suppressGestureClick();
         onTaskSelect(id);
         if (durationDelta !== 0) onTaskResize(id, durationDelta, snappedDays);
       };
-      window.addEventListener("pointermove", moveResize);
-      window.addEventListener("pointerup", endResize);
-      window.addEventListener("pointercancel", endResize);
+      trackDrag({ move: moveResize, end: () => finishResize(true), cancel: () => finishResize(false) });
       return;
     }
     const canMoveDates = task.getAttribute("data-draggable") === "true";
@@ -942,10 +939,12 @@ export function DiagramPreview({
           : undefined,
       );
     };
-    const end = (endEvent?: Event) => {
+    // `pointercancel` (or unmounting mid-drag) aborts: the task is restored without selecting or moving it.
+    const end = (endEvent?: Event, aborted = endEvent?.type === "pointercancel") => {
       if (ended) return;
       ended = true;
-      if (dragMode !== "vertical" && canMoveDates) {
+      if (activeDragDisposeRef.current === abort) activeDragDisposeRef.current = undefined;
+      if (!aborted && dragMode !== "vertical" && canMoveDates) {
         const releaseClientX =
           endEvent instanceof PointerEvent && endEvent.type === "pointerup" ? endEvent.clientX : lastClientX;
         const releaseDeltaX = releaseClientX - startX;
@@ -973,6 +972,10 @@ export function DiagramPreview({
       highlightReorderTarget(task.ownerSVGElement, undefined);
       showFeedback();
       draggingRef.current = false;
+      if (aborted) {
+        setHoveredTask(undefined);
+        return;
+      }
       // Selection is committed on pointerup. Suppress the synthetic click because
       // opening the inspector replaces the SVG and can retarget that click to the
       // new diagram background, immediately clearing the selection again.
@@ -982,6 +985,9 @@ export function DiagramPreview({
       if (dragMode === "vertical" && reorderTargetId) onTaskReorder(id, reorderTargetId);
       else if (sourceMoveDays !== 0) onTaskMove(id, sourceMoveDays);
     };
+    const abort = () => end(undefined, true);
+    activeDragDisposeRef.current?.();
+    activeDragDisposeRef.current = abort;
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", end, true);
     window.addEventListener("pointercancel", end, true);

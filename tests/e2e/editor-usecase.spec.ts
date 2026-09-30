@@ -397,3 +397,19 @@ test("keeps Use Case selection aligned after zoom and responsive resizing", asyn
     1,
   );
 });
+
+test("selects and edits actors and use cases declared only by relationship endpoints", async ({ page }) => {
+  await page.getByRole("button", { name: "New document tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await setSource(page, "@startuml\n:User: --> (Login)\n@enduml");
+
+  await page.locator('[data-usecase-object-id="user"]').first().dispatchEvent("click");
+  const inspector = page.getByRole("complementary", { name: "Use Case object inspector" });
+  await expect(inspector).toBeVisible();
+  await inspector.getByLabel("Name").fill("Customer");
+  await inspector.getByLabel("Name").blur();
+  await expect(page.locator(".cm-content")).toContainText('actor "Customer":Customer: --> (Login)');
+});

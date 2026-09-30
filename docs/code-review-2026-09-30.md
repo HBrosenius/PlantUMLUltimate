@@ -78,7 +78,7 @@ Status legend: `[ ]` open, `[x]` fixed in source (see notes).
       _Fixed: quotes inside quoted names are written as `&#34;` (verified to render as `"` in the local PlantUML engine) and decoded by the parsers; backslashes are no longer doubled on each edit._
 - [x] **Use-case `:Actor: --> (UseCase)` lines parsed as declarations** (confirmed);
       relationships disappear.
-      _Fixed: shorthand relationship lines parse as relationships and their endpoints count as implicitly declared. Follow-up: implicit endpoints are not yet selectable elements in the visual editor._
+      _Fixed: shorthand relationship lines parse as relationships and their endpoints count as implicitly declared. Implicit endpoints are now `implicit` elements that can be selected; editing, moving or reordering one first adds a declaration before the line that uses it._
 - [x] **Non-ASCII identifiers not parsed** (confirmed). `[\w.$-]` is ASCII-only
       (`Åsa -> Bob : hej` yields no message).
       _Fixed: sequence and class regexes and bare-name checks use Unicode letter/number classes._
@@ -153,7 +153,7 @@ Status legend: `[ ]` open, `[x]` fixed in source (see notes).
 - [x] **Linked WBS/Gantt sync bypasses undo** and restarts on caret moves (confirmed).
       _Fixed: linked updates are recorded in the target document's history (`recordSourceChange`); automatic alias updates fold into the causing edit; timers no longer restart on caret moves._
 - [x] **Drags without `pointercancel`** can stick (confirmed missing listeners).
-      _Fixed for separator, divider and connection drags via `trackWindowPointerDrag` (cancel aborts, unmount cleans up). Task move/resize still apply on cancel (unchanged)._
+      _Fixed for all preview drags: separator, divider and connection drags use `trackWindowPointerDrag`; task resize uses it too, and task move/reorder aborts on `pointercancel` or unmount without selecting or moving._
 - [x] **Onboarding theme preview commits undo entries** (confirmed).
       _Fixed._
 - [x] **Command palette a11y**: no `aria-activedescendant`, no scroll into view, arrows

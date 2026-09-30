@@ -7,7 +7,7 @@ import type {
   UseCaseRelationship,
   UseCaseRelationshipKind,
 } from "./model";
-import { USECASE_RELATIONSHIP_PATTERN } from "./parser";
+import { parseUseCase, USECASE_RELATIONSHIP_PATTERN } from "./parser";
 
 export interface UseCaseElementInput {
   kind: UseCaseElementKind;
@@ -138,12 +138,36 @@ export function insertUseCaseElement(source: string, value: UseCaseElementInput)
   return `${source.slice(0, at)}${prefix}${statement(value)}\n${source.slice(at)}`;
 }
 
+/**
+ * Adds a declaration for an element that only appears as a `:Actor:` / `(Use case)` endpoint, just
+ * before the first line that uses it, and returns the reparsed document and declared element.
+ */
+function declareImplicit(
+  source: string,
+  document: UseCaseDocument,
+  element: UseCaseElement,
+): { source: string; document: UseCaseDocument; element: UseCaseElement } {
+  if (!element.implicit) return { source, document, element };
+  const lineStart = source.lastIndexOf("\n", element.sourceRange.from - 1) + 1;
+  const indent = /^[ \t]*/.exec(source.slice(lineStart))?.[0] ?? "";
+  const declaration = `${indent}${element.kind} ${quote(element.label)}\n`;
+  const next = `${source.slice(0, lineStart)}${declaration}${source.slice(lineStart)}`;
+  const parsed = parseUseCase(next);
+  const declared = parsed.elements.find((item) => item.id === element.id && !item.implicit);
+  return declared ? { source: next, document: parsed, element: declared } : { source, document, element };
+}
+
 export function updateUseCaseElement(
   source: string,
   document: UseCaseDocument,
   element: UseCaseElement,
   value: UseCaseElementInput,
 ): string {
+  if (element.implicit) {
+    const declared = declareImplicit(source, document, element);
+    if (declared.element.implicit) return source;
+    return updateUseCaseElement(declared.source, declared.document, declared.element, value);
+  }
   const alias = value.alias?.trim();
   const next = alias || value.label.trim();
   const replacements = [{ ...element.sourceRange, text: statement(value) }];
@@ -192,7 +216,8 @@ export function updateUseCaseElement(
 
 export function deleteUseCaseElement(source: string, document: UseCaseDocument, element: UseCaseElement): string {
   const ranges = [
-    element.sourceRange,
+    // An implicit element's range is a relationship line, which is removed with its relationships.
+    ...(element.implicit ? [] : [element.sourceRange]),
     ...document.relationships
       .filter((item) => item.from === element.id || item.to === element.id)
       .map((item) => item.sourceRange),
@@ -277,6 +302,11 @@ export function moveUseCaseElementToPackage(
   packageId?: string,
 ): string {
   if (element.packageId === packageId) return source;
+  if (element.implicit) {
+    const declared = declareImplicit(source, document, element);
+    if (declared.element.implicit) return source;
+    return moveUseCaseElementToPackage(declared.source, declared.document, declared.element, packageId);
+  }
   const target = packageId ? document.packages.find((item) => item.id === packageId) : undefined;
   if (packageId && !target) return source;
   const declaration = source.slice(element.sourceRange.from, element.sourceRange.to).trim();
@@ -318,6 +348,16 @@ export function reorderUseCaseElement(
   placement: "before" | "after",
 ): string {
   if (element.id === target.id || element.packageId !== target.packageId) return source;
+  if (element.implicit || target.implicit) {
+    // Declare implicit elements first so that only declarations are reordered.
+    const implicit = element.implicit ? element : target;
+    const declared = declareImplicit(source, parseUseCase(source), implicit);
+    if (declared.element.implicit) return source;
+    const nextElement = declared.document.elements.find((item) => item.id === element.id && !item.implicit);
+    const nextTarget = declared.document.elements.find((item) => item.id === target.id);
+    if (!nextElement || !nextTarget) return source;
+    return reorderUseCaseElement(declared.source, nextElement, nextTarget, placement);
+  }
   const from = element.sourceRange.from;
   const to = source[element.sourceRange.to] === "\n" ? element.sourceRange.to + 1 : element.sourceRange.to;
   const declaration = source.slice(element.sourceRange.from, element.sourceRange.to).trim();

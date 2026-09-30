@@ -61,7 +61,8 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
   const elements: UseCaseElement[] = [];
   const packages: UseCasePackage[] = [];
   const relationships: UseCaseRelationship[] = [];
-  const implicitIds = new Set<string>();
+  // First sighting of each `:Actor:` / `(Use case)` endpoint; undeclared ones become implicit elements.
+  const implicitEndpoints = new Map<string, UseCaseElement>();
   const notes: UseCaseNote[] = [];
   const unknown: UseCaseDocument["unknown"] = [];
   const diagnostics: LanguageDiagnostic[] = [];
@@ -238,8 +239,21 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       const from = endpointId(relation[1], aliases);
       const to = endpointId(relation[3], aliases);
       // PlantUML declares `:Actor:` and `(Use case)` endpoints implicitly.
-      if (/^[:(]/.test(relation[1])) implicitIds.add(from);
-      if (/^[:(]/.test(relation[3])) implicitIds.add(to);
+      for (const [token, id] of [
+        [relation[1], from],
+        [relation[3], to],
+      ] as const) {
+        if (!/^[:(]/.test(token) || implicitEndpoints.has(id)) continue;
+        implicitEndpoints.set(id, {
+          id,
+          kind: token.startsWith(":") ? "actor" : "usecase",
+          label: unquote(token.slice(1, -1)),
+          business: false,
+          implicit: true,
+          ...(packageStack.at(-1) ? { packageId: packageStack.at(-1)!.value.id } : {}),
+          sourceRange: range,
+        });
+      }
       relationships.push({
         id: `relationship-${relationships.length}`,
         from,
@@ -275,7 +289,11 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       });
     ids.add(element.id);
   }
-  for (const id of implicitIds) ids.add(id);
+  for (const [id, element] of implicitEndpoints) {
+    if (ids.has(id)) continue;
+    elements.push(element);
+    ids.add(id);
+  }
   for (const relationship of relationships) {
     if (!ids.has(relationship.from))
       diagnostics.push({

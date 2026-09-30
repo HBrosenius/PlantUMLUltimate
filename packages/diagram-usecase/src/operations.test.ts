@@ -217,3 +217,56 @@ describe("names containing double quotes", () => {
     expect(parseUseCase(source).useCases[0]?.label).toBe('Print "Draft" copy');
   });
 });
+
+describe("elements declared only by relationship endpoints", () => {
+  const source = "@startuml\n:User: --> (Login)\n(Login) .> (Verify) : <<include>>\npackage Shop {\n}\n@enduml";
+
+  it("parses them as selectable implicit elements", () => {
+    const document = parseUseCase(source);
+    expect(document.elements.map((item) => [item.kind, item.label, item.implicit])).toEqual([
+      ["actor", "User", true],
+      ["usecase", "Login", true],
+      ["usecase", "Verify", true],
+    ]);
+    expect(document.diagnostics).toEqual([]);
+  });
+
+  it("declares an implicit element when it is edited", () => {
+    const document = parseUseCase(source);
+    const user = document.actors[0]!;
+    const updated = updateUseCaseElement(source, document, user, { kind: "actor", label: "Customer", color: "Pink" });
+    expect(updated).toContain('actor "Customer" #Pink\n:Customer: --> (Login)');
+    const reparsed = parseUseCase(updated);
+    expect(reparsed.actors).toMatchObject([{ label: "Customer", color: "#Pink" }]);
+    expect(reparsed.actors[0]?.implicit).toBeUndefined();
+    expect(reparsed.relationships).toHaveLength(2);
+  });
+
+  it("deletes an implicit element with its relationships only", () => {
+    const document = parseUseCase(source);
+    const verify = document.useCases.find((item) => item.label === "Verify")!;
+    const deleted = deleteUseCaseElement(source, document, verify);
+    expect(deleted).toBe("@startuml\n:User: --> (Login)\npackage Shop {\n}\n@enduml");
+  });
+
+  it("declares an implicit element inside a package when it is moved there", () => {
+    const document = parseUseCase(source);
+    const login = document.useCases.find((item) => item.label === "Login")!;
+    const moved = moveUseCaseElementToPackage(source, document, login, document.packages[0]!.id);
+    const reparsed = parseUseCase(moved);
+    expect(reparsed.useCases.find((item) => item.label === "Login")).toMatchObject({
+      packageId: document.packages[0]!.id,
+    });
+    expect(reparsed.relationships).toHaveLength(2);
+    expect(reparsed.diagnostics).toEqual([]);
+  });
+
+  it("reorders implicit elements by declaring them", () => {
+    const document = parseUseCase(source);
+    const [login, verify] = document.useCases;
+    const reordered = reorderUseCaseElement(source, verify!, login!, "before");
+    const reparsed = parseUseCase(reordered);
+    expect(reparsed.useCases.filter((item) => !item.implicit).map((item) => item.label)).toEqual(["Verify", "Login"]);
+    expect(reparsed.relationships).toHaveLength(2);
+  });
+});

@@ -12,6 +12,11 @@ export interface UseCaseElement {
   color?: string;
   style?: string;
   packageId?: string;
+  /**
+   * Declared only by `:Actor:` or `(Use case)` relationship endpoints. `sourceRange` is the first
+   * relationship line that uses it; editing the element adds a declaration before that line.
+   */
+  implicit?: boolean;
   sourceRange: TextRange;
 }
 
