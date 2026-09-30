@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ColorField, ColorSwatch, SharedColorDatalist } from "./ColorField";
 import type {
   SequenceActivation,
@@ -333,9 +333,30 @@ function FragmentForm({
   const [secondaryLabel, setSecondaryLabel] = useState(structure.secondaryLabel ?? "");
   const [headerColor, setHeaderColor] = useState(structure.headerColor ?? "");
   const [backgroundColor, setBackgroundColor] = useState(structure.backgroundColor ?? "");
-  const [branches, setBranches] = useState<Array<{ label: string; color?: string; originalIndex?: number }>>(
-    structure.branches.map((branch, originalIndex) => ({ ...branch, originalIndex })),
-  );
+  // `key` is a UI-only identity so reordered rows keep their DOM (and focus); it is stripped before applying.
+  const branchKeyCounter = useRef(0);
+  const newBranchKey = () => `branch-${branchKeyCounter.current++}`;
+  const [branches, setBranches] = useState<
+    Array<{ key: string; label: string; color?: string; originalIndex?: number }>
+  >(() => structure.branches.map((branch, originalIndex) => ({ ...branch, originalIndex, key: newBranchKey() })));
+  const moveButtons = useRef(new Map<string, HTMLButtonElement>());
+  const [pendingFocus, setPendingFocus] = useState<{ key: string; direction: -1 | 1 }>();
+  useEffect(() => {
+    if (!pendingFocus) return;
+    setPendingFocus(undefined);
+    const preferred = moveButtons.current.get(`${pendingFocus.key}:${pendingFocus.direction}`);
+    const fallback = moveButtons.current.get(`${pendingFocus.key}:${-pendingFocus.direction}`);
+    (preferred && !preferred.disabled ? preferred : fallback)?.focus();
+  }, [pendingFocus]);
+  const moveBranch = (index: number, direction: -1 | 1, button: HTMLButtonElement) => {
+    const moved = branches[index];
+    const target = index + direction;
+    if (!moved || target < 0 || target >= branches.length) return;
+    const next = [...branches];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    setBranches(next);
+    if (button.ownerDocument.activeElement === button) setPendingFocus({ key: moved.key, direction });
+  };
   const colorListId = useId();
   return (
     <form
@@ -348,7 +369,7 @@ function FragmentForm({
           ...(secondaryLabel.trim() ? { secondaryLabel } : {}),
           ...(headerColor.trim() ? { headerColor } : {}),
           ...(backgroundColor.trim() ? { backgroundColor } : {}),
-          ...(kind === "alt" || kind === "par" ? { branches } : {}),
+          ...(kind === "alt" || kind === "par" ? { branches: branches.map(({ key: _key, ...branch }) => branch) } : {}),
         });
       }}
     >
@@ -389,7 +410,7 @@ function FragmentForm({
         <fieldset>
           <legend>Alternative branches</legend>
           {branches.map((branch, index) => (
-            <div className="sequence-branch-row" key={index}>
+            <div className="sequence-branch-row" key={branch.key}>
               <input
                 aria-label={`Branch ${index + 2} label`}
                 value={branch.label}
@@ -412,7 +433,12 @@ function FragmentForm({
                     setBranches((current) =>
                       current.map((item, itemIndex) =>
                         itemIndex === index
-                          ? { label: item.label, ...(event.target.value.trim() ? { color: event.target.value } : {}) }
+                          ? {
+                              key: item.key,
+                              label: item.label,
+                              ...(item.originalIndex === undefined ? {} : { originalIndex: item.originalIndex }),
+                              ...(event.target.value.trim() ? { color: event.target.value } : {}),
+                            }
                           : item,
                       ),
                     )
@@ -431,13 +457,11 @@ function FragmentForm({
                 type="button"
                 aria-label={`Move branch ${index + 2} up`}
                 disabled={index === 0}
-                onClick={() =>
-                  setBranches((current) => {
-                    const next = [...current];
-                    [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
-                    return next;
-                  })
-                }
+                ref={(element) => {
+                  if (element) moveButtons.current.set(`${branch.key}:-1`, element);
+                  else moveButtons.current.delete(`${branch.key}:-1`);
+                }}
+                onClick={(event) => moveBranch(index, -1, event.currentTarget)}
               >
                 ↑
               </button>
@@ -445,19 +469,20 @@ function FragmentForm({
                 type="button"
                 aria-label={`Move branch ${index + 2} down`}
                 disabled={index === branches.length - 1}
-                onClick={() =>
-                  setBranches((current) => {
-                    const next = [...current];
-                    [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
-                    return next;
-                  })
-                }
+                ref={(element) => {
+                  if (element) moveButtons.current.set(`${branch.key}:1`, element);
+                  else moveButtons.current.delete(`${branch.key}:1`);
+                }}
+                onClick={(event) => moveBranch(index, 1, event.currentTarget)}
               >
                 ↓
               </button>
             </div>
           ))}
-          <button type="button" onClick={() => setBranches((current) => [...current, { label: "alternative" }])}>
+          <button
+            type="button"
+            onClick={() => setBranches((current) => [...current, { key: newBranchKey(), label: "alternative" }])}
+          >
             Add branch
           </button>
         </fieldset>

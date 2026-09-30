@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { resizeTaskFeedback, svgScreenScale, taskHoverDetails } from "./DiagramPreview";
+import { trackWindowPointerDrag } from "./pointer-drag";
 
 const task: GanttTask = {
   id: "build",
@@ -72,5 +73,46 @@ describe("taskHoverDetails", () => {
       resources: "Alice 50%",
       successors: [{ id: "test", label: "Test" }],
     });
+  });
+});
+
+describe("trackWindowPointerDrag", () => {
+  const setup = (capture?: boolean) => {
+    const target = new EventTarget();
+    const handlers = { move: vi.fn(), end: vi.fn(), cancel: vi.fn(), capture: capture ?? false };
+    const dispose = trackWindowPointerDrag(handlers, target as unknown as Window);
+    return { target, handlers, dispose };
+  };
+
+  it("applies the gesture on pointerup and stops listening", () => {
+    const { target, handlers } = setup(true);
+    target.dispatchEvent(new Event("pointermove"));
+    target.dispatchEvent(new Event("pointerup"));
+    target.dispatchEvent(new Event("pointermove"));
+    target.dispatchEvent(new Event("pointerup"));
+    target.dispatchEvent(new Event("pointercancel"));
+    expect(handlers.move).toHaveBeenCalledTimes(1);
+    expect(handlers.end).toHaveBeenCalledTimes(1);
+    expect(handlers.cancel).not.toHaveBeenCalled();
+  });
+
+  it("aborts without applying on pointercancel so a later pointerup is ignored", () => {
+    const { target, handlers } = setup();
+    target.dispatchEvent(new Event("pointermove"));
+    target.dispatchEvent(new Event("pointercancel"));
+    target.dispatchEvent(new Event("pointerup"));
+    expect(handlers.cancel).toHaveBeenCalledTimes(1);
+    expect(handlers.end).not.toHaveBeenCalled();
+  });
+
+  it("disposing mid-drag (unmount) aborts and removes listeners", () => {
+    const { target, handlers, dispose } = setup();
+    dispose();
+    dispose();
+    target.dispatchEvent(new Event("pointermove"));
+    target.dispatchEvent(new Event("pointerup"));
+    expect(handlers.cancel).toHaveBeenCalledTimes(1);
+    expect(handlers.move).not.toHaveBeenCalled();
+    expect(handlers.end).not.toHaveBeenCalled();
   });
 });

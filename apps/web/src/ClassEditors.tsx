@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent, type MutableRefObject } from "react";
 import type {
   ClassDocument,
   ClassEntity,
@@ -188,6 +188,7 @@ export function ClassEntityInspector({
   const [newMemberType, setNewMemberType] = useState("");
   const typeListId = useId();
   const parameterListId = useId();
+  const pendingParameterFocus = useRef<PendingParameterFocus | undefined>(undefined);
   const labelMissing = !v.label.trim();
   useEffect(() => setV(entityValue(entity)), [entity]);
   const save = () => v.label.trim() && onChange(v);
@@ -277,6 +278,7 @@ export function ClassEntityInspector({
                   onDelete={() => onMemberDelete(member)}
                   onMove={(direction) => onMemberMove(member, direction)}
                   onReveal={() => onMemberReveal(member)}
+                  pendingParameterFocus={pendingParameterFocus}
                 />
               ))}
             </div>
@@ -387,6 +389,8 @@ function memberValue(member: ClassMember): ClassMemberInput {
       };
 }
 
+type PendingParameterFocus = { memberId: string; index: number; direction: -1 | 1; at: number };
+
 function ClassMemberRow({
   member,
   typeListId,
@@ -397,6 +401,7 @@ function ClassMemberRow({
   onDelete,
   onMove,
   onReveal,
+  pendingParameterFocus,
 }: {
   member: ClassMember;
   typeListId: string;
@@ -407,6 +412,7 @@ function ClassMemberRow({
   onDelete(): void;
   onMove(direction: -1 | 1): void;
   onReveal(): void;
+  pendingParameterFocus: MutableRefObject<PendingParameterFocus | undefined>;
 }) {
   const [value, setValue] = useState(() => memberValue(member));
   const [rawParameterMode, setRawParameterMode] = useState(
@@ -415,6 +421,42 @@ function ClassMemberRow({
   const [parameters, setParameters] = useState<StructuredClassParameter[]>(
     () => parseStructuredClassParameters(member.parameters ?? "") ?? [],
   );
+  // UI-only stable row identities (parallel to `parameters`), never serialized into PlantUML.
+  const parameterKeyCounter = useRef(0);
+  const newParameterKey = () => `parameter-${parameterKeyCounter.current++}`;
+  const [parameterKeys, setParameterKeys] = useState<string[]>(() => parameters.map(() => newParameterKey()));
+  const rowRef = useRef<HTMLDivElement>(null);
+  const firstFocusCheck = useRef(true);
+  // Committing a move rewrites the member text, which remounts this row (its key includes the text), so the
+  // pending focus target lives in a ref owned by the inspector and is re-applied after mount as well.
+  useEffect(() => {
+    const isMount = firstFocusCheck.current;
+    firstFocusCheck.current = false;
+    const pending = pendingParameterFocus.current;
+    if (!pending || pending.memberId !== member.id || Date.now() - pending.at > 1000) return;
+    if (isMount) pendingParameterFocus.current = undefined;
+    const row = rowRef.current?.querySelectorAll(".class-parameter-row")[pending.index];
+    const preferred = row?.querySelector<HTMLButtonElement>(`[data-parameter-move="${pending.direction}"]`);
+    const fallback = row?.querySelector<HTMLButtonElement>(`[data-parameter-move="${-pending.direction}"]`);
+    (preferred && !preferred.disabled ? preferred : fallback)?.focus();
+  }, [member.id, parameterKeys, pendingParameterFocus]);
+  const replaceParameters = (next: StructuredClassParameter[]) => {
+    setParameters(next);
+    setParameterKeys(next.map(() => newParameterKey()));
+  };
+  const moveParameter = (index: number, direction: -1 | 1, button: HTMLButtonElement) => {
+    const target = index + direction;
+    const key = parameterKeys[index];
+    if (key === undefined || target < 0 || target >= parameters.length) return;
+    const next = [...parameters];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    const nextKeys = [...parameterKeys];
+    [nextKeys[index], nextKeys[target]] = [nextKeys[target]!, nextKeys[index]!];
+    setParameterKeys(nextKeys);
+    updateParameters(next, true);
+    if (button.ownerDocument.activeElement === button)
+      pendingParameterFocus.current = { memberId: member.id, index: target, direction, at: Date.now() };
+  };
   const apply = (next: ClassMemberInput) => {
     setValue(next);
     onChange(next);
@@ -431,7 +473,7 @@ function ClassMemberRow({
     onChange({ ...value, parameters: serializeStructuredClassParameters(parameters) });
   };
   return (
-    <div className="class-member-row" role="listitem">
+    <div className="class-member-row" role="listitem" ref={rowRef}>
       <div className="class-member-heading">
         <strong>{member.kind === "raw" ? "Raw member" : member.kind}</strong>
         <button type="button" onClick={onReveal}>
@@ -497,7 +539,7 @@ function ClassMemberRow({
                     onClick={() => {
                       const parsed = parseStructuredClassParameters(value.parameters ?? "");
                       if (parsed) {
-                        setParameters(parsed);
+                        replaceParameters(parsed);
                         setRawParameterMode(false);
                       }
                     }}
@@ -508,7 +550,7 @@ function ClassMemberRow({
               ) : (
                 <>
                   {parameters.map((parameter, index) => (
-                    <div className="class-parameter-row" key={index}>
+                    <div className="class-parameter-row" key={parameterKeys[index] ?? `fallback-${index}`}>
                       <input
                         aria-label={`Parameter ${index + 1} name`}
                         value={parameter.name}
@@ -538,12 +580,9 @@ function ClassMemberRow({
                         type="button"
                         aria-label={`Move parameter ${index + 1} up`}
                         disabled={index === 0}
+                        data-parameter-move="-1"
                         onPointerDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          const next = [...parameters];
-                          [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
-                          updateParameters(next, true);
-                        }}
+                        onClick={(event) => moveParameter(index, -1, event.currentTarget)}
                       >
                         ↑
                       </button>
@@ -551,12 +590,9 @@ function ClassMemberRow({
                         type="button"
                         aria-label={`Move parameter ${index + 1} down`}
                         disabled={index === parameters.length - 1}
+                        data-parameter-move="1"
                         onPointerDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          const next = [...parameters];
-                          [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
-                          updateParameters(next, true);
-                        }}
+                        onClick={(event) => moveParameter(index, 1, event.currentTarget)}
                       >
                         ↓
                       </button>
@@ -564,12 +600,13 @@ function ClassMemberRow({
                         type="button"
                         aria-label={`Remove parameter ${index + 1}`}
                         onPointerDown={(event) => event.preventDefault()}
-                        onClick={() =>
+                        onClick={() => {
+                          setParameterKeys((keys) => keys.filter((_, itemIndex) => itemIndex !== index));
                           updateParameters(
                             parameters.filter((_, itemIndex) => itemIndex !== index),
                             true,
-                          )
-                        }
+                          );
+                        }}
                       >
                         ×
                       </button>
@@ -579,7 +616,10 @@ function ClassMemberRow({
                     <button
                       type="button"
                       onPointerDown={(event) => event.preventDefault()}
-                      onClick={() => updateParameters([...parameters, { name: "parameter", type: "" }])}
+                      onClick={() => {
+                        setParameterKeys((keys) => [...keys, newParameterKey()]);
+                        updateParameters([...parameters, { name: "parameter", type: "" }]);
+                      }}
                     >
                       + Add parameter
                     </button>

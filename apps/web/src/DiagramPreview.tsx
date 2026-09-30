@@ -23,6 +23,7 @@ import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
+import { trackWindowPointerDrag, type WindowPointerDragHandlers } from "./pointer-drag";
 
 interface Props {
   svg: string | undefined;
@@ -165,6 +166,9 @@ export function DiagramPreview({
   const hoverCloseTimerRef = useRef<number | undefined>(undefined);
   const draggingRef = useRef(false);
   const suppressNextClickRef = useRef(false);
+  const activeDragDisposeRef = useRef<(() => void) | undefined>(undefined);
+  const suppressClickTimerRef = useRef<number | undefined>(undefined);
+  const revealTimerRef = useRef<number | undefined>(undefined);
   const [connection, setConnection] = useState<{ x1: number; y1: number; x2: number; y2: number }>();
   const [hoveredTask, setHoveredTask] = useState<{ id: string; x: number; y: number }>();
   const [hoveredBaseline, setHoveredBaseline] = useState<{ label: string; dates: string; x: number; y: number }>();
@@ -182,10 +186,48 @@ export function DiagramPreview({
       setHoveredTask(undefined);
     }, 180);
   };
-  useEffect(() => cancelTaskHoverClose, []);
+  useEffect(
+    () => () => {
+      cancelTaskHoverClose();
+      activeDragDisposeRef.current?.();
+      activeDragDisposeRef.current = undefined;
+      window.clearTimeout(suppressClickTimerRef.current);
+      window.clearTimeout(revealTimerRef.current);
+    },
+    [],
+  );
+  const showTaskDetails = (group: SVGGElement | null) => {
+    const id = group?.getAttribute("data-task-id");
+    const preview = previewRef.current?.getBoundingClientRect();
+    if (!group || !id || id === selectedTaskId || !preview) return;
+    cancelTaskHoverClose();
+    const rect = group.getBoundingClientRect();
+    setHoveredTask({
+      id,
+      x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
+      y: Math.max(8, rect.top - preview.top),
+    });
+  };
+  const trackDrag = (handlers: WindowPointerDragHandlers) => {
+    activeDragDisposeRef.current?.();
+    const dispose = trackWindowPointerDrag({
+      ...handlers,
+      end: (endEvent) => {
+        activeDragDisposeRef.current = undefined;
+        handlers.end(endEvent);
+      },
+      cancel: () => {
+        activeDragDisposeRef.current = undefined;
+        handlers.cancel();
+      },
+    });
+    activeDragDisposeRef.current = dispose;
+  };
   const suppressGestureClick = () => {
     suppressNextClickRef.current = true;
-    window.setTimeout(() => {
+    window.clearTimeout(suppressClickTimerRef.current);
+    suppressClickTimerRef.current = window.setTimeout(() => {
+      suppressClickTimerRef.current = undefined;
       suppressNextClickRef.current = false;
     }, 0);
   };
@@ -222,11 +264,13 @@ export function DiagramPreview({
     source,
   ]);
   const interactiveSvg = overlayResult.value;
-  const resolvedDates = useMemo(
-    () => resolveTaskDates(tasks, dependencies, projectStart, calendar),
-    [tasks, dependencies, projectStart, calendar],
-  );
   const forecastTimeZone = progressForecast?.timeZone ?? "UTC";
+  // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
+  const planTimeZone = progressForecast?.enabled ? forecastTimeZone : undefined;
+  const resolvedDates = useMemo(
+    () => resolveTaskDates(tasks, dependencies, projectStart, calendar, planTimeZone),
+    [tasks, dependencies, projectStart, calendar, planTimeZone],
+  );
   const forecastAsOf = progressForecast?.asOf ?? forecastToday(forecastTimeZone);
   const [forecastSelectedTaskId, setForecastSelectedTaskId] = useState<string>();
   const [applyReview, setApplyReview] = useState<ForecastApplyReview>();
@@ -271,8 +315,8 @@ export function DiagramPreview({
     [baselineRender.result?.svg, baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar],
   );
   const baselineDates = useMemo(
-    () => resolveTaskDates(baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar),
-    [baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar],
+    () => resolveTaskDates(baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar, planTimeZone),
+    [baselineTasks, baselineDependencies, baselineProjectStart, baselineCalendar, planTimeZone],
   );
   const renderedBaselineGeometry = useMemo(
     () => extractRenderedTaskGeometry(baselineOverlaySvg, baselineDates),
@@ -463,11 +507,14 @@ export function DiagramPreview({
     const next = tasks[Math.min(tasks.length - 1, Math.max(0, (index < 0 ? 0 : index) + direction))];
     if (next) {
       onTaskSelect(next.id);
-      window.setTimeout(() => revealTask(next.id), 0);
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = window.setTimeout(() => revealTask(next.id), 0);
     }
   };
   useEffect(() => {
-    if (selectedTaskId) window.setTimeout(() => revealTask(selectedTaskId), 0);
+    if (!selectedTaskId) return;
+    const timer = window.setTimeout(() => revealTask(selectedTaskId), 0);
+    return () => window.clearTimeout(timer);
   }, [revealTask, selectedTaskId, interactiveSvg, zoom]);
   useEffect(() => {
     if (selectedTaskId) setHoveredTask(undefined);
@@ -564,17 +611,21 @@ export function DiagramPreview({
             : undefined,
         );
       };
-      const endVertical = () => {
-        window.removeEventListener("pointermove", moveVertical);
-        window.removeEventListener("pointerup", endVertical, true);
+      const resetVertical = () => {
         verticalSeparator.removeAttribute("transform");
         showFeedback();
         draggingRef.current = false;
-        if (days) suppressGestureClick();
-        if (days) onVerticalSeparatorMove(index, days);
       };
-      window.addEventListener("pointermove", moveVertical);
-      window.addEventListener("pointerup", endVertical, true);
+      trackDrag({
+        capture: true,
+        move: moveVertical,
+        end: () => {
+          resetVertical();
+          if (days) suppressGestureClick();
+          if (days) onVerticalSeparatorMove(index, days);
+        },
+        cancel: resetVertical,
+      });
       return;
     }
     const divider = target.closest<SVGGElement>("[data-divider-index]");
@@ -613,9 +664,7 @@ export function DiagramPreview({
                 : "Choose a task boundary",
         );
       };
-      const endDivider = () => {
-        window.removeEventListener("pointermove", moveDivider);
-        window.removeEventListener("pointerup", endDivider, true);
+      const resetDivider = () => {
         [divider, ...visuals].forEach((item, itemIndex) => {
           const original = originalTransforms[itemIndex];
           if (original === null || original === undefined) item.removeAttribute("transform");
@@ -626,12 +675,18 @@ export function DiagramPreview({
         showFeedback();
         draggingRef.current = false;
         setHoveredTask(undefined);
-        suppressGestureClick();
-        if (moved) onDividerReorder(index, targetId);
-        else onDividerSelect(index);
       };
-      window.addEventListener("pointermove", moveDivider);
-      window.addEventListener("pointerup", endDivider, true);
+      trackDrag({
+        capture: true,
+        move: moveDivider,
+        end: () => {
+          resetDivider();
+          suppressGestureClick();
+          if (moved) onDividerReorder(index, targetId);
+          else onDividerSelect(index);
+        },
+        cancel: resetDivider,
+      });
       return;
     }
     const task = target.closest<SVGGElement>("[data-task-id]");
@@ -684,9 +739,16 @@ export function DiagramPreview({
             : moveEvent.clientY - previewRect.top,
         });
       };
+      const cancelConnection = () => {
+        setConnection(undefined);
+        const liveSvg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg") ?? null;
+        for (const svgElement of new Set([liveSvg, connectionSvg, task.ownerSVGElement])) {
+          highlightConnectionTarget(svgElement, undefined);
+          svgElement?.classList.remove("connection-active");
+        }
+        onInteractionMessage(undefined);
+      };
       const endConnection = (upEvent: PointerEvent) => {
-        window.removeEventListener("pointermove", moveConnection);
-        window.removeEventListener("pointerup", endConnection);
         setConnection(undefined);
         if (Math.hypot(upEvent.clientX - pointerStart.x, upEvent.clientY - pointerStart.y) < 5) {
           highlightConnectionTarget(task.ownerSVGElement, undefined);
@@ -715,8 +777,7 @@ export function DiagramPreview({
               : "Drop the connection on another task's start or end anchor",
           );
       };
-      window.addEventListener("pointermove", moveConnection);
-      window.addEventListener("pointerup", endConnection);
+      trackDrag({ move: moveConnection, end: endConnection, cancel: cancelConnection });
       return;
     }
     const resizeHandle = target.closest("[data-resize-handle]");
@@ -1022,7 +1083,9 @@ export function DiagramPreview({
                 type="button"
                 className="gantt-apply-forecast-trigger"
                 onClick={() =>
-                  setApplyReview(prepareForecastApply(source, forecastAsOf, progressForecast!.remainingDays))
+                  setApplyReview(
+                    prepareForecastApply(source, forecastAsOf, progressForecast!.remainingDays, planTimeZone),
+                  )
                 }
               >
                 Apply to plan…
@@ -1120,17 +1183,16 @@ export function DiagramPreview({
                 });
                 return;
               }
-              const group = (event.target as Element).closest<SVGGElement>("[data-task-id]");
-              const id = group?.getAttribute("data-task-id");
-              if (id && id !== selectedTaskId && preview) {
-                cancelTaskHoverClose();
-                const rect = group!.getBoundingClientRect();
-                setHoveredTask({
-                  id,
-                  x: Math.min(preview.width - 270, Math.max(8, rect.right - preview.left + 8)),
-                  y: Math.max(8, rect.top - preview.top),
-                });
-              }
+              showTaskDetails((event.target as Element).closest<SVGGElement>("[data-task-id]"));
+            }}
+            onFocus={(event) => {
+              if (draggingRef.current) return;
+              showTaskDetails((event.target as Element).closest<SVGGElement>("[data-task-id]"));
+            }}
+            onBlur={(event) => {
+              const from = (event.target as Element).closest("[data-task-id]");
+              const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id], .task-hover-card");
+              if (from && from !== to) scheduleTaskHoverClose();
             }}
             onPointerOut={(event) => {
               if (draggingRef.current) return;
@@ -1393,6 +1455,10 @@ export function DiagramPreview({
           style={{ left: hoveredTask.x, top: hoveredTask.y }}
           onPointerEnter={cancelTaskHoverClose}
           onPointerLeave={scheduleTaskHoverClose}
+          onFocus={cancelTaskHoverClose}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleTaskHoverClose();
+          }}
           aria-label={`Task details for ${hoverDetails.label}`}
         >
           <strong>{hoverDetails.label}</strong>
@@ -1468,7 +1534,9 @@ export function DiagramPreview({
           stale={applyReviewStale}
           onClose={() => setApplyReview(undefined)}
           onRecalculate={() =>
-            setApplyReview(prepareForecastApply(source, forecastAsOf, progressForecast?.remainingDays ?? {}))
+            setApplyReview(
+              prepareForecastApply(source, forecastAsOf, progressForecast?.remainingDays ?? {}, planTimeZone),
+            )
           }
           onApply={() => {
             if (onApplyForecast?.(applyReview)) setApplyReview(undefined);
