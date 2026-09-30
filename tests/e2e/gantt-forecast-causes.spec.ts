@@ -71,6 +71,32 @@ test("copies a forecast summary with dates and the finish driver", async ({ page
   expect(copied).toContain("Finish drivers: Design");
 });
 
+test("copies individual delays when the project finish remains on plan", async ({ page, context, browserName }) => {
+  test.skip(browserName !== "chromium", "Clipboard permissions are only consistently exposed by Chromium");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await prepareEditor(page);
+  await setSource(
+    page,
+    `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Long track] starts 2026-09-21
+[Long track] lasts 20 days
+[Long track] is 100% completed
+[Short track] starts 2026-09-21
+[Short track] lasts 3 days
+[Short track] is 50% completed
+@endgantt`,
+  );
+  await page.getByRole("button", { name: "Progress forecast: Off" }).click();
+  await page.getByLabel("Forecast as of date").fill("2026-09-30");
+  await page.getByRole("button", { name: "Copy summary" }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("Working days from plan: 0");
+  expect(copied).toContain("Delayed tasks: 1\n- Short track: 2026-09-23 → 2026-10-01");
+});
+
 test("changes and restores the document forecast time zone", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, "@startgantt\nProject starts 2026-09-21\n[Design] lasts 4 days\n@endgantt");

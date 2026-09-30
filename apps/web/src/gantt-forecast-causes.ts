@@ -85,12 +85,20 @@ export function formatForecastShareSummary(
       : undefined;
   const labels = new Map(tasks.map((task) => [task.id, task.label]));
   const causes = summarizeFinishCauses(tasks, forecast).causes;
+  const delayed = tasks.flatMap((task) => {
+    const item = forecast.tasks.get(task.id);
+    return item?.plannedEnd && item.end && item.end > item.plannedEnd
+      ? [`${task.label}: ${item.plannedEnd} → ${item.end}`]
+      : [];
+  });
   return [
     `Progress forecast (as of ${asOf})`,
     `Automatic Today time zone: ${timeZone}`,
     `Planned finish: ${forecast.plannedFinish ?? "Unavailable"}`,
     `Projected finish: ${forecast.forecastFinish ?? "Unavailable"}`,
     `Working days from plan: ${slip === undefined ? "Unavailable" : `${slip > 0 ? "+" : ""}${slip}`}`,
+    `Delayed tasks: ${delayed.length}`,
+    ...delayed.map((item) => `- ${item}`),
     `Finish drivers: ${causes.length ? causes.map((cause) => labels.get(cause.taskId) ?? cause.taskId).join(", ") : "None identified"}`,
   ].join("\n");
 }

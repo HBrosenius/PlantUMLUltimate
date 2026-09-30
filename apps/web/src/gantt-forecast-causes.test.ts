@@ -126,6 +126,30 @@ sunday are closed
     expect(text).toContain("Planned finish: 2026-09-04");
     expect(text).toContain("Projected finish: 2026-09-07");
     expect(text).toContain("Working days from plan: +3");
+    expect(text).toContain("Delayed tasks: 1\n- Design: 2026-09-04 → 2026-09-07");
     expect(text).toContain("Finish drivers: Design");
+  });
+
+  it("lists a delayed task even when the project finish is unchanged", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[Long track] starts 2026-09-21
+[Long track] lasts 20 days
+[Long track] is 100% completed
+[Short track] starts 2026-09-21
+[Short track] lasts 3 days
+[Short track] is 50% completed
+@endgantt`;
+    const gantt = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const plan = resolveTaskDates(gantt.tasks, gantt.dependencies, gantt.projectStart?.value, calendar);
+    const result = calculateProgressForecast(gantt.tasks, gantt.dependencies, plan, calendar, "2026-09-30");
+    const text = formatForecastShareSummary(gantt.tasks, result, calendar, "2026-09-30");
+    expect(text).toContain("Planned finish: 2026-10-16\nProjected finish: 2026-10-16");
+    expect(text).toContain("Working days from plan: 0");
+    expect(text).toContain("Delayed tasks: 1\n- Short track: 2026-09-23 → 2026-10-01");
+    expect(text).toContain("Finish drivers: None identified");
   });
 });
