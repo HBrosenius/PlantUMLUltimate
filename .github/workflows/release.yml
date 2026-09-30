@@ -6,14 +6,14 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  validate-and-release:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,15 +25,99 @@ jobs:
       - run: npm run validate
       - name: Verify release version
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+  # Browser, PWA and collaboration suites run as parallel jobs, matching CI.
+  browser:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: ${{ matrix.browser }} · shard ${{ matrix.shard }}/4
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Disable unrelated Chrome APT source
         run: |
           if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
             sudo mv /etc/apt/sources.list.d/google-chrome.list /tmp/google-chrome.list.disabled
           fi
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-playwright-${{ matrix.browser }}-${{ matrix.shard }}-of-4
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pwa:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Disable unrelated Chrome APT source
+        run: |
+          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
+            sudo mv /etc/apt/sources.list.d/google-chrome.list /tmp/google-chrome.list.disabled
+          fi
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e:pwa
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-playwright-pwa
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  collaboration-e2e:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Disable unrelated Chrome APT source
+        run: |
+          if [ -f /etc/apt/sources.list.d/google-chrome.list ]; then
+            sudo mv /etc/apt/sources.list.d/google-chrome.list /tmp/google-chrome.list.disabled
+          fi
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e:collaboration
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-playwright-collaboration
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    needs: [browser, pwa, collaboration-e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
