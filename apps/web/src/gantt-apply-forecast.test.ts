@@ -248,3 +248,32 @@ sunday are closed
     expect(review.sourceAfter).toBeUndefined();
   });
 });
+
+describe("applying forecasts to tasks with fixed end dates", () => {
+  it("keeps the applied finish stable on the next forecast", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[A] starts 2026-09-21
+[A] ends 2026-09-25
+[A] is 20% completed
+@endgantt`;
+    const review = prepareForecastApply(source, "2026-09-29", {});
+    expect(review.error).toBeUndefined();
+    expect(review.sourceAfter).toContain("[A] ends 2026-10-02");
+    const document = parseGantt(review.sourceAfter!).document;
+    const calendar = parseGanttCalendar(review.sourceAfter!);
+    const plan = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    const again = calculateProgressForecast(
+      document.tasks,
+      document.dependencies,
+      plan,
+      calendar,
+      "2026-09-29",
+      review.overridesAfter,
+    );
+    const task = [...again.tasks.values()][0]!;
+    expect(task.end).toBe(task.plannedEnd);
+  });
+});

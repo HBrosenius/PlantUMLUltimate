@@ -73,6 +73,19 @@ function workStart(
   return undefined;
 }
 
+function pausedWorkingDays(
+  start: string,
+  end: string,
+  calendar: GanttCalendar,
+  pauses: ReadonlySet<string>,
+): number | undefined {
+  const total = workingDayDuration(start, end, calendar);
+  if (total === undefined) return undefined;
+  let paused = 0;
+  for (const date of pauses) if (date >= start && date <= end && isWorkingDate(date, calendar)) paused += 1;
+  return total - paused || undefined;
+}
+
 export function forecastWorkingDaysBetween(start: string, end: string, calendar: GanttCalendar): number {
   if (end <= start) return 0;
   let date = start;
@@ -123,8 +136,13 @@ export function calculateProgressForecast(
       forecast.set(task.id, result);
       return result;
     }
-    const milestone = planned.start === planned.end && !task.duration;
-    const elapsed = milestone ? 0 : (taskElapsedDays(task) ?? workingDayDuration(planned.start, planned.end, calendar));
+    // Match the apply-forecast definition: a one-day task that starts and ends on the same date still has work.
+    const milestone = Boolean(task.milestone && !task.duration);
+    const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
+    // Without `lasts`, the work is the planned window's working days minus pauses, as workEnd skips them.
+    const elapsed = milestone
+      ? 0
+      : (taskElapsedDays(task) ?? pausedWorkingDays(planned.start, planned.end, calendar, pauses));
     const override = remainingOverrides[task.id];
     const automaticRemainingDays =
       elapsed === undefined ? undefined : Math.max(1, Math.ceil((elapsed * (100 - completion)) / 100));
@@ -135,7 +153,6 @@ export function calculateProgressForecast(
       return result;
     }
     visiting.add(task.id);
-    const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
     let start = planned.start > asOf ? planned.start : asOf;
     const causes: string[] = [];
     let issue: string | undefined;

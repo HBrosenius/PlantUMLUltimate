@@ -201,3 +201,32 @@ Project starts 2026-09-01
     expect(result.tasks.get("b")?.end).toBeUndefined();
   });
 });
+
+describe("one-day tasks", () => {
+  it("forecasts remaining work for an unfinished task that starts and ends on the same day", () => {
+    const forecast = run(
+      `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[A] starts 2026-09-24 and ends 2026-09-24
+[A] is 0% completed
+@endgantt`,
+      "2026-09-29",
+    );
+    const task = [...forecast.tasks.values()][0]!;
+    expect(task.remainingDays).toBe(1);
+    expect(task.end).toBe("2026-09-29");
+  });
+
+  it("excludes pause days from the duration of start/end-dated tasks", () => {
+    const paused = `@startgantt
+saturday are closed
+sunday are closed
+[Work] starts 2026-09-21 and ends 2026-09-25
+[Work] pauses on 2026-09-23
+@endgantt`;
+    const task = run(paused, "2026-09-21").tasks.get("work");
+    expect(task).toMatchObject({ remainingDays: 4, start: "2026-09-21", end: "2026-09-25" });
+  });
+});

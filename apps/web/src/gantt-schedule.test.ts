@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveDateExpression, resolveTaskDates } from "./gantt-schedule";
@@ -65,5 +65,26 @@ describe("resolveTaskDates", () => {
       parseGanttCalendar(source),
     );
     expect(dates.get("b")).toMatchObject({ start: "2026-09-07", end: "2026-09-11" });
+  });
+
+  describe("today in the forecast time zone", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("resolves today relative to the given time zone so it matches the forecast status date", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-30T12:00:00Z"));
+      expect(resolveDateExpression("today", undefined, "Pacific/Kiritimati")).toBe("2026-10-01");
+      expect(resolveDateExpression("today+1", undefined, "Pacific/Pago_Pago")).toBe("2026-10-01");
+      const source = "@startgantt\n[A] starts today\n[A] lasts 1 day\n@endgantt";
+      const gantt = parseGantt(source).document;
+      const dates = resolveTaskDates(
+        gantt.tasks,
+        gantt.dependencies,
+        undefined,
+        parseGanttCalendar(source),
+        "Pacific/Kiritimati",
+      );
+      expect(dates.get("a")).toMatchObject({ start: "2026-10-01", end: "2026-10-01" });
+    });
   });
 });

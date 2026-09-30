@@ -62,11 +62,19 @@ export function prepareForecastApply(
   source: string,
   asOf: string,
   overrides: Readonly<Record<string, number>>,
+  /** Resolves `today` in source dates in the forecast's time zone, matching the forecast status date. */
+  timeZone?: string,
 ): ForecastApplyReview {
   const original = parseGantt(source);
   const calendar = parseGanttCalendar(source);
   const projectStart = original.document.projectStart?.resolved ? original.document.projectStart.value : undefined;
-  const plan = resolveTaskDates(original.document.tasks, original.document.dependencies, projectStart, calendar);
+  const plan = resolveTaskDates(
+    original.document.tasks,
+    original.document.dependencies,
+    projectStart,
+    calendar,
+    timeZone,
+  );
   const forecast: ProgressForecast = calculateProgressForecast(
     original.document.tasks,
     original.document.dependencies,
@@ -107,6 +115,11 @@ export function prepareForecastApply(
     review.error = message;
     return review;
   };
+  // A lengthened started task keeps its forecast remaining work; otherwise the automatic estimate
+  // would be recomputed from the longer span and push the finish out again on the next forecast.
+  const keepRemainingWork = (id: string, started: boolean, remainingDays: number | undefined) => {
+    if (started && remainingDays !== undefined) review.overridesAfter[id] = remainingDays;
+  };
   // Reparse after each declaration change: source ranges are offsets into the current text.
   const change = (id: string, kind: "start" | "end" | "duration" | "milestone", statement: string) => {
     const parsed = parseGantt(candidate);
@@ -135,9 +148,13 @@ export function prepareForecastApply(
       const parsed = parseGantt(candidate);
       const task = parsed.document.symbols.tasks.get(originalTask.id);
       if (!task) return fail(`Task ${originalTask.label} changed identity while preparing the plan.`);
-      const dates = resolveTaskDates(parsed.document.tasks, parsed.document.dependencies, projectStart, calendar).get(
-        task.id,
-      );
+      const dates = resolveTaskDates(
+        parsed.document.tasks,
+        parsed.document.dependencies,
+        projectStart,
+        calendar,
+        timeZone,
+      ).get(task.id);
       if (!dates?.start || !dates.end) return fail(`Cannot resolve ${task.label} in the proposed plan.`);
       if (task.completion?.value === 100) continue;
       const isMilestone = Boolean(task.milestone && !task.duration);
@@ -166,12 +183,14 @@ export function prepareForecastApply(
         refreshed.document.dependencies,
         projectStart,
         calendar,
+        timeZone,
       ).get(task.id)!;
       if (!currentDates.start || !currentDates.end || currentDates.end === wanted.end) continue;
       if (currentDates.start > wanted.end)
         return fail(`${task.label} starts after its forecast finish. Review its dependency or fixed date.`);
       if (currentTask.end?.resolved) {
         if (!change(task.id, "end", `ends ${wanted.end}`)) return fail(`Cannot move ${task.label}'s end.`);
+        keepRemainingWork(task.id, started, wanted.remainingDays);
       } else if (currentTask.duration) {
         const days = availableDays(currentDates.start, wanted.end, source, currentTask);
         if (!days) return fail(`Cannot calculate a duration for ${task.label}.`);
@@ -188,7 +207,9 @@ export function prepareForecastApply(
         }
         if (roundedDays > 0) {
           const rounded = parseGantt(candidate).document;
-          const actual = resolveTaskDates(rounded.tasks, rounded.dependencies, projectStart, calendar).get(task.id);
+          const actual = resolveTaskDates(rounded.tasks, rounded.dependencies, projectStart, calendar, timeZone).get(
+            task.id,
+          );
           if (!actual?.end || actual.end <= wanted.end)
             return fail(`Cannot verify the rounded finish for ${task.label}.`);
           targetPlan.set(task.id, { ...plan.get(task.id)!, end: actual.end });
@@ -213,6 +234,7 @@ export function prepareForecastApply(
         !refreshed.document.dependencies.some((item) => item.successorTaskId === task.id)
       ) {
         if (!change(task.id, "end", `ends ${wanted.end}`)) return fail(`Cannot set ${task.label}'s end.`);
+        keepRemainingWork(task.id, started, wanted.remainingDays);
       } else return fail(`${task.label} cannot reach its forecast finish while preserving its current links.`);
       changed = true;
     }
@@ -229,6 +251,7 @@ export function prepareForecastApply(
     proposed.document.dependencies,
     projectStart,
     calendar,
+    timeZone,
   );
   for (const task of original.document.tasks) {
     const expected = targetForecast.tasks.get(task.id)!;

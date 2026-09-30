@@ -4,6 +4,7 @@ import { parseGanttCalendar } from "./gantt-calendar";
 import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { compareForecastResourceConflicts } from "./gantt-forecast-resource-conflicts";
 import { resolveTaskDates } from "./gantt-schedule";
+import { buildResourceOverAllocations } from "./ResourceWorkloadPanel";
 
 function compare(source: string, capacity = 100) {
   const gantt = parseGantt(source).document;
@@ -87,6 +88,26 @@ sunday are closed
     expect(compare(source).conflicts).toMatchObject([
       { date: "2026-09-30", kind: "new", plannedAllocation: 100, forecastAllocation: 200 },
       { date: "2026-10-01", kind: "new", plannedAllocation: 100, forecastAllocation: 200 },
+    ]);
+  });
+
+  it("labels plan conflicts of start/end-dated tasks as existing, agreeing with the resource panel", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+[A] on {Alice} starts 2026-10-05 and ends 2026-10-07
+[B] on {Alice} starts 2026-10-05 and ends 2026-10-07
+@endgantt`;
+    const result = compare(source);
+    expect(result.conflicts.map((item) => [item.date, item.plannedAllocation, item.kind])).toEqual([
+      ["2026-10-05", 200, "existing"],
+      ["2026-10-06", 200, "existing"],
+      ["2026-10-07", 200, "existing"],
+    ]);
+    const gantt = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const plan = resolveTaskDates(gantt.tasks, gantt.dependencies, gantt.projectStart?.value, calendar);
+    expect(buildResourceOverAllocations(gantt.tasks, { Alice: 100 }, plan, calendar)).toMatchObject([
+      { name: "Alice", peak: 200, days: 3 },
     ]);
   });
 });

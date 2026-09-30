@@ -1,6 +1,7 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { normalizeTaskId } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
+import { forecastToday } from "./forecast-date";
 
 export interface ResolvedTaskDates {
   start?: string;
@@ -26,17 +27,22 @@ export function taskElapsedDays(task: GanttTask): number | undefined {
   return Math.ceil((workload * 100) / taskAllocationPercent(task));
 }
 
-function localToday(): string {
+/**
+ * Resolves `today` in `timeZone` when given (pass the document's forecast time zone so source
+ * `today±N` agrees with the forecast status date); otherwise in the browser's local time zone.
+ */
+function sourceToday(timeZone?: string): string {
+  if (timeZone) return forecastToday(timeZone);
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function resolveDateExpression(value: string, projectStart?: string): string | undefined {
+export function resolveDateExpression(value: string, projectStart?: string, timeZone?: string): string | undefined {
   const normalized = value.replaceAll("/", "-");
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return shiftDate(normalized, 0);
   const relative = value.match(/^(D|today)(?:([+-])(\d+))?$/i);
   if (!relative) return undefined;
-  const anchor = relative[1]?.toLowerCase() === "today" ? localToday() : projectStart;
+  const anchor = relative[1]?.toLowerCase() === "today" ? sourceToday(timeZone) : projectStart;
   if (!anchor) return undefined;
   const amount = Number(relative[3] ?? 0) * (relative[2] === "-" ? -1 : 1);
   return shiftDate(anchor, amount);
@@ -47,6 +53,7 @@ export function resolveTaskDates(
   dependencies: readonly GanttDependency[],
   projectStart: string | undefined,
   calendar: GanttCalendar,
+  timeZone?: string,
 ): Map<string, ResolvedTaskDates> {
   const resolved = new Map<string, ResolvedTaskDates>();
   const visiting = new Set<string>();
@@ -75,10 +82,10 @@ export function resolveTaskDates(
     if (cached) return cached;
     if (visiting.has(task.id)) return { derived: true };
     visiting.add(task.id);
-    let start = task.start ? resolveDateExpression(task.start.value, projectStart) : undefined;
-    let end = task.end ? resolveDateExpression(task.end.value, projectStart) : undefined;
+    let start = task.start ? resolveDateExpression(task.start.value, projectStart, timeZone) : undefined;
+    let end = task.end ? resolveDateExpression(task.end.value, projectStart, timeZone) : undefined;
     if (!start && !end && task.milestone && "resolved" in task.milestone && task.milestone.resolved) {
-      const milestoneDate = resolveDateExpression(task.milestone.value, projectStart);
+      const milestoneDate = resolveDateExpression(task.milestone.value, projectStart, timeZone);
       if (milestoneDate) {
         start = milestoneDate;
         end = milestoneDate;

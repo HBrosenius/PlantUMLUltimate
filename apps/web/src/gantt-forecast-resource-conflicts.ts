@@ -40,6 +40,9 @@ export function compareForecastResourceConflicts(
   capacities: ResourceCapacity,
   asOf: string,
 ): ForecastResourceComparison {
+  // Both sides compare remaining work only: completed tasks consume no capacity from the status
+  // date on, so they are excluded from the planned AND forecast workloads alike. "existing" thus
+  // means the plan already over-allocated the resource with unfinished work on that date.
   const assigned = tasks.filter(
     (task) => (task.resources?.length ?? 0) > 0 && !task.milestone && (task.completion?.value ?? 0) < 100,
   );

@@ -26,7 +26,10 @@ export interface ResourceOverAllocation {
 }
 export interface ResourceResolvedDate {
   start?: string;
+  end?: string;
 }
+
+const MAX_SCHEDULE_STEPS = 10_000;
 
 export interface ResourceWorkWindow {
   start: string;
@@ -46,17 +49,26 @@ export function buildResourceWorkloads(
       const resource = resources.get(key) ?? { name: assignment.value, days: new Map(), tasks: new Map() };
       resource.tasks.set(task.id, task);
       const window = workWindows?.get(task.id);
-      const start = window?.start ?? (task.start?.resolved ? task.start.value : resolvedDates?.get(task.id)?.start);
+      const resolved = resolvedDates?.get(task.id);
+      const start = window?.start ?? (task.start?.resolved ? task.start.value : resolved?.start);
       const duration = window ? window.days : taskElapsedDays(task);
-      if (start && duration && duration > 0) {
+      // Tasks defined by start and end dates (no `lasts`) occupy every working day of their
+      // resolved window, matching the planned side of the forecast resource comparison.
+      const end =
+        window || duration || (task.milestone && !task.duration)
+          ? undefined
+          : (resolved?.end ?? (task.end?.resolved ? task.end.value : undefined));
+      if (start && ((duration && duration > 0) || (end && end >= start))) {
         const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
         let assignedDays = 0;
-        let index = 0;
-        while (assignedDays < duration) {
+        // Cap the walk so a calendar that closes every day (or pauses covering them) cannot
+        // freeze the tab; exhausting it simply leaves the rest of the task unscheduled.
+        for (let index = 0; index < MAX_SCHEDULE_STEPS; index += 1) {
+          if (duration && assignedDays >= duration) break;
           const date = new Date(`${start}T00:00:00Z`);
           date.setUTCDate(date.getUTCDate() + index);
           const value = date.toISOString().slice(0, 10);
-          index += 1;
+          if (end && value > end) break;
           if (pauses.has(value) || (calendar && !isWorkingDate(value, calendar))) continue;
           const day = resource.days.get(value) ?? { date: value, allocation: 0, tasks: [] };
           day.allocation += assignment.allocation ?? 100;

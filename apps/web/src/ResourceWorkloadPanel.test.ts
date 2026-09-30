@@ -155,4 +155,37 @@ project starts 2026-09-01
     expect(nextSource).toContain("[Frontend] on {Kalle:100%} starts at [Backend]'s end");
     expect(computeAllocations(nextSource)).toEqual([]);
   });
+
+  it("counts tasks defined by start and end dates over their working days", () => {
+    const source = `@startgantt
+saturday are closed
+sunday are closed
+[A] on {Alice} starts 2026-10-02 and ends 2026-10-06
+[B] on {Alice} starts 2026-10-02 and ends 2026-10-06
+[B] pauses on 2026-10-05
+@endgantt`;
+    const gantt = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const resolved = resolveTaskDates(gantt.tasks, gantt.dependencies, undefined, calendar);
+    const workload = buildResourceWorkloads(gantt.tasks, resolved, calendar)[0]!;
+    expect(workload.days.map((item) => [item.date, item.allocation])).toEqual([
+      ["2026-10-02", 200],
+      ["2026-10-05", 100],
+      ["2026-10-06", 200],
+    ]);
+    expect(buildResourceOverAllocations(gantt.tasks, { Alice: 100 }, resolved, calendar)).toMatchObject([
+      { name: "Alice", peak: 200, days: 2 },
+    ]);
+  });
+
+  it("stops scheduling instead of looping forever when every day is closed", () => {
+    const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const source = `@startgantt
+${days.map((day) => `${day} are closed`).join("\n")}
+[A] on {Alice} starts 2026-10-05
+[A] lasts 2 days
+@endgantt`;
+    const workload = buildResourceWorkloads(parseGantt(source).document.tasks, undefined, parseGanttCalendar(source));
+    expect(workload).toMatchObject([{ name: "Alice", days: [] }]);
+  });
 });
