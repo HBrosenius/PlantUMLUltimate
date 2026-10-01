@@ -186,13 +186,18 @@ Status legend: `[ ]` open, `[x]` fixed in source (see notes).
    persistent storage): show usage (`navigator.storage.estimate()`), request persistent
    storage, warn on failed writes, crash screen with restore/download backup. Keep a
    revision marker in localStorage and data in IndexedDB.
-2. **Grouped typing undo and a clickable history list.**
+2. **Grouped typing undo and a clickable history list.** _Done: typing merges into one undo
+   step, and the ▾ "Recent changes" menu next to undo/redo jumps several steps back or forward._
 3. **Shared PlantUML tokenizer and quoting helper** in `language-plantuml` (CRLF, block
    comments, preprocessor, block ranges, Unicode, quoting); diagram-kind override in the UI.
 4. **Rebase-style apply** for Jira and forecasts; re-forecast preview before applying.
-5. **Multi-select, bulk edit, copy/paste** in visual editors.
-6. **Starter examples** per diagram type in the New dialog.
-7. **More export**: copy image to clipboard, PDF, Markdown/Confluence embed snippet.
+5. **Multi-select, bulk edit, copy/paste** in visual editors. _Done for Gantt: Shift or Ctrl/⌘-click
+   selects several tasks; the selected-tasks inspector shifts dates and sets colour, completion
+   and resource; Ctrl/⌘+C, V and D copy, paste and duplicate. Other diagram kinds remain._
+6. **Starter examples** per diagram type in the New dialog. _Done: 10 examples covering all
+   seven diagram kinds._
+7. **More export**: copy image to clipboard, PDF, Markdown/Confluence embed snippet. _Done in
+   File › Export and the command palette._
 8. **Sequence keyboard editing on par with Gantt**; task details on focus.
 9. **Forecast**: status-date slider, finish-date trend, resolve conflicts in place, show
    estimate provenance with "reset to automatic".

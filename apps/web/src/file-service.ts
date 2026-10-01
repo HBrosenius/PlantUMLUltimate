@@ -268,12 +268,7 @@ export async function savePortableDocumentAs(
 }
 
 export function downloadText(contents: string, fileName: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([contents], { type }));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  downloadBlob(new Blob([contents], { type }), fileName);
 }
 
 export async function savePlantUmlDocumentAs(
@@ -307,7 +302,27 @@ export function pngFileName(fileName: string): string {
   return fileName.replace(/\.(pumlu|puml|plantuml)$/i, "") + ".png";
 }
 
-export async function downloadSvgAsPng(svg: string, fileName: string, scale = 2): Promise<void> {
+export function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export interface RasterizedSvg {
+  blob: Blob;
+  /** Diagram size in CSS pixels, before the raster scale is applied. */
+  width: number;
+  height: number;
+}
+
+/** Draws an SVG onto a canvas and encodes it. JPEG has no alpha, so pass a background for it. */
+export async function rasterizeSvg(
+  svg: string,
+  { scale = 2, type = "image/png", background }: { scale?: number; type?: string; background?: string } = {},
+): Promise<RasterizedSvg> {
   const blobUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = new Image();
@@ -316,22 +331,29 @@ export async function downloadSvgAsPng(svg: string, fileName: string, scale = 2)
     const width = Math.max(1, image.naturalWidth || image.width);
     const height = Math.max(1, image.naturalHeight || image.height);
     const canvas = document.createElement("canvas");
-    canvas.width = width * scale;
-    canvas.height = height * scale;
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("PNG export is not supported by this browser");
+    if (!context) throw new Error("Image export is not supported by this browser");
+    if (background) {
+      context.fillStyle = background;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
     context.scale(scale, scale);
     context.drawImage(image, 0, 0, width, height);
-    const png = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Could not create PNG"))), "image/png"),
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((value) => (value ? resolve(value) : reject(new Error("Could not create image"))), type, 0.92),
     );
-    const pngUrl = URL.createObjectURL(png);
-    const anchor = document.createElement("a");
-    anchor.href = pngUrl;
-    anchor.download = pngFileName(fileName);
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(pngUrl), 0);
+    return { blob, width, height };
   } finally {
     URL.revokeObjectURL(blobUrl);
   }
+}
+
+export async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
+  return (await rasterizeSvg(svg, { scale, type: "image/png" })).blob;
+}
+
+export async function downloadSvgAsPng(svg: string, fileName: string, scale = 2): Promise<void> {
+  downloadBlob(await svgToPngBlob(svg, scale), pngFileName(fileName));
 }

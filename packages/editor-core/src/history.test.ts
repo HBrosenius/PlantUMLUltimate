@@ -72,4 +72,16 @@ describe("SourceHistory", () => {
     expect(history.amendLast("a", "a+legend")).toBe(false);
     expect(history.redo("a")).toBe("ab+legend");
   });
+
+  it("lists undo and redo step descriptions in the order they apply", () => {
+    const history = new SourceHistory();
+    history.record("a", "b", "Add task");
+    history.record("b", "c", "Move task");
+    history.record("c", "d", "Rename task");
+    expect(history.undoDescriptions).toEqual(["Rename task", "Move task", "Add task"]);
+    history.undo("d");
+    history.undo("c");
+    expect(history.undoDescriptions).toEqual(["Add task"]);
+    expect(history.redoDescriptions).toEqual(["Move task", "Rename task"]);
+  });
 });

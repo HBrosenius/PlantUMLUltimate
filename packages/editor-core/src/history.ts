@@ -35,6 +35,14 @@ export class SourceHistory {
   get canRedo(): boolean {
     return this.#redo.length > 0;
   }
+  /** Undoable steps, most recent first. */
+  get undoDescriptions(): readonly string[] {
+    return this.#undo.map((entry) => entry.description).reverse();
+  }
+  /** Redoable steps, next redo first. */
+  get redoDescriptions(): readonly string[] {
+    return this.#redo.map((entry) => entry.description).reverse();
+  }
 
   record(
     sourceBefore: string,

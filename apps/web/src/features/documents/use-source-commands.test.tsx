@@ -72,6 +72,8 @@ function Harness({
       </button>
       <button onClick={undo}>Undo</button>
       <button onClick={redo}>Redo</button>
+      <button onClick={() => undo(2)}>Undo two</button>
+      <button onClick={() => redo(2)}>Redo two</button>
       <output data-testid="source">{workspace.source}</output>
       <output data-testid="forecast-remaining">{forecastSettings.remainingDays.first ?? "automatic"}</output>
       <output data-testid="message">{message}</output>
@@ -205,5 +207,24 @@ describe("useSourceCommands", () => {
     expect(screen.getByTestId("message")).toHaveTextContent("redo is available only to editors");
     expect(history.canUndo).toBe(true);
     expect(refreshHistoryControls).not.toHaveBeenCalled();
+  });
+
+  it("undoes and redoes several steps in one update", () => {
+    const history = new SourceHistory();
+    const first = `${initialSource}\n' first`;
+    const second = `${initialSource}\n' second`;
+    history.record(first, second, "Step 1");
+    history.record(second, initialSource, "Step 2");
+    const refreshHistoryControls = vi.fn();
+    render(<Harness history={history} captureBeforeCommit={vi.fn()} refreshHistoryControls={refreshHistoryControls} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo two" }));
+    expect(screen.getByTestId("source").textContent).toBe(first);
+    expect(history.canUndo).toBe(false);
+    expect(refreshHistoryControls).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Redo two" }));
+    expect(screen.getByTestId("source").textContent).toBe(initialSource);
+    expect(history.canRedo).toBe(false);
   });
 });

@@ -38,3 +38,30 @@ test("keeps document shortcuts from acting behind an open dialog", async ({ page
   await expect(page.getByRole("tab")).toHaveCount(tabs);
   await expect(editor).toContainText("[Build] lasts 3 days");
 });
+
+test("jumps back several steps from the undo history", async ({ page }) => {
+  await prepareEditor(page);
+  await setSource(page, source("[Build] lasts 3 days"));
+  const editor = page.locator(".cm-content");
+  for (const name of ["Design", "Review"]) {
+    await openAddDialog(page, "Task…");
+    const dialog = page.getByRole("dialog", { name: "Add task" });
+    await dialog.getByLabel("Name").fill(name);
+    await dialog.getByRole("button", { name: "Add task" }).click();
+    await expect(editor).toContainText(`[${name}]`);
+  }
+
+  await page.getByRole("button", { name: "Recent changes" }).click();
+  const menu = page.getByRole("menu", { name: "Recent changes" });
+  const steps = menu.getByRole("menuitem");
+  await expect(steps).toHaveCount(3);
+  await steps.nth(1).click();
+  await expect(editor).toContainText("[Build] lasts 3 days");
+  await expect(editor).not.toContainText("[Design]");
+  await expect(editor).not.toContainText("[Review]");
+
+  await page.getByRole("button", { name: "Recent changes" }).click();
+  await expect(menu.getByText("Redo")).toBeVisible();
+  await menu.getByRole("menuitem").first().click();
+  await expect(editor).toContainText("[Review]");
+});

@@ -104,53 +104,54 @@ export function useSourceCommands({
     [commitSource],
   );
 
-  const undo = useCallback(() => {
-    if (readOnly) {
-      setInteractionMessage("Viewing only · undo is available only to editors");
-      return;
-    }
-    const entry = history.undoEntry(currentSource);
-    if (!entry) return;
-    setWorkspace((current) => ({ ...current, source: entry.sourceBefore, dirty: true }));
-    if (entry.contextAfter !== undefined)
-      onForecastHistoryChange?.(
-        entry.contextBefore as ForecastSettings | undefined,
-        entry.contextAfter as ForecastSettings,
-      );
-    refreshHistoryControls();
-  }, [
-    currentSource,
-    history,
-    onForecastHistoryChange,
-    readOnly,
-    refreshHistoryControls,
-    setInteractionMessage,
-    setWorkspace,
-  ]);
-
-  const redo = useCallback(() => {
-    if (readOnly) {
-      setInteractionMessage("Viewing only · redo is available only to editors");
-      return;
-    }
-    const entry = history.redoEntry(currentSource);
-    if (!entry) return;
-    setWorkspace((current) => ({ ...current, source: entry.sourceAfter, dirty: true }));
-    if (entry.contextAfter !== undefined)
-      onForecastHistoryChange?.(
-        entry.contextAfter as ForecastSettings,
-        entry.contextBefore as ForecastSettings | undefined,
-      );
-    refreshHistoryControls();
-  }, [
-    currentSource,
-    history,
-    onForecastHistoryChange,
-    readOnly,
-    refreshHistoryControls,
-    setInteractionMessage,
-    setWorkspace,
-  ]);
+  /**
+   * Undoes or redoes up to `steps` history entries in one source update. A step that also changes
+   * forecast settings ends the batch, because those settings are read back from the document.
+   */
+  const travel = useCallback(
+    (direction: "undo" | "redo", steps: number) => {
+      if (readOnly) {
+        setInteractionMessage(`Viewing only · ${direction} is available only to editors`);
+        return;
+      }
+      let source = currentSource;
+      let applied = 0;
+      while (applied < steps) {
+        const entry = direction === "undo" ? history.undoEntry(source) : history.redoEntry(source);
+        if (!entry) break;
+        source = direction === "undo" ? entry.sourceBefore : entry.sourceAfter;
+        applied += 1;
+        if (entry.contextAfter !== undefined) {
+          if (direction === "undo")
+            onForecastHistoryChange?.(
+              entry.contextBefore as ForecastSettings | undefined,
+              entry.contextAfter as ForecastSettings,
+            );
+          else
+            onForecastHistoryChange?.(
+              entry.contextAfter as ForecastSettings,
+              entry.contextBefore as ForecastSettings | undefined,
+            );
+          break;
+        }
+      }
+      if (!applied) return;
+      setWorkspace((current) => ({ ...current, source, dirty: true }));
+      refreshHistoryControls();
+    },
+    [
+      currentSource,
+      history,
+      onForecastHistoryChange,
+      readOnly,
+      refreshHistoryControls,
+      setInteractionMessage,
+      setWorkspace,
+    ],
+  );
+  // Also used directly as click handlers, so a non-number argument means one step.
+  const undo = useCallback((steps?: unknown) => travel("undo", typeof steps === "number" ? steps : 1), [travel]);
+  const redo = useCallback((steps?: unknown) => travel("redo", typeof steps === "number" ? steps : 1), [travel]);
 
   return { commitSource, commitGeneratedSource, undo, redo };
 }

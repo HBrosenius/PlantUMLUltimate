@@ -102,6 +102,13 @@ import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapte
 import { RenameSymbolDialog } from "./RenameSymbolDialog";
 import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
 import { usePwa } from "./pwa";
+import {
+  confluencePlantUmlMarkup,
+  copyDiagramImage,
+  copyText,
+  downloadDiagramPdf,
+  plantUmlMarkdown,
+} from "./diagram-export";
 import type { Command } from "@plantuml-studio/editor-core";
 import {
   downloadSvgAsPng,
@@ -143,6 +150,20 @@ import {
   type SemanticSymbolOccurrence,
 } from "./semantic-symbol-provider";
 import { StorageStatus } from "./StorageStatus";
+import { HistoryMenu } from "./HistoryMenu";
+import { BulkTaskInspector } from "./BulkTaskInspector";
+import {
+  copyTasksText,
+  deleteTasks,
+  describeBulkResult,
+  duplicateTasks,
+  moveTasksByDays,
+  pasteTasksText,
+  setTasksColor,
+  setTasksCompletion,
+  setTasksResource,
+  type BulkTaskResult,
+} from "./gantt-bulk-operations";
 
 function diagramFocusSelector(target: Element): string | undefined {
   for (const attribute of [
@@ -903,6 +924,24 @@ export function App() {
               ? wbsDocument.unknown.length
               : 0;
   const selectedTask = selectedTaskId ? parseResult.document.symbols.tasks.get(selectedTaskId) : undefined;
+  // Tasks added to the selection with Shift or Ctrl/⌘-click, after the primary `selectedTaskId`.
+  const [extraSelectedTaskIds, setExtraSelectedTaskIds] = useState<string[]>([]);
+  const selectedTaskIds = useMemo(
+    () =>
+      selectedTaskId && workspace.diagramKind === "gantt"
+        ? [
+            selectedTaskId,
+            ...extraSelectedTaskIds.filter((id) => id !== selectedTaskId && parseResult.document.symbols.tasks.has(id)),
+          ]
+        : [],
+    [extraSelectedTaskIds, parseResult.document.symbols.tasks, selectedTaskId, workspace.diagramKind],
+  );
+  const multipleTasksSelected = selectedTaskIds.length > 1;
+  useEffect(() => {
+    if (!selectedTaskId) setExtraSelectedTaskIds([]);
+  }, [selectedTaskId]);
+  useEffect(() => setExtraSelectedTaskIds([]), [tabs.activeId]);
+  const taskClipboard = useRef<string | undefined>(undefined);
   const selectedTaskDependency = selectedTask
     ? parseResult.document.dependencies.find((item) => item.successorTaskId === selectedTask.id)
     : undefined;
@@ -1135,6 +1174,7 @@ export function App() {
   const selectTask = (taskId: string) => {
     const task = parseResult.document.symbols.tasks.get(taskId);
     if (!task) return;
+    setExtraSelectedTaskIds([]);
     setResourcePanelOpen(false);
     setProjectInspectorOpen(false);
     setSelectedTaskId(task.id);
@@ -1144,6 +1184,64 @@ export function App() {
     const declaration = task.declarations[0];
     setSelectionRequest(declaration ? { ...declaration.range } : { ...task.sourceRange });
   };
+
+  /** Shift or Ctrl/⌘-click: adds a task to, or removes it from, the multi-task selection. */
+  const toggleTaskSelection = (taskId: string) => {
+    if (!parseResult.document.symbols.tasks.has(taskId)) return;
+    if (!selectedTaskId) {
+      selectTask(taskId);
+      return;
+    }
+    if (taskId === selectedTaskId) {
+      const [next, ...rest] = selectedTaskIds.slice(1);
+      if (!next) return;
+      selectTask(next);
+      setExtraSelectedTaskIds(rest);
+      return;
+    }
+    setExtraSelectedTaskIds((current) =>
+      current.includes(taskId) ? current.filter((id) => id !== taskId) : [...current, taskId],
+    );
+  };
+  const applyBulkTaskChange = (verb: string, result: BulkTaskResult, keepSelection = true) => {
+    if (result.applied.length && !commitGeneratedSource(result.source, `${verb} ${result.applied.length} tasks`))
+      return;
+    if (!keepSelection) setSelectedTaskId(undefined);
+    setInteractionMessage(describeBulkResult(verb, result));
+  };
+  const copySelectedTasks = () => {
+    const text = copyTasksText(workspace.source, selectedTaskIds);
+    if (!text) return;
+    taskClipboard.current = text;
+    void navigator.clipboard?.writeText(text).catch(() => undefined);
+    setInteractionMessage(
+      `Copied ${selectedTaskIds.length} task${selectedTaskIds.length === 1 ? "" : "s"} · paste with Ctrl/⌘+V in a Gantt chart`,
+    );
+  };
+  const pasteCopiedTasks = () => {
+    const text = taskClipboard.current;
+    if (!text || workspace.diagramKind !== "gantt") return;
+    const pasted = pasteTasksText(workspace.source, text);
+    if (!pasted.taskIds.length || !commitGeneratedSource(pasted.source, `Paste ${pasted.taskIds.length} tasks`)) return;
+    setSelectedTaskId(pasted.taskIds[0]);
+    setExtraSelectedTaskIds(pasted.taskIds.slice(1));
+    setInteractionMessage(`Pasted ${pasted.taskIds.length} task${pasted.taskIds.length === 1 ? "" : "s"}`);
+  };
+  const duplicateSelectedTasks = () => {
+    const result = duplicateTasks(workspace.source, selectedTaskIds);
+    if (!result.copies.length) {
+      setInteractionMessage(describeBulkResult("Duplicated", result));
+      return;
+    }
+    if (!commitGeneratedSource(result.source, `Duplicate ${result.copies.length} tasks`)) return;
+    setSelectedTaskId(result.copies[0]);
+    setExtraSelectedTaskIds(result.copies.slice(1));
+    setInteractionMessage(describeBulkResult("Duplicated", result));
+  };
+
+  // Read by the window shortcut handler, which is not re-subscribed on every render.
+  const taskShortcuts = useRef({ selectedTaskIds, copySelectedTasks, pasteCopiedTasks, duplicateSelectedTasks });
+  taskShortcuts.current = { selectedTaskIds, copySelectedTasks, pasteCopiedTasks, duplicateSelectedTasks };
 
   const diagramOutlineEntries = useMemo(() => {
     const source = workspace.source;
@@ -1964,6 +2062,46 @@ export function App() {
       reportFileError(error);
     }
   }, [reportFileError, result?.svg, workspace.fileName]);
+  const exportPdf = useCallback(async () => {
+    if (!result?.svg) {
+      setInteractionMessage("Render a valid diagram before exporting PDF");
+      return;
+    }
+    try {
+      await downloadDiagramPdf(result.svg, workspace.fileName);
+      setInteractionMessage("Exported PDF");
+    } catch (error) {
+      reportFileError(error);
+    }
+  }, [reportFileError, result?.svg, workspace.fileName]);
+  const copyImage = useCallback(async () => {
+    if (!result?.svg) {
+      setInteractionMessage("Render a valid diagram before copying it");
+      return;
+    }
+    try {
+      await copyDiagramImage(result.svg);
+      setInteractionMessage("Copied diagram image");
+    } catch (error) {
+      setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
+    }
+  }, [result?.svg]);
+  const copySourceAs = useCallback(async (text: string, label: string) => {
+    try {
+      await copyText(text);
+      setInteractionMessage(`Copied ${label}`);
+    } catch (error) {
+      setInteractionMessage(error instanceof Error ? error.message : `Could not copy ${label}`);
+    }
+  }, []);
+  const copyMarkdown = useCallback(
+    () => copySourceAs(plantUmlMarkdown(workspace.source), "source as Markdown"),
+    [copySourceAs, workspace.source],
+  );
+  const copyConfluence = useCallback(
+    () => copySourceAs(confluencePlantUmlMarkup(workspace.source), "Confluence PlantUML markup"),
+    [copySourceAs, workspace.source],
+  );
 
   const confirmWbsDelete = useCallback((message: string) => window.confirm(message), []);
   const {
@@ -2376,11 +2514,25 @@ export function App() {
       { id: "export.source", label: "Export source", category: "Export", run: exportSource },
       { id: "export.svg", label: "Export SVG", category: "Export", enabled: Boolean(result?.svg), run: exportSvg },
       { id: "export.png", label: "Export PNG", category: "Export", enabled: Boolean(result?.svg), run: exportPng },
+      { id: "export.pdf", label: "Export PDF", category: "Export", enabled: Boolean(result?.svg), run: exportPdf },
+      {
+        id: "export.copy-image",
+        label: "Copy diagram image",
+        category: "Export",
+        enabled: Boolean(result?.svg),
+        run: copyImage,
+      },
+      { id: "export.copy-markdown", label: "Copy as Markdown", category: "Export", run: copyMarkdown },
+      { id: "export.copy-confluence", label: "Copy for Confluence", category: "Export", run: copyConfluence },
     ];
   }, [
     activeHistory,
     backupWorkspace,
     collaboration,
+    copyConfluence,
+    copyImage,
+    copyMarkdown,
+    exportPdf,
     exportPng,
     exportSource,
     exportSvg,
@@ -2487,6 +2639,25 @@ export function App() {
       }
       // Text fields keep their native undo and redo.
       if (key === "z" && editingOutsideCodeEditor) return;
+      // Copy, paste and duplicate Gantt tasks when focus is on the diagram rather than in text.
+      if (!editing && workspace.diagramKind === "gantt" && !event.shiftKey && !event.altKey) {
+        const shortcuts = taskShortcuts.current;
+        if (key === "c" && shortcuts.selectedTaskIds.length) {
+          event.preventDefault();
+          shortcuts.copySelectedTasks();
+          return;
+        }
+        if (key === "v" && taskClipboard.current) {
+          event.preventDefault();
+          shortcuts.pasteCopiedTasks();
+          return;
+        }
+        if (key === "d" && shortcuts.selectedTaskIds.length) {
+          event.preventDefault();
+          shortcuts.duplicateSelectedTasks();
+          return;
+        }
+      }
       if (event.shiftKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
         openDialog({ kind: "diagram-outline" });
@@ -2853,6 +3024,10 @@ export function App() {
             onExportSource={exportSource}
             onExportSvg={exportSvg}
             onExportPng={() => void exportPng()}
+            onExportPdf={() => void exportPdf()}
+            onCopyImage={() => void copyImage()}
+            onCopyMarkdown={() => void copyMarkdown()}
+            onCopyConfluence={() => void copyConfluence()}
           />
           <AddMenu
             diagramKind={workspace.diagramKind}
@@ -2985,6 +3160,12 @@ export function App() {
           <button onClick={redo} disabled={!activeHistory.canRedo} aria-label="Redo">
             ↷
           </button>
+          <HistoryMenu
+            undoSteps={activeHistory.undoDescriptions}
+            redoSteps={activeHistory.redoDescriptions}
+            onUndo={undo}
+            onRedo={redo}
+          />
         </div>
         {workspace.diagramKind === "gantt" && (
           <label className="resource-filter">
@@ -3259,6 +3440,9 @@ export function App() {
               remoteEditColor={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.color : undefined}
               remoteEditName={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.name : undefined}
               onTaskSelect={selectTask}
+              onTaskToggle={toggleTaskSelection}
+              selectedTaskIds={selectedTaskIds}
+              onTasksMove={(ids, days) => applyBulkTaskChange("Moved", moveTasksByDays(workspace.source, ids, days))}
               onNoteSelect={(taskId) => {
                 selectTask(taskId);
                 setFocusNoteTaskId(taskId);
@@ -3627,7 +3811,13 @@ export function App() {
           onClose={() => closeDialog("diagram-outline")}
         />
       )}
-      {newDocumentOpen && <NewDocumentDialog onChoose={createDocument} onClose={closeNewDocumentDialog} />}
+      {newDocumentOpen && (
+        <NewDocumentDialog
+          onChoose={createDocument}
+          onChooseExample={(example) => createDocument(example.kind, example)}
+          onClose={closeNewDocumentDialog}
+        />
+      )}
       {dialog?.kind === "add-wbs-node" && (
         <AddWbsNodeDialog
           selected={selectedWbsNode}
@@ -4338,8 +4528,28 @@ export function App() {
         onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
         onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
       />
+      {multipleTasksSelected && (
+        <BulkTaskInspector
+          labels={selectedTaskIds.map((id) => parseResult.document.symbols.tasks.get(id)?.label ?? id)}
+          resourceNames={resourceNames}
+          onMove={(days) => applyBulkTaskChange("Moved", moveTasksByDays(workspace.source, selectedTaskIds, days))}
+          onColor={(color) =>
+            applyBulkTaskChange("Recoloured", setTasksColor(workspace.source, selectedTaskIds, color))
+          }
+          onCompletion={(value) =>
+            applyBulkTaskChange("Updated", setTasksCompletion(workspace.source, selectedTaskIds, value))
+          }
+          onResource={(name) =>
+            applyBulkTaskChange("Assigned", setTasksResource(workspace.source, selectedTaskIds, name))
+          }
+          onDuplicate={duplicateSelectedTasks}
+          onCopy={copySelectedTasks}
+          onDelete={() => applyBulkTaskChange("Deleted", deleteTasks(workspace.source, selectedTaskIds), false)}
+          onClose={() => setSelectedTaskId(undefined)}
+        />
+      )}
       <GanttInspectors
-        selectedTask={selectedTask}
+        selectedTask={multipleTasksSelected ? undefined : selectedTask}
         linkedWbsAlias={
           selectedTask
             ? activeDocument.wbsGanttLinks?.find((link) => link.ganttAlias.toLowerCase() === selectedTask.id)?.wbsAlias

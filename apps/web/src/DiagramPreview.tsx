@@ -40,9 +40,15 @@ interface Props {
   remoteEditColor?: string | undefined;
   remoteEditName?: string | undefined;
   onTaskSelect(taskId: string): void;
+  /** Shift or Cmd/Ctrl-click adds a task to, or removes it from, a multi-task selection. */
+  onTaskToggle?(taskId: string): void;
+  /** All selected tasks when several are selected; the first is `selectedTaskId`. */
+  selectedTaskIds?: readonly string[];
   onNoteSelect(taskId: string): void;
   onBackgroundSelect(): void;
   onTaskMove(taskId: string, days: number): void;
+  /** Moves every task of a multi-task selection when one of them is dragged sideways. */
+  onTasksMove?(taskIds: readonly string[], days: number): void;
   onTaskReorder(taskId: string, beforeTaskId?: string): void;
   onDividerReorder(dividerIndex: number, beforeTaskId?: string): void;
   onVerticalSeparatorMove(separatorIndex: number, days: number): void;
@@ -116,6 +122,9 @@ export function DiagramPreview({
   remoteEditColor,
   remoteEditName,
   onTaskSelect,
+  onTaskToggle,
+  selectedTaskIds,
+  onTasksMove,
   onNoteSelect,
   onBackgroundSelect,
   onTaskMove,
@@ -349,8 +358,12 @@ export function DiagramPreview({
   const selectedSvg = useMemo(() => {
     if (!interactiveSvg) return interactiveSvg;
     let marked = interactiveSvg;
-    const markedTaskId = highlightedTaskId ?? selectedTaskId;
-    if (markedTaskId) {
+    // A source-highlighted task is marked as before; a multi-task selection stays marked alongside it.
+    const multiSelection = selectedTaskIds && selectedTaskIds.length > 1 ? selectedTaskIds : [];
+    const markedTaskIds = new Set(
+      [highlightedTaskId ?? selectedTaskId, ...multiSelection].filter((id): id is string => Boolean(id)),
+    );
+    for (const markedTaskId of markedTaskIds) {
       const escapedId = markedTaskId
         .replaceAll("&", "&amp;")
         .replaceAll('"', "&quot;")
@@ -407,6 +420,7 @@ export function DiagramPreview({
   }, [
     interactiveSvg,
     selectedTaskId,
+    selectedTaskIds,
     highlightedTaskId,
     remoteEditTaskId,
     remoteEditColor,
@@ -693,6 +707,14 @@ export function DiagramPreview({
     const id = task?.getAttribute("data-task-id");
     pointerTaskIdRef.current = id ?? undefined;
     if (!task || !id) return;
+    if (onTaskToggle && (event.shiftKey || event.metaKey || event.ctrlKey)) {
+      // A modified click edits the multi-task selection instead of starting a drag.
+      event.preventDefault();
+      pointerTaskIdRef.current = undefined;
+      suppressGestureClick();
+      onTaskToggle(id);
+      return;
+    }
     const dependencyHandle = target.closest<SVGGraphicsElement>("[data-dependency-handle]");
     if (dependencyHandle) {
       const predecessorAnchor = dependencyHandle.getAttribute("data-dependency-handle") === "start" ? "start" : "end";
@@ -868,6 +890,18 @@ export function DiagramPreview({
     );
     const originalTransforms = visualElements.map((element) => element.getAttribute("transform"));
     const originalTaskTransform = task.getAttribute("transform");
+    // Dragging one task of a multi-task selection moves the others by the same number of days.
+    const companionIds =
+      onTasksMove && selectedTaskIds && selectedTaskIds.length > 1 && selectedTaskIds.includes(id)
+        ? selectedTaskIds.filter((item) => item !== id)
+        : [];
+    const companionElements = companionIds.flatMap((companionId) => [
+      ...[...(task.ownerSVGElement?.querySelectorAll<SVGGraphicsElement>("[data-task-id]") ?? [])].filter(
+        (element) => element.getAttribute("data-task-id") === companionId,
+      ),
+      ...visualTaskElements(task.ownerSVGElement, companionId),
+    ]);
+    const companionTransforms = companionElements.map((element) => element.getAttribute("transform"));
     let snappedDays = 0;
     let sourceMoveDays = 0;
     let lastDisplayedDays: number | undefined;
@@ -904,6 +938,11 @@ export function DiagramPreview({
         dragMode = Math.abs(deltaY) > Math.abs(deltaX) ? "vertical" : "horizontal";
       if (dragMode === "vertical") {
         snappedDays = 0;
+        companionElements.forEach((element, index) => {
+          const original = companionTransforms[index];
+          if (original === null || original === undefined) element.removeAttribute("transform");
+          else element.setAttribute("transform", original);
+        });
         task.setAttribute("transform", `translate(0 ${deltaY / pixelsPerSvgUnit})`);
         visualElements.forEach((element) =>
           element.setAttribute("transform", `translate(0 ${deltaY / pixelsPerSvgUnit})`),
@@ -932,10 +971,14 @@ export function DiagramPreview({
       task.setAttribute("transform", `translate(${snappedDays * dayWidth} 0)`);
       visualElements.forEach((element) => element.setAttribute("transform", `translate(${snappedDays * dayWidth} 0)`));
       previewBar?.setAttribute("transform", `translate(${snappedDays * dayWidth} 0)`);
+      companionElements.forEach((element) =>
+        element.setAttribute("transform", `translate(${snappedDays * dayWidth} 0)`),
+      );
       previewDependencyPaths(task.ownerSVGElement, id, snappedDays * dayWidth, 0);
+      const moving = companionIds.length ? ` ${companionIds.length + 1} tasks` : "";
       showFeedback(
         snappedDays
-          ? `Move ${snappedDays > 0 ? "+" : ""}${snappedDays} day${Math.abs(snappedDays) === 1 ? "" : "s"}`
+          ? `Move${moving} ${snappedDays > 0 ? "+" : ""}${snappedDays} day${Math.abs(snappedDays) === 1 ? "" : "s"}`
           : undefined,
       );
     };
@@ -967,6 +1010,11 @@ export function DiagramPreview({
         if (original === null || original === undefined) element.removeAttribute("transform");
         else element.setAttribute("transform", original);
       });
+      companionElements.forEach((element, index) => {
+        const original = companionTransforms[index];
+        if (original === null || original === undefined) element.removeAttribute("transform");
+        else element.setAttribute("transform", original);
+      });
       resetDependencyPaths(task.ownerSVGElement);
       previewBar?.remove();
       highlightReorderTarget(task.ownerSVGElement, undefined);
@@ -981,6 +1029,12 @@ export function DiagramPreview({
       // new diagram background, immediately clearing the selection again.
       suppressGestureClick();
       setHoveredTask(undefined);
+      if (companionIds.length && dragMode !== "vertical" && sourceMoveDays !== 0) {
+        // Keep the multi-task selection: skip the pointer-up selection of the dragged task.
+        pointerTaskIdRef.current = undefined;
+        onTasksMove?.([id, ...companionIds], sourceMoveDays);
+        return;
+      }
       onTaskSelect(id);
       if (dragMode === "vertical" && reorderTargetId) onTaskReorder(id, reorderTargetId);
       else if (sourceMoveDays !== 0) onTaskMove(id, sourceMoveDays);
