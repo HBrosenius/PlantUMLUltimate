@@ -11,6 +11,7 @@ import {
   type DiagramKind,
 } from "./model";
 import { setPlantUmlTheme } from "./plantuml-theme";
+import { exampleFileName, type StarterExample } from "./starter-examples";
 import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
 import {
   importDocumentVersions,
@@ -132,15 +133,14 @@ export function useWorkspaceDocuments({
   ]);
 
   const createDocument = useCallback(
-    (diagramKind: DiagramKind) => {
+    (diagramKind: DiagramKind, example?: Pick<StarterExample, "title" | "source">) => {
       const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
-      const source = defaultDiagramTheme
-        ? setPlantUmlTheme(starterSource(diagramKind), defaultDiagramTheme)
-        : starterSource(diagramKind);
+      const initialSource = example?.source ?? starterSource(diagramKind);
+      const source = defaultDiagramTheme ? setPlantUmlTheme(initialSource, defaultDiagramTheme) : initialSource;
       tabs.addDocument({
         diagramKind,
         source,
-        fileName: "untitled.pumlu",
+        fileName: example ? exampleFileName(example) : "untitled.pumlu",
         dirty: false,
         cursor: { line: 1, column: 1 },
       });
@@ -154,7 +154,11 @@ export function useWorkspaceDocuments({
       resetSelection();
       refreshHistoryControls();
       closeNewDocumentDialog();
-      setInteractionMessage(`Created a new ${diagramKindDisplayName(diagramKind)} diagram`);
+      setInteractionMessage(
+        example
+          ? `Created a new ${diagramKindDisplayName(diagramKind)} diagram from example "${example.title}"`
+          : `Created a new ${diagramKindDisplayName(diagramKind)} diagram`,
+      );
       if (diagramKind === "gantt") window.setTimeout(openProjectInspector, 0);
     },
     [

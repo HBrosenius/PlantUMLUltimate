@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { DiagramKind } from "./model";
+import { STARTER_EXAMPLES, type StarterExample } from "./starter-examples";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> = [
@@ -28,7 +29,15 @@ const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> 
   },
 ];
 
-export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: DiagramKind): void; onClose(): void }) {
+export function NewDocumentDialog({
+  onChoose,
+  onChooseExample,
+  onClose,
+}: {
+  onChoose(kind: DiagramKind): void;
+  onChooseExample(example: StarterExample): void;
+  onClose(): void;
+}) {
   const dialog = useRef<HTMLDivElement>(null);
   useDialogFocus(dialog, onClose);
   return (
@@ -72,6 +81,23 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
             ))}
           </div>
         </section>
+        <section className="diagram-kind-section" aria-labelledby="starter-example-title">
+          <div className="diagram-kind-heading">
+            <div>
+              <h3 id="starter-example-title">Start from an example</h3>
+              <p>Open a realistic diagram and adapt it to your own project.</p>
+            </div>
+          </div>
+          <div className="starter-example-options">
+            {STARTER_EXAMPLES.map((example) => (
+              <button key={example.id} type="button" onClick={() => onChooseExample(example)}>
+                <span className="starter-example-kind">{kindLabel(example.kind)}</span>
+                <strong>{example.title}</strong>
+                <span>{example.description}</span>
+              </button>
+            ))}
+          </div>
+        </section>
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
             Cancel
@@ -80,6 +106,10 @@ export function NewDocumentDialog({ onChoose, onClose }: { onChoose(kind: Diagra
       </div>
     </div>
   );
+}
+
+function kindLabel(kind: DiagramKind): string {
+  return OPTIONS.find((option) => option.kind === kind)?.title.replace(/ diagram$/, "") ?? kind;
 }
 
 export function PlantUmlUltimateLogo() {
