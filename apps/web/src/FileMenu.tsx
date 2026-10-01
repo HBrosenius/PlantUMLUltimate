@@ -21,6 +21,10 @@ export function FileMenu({
   onExportSource,
   onExportSvg,
   onExportPng,
+  onExportPdf,
+  onCopyImage,
+  onCopyMarkdown,
+  onCopyConfluence,
 }: {
   canExport: boolean;
   onNew(): void;
@@ -42,6 +46,10 @@ export function FileMenu({
   onExportSource(): void;
   onExportSvg(): void;
   onExportPng(): void;
+  onExportPdf(): void;
+  onCopyImage(): void;
+  onCopyMarkdown(): void;
+  onCopyConfluence(): void;
 }) {
   const [open, setOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<"project" | "new" | "open" | "save" | "export">();
@@ -263,6 +271,27 @@ export function FileMenu({
                 </button>
                 <button role="menuitem" disabled={!canExport} onClick={() => run(onExportPng)}>
                   PNG
+                </button>
+                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportPdf)}>
+                  PDF
+                </button>
+                <span className="menu-separator" role="separator" />
+                <button role="menuitem" disabled={!canExport} onClick={() => run(onCopyImage)}>
+                  Copy image
+                </button>
+                <button
+                  role="menuitem"
+                  title="Copy the source as a fenced plantuml code block"
+                  onClick={() => run(onCopyMarkdown)}
+                >
+                  Copy as Markdown
+                </button>
+                <button
+                  role="menuitem"
+                  title="Copy wiki markup for the PlantUML for Confluence macro"
+                  onClick={() => run(onCopyConfluence)}
+                >
+                  Copy for Confluence
                 </button>
               </div>
             )}

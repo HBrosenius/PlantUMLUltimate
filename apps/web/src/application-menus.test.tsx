@@ -55,6 +55,10 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onExportSource: vi.fn(),
   onExportSvg: vi.fn(),
   onExportPng: vi.fn(),
+  onExportPdf: vi.fn(),
+  onCopyImage: vi.fn(),
+  onCopyMarkdown: vi.fn(),
+  onCopyConfluence: vi.fn(),
 });
 
 describe("application menus", () => {
@@ -98,11 +102,39 @@ describe("application menus", () => {
     await waitFor(() => expect(screen.getByRole("menuitem", { name: "Source" })).toHaveFocus());
     expect(screen.getByRole("menuitem", { name: "SVG" })).toBeDisabled();
     expect(screen.getByRole("menuitem", { name: "PNG" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "PDF" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Copy image" })).toBeDisabled();
 
     await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Copy as Markdown" })).toHaveFocus();
+    await user.keyboard("{ArrowDown}{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "New" })).toHaveFocus();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("runs the PDF and clipboard export actions from the Export submenu", async () => {
+    const user = userEvent.setup();
+    const callbacks = fileActions();
+    render(<FileMenu canExport {...callbacks} />);
+
+    for (const [name, callback] of [
+      ["PDF", callbacks.onExportPdf],
+      ["Copy image", callbacks.onCopyImage],
+      ["Copy as Markdown", callbacks.onCopyMarkdown],
+      ["Copy for Confluence", callbacks.onCopyConfluence],
+    ] as const) {
+      await user.click(screen.getByRole("button", { name: "File" }));
+      await user.click(screen.getByRole("menuitem", { name: "Export" }));
+      await user.click(await screen.findByRole("menuitem", { name }));
+      expect(callback).toHaveBeenCalledOnce();
+    }
+    await user.click(screen.getByRole("button", { name: "File" }));
+    await user.click(screen.getByRole("menuitem", { name: "Export" }));
+    expect(screen.getByRole("menuitem", { name: "Copy for Confluence" })).toHaveAttribute(
+      "title",
+      expect.stringContaining("PlantUML for Confluence macro"),
+    );
   });
 
   it("opens the Delivery Scenario Lab from File when available", async () => {

@@ -192,7 +192,15 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   ]);
   await menu.getByRole("menuitem", { name: "Export" }).hover();
   const exportMenu = page.getByRole("menu", { name: "Export" });
-  await expect(exportMenu.getByRole("menuitem")).toHaveText(["Source", "SVG", "PNG"]);
+  await expect(exportMenu.getByRole("menuitem")).toHaveText([
+    "Source",
+    "SVG",
+    "PNG",
+    "PDF",
+    "Copy image",
+    "Copy as Markdown",
+    "Copy for Confluence",
+  ]);
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(file).toBeFocused();
