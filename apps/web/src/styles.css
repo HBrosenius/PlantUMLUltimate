@@ -312,6 +312,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 2px;
 }
+.history-menu {
+  position: relative;
+}
+.history-menu-panel {
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  min-width: 240px;
+}
+.history-menu-heading {
+  margin: 4px 8px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.history-menu-panel .history-menu-redo {
+  color: var(--muted);
+}
 .toolbar label {
   margin-left: auto;
   display: flex;
@@ -6398,4 +6416,61 @@ textarea:focus-visible,
   border: 2px dashed var(--accent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.starter-example-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 20px;
+}
+@media (max-width: 560px) {
+  .starter-example-options {
+    grid-template-columns: 1fr;
+  }
+}
+.starter-example-options button {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+}
+.starter-example-options button:hover,
+.starter-example-options button:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.starter-example-options button > span:last-child {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.starter-example-kind {
+  justify-self: start;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.bulk-task-names {
+  margin: 0 12px 4px;
+  color: var(--text);
+  font-size: 12px;
+}
+.bulk-task-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.bulk-task-row > label,
+.bulk-task-row > .color-field {
+  flex: 1;
 }
