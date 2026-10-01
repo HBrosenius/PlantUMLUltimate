@@ -67,11 +67,21 @@ export function planRetention(
     );
   }
 
+  // Add the newest versions first while they fit. Running totals keep this linear: each source is counted
+  // once per distinct hash, exactly as logicalBytes() counts it.
   const selected = new Set(protectedIds);
+  const countedSources = new Set(protectedVersions.map((version) => version.sourceHash));
+  let selectedCount = protectedVersions.length;
+  let selectedBytes = protectedBytes;
   for (const candidate of [...ordered].reverse()) {
     if (selected.has(candidate.id)) continue;
-    const next = ordered.filter((version) => selected.has(version.id) || version.id === candidate.id);
-    if (next.length <= policy.maxVersions && logicalBytes(next) <= policy.maxLogicalBytes) selected.add(candidate.id);
+    const sourceBytes = countedSources.has(candidate.sourceHash) ? 0 : UTF8.encode(candidate.source).byteLength;
+    const bytes = selectedBytes + metadataBytes(candidate) + sourceBytes;
+    if (selectedCount + 1 > policy.maxVersions || bytes > policy.maxLogicalBytes) continue;
+    selected.add(candidate.id);
+    countedSources.add(candidate.sourceHash);
+    selectedCount += 1;
+    selectedBytes = bytes;
   }
 
   const byId = new Map(ordered.map((version) => [version.id, version]));

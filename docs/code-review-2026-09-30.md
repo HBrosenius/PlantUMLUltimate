@@ -166,15 +166,24 @@ Status legend: `[ ]` open, `[x]` fixed in source (see notes).
 
 ## Minor
 
-- Empty password silently produces an unencrypted file (`document-format/src/encode.ts`).
-- `resourceCapacities`/`remainingDays` keys not filtered for `__proto__` (no exploit found).
-- History retention re-encodes sources per candidate (≈885 ms for 300 × 22 KB versions),
-  on the main thread.
-- Plaintext version may be written during the enable-encryption window (plausible).
+- [x] Empty password silently produces an unencrypted file (`document-format/src/encode.ts`).
+      _Fixed: document and project encoders reject an empty password._
+- [x] `resourceCapacities`/`remainingDays` keys not filtered for `__proto__` (no exploit found).
+      _Fixed: `__proto__` keys are rejected on validation._
+- [x] History retention re-encodes sources per candidate (≈885 ms for 300 × 22 KB versions),
+      on the main thread. _Fixed: selection keeps running totals (about 9× faster locally),
+      verified against the previous algorithm on randomized histories._
+- [x] Plaintext version may be written during the enable-encryption window (plausible).
+      _Fixed: new versions are routed to memory before persisted plaintext is read and deleted
+      in one transaction._
+- [x] Symbol rename could not find names containing `"`. _Fixed: symbol finders match the
+      `&#34;` form, and class renames write it._
 
 ## Feature and improvement ideas
 
-1. **Storage safety net**: show usage (`navigator.storage.estimate()`), request persistent
+1. **Storage safety net** (partly done: the status bar warns when workspace or project
+   recovery data cannot be saved or storage is over 90% full, and clicking it requests
+   persistent storage): show usage (`navigator.storage.estimate()`), request persistent
    storage, warn on failed writes, crash screen with restore/download backup. Keep a
    revision marker in localStorage and data in IndexedDB.
 2. **Grouped typing undo and a clickable history list.**

@@ -12,7 +12,9 @@ export interface ClassSymbolOccurrence {
 
 const tokenValue = (value: string) => value.trim().replace(/^"|"$/g, "");
 
-function nextValueRange(source: string, range: TextRange, value: string, after = range.from): TextRange | undefined {
+function nextValueRange(source: string, range: TextRange, name: string, after = range.from): TextRange | undefined {
+  // Quotes inside names are written as the `&#34;` character reference.
+  const value = name.replaceAll('"', "&#34;");
   const start = Math.max(range.from, after);
   const text = source.slice(start, range.to);
   const quoted = text.indexOf(`"${value}"`);

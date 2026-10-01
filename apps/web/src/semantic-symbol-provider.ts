@@ -524,7 +524,8 @@ function rename(context: ProviderContext, request: SemanticRenameRequest, value:
     return {
       source: applySourceEdits(
         context.source,
-        occurrences.map((occurrence) => ({ range: occurrence.range, text: trimmed })),
+        // Occurrence ranges cover the authored text, where quotes are written as `&#34;`.
+        occurrences.map((occurrence) => ({ range: occurrence.range, text: trimmed.replaceAll('"', "&#34;") })),
       ),
       nextKey: (aliasMode ? trimmed : (item.alias ?? trimmed)).toLowerCase(),
     };

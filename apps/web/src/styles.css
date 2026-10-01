@@ -2128,6 +2128,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .statusbar button.unsupported-count:hover {
   background: #fffbeb;
 }
+.statusbar button.storage-status {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.statusbar button.storage-status.is-warning {
+  padding: 1px 6px;
+  border: 1px solid #d97706;
+  border-radius: 3px;
+  color: #b45309;
+}
 button:focus-visible,
 select:focus-visible,
 input:focus-visible,

@@ -3,6 +3,7 @@ import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
 import { validForecastTimeZone } from "./forecast-date";
+import { reportStorageWrite } from "./storage-health";
 
 export interface WorkspaceSnapshot {
   diagramKind: DiagramKind;
@@ -626,8 +627,11 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
       transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
     });
     database.close();
+    reportStorageWrite("workspace", true);
   } catch (error) {
-    if (!writeRecoveryItem(LEGACY_KEY, JSON.stringify(persistable))) throw error;
+    const saved = writeRecoveryItem(LEGACY_KEY, JSON.stringify(persistable));
+    reportStorageWrite("workspace", saved);
+    if (!saved) throw error;
   }
 }
 
@@ -646,8 +650,10 @@ export async function saveActiveProject(value: unknown): Promise<void> {
       transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
     });
     database.close();
+    reportStorageWrite("project", true);
   } catch (error) {
     // IndexedDB recovery is optional when the synchronous fallback has succeeded.
+    reportStorageWrite("project", recovered);
     if (!recovered) throw error;
   }
 }
@@ -695,18 +701,33 @@ export async function clearActiveProject(): Promise<void> {
 
 /** Removes persisted plaintext before routing all future history operations to memory. */
 export async function enableMemoryOnlyHistory(historyId: string): Promise<void> {
-  const versions = await loadDocumentVersions(historyId);
-  const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(VERSION_STORE, "readwrite");
-    const store = transaction.objectStore(VERSION_STORE);
-    versions.forEach((version) => store.delete(version.id));
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
-  });
-  database.close();
-  memoryOnlyHistories.set(historyId, versions);
+  // Route new versions to memory before touching IndexedDB, so a version recorded while the plaintext
+  // is being removed cannot be written to disk.
+  const created = !memoryOnlyHistories.has(historyId);
+  if (created) memoryOnlyHistories.set(historyId, []);
+  try {
+    const database = await openDatabase();
+    const persisted = await new Promise<DocumentVersion[]>((resolve, reject) => {
+      const transaction = database.transaction(VERSION_STORE, "readwrite");
+      const store = transaction.objectStore(VERSION_STORE);
+      let found: DocumentVersion[] = [];
+      const request = store.index("historyId").getAll(historyId);
+      request.onsuccess = () => {
+        found = request.result as DocumentVersion[];
+        found.forEach((version) => store.delete(version.id));
+      };
+      transaction.oncomplete = () => resolve(found);
+      transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
+      transaction.onabort = () => reject(transaction.error ?? new Error("Could not remove plaintext history"));
+    });
+    database.close();
+    const recorded = memoryOnlyHistories.get(historyId) ?? [];
+    const persistedIds = new Set(persisted.map((version) => version.id));
+    memoryOnlyHistories.set(historyId, [...persisted, ...recorded.filter((version) => !persistedIds.has(version.id))]);
+  } catch (error) {
+    if (created && !memoryOnlyHistories.get(historyId)?.length) memoryOnlyHistories.delete(historyId);
+    throw error;
+  }
 }
 
 export function startMemoryOnlyHistory(historyId: string): void {

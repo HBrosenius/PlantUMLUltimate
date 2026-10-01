@@ -79,3 +79,43 @@ describe("semantic symbol provider contract", () => {
     expect(renamed).toContain("Service --> Profile : Account prose");
   });
 });
+
+describe("renaming names that contain double quotes", () => {
+  const provider = (kind: DiagramKind, source: string) =>
+    createSemanticSymbolProvider({
+      diagramKind: kind,
+      source,
+      gantt: parseGantt(source).document,
+      sequence: parseSequence(source),
+      useCase: parseUseCase(source),
+      classDiagram: parseClassDiagram(source),
+      activity: parseActivity(source),
+      wbs: parseWbs(source),
+    });
+
+  it.each([
+    [
+      "class",
+      '@startuml\nclass "Say &#34;Hi&#34;"\n@enduml',
+      (next: string) => parseClassDiagram(next).entities[0]?.label,
+    ],
+    [
+      "usecase",
+      '@startuml\nusecase "Print &#34;Draft&#34;"\n@enduml',
+      (next: string) => parseUseCase(next).useCases[0]?.label,
+    ],
+    [
+      "sequence",
+      '@startuml\nparticipant "The &#34;Core&#34; API"\n@enduml',
+      (next: string) => parseSequence(next).participants[0]?.label,
+    ],
+  ] as const)("finds and renames a %s name with quotes", (kind, source, label) => {
+    const symbols = provider(kind, source);
+    const occurrence = symbols.occurrences[0];
+    expect(occurrence).toBeDefined();
+    const request = symbols.renameRequest(occurrence!)!;
+    const result = symbols.rename(request, 'New "Name"');
+    expect(result.source).toBeDefined();
+    expect(label(result.source!)).toBe('New "Name"');
+  });
+});

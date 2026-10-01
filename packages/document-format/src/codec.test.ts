@@ -47,6 +47,15 @@ describe("composed document codec", () => {
     );
   });
 
+  it("rejects __proto__ keys that would replace an object prototype when copied", async () => {
+    const capacities = await document();
+    capacities.settings.resourceCapacities = JSON.parse('{"__proto__": 100}');
+    await expect(encodeDocument(capacities)).rejects.toThrow("reserved resource name");
+    const forecast = await document();
+    forecast.settings.progressForecast = { enabled: true, remainingDays: JSON.parse('{"__proto__": 3}') };
+    await expect(encodeDocument(forecast)).rejects.toThrow("reserved task ID");
+  });
+
   it("encrypts deterministically with injected randomness and varies normal saves", async () => {
     const input = await document();
     const deterministic = (length: number) => new Uint8Array(length).fill(length);
@@ -75,4 +84,10 @@ describe("composed document codec", () => {
     damaged[damaged.length - 1] = damaged[damaged.length - 1]! ^ 1;
     await expect(decodeDocument(damaged, { password: "right" })).rejects.toMatchObject({ code: "unlock-failed" });
   }, 30_000);
+});
+
+describe("encodeDocument passwords", () => {
+  it("rejects an empty password instead of writing an unencrypted file", async () => {
+    await expect(encodeDocument(await document(), { password: "" })).rejects.toThrow("A password must not be empty");
+  });
 });

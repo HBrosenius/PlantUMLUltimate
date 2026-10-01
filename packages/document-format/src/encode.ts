@@ -37,6 +37,9 @@ export async function encodeDocument(
   await reconstructContents(checked.contents);
   const compression = options.compression ?? "gzip";
   const compressed = await compressPayload(UTF8.encode(JSON.stringify(checked)), compression, options.signal);
+  // An empty password is a caller error; it must never silently produce an unencrypted file.
+  if (options.password === "" && !options.unlockedKey)
+    throw new DocumentFormatError("password-required", "A password must not be empty");
   if (!options.password && !options.unlockedKey) {
     const header: EnvelopeHeader = { compression, encryption: "none" };
     return { bytes: encodeEnvelope(header, compressed) };

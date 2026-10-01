@@ -509,7 +509,9 @@ function participantReference(participant: SequenceParticipant): string {
   return participant.alias ?? participant.label;
 }
 
-function nextValueRange(source: string, range: { from: number; to: number }, value: string, after = range.from) {
+function nextValueRange(source: string, range: { from: number; to: number }, name: string, after = range.from) {
+  // Quotes inside names are written as the `&#34;` character reference.
+  const value = name.replaceAll('"', "&#34;");
   const text = source.slice(Math.max(range.from, after), range.to);
   const quoted = `"${value}"`;
   const quotedAt = text.indexOf(quoted);

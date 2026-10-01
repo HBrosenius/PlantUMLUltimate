@@ -100,3 +100,9 @@ describe("project codec lifecycle", () => {
     await expect(encodeProject(input)).rejects.toThrow("current source hash does not match");
   });
 });
+
+describe("encodeProject passwords", () => {
+  it("rejects an empty password instead of writing an unencrypted file", async () => {
+    await expect(encodeProject(await project(), { password: "" })).rejects.toThrow("A password must not be empty");
+  });
+});

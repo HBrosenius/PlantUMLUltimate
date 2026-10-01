@@ -50,6 +50,9 @@ export async function encodeProject(
     options.signal,
     projectPayloadLimits,
   );
+  // An empty password is a caller error; it must never silently produce an unencrypted file.
+  if (options.password === "" && !options.unlockedKey)
+    throw new DocumentFormatError("password-required", "A password must not be empty");
   if (!options.password && !options.unlockedKey) {
     const header: EnvelopeHeader = { compression, encryption: "none" };
     return { bytes: encodeEnvelope(header, compressed, 2) };

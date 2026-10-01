@@ -208,6 +208,8 @@ export function validateDocument(value: unknown): PortableDocument {
   const capacities = record(settings.resourceCapacities, "settings.resourceCapacities");
   for (const [name, capacity] of Object.entries(capacities)) {
     if (!name || name.length > DOCUMENT_LIMITS.maxAuthorNameCharacters) limit("Resource capacity name is too long");
+    // Copying this key into a plain object would replace its prototype.
+    if (name === "__proto__") invalid("settings.resourceCapacities has a reserved resource name");
     integer(capacity, `settings.resourceCapacities.${name}`, 1, 500);
   }
   if (settings.progressForecast !== undefined) {
@@ -235,6 +237,7 @@ export function validateDocument(value: unknown): PortableDocument {
     if (Object.keys(remaining).length > 5_000) limit("Too many remaining-work overrides");
     for (const [taskId, days] of Object.entries(remaining)) {
       string(taskId, "settings.progressForecast task ID", DOCUMENT_LIMITS.maxIdentifierCharacters);
+      if (taskId === "__proto__") invalid("settings.progressForecast has a reserved task ID");
       integer(days, `settings.progressForecast.remainingDays.${taskId}`, 1, 10_000);
     }
   }

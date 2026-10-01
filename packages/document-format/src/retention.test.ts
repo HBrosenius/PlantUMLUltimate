@@ -50,3 +50,52 @@ describe("planRetention", () => {
     }
   });
 });
+
+describe("retention selection at scale", () => {
+  // The previous quadratic selection, kept as a reference for equivalence.
+  const reference = (versions: RetentionVersion[], maxVersions: number, maxLogicalBytes: number) => {
+    const encoder = new TextEncoder();
+    const bytes = (items: RetentionVersion[]) => {
+      const sources = new Map<string, number>();
+      for (const item of items) sources.set(item.sourceHash, encoder.encode(item.source).byteLength);
+      return (
+        items.reduce((total, item) => {
+          const { source: _source, ...metadata } = item;
+          return total + encoder.encode(JSON.stringify(metadata)).byteLength;
+        }, 0) + [...sources.values()].reduce((total, size) => total + size, 0)
+      );
+    };
+    const ordered = [...versions].sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id));
+    const selected = new Set(ordered.filter((item) => item.pinned).map((item) => item.id));
+    for (const candidate of [...ordered].reverse()) {
+      if (selected.has(candidate.id)) continue;
+      const next = ordered.filter((item) => selected.has(item.id) || item.id === candidate.id);
+      if (next.length <= maxVersions && bytes(next) <= maxLogicalBytes) selected.add(candidate.id);
+    }
+    return ordered.filter((item) => selected.has(item.id)).map((item) => item.id);
+  };
+
+  it("selects the same versions as the reference algorithm", () => {
+    let seed = 7;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let round = 0; round < 20; round += 1) {
+      const versions = Array.from({ length: 40 }, (_, index) =>
+        version(
+          index + 1,
+          "x".repeat(1 + Math.floor(random() * 400)) + String(Math.floor(random() * 6)),
+          random() < 0.1,
+        ),
+      );
+      const maxVersions = 5 + Math.floor(random() * 30);
+      const maxLogicalBytes = 3_000 + Math.floor(random() * 12_000);
+      const policy = { maxVersions, maxLogicalBytes };
+      let expected: string[] | undefined;
+      try {
+        expected = reference(versions, maxVersions, maxLogicalBytes);
+        expect(planRetention(versions, policy).retained.map((item) => item.id)).toEqual(expected);
+      } catch (error) {
+        if (!(error instanceof DocumentFormatError)) throw error;
+      }
+    }
+  });
+});

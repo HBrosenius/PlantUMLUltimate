@@ -6,6 +6,8 @@ import {
   DEFAULT_WORKSPACE,
   documentDisplayNames,
   createDocumentVersion,
+  discardMemoryOnlyHistory,
+  enableMemoryOnlyHistory,
   deleteDocumentVersion,
   loadDocumentVersions,
   loadWorkspace,
@@ -305,6 +307,8 @@ describe("document versions", () => {
       diagramKind: "gantt",
       reason: "collaboration",
       author: { id: "alice-id", name: "Alice", color: "#2563eb" },
+      // Explicit times: two versions created within the same millisecond would sort arbitrarily.
+      createdAt: "2026-01-01T00:00:00.000Z",
     });
     await createDocumentVersion({
       historyId: "history-a",
@@ -313,6 +317,7 @@ describe("document versions", () => {
       diagramKind: "gantt",
       reason: "manual",
       label: "Baseline",
+      createdAt: "2026-01-01T00:00:01.000Z",
     });
     await createDocumentVersion({
       historyId: "history-b",
@@ -397,5 +402,40 @@ describe("document versions", () => {
     await expect(loadDocumentVersions("history-unavailable")).rejects.toThrow(
       "Persistent storage is unavailable in this browser",
     );
+  });
+});
+
+describe("storage health reporting", () => {
+  it("reports a workspace save that fails in both browser stores", async () => {
+    const { getStorageHealth, resetStorageHealth } = await import("./storage-health");
+    resetStorageHealth();
+    Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: () => null,
+        setItem: () => {
+          throw new DOMException("Quota exceeded", "QuotaExceededError");
+        },
+        removeItem: () => undefined,
+      },
+    });
+    await expect(saveWorkspace(DEFAULT_SESSION)).rejects.toThrow();
+    expect(getStorageHealth().failing).toEqual(["workspace"]);
+    resetStorageHealth();
+  });
+});
+
+describe("enabling memory-only history", () => {
+  it("never persists a version recorded while plaintext history is being removed", async () => {
+    const historyId = "history-encrypting";
+    const base = { historyId, fileName: "secret.puml", diagramKind: "gantt" as const, reason: "saved" as const };
+    await createDocumentVersion({ ...base, source: "before", createdAt: "2026-01-01T00:00:00.000Z" });
+    const enabling = enableMemoryOnlyHistory(historyId);
+    await createDocumentVersion({ ...base, source: "during", createdAt: "2026-01-01T00:00:01.000Z" });
+    await enabling;
+    expect((await loadDocumentVersions(historyId)).map((version) => version.source)).toEqual(["during", "before"]);
+    discardMemoryOnlyHistory(historyId);
+    expect(await loadDocumentVersions(historyId)).toEqual([]);
   });
 });

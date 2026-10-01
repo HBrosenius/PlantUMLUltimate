@@ -142,6 +142,7 @@ import {
   type SemanticRenameRequest,
   type SemanticSymbolOccurrence,
 } from "./semantic-symbol-provider";
+import { StorageStatus } from "./StorageStatus";
 
 function diagramFocusSelector(target: Element): string | undefined {
   for (const attribute of [
@@ -3587,7 +3588,7 @@ export function App() {
         <span>
           Ln {workspace.cursor.line}, Col {workspace.cursor.column}
         </span>
-        <span>{hydrated ? "IndexedDB" : "Restoring…"}</span>
+        {hydrated ? <StorageStatus onExplain={setInteractionMessage} /> : <span>Restoring…</span>}
         <span className={pwa.online ? "connection-online" : "connection-offline"}>
           {pwa.online ? "Online" : "Offline · changes stay local"}
         </span>
