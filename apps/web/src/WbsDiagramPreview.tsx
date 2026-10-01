@@ -30,6 +30,12 @@ interface Props {
   onRelationshipReconnect(relationshipId: string, endpoint: "from" | "to", targetId: string): void;
 }
 
+/** Remembers the focused node's label, to focus it again once the next render has replaced the SVG. */
+function focusRequest(target: Element, svg: string | undefined) {
+  const label = target.closest("[aria-label]")?.getAttribute("aria-label");
+  return label ? { label, svg } : undefined;
+}
+
 export function WbsDiagramPreview({
   svg,
   document,
@@ -75,7 +81,9 @@ export function WbsDiagramPreview({
       }
     | undefined
   >(undefined);
-  const focusAfterRender = useRef<string | undefined>(undefined);
+  // The node to focus after an edit renders, and the SVG showing when it was requested. That SVG can be
+  // stale (an earlier render still pending), so focus waits for a different SVG instead of using it.
+  const focusAfterRender = useRef<{ label: string; svg: string | undefined } | undefined>(undefined);
   const [dragPreview, setDragPreview] = useState<{
     label: string;
     x: number;
@@ -429,14 +437,14 @@ export function WbsDiagramPreview({
         }
       }
     }
-    if (focusAfterRender.current && renderStatus === "idle") {
-      const label = focusAfterRender.current;
+    const request = focusAfterRender.current;
+    if (request && renderStatus === "idle" && svg !== request.svg) {
       const target = [...host.querySelectorAll<SVGElement>("[aria-label]")].find(
-        (item) => item.getAttribute("aria-label") === label,
+        (item) => item.getAttribute("aria-label") === request.label,
       );
       if (target)
         window.setTimeout(() => {
-          if (!target.isConnected) return;
+          if (!target.isConnected || focusAfterRender.current !== request) return;
           target.focus();
           focusAfterRender.current = undefined;
         }, 100);
@@ -720,8 +728,7 @@ export function WbsDiagramPreview({
               if (id && (event.key === "Enter" || event.key === " ")) {
                 event.preventDefault();
                 if (keyboardConnectFrom && keyboardConnectFrom !== id) {
-                  focusAfterRender.current =
-                    (event.target as Element).closest("[aria-label]")?.getAttribute("aria-label") ?? undefined;
+                  focusAfterRender.current = focusRequest(event.target as Element, svg);
                   onRelationshipCreate(keyboardConnectFrom, id);
                   setKeyboardConnectFrom(undefined);
                 } else onSelect(id);
@@ -738,8 +745,7 @@ export function WbsDiagramPreview({
               const sibling = siblings[index + direction];
               if (!sibling) return;
               event.preventDefault();
-              focusAfterRender.current =
-                (event.target as Element).closest("[aria-label]")?.getAttribute("aria-label") ?? undefined;
+              focusAfterRender.current = focusRequest(event.target as Element, svg);
               const before = direction < 0 ? sibling : siblings[index + 2];
               onMove(id, node.parentId, before?.id);
             }}
