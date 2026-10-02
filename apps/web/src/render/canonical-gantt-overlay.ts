@@ -635,7 +635,6 @@ export function addCanonicalGanttOverlay(
     hitBar.setAttribute("y", String(hitY));
     hitBar.setAttribute("width", String(width));
     hitBar.setAttribute("height", String(height));
-    group.append(hitBar);
 
     const textX = numberAttribute(label, "x") ?? x;
     const labelHit = document.createElementNS(SVG_NS, "rect");
@@ -644,7 +643,8 @@ export function addCanonicalGanttOverlay(
     labelHit.setAttribute("y", String(textY - 12));
     labelHit.setAttribute("width", String(Math.max(12, task.label.length * 6.5)));
     labelHit.setAttribute("height", "14");
-    group.append(labelHit);
+    // Keep the bar above overlapping label hit areas so its center remains clickable.
+    group.append(labelHit, hitBar);
 
     if (task.duration) {
       const resize = document.createElementNS(SVG_NS, "rect");

@@ -10,7 +10,7 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
     <DiagramPreview
       svg={`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">
         <script>alert(2)</script><foreignObject><div>Unsafe</div></foreignObject>
-        <g data-task-id="build"><text class="label">Safe &amp; sound</text></g>
+        <g data-task-id="build" role="button" tabindex="0" aria-label="Select Build"><text class="label">Safe &amp; sound</text></g>
       </svg>`}
       tasks={[]}
       dependencies={[]}
@@ -55,5 +55,7 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
   expect(svg?.querySelector("script, foreignObject")).toBeNull();
   expect(svg?.hasAttribute("onload")).toBe(false);
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("data-selected")).toBe("true");
+  expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("role")).toBe("button");
+  expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("tabindex")).toBe("0");
   expect(svg?.querySelector("text")?.textContent).toBe("Safe & sound");
 });
