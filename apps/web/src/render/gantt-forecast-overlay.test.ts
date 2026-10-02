@@ -9,6 +9,27 @@ import { addCanonicalGanttOverlay } from "./canonical-gantt-overlay";
 import { addGanttForecastOverlay } from "./gantt-forecast-overlay";
 
 describe("Gantt forecast on the editable diagram", () => {
+  it("removes active content while preserving encoded task identifiers", () => {
+    const source = "@startgantt\nProject starts 2026-09-21\n[Build] lasts 3 days\n@endgantt";
+    const gantt = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const plan = resolveTaskDates(gantt.tasks, gantt.dependencies, gantt.projectStart?.value, calendar);
+    const forecast = calculateProgressForecast(gantt.tasks, gantt.dependencies, plan, calendar, "2026-09-22");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">
+      <script>alert(2)</script><foreignObject><div>Unsafe</div></foreignObject>
+      <g data-task-id="&quot;&gt;&lt;img src=x onerror=alert(3)&gt;"><text>Safe &amp; sound</text></g>
+      <rect id="safe" width="10" height="10" />
+    </svg>`;
+    const result = addGanttForecastOverlay(svg, forecast, "2026-09-22", calendar);
+    const document = new DOMParser().parseFromString(result, "image/svg+xml");
+    expect(document.querySelector("script, foreignObject, img, [onload], [onerror]")).toBeNull();
+    expect(document.querySelector("g[data-task-id]")?.getAttribute("data-task-id")).toBe(
+      '"><img src=x onerror=alert(3)>',
+    );
+    expect(document.querySelector("text")?.textContent).toBe("Safe & sound");
+    expect(document.querySelector("#safe")).not.toBeNull();
+  });
+
   it("aligns both schedules, extends the SVG, and marks the actual cause chain", () => {
     const source = `@startgantt
 Project starts 2026-09-21

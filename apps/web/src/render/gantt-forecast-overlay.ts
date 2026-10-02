@@ -1,5 +1,6 @@
 import type { ProgressForecast } from "../gantt-progress-forecast";
 import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
+import { sanitizeSvg } from "./sanitize-svg";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const DAY_MS = 86_400_000;
@@ -112,8 +113,9 @@ export function addGanttForecastOverlay(
   selectedTaskId?: string,
 ): string {
   if (typeof DOMParser === "undefined") return svg;
-  const document = new DOMParser().parseFromString(svg, "image/svg+xml");
-  if (document.querySelector("parsererror")) return svg;
+  const sanitizedSvg = sanitizeSvg(svg);
+  const document = new DOMParser().parseFromString(sanitizedSvg, "image/svg+xml");
+  if (document.querySelector("parsererror")) return sanitizedSvg;
   const root = document.documentElement;
   const dayWidthFromHeader = dateColumnWidth(root);
   const selectedChain = selectedTaskId ? causeChain(selectedTaskId, forecast) : new Set<string>();
@@ -227,7 +229,7 @@ export function addGanttForecastOverlay(
     marks.append(group);
   }
 
-  if (!marks.childElementCount) return svg;
+  if (!marks.childElementCount) return sanitizedSvg;
   for (const path of root.querySelectorAll<SVGPathElement>(".interaction-dependency")) {
     const predecessor = path.getAttribute("data-predecessor-task-id");
     const successor = path.getAttribute("data-successor-task-id");

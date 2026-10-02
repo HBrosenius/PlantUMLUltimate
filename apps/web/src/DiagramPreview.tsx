@@ -20,6 +20,7 @@ import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast, hasDelayedForecastTask } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
+import { sanitizeSvg } from "./render/sanitize-svg";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
@@ -1615,6 +1616,7 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
   linkedTaskIds: ReadonlySet<string>;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const sanitizedSvg = useMemo(() => sanitizeSvg(svg), [svg]);
   useLayoutEffect(() => {
     const root = host.current;
     if (!root) return;
@@ -1625,8 +1627,8 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
       );
       if (label) appendDiagramLinkIcon(label);
     }
-  }, [svg, linkedTaskIds]);
-  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={{ __html: svg }} />;
+  }, [sanitizedSvg, linkedTaskIds]);
+  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={{ __html: sanitizedSvg }} />;
 });
 
 export function taskHoverDetails(
