@@ -65,6 +65,85 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
         }
       }
       if (kind === "gantt" && /^\s*(?:then\s+)?\[/i.test(line)) {
+        const repaired = line.replace(
+          /(\b(?:at|after|before)\s+\[[^\]\n]+])(?:\s*([’‘']s|s|[’‘']))?\s+(start|end)\b/gi,
+          (match, reference: string, marker: string | undefined, anchor: string, index: number) =>
+            marker === "'s" || marker === "’s" || line.slice(0, index).includes('"')
+              ? match
+              : `${reference}'s ${anchor}`,
+        );
+        if (repaired !== line) {
+          const candidate = source.slice(0, offset) + repaired + source.slice(offset + line.length);
+          const errors = parseGantt(candidate).diagnostics.filter((item) => item.severity === "error").length;
+          if (errors < originalErrors)
+            fixes.push({
+              from: offset,
+              to: offset + line.length,
+              replacement: repaired,
+              label: /[’‘]/.test(line) ? "Use straight apostrophe in dependency" : "Add missing possessive marker",
+              message: "Dependency anchor requires the possessive marker 's",
+            });
+        }
+      }
+      if (kind === "gantt") {
+        let repaired = line;
+        const declaration = repaired.match(
+          /^(\s*(?:then\s+)?)([^[\]"']+)](?=\s+(?:starts|ends|lasts|requires|happens|is|on|pauses|links|displays|as)\b)/i,
+        );
+        if (declaration && declaration[2]!.trim()) {
+          repaired = repaired.slice(0, declaration[1]!.length) + "[" + repaired.slice(declaration[1]!.length);
+        }
+        // Dependency and alias boundaries identify where a missing opening bracket belongs.
+        repaired = repaired.replace(
+          /(\b(?:at|after|before|as|with|in)\s+)([^[\]"\n]+)]/gi,
+          (match, prefix: string, name: string) => {
+            return knownTasks.has(name.trim().toLowerCase()) || /\bas\s+$/i.test(prefix) ? `${prefix}[${name}]` : match;
+          },
+        );
+        if (/^\s*(?:then\s+)?\[/i.test(repaired) || /^\s*]+\s*$/.test(repaired)) {
+          let depth = 0;
+          let quoted = false;
+          let cleaned = "";
+          for (let index = 0; index < repaired.length; index++) {
+            const char = repaired[index]!;
+            if (char === '"' && repaired[index - 1] !== "\\") quoted = !quoted;
+            if (!quoted && depth === 0 && char === "'" && /\s/.test(repaired[index - 1] ?? "")) {
+              cleaned += repaired.slice(index);
+              break;
+            }
+            if (!quoted && char === "[") depth++;
+            if (!quoted && char === "]") {
+              if (depth === 0) continue;
+              depth--;
+            }
+            cleaned += char;
+          }
+          repaired = cleaned;
+        }
+        if (repaired !== line) {
+          const candidate = source.slice(0, offset) + repaired + source.slice(offset + line.length);
+          const result = parseGantt(candidate);
+          const errors = result.diagnostics.filter((item) => item.severity === "error").length;
+          const recognizesMore =
+            result.document.tasks.length > parsed!.document.tasks.length ||
+            result.document.tasks.reduce((count, task) => count + task.declarations.length, 0) >
+              parsed!.document.tasks.reduce((count, task) => count + task.declarations.length, 0) ||
+            result.document.dependencies.length > parsed!.document.dependencies.length;
+          if (errors <= originalErrors && (errors < originalErrors || recognizesMore || /^\s*]+\s*$/.test(line))) {
+            fixes.push({
+              from: offset,
+              to: offset + line.length,
+              replacement: repaired,
+              label:
+                repaired.includes("[") && repaired.length >= line.length
+                  ? "Add missing opening bracket"
+                  : "Remove stray closing bracket",
+              message: "Task brackets are unbalanced",
+            });
+          }
+        }
+      }
+      if (kind === "gantt" && /^\s*(?:then\s+)?\[/i.test(line)) {
         let repaired = line;
         for (let index = 0; index < repaired.length; index++) {
           if (repaired[index] !== "[") continue;

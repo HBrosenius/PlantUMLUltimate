@@ -73,3 +73,52 @@ for (const width of [390, 800, 1440]) {
     await expect(page.locator(".cm-content")).toContainText("@startgantt");
   });
 }
+
+for (const [faulty, repaired, label] of [
+  ["Frontend] lasts 3 days", "[Frontend] lasts 3 days", "Add missing opening bracket"],
+  ["[Frontend] starts at Backend]'s end", "[Frontend] starts at [Backend]'s end", "Add missing opening bracket"],
+  ["[Frontend]] lasts 3 days", "[Frontend] lasts 3 days", "Remove stray closing bracket"],
+] as const) {
+  test(`repairs ${faulty} and restores the exact source on undo`, async ({ page }) => {
+    await prepareEditor(page);
+    const lines = ["@startgantt", "[Backend] lasts 1 day", "[Frontend] lasts 3 days", faulty, "@endgantt"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    const choice = page.getByRole("button", { name: new RegExp(label) });
+    await expect(choice.locator("code")).toHaveText(repaired);
+    await choice.click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText([
+      lines[0]!,
+      lines[1]!,
+      lines[2]!,
+      repaired,
+      lines[4]!,
+    ]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  });
+}
+
+for (const [faulty, repaired] of [
+  [
+    "[Frontend] starts 5 days after [Backend] end and lasts 2 days",
+    "[Frontend] starts 5 days after [Backend]'s end and lasts 2 days",
+  ],
+  ["[Frontend] ends at [Backend]s end", "[Frontend] ends at [Backend]'s end"],
+  ["[Frontend] starts at [Backend]‘s start", "[Frontend] starts at [Backend]'s start"],
+] as const) {
+  test(`repairs possessive syntax in ${faulty} with undo`, async ({ page }) => {
+    await prepareEditor(page);
+    const lines = ["@startgantt", "[Backend] lasts 8 days", faulty, "@endgantt"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    const choice = page.getByRole("button", {
+      name: /Add missing possessive marker|Use straight apostrophe in dependency/,
+    });
+    await expect(choice.locator("code")).toHaveText(repaired);
+    await choice.click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText([lines[0]!, lines[1]!, repaired, lines[3]!]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  });
+}

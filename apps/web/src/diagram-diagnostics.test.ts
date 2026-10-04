@@ -67,3 +67,80 @@ describe("syntax repairs", () => {
     ).toEqual([]);
   });
 });
+
+describe("opening and stray task bracket repairs", () => {
+  it.each([
+    ["Frontend] lasts 3 days", "[Frontend] lasts 3 days"],
+    ["then Frontend] lasts 3 days", "then [Frontend] lasts 3 days"],
+    ["[Frontend] starts at Backend]'s end", "[Frontend] starts at [Backend]'s end"],
+    ["[Frontend]] lasts 3 days", "[Frontend] lasts 3 days"],
+    ["[Frontend] starts at [Backend]]'s end", "[Frontend] starts at [Backend]'s end"],
+    ["]", ""],
+  ])("flags and repairs %s", (line, expected) => {
+    const source = `@startgantt\n[Backend] lasts 1 day\n${line}\n@endgantt`;
+    const fix = quickFixesForDiagram("gantt", source).find((item) => item.replacement === expected);
+    expect(fix).toBeDefined();
+    expect(diagnosticsForDiagram("gantt", source).some((item) => item.message === "Task brackets are unbalanced")).toBe(
+      true,
+    );
+  });
+
+  it("preserves brackets in quoted display labels and notes", () => {
+    const source =
+      '@startgantt\n[A] lasts 1 day\n[A] displays as "Result ]"\nnote bottom\nFrontend] lasts 3 days\nend note\n@endgantt';
+    expect(
+      quickFixesForDiagram("gantt", source).filter((item) => item.message === "Task brackets are unbalanced"),
+    ).toEqual([]);
+  });
+});
+
+it("repairs missing opening brackets on further declarations of an existing task", () => {
+  for (const line of [
+    "Architecture] starts 2026-09-24",
+    "Architecture] is 50% completed",
+    "Architecture] lasts 6 days",
+  ]) {
+    const source = `@startgantt\n[Architecture] lasts 6 days\n${line}\n@endgantt`;
+    expect(quickFixesForDiagram("gantt", source).some((fix) => fix.replacement === `[${line}`)).toBe(true);
+    expect(diagnosticsForDiagram("gantt", source).some((item) => item.message === "Task brackets are unbalanced")).toBe(
+      true,
+    );
+  }
+});
+
+describe("dependency possessive repairs", () => {
+  it.each([
+    ["[Frontend] starts at [Backend] end", "[Frontend] starts at [Backend]'s end"],
+    ["[Frontend] ends at [Backend]s end", "[Frontend] ends at [Backend]'s end"],
+    ["[Frontend] starts 5 days after [Backend] end", "[Frontend] starts 5 days after [Backend]'s end"],
+    ["[Frontend] starts 3 days before [Backend] start", "[Frontend] starts 3 days before [Backend]'s start"],
+    ["[Frontend] starts at [Backend]‘s start", "[Frontend] starts at [Backend]'s start"],
+    ["[Frontend] starts at [Backend]' end", "[Frontend] starts at [Backend]'s end"],
+    [
+      "[Frontend] starts 5 days after [Backend] end and lasts 2 days and is 50% completed",
+      "[Frontend] starts 5 days after [Backend]'s end and lasts 2 days and is 50% completed",
+    ],
+    ["[Release] happens at [Backend] end", "[Release] happens at [Backend]'s end"],
+  ])("repairs %s without changing the relationship", (line, expected) => {
+    const source = `@startgantt\n[Backend] lasts 8 days\n${line}\n@endgantt`;
+    const fix = quickFixesForDiagram("gantt", source).find((item) => item.replacement === expected);
+    expect(fix).toBeDefined();
+    expect(diagnosticsForDiagram("gantt", source).some((item) => item.actions?.length)).toBe(true);
+  });
+
+  it("accepts a supported curly apostrophe without reporting a false error", () => {
+    const source = "@startgantt\n[Backend] lasts 8 days\n[Frontend] starts at [Backend]’s end\n@endgantt";
+    expect(diagnosticsForDiagram("gantt", source).filter((item) => item.severity === "error")).toEqual([]);
+    expect(quickFixesForDiagram("gantt", source)).toEqual([]);
+  });
+
+  it("leaves valid dependencies and quoted text unchanged", () => {
+    const source =
+      '@startgantt\n[Backend] lasts 8 days\n[Frontend] starts at [Backend]\'s end\n[Frontend] displays as "at [Backend] end"\n@endgantt';
+    expect(
+      quickFixesForDiagram("gantt", source).filter(
+        (fix) => fix.message === "Dependency anchor requires the possessive marker 's",
+      ),
+    ).toEqual([]);
+  });
+});
