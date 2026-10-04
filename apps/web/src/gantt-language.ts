@@ -333,8 +333,9 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
 }
 
 export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
-  const diagnostics = parseGantt(source).diagnostics;
-  const fixes = quickFixesForDiagnostics(source, diagnostics);
+  const parsed = parseGantt(source);
+  const diagnostics = parsed.diagnostics;
+  const fixes = quickFixesForDiagnostics(source, parsed);
   const result = diagnostics.map((diagnostic) => {
     const matchingFixes = fixes.filter(
       (item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to,
@@ -380,7 +381,7 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
 }
 
 export function ganttQuickFixes(source: string): GanttQuickFix[] {
-  const fixes = quickFixesForDiagnostics(source, parseGantt(source).diagnostics);
+  const fixes = quickFixesForDiagnostics(source, parseGantt(source));
   const repair = dependencyOrderRepair(source);
   return repair
     ? [
@@ -437,12 +438,41 @@ function normalizeDateGuess(value: string): string | undefined {
   return normalized === value ? undefined : normalized;
 }
 
-function quickFixesForDiagnostics(
-  source: string,
-  diagnostics: ReturnType<typeof parseGantt>["diagnostics"],
-): GanttQuickFix[] {
-  return diagnostics.flatMap((diagnostic) => {
+function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
+  return parsed.diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
+    if (diagnostic.code === "unknown-task") {
+      const normalize = (reference: string) => reference.trim().toLowerCase();
+      const unknown = normalize(text);
+      const dependency = parsed.document.dependencies.find(
+        (item) =>
+          item.predecessor.range.from === diagnostic.range.from && item.predecessor.range.to === diagnostic.range.to,
+      );
+      const owner = parsed.document.tasks.find((task) =>
+        [task.sameRowAs, task.milestone].some(
+          (reference) => reference?.range.from === diagnostic.range.from && reference.range.to === diagnostic.range.to,
+        ),
+      );
+      const limit = Math.min(2, Math.max(1, Math.floor(unknown.length / 3)));
+      return parsed.document.tasks
+        .filter((task) => task.id !== dependency?.successorTaskId && task.id !== owner?.id)
+        .map((task) => {
+          const references = [task.label, ...(task.alias ? [task.alias.value] : [])];
+          return references
+            .map((reference) => ({ reference, distance: levenshtein(unknown, normalize(reference)) }))
+            .sort((a, b) => a.distance - b.distance)[0]!;
+        })
+        .filter((candidate) => candidate.distance <= limit && candidate.distance < unknown.length)
+        .sort((a, b) => a.distance - b.distance || a.reference.localeCompare(b.reference))
+        .slice(0, 3)
+        .map(({ reference }) => ({
+          from: diagnostic.range.from,
+          to: diagnostic.range.to,
+          replacement: reference,
+          message: diagnostic.message,
+          label: `Use task ${reference}`,
+        }));
+    }
     // Keep repairs narrow so a suggestion preserves the task, anchor and value.
     const syntaxRepairs: Array<[RegExp, string, string]> = [
       [

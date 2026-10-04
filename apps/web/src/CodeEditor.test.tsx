@@ -16,6 +16,18 @@ function renderEditor(diagramKind: DiagramKind, value: string) {
 }
 
 describe("CodeEditor quick fixes", () => {
+  it("previews the corrected line and applies the chosen task reference only", () => {
+    const source =
+      "@startgantt\n[Build A] lasts 2 days\n[Build B] lasts 2 days\n[Test] starts at [Build C]'s end\n@endgantt";
+    const onChange = vi.fn();
+    render(<CodeEditor diagramKind="gantt" value={source} onChange={onChange} onCursorChange={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText(FIX_LABEL));
+    const fix = screen.getByRole("button", { name: /Use task Build B/ });
+    expect(fix).toHaveTextContent("[Test] starts at [Build B]'s end");
+    fireEvent.click(fix);
+    expect(onChange).toHaveBeenLastCalledWith(source.replace("[Build C]", "[Build B]"));
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
+  });
   it("previews alternatives, applies only the selected fix, and refreshes when history restores the source", () => {
     const source =
       "@startgantt\n[Design] lasts 2 days\n[Build] lasts 3 days\n[Build] starts at [Design]'s\n[Build] is 50 completed\n@endgantt";

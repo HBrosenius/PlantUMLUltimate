@@ -1928,3 +1928,18 @@ test("chooses an anchor fix and restores the error with undo", async ({ page }) 
   await expect(page.locator(".cm-content")).not.toContainText("[Design]'s start");
   await expect(page.getByRole("button", { name: /Use predecessor end/ })).toBeVisible();
 });
+
+test("repairs a misspelled task reference and supports undo", async ({ page }) => {
+  await fillSource(
+    page,
+    source("[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Frontend] starts at [Backned]'s end"),
+  );
+  await page.getByLabel("Show source fix suggestions").click();
+  await page.getByRole("button", { name: /Use task Backend/ }).click();
+  await expect(page.locator(".cm-content")).toContainText("[Frontend] starts at [Backend]'s end");
+  await expect(page.getByLabel("Show source fix suggestions")).toBeHidden();
+  await page.locator(".cm-content").press("ControlOrMeta+z");
+  await expect(page.locator(".cm-content")).toContainText("[Frontend] starts at [Backned]'s end");
+  await page.getByLabel("Show source fix suggestions").click();
+  await expect(page.getByRole("button", { name: /Use task Backend/ })).toBeVisible();
+});

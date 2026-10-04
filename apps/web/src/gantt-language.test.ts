@@ -17,6 +17,62 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it.each(["displays on same row as [Frontned]", "happens at [Frontned]'s end"])(
+    "does not suggest the owning task or its alias for %s",
+    (statement) => {
+      for (const declaration of ["[Frontend] lasts 2 days", "[Frontend] as [FE] lasts 2 days"]) {
+        const source = `@startgantt\n${declaration}\n[Frontend] ${statement}\n@endgantt`;
+        expect(ganttDiagnostics(source).some((item) => item.message.includes("Unknown task reference"))).toBe(true);
+        expect(ganttQuickFixes(source)).toEqual([]);
+        if (declaration.includes("as [FE]")) {
+          expect(ganttQuickFixes(source.replace("Frontned", "FF"))).toEqual([]);
+        }
+      }
+    },
+  );
+
+  it.each(["displays on same row as [Backned]", "happens at [Backned]'s end"])(
+    "still suggests other tasks for %s",
+    (statement) => {
+      const source = `@startgantt\nProject starts 2026-09-21\n[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Frontend] ${statement}\n@endgantt`;
+      const fix = ganttQuickFixes(source).find((item) => item.label === "Use task Backend")!;
+      expect(fix).toBeDefined();
+      expect(source.slice(fix.from, fix.to)).toBe("Backned");
+      const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+      expect(repaired).toBe(source.replace("[Backned]", "[Backend]"));
+      expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
+    },
+  );
+
+  it.each([
+    ["[Backend] lasts 2 days", "Backned", "Backend"],
+    ["[Backend service] as [BE] lasts 2 days", "BF", "BE"],
+    ["[Backend service] as [BE] lasts 2 days", "Backend servce", "Backend service"],
+  ])("repairs only the unknown reference using existing names or aliases", (declaration, typo, expected) => {
+    const source = `@startgantt\nProject starts 2026-09-21\n${declaration}\n[Frontend] lasts 3 days\n[Frontend] starts at [${typo}]'s end\n@endgantt`;
+    const fix = ganttQuickFixes(source).find((item) => item.label === `Use task ${expected}`)!;
+    expect(fix).toBeDefined();
+    expect(source.slice(fix.from, fix.to)).toBe(typo);
+    const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+    expect(repaired).toBe(source.replace(`[${typo}]`, `[${expected}]`));
+    expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
+    expect(ganttDiagnostics(source).find((item) => item.severity === "error")?.actions?.[0]?.name).toContain(
+      `Use task ${expected}`,
+    );
+  });
+
+  it("offers multiple similar tasks rather than choosing one", () => {
+    const source =
+      "@startgantt\n[Build A] lasts 2 days\n[Build B] lasts 2 days\n[Test] starts at [Build C]'s end\n@endgantt";
+    expect(ganttQuickFixes(source).map((fix) => fix.replacement)).toEqual(["Build A", "Build B"]);
+  });
+
+  it("does not suggest unrelated names or a dependency on the task itself", () => {
+    const source = "@startgantt\n[Backend] lasts 2 days\n[Frontend] starts at [Frontned]'s end\n@endgantt";
+    expect(ganttQuickFixes(source)).toEqual([]);
+    expect(ganttQuickFixes(source.replace("Frontned", "Missing"))).toEqual([]);
+  });
+
   it.each([
     ["[Build] starts [Design]'s end", "[Build] starts at [Design]'s end"],
     ["[Build] ends [Design]'s start", "[Build] ends at [Design]'s start"],

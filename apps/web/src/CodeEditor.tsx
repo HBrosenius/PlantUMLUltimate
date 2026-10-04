@@ -366,6 +366,7 @@ export function CodeEditor({
   };
 
   const relationshipRepair = quickFixes.length === 1 && quickFixes[0]?.message.startsWith("Repair ");
+  const previewSource = view.current?.state.doc.toString() ?? value;
 
   return (
     <section className="editor-pane" aria-label="Code editor section">
@@ -378,16 +379,23 @@ export function CodeEditor({
                 : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
             </summary>
             <ul aria-label="Source fix suggestions">
-              {quickFixes.map((fix, index) => (
-                <li key={`${fix.from}:${fix.to}:${index}`}>
-                  <button type="button" onClick={() => applyQuickFix(fix)}>
-                    <span>
-                      Line {value.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
-                    </span>
-                    <code>{fix.replacement.trim() || "Remove this text"}</code>
-                  </button>
-                </li>
-              ))}
+              {quickFixes.map((fix, index) => {
+                const lineFrom = previewSource.lastIndexOf("\n", Math.max(0, fix.from - 1)) + 1;
+                const nextLine = previewSource.indexOf("\n", fix.to);
+                const lineTo = nextLine < 0 ? previewSource.length : nextLine;
+                const preview =
+                  previewSource.slice(lineFrom, fix.from) + fix.replacement + previewSource.slice(fix.to, lineTo);
+                return (
+                  <li key={`${fix.from}:${fix.to}:${index}`}>
+                    <button type="button" onClick={() => applyQuickFix(fix)}>
+                      <span>
+                        Line {previewSource.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
+                      </span>
+                      <code>{preview.trim() || "Remove this text"}</code>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </details>
         )}
