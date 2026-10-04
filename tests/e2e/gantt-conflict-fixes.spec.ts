@@ -90,3 +90,48 @@ test("shows a selectable critical chain through a linked milestone", async ({ pa
   await row.getByRole("button", { name: "Release (milestone)", exact: true }).click();
   await expect(page.locator('.diagram [data-task-id="release"]')).toHaveAttribute("data-selected", "true");
 });
+
+test("shows dates and slack for every task and highlights critical tasks", async ({ page }) => {
+  await fillSource(
+    page,
+    [
+      "@startgantt",
+      "Project starts 2026-09-21",
+      "saturday are closed",
+      "sunday are closed",
+      "[Architecture] starts 2026-09-24 and lasts 6 days",
+      "[Backend] lasts 8 days",
+      "[Frontend] lasts 10 days",
+      "[Testing] lasts 5 days",
+      "[Backend] starts at [Architecture]'s end",
+      "[Frontend] starts 5 days after [Backend]'s end",
+      "[Testing] starts 3 days after [Frontend]'s end",
+      "@endgantt",
+    ].join("\n"),
+  );
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const report = page.locator(".critical-path-report");
+  for (const [name, duration, slack, critical] of [
+    ["Architecture", 6, 1, false],
+    ["Backend", 8, 1, false],
+    ["Frontend", 10, 0, true],
+    ["Testing", 5, 0, true],
+  ] as const) {
+    const row = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name, exact: true }) });
+    await expect(row).toHaveAttribute("data-critical", String(critical));
+    await expect(row.getByRole("cell").nth(3)).toHaveText(`${duration} working days`);
+    await expect(row.getByRole("cell").nth(4)).toHaveText(`${slack} working days`);
+    await expect(row.getByRole("cell").nth(5)).toHaveText("0 working days");
+  }
+  const testing = report
+    .getByRole("row")
+    .filter({ has: page.getByRole("rowheader", { name: "Testing", exact: true }) });
+  await expect(testing.getByRole("cell").nth(2)).toHaveText("2026-11-06");
+  await expect(testing.getByRole("cell").nth(6)).toHaveText("2026-11-02");
+  await expect(testing.getByRole("cell").nth(7)).toHaveText("2026-11-06");
+  const backend = report
+    .getByRole("row")
+    .filter({ has: page.getByRole("rowheader", { name: "Backend", exact: true }) });
+  await expect(backend.getByRole("cell").nth(6)).toHaveText("2026-10-05");
+  await expect(backend.getByRole("cell").nth(7)).toHaveText("2026-10-14");
+});

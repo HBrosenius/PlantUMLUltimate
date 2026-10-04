@@ -202,6 +202,80 @@ sunday are closed
     expect(analysis.chainsByTask.get("d")).toEqual([["d"]]);
   });
 
+  it("uses actual working duration for explicit date windows", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-21 and ends 2026-09-28\n[A] pauses on tuesday\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, [], undefined, calendar);
+    expect(analyzeCriticalPath(document.tasks, [], dates, calendar).durationByTask.get("a")).toBe(5);
+  });
+
+  it("distinguishes required dependency lags from usable slack in the user's chain", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Architecture] starts 2026-09-24 and lasts 6 days\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n[Backend] starts at [Architecture]'s end\n[Frontend] starts 5 days after [Backend]'s end\n[Testing] starts 3 days after [Frontend]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    expect(dates.get("testing")?.end).toBe("2026-11-06");
+    expect(analysis.slackByTask.get("frontend")).toBe(0);
+    expect(analysis.slackByTask.get("testing")).toBe(0);
+    expect(analysis.slackByTask.get("backend")).toBe(1);
+    expect(analysis.slackByTask.get("architecture")).toBe(1);
+    expect(analysis.freeSlackByTask.get("architecture")).toBe(0);
+    expect(analysis.freeSlackByTask.get("backend")).toBe(0);
+    expect(analysis.latestDatesByTask.get("architecture")).toEqual({ start: "2026-09-25", end: "2026-10-02" });
+    expect(analysis.latestDatesByTask.get("backend")).toEqual({ start: "2026-10-05", end: "2026-10-14" });
+    expect(analysis.latestDatesByTask.get("testing")).toEqual({ start: "2026-11-02", end: "2026-11-06" });
+  });
+
+  it("separates free slack from total slack on a noncritical chain", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day\n[B] lasts 1 day and starts at [A]'s end\n[C] lasts 10 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies);
+    expect(analysis.slackByTask.get("a")).toBe(8);
+    expect(analysis.freeSlackByTask.get("a")).toBe(0);
+    expect(analysis.freeSlackByTask.get("b")).toBe(8);
+    expect(analysis.freeSlackByTask.get("c")).toBe(0);
+  });
+
+  it.each([
+    "[B] starts 2 days after [A]'s start",
+    "[B] ends 2 days after [A]'s end",
+    "[A] starts 2 days before [B]'s start",
+    "[A] ends 2 days before [B]'s end",
+  ])("respects fixed successor anchors for free slack: %s", (dependency) => {
+    const source = `@startgantt\nProject starts 2026-09-21\n[A] starts 2026-09-21 and ends 2026-09-21\n[B] starts 2026-09-25 and ends 2026-09-25\n[C] lasts 10 days\n${dependency}\n@endgantt`;
+    const document = parseGantt(source).document;
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies);
+    expect(analysis.blockers).toEqual([]);
+    expect(analysis.freeSlackByTask.get("a")).toBe(2);
+    expect(analysis.slackByTask.get("a")).toBeGreaterThan(2);
+  });
+
+  it("counts only available workdays when free slack crosses pauses and weekends", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-21 and lasts 2 days\n[A] pauses on tuesday\n[B] starts 2026-09-28 and lasts 1 day\n[B] starts at [A]'s end\n[C] lasts 10 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    expect(analysis.freeSlackByTask.get("a")).toBe(2);
+    expect(analysis.slackByTask.get("a")).toBeGreaterThan(2);
+  });
+
+  it("measures milestone free slack in calendar days", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Release] happens 2026-09-25\n[Deploy] starts 2026-09-28 and lasts 1 day\n[Deploy] starts 1 day after [Release]'s end\n[Other] lasts 10 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    expect(analysis.freeSlackByTask.get("release")).toBe(2);
+  });
+
   it("reports the specific resolver issue as a selectable task blocker", () => {
     const document = parseGantt("@startgantt\n[A] lasts 2 days\n@endgantt").document;
     const analysis = analyzeCriticalPath(

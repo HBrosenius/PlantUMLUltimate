@@ -131,6 +131,9 @@ export interface CriticalPathAnalysis {
   orderedTaskIds: string[];
   projectDuration: number;
   slackByTask: Map<string, number>;
+  freeSlackByTask: Map<string, number>;
+  durationByTask: Map<string, number>;
+  latestDatesByTask: Map<string, { start: string; end: string }>;
   blockers: Array<{ taskId: string; reason: string }>;
   chainsByTask: Map<string, string[][]>;
 }
@@ -155,6 +158,9 @@ export function analyzeCriticalPath(
     orderedTaskIds: [],
     projectDuration: 0,
     slackByTask: new Map(),
+    freeSlackByTask: new Map(),
+    durationByTask: new Map(),
+    latestDatesByTask: new Map(),
     blockers,
     chainsByTask: new Map(),
   });
@@ -231,6 +237,8 @@ export function analyzeCriticalPath(
       const finishDate = new Date(projectFinish * 86_400_000).toISOString().slice(0, 10);
       const latestDates = new Map<string, { start: string; end: string }>();
       const slackByTask = new Map<string, number>();
+      const freeSlackByTask = new Map<string, number>();
+      const durationByTask = new Map<string, number>();
       for (const id of [...order].reverse()) {
         const task = byId.get(id)!;
         const actual = resolvedDates.get(id)!;
@@ -245,6 +253,7 @@ export function analyzeCriticalPath(
         if (date <= actual.end!) return empty([{ taskId: id, reason: "Schedule span exceeds the analysis limit" }]);
         // Milestones are events; their dates do not consume a working day.
         const event = Boolean(task.milestone && !task.duration);
+        durationByTask.set(id, event ? 0 : days);
         const walk = (anchor: string, direction: number) => {
           if (event || !days) return anchor;
           let value = anchor;
@@ -255,55 +264,58 @@ export function analyzeCriticalPath(
           }
           return remaining ? undefined : value;
         };
-        let endLimit = finishDate;
-        let startLimit: string | undefined;
-        for (const edge of outgoing.get(id) ?? []) {
-          const dependency = edge.dependency;
-          const other = latestDates.get(edge.successor)!;
-          const predecessorAnchor = dependency.relation.endsWith("after-start") ? "start" : "end";
-          const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
-          let limit: string | undefined;
-          let anchor: "start" | "end";
-          if (dependency.direction === "before") {
-            anchor = successorAnchor;
-            limit = dependencyDate(other[predecessorAnchor], dependency, calendar!);
-          } else {
-            anchor = predecessorAnchor;
-            // Find the latest predecessor anchor whose relationship still fits the
-            // successor's latest window, including zero-lag weekend boundaries.
-            let low = dateDays(actual[anchor])!;
-            let high = projectFinish;
-            while (low < high) {
-              const mid = Math.ceil((low + high) / 2);
-              const candidate = new Date(mid * 86_400_000).toISOString().slice(0, 10);
-              const boundary = dependencyDate(candidate, dependency, calendar!);
-              if (boundary && boundary <= other[successorAnchor]) low = mid;
-              else high = mid - 1;
+        // Total slack allows successors to move; free slack keeps their planned dates fixed.
+        for (const free of [false, true]) {
+          let endLimit = finishDate;
+          let startLimit: string | undefined;
+          for (const edge of outgoing.get(id) ?? []) {
+            const dependency = edge.dependency;
+            const other = free ? resolvedDates.get(edge.successor)! : latestDates.get(edge.successor)!;
+            const predecessorAnchor = dependency.relation.endsWith("after-start") ? "start" : "end";
+            const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
+            let limit: string | undefined;
+            let anchor: "start" | "end";
+            if (dependency.direction === "before") {
+              anchor = successorAnchor;
+              limit = dependencyDate(other[predecessorAnchor]!, dependency, calendar!);
+            } else {
+              anchor = predecessorAnchor;
+              // Find the latest predecessor anchor whose relationship still fits the
+              // successor's latest window, including zero-lag weekend boundaries.
+              let low = dateDays(actual[anchor])!;
+              let high = projectFinish;
+              while (low < high) {
+                const mid = Math.ceil((low + high) / 2);
+                const candidate = new Date(mid * 86_400_000).toISOString().slice(0, 10);
+                const boundary = dependencyDate(candidate, dependency, calendar!);
+                if (boundary && boundary <= other[successorAnchor]!) low = mid;
+                else high = mid - 1;
+              }
+              limit = new Date(low * 86_400_000).toISOString().slice(0, 10);
             }
-            limit = new Date(low * 86_400_000).toISOString().slice(0, 10);
+            if (!limit) return empty([{ taskId: id, reason: "Dependency date cannot be resolved" }]);
+            if (anchor === "end") endLimit = endLimit < limit ? endLimit : limit;
+            else startLimit = startLimit && startLimit < limit ? startLimit : limit;
           }
-          if (!limit) return empty([{ taskId: id, reason: "Dependency date cannot be resolved" }]);
-          if (anchor === "end") endLimit = endLimit < limit ? endLimit : limit;
-          else startLimit = startLimit && startLimit < limit ? startLimit : limit;
+          let latestStart = walk(endLimit, -1);
+          if (!latestStart) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
+          if (startLimit && latestStart > startLimit) {
+            latestStart = startLimit;
+          }
+          const latestEnd = walk(latestStart, 1);
+          if (!latestEnd) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
+          if (!free) latestDates.set(id, { start: latestStart, end: latestEnd });
+          let slack = 0;
+          date = actual.start!;
+          if (!event && days) {
+            for (let step = 0; step < 10_000 && !working(date); step++) date = shiftDate(date, 1)!;
+          }
+          for (let step = 0; step < 10_000 && date < latestStart; step++) {
+            date = shiftDate(date, 1)!;
+            if (event || working(date)) slack++;
+          }
+          (free ? freeSlackByTask : slackByTask).set(id, slack);
         }
-        let latestStart = walk(endLimit, -1);
-        if (!latestStart) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
-        if (startLimit && latestStart > startLimit) {
-          latestStart = startLimit;
-        }
-        const latestEnd = walk(latestStart, 1);
-        if (!latestEnd) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
-        latestDates.set(id, { start: latestStart, end: latestEnd });
-        let slack = 0;
-        date = actual.start!;
-        if (!event && days) {
-          for (let step = 0; step < 10_000 && !working(date); step++) date = shiftDate(date, 1)!;
-        }
-        for (let step = 0; step < 10_000 && date < latestStart; step++) {
-          date = shiftDate(date, 1)!;
-          if (event || working(date)) slack++;
-        }
-        slackByTask.set(id, slack);
       }
       const taskIds = new Set(
         scheduled.filter((item) => (slackByTask.get(item.task.id) ?? 1) === 0).map((item) => item.task.id),
@@ -339,6 +351,9 @@ export function analyzeCriticalPath(
           .sort((a, b) => (dateDays(resolvedDates.get(a)?.start) ?? 0) - (dateDays(resolvedDates.get(b)?.start) ?? 0)),
         projectDuration: projectFinish - projectStart + 1,
         slackByTask,
+        freeSlackByTask,
+        durationByTask,
+        latestDatesByTask: latestDates,
         blockers: [],
         chainsByTask,
       };

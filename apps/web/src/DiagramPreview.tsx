@@ -1413,6 +1413,12 @@ export function DiagramPreview({
               : `Critical path · ${criticalPath.projectDuration} days`}
           </summary>
           <div className="schedule-analysis-report-body">
+            <p>
+              Total slack is the available delay without moving the planned project finish. Free slack is the delay
+              available without moving dependent tasks’ planned dates. Dependency offsets are required gaps, measured in
+              calendar days; they are already included in the schedule. Latest start and finish show the allowable dates
+              without moving the planned project finish.
+            </p>
             {criticalPath.blockers.length ? (
               <>
                 <p>Resolve these schedule issues to calculate the critical path.</p>
@@ -1432,50 +1438,72 @@ export function DiagramPreview({
                   <tr>
                     <th>#</th>
                     <th>Task</th>
+                    <th>Start</th>
+                    <th>Finish</th>
                     <th>Duration</th>
-                    <th>Slack</th>
-                    <th>Why critical</th>
+                    <th>Total slack</th>
+                    <th>Free slack</th>
+                    <th>Latest start</th>
+                    <th>Latest finish</th>
+                    <th>Status and critical chain</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {criticalPath.orderedTaskIds.map((id, index) => {
-                    const task = tasks.find((item) => item.id === id);
-                    const milestone = Boolean(task?.milestone && !task.duration);
-                    return (
-                      <tr key={id}>
-                        <td>{index + 1}</td>
-                        <th>{task?.label ?? id}</th>
-                        <td>
-                          {milestone ? "Milestone (0 days)" : `${task ? (taskElapsedDays(task) ?? 1) : 1} working days`}
-                        </td>
-                        <td>
-                          {Math.round(criticalPath.slackByTask.get(id) ?? 0)}{" "}
-                          {milestone ? "calendar days" : "working days"}
-                        </td>
-                        <td>
-                          {(criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
-                            <div key={chainIndex}>
-                              {chain.length === 1
-                                ? "No usable slack before project finish: "
-                                : "Critical dependency chain: "}
-                              {chain.map((taskId, step) => {
-                                const linked = tasks.find((item) => item.id === taskId);
-                                return (
-                                  <span key={taskId}>
-                                    {step > 0 && " → "}
-                                    <button onClick={() => onTaskSelect(taskId)}>
-                                      {linked?.label ?? taskId}
-                                      {linked?.milestone && !linked.duration ? " (milestone)" : ""}
-                                    </button>
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          ))}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {tasks
+                    .filter((task) => criticalPath.slackByTask.has(task.id))
+                    .map((task, index) => {
+                      const id = task.id;
+                      const dates = resolvedDates.get(id);
+                      const latest = criticalPath.latestDatesByTask.get(id);
+                      const critical = criticalPath.taskIds.has(id);
+                      const milestone = Boolean(task?.milestone && !task.duration);
+                      return (
+                        <tr key={id} data-critical={critical}>
+                          <td>{index + 1}</td>
+                          <th>{task.label}</th>
+                          <td>{dates?.start ?? "—"}</td>
+                          <td>{dates?.end ?? "—"}</td>
+                          <td>
+                            {milestone
+                              ? "Milestone (0 days)"
+                              : `${criticalPath.durationByTask.get(id) ?? 0} working days`}
+                          </td>
+                          <td>
+                            {Math.round(criticalPath.slackByTask.get(id) ?? 0)}{" "}
+                            {milestone ? "calendar days" : "working days"}
+                          </td>
+                          <td>
+                            {Math.round(criticalPath.freeSlackByTask.get(id) ?? 0)}{" "}
+                            {milestone ? "calendar days" : "working days"}
+                          </td>
+                          <td>{latest?.start ?? "—"}</td>
+                          <td>{latest?.end ?? "—"}</td>
+                          <td>
+                            {critical ? <strong>Critical</strong> : "Available slack"}
+                            {critical &&
+                              (criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
+                                <div key={chainIndex}>
+                                  {chain.length === 1
+                                    ? "No usable slack before project finish: "
+                                    : "Critical dependency chain: "}
+                                  {chain.map((taskId, step) => {
+                                    const linked = tasks.find((item) => item.id === taskId);
+                                    return (
+                                      <span key={taskId}>
+                                        {step > 0 && " → "}
+                                        <button onClick={() => onTaskSelect(taskId)}>
+                                          {linked?.label ?? taskId}
+                                          {linked?.milestone && !linked.duration ? " (milestone)" : ""}
+                                        </button>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             ) : (
