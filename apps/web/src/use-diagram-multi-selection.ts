@@ -130,12 +130,18 @@ export function useDiagramMultiSelection({
     pressedItem.current = undefined;
     if (pressed && (pressed.source !== source || Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5))
       return;
-    const item = targetItem(event.target) ?? items.find((item) => item.key === pressed?.key);
+    const direct = targetItem(event.target);
+    const item = direct ?? items.find((item) => item.key === pressed?.key);
     if (item) {
       if (modifier(event)) {
         event.preventDefault();
         event.stopPropagation();
         if (!pressed?.toggled) toggle(item.key);
+      } else if (!direct && pressed) {
+        // A preview can replace the SVG target on pointer-up. Keep its subsequent click semantic.
+        event.preventDefault();
+        event.stopPropagation();
+        choose([item.key]);
       } else plainSelection.current = { documentId, kind, source, key: item.key };
     } else if (event.target instanceof Element && event.target.closest(".diagram svg")) clear();
   };

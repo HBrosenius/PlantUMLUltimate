@@ -99,6 +99,13 @@ it("preserves WBS Shift-drag while Shift-click toggles selection", () => {
   fireEvent.click(two, { shiftKey: true, clientX: 30, clientY: 10 });
   expect(screen.getByTestId("selected")).toHaveTextContent("2");
 });
+it("keeps a stationary click semantic when pointer-up replaces the SVG hit target", () => {
+  render(<Harness />);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "One" }), { button: 0, clientX: 10, clientY: 10 });
+  fireEvent.click(screen.getByTestId("background"), { clientX: 10, clientY: 10 });
+  expect(screen.getByTestId("selected")).toHaveTextContent("1");
+  expect(screen.getByTestId("commits")).toHaveTextContent("0");
+});
 it("clears stale selection when source or active document changes", () => {
   render(<Harness />);
   fireEvent.click(screen.getByRole("button", { name: "One" }));

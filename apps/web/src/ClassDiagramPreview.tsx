@@ -382,11 +382,11 @@ export function ClassDiagramPreview({
     window.document
       .querySelectorAll(".class-active-drop")
       .forEach((item) => item.classList.remove("class-active-drop"));
-    const hovered = targetAt(root.current, e.clientX, e.clientY);
+    const hovered = targetAt(root.current, e.clientX, e.clientY, d?.kind === "move" ? undefined : "entity");
     if (d?.kind === "move") hovered?.classList.add("class-active-drop");
     if (!d?.line) return;
     const s = d.line.ownerSVGElement;
-    const target = targetAt(root.current, e.clientX, e.clientY),
+    const target = targetAt(root.current, e.clientX, e.clientY, d.kind === "move" ? undefined : "entity"),
       id = classObjectId(target),
       anchor = id
         ? root.current?.querySelector<SVGGraphicsElement>(`[data-class-connect-from="${CSS.escape(id)}"]`)
@@ -562,17 +562,22 @@ const center = (e: SVGGraphicsElement, s: SVGSVGElement | null) => {
   const b = e.getBoundingClientRect();
   return client(s, b.left + b.width / 2, b.top + b.height / 2);
 };
-const targetAt = (_r: HTMLDivElement | null, x: number, y: number) =>
+const targetAt = (_r: HTMLDivElement | null, x: number, y: number, type?: "entity") =>
   [
     ...window.document.querySelectorAll<Element>(
       ".class-diagram .class-semantic-hit,.class-diagram .class-package-drop-hit,.class-diagram [data-class-hit-id],.class-package-tray [data-class-object-id]",
     ),
   ]
     .reverse()
-    .find((e) => {
+    .filter((e) => {
       const b = e.getBoundingClientRect();
-      return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom;
-    });
+      return (!type || classObjectType(e) === type) && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom;
+    })
+    .sort((a, b) => {
+      const first = a.getBoundingClientRect(),
+        second = b.getBoundingClientRect();
+      return first.width * first.height - second.width * second.height;
+    })[0];
 const addEndpoint = (svg: SVGSVGElement, point: DOMPoint, id: string, endpoint: "from" | "to") => {
   const handle = documentNode("circle");
   handle.setAttribute("class", "class-relationship-endpoint");
