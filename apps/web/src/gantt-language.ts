@@ -442,6 +442,22 @@ function quickFixesForDiagnostics(
 ): GanttQuickFix[] {
   return diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
+    // Keep repairs narrow so a suggestion preserves the task, anchor and value.
+    const syntaxRepairs: Array<[RegExp, string]> = [
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends))\s+(\[[^\]]+]'s\s+(?:start|end)\s*)$/i, "$1 at $2"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])\s+(start|end)(\s*)$/i, "$1's $2$3"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])s\s+(start|end)(\s*)$/i, "$1's $2$3"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)starts?(\s*)$/i, "$1start$2"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)ends(\s*)$/i, "$1end$2"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100))\s+completed(\s*)$/i, "$1% completed$2"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100)%)\s*$/i, "$1 completed"],
+    ];
+    const syntaxRepair =
+      diagnostic.code === "malformed-statement" ? syntaxRepairs.find(([pattern]) => pattern.test(text)) : undefined;
+    const missingDependencyAnchor =
+      diagnostic.code === "malformed-statement"
+        ? text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s)(\s*)$/i)
+        : undefined;
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
     const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
@@ -475,29 +491,33 @@ function quickFixesForDiagnostics(
       diagnostic.code === "unsupported-gantt-note-position"
         ? text.replace(/^(\s*note\s+)(?:top|left|right)/i, "$1bottom")
         : undefined;
-    const replacement = unsupportedNotePosition
-      ? unsupportedNotePosition
-      : missingCloseBracket
-        ? `${missingCloseBracket[1]}]${missingCloseBracket[2]}${missingCloseBracket[3]}${missingCloseBracket[4]}`
-        : invalidDateFix
-          ? invalidDateFix
-          : looseDateStatement && looseDateFix
-            ? `${looseDateStatement[1]}${looseDateFix}`
-            : duplicateTask
-              ? `${duplicateTask[1]}${duplicateTask[3]}`
-              : color
-                ? `${color[1]}is colored in ${color[2]}`
-                : missingKeywordSpace
-                  ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
-                  : missingDurationSpace
-                    ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
-                    : missingDurationUnit
-                      ? `${missingDurationUnit[1]} days`
-                      : diagnostic.code === "invalid-duration" && invalidDuration
-                        ? `${invalidDuration[1]}1 day`
-                        : keywordSuggestion && keywordTypo
-                          ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
-                          : undefined;
+    const replacement = syntaxRepair
+      ? text.replace(syntaxRepair[0], syntaxRepair[1])
+      : missingDependencyAnchor
+        ? `${missingDependencyAnchor[1]} end${missingDependencyAnchor[2]}`
+        : unsupportedNotePosition
+          ? unsupportedNotePosition
+          : missingCloseBracket
+            ? `${missingCloseBracket[1]}]${missingCloseBracket[2]}${missingCloseBracket[3]}${missingCloseBracket[4]}`
+            : invalidDateFix
+              ? invalidDateFix
+              : looseDateStatement && looseDateFix
+                ? `${looseDateStatement[1]}${looseDateFix}`
+                : duplicateTask
+                  ? `${duplicateTask[1]}${duplicateTask[3]}`
+                  : color
+                    ? `${color[1]}is colored in ${color[2]}`
+                    : missingKeywordSpace
+                      ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
+                      : missingDurationSpace
+                        ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
+                        : missingDurationUnit
+                          ? `${missingDurationUnit[1]} days`
+                          : diagnostic.code === "invalid-duration" && invalidDuration
+                            ? `${invalidDuration[1]}1 day`
+                            : keywordSuggestion && keywordTypo
+                              ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                              : undefined;
     return replacement
       ? [{ from: diagnostic.range.from, to: diagnostic.range.to, replacement, message: diagnostic.message }]
       : [];

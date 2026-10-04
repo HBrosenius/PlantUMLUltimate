@@ -17,6 +17,33 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it.each([
+    ["[Build] starts [Design]'s end", "[Build] starts at [Design]'s end"],
+    ["[Build] ends [Design]'s start", "[Build] ends at [Design]'s start"],
+    ["[Build] starts at [Design] end", "[Build] starts at [Design]'s end"],
+    ["[Build] starts at [Design]s end", "[Build] starts at [Design]'s end"],
+    ["[Build] starts at [Design]'s starts", "[Build] starts at [Design]'s start"],
+    ["[Build] starts at [Design]'s ends", "[Build] starts at [Design]'s end"],
+    ["[Build] is 50 completed", "[Build] is 50% completed"],
+    ["[Build] is 100 completed", "[Build] is 100% completed"],
+    ["[Build] is 50%", "[Build] is 50% completed"],
+    ["  [Build] starts at [Design] end  ", "  [Build] starts at [Design]'s end  "],
+  ])("suggests a valid repair for %s", (statement, replacement) => {
+    const source = `@startgantt\nProject starts 2026-09-21\n[Design] lasts 6 days\n[Build] lasts 8 days\n${statement}\n@endgantt`;
+    const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error");
+    expect(diagnostic?.actions?.[0]?.name).toBe("Fix statement");
+    const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic?.from);
+    expect(fix?.replacement).toBe(replacement);
+    const repaired = source.slice(0, fix!.from) + fix!.replacement + source.slice(fix!.to);
+    expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
+  });
+
+  it("does not guess repairs for ambiguous dependencies or invalid completion values", () => {
+    for (const statement of ["[Build] starts at [Design]'s middle", "[Build] is 150 completed", "[Build] starts at"]) {
+      expect(ganttQuickFixes(`@startgantt\n[Design] lasts 1 day\n${statement}\n@endgantt`)).toEqual([]);
+    }
+  });
+
   it("completes existing task names at the start of a new task statement", () => {
     const source = "@startgantt\n[Design] lasts 4 days\n[Build task] lasts 2 days\n[Bu\n@endgantt";
     const state = EditorState.create({ doc: source });
@@ -65,6 +92,29 @@ describe("Gantt CodeMirror language service", () => {
   it("offers a quick fix for a color statement missing 'in'", () => {
     const diagnostics = ganttDiagnostics("@startgantt\n[A] is colored Orange\n@endgantt");
     expect(diagnostics[0]?.actions?.[0]?.name).toBe("Fix statement");
+  });
+
+  it("repairs an incomplete dependency anchor and makes the diagram valid", () => {
+    const source = [
+      "@startgantt",
+      "Project starts 2026-09-21",
+      "[Architecture] starts 2026-09-24",
+      "[Architecture] lasts 6 days",
+      "[Backend] lasts 8 days",
+      "[Frontend] lasts 10 days",
+      "[Testing] lasts 5 days",
+      "[Backend] starts at [Architecture]'s end",
+      "[Frontend] starts at [Backend]'s ",
+      "[Testing] starts at [Frontend]'s end",
+      "@endgantt",
+    ].join("\n");
+    const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error");
+    expect(diagnostic?.actions?.[0]?.name).toBe("Fix statement");
+    const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic?.from);
+    expect(fix?.replacement.trim()).toBe("[Frontend] starts at [Backend]'s end");
+    expect(fix).toBeDefined();
+    const repaired = source.slice(0, fix!.from) + fix!.replacement + source.slice(fix!.to);
+    expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
   });
 
   it("offers a Confluence-compatible fix for Gantt note placement", () => {
