@@ -344,6 +344,7 @@ export function DiagramPreview({
   );
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const [scheduleSort, setScheduleSort] = useState("source");
   const criticalPath = useMemo(
     () => analyzeCriticalPath(tasks, dependencies, resolvedDates, calendar),
     [calendar, dependencies, resolvedDates, tasks],
@@ -1435,79 +1436,112 @@ export function DiagramPreview({
                 </ul>
               </>
             ) : criticalPath.orderedTaskIds.length ? (
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Task</th>
-                    <th>Start</th>
-                    <th>Finish</th>
-                    <th>Duration</th>
-                    <th>Total slack</th>
-                    <th>Free slack</th>
-                    <th>Latest start</th>
-                    <th>Latest finish</th>
-                    <th>Status and critical chain</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks
-                    .filter((task) => criticalPath.slackByTask.has(task.id))
-                    .map((task, index) => {
-                      const id = task.id;
-                      const dates = resolvedDates.get(id);
-                      const latest = criticalPath.latestDatesByTask.get(id);
-                      const critical = criticalPath.taskIds.has(id);
-                      const milestone = Boolean(task?.milestone && !task.duration);
-                      return (
-                        <tr key={id} data-critical={critical}>
-                          <td>{index + 1}</td>
-                          <th>{task.label}</th>
-                          <td>{dates?.start ?? "—"}</td>
-                          <td>{dates?.end ?? "—"}</td>
-                          <td>
-                            {milestone
-                              ? "Milestone (0 days)"
-                              : `${criticalPath.durationByTask.get(id) ?? 0} working days`}
-                          </td>
-                          <td>
-                            {Math.round(criticalPath.slackByTask.get(id) ?? 0)}{" "}
-                            {milestone ? "calendar days" : "working days"}
-                          </td>
-                          <td>
-                            {Math.round(criticalPath.freeSlackByTask.get(id) ?? 0)}{" "}
-                            {milestone ? "calendar days" : "working days"}
-                          </td>
-                          <td>{latest?.start ?? "—"}</td>
-                          <td>{latest?.end ?? "—"}</td>
-                          <td>
-                            {critical ? <strong>Critical</strong> : "Available slack"}
-                            {critical &&
-                              (criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
-                                <div key={chainIndex}>
-                                  {chain.length === 1
-                                    ? "No usable slack before project finish: "
-                                    : "Critical dependency chain: "}
-                                  {chain.map((taskId, step) => {
-                                    const linked = tasks.find((item) => item.id === taskId);
-                                    return (
-                                      <span key={taskId}>
-                                        {step > 0 && " → "}
-                                        <button onClick={() => onTaskSelect(taskId)}>
-                                          {linked?.label ?? taskId}
-                                          {linked?.milestone && !linked.duration ? " (milestone)" : ""}
-                                        </button>
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              ))}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+              <>
+                <label>
+                  Sort schedule{" "}
+                  <select value={scheduleSort} onChange={(event) => setScheduleSort(event.target.value)}>
+                    <option value="source">Source order</option>
+                    <option value="start-asc">Start date: earliest first</option>
+                    <option value="start-desc">Start date: latest first</option>
+                    <option value="total-asc">Total slack: least first</option>
+                    <option value="total-desc">Total slack: most first</option>
+                    <option value="free-asc">Free slack: least first</option>
+                    <option value="free-desc">Free slack: most first</option>
+                  </select>
+                </label>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Task</th>
+                      <th>Start</th>
+                      <th>Finish</th>
+                      <th>Duration</th>
+                      <th>Total slack</th>
+                      <th>Free slack</th>
+                      <th>Latest start</th>
+                      <th>Latest finish</th>
+                      <th>Status and critical chain</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks
+                      .filter((task) => criticalPath.slackByTask.has(task.id))
+                      .sort((a, b) => {
+                        if (scheduleSort === "source") return 0;
+                        const difference = scheduleSort.startsWith("start-")
+                          ? (resolvedDates.get(a.id)?.start ?? "").localeCompare(resolvedDates.get(b.id)?.start ?? "")
+                          : scheduleSort.startsWith("total-")
+                            ? criticalPath.slackByTask.get(a.id)! - criticalPath.slackByTask.get(b.id)!
+                            : criticalPath.freeSlackByTask.get(a.id)! - criticalPath.freeSlackByTask.get(b.id)!;
+                        return scheduleSort.endsWith("desc") ? -difference : difference;
+                      })
+                      .map((task, index) => {
+                        const id = task.id;
+                        const dates = resolvedDates.get(id);
+                        const latest = criticalPath.latestDatesByTask.get(id);
+                        const critical = criticalPath.taskIds.has(id);
+                        const milestone = Boolean(task?.milestone && !task.duration);
+                        return (
+                          <tr key={id} data-critical={critical}>
+                            <td>{index + 1}</td>
+                            <th>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onTaskSelect(id);
+                                  revealTask(id);
+                                }}
+                              >
+                                {task.label}
+                              </button>
+                            </th>
+                            <td>{dates?.start ?? "—"}</td>
+                            <td>{dates?.end ?? "—"}</td>
+                            <td>
+                              {milestone
+                                ? "Milestone (0 days)"
+                                : `${criticalPath.durationByTask.get(id) ?? 0} working days`}
+                            </td>
+                            <td>
+                              {Math.round(criticalPath.slackByTask.get(id) ?? 0)}{" "}
+                              {milestone ? "calendar days" : "working days"}
+                            </td>
+                            <td>
+                              {Math.round(criticalPath.freeSlackByTask.get(id) ?? 0)}{" "}
+                              {milestone ? "calendar days" : "working days"}
+                            </td>
+                            <td>{latest?.start ?? "—"}</td>
+                            <td>{latest?.end ?? "—"}</td>
+                            <td>
+                              {critical ? <strong>Critical</strong> : "Available slack"}
+                              {critical &&
+                                (criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
+                                  <div key={chainIndex}>
+                                    {chain.length === 1
+                                      ? "No usable slack before project finish: "
+                                      : "Critical dependency chain: "}
+                                    {chain.map((taskId, step) => {
+                                      const linked = tasks.find((item) => item.id === taskId);
+                                      return (
+                                        <span key={taskId}>
+                                          {step > 0 && " → "}
+                                          <button onClick={() => onTaskSelect(taskId)}>
+                                            {linked?.label ?? taskId}
+                                            {linked?.milestone && !linked.duration ? " (milestone)" : ""}
+                                          </button>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </>
             ) : (
               <p>No scheduled tasks are available for critical-path analysis.</p>
             )}

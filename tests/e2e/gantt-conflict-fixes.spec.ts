@@ -156,3 +156,57 @@ test("shows dates and slack for every task and highlights critical tasks", async
     hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
   ).toContainText("0 working days");
 });
+
+test("sorts the schedule by slack and dates with stable ties and restores source order", async ({ page }) => {
+  const source =
+    "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day\n[B] lasts 1 day and starts at [A]'s end\n[C] lasts 10 days\n@endgantt";
+  await fillSource(page, source);
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const report = page.locator(".critical-path-report");
+  const sort = report.getByRole("combobox", { name: "Sort schedule" });
+  const names = report.getByRole("rowheader");
+  await expect(names).toHaveText(["A", "B", "C"]);
+  for (const [value, order] of [
+    ["total-asc", ["C", "A", "B"]],
+    ["total-desc", ["A", "B", "C"]],
+    ["free-asc", ["A", "C", "B"]],
+    ["free-desc", ["B", "A", "C"]],
+    ["start-asc", ["A", "C", "B"]],
+    ["start-desc", ["B", "A", "C"]],
+    ["source", ["A", "B", "C"]],
+  ] as const) {
+    await sort.selectOption(value);
+    await expect(names).toHaveText([...order]);
+  }
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
+  const critical = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "C", exact: true }) });
+  await expect(critical).toHaveAttribute("data-critical", "true");
+});
+
+test("selects and reveals an offscreen task from the sorted schedule table", async ({ page }) => {
+  await fillSource(
+    page,
+    "@startgantt\nProject starts 2026-09-21\nprintscale daily\n[Early] starts 2026-09-21 and lasts 2 days\n[Late] starts 2026-12-21 and lasts 2 days\n@endgantt",
+  );
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const report = page.locator(".critical-path-report");
+  await report.getByRole("combobox", { name: "Sort schedule" }).selectOption("total-asc");
+  const name = report
+    .getByRole("rowheader", { name: "Late", exact: true })
+    .getByRole("button", { name: "Late", exact: true });
+  await name.focus();
+  await name.press("Enter");
+  const task = page.locator('.diagram [data-task-id="late"]');
+  await expect(task).toHaveAttribute("data-selected", "true");
+  const visual = page.locator('.diagram [data-visual-task-id="late"]').first();
+  await expect(visual).toBeInViewport();
+  await expect
+    .poll(async () =>
+      visual.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const viewport = element.closest(".preview-viewport")!.getBoundingClientRect();
+        return box.left >= viewport.left && box.right <= viewport.right;
+      }),
+    )
+    .toBe(true);
+});
