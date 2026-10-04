@@ -1,6 +1,6 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic as CodeMirrorDiagnostic } from "@codemirror/lint";
-import { parseGantt } from "@plantuml-studio/diagram-gantt";
+import { ganttKeywordRepair, parseGantt } from "@plantuml-studio/diagram-gantt";
 
 export interface GanttQuickFix {
   from: number;
@@ -446,6 +446,14 @@ function normalizeDateGuess(value: string): string | undefined {
 function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
   return parsed.diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
+    const keywordRepair =
+      diagnostic.code === "malformed-statement" ||
+      diagnostic.code === "malformed-global-statement" ||
+      diagnostic.code === "invalid-duration"
+        ? ganttKeywordRepair(text)
+        : undefined;
+    if (keywordRepair)
+      return [{ from: diagnostic.range.from, to: diagnostic.range.to, message: diagnostic.message, ...keywordRepair }];
     if (diagnostic.code === "unknown-task") {
       const normalize = (reference: string) => reference.trim().toLowerCase();
       const unknown = normalize(text);
@@ -522,7 +530,6 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
     const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
-    const invalidDuration = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+).+$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
     const missingCloseBracket =
       diagnostic.code === "missing-closing-bracket"
@@ -572,11 +579,9 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
                       ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
                       : missingDurationUnit
                         ? `${missingDurationUnit[1]} days`
-                        : diagnostic.code === "invalid-duration" && invalidDuration
-                          ? `${invalidDuration[1]}1 day`
-                          : keywordSuggestion && keywordTypo
-                            ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
-                            : undefined;
+                        : keywordSuggestion && keywordTypo
+                          ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                          : undefined;
     return replacement
       ? [
           {

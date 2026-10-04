@@ -4,3 +4,4 @@ export * from "./source-edits";
 export * from "./operations";
 export * from "./adapter";
 export * from "./symbols";
+export { ganttKeywordRepair } from "./keyword-repairs";

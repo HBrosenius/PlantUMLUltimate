@@ -17,6 +17,50 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it.each([
+    ["sunday ar closed", "sunday are closed"],
+    ["sunday are clsoed", "sunday are closed"],
+    ["printscale dayly", "printscale daily"],
+    ["printscale dayly zoom 2", "printscale daily zoom 2"],
+    ["[Frontend] starts at [Backend]'s edn", "[Frontend] starts at [Backend]'s end"],
+    ["[Architecture] lasts 5 dys", "[Architecture] lasts 5 days"],
+    ["[Architecture] starts 2026-09-21 and iss 50% completed", "[Architecture] starts 2026-09-21 and is 50% completed"],
+    [
+      "[Architecture] starts 2026-09-21 and lasts 5 dys and is 50% completed",
+      "[Architecture] starts 2026-09-21 and lasts 5 days and is 50% completed",
+    ],
+  ])("repairs calendar, anchor, duration and inline typos in %s", (faulty, correct) => {
+    const source = `@startgantt\n[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Architecture] lasts 6 days\n${faulty}\n@endgantt`;
+    const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error")!;
+    expect(diagnostic).toBeDefined();
+    const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic.from)!;
+    expect(fix?.replacement).toBe(correct);
+    const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+    expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
+  });
+
+  it("does not replace an unrecognized duration with an invented value", () => {
+    expect(ganttQuickFixes("@startgantt\n[A] lasts 5 bananas\n@endgantt")).toEqual([]);
+  });
+
+  it.each([
+    ["Project start 2026-09-21", "Project starts 2026-09-21"],
+    ["[Frontend] starts att [Backend]'s end", "[Frontend] starts at [Backend]'s end"],
+    ["[Architecture] iss 50% completed", "[Architecture] is 50% completed"],
+    ["[Architecture] is 50% complet", "[Architecture] is 50% completed"],
+    ["suunday are closed", "sunday are closed"],
+    ["  suunday are closed  ", "  sunday are closed  "],
+  ])("diagnoses and repairs the keyword typo in %s", (faulty, correct) => {
+    const source = `@startgantt\n[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Architecture] lasts 6 days\n${faulty}\n@endgantt`;
+    const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error")!;
+    expect(diagnostic).toBeDefined();
+    expect(source.slice(diagnostic.from, diagnostic.to)).toBe(faulty);
+    expect(diagnostic.actions).toHaveLength(1);
+    const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic.from)!;
+    expect(fix.replacement).toBe(correct);
+    const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+    expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
+  });
   it("reports cycle relationships without suggesting an order repair", () => {
     const source =
       "@startgantt\n[Architecture] lasts 2 days\n[Backend] lasts 3 days\n[Architecture] starts at [Backend]'s end\n[Backend] starts at [Architecture]'s end\n@endgantt";

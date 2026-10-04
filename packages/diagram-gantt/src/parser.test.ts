@@ -4,6 +4,18 @@ import { applySourceEdits } from "./source-edits";
 import { findTaskAt } from "./model";
 
 describe("parseGantt", () => {
+  it.each(["Project start 2026-09-21", "suunday are closed"])("reports malformed global syntax: %s", (line) => {
+    const source = `@startgantt\n${line}\n@endgantt`;
+    expect(parseGantt(source).diagnostics).toEqual([
+      expect.objectContaining({ code: "malformed-global-statement", severity: "error" }),
+    ]);
+  });
+  it("keeps valid global syntax and unrelated unsupported directives unchanged", () => {
+    const source = "@startgantt\nProject starts 2026-09-21\nsunday are closed\nskinparam handwritten true\n@endgantt";
+    expect(parseGantt(source).diagnostics).toEqual([
+      expect.objectContaining({ code: "unsupported-syntax", severity: "info" }),
+    ]);
+  });
   it("reports each relationship in a cycle with exact source ranges", () => {
     const statements = ["[A] starts at [B]'s end", "[B] starts at [C]'s end", "[C] starts at [A]'s end"];
     const source = `@startgantt\n[A] lasts 1 day\n[B] lasts 1 day\n[C] lasts 1 day\n${statements.join("\n")}\n[D] starts at [C]'s end\n@endgantt`;

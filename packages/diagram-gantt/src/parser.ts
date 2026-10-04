@@ -14,6 +14,7 @@ import type {
   UnknownSyntaxNode,
 } from "./model";
 import { dependencyCycleDiagnostics } from "./dependency-cycles";
+import { ganttKeywordRepair } from "./keyword-repairs";
 
 const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -306,6 +307,17 @@ export function parseGantt(source: string): ParseResult {
         continue;
       }
 
+      const taskKeywordRepair = ganttKeywordRepair(line.text);
+      if (taskKeywordRepair) {
+        declaration(task, "unknown", lineRange);
+        diagnostics.push({
+          severity: "error",
+          message: `Malformed task statement. ${taskKeywordRepair.label}.`,
+          range: lineRange,
+          code: "malformed-statement",
+        });
+        continue;
+      }
       const resourceSection = statement.match(/\bon\s+((?:\{[^}]+}\s*)+)/i)?.[1] ?? "";
       for (const resourceMatch of resourceSection.matchAll(/\{([^}]+)}/g)) {
         if (!resourceMatch[1] || resourceMatch.index === undefined) continue;
@@ -694,11 +706,14 @@ export function parseGantt(source: string): ParseResult {
     }
 
     unknown.push({ kind: "unknown", text: line.text, range: lineRange });
+    const keywordRepair = ganttKeywordRepair(line.text);
     diagnostics.push({
-      severity: "info",
-      message: "Preserved, but not visually editable",
+      severity: keywordRepair ? "error" : "info",
+      message: keywordRepair
+        ? `Malformed Gantt statement. ${keywordRepair.label}.`
+        : "Preserved, but not visually editable",
       range: lineRange,
-      code: "unsupported-syntax",
+      code: keywordRepair ? "malformed-global-statement" : "unsupported-syntax",
     });
   }
 
