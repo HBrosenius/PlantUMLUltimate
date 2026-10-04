@@ -1433,7 +1433,7 @@ export function DiagramPreview({
                     <th>#</th>
                     <th>Task</th>
                     <th>Duration</th>
-                    <th>Slack</th>
+                    <th>Slack (working days)</th>
                     <th>Why critical</th>
                   </tr>
                 </thead>

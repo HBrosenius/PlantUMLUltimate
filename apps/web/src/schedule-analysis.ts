@@ -1,6 +1,6 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { dependencyDate, resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
-import { parseGanttCalendar, type GanttCalendar } from "./gantt-calendar";
+import { isWorkingDate, taskPauses, shiftDate, parseGanttCalendar, type GanttCalendar } from "./gantt-calendar";
 
 export interface TaskVariance {
   taskId: string;
@@ -205,31 +205,82 @@ export function analyzeCriticalPath(
     if (scheduled.length) {
       const projectStart = Math.min(...scheduled.map((item) => item.start));
       const projectFinish = Math.max(...scheduled.map((item) => item.end));
-      const slackByTask = new Map(scheduled.map((item) => [item.task.id, projectFinish - item.end]));
-      const dateFor = (taskId: string, anchor: "start" | "end") => resolvedDates.get(taskId)?.[anchor];
-      const dependencyGap = (dependency: GanttDependency): number => {
-        const predecessorAnchor =
-          dependency.relation === "start-after-start" || dependency.relation === "end-after-start" ? "start" : "end";
-        const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
-        const predecessorDate = dateFor(dependency.predecessorTaskId, predecessorAnchor);
-        const successorDate = dateFor(dependency.successorTaskId, successorAnchor);
-        if (!predecessorDate || !successorDate) return 0;
-        const expected = dependencyDate(predecessorDate, dependency, calendar!);
-        const expectedDay = dateDays(expected);
-        const successorDay = dateDays(successorDate);
-        return expectedDay === undefined || successorDay === undefined
-          ? 0
-          : Math.max(0, dependency.direction === "before" ? expectedDay - successorDay : successorDay - expectedDay);
-      };
+      const finishDate = new Date(projectFinish * 86_400_000).toISOString().slice(0, 10);
+      const latestDates = new Map<string, { start: string; end: string }>();
+      const slackByTask = new Map<string, number>();
       for (const id of [...order].reverse()) {
+        const task = byId.get(id)!;
+        const actual = resolvedDates.get(id)!;
+        const pauses = taskPauses(task);
+        const working = (date: string) => isWorkingDate(date, calendar!) && !pauses.has(date);
+        let days = 0;
+        let date = actual.start!;
+        for (let step = 0; step < 10_000 && date <= actual.end!; step++) {
+          if (working(date)) days++;
+          date = shiftDate(date, 1)!;
+        }
+        if (date <= actual.end!) return empty([{ taskId: id, reason: "Schedule span exceeds the analysis limit" }]);
+        // Milestones are events; their dates do not consume a working day.
+        const event = Boolean(task.milestone && !task.duration);
+        const walk = (anchor: string, direction: number) => {
+          if (event || !days) return anchor;
+          let value = anchor;
+          let remaining = days;
+          for (let step = 0; step < 10_000 && remaining > 0; step++) {
+            if (working(value)) remaining--;
+            if (remaining) value = shiftDate(value, direction)!;
+          }
+          return remaining ? undefined : value;
+        };
+        let endLimit = finishDate;
+        let startLimit: string | undefined;
         for (const edge of outgoing.get(id) ?? []) {
           const dependency = edge.dependency;
-          if (!dependency || !slackByTask.has(id) || !slackByTask.has(edge.successor)) continue;
-          slackByTask.set(
-            id,
-            Math.min(slackByTask.get(id)!, slackByTask.get(edge.successor)! + dependencyGap(dependency)),
-          );
+          const other = latestDates.get(edge.successor)!;
+          const predecessorAnchor = dependency.relation.endsWith("after-start") ? "start" : "end";
+          const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
+          let limit: string | undefined;
+          let anchor: "start" | "end";
+          if (dependency.direction === "before") {
+            anchor = successorAnchor;
+            limit = dependencyDate(other[predecessorAnchor], dependency, calendar!);
+          } else {
+            anchor = predecessorAnchor;
+            // Find the latest predecessor anchor whose relationship still fits the
+            // successor's latest window, including zero-lag weekend boundaries.
+            let low = dateDays(actual[anchor])!;
+            let high = projectFinish;
+            while (low < high) {
+              const mid = Math.ceil((low + high) / 2);
+              const candidate = new Date(mid * 86_400_000).toISOString().slice(0, 10);
+              const boundary = dependencyDate(candidate, dependency, calendar!);
+              if (boundary && boundary <= other[successorAnchor]) low = mid;
+              else high = mid - 1;
+            }
+            limit = new Date(low * 86_400_000).toISOString().slice(0, 10);
+          }
+          if (!limit) return empty([{ taskId: id, reason: "Dependency date cannot be resolved" }]);
+          if (anchor === "end") endLimit = endLimit < limit ? endLimit : limit;
+          else startLimit = startLimit && startLimit < limit ? startLimit : limit;
         }
+        let latestStart = walk(endLimit, -1);
+        if (!latestStart) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
+        if (startLimit && latestStart > startLimit) {
+          latestStart = startLimit;
+        }
+        const latestEnd = walk(latestStart, 1);
+        if (!latestEnd) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
+        latestDates.set(id, { start: latestStart, end: latestEnd });
+        let slack = 0;
+        date = actual.start!;
+        if (!event && days) {
+          for (let step = 0; step < 10_000 && !working(date); step++) date = shiftDate(date, 1)!;
+        }
+        for (let step = 0; step < 10_000 && date < latestStart; step++) {
+          date = shiftDate(date, 1)!;
+          if (event || working(date)) slack++;
+        }
+        slackByTask.set(id, slack);
       }
       const taskIds = new Set(
         scheduled.filter((item) => (slackByTask.get(item.task.id) ?? 1) === 0).map((item) => item.task.id),

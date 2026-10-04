@@ -31,7 +31,8 @@ it("chooses the tightest before boundary and preserves task pauses", () => {
   expect(dates.get("c")).toMatchObject({ start: "2026-09-29", end: "2026-10-01" });
   const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
   expect(analysis.blockers).toEqual([]);
-  expect(analysis.taskIds.has("c")).toBe(false);
+  // The tight before boundary leaves no permissible delayed start.
+  expect(analysis.taskIds.has("c")).toBe(true);
   expect(analysis.taskIds.has("a")).toBe(true);
 });
 

@@ -94,7 +94,7 @@ sunday are closed
     const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
     expect(analysis.orderedTaskIds).toEqual(["a", "b"]);
     expect(analysis.projectDuration).toBe(18);
-    expect(analysis.slackByTask.get("c")).toBe(6);
+    expect(analysis.slackByTask.get("c")).toBe(4);
     expect(analyzeCriticalPath(document.tasks, document.dependencies, undefined, calendar)).toEqual(analysis);
   });
 
@@ -114,6 +114,28 @@ sunday are closed
       expect(analysis.projectDuration).toBe(0);
       expect(analysis.blockers.length).toBeGreaterThan(0);
     }
+  });
+
+  it("counts a weekend gap as one available day of slack", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-25 and lasts 1 day\n[B] starts 2026-09-28 and lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, [], undefined, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, [], dates, calendar);
+    expect(analysis.slackByTask.get("a")).toBe(1);
+    expect(analysis.taskIds.has("a")).toBe(false);
+  });
+
+  it("marks a task critical when a pause blocks its apparent calendar slack", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[A] starts 2026-09-25 and lasts 1 day\n[B] starts 2026-09-24 and lasts 1 day\n[B] pauses on friday\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, [], undefined, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, [], dates, calendar);
+    expect(analysis.slackByTask.get("b")).toBe(0);
+    expect(analysis.taskIds.has("b")).toBe(true);
   });
 
   it("reports the specific resolver issue as a selectable task blocker", () => {
