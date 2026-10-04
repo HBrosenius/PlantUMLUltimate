@@ -7,6 +7,7 @@ export interface GanttQuickFix {
   to: number;
   replacement: string;
   message: string;
+  label?: string;
 }
 
 function wholeLineRange(source: string, range: { from: number; to: number }) {
@@ -335,23 +336,23 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
   const diagnostics = parseGantt(source).diagnostics;
   const fixes = quickFixesForDiagnostics(source, diagnostics);
   const result = diagnostics.map((diagnostic) => {
-    const fix = fixes.find((item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to);
+    const matchingFixes = fixes.filter(
+      (item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to,
+    );
     return {
       from: diagnostic.range.from,
       to: diagnostic.range.to,
       severity: diagnostic.severity,
       message: diagnostic.message,
       source: "PlantUML Gantt",
-      ...(fix
+      ...(matchingFixes.length
         ? {
-            actions: [
-              {
-                name: "Fix statement",
-                apply(view: import("@codemirror/view").EditorView) {
-                  view.dispatch({ changes: { from: fix.from, to: fix.to, insert: fix.replacement } });
-                },
+            actions: matchingFixes.map((fix) => ({
+              name: fix.label ? `${fix.label}: ${fix.replacement.trim()}` : "Fix statement",
+              apply(view: import("@codemirror/view").EditorView) {
+                view.dispatch({ changes: { from: fix.from, to: fix.to, insert: fix.replacement } });
               },
-            ],
+            })),
           }
         : {}),
     };
@@ -443,14 +444,30 @@ function quickFixesForDiagnostics(
   return diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
     // Keep repairs narrow so a suggestion preserves the task, anchor and value.
-    const syntaxRepairs: Array<[RegExp, string]> = [
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends))\s+(\[[^\]]+]'s\s+(?:start|end)\s*)$/i, "$1 at $2"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])\s+(start|end)(\s*)$/i, "$1's $2$3"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])s\s+(start|end)(\s*)$/i, "$1's $2$3"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)starts?(\s*)$/i, "$1start$2"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)ends(\s*)$/i, "$1end$2"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100))\s+completed(\s*)$/i, "$1% completed$2"],
-      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100)%)\s*$/i, "$1 completed"],
+    const syntaxRepairs: Array<[RegExp, string, string]> = [
+      [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends))\s+(\[[^\]]+]'s\s+(?:start|end)\s*)$/i,
+        "$1 at $2",
+        "Add missing at",
+      ],
+      [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])\s+(start|end)(\s*)$/i,
+        "$1's $2$3",
+        "Add missing possessive marker",
+      ],
+      [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+])s\s+(start|end)(\s*)$/i,
+        "$1's $2$3",
+        "Add missing apostrophe",
+      ],
+      [
+        /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)starts?(\s*)$/i,
+        "$1start$2",
+        "Use start anchor",
+      ],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s\s+)ends(\s*)$/i, "$1end$2", "Use end anchor"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100))\s+completed(\s*)$/i, "$1% completed$2", "Add missing %"],
+      [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100)%)\s*$/i, "$1 completed", "Add completed keyword"],
     ];
     const syntaxRepair =
       diagnostic.code === "malformed-statement" ? syntaxRepairs.find(([pattern]) => pattern.test(text)) : undefined;
@@ -458,6 +475,15 @@ function quickFixesForDiagnostics(
       diagnostic.code === "malformed-statement"
         ? text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+]'s)(\s*)$/i)
         : undefined;
+    if (missingDependencyAnchor) {
+      return ["end", "start"].map((anchor) => ({
+        from: diagnostic.range.from,
+        to: diagnostic.range.to,
+        replacement: `${missingDependencyAnchor[1]} ${anchor}${missingDependencyAnchor[2]}`,
+        message: diagnostic.message,
+        label: `Use predecessor ${anchor}`,
+      }));
+    }
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
     const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
     const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
@@ -493,33 +519,53 @@ function quickFixesForDiagnostics(
         : undefined;
     const replacement = syntaxRepair
       ? text.replace(syntaxRepair[0], syntaxRepair[1])
-      : missingDependencyAnchor
-        ? `${missingDependencyAnchor[1]} end${missingDependencyAnchor[2]}`
-        : unsupportedNotePosition
-          ? unsupportedNotePosition
-          : missingCloseBracket
-            ? `${missingCloseBracket[1]}]${missingCloseBracket[2]}${missingCloseBracket[3]}${missingCloseBracket[4]}`
-            : invalidDateFix
-              ? invalidDateFix
-              : looseDateStatement && looseDateFix
-                ? `${looseDateStatement[1]}${looseDateFix}`
-                : duplicateTask
-                  ? `${duplicateTask[1]}${duplicateTask[3]}`
-                  : color
-                    ? `${color[1]}is colored in ${color[2]}`
-                    : missingKeywordSpace
-                      ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
-                      : missingDurationSpace
-                        ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
-                        : missingDurationUnit
-                          ? `${missingDurationUnit[1]} days`
-                          : diagnostic.code === "invalid-duration" && invalidDuration
-                            ? `${invalidDuration[1]}1 day`
-                            : keywordSuggestion && keywordTypo
-                              ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
-                              : undefined;
+      : unsupportedNotePosition
+        ? unsupportedNotePosition
+        : missingCloseBracket
+          ? `${missingCloseBracket[1]}]${missingCloseBracket[2]}${missingCloseBracket[3]}${missingCloseBracket[4]}`
+          : invalidDateFix
+            ? invalidDateFix
+            : looseDateStatement && looseDateFix
+              ? `${looseDateStatement[1]}${looseDateFix}`
+              : duplicateTask
+                ? `${duplicateTask[1]}${duplicateTask[3]}`
+                : color
+                  ? `${color[1]}is colored in ${color[2]}`
+                  : missingKeywordSpace
+                    ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
+                    : missingDurationSpace
+                      ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
+                      : missingDurationUnit
+                        ? `${missingDurationUnit[1]} days`
+                        : diagnostic.code === "invalid-duration" && invalidDuration
+                          ? `${invalidDuration[1]}1 day`
+                          : keywordSuggestion && keywordTypo
+                            ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                            : undefined;
     return replacement
-      ? [{ from: diagnostic.range.from, to: diagnostic.range.to, replacement, message: diagnostic.message }]
+      ? [
+          {
+            from: diagnostic.range.from,
+            to: diagnostic.range.to,
+            replacement,
+            message: diagnostic.message,
+            label: syntaxRepair
+              ? syntaxRepair[2]
+              : missingCloseBracket
+                ? "Close task bracket"
+                : invalidDateFix || looseDateFix
+                  ? "Normalize date"
+                  : color
+                    ? "Add missing in"
+                    : missingDurationUnit
+                      ? "Add days unit"
+                      : missingDurationSpace || missingKeywordSpace
+                        ? "Insert missing space"
+                        : keywordSuggestion
+                          ? `Use ${keywordSuggestion}`
+                          : "Fix statement",
+          },
+        ]
       : [];
   });
 }

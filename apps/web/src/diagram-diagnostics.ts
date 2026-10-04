@@ -9,6 +9,7 @@ import { activityDiagnostics, activityQuickFixes } from "./activity-language";
 import { wbsDiagnostics, wbsQuickFixes } from "./wbs-language";
 
 export interface DiagramQuickFix {
+  label?: string;
   from: number;
   to: number;
   replacement: string;

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,33 +9,59 @@ import { DEFAULT_SOURCE, DEFAULT_WBS_SOURCE, type DiagramKind } from "./model";
 
 afterEach(cleanup);
 
-const FIX_BUTTON = { name: "Fix nearest source issue" };
+const FIX_LABEL = "Show source fix suggestions";
 
 function renderEditor(diagramKind: DiagramKind, value: string) {
   return <CodeEditor diagramKind={diagramKind} value={value} onChange={vi.fn()} onCursorChange={vi.fn()} />;
 }
 
 describe("CodeEditor quick fixes", () => {
+  it("previews alternatives, applies only the selected fix, and refreshes when history restores the source", () => {
+    const source =
+      "@startgantt\n[Design] lasts 2 days\n[Build] lasts 3 days\n[Build] starts at [Design]'s\n[Build] is 50 completed\n@endgantt";
+    const onChange = vi.fn();
+    const rendered = render(
+      <CodeEditor diagramKind="gantt" value={source} onChange={onChange} onCursorChange={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByLabelText(FIX_LABEL));
+    const startFix = screen.getByRole("button", { name: /Use predecessor start/ });
+    expect(startFix).toHaveTextContent("[Build] starts at [Design]'s start");
+    expect(screen.getByRole("button", { name: /Use predecessor end/ })).toBeInTheDocument();
+    fireEvent.click(startFix);
+    expect(onChange).toHaveBeenLastCalledWith(source.replace("[Design]'s\n", "[Design]'s start\n"));
+    expect(screen.queryByRole("button", { name: /Use predecessor end/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add missing %/ })).toBeInTheDocument();
+    const repaired = onChange.mock.calls.at(-1)![0] as string;
+    rendered.rerender(<CodeEditor diagramKind="gantt" value={repaired} onChange={onChange} onCursorChange={vi.fn()} />);
+    rendered.rerender(<CodeEditor diagramKind="gantt" value={source} onChange={onChange} onCursorChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /Use predecessor end/ })).toBeInTheDocument();
+  });
+
+  it("hides fix controls for a read-only document", () => {
+    render(<CodeEditor diagramKind="wbs" value="* Task" readOnly onChange={vi.fn()} onCursorChange={vi.fn()} />);
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
+  });
+
   it("does not offer stale quick fixes after switching to a new, valid WBS document", () => {
     // Creating a document from the "Choose a diagram type" dialog swaps both the kind and the source
     // in the same render. The kind effect used to compute fixes against the previous (Gantt) document,
     // and the value sync suppressed the editor's update listener, so "Fix issue (2)" stuck around.
     const view = render(renderEditor("gantt", DEFAULT_SOURCE));
-    expect(screen.queryByRole("button", FIX_BUTTON)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
 
     view.rerender(renderEditor("wbs", DEFAULT_WBS_SOURCE));
 
-    expect(screen.queryByRole("button", FIX_BUTTON)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
   });
 
   it("recomputes quick fixes when the value changes without a kind change", () => {
     const view = render(renderEditor("wbs", DEFAULT_WBS_SOURCE));
-    expect(screen.queryByRole("button", FIX_BUTTON)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
 
     view.rerender(renderEditor("wbs", "* Website redesign\n** Discovery"));
-    expect(screen.getByRole("button", FIX_BUTTON)).toHaveTextContent("Fix issue (2)");
+    expect(screen.getByLabelText(FIX_LABEL)).toHaveTextContent("Fix issue (2)");
 
     view.rerender(renderEditor("wbs", DEFAULT_WBS_SOURCE));
-    expect(screen.queryByRole("button", FIX_BUTTON)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
   });
 });

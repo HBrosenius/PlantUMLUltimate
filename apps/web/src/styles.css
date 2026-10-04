@@ -574,6 +574,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: var(--accent);
   color: var(--accent);
 }
+.source-fixes summary {
+  cursor: pointer;
+  padding: 5px 9px;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 11px;
+}
+.source-fixes ul {
+  position: absolute;
+  right: 0;
+  width: min(480px, calc(100vw - 40px));
+  max-height: 300px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+}
+.source-fixes li + li {
+  margin-top: 6px;
+}
+.source-fixes button {
+  width: 100%;
+  text-align: left;
+}
+.source-fixes code {
+  display: block;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .editor-actions button.fix-source {
   border-color: #d97706;
   background: #fffbeb;

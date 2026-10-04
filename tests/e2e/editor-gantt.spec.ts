@@ -822,10 +822,11 @@ test("lists and reveals syntax that is preserved but not visually editable", asy
 test("keeps source fixes available outside the lint tooltip", async ({ page }) => {
   const value = source("[Build] [Build] starts 2026-09-01");
   await fillSource(page, value);
-  const fix = page.getByRole("button", { name: "Fix nearest source issue" });
+  const fix = page.getByLabel("Show source fix suggestions");
   await expect(fix).toBeVisible();
   await expect(fix).toHaveText("Fix issue");
   await fix.click();
+  await page.getByRole("button", { name: /Fix statement.*Build.*starts 2026-09-01/ }).click();
   await expect(page.locator(".cm-content")).toContainText("[Build] starts 2026-09-01");
   await expect(page.locator(".cm-content")).not.toContainText("[Build] [Build]");
   await expect(fix).toBeHidden();
@@ -838,10 +839,10 @@ test("repairs order-sensitive relationship statements from the editor", async ({
       "[Prototype delivered] happens 2026-09-25\n[Front End] lasts 20 days\n[Front End Testing] starts at [Front End]'s end\n[Front End Testing] lasts 20 days\n[Front End] starts at [Prototype delivered]'s end",
     ),
   );
-  const repair = page.getByRole("button", { name: "Fix nearest source issue" });
+  const repair = page.getByLabel("Show source fix suggestions");
   await expect(repair).toBeVisible();
-  await expect(repair).toHaveAttribute("title", /Repair 1 order-sensitive relationship statement/);
   await repair.click();
+  await page.getByRole("button", { name: /Repair 1 order-sensitive relationship statement/ }).click();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
@@ -1910,4 +1911,20 @@ test("suggests PlantUML color names in the task inspector", async ({ page }) => 
     await expect(inspector.locator(`datalist[id="${listId}"] option[value="${name}"]`)).toHaveCount(1);
   await color.fill("Ora");
   await expect(color).toHaveValue("Ora");
+});
+
+test("chooses an anchor fix and restores the error with undo", async ({ page }) => {
+  const value = source(
+    "[Design] lasts 2 days\n[Build] lasts 3 days\n[Build] starts at [Design]'s\n[Build] is 50 completed",
+  );
+  await fillSource(page, value);
+  await page.getByLabel("Show source fix suggestions").click();
+  const startFix = page.getByRole("button", { name: /Use predecessor start/ });
+  await expect(startFix).toContainText("[Build] starts at [Design]'s start");
+  await startFix.click();
+  await expect(page.locator(".cm-content")).toContainText("[Build] starts at [Design]'s start");
+  await expect(page.locator(".cm-content")).toContainText("[Build] is 50 completed");
+  await page.locator(".cm-content").press("ControlOrMeta+z");
+  await expect(page.locator(".cm-content")).not.toContainText("[Design]'s start");
+  await expect(page.getByRole("button", { name: /Use predecessor end/ })).toBeVisible();
 });

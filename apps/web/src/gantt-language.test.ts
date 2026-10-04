@@ -31,7 +31,7 @@ describe("Gantt CodeMirror language service", () => {
   ])("suggests a valid repair for %s", (statement, replacement) => {
     const source = `@startgantt\nProject starts 2026-09-21\n[Design] lasts 6 days\n[Build] lasts 8 days\n${statement}\n@endgantt`;
     const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error");
-    expect(diagnostic?.actions?.[0]?.name).toBe("Fix statement");
+    expect(diagnostic?.actions?.[0]?.name).toContain(replacement.trim());
     const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic?.from);
     expect(fix?.replacement).toBe(replacement);
     const repaired = source.slice(0, fix!.from) + fix!.replacement + source.slice(fix!.to);
@@ -91,7 +91,7 @@ describe("Gantt CodeMirror language service", () => {
 
   it("offers a quick fix for a color statement missing 'in'", () => {
     const diagnostics = ganttDiagnostics("@startgantt\n[A] is colored Orange\n@endgantt");
-    expect(diagnostics[0]?.actions?.[0]?.name).toBe("Fix statement");
+    expect(diagnostics[0]?.actions?.[0]?.name).toContain("Add missing in");
   });
 
   it("repairs an incomplete dependency anchor and makes the diagram valid", () => {
@@ -109,7 +109,10 @@ describe("Gantt CodeMirror language service", () => {
       "@endgantt",
     ].join("\n");
     const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error");
-    expect(diagnostic?.actions?.[0]?.name).toBe("Fix statement");
+    expect(diagnostic?.actions?.map((action) => action.name)).toEqual([
+      expect.stringContaining("Use predecessor end"),
+      expect.stringContaining("Use predecessor start"),
+    ]);
     const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic?.from);
     expect(fix?.replacement.trim()).toBe("[Frontend] starts at [Backend]'s end");
     expect(fix).toBeDefined();

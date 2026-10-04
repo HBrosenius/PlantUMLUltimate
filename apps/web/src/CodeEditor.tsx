@@ -355,14 +355,9 @@ export function CodeEditor({
     window.setTimeout(() => setCopyState("idle"), 1600);
   };
 
-  const applyQuickFix = () => {
+  const applyQuickFix = (fix: DiagramQuickFix) => {
     const editor = view.current;
-    if (!editor || !quickFixes.length) return;
-    const position = editor.state.selection.main.head;
-    const fix =
-      quickFixes.find((item) => position >= item.from && position <= item.to) ??
-      [...quickFixes].sort((a, b) => Math.abs(a.from - position) - Math.abs(b.from - position))[0];
-    if (!fix) return;
+    if (!editor || readOnly) return;
     editor.dispatch({
       changes: { from: fix.from, to: fix.to, insert: fix.replacement },
       selection: { anchor: fix.from + fix.replacement.length },
@@ -375,18 +370,26 @@ export function CodeEditor({
   return (
     <section className="editor-pane" aria-label="Code editor section">
       <div className="editor-actions">
-        {quickFixes.length > 0 && (
-          <button
-            type="button"
-            className="fix-source"
-            onClick={applyQuickFix}
-            title={quickFixes[0]?.message}
-            aria-label="Fix nearest source issue"
-          >
-            {relationshipRepair
-              ? "Repair relationships"
-              : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
-          </button>
+        {quickFixes.length > 0 && !readOnly && (
+          <details className="source-fixes">
+            <summary aria-label="Show source fix suggestions">
+              {relationshipRepair
+                ? "Repair relationships"
+                : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
+            </summary>
+            <ul aria-label="Source fix suggestions">
+              {quickFixes.map((fix, index) => (
+                <li key={`${fix.from}:${fix.to}:${index}`}>
+                  <button type="button" onClick={() => applyQuickFix(fix)}>
+                    <span>
+                      Line {value.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
+                    </span>
+                    <code>{fix.replacement.trim() || "Remove this text"}</code>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
         <button type="button" onClick={() => void copySource()}>
           {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy code"}
