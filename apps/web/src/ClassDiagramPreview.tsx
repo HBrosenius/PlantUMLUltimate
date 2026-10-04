@@ -428,6 +428,7 @@ export function ClassDiagramPreview({
   return (
     <section
       className="preview class-preview"
+      data-render-status={renderStatus}
       aria-label={`${diagramKind === "component" ? "Component" : "Class"} diagram preview`}
     >
       <div className="preview-tools">

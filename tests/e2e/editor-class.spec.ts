@@ -258,8 +258,23 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     await expect(page.locator(".cm-content")).toContainText(
       'package "Reporting" as Reports #Lavender {enum "OrderStatus" as Status',
     );
+    // The package move changes SVG geometry; reconnect only once that render replaces the old preview.
+    await expect(page.getByRole("region", { name: "Class diagram preview" })).toHaveAttribute(
+      "data-render-status",
+      "idle",
+    );
+    await expect(page.locator(".class-diagram").locator("..")).not.toHaveClass(/stale-preview/);
 
-    await page.locator(".class-relationship-hit").first().click({ force: true });
+    // A curved relationship's bounding-box center can lie off the actual stroke.
+    const relationshipPoint = await page
+      .locator(".class-relationship-hit")
+      .first()
+      .evaluate((element) => {
+        const curve = element as SVGGeometryElement;
+        const point = curve.getPointAtLength(curve.getTotalLength() / 2).matrixTransform(curve.getScreenCTM()!);
+        return { x: point.x, y: point.y };
+      });
+    await page.mouse.click(relationshipPoint.x, relationshipPoint.y);
     await expect(page.locator(".class-relationship-endpoint")).toHaveCount(2);
     const fromEndpoint = page.locator('[data-class-relationship-endpoint="from"]');
     const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');

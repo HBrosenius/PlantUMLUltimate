@@ -54,7 +54,9 @@ test("jumps back several steps from the undo history", async ({ page }) => {
   await page.getByRole("button", { name: "Recent changes" }).click();
   const menu = page.getByRole("menu", { name: "Recent changes" });
   const steps = menu.getByRole("menuitem");
-  await expect(steps).toHaveCount(3);
+  // Source setup can create multiple text-edit transactions, depending on the browser.
+  await expect(steps.nth(0)).toHaveText("Add Review");
+  await expect(steps.nth(1)).toHaveText("Add Design");
   await steps.nth(1).click();
   await expect(editor).toContainText("[Build] lasts 3 days");
   await expect(editor).not.toContainText("[Design]");
