@@ -107,6 +107,8 @@ export function SequenceDiagramPreview({
   useLayoutEffect(() => {
     const root = diagramRef.current;
     if (!root) return;
+    // Annotation geometry must start from the rendered SVG, without previous hit targets or anchors.
+    root.innerHTML = svg ?? "";
     root
       .querySelectorAll("[data-sequence-drag-hit], .sequence-selected-structure")
       .forEach((element) => element.remove());

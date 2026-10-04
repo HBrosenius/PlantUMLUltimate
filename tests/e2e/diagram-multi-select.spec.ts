@@ -54,13 +54,14 @@ for (const fixture of fixtures) {
       await expect(async () => element.scrollIntoViewIfNeeded()).toPass({ timeout: 5_000 });
       const box = await element.boundingBox();
       expect(box).toBeTruthy();
-      // Browsers layer the text and semantic hit rect differently; exercise the actual pointer target.
-      if (shift) await page.keyboard.down("Shift");
-      try {
-        await page.mouse.click(box!.x + box!.width * 0.25, box!.y + box!.height * 0.5, { button });
-      } finally {
-        if (shift) await page.keyboard.up("Shift");
-      }
+      // Let Playwright retry when an asynchronous preview or inspector repositions the hit target.
+      await element.click({
+        position: { x: box!.width * 0.25, y: box!.height * 0.5 },
+        modifiers: shift ? ["Shift"] : [],
+        button,
+        // WBS text and its transparent hit rect share a semantic ID but paint in different orders by engine.
+        force: fixture.kind === "wbs",
+      });
     };
     await expect(first).toBeVisible();
     await clickElement(first);
@@ -89,6 +90,7 @@ for (const fixture of fixtures) {
     if (fixture.kind === "wbs") await expect(page.locator(".diagram .wbs-node-hit")).toHaveCount(3);
     await clickElement(first);
     await clickElement(second, true);
+    await expect(inspector.getByText("2 elements selected")).toBeVisible();
     await clickElement(second, false, "right");
     const menu = page.getByRole("menu", { name: "Symbol actions" });
     await menu.getByRole("menuitem", { name: "Duplicate", exact: true }).click();

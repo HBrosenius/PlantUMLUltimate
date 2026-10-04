@@ -136,8 +136,11 @@ export function ClassDiagramPreview({
     return () => window.clearTimeout(retry);
   }, [document, highlightedMemberId, selectedId, svg]);
   useLayoutEffect(() => {
-    const host = root.current,
-      rendered = host?.querySelector("svg");
+    const host = root.current;
+    if (!host) return;
+    // Previous semantic overlays must not contribute to the next annotation's bounding boxes.
+    host.innerHTML = svg ?? "";
+    const rendered = host.querySelector("svg");
     if (!host || !rendered) return;
     rendered.querySelectorAll(classInteractionSelector).forEach((x) => x.remove());
     const entityMap = new Map<string, string>();

@@ -5,18 +5,29 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useDiagramMultiSelection } from "./use-diagram-multi-selection";
 const original = "@startuml\nclass One\nclass Two\n@enduml";
-beforeEach(() => vi.stubGlobal("CSS", { escape: (value: string) => value }));
+beforeEach(() => {
+  vi.stubGlobal("CSS", { escape: (value: string) => value });
+  vi.stubGlobal("PointerEvent", MouseEvent);
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-function Harness({ readOnly = false }: { readOnly?: boolean }) {
+function Harness({
+  readOnly = false,
+  kind = "class",
+  onPreviewPointerDown,
+}: {
+  readOnly?: boolean;
+  kind?: "class" | "wbs";
+  onPreviewPointerDown?(): void;
+}) {
   const root = useRef<HTMLDivElement>(null);
-  const [source, setSource] = useState(original);
+  const [source, setSource] = useState(kind === "wbs" ? "@startwbs\n* Root\n** One\n** Two\n@endwbs" : original);
   const [documentId, setDocumentId] = useState("first");
   const [count, setCount] = useState(0);
   const multi = useDiagramMultiSelection({
-    kind: "class",
+    kind,
     source,
     documentId,
     root,
@@ -36,10 +47,10 @@ function Harness({ readOnly = false }: { readOnly?: boolean }) {
         onPointerDownCapture={multi.onPointerDownCapture}
         onKeyDownCapture={multi.onKeyDownCapture}
       >
-        <div className="diagram">
+        <div className="diagram" onPointerDown={onPreviewPointerDown}>
           <svg>
-            <rect data-class-object-id="one" role="button" tabIndex={0} aria-label="One" />
-            <rect data-class-object-id="two" role="button" tabIndex={0} aria-label="Two" />
+            <rect data-class-object-id="one" data-wbs-node-id="wbs-1" role="button" tabIndex={0} aria-label="One" />
+            <rect data-class-object-id="two" data-wbs-node-id="wbs-2" role="button" tabIndex={0} aria-label="Two" />
             <rect data-testid="background" />
           </svg>
         </div>
@@ -72,6 +83,21 @@ it("toggles selection, highlights targets, clears on background and commits a bu
   expect(screen.getByTestId("selected")).toHaveTextContent("1");
   fireEvent.click(screen.getByTestId("background"));
   expect(screen.getByTestId("selected")).toHaveTextContent("0");
+});
+it("preserves WBS Shift-drag while Shift-click toggles selection", () => {
+  const onPreviewPointerDown = vi.fn();
+  render(<Harness kind="wbs" onPreviewPointerDown={onPreviewPointerDown} />);
+  fireEvent.click(screen.getByRole("button", { name: "One" }));
+  const two = screen.getByRole("button", { name: "Two" });
+  fireEvent.pointerDown(two, { button: 0, shiftKey: true, clientX: 10, clientY: 10 });
+  expect(onPreviewPointerDown).toHaveBeenCalledOnce();
+  fireEvent.pointerUp(two, { button: 0, shiftKey: true, clientX: 10, clientY: 10 });
+  fireEvent.click(two, { shiftKey: true, clientX: 10, clientY: 10 });
+  expect(screen.getByTestId("selected")).toHaveTextContent("2");
+  fireEvent.pointerDown(two, { button: 0, shiftKey: true, clientX: 10, clientY: 10 });
+  fireEvent.pointerUp(two, { button: 0, shiftKey: true, clientX: 30, clientY: 10 });
+  fireEvent.click(two, { shiftKey: true, clientX: 30, clientY: 10 });
+  expect(screen.getByTestId("selected")).toHaveTextContent("2");
 });
 it("clears stale selection when source or active document changes", () => {
   render(<Harness />);

@@ -114,6 +114,11 @@ export function useDiagramMultiSelection({
       plainSelection.current = { documentId, kind, source, key: item.key };
       return;
     }
+    if (kind === "wbs" && event.shiftKey && !event.ctrlKey && !event.metaKey) {
+      // WBS Shift-drag places a branch before its target. Toggle only on a click.
+      pressedItem.current.toggled = false;
+      return;
+    }
     toggle(item.key);
     // Modifier selection must never start a reorder or connection gesture.
     event.stopPropagation();
@@ -134,6 +139,29 @@ export function useDiagramMultiSelection({
       } else plainSelection.current = { documentId, kind, source, key: item.key };
     } else if (event.target instanceof Element && event.target.closest(".diagram svg")) clear();
   };
+  const onPointerUp = (event: PointerEvent) => {
+    const pressed = pressedItem.current;
+    if (
+      kind !== "wbs" ||
+      !pressed ||
+      pressed.toggled ||
+      !modifier(event) ||
+      pressed.source !== source ||
+      Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5
+    )
+      return;
+    // WBS prevents the native click after pointer-down; resolve a stationary Shift gesture here.
+    toggle(pressed.key);
+    pressed.toggled = true;
+  };
+  const pointerUp = useRef(onPointerUp);
+  pointerUp.current = onPointerUp;
+  useEffect(() => {
+    // WBS selects on window capture and may replace the hit target before React receives pointer-up.
+    const handle = (event: PointerEvent) => pointerUp.current(event);
+    window.addEventListener("pointerup", handle, true);
+    return () => window.removeEventListener("pointerup", handle, true);
+  }, []);
   const onKeyDownCapture = (event: React.KeyboardEvent) => {
     if (kind === "gantt" || !["Enter", " "].includes(event.key)) return;
     const item = targetItem(event.target);
