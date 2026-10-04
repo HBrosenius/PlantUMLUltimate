@@ -15,6 +15,7 @@ import type {
 } from "./model";
 import { dependencyCycleDiagnostics } from "./dependency-cycles";
 import { ganttKeywordRepair } from "./keyword-repairs";
+import { splitGanttClauses } from "./inline-clauses";
 
 const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -308,7 +309,7 @@ export function parseGantt(source: string): ParseResult {
       }
 
       const taskKeywordRepair = ganttKeywordRepair(line.text);
-      if (taskKeywordRepair) {
+      if (taskKeywordRepair && splitGanttClauses(statement).length === 1) {
         declaration(task, "unknown", lineRange);
         diagnostics.push({
           severity: "error",
@@ -583,21 +584,18 @@ export function parseGantt(source: string): ParseResult {
         continue;
       }
 
-      const compoundClauses = simpleStatement.split(
-        /\s+and\s+(?=(?:(?:starts|ends|requires|lasts)\b|is\s+\d+%|is\s+colou?red\b))/i,
-      );
+      const compoundClauses = splitGanttClauses(simpleStatement);
       if (compoundClauses.length > 1) {
         const simpleStart = line.text.indexOf(simpleStatement, labelRange.to - line.from);
-        let searchFrom = simpleStart;
-        let recognized = 0;
-        for (const clause of compoundClauses) {
-          const clauseStart = line.text.indexOf(clause, searchFrom);
+        for (const part of compoundClauses) {
+          const clause = part.text;
+          const clauseStart = simpleStart + part.from;
           const clauseRange = range(line, clauseStart, clause);
-          searchFrom = clauseStart + clause.length;
           const clauseDate = clause.match(
             /^(starts|ends)\s+(\d{4}[-/]\d{2}[-/]\d{2}|D[+-]\d+|today(?:[+-]\d+)?|\$[A-Za-z_]\w*|%date\(.+\)|the\s+.+?)$/i,
           );
           const clauseDuration = clause.match(/^(?:lasts|requires)\s+(\d+)\s+(days?|weeks?|months?)$/i);
+          const clauseCompoundDuration = clause.match(/^(?:lasts|requires)\s+(\d+)\s+weeks?\s+and\s+(\d+)\s+days?$/i);
           const clauseColor = clause.match(/^is\s+colou?red\s+in\s+(\S+)$/i);
           const clauseCompletion = clause.match(/^is\s+(\d+)%\s+completed$/i);
           const clauseDependency = clause.match(/^(starts|ends)\s+at\s+\[([^\]]+)][’']s\s+(start|end)$/i);
@@ -611,7 +609,25 @@ export function parseGantt(source: string): ParseResult {
             if (kind === "start") task.start = expression;
             else task.end = expression;
             inlineDeclaration(task, kind, clauseRange);
-            recognized += 1;
+            if (!recognizedDate(clauseDate[2]))
+              diagnostics.push({
+                severity: "error",
+                code: "invalid-date",
+                message: `Invalid date: ${clauseDate[2]}`,
+                range: expression.range,
+              });
+          } else if (clauseCompoundDuration?.[1] && clauseCompoundDuration[2]) {
+            const weeks = Number(clauseCompoundDuration[1]);
+            const days = Number(clauseCompoundDuration[2]);
+            task.duration = { value: weeks * 7 + days, unit: "day", range: clauseRange, sourceParts: { weeks, days } };
+            inlineDeclaration(task, "duration", clauseRange);
+            if (task.duration.value <= 0)
+              diagnostics.push({
+                severity: "error",
+                code: "invalid-duration",
+                message: "Duration must be positive",
+                range: clauseRange,
+              });
           } else if (clauseDuration?.[1] && clauseDuration[2]) {
             const unit = clauseDuration[2].toLowerCase();
             const valueStart = clauseStart + clause.indexOf(clauseDuration[1]);
@@ -621,12 +637,17 @@ export function parseGantt(source: string): ParseResult {
               unit: unit.startsWith("month") ? "month" : unit.startsWith("week") ? "week" : "day",
             };
             inlineDeclaration(task, "duration", clauseRange);
-            recognized += 1;
+            if (task.duration.value <= 0)
+              diagnostics.push({
+                severity: "error",
+                code: "invalid-duration",
+                message: "Duration must be positive",
+                range: clauseRange,
+              });
           } else if (clauseColor?.[1]) {
             const valueStart = clauseStart + clause.lastIndexOf(clauseColor[1]);
             task.color = { value: clauseColor[1], range: range(line, valueStart, clauseColor[1]) };
             inlineDeclaration(task, "color", clauseRange);
-            recognized += 1;
           } else if (clauseCompletion?.[1]) {
             const valueStart = clauseStart + clause.indexOf(clauseCompletion[1]);
             task.completion = {
@@ -634,7 +655,13 @@ export function parseGantt(source: string): ParseResult {
               range: range(line, valueStart, clauseCompletion[1]),
             };
             inlineDeclaration(task, "completion", clauseRange);
-            recognized += 1;
+            if (task.completion.value > 100)
+              diagnostics.push({
+                severity: "error",
+                code: "completion-range",
+                message: "Completion must be between 0 and 100",
+                range: clauseRange,
+              });
           } else if (
             (clauseDependency?.[1] && clauseDependency[2] && clauseDependency[3]) ||
             (clauseRelativeDependency?.[1] && clauseRelativeDependency[5] && clauseRelativeDependency[6])
@@ -669,10 +696,16 @@ export function parseGantt(source: string): ParseResult {
                 : {}),
             });
             inlineDeclaration(task, left === "starts" ? "start" : "end", clauseRange);
-            recognized += 1;
+          } else {
+            diagnostics.push({
+              severity: "error",
+              code: "malformed-inline-clause",
+              message: `Malformed inline clause: ${clause || "missing statement after and"}`,
+              range: clauseRange,
+            });
           }
         }
-        if (recognized === compoundClauses.length) continue;
+        continue;
       }
 
       const validModifier = /^(?:pauses\s+on\s+.+|displays\s+on\s+same\s+row\s+as\s+\[[^\]]+]|is\s+deleted)\s*$/i.test(
@@ -687,9 +720,7 @@ export function parseGantt(source: string): ParseResult {
         declaration(task, "link", lineRange);
         continue;
       }
-      const validCompound =
-        /\s+and\s+/i.test(statement) && /\b(?:starts|ends|requires|lasts|is\s+colou?red)\b/i.test(statement);
-      if (validModifier || validCompound) {
+      if (validModifier) {
         declaration(task, "modifier", lineRange);
         continue;
       }

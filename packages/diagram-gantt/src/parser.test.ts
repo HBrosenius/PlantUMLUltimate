@@ -10,6 +10,41 @@ describe("parseGantt", () => {
       expect.objectContaining({ code: "malformed-global-statement", severity: "error" }),
     ]);
   });
+  it("preserves compound durations inside inline statements", () => {
+    const parsed = parseGantt(
+      "@startgantt\n[A] starts 2026-09-21 and lasts 2 weeks and 3 days and is 50% completed\n@endgantt",
+    );
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.document.tasks[0]?.duration?.value).toBe(17);
+  });
+  it.each(["lasts 0 days", "is 150% completed", "ends 2026-13-01"])("validates inline values in %s", (clause) => {
+    const source = `@startgantt\n[A] starts 2026-09-21 and ${clause}\n@endgantt`;
+    expect(parseGantt(source).diagnostics.some((item) => item.severity === "error")).toBe(true);
+  });
+  it("reports only the unrecognized inline clause and preserves valid clauses", () => {
+    const source = "@startgantt\n[A] starts 2026-09-21 and nonsense and lasts 5 days\n@endgantt";
+    const parsed = parseGantt(source);
+    const errors = parsed.diagnostics.filter((item) => item.severity === "error");
+    expect(errors).toHaveLength(1);
+    expect(source.slice(errors[0]!.range.from, errors[0]!.range.to)).toBe("nonsense");
+    expect(parsed.document.tasks[0]?.start?.value).toBe("2026-09-21");
+    expect(parsed.document.tasks[0]?.duration?.value).toBe(5);
+  });
+
+  it("reports multiple faulty clauses separately", () => {
+    const source = "@startgantt\n[A] starts 2026-09-21 and nonsense and iss 50% completed\n@endgantt";
+    expect(parseGantt(source).diagnostics.map((item) => source.slice(item.range.from, item.range.to))).toEqual([
+      "nonsense",
+      "iss 50% completed",
+    ]);
+  });
+
+  it("does not split and inside task references or date expressions", () => {
+    const source =
+      '@startgantt\n[Research and Design] lasts 2 days\n[A] starts at [Research and Design]\'s end and lasts 3 days\n[B] starts %date("2026-09-21 and later") and lasts 1 day\n@endgantt';
+    expect(parseGantt(source).diagnostics).toEqual([]);
+  });
+
   it("keeps valid global syntax and unrelated unsupported directives unchanged", () => {
     const source = "@startgantt\nProject starts 2026-09-21\nsunday are closed\nskinparam handwritten true\n@endgantt";
     expect(parseGantt(source).diagnostics).toEqual([

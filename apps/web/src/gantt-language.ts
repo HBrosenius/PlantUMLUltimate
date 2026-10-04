@@ -446,6 +446,28 @@ function normalizeDateGuess(value: string): string | undefined {
 function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
   return parsed.diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
+    if (diagnostic.code === "malformed-inline-clause") {
+      const prefix = "[Task] ";
+      const repair = ganttKeywordRepair(prefix + text);
+      const typo = text.match(/^(\S+)(.*)$/);
+      const keyword = typo ? closestKeyword(typo[1]!) : undefined;
+      const replacement = repair
+        ? repair.replacement.slice(prefix.length)
+        : keyword && typo
+          ? keyword + typo[2]
+          : undefined;
+      return replacement
+        ? [
+            {
+              from: diagnostic.range.from,
+              to: diagnostic.range.to,
+              replacement,
+              label: repair?.label ?? `Use ${keyword}`,
+              message: diagnostic.message,
+            },
+          ]
+        : [];
+    }
     const keywordRepair =
       diagnostic.code === "malformed-statement" ||
       diagnostic.code === "malformed-global-statement" ||

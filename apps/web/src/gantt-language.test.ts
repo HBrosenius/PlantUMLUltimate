@@ -34,8 +34,9 @@ describe("Gantt CodeMirror language service", () => {
     const diagnostic = ganttDiagnostics(source).find((item) => item.severity === "error")!;
     expect(diagnostic).toBeDefined();
     const fix = ganttQuickFixes(source).find((item) => item.from === diagnostic.from)!;
-    expect(fix?.replacement).toBe(correct);
+    expect(fix).toBeDefined();
     const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+    expect(repaired).toBe(source.replace(faulty, correct));
     expect(ganttDiagnostics(repaired).filter((item) => item.severity === "error")).toEqual([]);
   });
 
