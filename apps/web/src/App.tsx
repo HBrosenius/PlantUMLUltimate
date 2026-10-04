@@ -134,7 +134,8 @@ import { useDocumentHistory } from "./use-document-history";
 import { useDocumentTabLifecycle } from "./use-document-tab-lifecycle";
 import { useDocumentVersions, type RecordDocumentVersion } from "./use-document-versions";
 import { useDocumentFiles } from "./use-document-files";
-import { useCollaborationLifecycle } from "./use-collaboration-lifecycle";
+import { collaborationLinkDetails } from "./collaboration";
+import { useCollaborationLifecycle, type CollaborationDocumentBridge } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
 import { useWorkspaceDocuments } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
@@ -769,12 +770,15 @@ export function App() {
     if (!recordDocumentVersionRef.current) return Promise.reject(new Error("Version history is not ready"));
     return recordDocumentVersionRef.current(reason, label, override);
   }, []);
+  const documentCollaborationBridge = useRef<CollaborationDocumentBridge | undefined>(undefined);
   const defaultCollaborationEndpoint =
     localStorage.getItem("plantuml-studio.collaboration-server") ??
     import.meta.env.VITE_COLLABORATION_URL ??
     "https://collaboration.plantuml.brosenius.se";
   const {
     collaboration,
+    collaborationAppliesToActiveDiagram,
+    activeParticipants,
     pendingCollaboration,
     remoteEditFlash,
     collaborationDialogOpen,
@@ -787,6 +791,7 @@ export function App() {
     hydrated,
     onboarded: tabs.session.onboarded,
     defaultEndpoint: defaultCollaborationEndpoint,
+    documentBridge: documentCollaborationBridge,
     workspace,
     tabs,
     recordDocumentVersion: recordCollaborationVersion,
@@ -796,6 +801,7 @@ export function App() {
   useEffect(() => {
     if (!hydrated || startupSplashShown.current || !tabs.session.onboarded) return;
     startupSplashShown.current = true;
+    if (collaborationLinkDetails(window.location.href).roomId) return;
     openDialog({ kind: "new-document", replaceActiveDocument: activeDocument.historyId === "history-welcome" });
   }, [activeDocument.historyId, hydrated, openDialog, tabs.session.onboarded]);
   useEffect(() => {
@@ -990,7 +996,7 @@ export function App() {
     }));
   }, [parseResult.document.tasks, workspace.source]);
 
-  const legendReadOnly = collaboration?.documentId === tabs.activeId && collaboration.role === "viewer";
+  const legendReadOnly = collaborationAppliesToActiveDiagram && collaboration?.role === "viewer";
   useEffect(() => {
     if (workspace.diagramKind !== "gantt" || legendReadOnly) return;
     const timer = window.setTimeout(() => {
@@ -1616,7 +1622,7 @@ export function App() {
   const { commitSource, commitGeneratedSource, undo, redo } = useSourceCommands({
     source: workspace.source,
     diagramKind: workspace.diagramKind,
-    readOnly: collaboration?.documentId === tabs.activeId && collaboration.role === "viewer",
+    readOnly: collaborationAppliesToActiveDiagram && collaboration?.role === "viewer",
     history: activeHistory,
     setWorkspace,
     setInteractionMessage,
@@ -1726,6 +1732,24 @@ export function App() {
   });
   // App file launches should retain the ordinary document-opening experience
   // for .puml/.plantuml files. Native project files are still claimed here.
+  documentCollaborationBridge.current = {
+    getDocument: () => singleFileProject.sharedDocument,
+    receiveDocument: singleFileProject.receiveSharedDocument,
+    activeDiagram: () => {
+      const shared = singleFileProject.sharedDocument;
+      const diagram = shared?.diagrams.find(
+        (item) => activeDocument.historyId === embeddedMemberHistoryId(shared.id, item.id),
+      );
+      return diagram ? { id: diagram.id, name: diagram.name } : undefined;
+    },
+    containsTab: (id) => {
+      const shared = singleFileProject.sharedDocument;
+      const tab = tabs.documents.find((item) => item.id === id);
+      return Boolean(
+        shared && tab && shared.diagrams.some((item) => tab.historyId === embeddedMemberHistoryId(shared.id, item.id)),
+      );
+    },
+  };
   projectLaunchRef.current = (opened) =>
     opened.kind === "legacy" ? Promise.resolve(false) : singleFileProject.openOpenedProject(opened);
   const usingSingleFileProject = Boolean(singleFileProject.portableProject);
@@ -2986,7 +3010,7 @@ export function App() {
     root: workspaceElement,
     commit: commitGeneratedSource,
     report: setInteractionMessage,
-    readOnly: collaboration?.documentId === tabs.activeId && collaboration.role === "viewer",
+    readOnly: collaborationAppliesToActiveDiagram && collaboration?.role === "viewer",
     onSelect: (item) => {
       if (item.attribute === "data-sequence-participant-id") selectSequenceParticipant(item.id);
       else if (item.attribute === "data-sequence-message-id") selectSequenceMessage(item.id);
@@ -3054,7 +3078,7 @@ export function App() {
           />
           <AddMenu
             diagramKind={workspace.diagramKind}
-            disabled={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
+            disabled={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onTask={() => openDialog({ kind: "add-task" })}
             onMilestone={() => openDialog({ kind: "add-milestone" })}
             onDivider={() => openDialog({ kind: "add-divider" })}
@@ -3123,7 +3147,10 @@ export function App() {
           {workspace.diagramKind === "wbs" && (
             <button
               type="button"
-              disabled={Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0)}
+              disabled={
+                diagramMulti.readOnly ||
+                Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0)
+              }
               onClick={() =>
                 linkedGantt && isProjectMemberTab(tabs.activeId)
                   ? convertCurrentWbs()
@@ -3140,7 +3167,11 @@ export function App() {
             </button>
           )}
           {workspace.diagramKind === "gantt" && linkedWbs && (
-            <button type="button" disabled={missingGanttTaskCount === 0} onClick={importCurrentGanttToWbs}>
+            <button
+              type="button"
+              disabled={diagramMulti.readOnly || missingGanttTaskCount === 0}
+              onClick={importCurrentGanttToWbs}
+            >
               Add missing Gantt tasks to WBS ({missingGanttTaskCount})
             </button>
           )}
@@ -3355,16 +3386,12 @@ export function App() {
           <CodeEditor
             diagramKind={workspace.diagramKind}
             value={workspace.source}
-            readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
+            readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
             selectedRange={selectionRequest}
             symbolHighlights={symbolHighlights}
-            remoteParticipants={
-              collaboration?.documentId === tabs.activeId
-                ? collaboration.participants.filter((participant) => participant.id !== collaboration.participantId)
-                : []
-            }
-            remoteEditFlash={collaboration?.documentId === tabs.activeId ? remoteEditFlash : undefined}
+            remoteParticipants={collaborationAppliesToActiveDiagram ? activeParticipants : []}
+            remoteEditFlash={collaborationAppliesToActiveDiagram ? remoteEditFlash : undefined}
             onRenameRequest={
               workspace.diagramKind === "gantt" ||
               workspace.diagramKind === "sequence" ||
@@ -3393,7 +3420,7 @@ export function App() {
             }
             onCursorChange={(line, column, position, anchor, head) => {
               update("cursor", { line, column });
-              if (collaboration?.documentId === tabs.activeId) updateCollaborationSelection(line, column, anchor, head);
+              if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
               if (workspace.diagramKind === "gantt") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -3462,9 +3489,9 @@ export function App() {
               onZoomChange={(zoom) => update("zoom", zoom)}
               selectedTaskId={selectedTaskId}
               highlightedTaskId={sourceHighlightedTaskId}
-              remoteEditTaskId={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.taskId : undefined}
-              remoteEditColor={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.color : undefined}
-              remoteEditName={collaboration?.documentId === tabs.activeId ? remoteEditFlash?.name : undefined}
+              remoteEditTaskId={collaborationAppliesToActiveDiagram ? remoteEditFlash?.taskId : undefined}
+              remoteEditColor={collaborationAppliesToActiveDiagram ? remoteEditFlash?.color : undefined}
+              remoteEditName={collaborationAppliesToActiveDiagram ? remoteEditFlash?.name : undefined}
               onTaskSelect={selectTask}
               onTaskToggle={toggleTaskSelection}
               selectedTaskIds={selectedTaskIds}
@@ -3564,7 +3591,7 @@ export function App() {
                 tabs.updateDocumentFormat(tabs.activeId, { progressForecast: value, dirty: true })
               }
               onApplyForecast={
-                collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"
+                collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"
                   ? undefined
                   : (review) => {
                       const settings = activeDocument.progressForecast;
@@ -4164,6 +4191,11 @@ export function App() {
       {project && projectNavigatorOpen && (
         <ProjectNavigator
           project={project}
+          readOnly={Boolean(
+            collaboration?.sharedDocumentId &&
+            collaboration.sharedDocumentId === portable?.projectId &&
+            collaboration.role === "viewer",
+          )}
           wbsGanttIssues={projectWbsGanttIssues}
           wbsGanttLinks={projectWbsGanttLinks}
           {...(portable?.diagrams.some((diagram) => diagram.wbsGantt)
@@ -4408,6 +4440,8 @@ export function App() {
       )}
       {collaborationDialogOpen && (
         <CollaborationDialog
+          documentName={singleFileProject.sharedDocument?.name}
+          diagramCount={singleFileProject.sharedDocument?.diagrams.length}
           pendingRoom={pendingCollaboration?.roomId}
           pendingAccessToken={pendingCollaboration?.accessToken}
           pendingRole={pendingCollaboration?.role}
@@ -4425,7 +4459,7 @@ export function App() {
           endpoint={defaultJiraEndpoint}
           source={workspace.source}
           binding={jiraBinding}
-          readOnly={collaboration?.documentId === tabs.activeId && collaboration.role === "viewer"}
+          readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
           onApply={(source, message) => {
             if (commitGeneratedSource(source, "Synchronize Jira")) setInteractionMessage(message);
           }}

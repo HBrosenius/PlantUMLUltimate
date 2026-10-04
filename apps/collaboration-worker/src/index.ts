@@ -40,6 +40,8 @@ async function limitedRequestText(request: Request, limit: number): Promise<stri
 }
 
 interface Participant {
+  diagramId?: string;
+  diagramName?: string;
   id: string;
   name: string;
   color: string;
@@ -67,6 +69,12 @@ function participantFrom(value: unknown, fallbackId: string): Participant | unde
     id: typeof candidate.id === "string" && candidate.id.length <= 100 ? candidate.id : fallbackId,
     name: name || "Anonymous",
     color,
+    ...(typeof candidate.diagramId === "string" && candidate.diagramId.length <= 100
+      ? {
+          diagramId: candidate.diagramId,
+          diagramName: typeof candidate.diagramName === "string" ? candidate.diagramName.slice(0, 120) : "Diagram",
+        }
+      : {}),
     ...(cursor && Number.isFinite(cursor.line) && Number.isFinite(cursor.column)
       ? {
           cursor: {

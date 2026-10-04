@@ -11,6 +11,7 @@ import type { ProjectChangeReview } from "./project-change-review";
 
 export function ProjectNavigator({
   project,
+  readOnly = false,
   onOpen,
   onAdd,
   onImport,
@@ -37,6 +38,7 @@ export function ProjectNavigator({
   onLinkMissingWbsGanttItem,
 }: {
   project: VirtualProject;
+  readOnly?: boolean;
   onOpen(documentId: string): void;
   onAdd(kind: DiagramKind, path: string): void | Promise<void>;
   onImport?(): void;
@@ -119,10 +121,15 @@ export function ProjectNavigator({
             <h2 id="project-diagrams-heading">Diagrams</h2>
             <p>Diagrams included in this document</p>
           </div>
-          <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
+          <button
+            type="button"
+            className="project-add-diagram"
+            disabled={readOnly}
+            onClick={() => setAdding((value) => !value)}
+          >
             Add diagram
           </button>
-          {onImport && (
+          {onImport && !readOnly && (
             <button type="button" onClick={onImport}>
               Import diagram
             </button>
@@ -182,7 +189,7 @@ export function ProjectNavigator({
                       : (member.reason ?? member.state)}
                   </small>
                 </button>
-                {onRename && (
+                {onRename && !readOnly && (
                   <button
                     type="button"
                     aria-label={`Rename ${member.path}`}
@@ -191,7 +198,7 @@ export function ProjectNavigator({
                     Rename
                   </button>
                 )}
-                {onDelete && (
+                {onDelete && !readOnly && (
                   <button
                     type="button"
                     aria-label={`Delete ${member.path}`}
@@ -206,6 +213,7 @@ export function ProjectNavigator({
         </ul>
       </section>
       <ProjectLinksPanel
+        readOnly={readOnly}
         project={project}
         {...(wbsGanttLinks ? { wbsGanttLinks } : {})}
         {...(onOpenWbsGanttLink ? { onOpenWbsGanttLink } : {})}
@@ -239,6 +247,7 @@ export function ProjectNavigator({
                     <button
                       type="button"
                       disabled={
+                        readOnly ||
                         !wbsGanttMissing.some(
                           (candidate) =>
                             candidate.kind !== item.kind &&
@@ -250,7 +259,7 @@ export function ProjectNavigator({
                     >
                       Link existing
                     </button>
-                    <button type="button" onClick={() => onAddMissingWbsGanttItem(item)}>
+                    <button type="button" disabled={readOnly} onClick={() => onAddMissingWbsGanttItem(item)}>
                       Add to {item.kind === "wbs" ? "Gantt" : "WBS"}
                     </button>
                   </div>

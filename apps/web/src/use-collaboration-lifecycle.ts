@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction, type RefObject } from "react";
 import { findTaskAt, parseGantt } from "@plantuml-studio/diagram-gantt";
 import {
   CollaborationSession,
@@ -15,10 +15,13 @@ import { detectDiagramKind } from "./diagram-kind";
 import type { DiagramKind } from "./model";
 import type { DocumentVersionOverride, RecordDocumentVersion } from "./use-document-versions";
 import type { DocumentSnapshot, WorkspaceSnapshot } from "./workspace-storage";
+import type { SharedDocument } from "./collaboration-document";
+import { embeddedMemberHistoryId } from "./projects/embedded-project";
 import { savePreference } from "./browser-preferences";
 
 export type ActiveCollaboration = {
   documentId: string;
+  sharedDocumentId?: string | undefined;
   roomId: string;
   endpoint: string;
   shareUrl: string;
@@ -33,6 +36,7 @@ export type ActiveCollaboration = {
 
 export type RemoteEditFlash = {
   participantId: string;
+  diagramId?: string | undefined;
   name: string;
   color: string;
   range: { from: number; to: number };
@@ -45,7 +49,15 @@ type TabControls = {
   updateDocumentSource: (id: string, source: string, diagramKind: DiagramKind) => void;
 };
 
+export type CollaborationDocumentBridge = {
+  getDocument(): SharedDocument | undefined;
+  receiveDocument(document: SharedDocument): void;
+  activeDiagram(): { id: string; name: string } | undefined;
+  containsTab(id: string): boolean;
+};
+
 type Options = {
+  documentBridge?: RefObject<CollaborationDocumentBridge | undefined> | undefined;
   hydrated: boolean;
   onboarded: boolean;
   defaultEndpoint: string;
@@ -78,6 +90,7 @@ export function useCollaborationLifecycle({
   recordDocumentVersion,
   reportError,
   setInteractionMessage,
+  documentBridge,
 }: Options) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingCollaboration, setPendingCollaboration] = useState<{
@@ -128,7 +141,7 @@ export function useCollaborationLifecycle({
       const existing = pendingVersion.current;
       if (existing) {
         window.clearTimeout(existing.timer);
-        if (existing.author.id !== author.id) savePendingVersion(existing);
+        if (existing.author.id !== author.id || existing.historyId !== details.historyId) savePendingVersion(existing);
       }
       const pending = { author, source, ...details, timer: 0 } as NonNullable<typeof pendingVersion.current>;
       pending.timer = window.setTimeout(() => {
@@ -203,10 +216,11 @@ export function useCollaborationLifecycle({
         fileName: collaborationDocument.fileName,
         diagramKind: collaborationDocument.diagramKind,
       }).catch(reportError);
+      const sharedDocument = requestedRoomId ? undefined : documentBridge?.current?.getDocument();
       const session = new CollaborationSession(
         normalizedEndpoint,
         roomId,
-        workspace.source,
+        sharedDocument ? "" : workspace.source,
         { id: participantId, name, color, cursor: workspace.cursor, selection: { anchor: 0, head: 0 } },
         (source) => tabs.updateDocumentSource(documentId, source, detectDiagramKind(source) ?? "gantt"),
         (connection) => setCollaboration((current) => (current ? { ...current, connection } : current)),
@@ -242,10 +256,45 @@ export function useCollaborationLifecycle({
         ownerToken && editorToken && viewerToken
           ? { ownerToken, editorToken, viewerToken, accessToken: editorToken }
           : { accessToken: requestedAccessToken },
+        {
+          initial: sharedDocument,
+          onDiagramEdit: (participant, diagram, range) => {
+            const shared = documentBridge?.current?.getDocument();
+            if (!shared) return;
+            scheduleVersion(participant, diagram.source, {
+              historyId: embeddedMemberHistoryId(shared.id, diagram.id),
+              fileName: diagram.name,
+              diagramKind: diagram.kind,
+            });
+            if (participant.id === participantId) return;
+            window.clearTimeout(remoteEditFlashTimer.current);
+            const taskId =
+              diagram.kind === "gantt" ? findTaskAt(parseGantt(diagram.source).document, range.from)?.id : undefined;
+            setRemoteEditFlash({
+              participantId: participant.id,
+              diagramId: diagram.id,
+              name: participant.name,
+              color: participant.color,
+              range,
+              taskId,
+            });
+            remoteEditFlashTimer.current = window.setTimeout(() => setRemoteEditFlash(undefined), 2_500);
+          },
+          onDocument: (document) => {
+            if (sessionRef.current !== session) return;
+            setCollaboration((current) => (current ? { ...current, sharedDocumentId: document.id } : current));
+            try {
+              documentBridge?.current?.receiveDocument(document);
+            } catch (error) {
+              reportError(error);
+            }
+          },
+        },
       );
       sessionRef.current = session;
       setCollaboration({
         documentId,
+        sharedDocumentId: sharedDocument?.id,
         roomId,
         endpoint: normalizedEndpoint,
         shareUrl,
@@ -263,6 +312,7 @@ export function useCollaborationLifecycle({
       setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
     },
     [
+      documentBridge,
       recordDocumentVersion,
       reportError,
       scheduleVersion,
@@ -298,13 +348,31 @@ export function useCollaborationLifecycle({
   }, [collaboration, defaultEndpoint, hydrated, onboarded]);
 
   useEffect(() => {
-    if (collaboration?.documentId === tabs.activeId) sessionRef.current?.applySource(workspace.source);
-  }, [collaboration?.documentId, tabs.activeId, workspace.source]);
+    if (!collaboration?.sharedDocumentId && collaboration?.documentId === tabs.activeId)
+      sessionRef.current?.applySource(workspace.source);
+  }, [collaboration?.documentId, collaboration?.sharedDocumentId, tabs.activeId, workspace.source]);
 
   useEffect(() => {
-    if (collaboration && !tabs.documents.some((document) => document.id === collaboration.documentId))
+    if (
+      collaboration &&
+      !collaboration.sharedDocumentId &&
+      !tabs.documents.some((document) => document.id === collaboration.documentId)
+    )
       leaveCollaboration();
   }, [collaboration, leaveCollaboration, tabs.documents]);
+
+  useEffect(() => {
+    if (!collaboration?.sharedDocumentId) return;
+    const bridge = documentBridge?.current;
+    const document = bridge?.getDocument();
+    if (document?.id !== collaboration.sharedDocumentId) {
+      leaveCollaboration();
+      return;
+    }
+    sessionRef.current?.applyDocument(document);
+    const active = bridge?.activeDiagram();
+    sessionRef.current?.updateDiagram(active?.id, active?.name);
+  });
 
   useEffect(
     () => () => {
@@ -319,10 +387,30 @@ export function useCollaborationLifecycle({
     sessionRef.current?.updateSelection(line, column, anchor, head);
   }, []);
 
+  const activeSharedDiagram = documentBridge?.current?.activeDiagram();
+  const collaborationAppliesToActiveDiagram = Boolean(
+    collaboration &&
+    (collaboration.sharedDocumentId
+      ? documentBridge?.current?.getDocument()?.id === collaboration.sharedDocumentId &&
+        documentBridge.current.containsTab(tabs.activeId)
+      : collaboration.documentId === tabs.activeId),
+  );
+  const activeParticipants =
+    collaboration?.participants.filter(
+      (participant) =>
+        participant.id !== collaboration.participantId &&
+        (!collaboration.sharedDocumentId || participant.diagramId === activeSharedDiagram?.id),
+    ) ?? [];
+
   return {
     collaboration,
+    collaborationAppliesToActiveDiagram,
+    activeParticipants,
     pendingCollaboration,
-    remoteEditFlash,
+    remoteEditFlash:
+      !remoteEditFlash?.diagramId || remoteEditFlash.diagramId === activeSharedDiagram?.id
+        ? remoteEditFlash
+        : undefined,
     collaborationDialogOpen: dialogOpen,
     setCollaborationDialogOpen: setDialogOpen,
     startCollaboration,

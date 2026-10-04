@@ -1,3 +1,4 @@
+import type { DiagramKind } from "../model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   reconstructContents,
@@ -298,6 +299,53 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     [tabs],
   );
 
+  // Remote content updates existing tabs without activating them. A collaborator's navigation
+  // must never change the diagram another participant is editing.
+  const receiveProject = useCallback(
+    (next: PortableProject) => {
+      const current = projectRef.current;
+      if (!current || current.projectId !== next.projectId) {
+        openProject(next);
+        const first = next.diagrams[0];
+        if (first)
+          void historyReady.current.then(() => {
+            if (projectRef.current?.projectId !== next.projectId) return;
+            openEmbeddedMember(next, first.id, tabs, memberTabs.current);
+          });
+        return false;
+      }
+      const nextIds = new Set(next.diagrams.map((diagram) => diagram.id));
+      for (const diagram of current.diagrams) {
+        if (nextIds.has(diagram.id)) continue;
+        const tabId = memberTabs.current.get(diagram.id);
+        if (tabId) tabs.closeDocument?.(tabId);
+        memberTabs.current.delete(diagram.id);
+      }
+      for (const diagram of next.diagrams) {
+        const tabId = memberTabs.current.get(diagram.id);
+        if (!tabId || !tabs.documents.some((tab) => tab.id === tabId)) continue;
+        tabs.updateDocumentFormat?.(tabId, {
+          fileName: diagram.name,
+          source: diagram.document.current.source,
+          diagramKind: diagram.document.current.diagramKind as DiagramKind,
+          dirty: true,
+          resourceCapacities: diagram.document.settings.resourceCapacities,
+          progressForecast: diagram.document.settings.progressForecast,
+          historyMaxVersions: diagram.document.historyPolicy.maxVersions,
+          historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
+          linkedWbsDocumentId: diagram.wbsGantt ? memberTabs.current.get(diagram.wbsGantt.wbsDiagramId) : undefined,
+          wbsGanttLinks: diagram.wbsGantt?.links,
+          wbsGanttDependencies: diagram.wbsGantt?.dependencies,
+        });
+      }
+      revisionRef.current += 1;
+      setRevision(revisionRef.current);
+      setProject(next);
+      return true;
+    },
+    [openProject, tabs],
+  );
+
   const snapshot = useCallback(
     async (savedAt?: string) => {
       if (!project) return undefined;
@@ -337,6 +385,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   return {
     project,
     effectiveProject,
+    receiveProject,
     encrypted,
     openProject,
     restoreProject,

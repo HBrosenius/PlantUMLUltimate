@@ -31,6 +31,11 @@ import {
   type OpenedFileBytes,
   type WritableFileHandle,
 } from "../file-service";
+import {
+  liveProjectFromSharedDocument,
+  sharedDocumentFromProject,
+  type SharedDocument,
+} from "../collaboration-document";
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
@@ -677,9 +682,27 @@ export function useSingleFileProject({
     embedded.closeProject();
   }, [embedded]);
 
+  const receiveSharedDocument = useCallback(
+    (shared: SharedDocument) => {
+      const next = liveProjectFromSharedDocument(shared, embedded.effectiveProject);
+      const sameDocument = embedded.project?.projectId === next.projectId;
+      embedded.receiveProject(next);
+      if (!sameDocument) {
+        handle.current = undefined;
+        handleDigest.current = undefined;
+        unlockedKey.current = undefined;
+        setSavedBaseline(undefined);
+        // Joining a shared document leaves unrelated local tabs alone.
+      }
+    },
+    [embedded],
+  );
+
   return useMemo(
     () => ({
       portableProject: embedded.project,
+      sharedDocument: embedded.effectiveProject ? sharedDocumentFromProject(embedded.effectiveProject) : undefined,
+      receiveSharedDocument,
       project: indexed,
       indexStatus,
       dirty: embedded.dirty,
@@ -712,6 +735,7 @@ export function useSingleFileProject({
       closeProject,
     }),
     [
+      receiveSharedDocument,
       addProjectDiagram,
       deleteDiagram,
       embedded,

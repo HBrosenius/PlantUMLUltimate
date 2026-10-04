@@ -97,7 +97,23 @@ export function projectWithOpenTabSources(
             dependencies: tab.wbsGanttDependencies ?? member.wbsGantt.dependencies,
           }
         : member.wbsGantt;
+    const settings = tab
+      ? {
+          ...member.document.settings,
+          resourceCapacities: tab.resourceCapacities ?? {},
+          ...(tab.progressForecast ? { progressForecast: tab.progressForecast } : {}),
+        }
+      : member.document.settings;
+    const historyPolicy = tab
+      ? {
+          ...member.document.historyPolicy,
+          maxVersions: tab.historyMaxVersions ?? member.document.historyPolicy.maxVersions,
+          maxLogicalBytes: tab.historyMaxLogicalBytes ?? member.document.historyPolicy.maxLogicalBytes,
+        }
+      : member.document.historyPolicy;
     if (
+      JSON.stringify(settings) === JSON.stringify(member.document.settings) &&
+      JSON.stringify(historyPolicy) === JSON.stringify(member.document.historyPolicy) &&
       (source === undefined || source === member.document.current.source) &&
       JSON.stringify(wbsGantt) === JSON.stringify(member.wbsGantt)
     )
@@ -108,6 +124,8 @@ export function projectWithOpenTabSources(
       ...(wbsGantt ? { wbsGantt } : {}),
       document: {
         ...member.document,
+        settings,
+        historyPolicy,
         current: { ...member.document.current, source: source ?? member.document.current.source },
       },
     };
@@ -159,7 +177,14 @@ export async function snapshotEmbeddedProject(
   const diagrams = await Promise.all(
     effective.diagrams.map(async (member) => {
       const tab = byTabId.get(memberTabs.get(member.id) ?? "");
-      if (!tab) return member;
+      if (!tab)
+        return {
+          ...member,
+          document: {
+            ...member.document,
+            current: { ...member.document.current, sourceHash: await hashSource(member.document.current.source) },
+          },
+        };
       const versions = await loadVersions(tab.historyId);
       if (!versions.length)
         return {

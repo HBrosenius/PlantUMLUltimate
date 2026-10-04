@@ -8,7 +8,9 @@ async function editorSource(page: Page) {
     [...editor.querySelectorAll(".cm-line")]
       .map((line) => {
         const copy = line.cloneNode(true) as HTMLElement;
-        copy.querySelectorAll(".cm-remote-cursor, .cm-remote-cursor-label").forEach((marker) => marker.remove());
+        copy
+          .querySelectorAll(".cm-remote-cursor, .cm-remote-cursor-label, .cm-remote-edit-label")
+          .forEach((marker) => marker.remove());
         return copy.textContent ?? "";
       })
       .join("\n"),
@@ -215,4 +217,89 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
 
   await reconnectedEditor.context.close();
   await viewer.context.close();
+});
+
+test("shares a whole Document with independent navigation, management and offline edits", async ({ page, browser }) => {
+  test.setTimeout(120_000);
+  await createGantt(page);
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "New", exact: true }).click();
+  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+  const name = page.getByRole("dialog", { name: "New document" });
+  await name.getByLabel("Name").fill("Shared delivery");
+  await name.getByRole("button", { name: "Create document" }).click();
+  const navigator = page.getByRole("complementary", { name: "Document navigator" });
+  async function addDiagram(kind: string, title: string) {
+    await navigator.getByRole("button", { name: "Add diagram", exact: true }).click();
+    await navigator.getByLabel("Diagram type").selectOption(kind);
+    await navigator.getByLabel("Diagram name").fill(title);
+    await navigator.getByRole("button", { name: "Add to document" }).click();
+  }
+  await addDiagram("wbs", "Scope");
+  await setEditorSource(page, "@startwbs\n* Scope\n** Build\n@endwbs");
+  await addDiagram("gantt", "Schedule");
+  await setEditorSource(page, "@startgantt\n[Build] lasts 2 days\n@endgantt");
+  await page.getByRole("button", { name: "Collaborate", exact: true }).click();
+  const room = page.getByRole("dialog", { name: "Collaboration" });
+  await room.getByLabel("Your name").fill("Alice");
+  await room.getByRole("button", { name: "Create private room" }).click();
+  await expect(room).toContainText("Connected");
+  const editorLink = await room.getByLabel("Editor link").inputValue();
+  const viewerLink = await room.getByLabel("Viewer link").inputValue();
+  await room.getByRole("button", { name: "Close", exact: true }).click();
+  const editor = await join(browser, editorLink, "Bob", "editor");
+  const viewer = await join(browser, viewerLink, "Vera", "viewer");
+  try {
+    for (const peer of [editor, viewer]) {
+      await peer.page
+        .getByRole("dialog", { name: "Collaboration" })
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
+      await expect(peer.page.getByRole("complementary", { name: "Document navigator" })).toContainText(
+        "Shared delivery",
+      );
+    }
+    const remoteNavigator = editor.page.getByRole("complementary", { name: "Document navigator" });
+    await remoteNavigator.getByRole("button", { name: /^Scope wbs/ }).click();
+    await expect.poll(() => editorSource(editor.page)).toContain("** Build");
+    await expect.poll(() => editorSource(page)).toContain("[Build] lasts 2 days");
+    const viewerNavigator = viewer.page.getByRole("complementary", { name: "Document navigator" });
+    await viewerNavigator.getByRole("button", { name: /^Schedule gantt/ }).click();
+    await expect(viewer.page.locator(".cm-content")).toHaveAttribute("contenteditable", "false");
+    await expect(viewerNavigator.getByRole("button", { name: "Add diagram", exact: true })).toBeDisabled();
+    await expect(viewerNavigator.getByRole("button", { name: "Delete Scope", exact: true })).toHaveCount(0);
+    // Disconnected editors can edit different diagrams without replacing each other's content.
+    await editor.context.setOffline(true);
+    await editor.page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await expect(editor.page.locator(".collaboration-status")).toContainText("offline");
+    await setEditorSource(editor.page, "@startwbs\n* Scope\n** Build\n** Verify\n@endwbs");
+    await setEditorSource(page, "@startgantt\n[Build] lasts 8 days\n@endgantt");
+    await editor.context.setOffline(false);
+    await editor.page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(editor.page.locator(".collaboration-status")).toHaveText("Live collaboration");
+    await expect.poll(() => editorSource(page)).toContain("lasts 8 days");
+    await expect.poll(() => editorSource(editor.page)).toBe("@startwbs\n* Scope\n** Build\n** Verify\n@endwbs");
+    await expect.poll(() => editorSource(viewer.page)).toContain("lasts 8 days");
+    await navigator.getByRole("button", { name: /^Scope wbs/ }).click();
+    await expect.poll(() => editorSource(page)).toBe("@startwbs\n* Scope\n** Build\n** Verify\n@endwbs");
+    await remoteNavigator.getByRole("button", { name: /^Schedule gantt/ }).click();
+    await expect.poll(() => editorSource(editor.page)).toContain("lasts 8 days");
+    // A remote rename and addition update the navigator without switching the owner's diagram.
+    await remoteNavigator.getByRole("button", { name: "Rename Scope", exact: true }).click();
+    const rename = editor.page.getByRole("dialog", { name: "Rename diagram" });
+    await rename.getByLabel("Name").fill("Delivery scope");
+    await rename.getByRole("button", { name: "Rename", exact: true }).click();
+    await expect(navigator).toContainText("Delivery scope");
+    await remoteNavigator.getByRole("button", { name: "Add diagram", exact: true }).click();
+    await remoteNavigator.getByLabel("Diagram type").selectOption("component");
+    await remoteNavigator.getByLabel("Diagram name").fill("Architecture");
+    await remoteNavigator.getByRole("button", { name: "Add to document" }).click();
+    await expect(navigator).toContainText("Architecture");
+    await expect.poll(() => editorSource(page)).toBe("@startwbs\n* Scope\n** Build\n** Verify\n@endwbs");
+    await page.getByRole("button", { name: /online/ }).click();
+    await expect(room.getByRole("region", { name: "Connected participants" })).toContainText("Architecture");
+  } finally {
+    await editor.context.close();
+    await viewer.context.close();
+  }
 });

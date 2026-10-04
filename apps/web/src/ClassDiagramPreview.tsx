@@ -61,6 +61,7 @@ export function ClassDiagramPreview({
   const navigation = useDiagramNavigation(zoom, onZoomChange);
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
+  const renderObserver = useRef<MutationObserver | undefined>(undefined);
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const drag = useRef<
@@ -86,11 +87,15 @@ export function ClassDiagramPreview({
       );
       if (rendererChanged) setRenderRevision((value) => value + 1);
     });
+    renderObserver.current = observer;
     observer.observe(host, { childList: true, subtree: true });
     // Rebuild once after passive effects in case the renderer replaced the SVG
     // between the initial layout effect and observer registration.
     setRenderRevision((value) => value + 1);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      renderObserver.current = undefined;
+    };
   }, []);
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
@@ -283,6 +288,8 @@ export function ClassDiagramPreview({
     rendered
       .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
       .forEach((control) => rendered.append(control));
+    // Rebuilding overlays is our own mutation, not a fresh renderer result.
+    renderObserver.current?.takeRecords();
   }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as Element).closest("[data-class-object-id],[data-class-hit-id]");

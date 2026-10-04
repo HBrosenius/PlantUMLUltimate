@@ -37,6 +37,7 @@ function attentionMessage(project: VirtualProject, element: ProjectElement): str
 
 export function ProjectLinksPanel({
   project,
+  readOnly = false,
   onChange,
   onElementsChange,
   onElementsRegistered = onElementsChange,
@@ -44,6 +45,7 @@ export function ProjectLinksPanel({
   onOpenWbsGanttLink,
 }: {
   project: VirtualProject;
+  readOnly?: boolean;
   onChange(links: readonly ProjectLink[]): void;
   /** A user edit to the element set, such as repairing a link target. */
   onElementsChange(elements: readonly ProjectElement[]): void;
@@ -193,7 +195,7 @@ export function ProjectLinksPanel({
                 ))}
               </select>
             </label>
-            <button type="submit" className="project-create-link" disabled={!kind}>
+            <button type="submit" className="project-create-link" disabled={readOnly || !kind}>
               {kind === "relates" ? "Create WBS link" : `Create ${kind ?? ""} link`}
             </button>
           </form>
@@ -250,6 +252,7 @@ export function ProjectLinksPanel({
                 <button
                   type="button"
                   className="project-link-remove"
+                  disabled={readOnly}
                   onClick={() => onChange(project.manifest.links.filter((item) => item.id !== link.id))}
                 >
                   Remove
@@ -284,6 +287,7 @@ export function ProjectLinksPanel({
                   <button
                     type="button"
                     key={`${candidate.from}:${candidate.to}`}
+                    disabled={readOnly}
                     onClick={() => repair(element, candidate)}
                   >
                     Repair: {element.locator.symbolKey} → {candidate.symbolKey}

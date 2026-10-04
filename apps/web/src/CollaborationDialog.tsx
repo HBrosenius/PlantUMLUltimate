@@ -4,6 +4,8 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { savePreference } from "./browser-preferences";
 
 export function CollaborationDialog({
+  documentName,
+  diagramCount,
   pendingRoom,
   pendingAccessToken,
   pendingRole = "editor",
@@ -15,6 +17,8 @@ export function CollaborationDialog({
   onLeave,
   onClose,
 }: {
+  documentName?: string | undefined;
+  diagramCount?: number | undefined;
   pendingRoom?: string | undefined;
   pendingAccessToken?: string | undefined;
   pendingRole?: CollaborationRole | undefined;
@@ -75,7 +79,9 @@ export function CollaborationDialog({
                   ? active.role === "viewer"
                     ? "You can follow live changes, but only editors can modify this document."
                     : "Anyone with the private editor link can edit this document."
-                  : "Live edits stay synchronized while each participant keeps an offline local copy."}
+                  : !pendingRoom && documentName
+                    ? `Share all ${diagramCount ?? 0} diagrams in “${documentName}”, including their settings and links.`
+                    : "Live edits stay synchronized while each participant keeps an offline local copy."}
             </p>
           </div>
           <button
@@ -156,6 +162,7 @@ export function CollaborationDialog({
                 <div key={participant.id}>
                   <span style={{ background: participant.color }} aria-hidden="true" />
                   <strong>{participant.name}</strong>
+                  {participant.diagramName && <span>{participant.diagramName}</span>}
                   <small>{participant.role === "viewer" ? "Viewer" : "Editor"}</small>
                   {participant.cursor && (
                     <small>

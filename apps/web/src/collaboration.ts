@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { SharedDocumentModel, type SharedDocument, type SharedDiagram } from "./collaboration-document";
 
 export interface CollaborationParticipant {
   id: string;
@@ -7,6 +8,8 @@ export interface CollaborationParticipant {
   cursor?: { line: number; column: number } | undefined;
   selection?: { anchor: number; head: number } | undefined;
   role?: CollaborationRole | undefined;
+  diagramId?: string | undefined;
+  diagramName?: string | undefined;
 }
 
 export type CollaborationConnection = "connecting" | "connected" | "offline";
@@ -33,6 +36,12 @@ function safeParticipant(value: unknown): CollaborationParticipant | undefined {
       typeof participant.color === "string" && SAFE_PARTICIPANT_COLOR.test(participant.color)
         ? participant.color
         : "#64748b",
+    ...(typeof participant.diagramId === "string" && participant.diagramId.length <= 100
+      ? {
+          diagramId: participant.diagramId,
+          diagramName: typeof participant.diagramName === "string" ? participant.diagramName.slice(0, 120) : "Diagram",
+        }
+      : {}),
     ...(participant.role === "viewer" ? { role: "viewer" as const } : { role: "editor" as const }),
     ...(participant.cursor && Number.isFinite(participant.cursor.line) && Number.isFinite(participant.cursor.column)
       ? { cursor: participant.cursor }
@@ -143,6 +152,8 @@ export function withoutCollaborationLink(pageUrl: string): string {
 
 export class CollaborationSession {
   private readonly document = new Y.Doc();
+  private readonly sharedDocument = new SharedDocumentModel(this.document);
+  private sharedSnapshot: SharedDocument | undefined;
   private readonly sourceText = this.document.getText("source");
   private socket?: WebSocket;
   private reconnectTimer?: number;
@@ -153,6 +164,16 @@ export class CollaborationSession {
   private pendingRemoteAuthor: CollaborationParticipant | undefined;
   private participant: CollaborationParticipant;
   private presenceTimer: number | undefined;
+  private readonly handleOffline = () => {
+    this.onConnection("offline");
+    this.socket?.close();
+  };
+  private readonly handleOnline = () => {
+    if (this.stopped || this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING)
+      return;
+    if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
+    this.connect(this.sourceText.toString());
+  };
 
   constructor(
     readonly endpoint: string,
@@ -165,18 +186,41 @@ export class CollaborationSession {
     private readonly onEdit: (participant: CollaborationParticipant, source: string, range: SourceChangeRange) => void,
     readonly role: CollaborationRole = "editor",
     private readonly credentials: CollaborationCredentials = {},
+    private readonly sharedOptions?: {
+      initial?: SharedDocument | undefined;
+      onDocument(document: SharedDocument): void;
+      onDiagramEdit?(participant: CollaborationParticipant, diagram: SharedDiagram, range: SourceChangeRange): void;
+    },
   ) {
     this.participant = participant;
-    this.sourceText.observe(() => this.onSource(this.sourceText.toString()));
+    window.addEventListener("offline", this.handleOffline);
+    window.addEventListener("online", this.handleOnline);
+    this.sourceText.observe(() => {
+      if (!this.sharedDocument.snapshot) this.onSource(this.sourceText.toString());
+    });
     this.document.on("update", (update: Uint8Array, origin: unknown) => {
       if (this.role === "viewer" || origin === REMOTE_ORIGIN || this.socket?.readyState !== WebSocket.OPEN) return;
       this.socket.send(update);
+    });
+    this.document.on("afterTransaction", (transaction: Y.Transaction) => {
+      if (transaction.origin !== REMOTE_ORIGIN) return;
+      const snapshot = this.sharedDocument.snapshot;
+      if (!snapshot || JSON.stringify(snapshot) === JSON.stringify(this.sharedSnapshot)) return;
+      const previous = this.sharedSnapshot;
+      this.sharedSnapshot = snapshot;
+      this.sharedOptions?.onDocument(snapshot);
+      if (this.synchronized && this.pendingRemoteAuthor)
+        this.reportDiagramEdits(previous, snapshot, this.pendingRemoteAuthor);
     });
     this.connect(initialSource);
   }
 
   private connect(initialSource: string): void {
     if (this.stopped) return;
+    if (!navigator.onLine) {
+      this.scheduleReconnect(initialSource);
+      return;
+    }
     this.synchronized = false;
     this.onConnection(this.reconnectAttempt ? "offline" : "connecting");
     const socket = new WebSocket(websocketUrl(this.endpoint, this.roomId), websocketProtocols(this.credentials));
@@ -211,7 +255,12 @@ export class CollaborationSession {
       const sourceBeforeUpdate = this.sourceText.toString();
       Y.applyUpdate(this.document, new Uint8Array(event.data as ArrayBuffer), REMOTE_ORIGIN);
       const sourceAfterUpdate = this.sourceText.toString();
-      if (this.synchronized && this.pendingRemoteAuthor && sourceAfterUpdate !== sourceBeforeUpdate)
+      if (
+        !this.sharedDocument.snapshot &&
+        this.synchronized &&
+        this.pendingRemoteAuthor &&
+        sourceAfterUpdate !== sourceBeforeUpdate
+      )
         this.onEdit(this.pendingRemoteAuthor, sourceAfterUpdate, changedRange(sourceBeforeUpdate, sourceAfterUpdate));
       this.pendingRemoteAuthor = undefined;
       if (!this.synchronized) {
@@ -219,7 +268,11 @@ export class CollaborationSession {
         this.hasSynchronized = true;
         if (this.role === "editor") {
           const maySeedRoom = Boolean(this.credentials.ownerToken || !this.credentials.accessToken);
-          if (maySeedRoom && !this.sourceText.length && initialSource) this.sourceText.insert(0, initialSource);
+          if (maySeedRoom && !this.sharedDocument.snapshot && this.sharedOptions?.initial) {
+            this.sharedDocument.apply(this.sharedOptions.initial);
+            this.sharedSnapshot = this.sharedDocument.snapshot;
+          } else if (maySeedRoom && !this.sharedDocument.snapshot && !this.sourceText.length && initialSource)
+            this.sourceText.insert(0, initialSource);
           socket.send(Y.encodeStateAsUpdate(this.document));
         }
         this.reconnectAttempt = 0;
@@ -245,7 +298,7 @@ export class CollaborationSession {
   }
 
   applySource(source: string): void {
-    if (this.role === "viewer") return;
+    if (this.role === "viewer" || this.sharedDocument.snapshot) return;
     if (!this.hasSynchronized && this.credentials.accessToken && !this.credentials.ownerToken) return;
     const current = this.sourceText.toString();
     if (current === source) return;
@@ -258,6 +311,32 @@ export class CollaborationSession {
       if (inserted) this.sourceText.insert(range.from, inserted);
     });
     if (this.hasSynchronized) this.onEdit(this.participant, source, range);
+  }
+
+  applyDocument(document: SharedDocument): void {
+    if (this.role === "viewer" || !this.hasSynchronized || !this.sharedDocument.snapshot) return;
+    const previous = this.sharedSnapshot;
+    this.sharedDocument.apply(document, previous);
+    this.sharedSnapshot = this.sharedDocument.snapshot;
+    if (this.sharedSnapshot) this.reportDiagramEdits(previous, this.sharedSnapshot, this.participant);
+  }
+
+  private reportDiagramEdits(
+    previous: SharedDocument | undefined,
+    next: SharedDocument,
+    participant: CollaborationParticipant,
+  ): void {
+    for (const diagram of next.diagrams) {
+      const before = previous?.diagrams.find((item) => item.id === diagram.id);
+      if (before && before.source !== diagram.source)
+        this.sharedOptions?.onDiagramEdit?.(participant, diagram, changedRange(before.source, diagram.source));
+    }
+  }
+
+  updateDiagram(diagramId?: string, diagramName?: string): void {
+    if (this.participant.diagramId === diagramId && this.participant.diagramName === diagramName) return;
+    this.participant = { ...this.participant, diagramId, diagramName, selection: { anchor: 0, head: 0 } };
+    this.sendPresence();
   }
 
   updateSelection(line: number, column: number, anchor: number, head: number): void {
@@ -281,6 +360,8 @@ export class CollaborationSession {
 
   stop(): void {
     this.stopped = true;
+    window.removeEventListener("offline", this.handleOffline);
+    window.removeEventListener("online", this.handleOnline);
     if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
     if (this.presenceTimer) window.clearTimeout(this.presenceTimer);
     this.socket?.close(1000, "Left collaboration room");

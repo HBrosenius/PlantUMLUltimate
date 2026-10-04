@@ -89,7 +89,7 @@ After a participant pauses typing, Studio creates an automatic Version History c
 
 Each link contains a separate 256-bit capability stored in the URL fragment, so it is not sent to the static site host or included in normal referrer data. The collaboration Worker validates the capability for every connection and rejects document updates from viewer connections before they reach the shared Yjs state. Treat editor links as private editing credentials. The room creator can select **Revoke link and create new** to permanently invalidate both old links, disconnect every participant, and continue the current document with fresh editor and viewer links.
 
-If the connection drops, edits continue in the browser and synchronize through Yjs after reconnection. Each browser also retains its normal local workspace recovery copy. Collaboration is attached to one open document; leaving the room or closing that document stops the live session.
+If the connection drops, edits continue in the browser and synchronize through Yjs after reconnection. Each browser also retains its normal local workspace recovery copy. For a multi-diagram Document, the room shares every diagram’s current source, settings, names, and links. Participants navigate independently; the room panel shows which diagram each person is viewing. Editors can add, rename, and delete diagrams, while viewers can browse without changing the Document. Retained version history stays local and is not shared. Standalone diagrams continue to use single-diagram rooms. Leaving the room stops the live session.
 
 The hosted collaboration service runs as the Cloudflare Worker in `apps/collaboration-worker`. Each room is a Durable Object with SQLite-backed Yjs state and hibernating WebSockets. To run it locally:
 
