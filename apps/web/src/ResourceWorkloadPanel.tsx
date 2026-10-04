@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskElapsedDays } from "./gantt-schedule";
-import { isWorkingDate, type GanttCalendar } from "./gantt-calendar";
+import { taskPauses, isWorkingDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface ResourceCapacity {
   [name: string]: number;
@@ -16,6 +16,7 @@ interface ResourceWorkload {
   name: string;
   days: WorkloadDay[];
   tasks: GanttTask[];
+  unscheduledTasks: Array<{ task: GanttTask; reason: string }>;
 }
 export interface ResourceOverAllocation {
   name: string;
@@ -27,6 +28,8 @@ export interface ResourceOverAllocation {
 export interface ResourceResolvedDate {
   start?: string;
   end?: string;
+  issue?: string;
+  derived?: boolean;
 }
 
 const MAX_SCHEDULE_STEPS = 10_000;
@@ -42,40 +45,72 @@ export function buildResourceWorkloads(
   calendar?: GanttCalendar,
   workWindows?: ReadonlyMap<string, ResourceWorkWindow>,
 ): ResourceWorkload[] {
-  const resources = new Map<string, { name: string; days: Map<string, WorkloadDay>; tasks: Map<string, GanttTask> }>();
+  const resources = new Map<
+    string,
+    {
+      name: string;
+      days: Map<string, WorkloadDay>;
+      tasks: Map<string, GanttTask>;
+      unscheduledTasks: Array<{ task: GanttTask; reason: string }>;
+    }
+  >();
   for (const task of tasks) {
     for (const assignment of task.resources ?? []) {
       const key = assignment.value.toLocaleLowerCase();
-      const resource = resources.get(key) ?? { name: assignment.value, days: new Map(), tasks: new Map() };
+      const resource = resources.get(key) ?? {
+        name: assignment.value,
+        days: new Map(),
+        tasks: new Map(),
+        unscheduledTasks: [] as ResourceWorkload["unscheduledTasks"],
+      };
       resource.tasks.set(task.id, task);
       const window = workWindows?.get(task.id);
       const resolved = resolvedDates?.get(task.id);
-      const start = window?.start ?? (task.start?.resolved ? task.start.value : resolved?.start);
+      const rejected = resolvedDates && (!resolved?.start || resolved.issue || (resolved.derived && !resolved.end));
+      if (rejected) {
+        resource.unscheduledTasks.push({ task, reason: resolved?.issue ?? "Task dates cannot be resolved" });
+        resources.set(key, resource);
+        continue;
+      }
+      const start =
+        window?.start ?? (resolvedDates ? resolved?.start : task.start?.resolved ? task.start.value : undefined);
       const duration = window ? window.days : taskElapsedDays(task);
       // Tasks defined by start and end dates (no `lasts`) occupy every working day of their
       // resolved window, matching the planned side of the forecast resource comparison.
       const end =
         window || duration || (task.milestone && !task.duration)
           ? undefined
-          : (resolved?.end ?? (task.end?.resolved ? task.end.value : undefined));
+          : resolvedDates
+            ? resolved?.end
+            : task.end?.resolved
+              ? task.end.value
+              : undefined;
       if (start && ((duration && duration > 0) || (end && end >= start))) {
-        const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
-        let assignedDays = 0;
+        const pauses = taskPauses(task);
+        const scheduledDays: string[] = [];
         // Cap the walk so a calendar that closes every day (or pauses covering them) cannot
         // freeze the tab; exhausting it simply leaves the rest of the task unscheduled.
         for (let index = 0; index < MAX_SCHEDULE_STEPS; index += 1) {
-          if (duration && assignedDays >= duration) break;
+          if (duration && scheduledDays.length >= duration) break;
           const date = new Date(`${start}T00:00:00Z`);
           date.setUTCDate(date.getUTCDate() + index);
           const value = date.toISOString().slice(0, 10);
           if (end && value > end) break;
           if (pauses.has(value) || (calendar && !isWorkingDate(value, calendar))) continue;
-          const day = resource.days.get(value) ?? { date: value, allocation: 0, tasks: [] };
-          day.allocation += assignment.allocation ?? 100;
-          day.tasks.push(task);
-          resource.days.set(value, day);
-          assignedDays += 1;
+          scheduledDays.push(value);
         }
+        if (duration && scheduledDays.length < duration) {
+          resource.unscheduledTasks.push({ task, reason: "Not enough available working days to schedule this task" });
+        } else {
+          for (const value of scheduledDays) {
+            const day = resource.days.get(value) ?? { date: value, allocation: 0, tasks: [] };
+            day.allocation += assignment.allocation ?? 100;
+            day.tasks.push(task);
+            resource.days.set(value, day);
+          }
+        }
+      } else if (!task.milestone) {
+        resource.unscheduledTasks.push({ task, reason: "Task dates cannot be resolved" });
       }
       resources.set(key, resource);
     }
@@ -85,6 +120,7 @@ export function buildResourceWorkloads(
       name: item.name,
       days: [...item.days.values()].sort((a, b) => a.date.localeCompare(b.date)),
       tasks: [...item.tasks.values()],
+      unscheduledTasks: item.unscheduledTasks,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -222,6 +258,19 @@ export function ResourceWorkloadPanel({
             <p>
               Peak {peak}% · {resource.tasks.length} task{resource.tasks.length === 1 ? "" : "s"}
             </p>
+            {resource.unscheduledTasks.length > 0 && (
+              <details open>
+                <summary>
+                  {resource.unscheduledTasks.length} unscheduled task{resource.unscheduledTasks.length === 1 ? "" : "s"}{" "}
+                  excluded from workload
+                </summary>
+                {resource.unscheduledTasks.map(({ task, reason }) => (
+                  <button key={task.id} onClick={() => onTaskSelect(task.id)}>
+                    {task.label}: {reason}
+                  </button>
+                ))}
+              </details>
+            )}
             <div className="resource-task-links">
               {resource.tasks.map((task) => (
                 <button key={task.id} onClick={() => onTaskSelect(task.id)}>

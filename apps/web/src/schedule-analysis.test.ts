@@ -73,6 +73,64 @@ sunday are closed
     expect(resolved.get(frontEndTesting.id)?.start).toBe("2026-09-24");
   });
 
+  it("counts recurring pauses over the resolved calendar span rather than counting statements", () => {
+    const source = `@startgantt
+Project starts 2026-09-21
+saturday are closed
+sunday are closed
+[A] lasts 10 days
+[A] pauses on monday
+[A] pauses on 2026-09-21
+[B] starts at [A]'s end
+[B] lasts 1 day
+[C] starts 2026-09-21
+[C] lasts 10 days
+@endgantt`;
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    expect(dates.get("a")?.end).toBe("2026-10-07");
+    expect(dates.get("b")?.end).toBe("2026-10-08");
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    expect(analysis.orderedTaskIds).toEqual(["a", "b"]);
+    expect(analysis.projectDuration).toBe(18);
+    expect(analysis.slackByTask.get("c")).toBe(6);
+    expect(analyzeCriticalPath(document.tasks, document.dependencies, undefined, calendar)).toEqual(analysis);
+  });
+
+  it("does not invent a critical path for partially unresolved or reversed schedules", () => {
+    const source = "@startgantt\n[A] lasts 2 days\n[B] starts $unknown\n[B] lasts 3 days\n@endgantt";
+    const document = parseGantt(source).document;
+    for (const dates of [
+      new Map([["a", { start: "2026-09-21", end: "2026-09-22", derived: true }]]),
+      new Map([
+        ["a", { start: "2026-09-23", end: "2026-09-22", derived: true }],
+        ["b", { start: "2026-09-21", end: "2026-09-24", derived: true }],
+      ]),
+    ]) {
+      const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, parseGanttCalendar(source));
+      expect(analysis.taskIds.size).toBe(0);
+      expect(analysis.slackByTask.size).toBe(0);
+      expect(analysis.projectDuration).toBe(0);
+    }
+  });
+
+  it("uses every relationship between a pair when propagating slack", () => {
+    const source = `@startgantt
+[A] starts 2026-09-21 and lasts 2 days
+[B] starts 2026-09-23 and lasts 4 days
+[B] starts at [A]'s start
+[B] ends 4 days after [A]'s end
+@endgantt`;
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, undefined, calendar);
+    expect(analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar).orderedTaskIds).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
   it("reports movement against resolved baseline dates", () => {
     const current = new Map([["a", { start: "2026-09-03", end: "2026-09-05", derived: false }]]);
     const baseline = new Map([["a", { start: "2026-09-01", end: "2026-09-03", derived: false }]]);

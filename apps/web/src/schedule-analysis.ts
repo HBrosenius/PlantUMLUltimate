@@ -1,6 +1,6 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
-import { taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
-import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
+import { resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
+import { isWorkingDate, parseGanttCalendar, shiftDate, type GanttCalendar } from "./gantt-calendar";
 
 export interface TaskVariance {
   taskId: string;
@@ -140,33 +140,44 @@ export function analyzeCriticalPath(
   calendar?: GanttCalendar,
 ): CriticalPathAnalysis {
   const byId = new Map(tasks.map((task) => [task.id, task]));
-  const durations = new Map(tasks.map((task) => [task.id, (taskElapsedDays(task) ?? 1) + (task.pauses ?? []).length]));
+  calendar ??= parseGanttCalendar("");
+  // Undated diagrams use a shared reference date; actual project dates supplied
+  // by the caller always take precedence over this duration-only comparison.
+  const anchor =
+    tasks
+      .flatMap((task) => [task.start, task.end].filter((date) => date?.resolved).map((date) => date!.value))
+      .sort()[0] ?? "2000-01-03";
+  resolvedDates ??= resolveTaskDates(tasks, dependencies, anchor, calendar);
+  const empty = (): CriticalPathAnalysis => ({
+    taskIds: new Set(),
+    orderedTaskIds: [],
+    projectDuration: 0,
+    slackByTask: new Map(),
+  });
+  if (
+    tasks.some((task) => {
+      const dates = resolvedDates!.get(task.id);
+      const start = dateDays(dates?.start);
+      const end = dateDays(dates?.end);
+      return (
+        start === undefined || end === undefined || !Number.isFinite(start) || !Number.isFinite(end) || end < start
+      );
+    })
+  )
+    return empty();
   const incoming = new Map(tasks.map((task) => [task.id, 0]));
-  const outgoing = new Map(tasks.map((task) => [task.id, [] as { successor: string; weight: number }[]]));
+  const outgoing = new Map(tasks.map((task) => [task.id, [] as { successor: string; dependency: GanttDependency }[]]));
   for (const dependency of dependencies) {
     if (!byId.has(dependency.predecessorTaskId) || !byId.has(dependency.successorTaskId)) continue;
-    const predecessorDuration = durations.get(dependency.predecessorTaskId) ?? 1;
-    const successorDuration = durations.get(dependency.successorTaskId) ?? 1;
-    const lag = (dependency.offset?.value ?? 0) * (dependency.direction === "before" ? -1 : 1);
-    const weight =
-      dependency.relation === "start-after-start"
-        ? lag
-        : dependency.relation === "end-after-end"
-          ? predecessorDuration + lag - successorDuration
-          : dependency.relation === "end-after-start"
-            ? lag - successorDuration
-            : predecessorDuration + lag;
-    outgoing.get(dependency.predecessorTaskId)!.push({ successor: dependency.successorTaskId, weight });
+    outgoing.get(dependency.predecessorTaskId)!.push({ successor: dependency.successorTaskId, dependency });
     incoming.set(dependency.successorTaskId, (incoming.get(dependency.successorTaskId) ?? 0) + 1);
   }
   const queue = [...incoming].filter(([, count]) => count === 0).map(([id]) => id);
-  const earliest = new Map(tasks.map((task) => [task.id, 0]));
   const order: string[] = [];
   while (queue.length) {
     const id = queue.shift()!;
     order.push(id);
     for (const edge of outgoing.get(id) ?? []) {
-      earliest.set(edge.successor, Math.max(earliest.get(edge.successor) ?? 0, (earliest.get(id) ?? 0) + edge.weight));
       incoming.set(edge.successor, incoming.get(edge.successor)! - 1);
       if (incoming.get(edge.successor) === 0) queue.push(edge.successor);
     }
@@ -195,8 +206,10 @@ export function analyzeCriticalPath(
         const direction = dependency.direction === "before" ? -1 : 1;
         let expected = shiftDate(predecessorDate, (dependency.offset?.value ?? 0) * direction);
         if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && expected) {
-          do expected = shiftDate(expected, 1);
-          while (expected && !isWorkingDate(expected, calendar));
+          for (let step = 0; step < 10_000; step++) {
+            expected = shiftDate(expected, 1);
+            if (!expected || isWorkingDate(expected, calendar!)) break;
+          }
         }
         const expectedDay = dateDays(expected);
         const successorDay = dateDays(successorDate);
@@ -204,9 +217,7 @@ export function analyzeCriticalPath(
       };
       for (const id of [...order].reverse()) {
         for (const edge of outgoing.get(id) ?? []) {
-          const dependency = dependencies.find(
-            (item) => item.predecessorTaskId === id && item.successorTaskId === edge.successor,
-          );
+          const dependency = edge.dependency;
           if (!dependency || !slackByTask.has(id) || !slackByTask.has(edge.successor)) continue;
           slackByTask.set(
             id,
@@ -227,29 +238,7 @@ export function analyzeCriticalPath(
       };
     }
   }
-  const projectFinish = Math.max(
-    ...tasks.map((task) => (earliest.get(task.id) ?? 0) + (durations.get(task.id) ?? 1)),
-    0,
-  );
-  const latest = new Map(tasks.map((task) => [task.id, projectFinish - (durations.get(task.id) ?? 1)]));
-  for (const id of [...order].reverse()) {
-    for (const edge of outgoing.get(id) ?? [])
-      latest.set(id, Math.min(latest.get(id)!, (latest.get(edge.successor) ?? 0) - edge.weight));
-  }
-  const slackByTask = new Map(
-    tasks.map((task) => [task.id, (latest.get(task.id) ?? 0) - (earliest.get(task.id) ?? 0)]),
-  );
-  const taskIds = new Set(
-    tasks.filter((task) => Math.abs(slackByTask.get(task.id) ?? 0) < 0.0001).map((task) => task.id),
-  );
-  return {
-    taskIds,
-    orderedTaskIds: order
-      .filter((id) => taskIds.has(id))
-      .sort((a, b) => (earliest.get(a) ?? 0) - (earliest.get(b) ?? 0)),
-    projectDuration: projectFinish,
-    slackByTask,
-  };
+  return empty();
 }
 
 export function criticalPathTaskIds(

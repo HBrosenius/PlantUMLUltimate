@@ -2,8 +2,44 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveDateExpression, resolveTaskDates } from "./gantt-schedule";
+import { analyzeCriticalPath } from "./schedule-analysis";
+import { calculateProgressForecast } from "./gantt-progress-forecast";
 
 describe("resolveTaskDates", () => {
+  it.each(["starts $unknown", "ends $unknown", "starts %date(unknown)", "happens $unknown"])(
+    "withholds assumed dates and dependent dates for %s",
+    (statement) => {
+      const source = `@startgantt\nProject starts 2026-09-21\n[A] ${statement}\n[A] lasts 3 days\n[B] starts at [A]'s end\n[B] lasts 2 days\n[C] lasts 1 day\n@endgantt`;
+      const document = parseGantt(source).document;
+      const calendar = parseGanttCalendar(source);
+      const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+      expect(dates.get("a")?.start).toBeUndefined();
+      expect(dates.get("a")?.end).toBeUndefined();
+      expect(dates.get("a")?.issue).toContain("cannot be resolved");
+      expect(dates.get("b")?.start).toBeUndefined();
+      expect(dates.get("b")?.end).toBeUndefined();
+      expect(dates.get("c")?.start).toBe("2026-09-21");
+      expect(analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar).taskIds.size).toBe(0);
+      expect(
+        calculateProgressForecast(document.tasks, document.dependencies, dates, calendar, "2026-09-21").tasks.get("a")
+          ?.issue,
+      ).toBe(dates.get("a")?.issue);
+    },
+  );
+
+  it("does not replace an unknown predecessor with the project start", () => {
+    const source = "@startgantt\nProject starts 2026-09-21\n[A] starts at [Missing]'s end\n[A] lasts 3 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const dates = resolveTaskDates(
+      document.tasks,
+      document.dependencies,
+      document.projectStart?.value,
+      parseGanttCalendar(source),
+    );
+    expect(dates.get("a")?.start).toBeUndefined();
+    expect(dates.get("a")?.issue).toContain("Predecessor date");
+  });
+
   it("resolves D offsets from the project start", () => {
     expect(resolveDateExpression("D+15", "2026-09-01")).toBe("2026-09-16");
     expect(resolveDateExpression("D-1", "2026-09-01")).toBe("2026-08-31");

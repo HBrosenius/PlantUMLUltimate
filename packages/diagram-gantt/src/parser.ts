@@ -262,6 +262,21 @@ export function parseGantt(source: string): ParseResult {
             range: range(line, start, value),
           });
       }
+      const first = calendarRule[1]!;
+      const last = calendarRule[2];
+      if (
+        last &&
+        isValidCalendarDate(first) &&
+        isValidCalendarDate(last) &&
+        last.replaceAll("/", "-") < first.replaceAll("/", "-")
+      ) {
+        diagnostics.push({
+          severity: "error",
+          code: "calendar-range-order",
+          message: `Calendar range ends ${last} before it starts ${first}. Review both dates.`,
+          range: lineRange,
+        });
+      }
       continue;
     }
     if (
@@ -867,6 +882,29 @@ export function parseGantt(source: string): ParseResult {
       });
   }
 
+  for (const task of taskMap.values()) {
+    const { start, end } = task;
+    if (!start || !end || !isValidCalendarDate(start.value) || !isValidCalendarDate(end.value)) continue;
+    // A later dependency can replace an earlier literal constraint. Only compare
+    // the final explicit start and end declarations, not stale date fields.
+    const explicit = (kind: "start" | "end", expression: DateExpression) => {
+      const latest = task.declarations.filter((item) => item.kind === kind).at(-1);
+      return latest && latest.range.from <= expression.range.from && latest.range.to >= expression.range.to;
+    };
+    if (
+      !explicit("start", start) ||
+      !explicit("end", end) ||
+      end.value.replaceAll("/", "-") >= start.value.replaceAll("/", "-")
+    )
+      continue;
+    for (const expression of [start, end])
+      diagnostics.push({
+        severity: "error",
+        code: "task-date-order",
+        message: `Task '${task.label}' ends ${end.value} before it starts ${start.value}. Review the start and end dates.`,
+        range: expression.range,
+      });
+  }
   const document: GanttDocument = {
     sourceRange: { from: 0, to: source.length },
     tasks: [...taskMap.values()],

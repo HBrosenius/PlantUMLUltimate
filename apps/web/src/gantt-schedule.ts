@@ -1,12 +1,15 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { normalizeTaskId } from "@plantuml-studio/diagram-gantt";
-import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
+import { taskPauses, isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 import { forecastToday } from "./forecast-date";
 
 export interface ResolvedTaskDates {
   start?: string;
   end?: string;
   derived: boolean;
+  issue?: string;
+  conflictRanges?: Array<{ from: number; to: number }>;
+  conflict?: { anchor: "start" | "end"; expected: string };
 }
 
 export function taskWorkloadDays(task: GanttTask): number | undefined {
@@ -57,35 +60,42 @@ export function resolveTaskDates(
 ): Map<string, ResolvedTaskDates> {
   const resolved = new Map<string, ResolvedTaskDates>();
   const visiting = new Set<string>();
-  const workingEnd = (start: string, days: number, pauses: readonly string[]) => {
+  const workingEnd = (start: string, days: number, paused: Pick<ReadonlySet<string>, "has">) => {
     let value = start;
     let remaining = Math.max(0, days);
-    const paused = new Set(pauses);
-    while (remaining > 0) {
+    for (let step = 0; step < 10_000 && remaining > 0; step++) {
       if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
       if (remaining > 0) value = shiftDate(value, 1)!;
     }
-    return value;
+    return remaining === 0 ? value : undefined;
   };
-  const workingStart = (end: string, days: number, pauses: readonly string[]) => {
+  const workingStart = (end: string, days: number, paused: Pick<ReadonlySet<string>, "has">) => {
     let value = end;
     let remaining = Math.max(0, days);
-    const paused = new Set(pauses);
-    while (remaining > 0) {
+    for (let step = 0; step < 10_000 && remaining > 0; step++) {
       if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
       if (remaining > 0) value = shiftDate(value, -1)!;
     }
-    return value;
+    return remaining === 0 ? value : undefined;
   };
   const solve = (task: GanttTask): ResolvedTaskDates => {
     const cached = resolved.get(task.id);
     if (cached) return cached;
-    if (visiting.has(task.id)) return { derived: true };
+    if (visiting.has(task.id)) return { derived: true, issue: "Dependency cycle" };
     visiting.add(task.id);
+    const unavailable = (issue: string, conflictRanges?: Array<{ from: number; to: number }>): ResolvedTaskDates => {
+      const value = { derived: true, issue, ...(conflictRanges ? { conflictRanges } : {}) };
+      resolved.set(task.id, value);
+      visiting.delete(task.id);
+      return value;
+    };
     let start = task.start ? resolveDateExpression(task.start.value, projectStart, timeZone) : undefined;
     let end = task.end ? resolveDateExpression(task.end.value, projectStart, timeZone) : undefined;
-    if (!start && !end && task.milestone && "resolved" in task.milestone && task.milestone.resolved) {
+    if (task.start && !start) return unavailable(`Start date cannot be resolved: ${task.start.value}`);
+    if (task.end && !end) return unavailable(`End date cannot be resolved: ${task.end.value}`);
+    if (!start && !end && task.milestone && "resolved" in task.milestone) {
       const milestoneDate = resolveDateExpression(task.milestone.value, projectStart, timeZone);
+      if (!milestoneDate) return unavailable(`Milestone date cannot be resolved: ${task.milestone.value}`);
       if (milestoneDate) {
         start = milestoneDate;
         end = milestoneDate;
@@ -97,6 +107,7 @@ export function resolveTaskDates(
         (item) => item.id === referenceId || normalizeTaskId(item.alias?.value ?? "") === referenceId,
       );
       const anchor = reference ? solve(reference)[task.milestoneAnchor ?? "end"] : undefined;
+      if (!anchor) return unavailable(`Milestone reference cannot be resolved: ${task.milestone.value}`);
       if (anchor) {
         start = anchor;
         end = anchor;
@@ -106,29 +117,39 @@ export function resolveTaskDates(
     const taskDependencies = dependencies.filter((item) => item.successorTaskId === task.id);
     const dependencyStarts: string[] = [];
     const dependencyEnds: string[] = [];
+    const constraints: Array<{ dependency: GanttDependency; expected: string }> = [];
     for (const dependency of taskDependencies) {
+      if (dependency.relation === "other") continue;
       const predecessor = tasks.find((item) => item.id === dependency.predecessorTaskId);
       const predecessorDates = predecessor ? solve(predecessor) : undefined;
       const anchor =
         dependency.relation === "start-after-start" || dependency.relation === "end-after-start"
           ? predecessorDates?.start
           : predecessorDates?.end;
+      if (!anchor)
+        return unavailable(
+          predecessorDates?.issue ?? `Predecessor date cannot be resolved: ${dependency.predecessor.value}`,
+        );
       if (anchor) {
         const direction = dependency.direction === "before" ? -1 : 1;
         let dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
         if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && dependencyAnchor) {
-          do {
+          for (let step = 0; step < 10_000; step++) {
             dependencyAnchor = shiftDate(dependencyAnchor, 1);
-          } while (dependencyAnchor && !isWorkingDate(dependencyAnchor, calendar));
+            if (!dependencyAnchor || isWorkingDate(dependencyAnchor, calendar)) break;
+          }
+          if (!dependencyAnchor || !isWorkingDate(dependencyAnchor, calendar))
+            return unavailable("No working date can be found after the predecessor");
         }
         if (dependencyAnchor) {
+          constraints.push({ dependency, expected: dependencyAnchor });
           if (dependency.relation.startsWith("start-")) dependencyStarts.push(dependencyAnchor);
           else dependencyEnds.push(dependencyAnchor);
         }
       }
     }
     const duration = taskElapsedDays(task);
-    const pauses = (task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value);
+    const pauses = taskPauses(task);
     if (!start && dependencyStarts.length) start = dependencyStarts.sort().at(-1);
     if (!end && dependencyEnds.length) end = dependencyEnds.sort().at(-1);
     if (!start && end && duration) start = workingStart(end, duration, pauses);
@@ -136,6 +157,19 @@ export function resolveTaskDates(
       start ??= projectStart;
     }
     end = end ? end : start && duration ? workingEnd(start, duration, pauses) : undefined;
+    for (const { dependency, expected } of constraints) {
+      const anchor = dependency.relation.startsWith("start-") ? "start" : "end";
+      const actual = anchor === "start" ? start : end;
+      if (actual && (dependency.direction === "before" ? actual > expected : actual < expected)) {
+        const expression = anchor === "start" ? task.start : task.end;
+        const result = unavailable(
+          `Task '${task.label}' ${anchor} ${actual} conflicts with '${dependency.predecessor.value}': its relationship requires ${anchor} ${dependency.direction === "before" ? "on or before" : "on or after"} ${expected}.`,
+          [dependency.sourceRange, ...(expression ? [expression.range] : [])],
+        );
+        result.conflict = { anchor, expected };
+        return result;
+      }
+    }
     const value = { ...(start ? { start } : {}), ...(end ? { end } : {}), derived };
     resolved.set(task.id, value);
     visiting.delete(task.id);

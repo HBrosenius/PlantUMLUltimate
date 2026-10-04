@@ -16,9 +16,9 @@ describe("parseGantt", () => {
     "[A] ends DATE",
     "[A] happens DATE",
     "[A] pauses on DATE",
-    "[A] starts 2026-01-01 and ends DATE",
+    "[A] starts 1900-01-01 and ends DATE",
     "DATE are closed",
-    "2026-01-01 to DATE are opened",
+    "1900-01-01 to DATE are opened",
     "DATE is colored in Red",
   ])("validates calendar dates in %s", (template) => {
     for (const date of [
@@ -39,6 +39,48 @@ describe("parseGantt", () => {
       const source = `@startgantt\n${template.replace("DATE", date)}\n@endgantt`;
       expect(parseGantt(source).diagnostics, source).toEqual([]);
     }
+  });
+
+  it.each([
+    "[A] starts 2026-09-21\n[A] ends 2026-09-20",
+    "[A] ends 2026-09-20\n[A] starts 2026-09-21",
+    "[A] starts 2026/09/21 and ends 2026-09-20",
+  ])("reports both conflicting explicit task dates: %s", (statements) => {
+    const source = `@startgantt\n${statements}\n@endgantt`;
+    const diagnostics = parseGantt(source).diagnostics.filter((item) => item.code === "task-date-order");
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics.map((item) => source.slice(item.range.from, item.range.to))).toEqual([
+      statements.includes("2026/09/21") ? "2026/09/21" : "2026-09-21",
+      "2026-09-20",
+    ]);
+  });
+
+  it.each(["closed", "opened", "colored in Red"])("reports a reversed calendar range that is %s", (rule) => {
+    const statement = `2026/09/21 to 2026-09-20 are ${rule}`;
+    const source = `@startgantt\n${statement}\n@endgantt`;
+    const diagnostics = parseGantt(source).diagnostics;
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.code).toBe("calendar-range-order");
+    expect(source.slice(diagnostics[0]!.range.from, diagnostics[0]!.range.to)).toBe(statement);
+  });
+
+  it("accepts equal dates and forward ranges without comparing expressions", () => {
+    expect(
+      parseGantt(
+        "@startgantt\n[A] starts 2026-09-21 and ends 2026-09-21\n[B] starts today and ends 2026-09-20\n2026-09-20 to 2026-09-21 are closed\n2026-09-21 to 2026-09-21 are opened\n@endgantt",
+      ).diagnostics,
+    ).toEqual([]);
+  });
+
+  it("does not compare impossible dates or a literal replaced by a dependency", () => {
+    const source =
+      "@startgantt\n[A] starts 2026-09-21\n[A] ends 2026-09-20\n[B] lasts 1 day\n[A] starts at [B]'s end\n@endgantt";
+    expect(parseGantt(source).diagnostics.filter((item) => item.code === "task-date-order")).toEqual([]);
+    expect(
+      parseGantt(source.replace("2026-09-21", "2026-02-30")).diagnostics.filter(
+        (item) => item.code === "task-date-order",
+      ),
+    ).toEqual([]);
   });
 
   it("does not resolve impossible dates or reject relative dates and expressions", () => {

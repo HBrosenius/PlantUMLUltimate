@@ -1,5 +1,5 @@
 import { applySourceEdits, parseGantt, setTaskDeclaration, type GanttTask } from "@plantuml-studio/diagram-gantt";
-import { isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
+import { taskPauses, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { calculateProgressForecast, hasDelayedForecastTask, type ProgressForecast } from "./gantt-progress-forecast";
 import { resolveTaskDates, taskAllocationPercent, taskWorkloadDays } from "./gantt-schedule";
 
@@ -30,7 +30,7 @@ export interface ForecastApplyReview {
 
 function availableDays(start: string, end: string, source: string, task: GanttTask): number | undefined {
   const calendar = parseGanttCalendar(source);
-  const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
+  const pauses = taskPauses(task);
   let date = start;
   let days = 0;
   for (let step = 0; step < 10_000 && date <= end; step += 1) {

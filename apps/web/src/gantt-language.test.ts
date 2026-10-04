@@ -17,6 +17,130 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it.each([
+    ["", 7, "2026-09-25"],
+    ["saturday are closed\nsunday are closed", 5, "2026-09-25"],
+    ["saturday are closed\nsunday are closed\n2026-09-22 is closed", 4, "2026-09-28"],
+    ["saturday are closed\nsunday are closed\n2026-09-26 is opened", 6, "2026-09-25"],
+    ["[A] pauses on 2026-09-22", 6, "2026-09-26"],
+    ["[A] pauses on monday", 6, "2026-09-26"],
+    ["[A] pauses on MONDAY", 6, "2026-09-26"],
+    ["[A] pauses on tuesday\n[A] pauses on 2026-09-22", 6, "2026-09-26"],
+    ["saturday are closed\nsunday are closed\n[A] pauses on monday", 4, "2026-09-29"],
+    ["saturday are closed\nsunday are closed\n2026-09-21 is opened\n[A] pauses on monday", 4, "2026-09-29"],
+    ["saturday are closed\nsunday are closed\n2026-09-22 is closed\n[A] pauses on monday", 3, "2026-09-30"],
+  ])("offers independently valid duration and end repairs with calendar %s", (calendar, count, end) => {
+    const source = `@startgantt\n${calendar}\n[A] starts 2026-09-21\n[A] ends 2026-09-27\n[A] requires 5 days\n@endgantt`;
+    const conflicts = ganttDiagnostics(source).filter((item) => item.message.includes("declares"));
+    if (count === 5) {
+      expect(conflicts).toEqual([]);
+      expect(ganttQuickFixes(source)).toEqual([]);
+      return;
+    }
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]?.severity).toBe("warning");
+    expect(conflicts[0]?.message).toContain(`contains ${count}`);
+    expect(conflicts[0]?.actions).toHaveLength(2);
+    const fixes = ganttQuickFixes(source);
+    expect(fixes.map((fix) => fix.label)).toEqual([`Use duration ${count} days`, `Use end date ${end}`]);
+    for (const fix of fixes) {
+      const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+      expect(repaired).toBe(
+        fix.label?.startsWith("Use duration")
+          ? source.replace("requires 5 days", `requires ${count} days`)
+          : source.replace("ends 2026-09-27", `ends ${end}`),
+      );
+      expect(ganttDiagnostics(repaired).filter((item) => item.message.includes("declares"))).toEqual([]);
+    }
+  });
+
+  it("reports an all-paused schedule without offering zero duration or an unreachable end", () => {
+    const pauses = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+      .map((day) => `[A] pauses on ${day}`)
+      .join("\n");
+    const source = `@startgantt\n[A] starts 2026-09-21 and ends 2026-09-27 and lasts 5 days\n${pauses}\n@endgantt`;
+    expect(ganttDiagnostics(source).find((item) => item.message.includes("declares"))?.message).toContain("contains 0");
+    expect(ganttQuickFixes(source)).toEqual([]);
+  });
+
+  it.each(["today", "D+2", "$pauseDate"])("withholds calculations for unresolved pause %s", (pause) => {
+    const source = `@startgantt\n[A] starts 2026-09-21 and ends 2026-09-27 and lasts 5 days\n[A] pauses on ${pause}\n@endgantt`;
+    expect(ganttDiagnostics(source).filter((item) => item.message.includes("declares"))).toEqual([]);
+  });
+
+  it.each([
+    "[B] lasts 2 dys",
+    "[B] starts 2026-02-30",
+    "[B] starts 2026-09-23 and ends 2026-09-21",
+    "[B] starts at [Missing]'s end",
+    "printscale dayly",
+    "Project start 2026-02-30",
+  ])("keeps conflict suggestions despite an unrelated error: %s", (faulty) => {
+    const source = `@startgantt\n[A] starts 2026-09-21 and ends 2026-09-23 and lasts 2 days\n${faulty}\n@endgantt`;
+    expect(ganttDiagnostics(source).some((item) => item.severity === "error")).toBe(true);
+    const warning = ganttDiagnostics(source).find((item) => item.message.includes("declares"));
+    expect(warning?.message).toContain("Task 'A'");
+    expect(warning?.actions).toHaveLength(2);
+    const fixes = ganttQuickFixes(source).filter((item) => item.message.includes("declares"));
+    expect(fixes).toHaveLength(2);
+    for (const fix of fixes) {
+      const repaired = source.slice(0, fix.from) + fix.replacement + source.slice(fix.to);
+      expect(repaired).toContain(faulty);
+      expect(ganttDiagnostics(repaired).some((item) => item.message.includes("declares"))).toBe(false);
+      expect(ganttDiagnostics(repaired).some((item) => item.severity === "error")).toBe(true);
+    }
+  });
+
+  it.each([
+    "[A] starts 2026-02-30",
+    "[A] lasts 2 dys",
+    "[A] pauses on 2026-02-30",
+    "[A] starts 2026-09-21 and iss 50% completed",
+    "sunday ar closed",
+    "2026-02-30 is closed",
+    "2026-09-25 to 2026-09-21 are closed",
+  ])("withholds conflict fixes when the task or shared calendar is invalid: %s", (faulty) => {
+    const source = `@startgantt\n[A] starts 2026-09-21 and ends 2026-09-23 and lasts 2 days\n${faulty}\n@endgantt`;
+    expect(ganttDiagnostics(source).some((item) => item.severity === "error")).toBe(true);
+    expect(ganttQuickFixes(source).filter((item) => item.message.includes("declares"))).toEqual([]);
+  });
+
+  it("associates an invalid alias declaration with its task", () => {
+    const source =
+      "@startgantt\n[Alpha] as [A]\n[Alpha] starts 2026-09-21 and ends 2026-09-23 and lasts 2 days\n[A] lasts 2 dys\n@endgantt";
+    expect(ganttDiagnostics(source).some((item) => item.severity === "error")).toBe(true);
+    expect(ganttQuickFixes(source).filter((item) => item.message.includes("declares"))).toEqual([]);
+  });
+
+  it("preserves adjacent inline clauses when repairing compound duration", () => {
+    const source =
+      "@startgantt\n[A] starts 2026-09-21 and ends 2026-09-23 and lasts 1 week and 2 days and is 50% completed\n@endgantt";
+    const fix = ganttQuickFixes(source).find((item) => item.label === "Use duration 3 days")!;
+    expect(fix).toBeDefined();
+    expect(source.slice(0, fix.from) + fix.replacement + source.slice(fix.to)).toBe(
+      source.replace("lasts 1 week and 2 days", "lasts 3 days"),
+    );
+  });
+
+  it.each([
+    "[A] starts 2026-09-21\n[A] ends 2026-09-23\n[A] lasts 3 days",
+    "[A] starts 2026-09-21\n[A] ends 2026-09-23\n[A] lasts 2 days\n[B] lasts 1 day\n[A] starts at [B]'s end",
+    "[A] starts 2026-09-21\n[A] ends 2026-09-23\n[A] lasts 2 days\n[A] pauses on monday",
+    "[A] starts 2026-09-23\n[A] ends 2026-09-21\n[A] lasts 2 days",
+  ])("avoids conflicts for consistent, unresolved or invalid schedules: %s", (statements) => {
+    expect(
+      ganttDiagnostics(`@startgantt\n${statements}\n@endgantt`).filter((item) => item.message.includes("declares")),
+    ).toEqual([]);
+  });
+
+  it("does not guess replacements for reversed task dates or calendar ranges", () => {
+    for (const statement of ["[A] starts 2026-09-21 and ends 2026-09-20", "2026-09-21 to 2026-09-20 are closed"]) {
+      const source = `@startgantt\n${statement}\n@endgantt`;
+      expect(ganttDiagnostics(source).some((item) => item.severity === "error")).toBe(true);
+      expect(ganttQuickFixes(source)).toEqual([]);
+    }
+  });
+
   it.each(["2026-02-30", "2026/02/30", "2026-2-30", "2026.02.30"])(
     "does not guess a replacement for impossible date %s",
     (date) => {

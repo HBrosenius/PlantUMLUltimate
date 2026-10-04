@@ -5,6 +5,30 @@ import { resolveTaskDates } from "./gantt-schedule";
 import { parseGanttCalendar } from "./gantt-calendar";
 
 describe("buildResourceWorkloads", () => {
+  it("excludes rejected and missing schedules while retaining task explanations", () => {
+    const source =
+      "@startgantt\nProject starts 2026-09-21\n[A] on {Alice} starts 2026-09-21\n[A] ends $unknown\n[A] lasts 2 days\n[B] on {Alice} starts 2026-09-21\n[B] lasts 1 day\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
+    const workload = buildResourceWorkloads(document.tasks, dates, calendar)[0]!;
+    expect(workload.days.map((day) => [day.date, day.allocation])).toEqual([["2026-09-21", 100]]);
+    expect(workload.unscheduledTasks.map((item) => [item.task.id, item.reason])).toEqual([
+      ["a", "End date cannot be resolved: $unknown"],
+    ]);
+    expect(buildResourceOverAllocations(document.tasks, { Alice: 100 }, dates, calendar)).toEqual([]);
+    expect(buildResourceWorkloads(document.tasks, new Map(), calendar)[0]?.days).toEqual([]);
+  });
+
+  it("uses resolved start dates ahead of stale literal start dates", () => {
+    const document = parseGantt("@startgantt\n[A] on {Alice} starts 2026-09-21\n[A] lasts 1 day\n@endgantt").document;
+    const workload = buildResourceWorkloads(
+      document.tasks,
+      new Map([["a", { start: "2026-09-23", end: "2026-09-23" }]]),
+    )[0]!;
+    expect(workload.days.map((day) => day.date)).toEqual(["2026-09-23"]);
+  });
+
   it("totals concurrent allocations per person and date", () => {
     const source =
       "@startgantt\n[A] on {Alice:60%} starts 2026-09-01\n[A] lasts 2 days\n[B] on {Alice:50%} starts 2026-09-02\n[B] lasts 2 days\n@endgantt";

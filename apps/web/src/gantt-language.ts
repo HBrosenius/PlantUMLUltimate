@@ -1,6 +1,14 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic as CodeMirrorDiagnostic } from "@codemirror/lint";
-import { ganttKeywordRepair, isValidCalendarDate, parseGantt } from "@plantuml-studio/diagram-gantt";
+import {
+  applySourceEdits,
+  setTaskDeclaration,
+  ganttKeywordRepair,
+  isValidCalendarDate,
+  parseGantt,
+} from "@plantuml-studio/diagram-gantt";
+import { taskElapsedDays, resolveTaskDates } from "./gantt-schedule";
+import { taskPauses, parseGanttCalendar, isWorkingDate, shiftDate } from "./gantt-calendar";
 
 export interface GanttQuickFix {
   from: number;
@@ -332,10 +340,169 @@ export function ganttCompletions(context: CompletionContext): CompletionResult |
   return context.explicit ? { from: context.pos, options: [] } : null;
 }
 
+function durationConflicts(source: string, parsed: ReturnType<typeof parseGantt>) {
+  const errors = parsed.diagnostics.filter((item) => item.severity === "error");
+  const invalidTasks = new Set<string>();
+  for (const error of errors) {
+    const lineStart = source.lastIndexOf("\n", Math.max(0, error.range.from - 1)) + 1;
+    const lineEnd = source.indexOf("\n", error.range.from);
+    const line = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
+    const owner = line.match(/^\s*(?:then\s+)?\[([^\]]+)]/i)?.[1];
+    if (owner) {
+      invalidTasks.add(owner.trim());
+      continue;
+    }
+    // An invalid calendar may affect every task. Presentation settings and the
+    // project start cannot affect these explicitly dated task calculations.
+    const repair = ganttKeywordRepair(line)?.replacement ?? line;
+    if (!/^\s*(?:printscale\b|today\s+is\s+colou?red\b|project\s+starts\b)/i.test(repair)) return [];
+  }
+  const calendar = parseGanttCalendar(source);
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  return parsed.document.tasks.flatMap((task) => {
+    const { start, end, duration } = task;
+    if (invalidTasks.has(task.label) || (task.alias && invalidTasks.has(task.alias.value))) return [];
+    if (
+      !start?.resolved ||
+      !end?.resolved ||
+      !duration ||
+      duration.value <= 0 ||
+      (task.pauses ?? []).some((pause) => !pause.resolved && !weekdays.includes(pause.value.toLowerCase()))
+    )
+      return [];
+    const declarations = ["start", "end", "duration"].map((kind) =>
+      task.declarations.filter((item) => item.kind === kind).at(-1),
+    );
+    if (
+      [start, end, duration].some(
+        (expression, index) =>
+          !declarations[index] ||
+          declarations[index]!.range.from > expression.range.from ||
+          declarations[index]!.range.to < expression.range.to,
+      )
+    )
+      return [];
+    const declaredDays = duration.value * (duration.unit === "week" ? 7 : duration.unit === "month" ? 30 : 1);
+    const paused = taskPauses(task);
+    const working = (date: string) => isWorkingDate(date, calendar) && !paused.has(date);
+    let date = start.value;
+    let calculated = 0;
+    let steps = 0;
+    while (date <= end.value && steps++ < 10000) {
+      if (working(date)) calculated++;
+      date = shiftDate(date, 1)!;
+    }
+    if (date <= end.value || calculated === declaredDays) return [];
+    const range = declarations[2]!.range;
+    const message = `Task '${task.label}' declares ${declaredDays} working days, but ${start.value} to ${end.value} contains ${calculated}. Review its dates and duration.`;
+    const fixes: GanttQuickFix[] = [];
+    if (calculated > 0)
+      fixes.push({
+        from: range.from,
+        to: range.to,
+        replacement: source
+          .slice(range.from, range.to)
+          .replace(
+            /\b(lasts|requires)\s+\d+\s+(?:weeks?\s+and\s+\d+\s+days?|days?|weeks?|months?)/i,
+            `$1 ${calculated} days`,
+          ),
+        label: `Use duration ${calculated} days`,
+        message,
+      });
+    date = start.value;
+    let remaining = declaredDays;
+    for (let step = 0; step < 10000 && remaining > 0; step++) {
+      if (working(date)) remaining--;
+      if (remaining > 0) date = shiftDate(date, 1)!;
+    }
+    if (remaining === 0)
+      fixes.push({ from: end.range.from, to: end.range.to, replacement: date, label: `Use end date ${date}`, message });
+    return [{ from: range.from, to: range.to, message, fixes }];
+  });
+}
+
+function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
+  if (parsed.diagnostics.some((item) => item.severity === "error")) return [];
+  const calendar = parseGanttCalendar(source);
+  const resolve = (text: string) => {
+    const document = parseGantt(text).document;
+    return resolveTaskDates(
+      document.tasks,
+      document.dependencies,
+      document.projectStart?.resolved ? document.projectStart.value : undefined,
+      parseGanttCalendar(text),
+    );
+  };
+  const originalDates = resolve(source);
+  const fixes: GanttQuickFix[] = [];
+  for (const task of parsed.document.tasks) {
+    const conflict = originalDates.get(task.id);
+    if (!conflict?.conflict) continue;
+    const kind = conflict.conflict.anchor;
+    const expression = kind === "start" ? task.start : task.end;
+    if (!expression?.resolved) continue;
+    const add = (candidate: string, label: string) => {
+      if (candidate === source || parseGantt(candidate).diagnostics.some((item) => item.severity === "error")) return;
+      const dates = resolve(candidate);
+      const repaired = dates.get(task.id);
+      if (!repaired?.start || !repaired.end || repaired.issue || repaired.end < repaired.start) return;
+      if ([...dates].some(([id, item]) => item.issue && !originalDates.get(id)?.issue)) return;
+      if (
+        durationConflicts(candidate, parseGantt(candidate)).some((item) =>
+          item.message.includes(`Task '${task.label}'`),
+        )
+      )
+        return;
+      let from = 0;
+      while (from < source.length && from < candidate.length && source[from] === candidate[from]) from++;
+      let to = source.length;
+      let candidateTo = candidate.length;
+      while (to > from && candidateTo > from && source[to - 1] === candidate[candidateTo - 1]) {
+        to--;
+        candidateTo--;
+      }
+      fixes.push({ from, to, replacement: candidate.slice(from, candidateTo), label, message: conflict.issue! });
+    };
+    add(
+      applySourceEdits(source, setTaskDeclaration(source, task, kind).edits),
+      `Let dependency determine ${kind} date`,
+    );
+    // Move the fixed window by its available work days, keeping all other clauses intact.
+    let days = taskElapsedDays(task);
+    const pauses = taskPauses(task);
+    const working = (date: string) => isWorkingDate(date, calendar) && !pauses.has(date);
+    if (!days && task.start?.resolved && task.end?.resolved) {
+      days = 0;
+      let date = task.start.value;
+      for (let step = 0; step < 10_000 && date <= task.end.value; step++) {
+        if (working(date)) days++;
+        date = shiftDate(date, 1)!;
+      }
+      if (date <= task.end.value) continue;
+    }
+    if (!days) continue;
+    let date = conflict.conflict.expected;
+    let remaining = days;
+    const direction = kind === "start" ? 1 : -1;
+    for (let step = 0; step < 10_000 && remaining > 0; step++) {
+      if (working(date)) remaining--;
+      if (remaining > 0) date = shiftDate(date, direction)!;
+    }
+    if (remaining) continue;
+    const expected = conflict.conflict.expected;
+    const edits = [{ range: expression.range, text: expected }];
+    const opposite = kind === "start" ? task.end : task.start;
+    if (opposite?.resolved) edits.push({ range: opposite.range, text: date });
+    add(applySourceEdits(source, edits), `Move fixed dates to satisfy dependency`);
+  }
+  return fixes;
+}
+
 export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
   const parsed = parseGantt(source);
   const diagnostics = parsed.diagnostics;
   const fixes = quickFixesForDiagnostics(source, parsed);
+  const conflictFixes = dependencyConflictFixes(source, parsed);
   const result = diagnostics.map((diagnostic) => {
     const matchingFixes = fixes.filter(
       (item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to,
@@ -379,12 +546,55 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
       ],
     });
   }
+  for (const conflict of durationConflicts(source, parsed))
+    result.push({
+      from: conflict.from,
+      to: conflict.to,
+      severity: "warning",
+      message: conflict.message,
+      source: "PlantUML Gantt",
+      actions: conflict.fixes.map((fix) => ({
+        name: fix.label!,
+        apply(view: import("@codemirror/view").EditorView) {
+          view.dispatch({ changes: { from: fix.from, to: fix.to, insert: fix.replacement } });
+        },
+      })),
+    });
+  const dates = resolveTaskDates(
+    parsed.document.tasks,
+    parsed.document.dependencies,
+    parsed.document.projectStart?.resolved ? parsed.document.projectStart.value : undefined,
+    parseGanttCalendar(source),
+  );
+  for (const item of dates.values()) {
+    for (const range of item.conflictRanges ?? []) {
+      result.push({
+        from: range.from,
+        to: range.to,
+        severity: "error",
+        message: item.issue!,
+        source: "PlantUML Gantt",
+        actions: conflictFixes
+          .filter((fix) => fix.message === item.issue)
+          .map((fix) => ({
+            name: fix.label!,
+            apply(view: import("@codemirror/view").EditorView) {
+              view.dispatch({ changes: { from: fix.from, to: fix.to, insert: fix.replacement } });
+            },
+          })),
+      });
+    }
+  }
   return result;
 }
 
 export function ganttQuickFixes(source: string): GanttQuickFix[] {
   const parsed = parseGantt(source);
-  const fixes = quickFixesForDiagnostics(source, parsed);
+  const fixes = [
+    ...quickFixesForDiagnostics(source, parsed),
+    ...durationConflicts(source, parsed).flatMap((item) => item.fixes),
+    ...dependencyConflictFixes(source, parsed),
+  ];
   const repair = parsed.diagnostics.some((item) => item.code === "dependency-cycle")
     ? undefined
     : dependencyOrderRepair(source);

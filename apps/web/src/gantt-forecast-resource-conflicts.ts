@@ -1,5 +1,5 @@
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
-import { isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
+import { taskPauses, isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 import type { ProgressForecast } from "./gantt-progress-forecast";
 import type { ResolvedTaskDates } from "./gantt-schedule";
 import { buildResourceWorkloads, type ResourceCapacity, type ResourceWorkWindow } from "./ResourceWorkloadPanel";
@@ -21,7 +21,7 @@ export interface ForecastResourceComparison {
 }
 
 function plannedWorkDays(task: GanttTask, start: string, end: string, calendar: GanttCalendar): number | undefined {
-  const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
+  const pauses = taskPauses(task);
   let date = start;
   let days = 0;
   for (let step = 0; step < 10_000 && date <= end; step += 1) {

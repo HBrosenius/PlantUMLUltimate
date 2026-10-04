@@ -1,5 +1,5 @@
 import { normalizeTaskId, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
-import { isWorkingDate, shiftDate, workingDayDuration, type GanttCalendar } from "./gantt-calendar";
+import { taskPauses, isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 import { taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 
 export interface ForecastTask {
@@ -29,11 +29,15 @@ export function hasDelayedForecastTask(forecast: ProgressForecast): boolean {
   return [...forecast.tasks.values()].some((task) => task.end && task.plannedEnd && task.end > task.plannedEnd);
 }
 
-function available(date: string, calendar: GanttCalendar, pauses: ReadonlySet<string>): boolean {
+function available(date: string, calendar: GanttCalendar, pauses: Pick<ReadonlySet<string>, "has">): boolean {
   return isWorkingDate(date, calendar) && !pauses.has(date);
 }
 
-function nextAvailable(date: string, calendar: GanttCalendar, pauses: ReadonlySet<string>): string | undefined {
+function nextAvailable(
+  date: string,
+  calendar: GanttCalendar,
+  pauses: Pick<ReadonlySet<string>, "has">,
+): string | undefined {
   let result = date;
   for (let step = 0; step < 10_000; step += 1) {
     if (available(result, calendar, pauses)) return result;
@@ -46,7 +50,7 @@ function workEnd(
   start: string,
   days: number,
   calendar: GanttCalendar,
-  pauses: ReadonlySet<string>,
+  pauses: Pick<ReadonlySet<string>, "has">,
 ): string | undefined {
   let date = nextAvailable(start, calendar, pauses);
   if (!date) return undefined;
@@ -62,7 +66,7 @@ function workStart(
   end: string,
   days: number,
   calendar: GanttCalendar,
-  pauses: ReadonlySet<string>,
+  pauses: Pick<ReadonlySet<string>, "has">,
 ): string | undefined {
   let date = end;
   let remaining = days;
@@ -77,13 +81,15 @@ function pausedWorkingDays(
   start: string,
   end: string,
   calendar: GanttCalendar,
-  pauses: ReadonlySet<string>,
+  pauses: Pick<ReadonlySet<string>, "has">,
 ): number | undefined {
-  const total = workingDayDuration(start, end, calendar);
-  if (total === undefined) return undefined;
-  let paused = 0;
-  for (const date of pauses) if (date >= start && date <= end && isWorkingDate(date, calendar)) paused += 1;
-  return total - paused || undefined;
+  let date = start;
+  let days = 0;
+  for (let step = 0; step < 10_000 && date <= end; step++) {
+    if (available(date, calendar, pauses)) days++;
+    date = shiftDate(date, 1)!;
+  }
+  return date > end && days > 0 ? days : undefined;
 }
 
 export function forecastWorkingDaysBetween(start: string, end: string, calendar: GanttCalendar): number {
@@ -127,7 +133,7 @@ export function calculateProgressForecast(
     };
     if (visiting.has(task.id)) return { ...base, issue: "Dependency cycle" };
     if (!planned?.start || !planned.end) {
-      const result = { ...base, issue: "Task dates cannot be resolved" };
+      const result = { ...base, issue: planned?.issue ?? "Task dates cannot be resolved" };
       forecast.set(task.id, result);
       return result;
     }
@@ -138,7 +144,7 @@ export function calculateProgressForecast(
     }
     // Match the apply-forecast definition: a one-day task that starts and ends on the same date still has work.
     const milestone = Boolean(task.milestone && !task.duration);
-    const pauses = new Set((task.pauses ?? []).filter((pause) => pause.resolved).map((pause) => pause.value));
+    const pauses = taskPauses(task);
     // Without `lasts`, the work is the planned window's working days minus pauses, as workEnd skips them.
     const elapsed = milestone
       ? 0

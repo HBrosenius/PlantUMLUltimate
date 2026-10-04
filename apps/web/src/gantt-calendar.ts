@@ -8,6 +8,15 @@ export interface GanttCalendar {
   openedDates: Set<string>;
 }
 
+/** Matches literal dates and recurring weekdays; callers keep their own calendar rules. */
+export function taskPauses(task: GanttTask): Pick<ReadonlySet<string>, "has"> {
+  const dates = new Set(task.pauses?.filter((pause) => pause.resolved).map((pause) => pause.value));
+  const weekdays = new Set(task.pauses?.map((pause) => WEEKDAYS.indexOf(pause.value.toLowerCase())));
+  return {
+    has: (date) => dates.has(date) || weekdays.has(new Date(`${date}T00:00:00Z`).getUTCDay()),
+  };
+}
+
 export function parseGanttCalendar(source: string): GanttCalendar {
   const calendar: GanttCalendar = { closedWeekdays: new Set(), closedDates: new Set(), openedDates: new Set() };
   for (const line of source.split(/\r?\n/)) {
