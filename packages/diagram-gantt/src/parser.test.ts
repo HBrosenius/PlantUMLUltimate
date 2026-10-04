@@ -10,6 +10,46 @@ describe("parseGantt", () => {
       expect.objectContaining({ code: "malformed-global-statement", severity: "error" }),
     ]);
   });
+  it.each([
+    "Project starts DATE",
+    "[A] starts DATE",
+    "[A] ends DATE",
+    "[A] happens DATE",
+    "[A] pauses on DATE",
+    "[A] starts 2026-01-01 and ends DATE",
+    "DATE are closed",
+    "2026-01-01 to DATE are opened",
+    "DATE is colored in Red",
+  ])("validates calendar dates in %s", (template) => {
+    for (const date of [
+      "2026-02-30",
+      "2026-02-29",
+      "2026-04-31",
+      "1900-02-29",
+      "2026/02/30",
+      "2026-00-01",
+      "2026-01-00",
+    ]) {
+      const source = `@startgantt\n${template.replace("DATE", date)}\n@endgantt`;
+      const diagnostic = parseGantt(source).diagnostics.find((item) => item.code === "invalid-date")!;
+      expect(diagnostic, source).toBeDefined();
+      expect(source.slice(diagnostic.range.from, diagnostic.range.to)).toBe(date);
+    }
+    for (const date of ["2024-02-29", "2000-02-29", "2026-04-30", "2026-12-31", "2024/02/29"]) {
+      const source = `@startgantt\n${template.replace("DATE", date)}\n@endgantt`;
+      expect(parseGantt(source).diagnostics, source).toEqual([]);
+    }
+  });
+
+  it("does not resolve impossible dates or reject relative dates and expressions", () => {
+    expect(parseGantt("@startgantt\n[A] starts 2026-02-30\n@endgantt").document.tasks[0]?.start?.resolved).toBe(false);
+    expect(
+      parseGantt(
+        '@startgantt\nProject starts today\n[A] starts D+2\n[B] starts $startDate\n[C] starts %date("yyyy-MM-dd")\n[A] pauses on sunday\n@endgantt',
+      ).diagnostics,
+    ).toEqual([]);
+  });
+
   it("preserves compound durations inside inline statements", () => {
     const parsed = parseGantt(
       "@startgantt\n[A] starts 2026-09-21 and lasts 2 weeks and 3 days and is 50% completed\n@endgantt",

@@ -1,6 +1,6 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic as CodeMirrorDiagnostic } from "@codemirror/lint";
-import { ganttKeywordRepair, parseGantt } from "@plantuml-studio/diagram-gantt";
+import { ganttKeywordRepair, isValidCalendarDate, parseGantt } from "@plantuml-studio/diagram-gantt";
 
 export interface GanttQuickFix {
   from: number;
@@ -440,6 +440,7 @@ function normalizeDateGuess(value: string): string | undefined {
   const day = Number(match[3]);
   if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
   const normalized = `${match[1]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  if (!isValidCalendarDate(normalized)) return undefined;
   return normalized === value ? undefined : normalized;
 }
 

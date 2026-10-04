@@ -17,6 +17,15 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it.each(["2026-02-30", "2026/02/30", "2026-2-30", "2026.02.30"])(
+    "does not guess a replacement for impossible date %s",
+    (date) => {
+      const source = `@startgantt\n[A] starts ${date}\n@endgantt`;
+      expect(ganttDiagnostics(source).some((item) => item.severity === "error")).toBe(true);
+      expect(ganttQuickFixes(source)).toEqual([]);
+    },
+  );
+
   it.each([
     ["sunday ar closed", "sunday are closed"],
     ["sunday are clsoed", "sunday are closed"],

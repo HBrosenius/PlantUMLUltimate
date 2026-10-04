@@ -16,6 +16,7 @@ import type {
 import { dependencyCycleDiagnostics } from "./dependency-cycles";
 import { ganttKeywordRepair } from "./keyword-repairs";
 import { splitGanttClauses } from "./inline-clauses";
+import { isValidCalendarDate } from "./calendar-date";
 
 const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -59,13 +60,12 @@ export function normalizeTaskId(label: string): string {
 }
 
 function dateExpression(value: string, valueRange: TextRange): DateExpression {
-  return { value, range: valueRange, resolved: ISO_DATE.test(value) };
+  return { value, range: valueRange, resolved: ISO_DATE.test(value) && isValidCalendarDate(value) };
 }
 
 function recognizedDate(value: string): boolean {
+  if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(value)) return isValidCalendarDate(value);
   return (
-    ISO_DATE.test(value) ||
-    /^\d{4}\/\d{2}\/\d{2}$/.test(value) ||
     /^D[+-]\d+$/i.test(value) ||
     /^today(?:[+-]\d+)?$/i.test(value) ||
     /^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(value) ||
@@ -245,6 +245,25 @@ export function parseGantt(source: string): ParseResult {
       continue;
     }
 
+    const calendarRule = line.text.match(
+      /^\s*(\d{4}[-/]\d{2}[-/]\d{2})(?:\s+to\s+(\d{4}[-/]\d{2}[-/]\d{2}))?\s+(?:is|are)\s+(?:closed|opened|colou?red\s+in\s+\S+)\s*$/i,
+    );
+    if (calendarRule) {
+      let searchFrom = 0;
+      for (const value of calendarRule.slice(1)) {
+        if (!value) continue;
+        const start = line.text.indexOf(value, searchFrom);
+        searchFrom = start + value.length;
+        if (!isValidCalendarDate(value))
+          diagnostics.push({
+            severity: "error",
+            code: "invalid-date",
+            message: `Invalid calendar date: ${value}`,
+            range: range(line, start, value),
+          });
+      }
+      continue;
+    }
     if (
       /^\s*(?:title\s+.+|header\s+.+|footer\s+.+|caption\s+.+|(?:printscale|ganttscale|projectscale)\s+(?:daily|weekly|monthly|quarterly|yearly)(?:\s+zoom\s+\d+)?|(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(?:is|are)\s+(?:closed|opened)|\d{4}[-/]\d{2}[-/]\d{2}(?:\s+to\s+\d{4}[-/]\d{2}[-/]\d{2})?\s+(?:(?:is|are)\s+(?:closed|opened)|(?:is|are)\s+colou?red\s+in\s+\S+)|today\s+is\s+colou?red\s+in\s+\S+|hide\s+(?:footbox|resources\s+names|resources\s+footbox))\s*$/i.test(
         line.text,

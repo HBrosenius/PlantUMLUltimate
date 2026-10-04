@@ -5,3 +5,4 @@ export * from "./operations";
 export * from "./adapter";
 export * from "./symbols";
 export { ganttKeywordRepair } from "./keyword-repairs";
+export { isValidCalendarDate } from "./calendar-date";
