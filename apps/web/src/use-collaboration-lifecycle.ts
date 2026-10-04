@@ -102,6 +102,7 @@ export function useCollaborationLifecycle({
   const [collaboration, setCollaboration] = useState<ActiveCollaboration>();
   const [remoteEditFlash, setRemoteEditFlash] = useState<RemoteEditFlash>();
   const sessionRef = useRef<CollaborationSession | undefined>(undefined);
+  const pendingRemoteDocument = useRef<SharedDocument | undefined>(undefined);
   const remoteEditFlashTimer = useRef<number | undefined>(undefined);
   const pendingVersion = useRef<
     | {
@@ -193,6 +194,7 @@ export function useCollaborationLifecycle({
         return;
       }
       sessionRef.current?.stop();
+      pendingRemoteDocument.current = undefined;
       const documentId = tabs.activeId;
       const collaborationDocument = tabs.documents.find((document) => document.id === documentId)!;
       const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
@@ -282,6 +284,7 @@ export function useCollaborationLifecycle({
           },
           onDocument: (document) => {
             if (sessionRef.current !== session) return;
+            pendingRemoteDocument.current = document;
             setCollaboration((current) => (current ? { ...current, sharedDocumentId: document.id } : current));
             try {
               documentBridge?.current?.receiveDocument(document);
@@ -368,6 +371,20 @@ export function useCollaborationLifecycle({
     if (document?.id !== collaboration.sharedDocumentId) {
       leaveCollaboration();
       return;
+    }
+    const pending = pendingRemoteDocument.current;
+    if (pending) {
+      // Tabs and the active editor can settle in separate renders. Do not echo a
+      // partially applied remote snapshot back into Yjs as a new local edit.
+      if (
+        pending.id !== document.id ||
+        pending.diagrams.length !== document.diagrams.length ||
+        pending.diagrams.some(
+          (remote) => document.diagrams.find((local) => local.id === remote.id)?.source !== remote.source,
+        )
+      )
+        return;
+      pendingRemoteDocument.current = undefined;
     }
     sessionRef.current?.applyDocument(document);
     const active = bridge?.activeDiagram();
