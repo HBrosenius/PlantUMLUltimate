@@ -4,6 +4,42 @@ import { applySourceEdits } from "./source-edits";
 import { findTaskAt } from "./model";
 
 describe("parseGantt", () => {
+  it("reports each relationship in a cycle with exact source ranges", () => {
+    const statements = ["[A] starts at [B]'s end", "[B] starts at [C]'s end", "[C] starts at [A]'s end"];
+    const source = `@startgantt\n[A] lasts 1 day\n[B] lasts 1 day\n[C] lasts 1 day\n${statements.join("\n")}\n[D] starts at [C]'s end\n@endgantt`;
+    const cycles = parseGantt(source).diagnostics.filter((item) => item.code === "dependency-cycle");
+    expect(cycles).toHaveLength(3);
+    expect(cycles.map((item) => source.slice(item.range.from, item.range.to))).toEqual(statements);
+    for (const diagnostic of cycles) {
+      expect(diagnostic.severity).toBe("warning");
+      expect(diagnostic.message).toContain("Cascading schedule changes");
+      expect(diagnostic.message).not.toContain("D →");
+    }
+    expect(cycles[0]?.message).toContain("B → A → C → B");
+  });
+
+  it("resolves aliases in cycles and displays task names", () => {
+    const source =
+      "@startgantt\n[Architecture] as [A] lasts 2 days\n[Backend] as [B] lasts 2 days\n[A] starts at [B]'s end\n[B] starts at [A]'s end\n@endgantt";
+    const cycles = parseGantt(source).diagnostics.filter((item) => item.code === "dependency-cycle");
+    expect(cycles).toHaveLength(2);
+    expect(cycles[0]?.message).toContain("Backend → Architecture → Backend");
+  });
+
+  it("includes overlapping cycles and self dependencies", () => {
+    const source =
+      "@startgantt\n[A] starts at [B]'s end\n[B] starts at [A]'s end\n[B] starts at [C]'s end\n[C] starts at [B]'s end\n[D] starts at [D]'s end\n@endgantt";
+    const cycles = parseGantt(source).diagnostics.filter((item) => item.code === "dependency-cycle");
+    expect(cycles).toHaveLength(5);
+    expect(cycles.at(-1)?.message).toContain("D → D");
+  });
+
+  it("does not warn for acyclic or unresolved dependencies", () => {
+    const source =
+      "@startgantt\n[A] lasts 1 day\n[B] starts at [A]'s end\n[C] starts at [A]'s end\n[D] starts at [B]'s end\n[D] starts at [C]'s end\n[E] starts at [Missing]'s end\n@endgantt";
+    expect(parseGantt(source).diagnostics.filter((item) => item.code === "dependency-cycle")).toEqual([]);
+  });
+
   it("parses horizontal and vertical separators as different model objects", () => {
     const source =
       "@startgantt\n[A] lasts 2 days\n-- Phase --\nSeparator just at [A]'s start\nSeparator just 3 days before [A]'s end\n@endgantt";

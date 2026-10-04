@@ -152,12 +152,12 @@ test("keeps a generated task's dependency and position when completion changes",
   await page.locator('[data-task-id="wbs_content_inventory"] .label-hit').click();
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
   await inspector.getByRole("button", { name: "Close task inspector" }).click();
-  const handle = await page
-    .locator('[data-task-id="wbs_content_inventory"] [data-dependency-handle]')
-    .first()
-    .boundingBox();
-  expect(handle).toBeTruthy();
-  await page.mouse.click(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  const handle = page.locator('[data-task-id="wbs_content_inventory"] [data-dependency-handle]').first();
+  // Closing the inspector changes the preview layout; wait for current SVG geometry.
+  const geometry = { box: null as Awaited<ReturnType<typeof handle.boundingBox>> };
+  await expect.poll(async () => (geometry.box = await handle.boundingBox())).not.toBeNull();
+  const point = geometry.box!;
+  await page.mouse.click(point.x + point.width / 2, point.y + point.height / 2);
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
 });
 
@@ -548,8 +548,8 @@ test("opens linked diagrams from both node context menus", async ({ page }) => {
     .getByRole("menuitem", { name: "Open linked WBS node" })
     .click();
   await expect(page.getByRole("complementary", { name: "WBS node inspector" })).toBeVisible();
-  await page.getByRole("button", { name: "Select WBS node Design" }).focus();
-  await page.keyboard.press("Shift+F10");
+  await expect(page.getByRole("region", { name: "WBS diagram preview" })).toHaveAttribute("data-render-status", "idle");
+  await page.getByRole("button", { name: "Select WBS node Design" }).press("Shift+F10");
   await page
     .getByRole("menu", { name: "Symbol actions" })
     .getByRole("menuitem", { name: "Open linked Gantt task" })

@@ -13,6 +13,7 @@ import type {
   TextRange,
   UnknownSyntaxNode,
 } from "./model";
+import { dependencyCycleDiagnostics } from "./dependency-cycles";
 
 const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -728,6 +729,7 @@ export function parseGantt(source: string): ParseResult {
       });
     }
   }
+  diagnostics.push(...dependencyCycleDiagnostics(taskMap, dependencies));
   const dependencyGroups = new Map<string, GanttDependency[]>();
   for (const dependency of dependencies) {
     // A start-anchored constraint and an end-anchored constraint on the same successor are

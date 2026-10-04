@@ -1943,3 +1943,20 @@ test("repairs a misspelled task reference and supports undo", async ({ page }) =
   await page.getByLabel("Show source fix suggestions").click();
   await expect(page.getByRole("button", { name: /Use task Backend/ })).toBeVisible();
 });
+
+test("explains dependency cycles and reveals each relationship", async ({ page }) => {
+  await fillSource(
+    page,
+    source(
+      "[Architecture] lasts 2 days\n[Backend] lasts 3 days\n[Architecture] starts at [Backend]'s end\n[Backend] starts at [Architecture]'s end",
+    ),
+  );
+  await page.getByRole("button", { name: /2 problems/ }).click();
+  const panel = page.getByRole("complementary", { name: "Problems" });
+  const cycles = panel.getByRole("listitem").filter({ hasText: "Dependency cycle:" });
+  await expect(cycles).toHaveCount(2);
+  await expect(cycles.first()).toContainText("Backend → Architecture → Backend");
+  await expect(cycles.last()).toContainText("Architecture → Backend → Architecture");
+  await cycles.last().click();
+  await expect(page.locator(".cm-activeLine")).toContainText("[Backend] starts at [Architecture]'s end");
+});

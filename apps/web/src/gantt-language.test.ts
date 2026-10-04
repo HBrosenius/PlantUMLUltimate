@@ -17,6 +17,15 @@ function runApply(doc: string, completion: Completion | undefined, from: number,
 }
 
 describe("Gantt CodeMirror language service", () => {
+  it("reports cycle relationships without suggesting an order repair", () => {
+    const source =
+      "@startgantt\n[Architecture] lasts 2 days\n[Backend] lasts 3 days\n[Architecture] starts at [Backend]'s end\n[Backend] starts at [Architecture]'s end\n@endgantt";
+    const diagnostics = ganttDiagnostics(source);
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics.every((item) => item.message.includes("Dependency cycle:"))).toBe(true);
+    expect(diagnostics.every((item) => !item.actions?.length)).toBe(true);
+    expect(ganttQuickFixes(source)).toEqual([]);
+  });
   it.each(["displays on same row as [Frontned]", "happens at [Frontned]'s end"])(
     "does not suggest the owning task or its alias for %s",
     (statement) => {

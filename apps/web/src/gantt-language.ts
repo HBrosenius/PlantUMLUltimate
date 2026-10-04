@@ -358,7 +358,9 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
         : {}),
     };
   });
-  const repair = dependencyOrderRepair(source);
+  const repair = diagnostics.some((item) => item.code === "dependency-cycle")
+    ? undefined
+    : dependencyOrderRepair(source);
   if (repair) {
     const first = repair.affected[0]!;
     result.push({
@@ -381,8 +383,11 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
 }
 
 export function ganttQuickFixes(source: string): GanttQuickFix[] {
-  const fixes = quickFixesForDiagnostics(source, parseGantt(source));
-  const repair = dependencyOrderRepair(source);
+  const parsed = parseGantt(source);
+  const fixes = quickFixesForDiagnostics(source, parsed);
+  const repair = parsed.diagnostics.some((item) => item.code === "dependency-cycle")
+    ? undefined
+    : dependencyOrderRepair(source);
   return repair
     ? [
         ...fixes,
