@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("highlights, finds, and renames Class entity references", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
@@ -41,7 +41,7 @@ test("highlights, finds, and renames Class entity references", async ({ page }) 
 });
 
 test("edits structured Class members and reveals rendered members", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
@@ -100,7 +100,7 @@ test("edits structured Class members and reveals rendered members", async ({ pag
 });
 
 test("completes Class aliases in member type signatures", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
@@ -135,7 +135,7 @@ test("completes Class aliases in member type signatures", async ({ page }) => {
 });
 
 test("shows parser problems and applies a safe quick fix", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
@@ -161,7 +161,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   browserName,
 }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser.getByRole("button", { name: /Class diagram/ }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: /Class diagram/ }).click();
@@ -320,7 +320,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
 });
 
 test("creates a Class relationship by dragging between classes", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })

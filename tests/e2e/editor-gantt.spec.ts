@@ -1583,7 +1583,7 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
   await page.getByRole("spinbutton", { name: "Capacity for Kalle" }).fill("50");
   await expect(page.locator(".resource-card details")).toHaveCount(1);
   await page.getByRole("button", { name: "Close resource workload" }).click();
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
   await page.getByRole("button", { name: "Resources" }).click();

@@ -519,8 +519,8 @@ export function GanttForecastView({
         </aside>
       </div>
       <p className="gantt-forecast-note">
-        What-if using current progress · Source dates remain unchanged · Portable/project saves preserve forecast
-        settings; plain .puml does not · Resource capacity is analysed separately
+        What-if using current progress · Source dates remain unchanged · Document saves preserve forecast settings;
+        plain .puml does not · Resource capacity is analysed separately
       </p>
     </div>
   );

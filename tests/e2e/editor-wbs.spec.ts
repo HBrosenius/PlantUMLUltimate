@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("highlights, finds, and renames WBS node aliases", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -42,7 +42,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
     "WebKit automation does not preserve SVG pointer identity across compound WBS drags",
   );
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const choice = chooser.getByRole("button", { name: "WBS diagram" });
   await expect(choice.getByText("Beta", { exact: true })).toHaveCount(0);
@@ -197,7 +197,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
 });
 
 test("reorders a WBS branch and moves it from left to right with one drag", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -225,7 +225,7 @@ test("reorders a WBS branch and moves it from left to right with one drag", asyn
 });
 
 test("moves a WBS branch to the left by dropping in empty space beside the root", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -254,7 +254,7 @@ test("moves a WBS branch to the left by dropping in empty space beside the root"
 });
 
 test("edits and clears a WBS node link", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -279,7 +279,7 @@ test("edits and clears a WBS node link", async ({ page }) => {
 });
 
 test("edits and clears a WBS node icon", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -314,7 +314,7 @@ test("edits and clears a WBS node icon", async ({ page }) => {
 });
 
 test("has no Stereotype field, and preserves an existing stereotype set via source", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -331,7 +331,7 @@ test("has no Stereotype field, and preserves an existing stereotype set via sour
 });
 
 test("picks a built-in icon from the searchable gallery instead of typing it", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -351,7 +351,7 @@ test("picks a built-in icon from the searchable gallery instead of typing it", a
 });
 
 test("edits a WBS node label into and out of a multiline shape", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -378,7 +378,7 @@ test("edits a WBS node label into and out of a multiline shape", async ({ page }
 });
 
 test("reorders and connects WBS nodes with the keyboard", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })

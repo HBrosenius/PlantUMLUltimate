@@ -97,7 +97,7 @@ describe("ProjectNavigator", () => {
 
     fireEvent.change(type, { target: { value: "activity" } });
     expect((screen.getByRole("textbox", { name: "Diagram name" }) as HTMLInputElement).value).toBe("Activity diagram");
-    fireEvent.click(screen.getByRole("button", { name: "Add to project" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add to document" }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith("activity", "Activity diagram"));
   });
 
@@ -163,7 +163,7 @@ describe("ProjectNavigator", () => {
     );
 
     expect((screen.getByRole("button", { name: "Review" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Save this project once to create a review baseline.")).toBeTruthy();
+    expect(screen.getByText("Save this document once to create a review baseline.")).toBeTruthy();
   });
 
   it("lists categorized project changes and opens an affected diagram", async () => {

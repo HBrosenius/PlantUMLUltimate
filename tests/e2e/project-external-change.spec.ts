@@ -33,22 +33,25 @@ test("refuses to overwrite a project file changed elsewhere", async ({ page }) =
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "New", exact: true }).click();
-  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Project…" }).click();
-  const projectDialog = page.getByRole("dialog", { name: "New project" });
+  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+  const projectDialog = page.getByRole("dialog", { name: "New document" });
   await projectDialog.getByRole("textbox", { name: "Name" }).fill("Shared project");
-  await projectDialog.getByRole("button", { name: "Create project" }).click();
+  await projectDialog.getByRole("button", { name: "Create document" }).click();
 
-  const navigator = page.getByRole("complementary", { name: "Project navigator" });
+  const navigator = page.getByRole("complementary", { name: "Document navigator" });
   const addDiagram = async (name: string) => {
     await navigator.getByRole("button", { name: "Add diagram" }).click();
     await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("component");
     await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
-    await navigator.getByRole("button", { name: "Add to project" }).click();
+    await navigator.getByRole("button", { name: "Add to document" }).click();
   };
   const saveProject = async () => {
     await page.getByRole("button", { name: "File", exact: true }).click();
     await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-    await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+    await page
+      .getByRole("menu", { name: "Save" })
+      .getByRole("menuitem", { name: "Save document", exact: true })
+      .click();
   };
 
   await addDiagram("Architecture");
@@ -67,7 +70,7 @@ test("refuses to overwrite a project file changed elsewhere", async ({ page }) =
   );
   await addDiagram("Operations");
   await saveProject();
-  await expect(page.getByText(/The project file changed on disk/).first()).toBeVisible();
+  await expect(page.getByText(/The document file changed on disk/).first()).toBeVisible();
   await expect(navigator.getByText("Saved", { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => (window as unknown as { __projectFileSize(): number }).__projectFileSize())).toBe(
     changedSize,

@@ -342,7 +342,7 @@ test("resizes Version History to provide more rendered comparison space", async 
 });
 
 test("imports a local PlantUML file for semantic review without replacing the working copy", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -388,7 +388,7 @@ test("imports a local PlantUML file for semantic review without replacing the wo
 });
 
 test("compares two imported PlantUML files without applying over a different working copy", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -472,7 +472,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   await history.getByLabel("New version name").fill("Backup checkpoint");
   await history.getByRole("button", { name: "Create version" }).click();
   await history.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, source("[Second tab] lasts 3 days"));
   const downloadPromise = page.waitForEvent("download");

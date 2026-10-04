@@ -106,7 +106,7 @@ function resolveIndex(project: PortableProject, signal?: AbortSignal): Promise<V
 
 function projectName(name: string): string {
   const value = name.trim();
-  return value || "PlantUML project";
+  return value || "PlantUML document";
 }
 
 export function projectDiagramName(name: string, fallback = "Diagram"): string {
@@ -187,7 +187,7 @@ function chooseDiagramFile(): Promise<File | undefined> {
 class ProjectFileChangedError extends Error {
   constructor() {
     super(
-      "The project file changed on disk since it was opened or saved here. Use Save As to keep both versions, or reopen the file.",
+      "The document file changed on disk since it was opened or saved here. Use Save As to keep both versions, or reopen the file.",
     );
   }
 }
@@ -229,7 +229,7 @@ export function useSingleFileProject({
     restored.current = true;
     void restoreEmbeddedProject().then((recovery) => {
       if (recovery?.state === "locked")
-        setInteractionMessage("An encrypted project was open here. Reopen its .pumlu file to unlock it.");
+        setInteractionMessage("An encrypted document was open here. Reopen its .pumlu file to unlock it.");
     });
   }, [restoreEmbeddedProject, setInteractionMessage]);
 
@@ -261,7 +261,7 @@ export function useSingleFileProject({
           if (error instanceof DOMException && error.name === "AbortError") return;
           setIndexStatus({
             state: "error",
-            message: error instanceof Error ? error.message : "The project index could not be updated",
+            message: error instanceof Error ? error.message : "The document index could not be updated",
           });
         });
     }, 200);
@@ -332,7 +332,7 @@ export function useSingleFileProject({
       tabs.closeDocument(sourceTabId);
       resetSelection();
       setInteractionMessage(
-        `Created ${title} with linked WBS and Gantt diagrams. Save the project to keep them together.`,
+        `Created ${title} with linked WBS and Gantt diagrams. Save the document to keep them together.`,
       );
     },
     [embedded, resetSelection, setInteractionMessage, tabs],
@@ -342,7 +342,7 @@ export function useSingleFileProject({
     async (wbsDiagramId: string, converted: WbsGanttConversion, sourceTabId: string) => {
       const current = embedded.project;
       const wbs = current?.diagrams.find((diagram) => diagram.id === wbsDiagramId);
-      if (!current || !wbs) throw new Error("The WBS diagram is no longer in this project");
+      if (!current || !wbs) throw new Error("The WBS diagram is no longer in this document");
       if (current.diagrams.some((diagram) => diagram.wbsGantt?.wbsDiagramId === wbsDiagramId))
         throw new Error("This WBS diagram already has a linked Gantt chart");
       const baseName = `${wbs.name} schedule`;
@@ -358,7 +358,7 @@ export function useSingleFileProject({
       if (converted.wbsSource !== tabs.documents.find((tab) => tab.id === sourceTabId)?.source)
         tabs.updateDocumentSource(sourceTabId, converted.wbsSource, "wbs");
       const ganttTabId = embedded.addDiagram(gantt);
-      if (!ganttTabId) throw new Error("Could not add the Gantt chart to this project");
+      if (!ganttTabId) throw new Error("Could not add the Gantt chart to this document");
       tabs.updateDocumentFormat(ganttTabId, {
         linkedWbsDocumentId: sourceTabId,
         wbsGanttLinks: converted.links,
@@ -366,7 +366,7 @@ export function useSingleFileProject({
       });
       setIndexed(immediateIndex({ ...current, diagrams: [...current.diagrams, gantt] }));
       resetSelection();
-      setInteractionMessage(`Added ${name} to ${current.name}. Save the project to keep the linked chart.`);
+      setInteractionMessage(`Added ${name} to ${current.name}. Save the document to keep the linked chart.`);
     },
     [embedded, resetSelection, setInteractionMessage, tabs],
   );
@@ -390,10 +390,10 @@ export function useSingleFileProject({
   const addPortableDiagram = useCallback(
     (diagram: PortableProject["diagrams"][number]) => {
       const current = embedded.project;
-      if (!current || !embedded.addDiagram(diagram)) throw new Error("Open a project before adding a diagram");
+      if (!current || !embedded.addDiagram(diagram)) throw new Error("Open a document before adding a diagram");
       setIndexed(immediateIndex({ ...current, diagrams: [...current.diagrams, diagram] }));
       resetSelection();
-      setInteractionMessage(`Added ${diagram.name}. Save the project to keep it.`);
+      setInteractionMessage(`Added ${diagram.name}. Save the document to keep it.`);
     },
     [embedded, resetSelection, setInteractionMessage],
   );
@@ -489,7 +489,7 @@ export function useSingleFileProject({
       embedded.openProject(project);
       setSavedBaseline(undefined);
       resetSelection();
-      setInteractionMessage(`Imported ${project.name}; save to create its one-file project.`);
+      setInteractionMessage(`Imported ${project.name}; save to create its one-file document.`);
     },
     [embedded, resetSelection, setInteractionMessage],
   );
@@ -594,7 +594,7 @@ export function useSingleFileProject({
       );
       if (writtenBytes && handle.current === target) handleDigest.current = await sha256(writtenBytes);
       const result = (await settleSavedRevision(snapshot, embedded))
-        ? { clean: true, message: "Saved project" }
+        ? { clean: true, message: "Saved document" }
         : written;
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(result.message);
@@ -605,7 +605,7 @@ export function useSingleFileProject({
         return { clean: false, message: error.message };
       }
       if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
-      const result = { clean: false, message: "Project save cancelled" };
+      const result = { clean: false, message: "Document save cancelled" };
       setInteractionMessage(result.message);
       return result;
     } finally {
@@ -637,14 +637,14 @@ export function useSingleFileProject({
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(
         saved.downloaded
-          ? "Downloaded project snapshot"
+          ? "Downloaded document snapshot"
           : clean
             ? `Saved ${saved.fileName}`
             : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
       );
     } catch (error) {
       if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
-      setInteractionMessage("Project save cancelled");
+      setInteractionMessage("Document save cancelled");
     } finally {
       if (saveAbort.current === controller) {
         saveAbort.current = undefined;
@@ -668,7 +668,7 @@ export function useSingleFileProject({
       [...savedBaseline.diagrams, ...current.project.diagrams].map((diagram) => [diagram.id, diagram.name]),
     );
     const report = createProjectReviewReport(current.project.name, review, names);
-    const fileName = `${current.project.name.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "project"}-review.html`;
+    const fileName = `${current.project.name.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "document"}-review.html`;
     downloadText(report, fileName, "text/html;charset=utf-8");
     setInteractionMessage(`Exported ${fileName}`);
   }, [embedded, savedBaseline, setInteractionMessage]);

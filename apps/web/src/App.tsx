@@ -2017,7 +2017,7 @@ export function App() {
       ...(activeDocument.encrypted ? ["This export is plaintext and is not password protected."] : []),
       ...(activeDocument.progressForecast
         ? [
-            "Plain .puml source does not include the progress forecast setting, as-of date, time zone, or remaining-work estimates. Save a portable document or project to keep them.",
+            "Plain .puml source does not include the progress forecast setting, as-of date, time zone, or remaining-work estimates. Save a .pumlu document to keep them.",
           ]
         : []),
     ];
@@ -2455,7 +2455,7 @@ export function App() {
               },
             ];
     return [
-      { id: "file.new", label: "New document", category: "File", shortcut: "⌘N", run: newDocument },
+      { id: "file.new", label: "New diagram", category: "File", shortcut: "⌘N", run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveDocument },
       { id: "file.save-as", label: "Save As…", category: "File", run: saveDocumentAs },
@@ -2464,7 +2464,7 @@ export function App() {
             {
               id: "project.connections",
               label: "Diagram connections",
-              category: "Project",
+              category: "Document",
               run: () => setProjectNavigatorOpen(true),
             },
           ]
@@ -3250,14 +3250,14 @@ export function App() {
               if (id) tabs.reorderDocument(id, document.id);
               setDraggedTabId(undefined);
             }}
-            title={`${document.fileName}${isProjectMemberTab(document.id) ? ` — project diagram in ${project?.manifest.name}` : ""}${document.dirty ? " — unsaved changes" : ""}`}
+            title={`${document.fileName}${isProjectMemberTab(document.id) ? ` — diagram in document ${project?.manifest.name}` : ""}${document.dirty ? " — unsaved changes" : ""}`}
           >
             <span className="tab-label">
               <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
                 ●
               </span>
               {tabLabels.get(document.id)}
-              {isProjectMemberTab(document.id) && <small className="tab-project-badge">Project</small>}
+              {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
             </span>
             <span
               className="tab-close"
@@ -3272,7 +3272,7 @@ export function App() {
             </span>
           </button>
         ))}
-        <button className="new-tab" onClick={newDocument} aria-label="New document tab">
+        <button className="new-tab" onClick={newDocument} aria-label="New diagram tab">
           +
         </button>
       </nav>
@@ -4221,9 +4221,9 @@ export function App() {
       )}
       {dialog?.kind === "new-project" && (
         <ProjectNameDialog
-          title="New project"
-          initialValue="PlantUML project"
-          submitLabel="Create project"
+          title="New document"
+          initialValue="PlantUML document"
+          submitLabel="Create document"
           onSubmit={(name) => {
             closeDialog("new-project");
             void singleFileProject.newProject(name);
@@ -4233,8 +4233,8 @@ export function App() {
       )}
       {dialog?.kind === "wbs-gantt-project" && (
         <ProjectNameDialog
-          title={portableWbsDiagramId ? "Create Gantt chart from WBS" : "Create project from WBS"}
-          initialValue={workspace.fileName.replace(/\.[^.]+$/, "") || "WBS project"}
+          title={portableWbsDiagramId ? "Create Gantt chart from WBS" : "Create document from WBS"}
+          initialValue={workspace.fileName.replace(/\.[^.]+$/, "") || "WBS document"}
           hideName={Boolean(portableWbsDiagramId)}
           initialStartDate={(() => {
             const now = new Date();

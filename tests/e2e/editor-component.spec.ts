@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test("creates and visually edits a Component diagram", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await chooser.getByRole("button", { name: /Component diagram/ }).click();
 

@@ -49,7 +49,7 @@ describe("planFolderProjectSave", () => {
       planFolderProjectSave(native, new Map([[`${native.projectId}:${id(3)}`, "member-tab"]]), [
         tab("member-tab", "@startgantt", true),
       ]),
-    ).rejects.toThrow("native project member");
+    ).rejects.toThrow("native document member");
   });
 
   it("re-encodes an unlocked native member without discarding its portable document", async () => {

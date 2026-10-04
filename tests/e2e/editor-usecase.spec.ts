@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("connects Browse products to Process payment in a nested ordering system", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -43,7 +43,7 @@ actor --> Browse
 });
 
 test("highlights, finds, and renames Use Case actor references", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -83,7 +83,7 @@ test("highlights, finds, and renames Use Case actor references", async ({ page }
 });
 
 test("rejects an invalid visual edit without adding it to undo history", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -111,7 +111,7 @@ test("rejects an invalid visual edit without adding it to undo history", async (
 
 test("creates and edits Use Case objects through diagram-specific tools", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser.getByRole("button", { name: "Use Case diagram" }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: "Use Case diagram" }).click();
@@ -217,7 +217,7 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
 
 test("edits general Use Case settings without rewriting diagram objects", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -247,7 +247,7 @@ test("edits general Use Case settings without rewriting diagram objects", async 
 
 test("inspects arrow properties and reconnects a Use Case endpoint visually", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -331,7 +331,7 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
 
 test("selects and reorders Use Case objects with the keyboard", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -366,7 +366,7 @@ test("selects and reorders Use Case objects with the keyboard", async ({ page })
 
 test("keeps Use Case selection aligned after zoom and responsive resizing", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
@@ -399,7 +399,7 @@ test("keeps Use Case selection aligned after zoom and responsive resizing", asyn
 });
 
 test("selects and edits actors and use cases declared only by relationship endpoints", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })

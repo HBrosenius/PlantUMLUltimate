@@ -52,12 +52,12 @@ export class EmbeddedProjectSaveCoordinator {
     this.queues.set(snapshot.projectId, queue);
     await previous;
     try {
-      if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
+      if (signal?.aborted) throw new DOMException("Document save cancelled", "AbortError");
       const bytes = await encode(snapshot.project, signal);
-      if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
+      if (signal?.aborted) throw new DOMException("Document save cancelled", "AbortError");
       const writable = await handle.createWritable();
       try {
-        if (signal?.aborted) throw new DOMException("Project save cancelled", "AbortError");
+        if (signal?.aborted) throw new DOMException("Document save cancelled", "AbortError");
         await writable.write(bytes);
         await writable.close();
       } catch (error) {
@@ -65,7 +65,7 @@ export class EmbeddedProjectSaveCoordinator {
         throw error;
       }
       const clean = currentRevision() === snapshot.revision;
-      return { clean, message: clean ? "Saved project" : "Saved project snapshot; newer changes remain unsaved" };
+      return { clean, message: clean ? "Saved document" : "Saved document snapshot; newer changes remain unsaved" };
     } finally {
       release();
       if (this.queues.get(snapshot.projectId) === queue) this.queues.delete(snapshot.projectId);

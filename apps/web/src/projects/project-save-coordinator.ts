@@ -17,21 +17,21 @@ type Journal = { version: 1 | 2; members: JournalOperation[]; manifest: JournalO
 export class ProjectRecoveryConflictError extends Error {
   constructor(readonly paths: readonly string[]) {
     super(
-      `An interrupted project save was not completed because ${paths.join(", ")} changed after it started. The files were left as they are.`,
+      `An interrupted document save was not completed because ${paths.join(", ")} changed after it started. The files were left as they are.`,
     );
   }
 }
 
 function operation(value: unknown, label: string): JournalOperation {
-  if (!value || typeof value !== "object") throw new Error(`Project save journal has invalid ${label}`);
+  if (!value || typeof value !== "object") throw new Error(`Document save journal has invalid ${label}`);
   const item = value as { path?: unknown; bytes?: unknown };
   if (typeof item.path !== "string" || validateProjectPath(item.path))
-    throw new Error(`Project save journal has an unsafe ${label} path`);
+    throw new Error(`Document save journal has an unsafe ${label} path`);
   if (!Array.isArray(item.bytes) || item.bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255))
-    throw new Error(`Project save journal has invalid ${label} bytes`);
+    throw new Error(`Document save journal has invalid ${label} bytes`);
   const previousHash = (value as { previousHash?: unknown }).previousHash;
   if (previousHash !== undefined && previousHash !== null && typeof previousHash !== "string")
-    throw new Error(`Project save journal has an invalid ${label} hash`);
+    throw new Error(`Document save journal has an invalid ${label} hash`);
   return { path: item.path, bytes: item.bytes, ...(previousHash !== undefined ? { previousHash } : {}) };
 }
 
@@ -40,17 +40,17 @@ function parseJournal(bytes: Uint8Array): Journal {
   try {
     value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
-    throw new Error("Project save journal is invalid JSON");
+    throw new Error("Document save journal is invalid JSON");
   }
-  if (!value || typeof value !== "object") throw new Error("Project save journal is invalid");
+  if (!value || typeof value !== "object") throw new Error("Document save journal is invalid");
   const journal = value as { version?: unknown; members?: unknown; manifest?: unknown };
   if ((journal.version !== 1 && journal.version !== 2) || !Array.isArray(journal.members))
-    throw new Error("Project save journal has an unsupported format");
+    throw new Error("Document save journal has an unsupported format");
   const members = journal.members.map((member) => operation(member, "member"));
   if (new Set(members.map((member) => member.path)).size !== members.length)
-    throw new Error("Project save journal has duplicate member paths");
+    throw new Error("Document save journal has duplicate member paths");
   const manifest = operation(journal.manifest, "manifest");
-  if (manifest.path !== "project.pumlproject") throw new Error("Project save journal has an unsafe manifest path");
+  if (manifest.path !== "project.pumlproject") throw new Error("Document save journal has an unsafe manifest path");
   return { version: journal.version, members, manifest };
 }
 

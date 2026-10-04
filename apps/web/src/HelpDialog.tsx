@@ -3,7 +3,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { optionShortcut } from "./platform-shortcuts";
 
 const shortcuts = () => [
-  ["⌘/Ctrl + N", "New document"],
+  ["⌘/Ctrl + N", "New diagram"],
   ["⌘/Ctrl + O", "Open document"],
   ["⌘/Ctrl + S", "Save"],
   ["⌘/Ctrl + W", "Close active tab"],

@@ -20,7 +20,7 @@ const fixtures = [
 for (const fixture of fixtures) {
   test(`${fixture.kind}: multi-select, bulk style, copy/paste and undo`, async ({ page }) => {
     await prepareEditor(page);
-    await page.getByRole("button", { name: "New document tab" }).click();
+    await page.getByRole("button", { name: "New diagram tab" }).click();
     const names: Record<string, string> = {
       sequence: "Sequence diagram",
       usecase: "Use Case diagram",
@@ -105,7 +105,7 @@ for (const fixture of fixtures) {
 
 test("modifier keyboard selection toggles and text fields retain native clipboard shortcuts", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })

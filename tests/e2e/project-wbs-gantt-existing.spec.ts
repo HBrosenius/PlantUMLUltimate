@@ -13,17 +13,17 @@ test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
   await prepareEditor(page);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "New", exact: true }).click();
-  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Project…" }).click();
-  const projectDialog = page.getByRole("dialog", { name: "New project" });
+  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+  const projectDialog = page.getByRole("dialog", { name: "New document" });
   await projectDialog.getByRole("textbox", { name: "Name" }).fill("Website project");
-  await projectDialog.getByRole("button", { name: "Create project" }).click();
-  const navigator = page.getByRole("complementary", { name: "Project navigator" });
+  await projectDialog.getByRole("button", { name: "Create document" }).click();
+  const navigator = page.getByRole("complementary", { name: "Document navigator" });
 
   for (const name of ["Other WBS", "Website WBS"]) {
     await navigator.getByRole("button", { name: "Add diagram" }).click();
     await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("wbs");
     await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
-    await navigator.getByRole("button", { name: "Add to project" }).click();
+    await navigator.getByRole("button", { name: "Add to document" }).click();
     await setSource(page, `@startwbs\n*(root) ${name}\n**(child) Child\n@endwbs`);
   }
 
@@ -43,6 +43,6 @@ test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Add missing WBS tasks to Gantt \(0\)/ })).toBeDisabled();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
 });

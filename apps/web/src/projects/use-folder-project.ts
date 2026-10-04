@@ -164,7 +164,7 @@ function downloadZip(bytes: Uint8Array, name: string): void {
   const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: "application/zip" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${name.replace(/[^a-z0-9._-]+/gi, "-") || "plantuml-project"}.pumlproject.zip`;
+  anchor.download = `${name.replace(/[^a-z0-9._-]+/gi, "-") || "plantuml-document"}.pumlproject.zip`;
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
@@ -296,7 +296,7 @@ export function useFolderProject({
         const staged = await readFolderProject(root);
         if (!cancelled) {
           setProject(staged);
-          setInteractionMessage(`Restored project ${staged.manifest.name}`);
+          setInteractionMessage(`Restored document ${staged.manifest.name}`);
         }
       } catch {
         // A moved folder or revoked permission is recovered by choosing the project again.
@@ -311,7 +311,7 @@ export function useFolderProject({
   const openProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker) {
-      setInteractionMessage("Opening a folder project requires a browser with folder access support");
+      setInteractionMessage("Opening a folder document requires a browser with folder access support");
       return;
     }
     try {
@@ -326,7 +326,7 @@ export function useFolderProject({
       openAllMembers(staged);
       resetSelection();
       await rememberFolderProject(root);
-      setInteractionMessage(`Opened project ${staged.manifest.name} with ${staged.members.length} diagrams`);
+      setInteractionMessage(`Opened document ${staged.manifest.name} with ${staged.members.length} diagrams`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       reportError(error);
@@ -335,10 +335,10 @@ export function useFolderProject({
   const newProject = useCallback(async () => {
     const picker = (window as FolderPickerWindow).showDirectoryPicker;
     if (!picker)
-      return setInteractionMessage("Creating a folder project requires a browser with folder access support");
+      return setInteractionMessage("Creating a folder document requires a browser with folder access support");
     try {
       const root = await picker();
-      const name = window.prompt("Project name", root.name);
+      const name = window.prompt("Document name", root.name);
       if (name === null) return;
       const created = await createFolderProject(root, name);
       setProject(created);
@@ -357,13 +357,13 @@ export function useFolderProject({
         tabsByMember.current.set(`${created.manifest.projectId}:${member.documentId}`, tabId);
       }
       resetSelection();
-      setInteractionMessage(`Created project ${name.trim() || root.name}`);
+      setInteractionMessage(`Created document ${name.trim() || root.name}`);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) reportError(error);
     }
   }, [reportError, resetSelection, setInteractionMessage, tabs]);
   const newZipProject = useCallback(async () => {
-    const name = window.prompt("Project name", "PlantUML project");
+    const name = window.prompt("Document name", "PlantUML document");
     if (name === null) return;
     try {
       const created = await createZipProject(name);
@@ -426,7 +426,7 @@ export function useFolderProject({
         !/\.puml$/i.test(normalizedPath) ||
         project.manifest.documents.some((item) => item.path === normalizedPath)
       ) {
-        setInteractionMessage("Choose a unique, safe .puml project-relative path");
+        setInteractionMessage("Choose a unique, safe .puml document-relative path");
         return;
       }
       const documentId = crypto.randomUUID();
@@ -465,7 +465,7 @@ export function useFolderProject({
       });
       tabsByMember.current.set(`${manifest.projectId}:${documentId}`, tabId);
       resetSelection();
-      setInteractionMessage(`Added ${normalizedPath}; save the project to keep it`);
+      setInteractionMessage(`Added ${normalizedPath}; save the document to keep it`);
     },
     [project, resetSelection, setInteractionMessage, tabs],
   );
@@ -477,7 +477,7 @@ export function useFolderProject({
         ? (
             await picker({
               multiple: false,
-              types: [{ description: "PlantUML Ultimate project", accept: { "application/zip": [".zip"] } }],
+              types: [{ description: "PlantUML Ultimate document", accept: { "application/zip": [".zip"] } }],
             })
           )[0]
         : undefined;
@@ -491,7 +491,7 @@ export function useFolderProject({
       projectRef.current = staged;
       openAllMembers(staged);
       resetSelection();
-      setInteractionMessage(`Opened ZIP project ${staged.manifest.name} with ${staged.members.length} diagrams`);
+      setInteractionMessage(`Opened ZIP document ${staged.manifest.name} with ${staged.members.length} diagrams`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       reportError(error);
@@ -518,8 +518,8 @@ export function useFolderProject({
       }
       setInteractionMessage(
         plan.members.length
-          ? `Downloaded project snapshot with ${plan.members.length} changed document${plan.members.length === 1 ? "" : "s"}`
-          : "Downloaded project snapshot",
+          ? `Downloaded document snapshot with ${plan.members.length} changed document${plan.members.length === 1 ? "" : "s"}`
+          : "Downloaded document snapshot",
       );
     } catch (error) {
       reportError(error);
@@ -547,8 +547,8 @@ export function useFolderProject({
       }
       setInteractionMessage(
         plan.members.length
-          ? `Saved ${plan.members.length} changed project document${plan.members.length === 1 ? "" : "s"}`
-          : "Saved project metadata",
+          ? `Saved ${plan.members.length} changed diagram${plan.members.length === 1 ? "" : "s"}`
+          : "Saved document metadata",
       );
     } catch (error) {
       reportError(error);

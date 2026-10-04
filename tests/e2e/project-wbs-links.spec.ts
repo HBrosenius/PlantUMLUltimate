@@ -13,9 +13,9 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await prepareEditor(page);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "New", exact: true }).click();
-  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Project…" }).click();
-  await page.getByRole("dialog", { name: "New project" }).getByRole("button", { name: "Create project" }).click();
-  const navigator = page.getByRole("complementary", { name: "Project navigator" });
+  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+  await page.getByRole("dialog", { name: "New document" }).getByRole("button", { name: "Create document" }).click();
+  const navigator = page.getByRole("complementary", { name: "Document navigator" });
   for (const [name, alias] of [
     ["Research", "research"],
     ["Design", "design"],
@@ -24,7 +24,7 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
     await navigator.getByRole("button", { name: "Add diagram" }).click();
     await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("wbs");
     await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
-    await navigator.getByRole("button", { name: "Add to project" }).click();
+    await navigator.getByRole("button", { name: "Add to document" }).click();
     await setSource(page, `@startwbs\n*(${alias}) ${name}\n@endwbs`);
   }
 
@@ -44,10 +44,10 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await expect(navigator).toContainText("3 diagrams · 2 connections");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
 
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.getByRole("button", { name: "Select WBS node Delivery" }).press("Shift+F10");
   await page
     .getByRole("menu", { name: "Symbol actions" })
@@ -106,10 +106,10 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Project: / }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await page.getByRole("menuitem", { name: /Document: / }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
   await expect(navigator.getByRole("region", { name: "Existing links" })).not.toContainText("Unresolved path");
 });

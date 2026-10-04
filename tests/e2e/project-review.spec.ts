@@ -26,21 +26,21 @@ test("reviews project changes against the last successful save and exports a rep
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "New", exact: true }).click();
-  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Project…" }).click();
-  const projectDialog = page.getByRole("dialog", { name: "New project" });
+  await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+  const projectDialog = page.getByRole("dialog", { name: "New document" });
   await projectDialog.getByRole("textbox", { name: "Name" }).fill("Review project");
-  await projectDialog.getByRole("button", { name: "Create project" }).click();
+  await projectDialog.getByRole("button", { name: "Create document" }).click();
 
-  const navigator = page.getByRole("complementary", { name: "Project navigator" });
-  await expect(navigator.getByText("Save this project once to create a review baseline.")).toBeVisible();
+  const navigator = page.getByRole("complementary", { name: "Document navigator" });
+  await expect(navigator.getByText("Save this document once to create a review baseline.")).toBeVisible();
   await navigator.getByRole("button", { name: "Add diagram" }).click();
   await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("component");
   await navigator.getByRole("textbox", { name: "Diagram name" }).fill("Architecture");
-  await navigator.getByRole("button", { name: "Add to project" }).click();
+  await navigator.getByRole("button", { name: "Add to document" }).click();
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   // The link index registers the Component objects as project elements shortly after the diagram is
   // added; that must not flip a project saved in the meantime back to "Unsaved changes".
   await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();

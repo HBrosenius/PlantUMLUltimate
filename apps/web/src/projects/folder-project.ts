@@ -40,7 +40,7 @@ export function folderProjectStore(root: ProjectDirectoryHandle): ProjectSaveSto
   return {
     async write(path, bytes) {
       const { file } = await handle(path, true);
-      if (!file.createWritable) throw new Error("Project folder write permission was denied");
+      if (!file.createWritable) throw new Error("Document folder write permission was denied");
       const writable = await file.createWritable();
       await writable.write(bytes);
       await writable.close();
@@ -85,7 +85,7 @@ export async function memberInputFromBytes(
 ): Promise<ProjectMemberInput> {
   if (document.format === "plantuml") {
     if (bytes.byteLength > DOCUMENT_LIMITS.maxSourceBytes)
-      return { state: "unsupported", reason: "Source file exceeds the 5 MiB project limit" };
+      return { state: "unsupported", reason: "Source file exceeds the 5 MiB document limit" };
     try {
       return { state: "available", source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) };
     } catch {
@@ -170,19 +170,19 @@ export async function createFolderProject(root: ProjectDirectoryHandle, name: st
     schemaVersion: 1,
     projectId: crypto.randomUUID(),
     revisionId: crypto.randomUUID(),
-    name: name.trim() || root.name || "PlantUML project",
+    name: name.trim() || root.name || "PlantUML document",
     documents: [{ id: documentId, path: "diagrams/project.puml", format: "plantuml" }],
     elements: [],
     links: [],
   };
   const diagrams = await root.getDirectoryHandle("diagrams", { create: true });
   const diagram = await diagrams.getFileHandle("project.puml", { create: true });
-  if (!diagram.createWritable) throw new Error("Creating a project requires folder write permission");
+  if (!diagram.createWritable) throw new Error("Creating a document requires folder write permission");
   const diagramWriter = await diagram.createWritable();
   await diagramWriter.write("@startgantt\nProject starts 2026-01-01\n[First task] lasts 1 day\n@endgantt\n");
   await diagramWriter.close();
   const manifestFile = await root.getFileHandle("project.pumlproject", { create: true });
-  if (!manifestFile.createWritable) throw new Error("Creating a project requires folder write permission");
+  if (!manifestFile.createWritable) throw new Error("Creating a document requires folder write permission");
   const manifestWriter = await manifestFile.createWritable();
   await manifestWriter.write(serializeProjectManifest(manifest));
   await manifestWriter.close();

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("highlights and renames distinct Activity actions and partitions", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
@@ -48,7 +48,7 @@ test("highlights and renames distinct Activity actions and partitions", async ({
 });
 
 test("reorders Activity actions with the keyboard", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
@@ -67,7 +67,7 @@ test("reorders Activity actions with the keyboard", async ({ page }) => {
 });
 
 test("keeps Activity actions selectable after zooming", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
@@ -89,7 +89,7 @@ test("keeps Activity actions selectable after zooming", async ({ page }) => {
 
 test("selects actions inside a partition from the rendered diagram", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1400 });
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
@@ -106,7 +106,7 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
 
 test("reorders actions with a preview and creates a structured transition by drag", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1400 });
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
@@ -144,7 +144,7 @@ test("reorders actions with a preview and creates a structured transition by dra
 
 test("creates and edits Activity actions, partitions, and notes", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const activityChoice = chooser.getByRole("button", { name: /Activity diagram/ });
   await expect(activityChoice.getByText("Beta", { exact: true })).toHaveCount(0);

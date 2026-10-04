@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const sequenceChoice = chooser.getByRole("button", { name: "Sequence diagram" });
   await expect(sequenceChoice).toBeVisible();
@@ -16,7 +16,7 @@ test("shows Sequence diagrams without a Beta badge", async ({ page }) => {
 });
 
 test("highlights, finds, and renames Sequence participant references", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -49,7 +49,7 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
 });
 
 test("keeps inspector focus, zoom, and split position after applying a source edit", async ({ page, browserName }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -83,7 +83,7 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
 });
 
 test("renames created Sequence lifelines and suggests duration anchors", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -126,7 +126,7 @@ test("renames created Sequence lifelines and suggests duration anchors", async (
 });
 
 test("reviews and applies a confirmed Sequence change group", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -238,7 +238,7 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
 });
 
 test("applies adjacent Sequence edits as one confirmed transaction", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -272,7 +272,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     "WebKit automation does not preserve SVG pointer identity across compound Sequence reconnects",
   );
   test.setTimeout(60_000);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await expect(chooser.locator(".diagram-kind-preview")).toHaveCount(7);
@@ -599,7 +599,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
 });
 
 test("configures advanced Sequence layout and style with undo and redo", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -639,7 +639,7 @@ test("configures advanced Sequence layout and style with undo and redo", async (
 });
 
 test("reorders Sequence participants and messages from the dedicated drag tray", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -685,7 +685,7 @@ test("reorders Sequence participants and messages from the dedicated drag tray",
 });
 
 test("drags Sequence structures and reconnects their participant attachments", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -742,7 +742,7 @@ test("drags Sequence structures and reconnects their participant attachments", a
 });
 
 test("selects and edits Sequence notes and references from the diagram", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -782,7 +782,7 @@ test("selects and edits Sequence notes and references from the diagram", async (
 });
 
 test("selects and edits the remaining Sequence timeline structures", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
@@ -833,7 +833,7 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
 });
 
 test("reorders Sequence fragment branches without detaching nested bodies", async ({ page }) => {
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })

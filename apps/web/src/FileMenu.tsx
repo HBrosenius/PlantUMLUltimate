@@ -133,11 +133,11 @@ export function FileMenu({
                 aria-expanded={activeSubmenu === "project"}
                 onClick={() => setActiveSubmenu("project")}
               >
-                <span>Project: {projectName}</span>
+                <span>Document: {projectName}</span>
                 <span aria-hidden="true">›</span>
               </button>
               {activeSubmenu === "project" && (
-                <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Project">
+                <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Document">
                   <button role="menuitem" onClick={() => run(onProjectConnections)}>
                     Diagram connections
                   </button>
@@ -162,7 +162,7 @@ export function FileMenu({
                 </button>
                 {onNewProject && (
                   <button role="menuitem" onClick={() => run(onNewProject)}>
-                    Project…
+                    Document…
                   </button>
                 )}
               </div>
@@ -185,7 +185,7 @@ export function FileMenu({
                 </button>
                 {onOpenProject && (
                   <button role="menuitem" onClick={() => run(onOpenProject)}>
-                    Project…
+                    Document…
                   </button>
                 )}
               </div>
@@ -204,10 +204,10 @@ export function FileMenu({
             {activeSubmenu === "save" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Save">
                 <button role="menuitem" onClick={() => run(onSave)}>
-                  {onSaveProject ? "Save project" : "Save diagram"}
+                  {onSaveProject ? "Save document" : "Save diagram"}
                 </button>
                 <button role="menuitem" onClick={() => run(onSaveAs)}>
-                  {onSaveProject ? "Save project as…" : "Save diagram as…"}
+                  {onSaveProject ? "Save document as…" : "Save diagram as…"}
                 </button>
               </div>
             )}

@@ -71,10 +71,10 @@ export function ProjectNavigator({
   const unlinkedWbsCount = wbsGanttMissing?.filter((item) => item.kind === "wbs").length ?? 0;
   const unlinkedGanttCount = wbsGanttMissing?.filter((item) => item.kind === "gantt").length ?? 0;
   return (
-    <aside className="project-navigator" aria-label="Project navigator">
+    <aside className="project-navigator" aria-label="Document navigator">
       <header>
         <div>
-          <span className="project-navigator-kicker">Project</span>
+          <span className="project-navigator-kicker">Document</span>
           <strong>{project.manifest.name}</strong>
           {dirty !== undefined && (
             <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
@@ -104,12 +104,12 @@ export function ProjectNavigator({
             {project.manifest.links.length + (wbsGanttLinks?.length ?? 0) === 1 ? "" : "s"}
           </small>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close project navigator">
+        <button type="button" onClick={onClose} aria-label="Close document navigator">
           ×
         </button>
         {onCloseProject && (
           <button type="button" onClick={onCloseProject}>
-            Close project
+            Close document
           </button>
         )}
       </header>
@@ -117,7 +117,7 @@ export function ProjectNavigator({
         <div className="project-section-heading">
           <div>
             <h2 id="project-diagrams-heading">Diagrams</h2>
-            <p>Diagrams included in this project</p>
+            <p>Diagrams included in this document</p>
           </div>
           <button type="button" className="project-add-diagram" onClick={() => setAdding((value) => !value)}>
             Add diagram
@@ -163,7 +163,7 @@ export function ProjectNavigator({
               <input value={path} onChange={(event) => setPath(event.target.value)} required />
             </label>
             <div>
-              <button type="submit">Add to project</button>
+              <button type="submit">Add to document</button>
               <button type="button" onClick={() => setAdding(false)}>
                 Cancel
               </button>
@@ -290,7 +290,7 @@ export function ProjectNavigator({
           <div className="project-section-heading">
             <div>
               <h2 id="project-review-heading">Review changes</h2>
-              <p>Compare this project with its last successful save</p>
+              <p>Compare this document with its last successful save</p>
             </div>
             <button
               type="button"
@@ -306,7 +306,7 @@ export function ProjectNavigator({
             </button>
           </div>
           {!hasReviewBaseline ? (
-            <p className="project-review-empty">Save this project once to create a review baseline.</p>
+            <p className="project-review-empty">Save this document once to create a review baseline.</p>
           ) : review && !review.hasChanges ? (
             <p className="project-review-empty">No changes since the last successful save.</p>
           ) : review ? (

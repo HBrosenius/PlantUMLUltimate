@@ -32,7 +32,7 @@ async function expectToolbarButtonInViewport(page: import("@playwright/test").Pa
 
 test("converts a nested WBS into linked Gantt entries without explicit dates", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -42,7 +42,7 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     "@startwbs\n*(project) Project\n**(design) Design\n***(draft) Draft\n**(build) Build\ndraft -> build\n@endwbs",
   );
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
-  const projectName = page.getByRole("dialog", { name: "Create project from WBS" });
+  const projectName = page.getByRole("dialog", { name: "Create document from WBS" });
   await projectName.getByLabel("Name").fill("Project delivery");
   await projectName.getByLabel("Project start date").fill("2026-09-01");
   await projectName.getByRole("button", { name: "Create Gantt chart" }).click();
@@ -58,7 +58,7 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
   await expect(page.getByRole("navigation", { name: "Open documents" })).toContainText("Work breakdown");
   await expect(existingLinks).toContainText("Work breakdown: Design");
   await expect(existingLinks.locator("li")).toHaveCount(4);
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   const code = page.locator(".cm-content");
   await expect(code).toContainText("[Project] as [wbs_project] requires 5 days");
   await expect(code).toContainText("Project starts 2026-09-01");
@@ -121,7 +121,7 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
 
 test("keeps a generated task's dependency and position when completion changes", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -131,10 +131,10 @@ test("keeps a generated task's dependency and position when completion changes",
     "@startwbs\n* Website redesign\n** Discovery\n*** Stakeholder interviews\n*** Content inventory\n** Design\n*** Information architecture\n*** Visual design\n** Delivery\n*** Frontend implementation\n*** Quality assurance\n@endwbs",
   );
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
-  const project = page.getByRole("dialog", { name: "Create project from WBS" });
+  const project = page.getByRole("dialog", { name: "Create document from WBS" });
   await project.getByLabel("Project start date").fill("2026-10-05");
   await project.getByRole("button", { name: "Create Gantt chart" }).click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
 
   const code = page.locator(".cm-content");
   const dependency = "[wbs_content_inventory] starts at [wbs_discovery]'s end";
@@ -164,7 +164,7 @@ test("keeps a generated task's dependency and position when completion changes",
 test("links an existing WBS node to an existing Gantt task", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, "@startgantt\n[Design] lasts 2 days\n@endgantt");
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -185,18 +185,18 @@ test("links an existing WBS node to an existing Gantt task", async ({ page }) =>
 
 test("shows unlinked work in the project and adds selected items in either direction", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
-  const createProject = page.getByRole("dialog", { name: "Create project from WBS" });
+  const createProject = page.getByRole("dialog", { name: "Create document from WBS" });
   await createProject.getByLabel("Project start date").fill("2026-09-01");
   await createProject.getByRole("button", { name: "Create Gantt chart" }).click();
   await expect(page.locator(".cm-content")).toContainText("[wbs_design] starts at [wbs_project]'s end");
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Task…" }).click();
   const add = page.getByRole("dialog", { name: "Add task" });
@@ -204,20 +204,20 @@ test("shows unlinked work in the project and adds selected items in either direc
   await add.getByLabel("Starts after").selectOption({ label: "Design" });
   await add.getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Project: / }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await page.getByRole("menuitem", { name: /Document: / }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   const coverage = page.getByRole("region", { name: "WBS–Gantt coverage" });
   await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 1 Gantt task");
   const review = coverage.locator("li", { hasText: "Review" });
   await review.getByRole("button", { name: "Add to WBS" }).click();
   await expect(page.locator(".cm-content")).toContainText("Review");
   await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 0 Gantt tasks");
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   const wbsSource = await page.locator(".cm-content").innerText();
   await setSource(page, wbsSource.replace("@endwbs", "**(build) Build\n@endwbs"));
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Project: / }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await page.getByRole("menuitem", { name: /Document: / }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   await expect(coverage).toContainText("Unlinked: 1 WBS node · 0 Gantt tasks");
   await coverage.locator("li", { hasText: "Build" }).getByRole("button", { name: "Add to Gantt" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Build] as [wbs_build]");
@@ -226,7 +226,7 @@ test("shows unlinked work in the project and adds selected items in either direc
 
 test("links two existing unlinked items from project coverage", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -234,10 +234,10 @@ test("links two existing unlinked items from project coverage", async ({ page })
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Task…" }).click();
   const add = page.getByRole("dialog", { name: "Add task" });
@@ -246,13 +246,13 @@ test("links two existing unlinked items from project coverage", async ({ page })
   await add.getByRole("button", { name: "Add task" }).click();
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /WBS Project/ })
+    .getByRole("button", { name: /WBS Document/ })
     .click();
   const wbsSource = await page.locator(".cm-content").innerText();
   await setSource(page, wbsSource.replace("@endwbs", "**(build) Build\n@endwbs"));
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Project: / }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await page.getByRole("menuitem", { name: /Document: / }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   const coverage = page.getByRole("region", { name: "WBS–Gantt coverage" });
   await expect(coverage).toContainText("Unlinked: 1 WBS node · 1 Gantt task");
   await coverage.locator("li", { hasText: "Build" }).getByRole("button", { name: "Link existing" }).click();
@@ -263,14 +263,14 @@ test("links two existing unlinked items from project coverage", async ({ page })
     .getAttribute("value");
   await inspector.getByLabel("Linked Gantt task").selectOption(reviewOption!);
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Project: / }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  await page.getByRole("menuitem", { name: /Document: / }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 0 Gantt tasks");
 });
 
 test("adds an unlinked Gantt task beneath its predecessor in the WBS once", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -278,10 +278,10 @@ test("adds an unlinked Gantt task beneath its predecessor in the WBS once", asyn
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   const importButton = page.getByRole("button", { name: "Add missing Gantt tasks to WBS (0)" });
   await expect(importButton).toBeDisabled();
   await expectToolbarButtonInViewport(page, "Add");
@@ -306,12 +306,12 @@ test("adds an unlinked Gantt task beneath its predecessor in the WBS once", asyn
   await expect(page.getByRole("button", { name: "Add missing WBS tasks to Gantt (0)" })).toBeDisabled();
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /schedule Project/ })
+    .getByRole("button", { name: /schedule Document/ })
     .click();
   await expect(page.getByRole("button", { name: "Add missing Gantt tasks to WBS (0)" })).toBeDisabled();
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /WBS Project/ })
+    .getByRole("button", { name: /WBS Document/ })
     .click();
   await expect(page.locator(".cm-content")).toContainText("(review) Review");
   expect((await page.locator(".cm-content").textContent())?.match(/\(review\) Review/g)).toHaveLength(1);
@@ -322,7 +322,7 @@ for (const policy of ["keep", "delete"] as const) {
     page,
   }) => {
     await prepareEditor(page);
-    await page.getByRole("button", { name: "New document tab" }).click();
+    await page.getByRole("button", { name: "New diagram tab" }).click();
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "WBS diagram" })
@@ -330,10 +330,10 @@ for (const policy of ["keep", "delete"] as const) {
     await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n***(draft) Draft\n@endwbs");
     await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
     await page
-      .getByRole("dialog", { name: "Create project from WBS" })
+      .getByRole("dialog", { name: "Create document from WBS" })
       .getByRole("button", { name: "Create Gantt chart" })
       .click();
-    await page.getByRole("button", { name: "Close project navigator" }).click();
+    await page.getByRole("button", { name: "Close document navigator" }).click();
     await page.locator('[data-task-id="wbs_design"]').first().click();
     await page.getByRole("complementary", { name: "Task inspector" }).getByRole("button", { name: "Delete" }).click();
     const confirmation = page.getByRole("dialog", { name: "Delete linked Gantt work?" });
@@ -344,7 +344,7 @@ for (const policy of ["keep", "delete"] as const) {
     await expect(page.locator(".cm-content")).not.toContainText("[Design] as [wbs_design]");
     await page
       .getByRole("navigation", { name: "Open documents" })
-      .getByRole("button", { name: /WBS Project/ })
+      .getByRole("button", { name: /WBS Document/ })
       .click();
     if (policy === "keep") {
       await expect(page.locator(".cm-content")).toContainText("(design) Design");
@@ -355,13 +355,13 @@ for (const policy of ["keep", "delete"] as const) {
     }
     await page
       .getByRole("navigation", { name: "Open documents" })
-      .getByRole("button", { name: /schedule Project/ })
+      .getByRole("button", { name: /schedule Document/ })
       .click();
     await expect(page.locator(".cm-content")).not.toContainText("[Design] as [wbs_design]");
     if (policy === "keep") {
       await page
         .getByRole("navigation", { name: "Open documents" })
-        .getByRole("button", { name: /WBS Project/ })
+        .getByRole("button", { name: /WBS Document/ })
         .click();
       await page.getByRole("button", { name: "Add missing WBS tasks to Gantt" }).click();
       await expect(page.locator(".cm-content")).toContainText("[Design] as [wbs_design]");
@@ -374,7 +374,7 @@ for (const policy of ["keep", "delete"] as const) {
     page,
   }) => {
     await prepareEditor(page);
-    await page.getByRole("button", { name: "New document tab" }).click();
+    await page.getByRole("button", { name: "New diagram tab" }).click();
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "WBS diagram" })
@@ -382,10 +382,10 @@ for (const policy of ["keep", "delete"] as const) {
     await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
     await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
     await page
-      .getByRole("dialog", { name: "Create project from WBS" })
+      .getByRole("dialog", { name: "Create document from WBS" })
       .getByRole("button", { name: "Create Gantt chart" })
       .click();
-    await page.getByRole("button", { name: "Close project navigator" }).click();
+    await page.getByRole("button", { name: "Close document navigator" }).click();
     await expectToolbarButtonInViewport(page, "Add");
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("menuitem", { name: "Task…" }).click();
@@ -418,17 +418,17 @@ for (const policy of ["keep", "delete"] as const) {
 
 test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
-  const createProject = page.getByRole("dialog", { name: "Create project from WBS" });
+  const createProject = page.getByRole("dialog", { name: "Create document from WBS" });
   await createProject.getByLabel("Project start date").fill("2026-09-01");
   await createProject.getByRole("button", { name: "Create Gantt chart" }).click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.locator('[data-task-id="wbs_project"]').first().click();
   const task = page.getByRole("complementary", { name: "Task inspector" });
   await task.getByLabel("Start", { exact: true }).fill("2026-09-24");
@@ -448,7 +448,7 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
   await expect(page.locator(".cm-content")).not.toContainText("(design) Design");
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /schedule Project/ })
+    .getByRole("button", { name: /schedule Document/ })
     .click();
   await expect(page.locator(".cm-content")).toContainText("[Design] as [wbs_design]");
   await expect(page.locator(".cm-content")).toContainText("2026-09-24");
@@ -460,7 +460,7 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
 
 test("deletes linked Gantt work when deleting in both diagrams", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -468,10 +468,10 @@ test("deletes linked Gantt work when deleting in both diagrams", async ({ page }
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.locator('[data-task-id="wbs_design"]').first().click();
   await page
     .getByRole("complementary", { name: "Task inspector" })
@@ -487,14 +487,14 @@ test("deletes linked Gantt work when deleting in both diagrams", async ({ page }
     .click();
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /schedule Project/ })
+    .getByRole("button", { name: /schedule Document/ })
     .click();
   await expect(page.locator(".cm-content")).not.toContainText("wbs_design");
 });
 
 test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -502,17 +502,17 @@ test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
   await setSource(page, "@startwbs\n*(project) Project\n**(a) A\n**(b) B\na -> b\nb -> a\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
   const issues = page.getByRole("region", { name: "WBS–Gantt issues" });
   await expect(issues).toContainText("would create a cycle");
   await issues.getByRole("button", { name: /would create a cycle/ }).click();
   await expect(page.getByRole("complementary", { name: "WBS arrow inspector" })).toBeVisible();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page
     .getByRole("navigation", { name: "Open documents" })
-    .getByRole("button", { name: /schedule Project/ })
+    .getByRole("button", { name: /schedule Document/ })
     .click();
   await page.locator('[data-task-id="wbs_a"]').first().click();
   await page
@@ -530,7 +530,7 @@ test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
 
 test("opens linked diagrams from both node context menus", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -538,10 +538,10 @@ test("opens linked diagrams from both node context menus", async ({ page }) => {
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.locator('[data-task-id="wbs_design"]').first().click({ button: "right" });
   await page
     .getByRole("menu", { name: "Symbol actions" })
@@ -559,7 +559,7 @@ test("opens linked diagrams from both node context menus", async ({ page }) => {
 
 test("opens an imported summary divider on the first click", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -567,7 +567,7 @@ test("opens an imported summary divider on the first click", async ({ page }) =>
   await setSource(page, "@startwbs\n* Project\n** Design\n@endwbs");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
   const divider = page.locator('[data-divider-index="0"]').first();
@@ -578,7 +578,7 @@ test("opens an imported summary divider on the first click", async ({ page }) =>
 
 test("Escape closes the WBS node inspector", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -609,7 +609,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     Object.assign(window, { showSaveFilePicker: async () => handle });
   });
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
@@ -619,14 +619,14 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     "@startwbs\n<style>\nwbsDiagram {\n  node {\n    BackgroundColor #224466\n  }\n}\n</style>\n*(plan) Plan\n**(build) Build\n@endwbs",
   );
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
-  const name = page.getByRole("dialog", { name: "Create project from WBS" });
+  const name = page.getByRole("dialog", { name: "Create document from WBS" });
   await name.getByLabel("Name").fill("Linked plan");
   await name.getByRole("button", { name: "Create Gantt chart" }).click();
   await page.getByRole("button", { name: "Rename Linked plan WBS" }).click();
   const rename = page.getByRole("dialog", { name: "Rename diagram" });
   await rename.getByLabel("Name").fill("Work breakdown");
   await rename.getByRole("button", { name: "Rename", exact: true }).click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await page.locator('[data-task-id="wbs_plan"]').first().click();
   const task = page.getByRole("complementary", { name: "Task inspector" });
   await task.getByLabel("Start", { exact: true }).fill("2026-09-23");
@@ -641,14 +641,14 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await expectToolbarButtonInViewport(page, "File");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save project", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as Window & { projectBytes?: number[] }).projectBytes?.length ?? 0))
     .toBeGreaterThan(100);
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Project: Linked plan" }).click();
-  await page.getByRole("menu", { name: "Project" }).getByRole("menuitem", { name: "Diagram connections" }).click();
-  const projectNavigator = page.getByRole("complementary", { name: "Project navigator" });
+  await page.getByRole("menuitem", { name: "Document: Linked plan" }).click();
+  await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
+  const projectNavigator = page.getByRole("complementary", { name: "Document navigator" });
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
   await expect(projectNavigator.locator(".project-index-status")).toHaveText("Links current");
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
@@ -675,8 +675,8 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await chooser.getByRole("button", { name: "Gantt diagram" }).click();
     await reopened.getByRole("button", { name: "File", exact: true }).click();
     await reopened.getByRole("menuitem", { name: "Open", exact: true }).click();
-    await reopened.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Project…" }).click();
-    const navigator = reopened.getByRole("complementary", { name: "Project navigator" });
+    await reopened.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Document…" }).click();
+    const navigator = reopened.getByRole("complementary", { name: "Document navigator" });
     await expect(navigator).toContainText("Work breakdown");
     await expect(navigator).toContainText("Linked plan schedule");
     await expect(navigator.getByRole("region", { name: "Existing links" }).locator("li")).toHaveCount(2);
@@ -693,7 +693,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await expect(reopened.locator(".cm-content")).toContainText("2026-09-23");
     await reopened
       .getByRole("navigation", { name: "Open documents" })
-      .getByRole("button", { name: /^Work breakdown Project/ })
+      .getByRole("button", { name: /^Work breakdown Document/ })
       .click();
     await selectWbsNode(reopened, "Build");
     await expect(reopened.getByRole("button", { name: "Open linked Gantt task" })).toBeVisible();
@@ -733,17 +733,17 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
 
 test("adds a task after an aliased WBS summary without invalidating the Gantt", async ({ page }) => {
   await prepareEditor(page);
-  await page.getByRole("button", { name: "New document tab" }).click();
+  await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   await page
-    .getByRole("dialog", { name: "Create project from WBS" })
+    .getByRole("dialog", { name: "Create document from WBS" })
     .getByRole("button", { name: "Create Gantt chart" })
     .click();
-  await page.getByRole("button", { name: "Close project navigator" }).click();
+  await page.getByRole("button", { name: "Close document navigator" }).click();
   await expectToolbarButtonInViewport(page, "Add");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Task…" }).click();

@@ -12,15 +12,15 @@ describe("project dialogs", () => {
     const onSubmit = vi.fn();
     render(
       <ProjectNameDialog
-        title="New project"
-        initialValue="PlantUML project"
-        submitLabel="Create project"
+        title="New document"
+        initialValue="PlantUML document"
+        submitLabel="Create document"
         onSubmit={onSubmit}
         onClose={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "  Roadmap  " } });
-    fireEvent.click(screen.getByRole("button", { name: "Create project" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create document" }));
     expect(onSubmit).toHaveBeenCalledWith("Roadmap");
   });
 

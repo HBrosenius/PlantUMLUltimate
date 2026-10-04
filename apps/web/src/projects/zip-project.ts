@@ -32,7 +32,7 @@ function archivePath(name: string): string | undefined {
 
 async function extractZip(bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
   if (bytes.byteLength > ZIP_PROJECT_LIMITS.maxArchiveBytes)
-    throw new Error("Project archive exceeds the 256 MiB input limit");
+    throw new Error("Document archive exceeds the 256 MiB input limit");
   return new Promise((resolve, reject) => {
     const entries = new Map<string, Uint8Array>();
     const portablePaths = new Set<string>();
@@ -45,26 +45,26 @@ async function extractZip(bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
     const unzip = new Unzip((file) => {
       const path = archivePath(file.name);
       if (!path || validateProjectPath(path)) {
-        fail(new Error("Project archive contains an unsafe entry path"));
+        fail(new Error("Document archive contains an unsafe entry path"));
         return;
       }
       entryCount += 1;
       if (entryCount > ZIP_PROJECT_LIMITS.maxEntries) {
-        fail(new Error("Project archive exceeds the 1,000 entry limit"));
+        fail(new Error("Document archive exceeds the 1,000 entry limit"));
         return;
       }
       const portablePath = portablePathKey(path);
       if (portablePaths.has(portablePath)) {
-        fail(new Error("Project archive contains colliding entry paths"));
+        fail(new Error("Document archive contains colliding entry paths"));
         return;
       }
       portablePaths.add(portablePath);
       if (file.compression !== 0 && file.compression !== 8) {
-        fail(new Error("Project archive uses unsupported compression"));
+        fail(new Error("Document archive uses unsupported compression"));
         return;
       }
       if (file.originalSize !== undefined && file.originalSize > ZIP_PROJECT_LIMITS.maxExpandedBytes) {
-        fail(new Error("Project archive entry exceeds the extraction limit"));
+        fail(new Error("Document archive entry exceeds the extraction limit"));
         return;
       }
       if (file.name.endsWith("/")) return;
@@ -76,7 +76,7 @@ async function extractZip(bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
         }
         expanded += chunk.length;
         if (expanded > ZIP_PROJECT_LIMITS.maxExpandedBytes) {
-          fail(new Error("Project archive exceeds the expanded-size limit"));
+          fail(new Error("Document archive exceeds the expanded-size limit"));
           file.terminate();
           return;
         }
@@ -98,7 +98,7 @@ async function extractZip(bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
       unzip.push(bytes, true);
       queueMicrotask(() => (failed ? reject(failed) : resolve(entries)));
     } catch (error) {
-      reject(error instanceof Error ? error : new Error("Project archive is invalid"));
+      reject(error instanceof Error ? error : new Error("Document archive is invalid"));
     }
   });
 }
@@ -109,12 +109,12 @@ export async function readZipProject(
 ): Promise<ZipProject> {
   const entries = await extractZip(bytes);
   const manifestBytes = entries.get("project.pumlproject");
-  if (!manifestBytes) throw new Error("Project archive is missing project.pumlproject");
+  if (!manifestBytes) throw new Error("Document archive is missing project.pumlproject");
   const manifestJson = new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes);
   const manifest = parseProjectManifestJson(manifestJson);
   const expected = new Set(["project.pumlproject", ...manifest.documents.map((document) => document.path)]);
   if ([...entries.keys()].some((path) => !expected.has(path)))
-    throw new Error("Project archive contains an unexpected file");
+    throw new Error("Document archive contains an unexpected file");
   const inputs = new Map<string, ProjectMemberInput>();
   const nativeDocuments = new Map<
     string,
@@ -149,7 +149,7 @@ export async function createZipProject(name: string): Promise<ZipProject> {
     schemaVersion: 1 as const,
     projectId: crypto.randomUUID(),
     revisionId: crypto.randomUUID(),
-    name: name.trim() || "PlantUML project",
+    name: name.trim() || "PlantUML document",
     documents: [{ id: documentId, path: "diagrams/project.puml", format: "plantuml" as const }],
     elements: [],
     links: [],
@@ -178,7 +178,7 @@ export async function createZipProjectSnapshot(project: ZipProject): Promise<Uin
   }
   const archive = zipSync(contents, { level: 6 });
   if (archive.byteLength > ZIP_PROJECT_LIMITS.maxArchiveBytes)
-    throw new Error("Project archive exceeds the 256 MiB export limit");
+    throw new Error("Document archive exceeds the 256 MiB export limit");
   await readZipProject(archive);
   return archive;
 }

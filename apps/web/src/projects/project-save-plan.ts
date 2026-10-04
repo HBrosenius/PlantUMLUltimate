@@ -26,9 +26,9 @@ export async function ensureProjectMembersUnchanged(
     const document = manifest.documents.find((item) => item.path === member.path);
     if (!document?.observedFileHash) continue;
     const current = await store.read?.(member.path);
-    if (!current) throw new Error(`Project member ${member.path} disappeared before it could be saved`);
+    if (!current) throw new Error(`Document member ${member.path} disappeared before it could be saved`);
     if ((await sha256(current)) !== document.observedFileHash)
-      throw new Error(`Project member ${member.path} changed outside PlantUML Ultimate; reopen it before saving`);
+      throw new Error(`Document member ${member.path} changed outside PlantUML Ultimate; reopen it before saving`);
   }
 }
 
@@ -64,7 +64,7 @@ export async function planFolderProjectSave(
       const native = nativeDocuments.get(document.id);
       if (!native)
         throw new Error(
-          `Cannot save changed native project member ${document.path} without an unlocked portable document`,
+          `Cannot save changed native document member ${document.path} without an unlocked portable document`,
         );
       const portable: PortableDocument = {
         ...native.document,
@@ -89,7 +89,7 @@ export async function planFolderProjectSave(
       if (source === undefined) return document;
       const bytes = memberByPath.get(document.path)!.bytes;
       const observedSourceHash = hashes.get(document.id);
-      if (!observedSourceHash) throw new Error(`Could not hash changed project member ${document.path}`);
+      if (!observedSourceHash) throw new Error(`Could not hash changed document member ${document.path}`);
       return { ...document, observedSourceHash, observedFileHash: await sha256(bytes) };
     }),
   );

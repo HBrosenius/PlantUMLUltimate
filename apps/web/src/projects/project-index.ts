@@ -39,7 +39,7 @@ export interface VirtualProject {
 const encode = new TextEncoder();
 
 function throwIfCancelled(signal?: AbortSignal): void {
-  if (signal?.aborted) throw new DOMException("Project indexing cancelled", "AbortError");
+  if (signal?.aborted) throw new DOMException("Document indexing cancelled", "AbortError");
 }
 
 function linkCountFor(manifest: ProjectManifest, documentId: string): number {

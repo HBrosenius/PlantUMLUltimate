@@ -1563,7 +1563,7 @@ export function DiagramPreview({
           )}
           {(projectDiagramLinks.get(hoveredTask.id)?.length ?? 0) > 0 && (
             <div className="hover-project-links">
-              <span>Project</span>
+              <span>Document</span>
               <div>
                 {projectDiagramLinks.get(hoveredTask.id)?.map((link) => (
                   <button
