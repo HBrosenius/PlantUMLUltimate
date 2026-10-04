@@ -132,6 +132,7 @@ export interface CriticalPathAnalysis {
   projectDuration: number;
   slackByTask: Map<string, number>;
   freeSlackByTask: Map<string, number>;
+  slackLimitsByTask: Map<string, { total: string; free: string }>;
   durationByTask: Map<string, number>;
   latestDatesByTask: Map<string, { start: string; end: string }>;
   blockers: Array<{ taskId: string; reason: string }>;
@@ -159,6 +160,7 @@ export function analyzeCriticalPath(
     projectDuration: 0,
     slackByTask: new Map(),
     freeSlackByTask: new Map(),
+    slackLimitsByTask: new Map(),
     durationByTask: new Map(),
     latestDatesByTask: new Map(),
     blockers,
@@ -238,6 +240,7 @@ export function analyzeCriticalPath(
       const latestDates = new Map<string, { start: string; end: string }>();
       const slackByTask = new Map<string, number>();
       const freeSlackByTask = new Map<string, number>();
+      const slackLimitsByTask = new Map<string, { total: string; free: string }>();
       const durationByTask = new Map<string, number>();
       for (const id of [...order].reverse()) {
         const task = byId.get(id)!;
@@ -267,6 +270,8 @@ export function analyzeCriticalPath(
         // Total slack allows successors to move; free slack keeps their planned dates fixed.
         for (const free of [false, true]) {
           let endLimit = finishDate;
+          let endReason = `Project finish limits this task’s finish to ${finishDate}.`;
+          let startReason: string | undefined;
           let startLimit: string | undefined;
           for (const edge of outgoing.get(id) ?? []) {
             const dependency = edge.dependency;
@@ -294,12 +299,20 @@ export function analyzeCriticalPath(
               limit = new Date(low * 86_400_000).toISOString().slice(0, 10);
             }
             if (!limit) return empty([{ taskId: id, reason: "Dependency date cannot be resolved" }]);
-            if (anchor === "end") endLimit = endLimit < limit ? endLimit : limit;
-            else startLimit = startLimit && startLimit < limit ? startLimit : limit;
+            const reason = `Dependency with '${byId.get(edge.successor)!.label}' limits this task’s ${anchor} to ${limit}, using the dependent task’s ${free ? "planned" : "latest allowable"} dates.`;
+            if (anchor === "end" && limit <= endLimit) {
+              endLimit = limit;
+              endReason = reason;
+            } else if (anchor === "start" && (!startLimit || limit <= startLimit)) {
+              startLimit = limit;
+              startReason = reason;
+            }
           }
           let latestStart = walk(endLimit, -1);
           if (!latestStart) return empty([{ taskId: id, reason: "No working date available for slack calculation" }]);
-          if (startLimit && latestStart > startLimit) {
+          let reason = endReason;
+          if (startLimit && latestStart >= startLimit) {
+            reason = startReason!;
             latestStart = startLimit;
           }
           const latestEnd = walk(latestStart, 1);
@@ -315,6 +328,9 @@ export function analyzeCriticalPath(
             if (event || working(date)) slack++;
           }
           (free ? freeSlackByTask : slackByTask).set(id, slack);
+          const limits = slackLimitsByTask.get(id) ?? { total: "", free: "" };
+          limits[free ? "free" : "total"] = reason;
+          slackLimitsByTask.set(id, limits);
         }
       }
       const taskIds = new Set(
@@ -352,6 +368,7 @@ export function analyzeCriticalPath(
         projectDuration: projectFinish - projectStart + 1,
         slackByTask,
         freeSlackByTask,
+        slackLimitsByTask,
         durationByTask,
         latestDatesByTask: latestDates,
         blockers: [],

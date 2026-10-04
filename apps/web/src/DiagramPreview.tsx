@@ -345,9 +345,27 @@ export function DiagramPreview({
   const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
   const [scheduleSort, setScheduleSort] = useState("source");
+  const [criticalTasksOnly, setCriticalTasksOnly] = useState(false);
+  const [nearCriticalOnly, setNearCriticalOnly] = useState(false);
+  const [slackLimit, setSlackLimit] = useState(2);
   const criticalPath = useMemo(
     () => analyzeCriticalPath(tasks, dependencies, resolvedDates, calendar),
     [calendar, dependencies, resolvedDates, tasks],
+  );
+  const visibleScheduleIds = useMemo(
+    () =>
+      new Set(
+        tasks
+          .filter((task) => {
+            const slack = criticalPath.slackByTask.get(task.id);
+            return (
+              slack !== undefined &&
+              (criticalTasksOnly ? criticalPath.taskIds.has(task.id) : !nearCriticalOnly || slack <= slackLimit)
+            );
+          })
+          .map((task) => task.id),
+      ),
+    [tasks, criticalPath, criticalTasksOnly, nearCriticalOnly, slackLimit],
   );
   const criticalIds = useMemo(
     () => (showCriticalPath ? criticalPath.taskIds : new Set<string>()),
@@ -417,10 +435,44 @@ export function DiagramPreview({
       remoteEditTaskId && remoteEditColor && remoteEditName
         ? decorateRemoteEditBadge(analyzed, remoteEditTaskId, remoteEditColor, remoteEditName)
         : analyzed;
+    if (
+      showCriticalPath &&
+      (criticalTasksOnly || nearCriticalOnly) &&
+      !progressForecastResult &&
+      !criticalPath.blockers.length
+    ) {
+      const document = new DOMParser().parseFromString(decorated, "image/svg+xml");
+      for (const element of document.querySelectorAll(
+        "[data-task-id], [data-visual-task-id], [data-progress-task-id], [data-completion-marker], [data-baseline-task-id]",
+      )) {
+        const id =
+          element.getAttribute("data-task-id") ??
+          element.getAttribute("data-visual-task-id") ??
+          element.getAttribute("data-progress-task-id") ??
+          element.getAttribute("data-completion-marker") ??
+          element.getAttribute("data-baseline-task-id");
+        if (id && !visibleScheduleIds.has(id)) element.remove();
+      }
+      for (const element of document.querySelectorAll("[data-dependency-index]")) {
+        const dependency = dependencies[Number(element.getAttribute("data-dependency-index"))];
+        if (
+          dependency &&
+          (!visibleScheduleIds.has(dependency.predecessorTaskId) || !visibleScheduleIds.has(dependency.successorTaskId))
+        )
+          element.remove();
+      }
+      return new XMLSerializer().serializeToString(document.documentElement);
+    }
     return progressForecastResult
       ? addGanttForecastOverlay(decorated, progressForecastResult, forecastAsOf, calendar, forecastSelectedTaskId)
       : decorated;
   }, [
+    showCriticalPath,
+    criticalTasksOnly,
+    nearCriticalOnly,
+    visibleScheduleIds,
+    criticalPath,
+    dependencies,
     interactiveSvg,
     selectedTaskId,
     selectedTaskIds,
@@ -1438,42 +1490,111 @@ export function DiagramPreview({
             ) : criticalPath.orderedTaskIds.length ? (
               <>
                 <label>
-                  Sort schedule{" "}
-                  <select value={scheduleSort} onChange={(event) => setScheduleSort(event.target.value)}>
-                    <option value="source">Source order</option>
-                    <option value="start-asc">Start date: earliest first</option>
-                    <option value="start-desc">Start date: latest first</option>
-                    <option value="total-asc">Total slack: least first</option>
-                    <option value="total-desc">Total slack: most first</option>
-                    <option value="free-asc">Free slack: least first</option>
-                    <option value="free-desc">Free slack: most first</option>
-                  </select>
+                  <input
+                    type="checkbox"
+                    checked={criticalTasksOnly}
+                    onChange={(event) => {
+                      setCriticalTasksOnly(event.target.checked);
+                      if (event.target.checked) setNearCriticalOnly(false);
+                    }}
+                  />
+                  Critical tasks only
                 </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={nearCriticalOnly}
+                    onChange={(event) => {
+                      setNearCriticalOnly(event.target.checked);
+                      if (event.target.checked) setCriticalTasksOnly(false);
+                    }}
+                  />
+                  Critical and near-critical tasks
+                </label>
+                {nearCriticalOnly && (
+                  <label>
+                    Total slack limit (days){" "}
+                    <input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      step={1}
+                      value={slackLimit}
+                      onChange={(event) => {
+                        const value = event.target.valueAsNumber;
+                        if (Number.isFinite(value)) setSlackLimit(Math.max(0, Math.min(10000, Math.floor(value))));
+                      }}
+                    />
+                    <span> Working days for tasks; calendar days for milestones.</span>
+                  </label>
+                )}
                 <table>
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Task</th>
-                      <th>Start</th>
-                      <th>Finish</th>
-                      <th>Duration</th>
-                      <th>Total slack</th>
-                      <th>Free slack</th>
-                      <th>Latest start</th>
-                      <th>Latest finish</th>
-                      <th>Status and critical chain</th>
+                      {[
+                        ["source", "#"],
+                        ["task", "Task"],
+                        ["start", "Start"],
+                        ["finish", "Finish"],
+                        ["duration", "Duration"],
+                        ["total", "Total slack"],
+                        ["free", "Free slack"],
+                        ["latestStart", "Latest start"],
+                        ["latestFinish", "Latest finish"],
+                        ["status", "Status and critical chain"],
+                      ].map(([key, label]) => (
+                        <th
+                          key={key}
+                          aria-sort={
+                            scheduleSort === `${key}-asc`
+                              ? "ascending"
+                              : scheduleSort === `${key}-desc`
+                                ? "descending"
+                                : "none"
+                          }
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setScheduleSort(
+                                key === "source"
+                                  ? "source"
+                                  : scheduleSort === `${key}-asc`
+                                    ? `${key}-desc`
+                                    : `${key}-asc`,
+                              )
+                            }
+                          >
+                            {label}
+                            {scheduleSort === `${key}-asc` ? " ↑" : scheduleSort === `${key}-desc` ? " ↓" : ""}
+                          </button>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {tasks
-                      .filter((task) => criticalPath.slackByTask.has(task.id))
+                      .filter((task) => visibleScheduleIds.has(task.id))
                       .sort((a, b) => {
                         if (scheduleSort === "source") return 0;
-                        const difference = scheduleSort.startsWith("start-")
-                          ? (resolvedDates.get(a.id)?.start ?? "").localeCompare(resolvedDates.get(b.id)?.start ?? "")
-                          : scheduleSort.startsWith("total-")
-                            ? criticalPath.slackByTask.get(a.id)! - criticalPath.slackByTask.get(b.id)!
-                            : criticalPath.freeSlackByTask.get(a.id)! - criticalPath.freeSlackByTask.get(b.id)!;
+                        const value = (task: GanttTask): string | number => {
+                          const key = scheduleSort.split("-")[0];
+                          if (key === "task") return task.label;
+                          if (key === "start") return resolvedDates.get(task.id)?.start ?? "";
+                          if (key === "finish") return resolvedDates.get(task.id)?.end ?? "";
+                          if (key === "latestStart") return criticalPath.latestDatesByTask.get(task.id)?.start ?? "";
+                          if (key === "latestFinish") return criticalPath.latestDatesByTask.get(task.id)?.end ?? "";
+                          if (key === "duration") return criticalPath.durationByTask.get(task.id) ?? 0;
+                          if (key === "total") return criticalPath.slackByTask.get(task.id) ?? 0;
+                          if (key === "free") return criticalPath.freeSlackByTask.get(task.id) ?? 0;
+                          return criticalPath.taskIds.has(task.id) ? 0 : 1;
+                        };
+                        const first = value(a);
+                        const second = value(b);
+                        const difference =
+                          typeof first === "number" && typeof second === "number"
+                            ? first - second
+                            : String(first).localeCompare(String(second));
                         return scheduleSort.endsWith("desc") ? -difference : difference;
                       })
                       .map((task, index) => {
@@ -1515,6 +1636,11 @@ export function DiagramPreview({
                             <td>{latest?.end ?? "—"}</td>
                             <td>
                               {critical ? <strong>Critical</strong> : "Available slack"}
+                              <details>
+                                <summary>Slack limits</summary>
+                                <p>Total slack: {criticalPath.slackLimitsByTask.get(id)?.total}</p>
+                                <p>Free slack: {criticalPath.slackLimitsByTask.get(id)?.free}</p>
+                              </details>
                               {critical &&
                                 (criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
                                   <div key={chainIndex}>

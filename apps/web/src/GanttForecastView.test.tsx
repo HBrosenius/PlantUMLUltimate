@@ -154,3 +154,29 @@ sunday are closed
     expect(render(source)).toContain("Milestone not complete · Forecast Sep 29");
   });
 });
+
+describe("planned finish warnings", () => {
+  it("identifies late tasks and milestones with both forecast and planned dates", () => {
+    const html = render(
+      "@startgantt\nProject starts 2026-09-21\n[Build] starts 2026-09-21 and lasts 2 days and is 50% completed\n[Release] happens 2026-09-25\n@endgantt",
+    );
+    expect(html).toContain('aria-label="Planned finish warnings"');
+    expect(html).toContain("2 planned finish dates forecast to be missed");
+    expect(html).toContain("Release (milestone)");
+    expect(html).toContain("planned finish 2026-09-25, forecast finish 2026-09-29");
+    expect(html).toContain("4 calendar days late");
+  });
+
+  it("does not warn for completed tasks or future on-time milestones", () => {
+    const html = render(
+      "@startgantt\nProject starts 2026-09-21\n[Done] starts 2026-09-21 and lasts 2 days and is 100% completed\n[Release] happens 2026-10-01\n@endgantt",
+    );
+    expect(html).not.toContain('aria-label="Planned finish warnings"');
+  });
+
+  it("does not manufacture a deadline warning for an unavailable forecast", () => {
+    const html = render("@startgantt\n[A] starts $unknown and lasts 2 days\n@endgantt");
+    expect(html).not.toContain('aria-label="Planned finish warnings"');
+    expect(html).toContain("cannot forecast");
+  });
+});

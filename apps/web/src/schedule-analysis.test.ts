@@ -238,6 +238,10 @@ sunday are closed
     expect(analysis.slackByTask.get("a")).toBe(8);
     expect(analysis.freeSlackByTask.get("a")).toBe(0);
     expect(analysis.freeSlackByTask.get("b")).toBe(8);
+    expect(analysis.slackLimitsByTask.get("a")?.total).toContain("Dependency with 'B'");
+    expect(analysis.slackLimitsByTask.get("a")?.total).toContain("latest allowable");
+    expect(analysis.slackLimitsByTask.get("a")?.free).toContain("planned");
+    expect(analysis.slackLimitsByTask.get("b")?.total).toContain("Project finish");
     expect(analysis.freeSlackByTask.get("c")).toBe(0);
   });
 

@@ -147,6 +147,9 @@ test("shows dates and slack for every task and highlights critical tasks", async
     .filter({ has: page.getByRole("rowheader", { name: "Backend", exact: true }) });
   await expect(backend.getByRole("cell").nth(6)).toHaveText("2026-10-05");
   await expect(backend.getByRole("cell").nth(7)).toHaveText("2026-10-14");
+  await backend.getByText("Slack limits", { exact: true }).click();
+  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-14");
+  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-13");
   await page.locator('.diagram [data-task-id="backend"] .bar').hover();
   const hover = page.getByLabel("Task details for Backend");
   await expect(
@@ -159,11 +162,24 @@ test("shows dates and slack for every task and highlights critical tasks", async
 
 test("sorts the schedule by slack and dates with stable ties and restores source order", async ({ page }) => {
   const source =
-    "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day\n[B] lasts 1 day and starts at [A]'s end\n[C] lasts 10 days\n@endgantt";
+    "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day and is 50% completed\n[B] lasts 1 day and starts at [A]'s end and is 100% completed\n[C] lasts 10 days\n@endgantt";
   await fillSource(page, source);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
-  const sort = report.getByRole("combobox", { name: "Sort schedule" });
+  const sort = async (value: string) => {
+    const [key, direction] = value.split("-");
+    const labels: Record<string, string> = { source: "#", total: "Total slack", free: "Free slack", start: "Start" };
+    const header = report.getByRole("columnheader", { name: new RegExp(`^${labels[key!]}(?: [↑↓])?$`) });
+    const button = header.getByRole("button");
+    if (value === "source") {
+      await button.click();
+      return;
+    }
+    const wanted = direction === "asc" ? "ascending" : "descending";
+    if ((await header.getAttribute("aria-sort")) !== wanted) await button.click();
+    if ((await header.getAttribute("aria-sort")) !== wanted) await button.click();
+    await expect(header).toHaveAttribute("aria-sort", wanted);
+  };
   const names = report.getByRole("rowheader");
   await expect(names).toHaveText(["A", "B", "C"]);
   for (const [value, order] of [
@@ -175,12 +191,29 @@ test("sorts the schedule by slack and dates with stable ties and restores source
     ["start-desc", ["B", "A", "C"]],
     ["source", ["A", "B", "C"]],
   ] as const) {
-    await sort.selectOption(value);
+    await sort(value);
     await expect(names).toHaveText([...order]);
   }
   await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
   const critical = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "C", exact: true }) });
   await expect(critical).toHaveAttribute("data-critical", "true");
+  await sort("free-desc");
+  const filter = report.getByRole("checkbox", { name: "Critical tasks only" });
+  await expect(filter).not.toBeChecked();
+  await filter.check();
+  await expect(names).toHaveText(["C"]);
+  await expect(page.locator('.diagram [data-task-id="a"]')).toHaveCount(0);
+  await expect(page.locator('.diagram [data-visual-task-id="a"]')).toHaveCount(0);
+  await expect(page.locator('.diagram [data-progress-task-id="a"]')).toHaveCount(0);
+  await expect(page.locator('.diagram [data-completion-marker="b"]')).toHaveCount(0);
+  await expect(page.locator('.diagram [data-task-id="c"]')).toBeVisible();
+  await expect(page.locator(".diagram [data-dependency-index]")).toHaveCount(0);
+  await expect(critical).toHaveAttribute("data-critical", "true");
+  await filter.uncheck();
+  await expect(names).toHaveText(["B", "A", "C"]);
+  await expect(page.locator('.diagram [data-task-id="a"]')).toBeVisible();
+  await expect(page.locator('.diagram [data-dependency-index="0"]').first()).toBeVisible();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
 });
 
 test("selects and reveals an offscreen task from the sorted schedule table", async ({ page }) => {
@@ -190,7 +223,7 @@ test("selects and reveals an offscreen task from the sorted schedule table", asy
   );
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
-  await report.getByRole("combobox", { name: "Sort schedule" }).selectOption("total-asc");
+  await report.getByRole("columnheader", { name: "Total slack", exact: true }).getByRole("button").click();
   const name = report
     .getByRole("rowheader", { name: "Late", exact: true })
     .getByRole("button", { name: "Late", exact: true });
@@ -209,4 +242,27 @@ test("selects and reveals an offscreen task from the sorted schedule table", asy
       }),
     )
     .toBe(true);
+});
+
+test("filters near-critical tasks in the table and diagram with an adjustable slack limit", async ({ page }) => {
+  await fillSource(
+    page,
+    "@startgantt\nProject starts 2026-09-21\n[A] lasts 10 days\n[B] lasts 8 days\n[C] lasts 7 days\n@endgantt",
+  );
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const report = page.locator(".critical-path-report");
+  const names = report.getByRole("rowheader");
+  const near = report.getByRole("checkbox", { name: "Critical and near-critical tasks" });
+  await near.check();
+  await expect(names).toHaveText(["A", "B"]);
+  await expect(page.locator('.diagram [data-task-id="b"]')).toBeVisible();
+  await expect(page.locator('.diagram [data-task-id="c"]')).toHaveCount(0);
+  const limit = report.getByRole("spinbutton", { name: /Total slack limit/ });
+  await limit.fill("3");
+  await expect(names).toHaveText(["A", "B", "C"]);
+  await expect(page.locator('.diagram [data-task-id="c"]')).toBeVisible();
+  await limit.fill("0");
+  await expect(names).toHaveText(["A"]);
+  await near.uncheck();
+  await expect(names).toHaveText(["A", "B", "C"]);
 });

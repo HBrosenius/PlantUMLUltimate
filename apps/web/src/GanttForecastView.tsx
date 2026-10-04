@@ -91,7 +91,7 @@ export function GanttForecastView({
   const existingResourceConflicts = resourceComparison.conflicts.length - newResourceConflicts;
   const delayedTasks = tasks.filter((task) => {
     const item = forecast.tasks.get(task.id);
-    return Boolean(item?.plannedEnd && item.end && item.end > item.plannedEnd);
+    return Boolean(!item?.issue && item?.plannedEnd && item.end && item.end > item.plannedEnd);
   });
   const activeFilter =
     (taskFilter === "delayed" && delayedTasks.length === 0) ||
@@ -185,6 +185,42 @@ export function GanttForecastView({
           </span>
         )}
       </div>
+      {delayedTasks.length > 0 && (
+        <section aria-label="Planned finish warnings" className="gantt-forecast-warning">
+          <strong>
+            {delayedTasks.length} planned finish date{delayedTasks.length === 1 ? "" : "s"} forecast to be missed
+          </strong>
+          <ul>
+            {delayedTasks.map((task) => {
+              const item = forecast.tasks.get(task.id)!;
+              const days = dayNumber(item.end!) - dayNumber(item.plannedEnd!);
+              const workingDays = forecastWorkingDaysBetween(item.plannedEnd!, item.end!, calendar);
+              const milestone = Boolean(task.milestone && !task.duration);
+              return (
+                <li key={task.id}>
+                  <button type="button" onClick={() => onTaskSelect(task.id)}>
+                    {task.label}
+                    {milestone ? " (milestone)" : ""}
+                  </button>
+                  {": planned finish "}
+                  {item.plannedEnd}
+                  {", forecast finish "}
+                  {item.end}
+                  {" — "}
+                  {days} calendar day{days === 1 ? "" : "s"} late
+                  {!milestone && (
+                    <>
+                      {" "}
+                      ({workingDays} working day{workingDays === 1 ? "" : "s"})
+                    </>
+                  )}
+                  {item.missingCompletion && " · Progress missing; assumes not started."}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       {resourceComparison.hasAssignments && (
         <details className="gantt-forecast-resource-comparison">
           <summary>
