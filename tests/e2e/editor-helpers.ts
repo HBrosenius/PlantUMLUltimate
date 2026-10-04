@@ -23,16 +23,20 @@ export async function prepareEditor(page: Page) {
 export async function fillSource(page: Page, value: string, visibleText = value) {
   const editor = page.locator(".cm-content");
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await editor.fill(value);
+    // Insert through CodeMirror's keyboard input path. WebKit's contenteditable fill can add a trailing line.
+    await editor.focus();
+    await editor.press("ControlOrMeta+a");
+    await page.keyboard.insertText(value);
     try {
-      await expect.poll(() => editor.innerText(), { timeout: 2_000 }).toContain(visibleText);
+      await expect
+        .poll(async () => (await editor.locator(".cm-line").allTextContents()).join("\n"), { timeout: 2_000 })
+        .toContain(visibleText);
       return;
     } catch {
       // CodeMirror can reject a synthetic replacement while it is reconciling a previous transaction.
     }
-    await editor.fill("");
   }
-  await expect.poll(() => editor.innerText()).toContain(visibleText);
+  await expect.poll(async () => (await editor.locator(".cm-line").allTextContents()).join("\n")).toContain(visibleText);
 }
 
 export async function setSource(page: Page, value: string) {

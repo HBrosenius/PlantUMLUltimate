@@ -53,7 +53,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
       await expect(report).toContainText("Backend");
       await expect(report).toContainText("Frontend");
       await editor.press("ControlOrMeta+z");
-      // Compare source lines exactly; WebKit innerText can append layout-only blank lines.
+      // Compare source lines exactly, including meaningful blank lines.
       await expect.poll(() => editor.locator(".cm-line").allTextContents()).toEqual(original.split("\n"));
       await page.getByLabel("Show source fix suggestions").click();
       await expect(page.getByRole("button", { name: new RegExp(label) })).toBeVisible();
