@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_NAMES, type ProjectSettings } from "./project-settings";
 import { ColorField, ColorSwatch } from "./ColorField";
 
@@ -12,7 +12,13 @@ export function ProjectInspector({
   onClose(): void;
 }) {
   const [value, setValue] = useState(settings);
-  useEffect(() => setValue(settings), [settings]);
+  const previousSettings = useRef(JSON.stringify(settings));
+  useEffect(() => {
+    const snapshot = JSON.stringify(settings);
+    if (snapshot === previousSettings.current) return;
+    previousSettings.current = snapshot;
+    setValue(settings);
+  }, [settings]);
   const update = <K extends keyof ProjectSettings>(key: K, next: ProjectSettings[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   const mondayFirstWeekdays = [1, 2, 3, 4, 5, 6, 0];
