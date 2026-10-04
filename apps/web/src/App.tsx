@@ -78,6 +78,7 @@ import { useSequenceController } from "./features/sequence/use-sequence-controll
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
+import { analyzeCriticalPath } from "./schedule-analysis";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { prepareForecastApply } from "./gantt-apply-forecast";
@@ -416,17 +417,19 @@ export function App() {
     const details = new Map<string, NonNullable<ReturnType<typeof taskHoverDetails>>>();
     if (!linkedGantt) return details;
     const gantt = parseGantt(linkedGantt.source).document;
+    const calendar = parseGanttCalendar(linkedGantt.source);
     const dates = resolveTaskDates(
       gantt.tasks,
       gantt.dependencies,
       gantt.projectStart?.resolved ? gantt.projectStart.value : undefined,
-      parseGanttCalendar(linkedGantt.source),
+      calendar,
     );
+    const analysis = analyzeCriticalPath(gantt.tasks, gantt.dependencies, dates, calendar);
     for (const link of linkedGantt.wbsGanttLinks ?? []) {
       const node = wbsDocument.nodes.find((item) => item.alias === link.wbsAlias);
       const task = gantt.symbols.tasks.get(link.ganttAlias.toLowerCase());
       if (!node || !task) continue;
-      const summary = taskHoverDetails(task, gantt.dependencies, gantt.tasks, dates.get(task.id));
+      const summary = taskHoverDetails(task, gantt.dependencies, gantt.tasks, dates.get(task.id), analysis);
       if (summary) details.set(node.id, summary);
     }
     return details;

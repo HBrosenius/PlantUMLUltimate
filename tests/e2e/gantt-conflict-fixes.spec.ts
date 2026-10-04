@@ -27,6 +27,11 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
       await expect(hover).toContainText("Schedule unresolved:");
       await expect(hover).toContainText("conflicts with 'Backend'");
       await expect(hover).not.toContainText("→");
+      for (const label of ["Total slack", "Free slack"]) {
+        await expect(
+          hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: new RegExp(`^${label}$`) }) }),
+        ).toContainText("Unavailable");
+      }
       await page.getByLabel("Show source fix suggestions").click();
       const choice = page.getByRole("button", { name: new RegExp(label) });
       await expect(choice.locator("code")).toContainText(
@@ -63,7 +68,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
 test("distinguishes task and milestone slack units on a closed weekend", async ({ page }) => {
   await fillSource(
     page,
-    "@startgantt\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-25 and lasts 1 day\n[Release] happens 2026-09-26\n@endgantt",
+    "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-25 and lasts 1 day\n[Release] happens 2026-09-26\n@endgantt",
   );
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
@@ -74,6 +79,13 @@ test("distinguishes task and milestone slack units on a closed weekend", async (
   await expect(milestone).toContainText("0 calendar days");
   const task = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Build", exact: true }) });
   await expect(task).toContainText("0 working days");
+  await page.locator('.diagram [data-task-id="release"]').first().hover();
+  const hover = page.getByLabel("Task details for Release");
+  for (const label of ["Total slack", "Free slack"]) {
+    await expect(
+      hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: new RegExp(`^${label}$`) }) }),
+    ).toContainText("0 calendar days");
+  }
 });
 
 test("shows a selectable critical chain through a linked milestone", async ({ page }) => {
@@ -134,4 +146,12 @@ test("shows dates and slack for every task and highlights critical tasks", async
     .filter({ has: page.getByRole("rowheader", { name: "Backend", exact: true }) });
   await expect(backend.getByRole("cell").nth(6)).toHaveText("2026-10-05");
   await expect(backend.getByRole("cell").nth(7)).toHaveText("2026-10-14");
+  await page.locator('.diagram [data-task-id="backend"] .bar').hover();
+  const hover = page.getByLabel("Task details for Backend");
+  await expect(
+    hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Total slack$/ }) }),
+  ).toContainText("1 working days");
+  await expect(
+    hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
+  ).toContainText("0 working days");
 });

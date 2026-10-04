@@ -13,7 +13,14 @@ interface Props {
   nodeCompletion?: ReadonlyMap<string, number>;
   nodeSchedule?: ReadonlyMap<
     string,
-    { label: string; dates: string; duration: string; completion: string; resources: string }
+    {
+      label: string;
+      dates: string;
+      duration: string;
+      completion: string;
+      resources: string;
+      slack?: { total: string; free: string } | undefined;
+    }
   >;
   dependencyWarnings?: ReadonlyMap<string, string>;
   selectedId: string | undefined;
@@ -100,8 +107,14 @@ export function WbsDiagramPreview({
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
   const [hoveredNode, setHoveredNode] = useState<{ id: string; x: number; y: number }>();
   const hoverDetails = hoveredNode ? nodeSchedule.get(hoveredNode.id) : undefined;
+  const focusBeforeRender = useRef<string | undefined>(undefined);
   useLayoutEffect(() => {
-    if (root.current && svg) root.current.innerHTML = svg;
+    const host = root.current;
+    if (!host || !svg) return;
+    const active = globalThis.document.activeElement;
+    focusBeforeRender.current =
+      active && host.contains(active) ? (active.getAttribute("aria-label") ?? undefined) : undefined;
+    host.innerHTML = svg;
   }, [svg]);
   const clearDropTarget = () => {
     dropTarget.current?.classList.remove("wbs-drop-target");
@@ -442,12 +455,19 @@ export function WbsDiagramPreview({
       const target = [...host.querySelectorAll<SVGElement>("[aria-label]")].find(
         (item) => item.getAttribute("aria-label") === request.label,
       );
-      if (target)
-        window.setTimeout(() => {
-          if (!target.isConnected || focusAfterRender.current !== request) return;
-          target.focus();
-          focusAfterRender.current = undefined;
-        }, 100);
+      if (target) {
+        target.focus();
+        focusAfterRender.current = undefined;
+        focusBeforeRender.current = undefined;
+      }
+    }
+    const previousLabel = focusBeforeRender.current;
+    if (previousLabel) {
+      const target = [...host.querySelectorAll<SVGElement>("[aria-label]")].find(
+        (item) => item.getAttribute("aria-label") === previousLabel,
+      );
+      target?.focus();
+      focusBeforeRender.current = undefined;
     }
   }, [
     dependencyWarnings,
@@ -768,6 +788,18 @@ export function WbsDiagramPreview({
               <dt>Duration</dt>
               <dd>{hoverDetails.duration}</dd>
             </div>
+            {hoverDetails.slack && (
+              <>
+                <div>
+                  <dt>Total slack</dt>
+                  <dd>{hoverDetails.slack.total}</dd>
+                </div>
+                <div>
+                  <dt>Free slack</dt>
+                  <dd>{hoverDetails.slack.free}</dd>
+                </div>
+              </>
+            )}
             <div>
               <dt>Complete</dt>
               <dd>{hoverDetails.completion}</dd>

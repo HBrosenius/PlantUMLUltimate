@@ -109,12 +109,26 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     .click();
   await (await wbsNodeHit(page, "Design")).hover({ position: { x: 5, y: 5 } });
   await expect(page.getByRole("complementary", { name: "Task details for Design" })).toBeVisible();
+  const designHover = page.getByRole("complementary", { name: "Task details for Design" });
+  await expect(
+    designHover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Total slack$/ }) }),
+  ).toContainText("0 working days");
+  await expect(
+    designHover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
+  ).toContainText("0 working days");
   await selectWbsNode(page, "Build");
   await expect(page.getByRole("complementary", { name: "WBS node inspector" }).getByLabel("Label")).toHaveValue(
     "Build",
   );
   await hoverWbsLabel(page, "Build");
   await expect(page.getByRole("complementary", { name: "Task details for Build" })).toBeVisible();
+  const buildHover = page.getByRole("complementary", { name: "Task details for Build" });
+  await expect(
+    buildHover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Total slack$/ }) }),
+  ).toContainText("0 working days");
+  await expect(
+    buildHover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
+  ).toContainText("0 working days");
   await page.mouse.move(0, 0);
   await expect(page.getByRole("complementary", { name: "Task details for Build" })).toBeHidden();
 });

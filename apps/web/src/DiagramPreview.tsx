@@ -11,6 +11,7 @@ import {
   analyzeCriticalPath,
   decorateScheduleAnalysis,
   extractRenderedTaskGeometry,
+  type CriticalPathAnalysis,
 } from "./schedule-analysis";
 import { useRenderer } from "./render/use-renderer";
 import { decorateRemoteEditBadge } from "./render/remote-edit-badge";
@@ -467,6 +468,7 @@ export function DiagramPreview({
         dependencies,
         tasks,
         resolvedDates.get(hoveredTask.id),
+        progressForecast?.enabled ? undefined : criticalPath,
       )
     : undefined;
 
@@ -1603,6 +1605,18 @@ export function DiagramPreview({
               <dt>Duration</dt>
               <dd>{hoverDetails.duration}</dd>
             </div>
+            {hoverDetails.slack && (
+              <>
+                <div>
+                  <dt>Total slack</dt>
+                  <dd>{hoverDetails.slack.total}</dd>
+                </div>
+                <div>
+                  <dt>Free slack</dt>
+                  <dd>{hoverDetails.slack.free}</dd>
+                </div>
+              </>
+            )}
             <div>
               <dt>Complete</dt>
               <dd>{hoverDetails.completion}</dd>
@@ -1707,8 +1721,11 @@ export function taskHoverDetails(
   dependencies: readonly GanttDependency[],
   tasks: readonly GanttTask[],
   resolved?: ResolvedTaskDates,
+  analysis?: CriticalPathAnalysis,
 ) {
   if (!task) return undefined;
+  const slackUnit = task.milestone && !task.duration ? "calendar days" : "working days";
+  const formatSlack = (value: number | undefined) => (value === undefined ? "Unavailable" : `${value} ${slackUnit}`);
   const durationDays = taskElapsedDays(task);
   const end =
     resolved?.end ??
@@ -1725,6 +1742,12 @@ export function taskHoverDetails(
       .map((item) => ({ id: item.id, label: item.label }));
   return {
     label: task.label,
+    slack: analysis
+      ? {
+          total: formatSlack(analysis.slackByTask.get(task.id)),
+          free: formatSlack(analysis.freeSlackByTask.get(task.id)),
+        }
+      : undefined,
     dates:
       resolved && (resolved.issue || !resolved.start || !resolved.end)
         ? `Schedule unresolved: ${resolved.issue ?? "Task dates cannot be resolved"}`

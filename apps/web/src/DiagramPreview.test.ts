@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
+import { analyzeCriticalPath } from "./schedule-analysis";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 import { resizeTaskFeedback, svgScreenScale, taskHoverDetails } from "./DiagramPreview";
 import { trackWindowPointerDrag } from "./pointer-drag";
@@ -45,6 +47,29 @@ describe("svgScreenScale", () => {
 });
 
 describe("taskHoverDetails", () => {
+  it("shows total and free slack independently, including zero values", () => {
+    const document = parseGantt(
+      "@startgantt\n[A] lasts 1 day\n[B] lasts 1 day and starts at [A]'s end\n[C] lasts 10 days\n@endgantt",
+    ).document;
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies);
+    expect(
+      taskHoverDetails(document.tasks[0], document.dependencies, document.tasks, undefined, analysis)?.slack,
+    ).toEqual({ total: "8 working days", free: "0 working days" });
+  });
+
+  it("shows unavailable slack when the schedule is rejected", () => {
+    const analysis = analyzeCriticalPath(
+      [task],
+      [],
+      new Map([[task.id, { derived: true, issue: "Dependency conflict" }]]),
+    );
+    expect(taskHoverDetails(task, [], [task], undefined, analysis)?.slack).toEqual({
+      total: "Unavailable",
+      free: "Unavailable",
+    });
+    expect(taskHoverDetails(task, [], [task])?.slack).toBeUndefined();
+  });
+
   it.each([
     { derived: true, issue: "End date cannot be resolved: $unknown" },
     { derived: true, start: "2026-09-03" },
