@@ -1,4 +1,4 @@
-import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
+import { normalizeTaskId, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { dependencyDate, resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
 import { isWorkingDate, taskPauses, shiftDate, parseGanttCalendar, type GanttCalendar } from "./gantt-calendar";
 
@@ -132,6 +132,7 @@ export interface CriticalPathAnalysis {
   projectDuration: number;
   slackByTask: Map<string, number>;
   blockers: Array<{ taskId: string; reason: string }>;
+  chainsByTask: Map<string, string[][]>;
 }
 
 export function analyzeCriticalPath(
@@ -155,6 +156,7 @@ export function analyzeCriticalPath(
     projectDuration: 0,
     slackByTask: new Map(),
     blockers,
+    chainsByTask: new Map(),
   });
   const blockers = tasks.flatMap((task) => {
     const dates = resolvedDates!.get(task.id);
@@ -172,7 +174,28 @@ export function analyzeCriticalPath(
   if (blockers.length) return empty(blockers);
   const incoming = new Map(tasks.map((task) => [task.id, 0]));
   const outgoing = new Map(tasks.map((task) => [task.id, [] as { successor: string; dependency: GanttDependency }[]]));
-  for (const dependency of dependencies) {
+  const milestoneDependencies: GanttDependency[] = tasks.flatMap((task) => {
+    if (!task.milestone || "resolved" in task.milestone) return [];
+    const reference = normalizeTaskId(task.milestone.value);
+    const predecessor = tasks.find(
+      (item) =>
+        item.id === reference ||
+        normalizeTaskId(item.label) === reference ||
+        normalizeTaskId(item.alias?.value ?? "") === reference,
+    );
+    if (!predecessor) return [];
+    return [
+      {
+        predecessorTaskId: predecessor.id,
+        successorTaskId: task.id,
+        predecessor: task.milestone,
+        successor: { value: task.label, range: task.labelRange },
+        relation: task.milestoneAnchor === "start" ? "end-after-start" : "end-after-end",
+        sourceRange: task.milestone.range,
+      },
+    ];
+  });
+  for (const dependency of [...dependencies, ...milestoneDependencies]) {
     if (!byId.has(dependency.predecessorTaskId) || !byId.has(dependency.successorTaskId)) continue;
     const from = dependency.direction === "before" ? dependency.successorTaskId : dependency.predecessorTaskId;
     const to = dependency.direction === "before" ? dependency.predecessorTaskId : dependency.successorTaskId;
@@ -285,6 +308,30 @@ export function analyzeCriticalPath(
       const taskIds = new Set(
         scheduled.filter((item) => (slackByTask.get(item.task.id) ?? 1) === 0).map((item) => item.task.id),
       );
+      // Show one representative continuation per critical branch, keeping the
+      // explanation bounded rather than expanding every possible graph path.
+      const chainsByTask = new Map<string, string[][]>();
+      for (const id of [...order].reverse()) {
+        if (!taskIds.has(id)) continue;
+        const next = [
+          ...new Set(
+            (outgoing.get(id) ?? [])
+              .filter(({ dependency }) => {
+                const predecessorAnchor = dependency.relation.endsWith("after-start") ? "start" : "end";
+                const successorAnchor = dependency.relation.startsWith("start-") ? "start" : "end";
+                const predecessor = resolvedDates.get(dependency.predecessorTaskId)?.[predecessorAnchor];
+                const successor = resolvedDates.get(dependency.successorTaskId)?.[successorAnchor];
+                return predecessor && successor && dependencyDate(predecessor, dependency, calendar!) === successor;
+              })
+              .map((edge) => edge.successor),
+          ),
+        ].filter((successor) => taskIds.has(successor));
+        const chains = next.flatMap((successor) => {
+          const continuation = chainsByTask.get(successor)?.[0] ?? [successor];
+          return [[id, ...continuation]];
+        });
+        chainsByTask.set(id, chains.length ? chains : [[id]]);
+      }
       return {
         taskIds,
         orderedTaskIds: order
@@ -293,6 +340,7 @@ export function analyzeCriticalPath(
         projectDuration: projectFinish - projectStart + 1,
         slackByTask,
         blockers: [],
+        chainsByTask,
       };
     }
   }

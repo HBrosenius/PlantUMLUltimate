@@ -122,7 +122,10 @@ export function resolveTaskDates(
     if (!start && !end && task.milestone && !("resolved" in task.milestone)) {
       const referenceId = normalizeTaskId(task.milestone.value);
       const reference = tasks.find(
-        (item) => item.id === referenceId || normalizeTaskId(item.alias?.value ?? "") === referenceId,
+        (item) =>
+          item.id === referenceId ||
+          normalizeTaskId(item.label) === referenceId ||
+          normalizeTaskId(item.alias?.value ?? "") === referenceId,
       );
       const anchor = reference ? solve(reference)[task.milestoneAnchor ?? "end"] : undefined;
       if (!anchor) return unavailable(`Milestone reference cannot be resolved: ${task.milestone.value}`);

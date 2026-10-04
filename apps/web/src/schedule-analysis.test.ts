@@ -8,6 +8,7 @@ import {
   timelineBaselineX,
 } from "./schedule-analysis";
 import { resolveTaskDates } from "./gantt-schedule";
+import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { parseGanttCalendar } from "./gantt-calendar";
 
 describe("schedule analysis", () => {
@@ -136,6 +137,69 @@ sunday are closed
     const analysis = analyzeCriticalPath(document.tasks, [], dates, calendar);
     expect(analysis.slackByTask.get("b")).toBe(0);
     expect(analysis.taskIds.has("b")).toBe(true);
+  });
+
+  it("counts milestone slack through closed weekend days", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[Release] happens 2026-09-26\n[Finish] happens 2026-09-28\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, [], undefined, calendar);
+    expect(dates.get("release")).toMatchObject({ start: "2026-09-26", end: "2026-09-26" });
+    expect(analyzeCriticalPath(document.tasks, [], dates, calendar).slackByTask.get("release")).toBe(2);
+  });
+
+  it("keeps a milestone linked to a paused task on that task's resolved end", () => {
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-21 and lasts 5 days\n[Build] pauses on tuesday\n[Release] happens at [Build]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, undefined, calendar);
+    expect(dates.get("release")).toMatchObject({ start: "2026-09-28", end: "2026-09-28" });
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    expect(analysis.slackByTask.get("release")).toBe(0);
+    expect(analysis.taskIds.has("release")).toBe(true);
+  });
+
+  it.each(["Build", "B"])("propagates criticality through an end-linked milestone using reference %s", (reference) => {
+    const source = `@startgantt\nsaturday are closed\nsunday are closed\n[Build] as [B]\n[Build] starts 2026-09-21 and lasts 5 days\n[Build] pauses on tuesday\n[Release] happens at [${reference}]'s end\n[Deploy] starts at [Release]'s end and lasts 2 days\n@endgantt`;
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, undefined, calendar);
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    const build = document.tasks.find((task) => task.label === "Build")!;
+    expect(dates.get("deploy")?.end).toBe("2026-09-30");
+    expect(
+      calculateProgressForecast(document.tasks, document.dependencies, dates, calendar, "2026-09-21").tasks.get(
+        "release",
+      )?.end,
+    ).toBe("2026-09-28");
+    expect(analysis.slackByTask.get(build.id)).toBe(0);
+    expect(analysis.orderedTaskIds).toEqual([build.id, "release", "deploy"]);
+    expect(analysis.chainsByTask.get(build.id)).toEqual([[build.id, "release", "deploy"]]);
+  });
+
+  it("propagates a start-linked milestone's constraint to its referenced task", () => {
+    const source =
+      "@startgantt\n[Build] starts 2026-09-21 and lasts 2 days\n[Release] happens at [Build]'s start\n[Deploy] starts at [Release]'s end and lasts 4 days\n@endgantt";
+    const document = parseGantt(source).document;
+    const calendar = parseGanttCalendar(source);
+    const dates = resolveTaskDates(document.tasks, document.dependencies, undefined, calendar);
+    expect(analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar).slackByTask.get("build")).toBe(
+      0,
+    );
+  });
+
+  it("explains separate critical branches without inventing a connection", () => {
+    const document = parseGantt(
+      "@startgantt\n[A] lasts 1 day\n[B] starts at [A]'s end and lasts 2 days\n[C] starts at [A]'s end and lasts 2 days\n[D] lasts 3 days\n@endgantt",
+    ).document;
+    const analysis = analyzeCriticalPath(document.tasks, document.dependencies);
+    expect(analysis.chainsByTask.get("a")).toEqual([
+      ["a", "b"],
+      ["a", "c"],
+    ]);
+    expect(analysis.chainsByTask.get("d")).toEqual([["d"]]);
   });
 
   it("reports the specific resolver issue as a selectable task blocker", () => {

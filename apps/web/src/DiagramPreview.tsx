@@ -1433,20 +1433,46 @@ export function DiagramPreview({
                     <th>#</th>
                     <th>Task</th>
                     <th>Duration</th>
-                    <th>Slack (working days)</th>
+                    <th>Slack</th>
                     <th>Why critical</th>
                   </tr>
                 </thead>
                 <tbody>
                   {criticalPath.orderedTaskIds.map((id, index) => {
                     const task = tasks.find((item) => item.id === id);
+                    const milestone = Boolean(task?.milestone && !task.duration);
                     return (
                       <tr key={id}>
                         <td>{index + 1}</td>
                         <th>{task?.label ?? id}</th>
-                        <td>{task ? (taskElapsedDays(task) ?? 1) : 1}d</td>
-                        <td>{Math.round(criticalPath.slackByTask.get(id) ?? 0)}d</td>
-                        <td>Zero slack; a delay can move the project finish.</td>
+                        <td>
+                          {milestone ? "Milestone (0 days)" : `${task ? (taskElapsedDays(task) ?? 1) : 1} working days`}
+                        </td>
+                        <td>
+                          {Math.round(criticalPath.slackByTask.get(id) ?? 0)}{" "}
+                          {milestone ? "calendar days" : "working days"}
+                        </td>
+                        <td>
+                          {(criticalPath.chainsByTask.get(id) ?? [[id]]).map((chain, chainIndex) => (
+                            <div key={chainIndex}>
+                              {chain.length === 1
+                                ? "No usable slack before project finish: "
+                                : "Critical dependency chain: "}
+                              {chain.map((taskId, step) => {
+                                const linked = tasks.find((item) => item.id === taskId);
+                                return (
+                                  <span key={taskId}>
+                                    {step > 0 && " → "}
+                                    <button onClick={() => onTaskSelect(taskId)}>
+                                      {linked?.label ?? taskId}
+                                      {linked?.milestone && !linked.duration ? " (milestone)" : ""}
+                                    </button>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </td>
                       </tr>
                     );
                   })}

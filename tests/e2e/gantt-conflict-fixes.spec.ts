@@ -59,3 +59,34 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
     });
   }
 }
+
+test("distinguishes task and milestone slack units on a closed weekend", async ({ page }) => {
+  await fillSource(
+    page,
+    "@startgantt\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-25 and lasts 1 day\n[Release] happens 2026-09-26\n@endgantt",
+  );
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const report = page.locator(".critical-path-report");
+  const milestone = report
+    .getByRole("row")
+    .filter({ has: page.getByRole("rowheader", { name: "Release", exact: true }) });
+  await expect(milestone).toContainText("Milestone (0 days)");
+  await expect(milestone).toContainText("0 calendar days");
+  const task = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Build", exact: true }) });
+  await expect(task).toContainText("0 working days");
+});
+
+test("shows a selectable critical chain through a linked milestone", async ({ page }) => {
+  await fillSource(
+    page,
+    "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-21 and lasts 5 days\n[Build] pauses on tuesday\n[Release] happens at [Build]'s end\n[Deploy] starts at [Release]'s end and lasts 2 days\n@endgantt",
+  );
+  await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  const row = page
+    .locator(".critical-path-report")
+    .getByRole("row")
+    .filter({ has: page.getByRole("rowheader", { name: "Build", exact: true }) });
+  await expect(row).toContainText("Build → Release (milestone) → Deploy");
+  await row.getByRole("button", { name: "Release (milestone)", exact: true }).click();
+  await expect(page.locator('.diagram [data-task-id="release"]')).toHaveAttribute("data-selected", "true");
+});

@@ -113,7 +113,10 @@ export function calculateProgressForecast(
   remainingOverrides: Readonly<Record<string, number>> = {},
 ): ProgressForecast {
   const byId = new Map(tasks.map((task) => [task.id, task]));
-  for (const task of tasks) if (task.alias) byId.set(normalizeTaskId(task.alias.value), task);
+  for (const task of tasks) {
+    byId.set(normalizeTaskId(task.label), task);
+    if (task.alias) byId.set(normalizeTaskId(task.alias.value), task);
+  }
   const forecast = new Map<string, ForecastTask>();
   const visiting = new Set<string>();
 
