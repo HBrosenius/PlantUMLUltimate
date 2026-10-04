@@ -6474,3 +6474,14 @@ textarea:focus-visible,
 .bulk-task-row > .color-field {
   flex: 1;
 }
+
+/* Shared semantic selection feedback across the six non-Gantt editors. */
+.diagram-bulk-selected {
+  filter: drop-shadow(0 0 3px var(--accent, #3979d6));
+}
+rect.diagram-bulk-selected,
+path.diagram-bulk-selected,
+polygon.diagram-bulk-selected {
+  stroke: var(--accent, #3979d6) !important;
+  stroke-width: 2px !important;
+}

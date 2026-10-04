@@ -152,6 +152,8 @@ import {
 import { StorageStatus } from "./StorageStatus";
 import { HistoryMenu } from "./HistoryMenu";
 import { BulkTaskInspector } from "./BulkTaskInspector";
+import { BulkDiagramInspector } from "./BulkDiagramInspector";
+import { useDiagramMultiSelection } from "./use-diagram-multi-selection";
 import {
   copyTasksText,
   deleteTasks,
@@ -2977,9 +2979,30 @@ export function App() {
       `Linked ${node.label} to ${target?.label ?? "Gantt task"}${policy === "delete" ? "; removed the former task" : ""}`,
     );
   };
+  const diagramMulti = useDiagramMultiSelection({
+    kind: workspace.diagramKind,
+    source: workspace.source,
+    documentId: tabs.activeId,
+    root: workspaceElement,
+    commit: commitGeneratedSource,
+    report: setInteractionMessage,
+    readOnly: collaboration?.documentId === tabs.activeId && collaboration.role === "viewer",
+    onSelect: (item) => {
+      if (item.attribute === "data-sequence-participant-id") selectSequenceParticipant(item.id);
+      else if (item.attribute === "data-sequence-message-id") selectSequenceMessage(item.id);
+      else if (item.attribute === "data-sequence-structure-id") selectSequenceStructure(item.id);
+      else if (item.attribute === "data-usecase-object-id") selectUseCaseObject(item.id);
+      else if (item.attribute === "data-class-object-id") selectClassObject(item.id);
+      else if (item.attribute === "data-activity-object-id") selectActivityObject(item.id);
+      else if (item.attribute === "data-wbs-node-id") selectWbsNode(item.id);
+      else selectWbsRelationship(item.id);
+    },
+  });
+  const canDuplicateMenuElement = !!menuOccurrence && diagramMulti.canDuplicateAt(menuOccurrence.range);
+
   return (
     <div
-      className={`app${sideInspectorOpen ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
+      className={`app${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
       data-theme={workspace.theme}
       onClickCapture={(event) => {
         if (!(event.target instanceof Element)) return;
@@ -3282,7 +3305,10 @@ export function App() {
         ref={workspaceElement}
         tabIndex={-1}
         className={`workspace mode-${workspace.viewMode}`}
+        onClickCapture={diagramMulti.onClickCapture}
+        onKeyDownCapture={diagramMulti.onKeyDownCapture}
         onPointerDownCapture={(event) => {
+          diagramMulti.onPointerDownCapture(event);
           if (!(event.target instanceof Element) || !event.target.closest(".diagram")) return;
           const target = event.target.closest<HTMLElement | SVGElement>("[tabindex], button");
           if (target) {
@@ -3586,13 +3612,15 @@ export function App() {
               messages={sequenceDocument.messages}
               structures={sequenceStructures}
               selectedParticipantId={
-                selectedSequenceParticipantId ??
-                (!selectedSequenceMessageId && !selectedSequenceStructureId
-                  ? sourceHighlightedSequenceParticipantId
-                  : undefined)
+                diagramMulti.multiple
+                  ? undefined
+                  : (selectedSequenceParticipantId ??
+                    (!selectedSequenceMessageId && !selectedSequenceStructureId
+                      ? sourceHighlightedSequenceParticipantId
+                      : undefined))
               }
-              selectedMessageId={selectedSequenceMessageId}
-              selectedStructureId={selectedSequenceStructureId}
+              selectedMessageId={diagramMulti.multiple ? undefined : selectedSequenceMessageId}
+              selectedStructureId={diagramMulti.multiple ? undefined : selectedSequenceStructureId}
               onParticipantSelect={selectSequenceParticipant}
               onMessageSelect={selectSequenceMessage}
               onStructureSelect={selectSequenceStructure}
@@ -3613,7 +3641,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={useCaseDocument}
-              selectedId={selectedUseCaseObjectId ?? sourceHighlightedUseCaseId}
+              selectedId={diagramMulti.multiple ? undefined : (selectedUseCaseObjectId ?? sourceHighlightedUseCaseId)}
               onSelect={(id) => {
                 selectUseCaseObject(id);
                 const object = [
@@ -3639,9 +3667,11 @@ export function App() {
               onRenderRetry={retryRender}
               document={classDocument}
               selectedId={
-                selectedClassRelationship
-                  ? selectedClassObjectId
-                  : (sourceHighlightedClassEntityId ?? selectedClassObjectId)
+                diagramMulti.multiple
+                  ? undefined
+                  : selectedClassRelationship
+                    ? selectedClassObjectId
+                    : (sourceHighlightedClassEntityId ?? selectedClassObjectId)
               }
               highlightedMemberId={sourceHighlightedClassMemberId}
               onSelect={selectClassObject}
@@ -3661,7 +3691,7 @@ export function App() {
               renderError={result?.error}
               onRenderRetry={retryRender}
               document={activityDocument}
-              selectedId={sourceHighlightedActivityId ?? selectedActivityObjectId}
+              selectedId={diagramMulti.multiple ? undefined : (sourceHighlightedActivityId ?? selectedActivityObjectId)}
               onSelect={(id) => {
                 selectActivityObject(id);
                 const object = [
@@ -3692,8 +3722,8 @@ export function App() {
                     .map((node) => node.id),
                 )
               }
-              selectedId={sourceHighlightedWbsNodeId ?? selectedWbsNodeId}
-              selectedRelationshipId={selectedWbsRelationshipId}
+              selectedId={diagramMulti.multiple ? undefined : (sourceHighlightedWbsNodeId ?? selectedWbsNodeId)}
+              selectedRelationshipId={diagramMulti.multiple ? undefined : selectedWbsRelationshipId}
               zoom={workspace.zoom}
               renderStatus={status}
               renderError={result?.error}
@@ -3829,7 +3859,7 @@ export function App() {
       {wbsSettingsOpen && (
         <WbsSettingsInspector source={workspace.source} onApply={applyWbsSettings} onClose={closeWbsSettings} />
       )}
-      {selectedWbsNode && (
+      {selectedWbsNode && !diagramMulti.multiple && (
         <WbsNodeInspector
           key={selectedWbsNode.id}
           node={selectedWbsNode}
@@ -4059,7 +4089,7 @@ export function App() {
             />
           );
         })()}
-      {selectedWbsRelationship && (
+      {selectedWbsRelationship && !diagramMulti.multiple && (
         <WbsRelationshipInspector
           key={`${selectedWbsRelationship.id}:${selectedWbsRelationship.sourceRange.to}`}
           relationship={selectedWbsRelationship}
@@ -4421,10 +4451,10 @@ export function App() {
       <UseCaseInspectors
         settingsOpen={useCaseSettingsOpen}
         settings={parseUseCaseSettings(workspace.source)}
-        selectedElement={selectedUseCaseElement}
-        selectedRelationship={selectedUseCaseRelationship}
-        selectedPackage={selectedUseCasePackage}
-        selectedNote={selectedUseCaseNote}
+        selectedElement={diagramMulti.multiple ? undefined : selectedUseCaseElement}
+        selectedRelationship={diagramMulti.multiple ? undefined : selectedUseCaseRelationship}
+        selectedPackage={diagramMulti.multiple ? undefined : selectedUseCasePackage}
+        selectedNote={diagramMulti.multiple ? undefined : selectedUseCaseNote}
         elements={useCaseDocument.elements}
         packages={useCaseDocument.packages}
         onSettingsChange={applyUseCaseSettings}
@@ -4445,10 +4475,10 @@ export function App() {
         settingsOpen={classSettingsOpen}
         settings={parseClassSettings(workspace.source)}
         document={classDocument}
-        selectedEntity={selectedClassEntity}
-        selectedRelationship={selectedClassRelationship}
-        selectedPackage={selectedClassPackage}
-        selectedNote={selectedClassNote}
+        selectedEntity={diagramMulti.multiple ? undefined : selectedClassEntity}
+        selectedRelationship={diagramMulti.multiple ? undefined : selectedClassRelationship}
+        selectedPackage={diagramMulti.multiple ? undefined : selectedClassPackage}
+        selectedNote={diagramMulti.multiple ? undefined : selectedClassNote}
         onSettingsChange={applyClassSettings}
         onEntityChange={applyClassEntity}
         onEntityPackageChange={moveSelectedClassEntity}
@@ -4475,12 +4505,12 @@ export function App() {
         settingsOpen={activitySettingsOpen}
         settings={parseActivitySettings(workspace.source)}
         document={activityDocument}
-        selectedAction={selectedActivityAction}
-        selectedControl={selectedActivityControl}
-        selectedTerminal={selectedActivityTerminal}
-        selectedArrow={selectedActivityArrow}
-        selectedPartition={selectedActivityPartition}
-        selectedNote={selectedActivityNote}
+        selectedAction={diagramMulti.multiple ? undefined : selectedActivityAction}
+        selectedControl={diagramMulti.multiple ? undefined : selectedActivityControl}
+        selectedTerminal={diagramMulti.multiple ? undefined : selectedActivityTerminal}
+        selectedArrow={diagramMulti.multiple ? undefined : selectedActivityArrow}
+        selectedPartition={diagramMulti.multiple ? undefined : selectedActivityPartition}
+        selectedNote={diagramMulti.multiple ? undefined : selectedActivityNote}
         onSettingsChange={applyActivitySettings}
         onActionChange={applyActivityAction}
         onActionPartitionChange={moveActivityActionPartition}
@@ -4511,9 +4541,9 @@ export function App() {
       <SequenceInspectors
         settingsOpen={sequenceSettingsOpen}
         settings={parseSequenceSettings(workspace.source)}
-        selectedParticipant={selectedSequenceParticipant}
-        selectedMessage={selectedSequenceMessage}
-        selectedStructure={selectedSequenceStructure}
+        selectedParticipant={diagramMulti.multiple ? undefined : selectedSequenceParticipant}
+        selectedMessage={diagramMulti.multiple ? undefined : selectedSequenceMessage}
+        selectedStructure={diagramMulti.multiple ? undefined : selectedSequenceStructure}
         participants={sequenceParticipantNames}
         anchors={sequenceMessageAnchors}
         onSettingsApply={applySequenceSettings}
@@ -4528,6 +4558,23 @@ export function App() {
         onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
         onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
       />
+      {diagramMulti.multiple && (
+        <BulkDiagramInspector
+          key={`${tabs.activeId}:${workspace.diagramKind}`}
+          items={diagramMulti.selected}
+          readOnly={diagramMulti.readOnly}
+          onChange={diagramMulti.change}
+          onCopy={diagramMulti.copy}
+          onPaste={diagramMulti.paste}
+          onDuplicate={diagramMulti.duplicate}
+          onClose={() => {
+            diagramMulti.clear();
+            dismissAllInspectors();
+            clearSelectedWbsNode();
+            clearSelectedWbsRelationship();
+          }}
+        />
+      )}
       {multipleTasksSelected && (
         <BulkTaskInspector
           labels={selectedTaskIds.map((id) => parseResult.document.symbols.tasks.get(id)?.label ?? id)}
@@ -4839,6 +4886,19 @@ export function App() {
             if (event.key === "Escape") setSymbolMenu(undefined);
           }}
         >
+          {canDuplicateMenuElement && menuOccurrence && (
+            <button
+              autoFocus
+              role="menuitem"
+              disabled={diagramMulti.readOnly}
+              onClick={() => {
+                diagramMulti.duplicateAt(menuOccurrence.range);
+                setSymbolMenu(undefined);
+              }}
+            >
+              Duplicate
+            </button>
+          )}
           {menuLinkedGantt && menuWbsNode?.alias && (
             <button
               role="menuitem"
@@ -4892,9 +4952,12 @@ export function App() {
             )}
           <button
             autoFocus={
-              workspace.diagramKind !== "gantt" ||
-              (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
-                ?.kind !== "task"
+              !canDuplicateMenuElement &&
+              (workspace.diagramKind !== "gantt" ||
+                (
+                  symbolMenu.occurrence ??
+                  (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined)
+                )?.kind !== "task")
             }
             role="menuitem"
             onClick={() => {

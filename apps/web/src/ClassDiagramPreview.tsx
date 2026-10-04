@@ -1,4 +1,5 @@
 import {
+  useMemo,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -58,6 +59,7 @@ export function ClassDiagramPreview({
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
@@ -496,7 +498,7 @@ export function ClassDiagramPreview({
               clearDragPresentation();
             }}
             onKeyDown={keyboardSelect}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">

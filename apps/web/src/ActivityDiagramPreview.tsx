@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
+import { useMemo, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation } from "./useDiagramNavigation";
@@ -34,6 +34,7 @@ export function ActivityDiagramPreview({
   onAttachNote(noteId: string, targetId: string): void;
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
     { id: string; kind: "move" | "connect"; pointerId: number; x: number; y: number; line?: SVGLineElement } | undefined
@@ -440,7 +441,7 @@ export function ActivityDiagramPreview({
               if (id) onSelect(id);
               else onBackgroundSelect();
             }}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">

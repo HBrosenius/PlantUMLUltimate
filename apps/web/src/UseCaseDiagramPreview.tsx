@@ -1,4 +1,5 @@
 import {
+  useMemo,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -42,6 +43,7 @@ export function UseCaseDiagramPreview({
   onReorder(elementId: string, targetId: string, placement: "before" | "after"): void;
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
     | {
@@ -407,7 +409,7 @@ export function UseCaseDiagramPreview({
             onPointerMove={updateDrag}
             onPointerUp={finishDrag}
             onPointerCancel={cancelPointerDrag}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">

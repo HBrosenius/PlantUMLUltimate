@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useMemo, useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
 import { useDiagramNavigation } from "./useDiagramNavigation";
@@ -52,6 +52,7 @@ export function SequenceDiagramPreview({
   onMessageExternalize(messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?"): void;
 }) {
   const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const diagramRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<
     | {
@@ -675,7 +676,7 @@ export function SequenceDiagramPreview({
             onPointerMove={moveDrag}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={svgMarkup}
           />
         ) : renderError ? (
           <div className="render-error" role="alert">
