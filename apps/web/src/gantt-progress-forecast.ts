@@ -1,6 +1,6 @@
 import { normalizeTaskId, type GanttDependency, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskPauses, isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
-import { taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
+import { dependencyDate, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 
 export interface ForecastTask {
   taskId: string;
@@ -162,6 +162,7 @@ export function calculateProgressForecast(
     let start = planned.start > asOf ? planned.start : asOf;
     const causes: string[] = [];
     let issue: string | undefined;
+    const upperBounds: Array<{ anchor: "start" | "end"; date: string }> = [];
     for (const dependency of dependencies.filter((item) => item.successorTaskId === task.id)) {
       if (dependency.relation === "other") continue;
       const predecessor = byId.get(dependency.predecessorTaskId);
@@ -172,10 +173,12 @@ export function calculateProgressForecast(
         continue;
       }
       const anchor = dependency.relation.endsWith("after-start") ? prior.start : prior.end;
-      const offset = (dependency.offset?.value ?? 0) * (dependency.direction === "before" ? -1 : 1);
-      let constraint = shiftDate(anchor, offset);
-      if (dependency.relation === "start-after-end" && offset === 0) constraint = shiftDate(anchor, 1);
+      const constraint = dependencyDate(anchor, dependency, calendar);
       if (!constraint) continue;
+      if (dependency.direction === "before") {
+        upperBounds.push({ anchor: dependency.relation.startsWith("start-") ? "start" : "end", date: constraint });
+        continue;
+      }
       const candidate = dependency.relation.startsWith("end-")
         ? remainingDays > 0
           ? workStart(constraint, remainingDays, calendar, pauses)
@@ -225,6 +228,17 @@ export function calculateProgressForecast(
       return result;
     }
     const end = computedEnd > planned.end ? computedEnd : planned.end;
+    if (upperBounds.some((bound) => (bound.anchor === "start" ? start : end) > bound.date)) {
+      const result = {
+        ...base,
+        remainingDays,
+        automaticRemainingDays,
+        missingCompletion,
+        issue: "Forecast dates conflict with a before relationship",
+      };
+      forecast.set(task.id, result);
+      return result;
+    }
     const result = {
       ...base,
       missingCompletion,

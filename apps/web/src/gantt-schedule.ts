@@ -51,6 +51,24 @@ export function resolveDateExpression(value: string, projectStart?: string, time
   return shiftDate(anchor, amount);
 }
 
+/** Offsets are calendar days; zero start/end links advance to the next eligible weekday. */
+export function dependencyDate(
+  anchor: string,
+  dependency: GanttDependency,
+  calendar: GanttCalendar,
+): string | undefined {
+  const direction = dependency.direction === "before" ? -1 : 1;
+  let date = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
+  if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0) {
+    for (let step = 0; date && step < 10_000; step++) {
+      date = shiftDate(date, direction);
+      if (date && isWorkingDate(date, calendar)) return date;
+    }
+    return undefined;
+  }
+  return date;
+}
+
 export function resolveTaskDates(
   tasks: readonly GanttTask[],
   dependencies: readonly GanttDependency[],
@@ -115,8 +133,7 @@ export function resolveTaskDates(
     }
     const derived = !start || !end;
     const taskDependencies = dependencies.filter((item) => item.successorTaskId === task.id);
-    const dependencyStarts: string[] = [];
-    const dependencyEnds: string[] = [];
+
     const constraints: Array<{ dependency: GanttDependency; expected: string }> = [];
     for (const dependency of taskDependencies) {
       if (dependency.relation === "other") continue;
@@ -131,27 +148,28 @@ export function resolveTaskDates(
           predecessorDates?.issue ?? `Predecessor date cannot be resolved: ${dependency.predecessor.value}`,
         );
       if (anchor) {
-        const direction = dependency.direction === "before" ? -1 : 1;
-        let dependencyAnchor = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
-        if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && dependencyAnchor) {
-          for (let step = 0; step < 10_000; step++) {
-            dependencyAnchor = shiftDate(dependencyAnchor, 1);
-            if (!dependencyAnchor || isWorkingDate(dependencyAnchor, calendar)) break;
-          }
-          if (!dependencyAnchor || !isWorkingDate(dependencyAnchor, calendar))
-            return unavailable("No working date can be found after the predecessor");
-        }
-        if (dependencyAnchor) {
-          constraints.push({ dependency, expected: dependencyAnchor });
-          if (dependency.relation.startsWith("start-")) dependencyStarts.push(dependencyAnchor);
-          else dependencyEnds.push(dependencyAnchor);
-        }
+        const dependencyAnchor = dependencyDate(anchor, dependency, calendar);
+        if (!dependencyAnchor) return unavailable("No working date can be found for the dependency");
+        constraints.push({ dependency, expected: dependencyAnchor });
       }
     }
     const duration = taskElapsedDays(task);
     const pauses = taskPauses(task);
-    if (!start && dependencyStarts.length) start = dependencyStarts.sort().at(-1);
-    if (!end && dependencyEnds.length) end = dependencyEnds.sort().at(-1);
+    const choose = (anchor: "start" | "end") => {
+      const matching = constraints.filter(({ dependency }) => dependency.relation.startsWith(`${anchor}-`));
+      const lower = matching
+        .filter(({ dependency }) => dependency.direction !== "before")
+        .map(({ expected }) => expected)
+        .sort()
+        .at(-1);
+      const upper = matching
+        .filter(({ dependency }) => dependency.direction === "before")
+        .map(({ expected }) => expected)
+        .sort()[0];
+      return lower ?? upper;
+    };
+    if (!start) start = choose("start");
+    if (!end) end = choose("end");
     if (!start && end && duration) start = workingStart(end, duration, pauses);
     if (!start) {
       start ??= projectStart;

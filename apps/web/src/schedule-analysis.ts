@@ -1,6 +1,6 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
-import { resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
-import { isWorkingDate, parseGanttCalendar, shiftDate, type GanttCalendar } from "./gantt-calendar";
+import { dependencyDate, resolveTaskDates, type ResolvedTaskDates } from "./gantt-schedule";
+import { parseGanttCalendar, type GanttCalendar } from "./gantt-calendar";
 
 export interface TaskVariance {
   taskId: string;
@@ -131,6 +131,7 @@ export interface CriticalPathAnalysis {
   orderedTaskIds: string[];
   projectDuration: number;
   slackByTask: Map<string, number>;
+  blockers: Array<{ taskId: string; reason: string }>;
 }
 
 export function analyzeCriticalPath(
@@ -148,29 +149,35 @@ export function analyzeCriticalPath(
       .flatMap((task) => [task.start, task.end].filter((date) => date?.resolved).map((date) => date!.value))
       .sort()[0] ?? "2000-01-03";
   resolvedDates ??= resolveTaskDates(tasks, dependencies, anchor, calendar);
-  const empty = (): CriticalPathAnalysis => ({
+  const empty = (blockers: CriticalPathAnalysis["blockers"] = []): CriticalPathAnalysis => ({
     taskIds: new Set(),
     orderedTaskIds: [],
     projectDuration: 0,
     slackByTask: new Map(),
+    blockers,
   });
-  if (
-    tasks.some((task) => {
-      const dates = resolvedDates!.get(task.id);
-      const start = dateDays(dates?.start);
-      const end = dateDays(dates?.end);
-      return (
-        start === undefined || end === undefined || !Number.isFinite(start) || !Number.isFinite(end) || end < start
-      );
-    })
-  )
-    return empty();
+  const blockers = tasks.flatMap((task) => {
+    const dates = resolvedDates!.get(task.id);
+    const start = dateDays(dates?.start);
+    const end = dateDays(dates?.end);
+    const reason =
+      dates?.issue ??
+      (start === undefined || end === undefined || !Number.isFinite(start) || !Number.isFinite(end)
+        ? "Task dates cannot be resolved"
+        : end < start
+          ? "Task ends before it starts"
+          : undefined);
+    return reason ? [{ taskId: task.id, reason }] : [];
+  });
+  if (blockers.length) return empty(blockers);
   const incoming = new Map(tasks.map((task) => [task.id, 0]));
   const outgoing = new Map(tasks.map((task) => [task.id, [] as { successor: string; dependency: GanttDependency }[]]));
   for (const dependency of dependencies) {
     if (!byId.has(dependency.predecessorTaskId) || !byId.has(dependency.successorTaskId)) continue;
-    outgoing.get(dependency.predecessorTaskId)!.push({ successor: dependency.successorTaskId, dependency });
-    incoming.set(dependency.successorTaskId, (incoming.get(dependency.successorTaskId) ?? 0) + 1);
+    const from = dependency.direction === "before" ? dependency.successorTaskId : dependency.predecessorTaskId;
+    const to = dependency.direction === "before" ? dependency.predecessorTaskId : dependency.successorTaskId;
+    outgoing.get(from)!.push({ successor: to, dependency });
+    incoming.set(to, (incoming.get(to) ?? 0) + 1);
   }
   const queue = [...incoming].filter(([, count]) => count === 0).map(([id]) => id);
   const order: string[] = [];
@@ -183,7 +190,11 @@ export function analyzeCriticalPath(
     }
   }
   if ([...incoming.values()].some((count) => count > 0))
-    return { taskIds: new Set(), orderedTaskIds: [], projectDuration: 0, slackByTask: new Map() };
+    return empty(
+      [...incoming]
+        .filter(([, count]) => count > 0)
+        .map(([taskId]) => ({ taskId, reason: "Dependency cycle prevents schedule analysis" })),
+    );
   if (resolvedDates && calendar) {
     const scheduled = tasks.flatMap((task) => {
       const dates = resolvedDates.get(task.id);
@@ -203,17 +214,12 @@ export function analyzeCriticalPath(
         const predecessorDate = dateFor(dependency.predecessorTaskId, predecessorAnchor);
         const successorDate = dateFor(dependency.successorTaskId, successorAnchor);
         if (!predecessorDate || !successorDate) return 0;
-        const direction = dependency.direction === "before" ? -1 : 1;
-        let expected = shiftDate(predecessorDate, (dependency.offset?.value ?? 0) * direction);
-        if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0 && expected) {
-          for (let step = 0; step < 10_000; step++) {
-            expected = shiftDate(expected, 1);
-            if (!expected || isWorkingDate(expected, calendar!)) break;
-          }
-        }
+        const expected = dependencyDate(predecessorDate, dependency, calendar!);
         const expectedDay = dateDays(expected);
         const successorDay = dateDays(successorDate);
-        return expectedDay === undefined || successorDay === undefined ? 0 : Math.max(0, successorDay - expectedDay);
+        return expectedDay === undefined || successorDay === undefined
+          ? 0
+          : Math.max(0, dependency.direction === "before" ? expectedDay - successorDay : successorDay - expectedDay);
       };
       for (const id of [...order].reverse()) {
         for (const edge of outgoing.get(id) ?? []) {
@@ -235,6 +241,7 @@ export function analyzeCriticalPath(
           .sort((a, b) => (dateDays(resolvedDates.get(a)?.start) ?? 0) - (dateDays(resolvedDates.get(b)?.start) ?? 0)),
         projectDuration: projectFinish - projectStart + 1,
         slackByTask,
+        blockers: [],
       };
     }
   }

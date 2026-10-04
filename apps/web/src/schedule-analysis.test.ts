@@ -112,7 +112,19 @@ sunday are closed
       expect(analysis.taskIds.size).toBe(0);
       expect(analysis.slackByTask.size).toBe(0);
       expect(analysis.projectDuration).toBe(0);
+      expect(analysis.blockers.length).toBeGreaterThan(0);
     }
+  });
+
+  it("reports the specific resolver issue as a selectable task blocker", () => {
+    const document = parseGantt("@startgantt\n[A] lasts 2 days\n@endgantt").document;
+    const analysis = analyzeCriticalPath(
+      document.tasks,
+      [],
+      new Map([["a", { derived: true, issue: "Start date cannot be resolved: $unknown" }]]),
+      parseGanttCalendar(""),
+    );
+    expect(analysis.blockers).toEqual([{ taskId: "a", reason: "Start date cannot be resolved: $unknown" }]);
   });
 
   it("uses every relationship between a pair when propagating slack", () => {

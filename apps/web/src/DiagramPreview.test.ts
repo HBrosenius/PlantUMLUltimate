@@ -45,6 +45,23 @@ describe("svgScreenScale", () => {
 });
 
 describe("taskHoverDetails", () => {
+  it.each([
+    { derived: true, issue: "End date cannot be resolved: $unknown" },
+    { derived: true, start: "2026-09-03" },
+    { derived: false, start: "2026-09-03", end: "2026-09-06", issue: "Dependency conflict" },
+  ])("does not invent hover dates for rejected or incomplete schedules: %j", (resolved) => {
+    const details = taskHoverDetails(task, [], [task], resolved)!;
+    expect(details.dates).toContain("Schedule unresolved:");
+    expect(details.dates).toContain(resolved.issue ?? "Task dates cannot be resolved");
+    expect(details.dates).not.toContain("→");
+  });
+
+  it("uses the resolved calendar span when dates are available", () => {
+    expect(taskHoverDetails(task, [], [task], { start: "2026-09-07", end: "2026-09-14", derived: true })?.dates).toBe(
+      "2026-09-07 → 2026-09-14",
+    );
+  });
+
   it("summarizes dates, allocation, and connected tasks", () => {
     const build = { ...task, resources: [{ value: "Alice", allocation: 50, range: { from: 0, to: 5 } }] };
     const testTask: GanttTask = {

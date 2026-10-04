@@ -1407,9 +1407,26 @@ export function DiagramPreview({
       )}
       {!progressForecast?.enabled && showCriticalPath && (
         <details className="critical-path-report" open>
-          <summary>Critical path · {criticalPath.projectDuration} days</summary>
+          <summary>
+            {criticalPath.blockers.length || !criticalPath.orderedTaskIds.length
+              ? "Critical path unavailable"
+              : `Critical path · ${criticalPath.projectDuration} days`}
+          </summary>
           <div className="schedule-analysis-report-body">
-            {criticalPath.orderedTaskIds.length ? (
+            {criticalPath.blockers.length ? (
+              <>
+                <p>Resolve these schedule issues to calculate the critical path.</p>
+                <ul>
+                  {criticalPath.blockers.map(({ taskId, reason }) => (
+                    <li key={taskId}>
+                      <button onClick={() => onTaskSelect(taskId)}>
+                        {tasks.find((task) => task.id === taskId)?.label ?? taskId}: {reason}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : criticalPath.orderedTaskIds.length ? (
               <table>
                 <thead>
                   <tr>
@@ -1436,7 +1453,7 @@ export function DiagramPreview({
                 </tbody>
               </table>
             ) : (
-              <p>No critical path is available. Check for dependency cycles.</p>
+              <p>No scheduled tasks are available for critical-path analysis.</p>
             )}
           </div>
         </details>
@@ -1654,7 +1671,10 @@ export function taskHoverDetails(
       .map((item) => ({ id: item.id, label: item.label }));
   return {
     label: task.label,
-    dates: `${start} → ${end ?? "Automatic"}`,
+    dates:
+      resolved && (resolved.issue || !resolved.start || !resolved.end)
+        ? `Schedule unresolved: ${resolved.issue ?? "Task dates cannot be resolved"}`
+        : `${start} → ${end ?? "Automatic"}`,
     duration: task.duration
       ? `${task.duration.value} ${task.duration.unit}${task.duration.value === 1 ? "" : "s"}`
       : "Automatic",

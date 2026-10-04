@@ -49,19 +49,22 @@ for (const fixture of fixtures) {
           ? page.locator('.diagram .class-semantic-hit[data-class-object-id="b"]').first()
           : page.locator(`.diagram [${fixture.attribute}][role="button"][aria-label*="Two"]`).first();
     const clickElement = async (element: typeof first, shift = false, button: "left" | "right" = "left") => {
-      await expect(element).toBeVisible();
-      // Selection can rebuild an SVG hit target while scrolling brings it into view.
-      await expect(async () => element.scrollIntoViewIfNeeded()).toPass({ timeout: 5_000 });
-      const box = await element.boundingBox();
-      expect(box).toBeTruthy();
-      // Let Playwright retry when an asynchronous preview or inspector repositions the hit target.
-      await element.click({
-        position: { x: box!.width * 0.25, y: box!.height * 0.5 },
-        modifiers: shift ? ["Shift"] : [],
-        button,
-        // WBS text and its transparent hit rect share a semantic ID but paint in different orders by engine.
-        force: fixture.kind === "wbs",
-      });
+      // Undo and selection can rebuild the SVG between visibility, measurement and
+      // clicking. Retry the entire operation so each attempt measures the current target.
+      await expect(async () => {
+        await expect(element).toBeVisible({ timeout: 1_000 });
+        await element.scrollIntoViewIfNeeded({ timeout: 1_000 });
+        const box = await element.boundingBox();
+        expect(box).toBeTruthy();
+        await element.click({
+          position: { x: box!.width * 0.25, y: box!.height * 0.5 },
+          modifiers: shift ? ["Shift"] : [],
+          button,
+          timeout: 1_000,
+          // WBS text and its transparent hit rect share a semantic ID but paint in different orders by engine.
+          force: fixture.kind === "wbs",
+        });
+      }).toPass({ timeout: 5_000 });
     };
     await expect(first).toBeVisible();
     await clickElement(first);
