@@ -43,11 +43,15 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
     } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":")) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
-      const directive = line.match(/^(\s*)(@[a-z]+)\b/i);
+      const directive = line.match(/^(\s*)(@+[a-z]+|(?:start|end)(?:gantt|wbs|uml))\b/i);
       if (directive) {
         const token = directive[2]!;
         const normalized = token.toLowerCase();
-        if (!canonical.has(normalized) && token.length >= 6) {
+        if (
+          !canonical.has(normalized) &&
+          token.length >= 6 &&
+          (token.startsWith("@") || tags.includes("@" + normalized))
+        ) {
           const candidates = tags
             .map((tag) => ({ tag, score: distance(normalized, tag) }))
             .sort((a, b) => a.score - b.score);

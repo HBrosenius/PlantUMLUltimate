@@ -58,7 +58,10 @@ export function ganttKeywordRepair(text: string): { replacement: string; label: 
       .map((keyword) => ({ keyword, distance: distance(word, keyword) }))
       .sort((a, b) => a.distance - b.distance);
     const best = ranked[0]!;
-    if (best.distance > 2 || best.distance >= word.length || ranked[1]?.distance === best.distance) continue;
+    // A one-letter remnant of "at" is unambiguous inside a dependency clause.
+    const partialAt = best.keyword === "at" && (word === "a" || word === "t");
+    if (best.distance > 2 || (!partialAt && best.distance >= word.length) || ranked[1]?.distance === best.distance)
+      continue;
     return { replacement: `${match[1]}${best.keyword}${match[3]}`, label: `Use ${best.keyword}` };
   }
   return undefined;
