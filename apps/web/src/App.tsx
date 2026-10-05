@@ -3387,6 +3387,7 @@ export function App() {
       >
         {workspace.viewMode !== "diagram" && (
           <CodeEditor
+            documentId={tabs.activeId}
             diagramKind={workspace.diagramKind}
             value={workspace.source}
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}

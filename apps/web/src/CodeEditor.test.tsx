@@ -76,4 +76,17 @@ describe("CodeEditor quick fixes", () => {
     view.rerender(renderEditor("wbs", DEFAULT_WBS_SOURCE));
     expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
   });
+  it("closes an open picker and clears its preview when an identical-source tab changes", () => {
+    const source = "@startgant\n[Build] lasts 2 days\n@endgantt";
+    const props = { diagramKind: "gantt" as const, value: source, onChange: vi.fn(), onCursorChange: vi.fn() };
+    const rendered = render(<CodeEditor {...props} documentId="one" />);
+    const picker = screen.getByLabelText(FIX_LABEL).closest("details")!;
+    picker.open = true;
+    fireEvent.focus(screen.getByRole("button", { name: /Use @startgantt/ }));
+    expect(rendered.container.querySelector(".cm-fix-target")).toBeInTheDocument();
+    rendered.rerender(<CodeEditor {...props} documentId="two" />);
+    expect(screen.getByLabelText(FIX_LABEL).closest("details")!.open).toBe(false);
+    expect(rendered.container.querySelector(".cm-fix-target")).not.toBeInTheDocument();
+    expect(props.onChange).not.toHaveBeenCalled();
+  });
 });

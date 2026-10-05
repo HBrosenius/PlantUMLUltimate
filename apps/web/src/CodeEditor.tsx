@@ -1,15 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { isCurrentFix, type FixSnapshot } from "./source-fix-snapshot";
+import { errorLocations, nextErrorIndex } from "./error-navigation";
+import { sourceFixPreview } from "./source-fix-preview";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { lintGutter } from "@codemirror/lint";
 import { codeEditorSetup } from "./code-editor-setup";
 import type { DiagramKind } from "./model";
-import { quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
+import { diagnosticsForDiagram, quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
 import type { CollaborationParticipant } from "./collaboration";
 import { languageExtensions } from "./diagram-language-extensions";
 
 interface Props {
+  documentId?: string | undefined;
   diagramKind: DiagramKind;
   value: string;
   onChange(value: string): void;
@@ -23,6 +27,29 @@ interface Props {
   onRenameRequest?: ((position: number) => boolean) | undefined;
   onSymbolContextMenu?: ((position: number, x: number, y: number) => boolean) | undefined;
 }
+
+const setFixHighlight = StateEffect.define<{ from: number; to: number } | undefined>();
+const fixHighlightField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    if (transaction.docChanged || transaction.selection) value = Decoration.none;
+    for (const effect of transaction.effects) {
+      if (!effect.is(setFixHighlight)) continue;
+      const range = effect.value;
+      value = !range
+        ? Decoration.none
+        : Decoration.set([
+            range.from === range.to
+              ? Decoration.line({ class: "cm-fix-insertion-target" }).range(
+                  transaction.state.doc.lineAt(range.from).from,
+                )
+              : Decoration.mark({ class: "cm-fix-target" }).range(range.from, range.to),
+          ]);
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 const setSymbolHighlights = StateEffect.define<Array<{ from: number; to: number; active?: boolean }>>();
 const setRemoteParticipants = StateEffect.define<CollaborationParticipant[]>();
@@ -169,6 +196,7 @@ const symbolHighlightField = StateField.define<DecorationSet>({
 });
 
 export function CodeEditor({
+  documentId,
   diagramKind,
   value,
   onChange,
@@ -182,7 +210,9 @@ export function CodeEditor({
   onSymbolContextMenu,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  const fixPicker = useRef<HTMLDetailsElement>(null);
   const view = useRef<EditorView | null>(null);
+  const navigateErrorRef = useRef<(direction: 1 | -1) => boolean>(() => false);
   const onChangeRef = useRef(onChange);
   const onCursorRef = useRef(onCursorChange);
   const onRenameRef = useRef(onRenameRequest);
@@ -192,15 +222,35 @@ export function CodeEditor({
   const initialKind = useRef(diagramKind);
   const initialReadOnly = useRef(readOnly);
   const kindRef = useRef(diagramKind);
+  const documentIdRef = useRef(documentId);
+  const sourceRevision = useRef(0);
   const language = useRef(new Compartment());
   const editable = useRef(new Compartment());
+  const errors = useMemo(() => errorLocations(diagnosticsForDiagram(diagramKind, value)), [diagramKind, value]);
+  const [errorAnnouncement, setErrorAnnouncement] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [quickFixes, setQuickFixes] = useState<DiagramQuickFix[]>(() => quickFixesForDiagram(diagramKind, value));
+  const [fixSnapshot, setFixSnapshot] = useState<FixSnapshot>(() => ({
+    source: value,
+    kind: diagramKind,
+    documentId,
+    revision: 0,
+    fixes: quickFixesForDiagram(diagramKind, value),
+  }));
+  const refreshFixes = (kind: DiagramKind, source: string) =>
+    setFixSnapshot({
+      source,
+      kind,
+      documentId: documentIdRef.current,
+      revision: sourceRevision.current,
+      fixes: quickFixesForDiagram(kind, source),
+    });
   onChangeRef.current = onChange;
   onCursorRef.current = onCursorChange;
   onRenameRef.current = onRenameRequest;
   onSymbolContextMenuRef.current = onSymbolContextMenu;
   kindRef.current = diagramKind;
+  documentIdRef.current = documentId;
 
   useEffect(() => {
     if (!host.current) return;
@@ -214,14 +264,31 @@ export function CodeEditor({
           Prec.highest(
             keymap.of(["Mod-z", "Mod-Shift-z", "Mod-y"].map((key) => ({ key, run: () => true, preventDefault: true }))),
           ),
+          Prec.highest(
+            keymap.of([
+              { key: "F8", run: () => navigateErrorRef.current(1), preventDefault: true },
+              { key: "Shift-F8", run: () => navigateErrorRef.current(-1), preventDefault: true },
+            ]),
+          ),
           keymap.of([
             indentWithTab,
+            {
+              key: "Mod-.",
+              run: () => {
+                const picker = fixPicker.current;
+                if (!picker) return false;
+                picker.open = true;
+                picker.querySelector<HTMLButtonElement>("button")?.focus();
+                return true;
+              },
+            },
             {
               key: "F2",
               run: (currentView) => onRenameRef.current?.(currentView.state.selection.main.head) ?? false,
             },
           ]),
           symbolHighlightField,
+          fixHighlightField,
           remoteParticipantField,
           remoteEditFlashField,
           editable.current.of([
@@ -249,14 +316,23 @@ export function CodeEditor({
             },
           }),
           EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              sourceRevision.current++;
+              const picker = fixPicker.current;
+              const restoreEditorFocus = picker?.contains(document.activeElement);
+              if (picker) picker.open = false;
+              if (restoreEditorFocus) update.view.focus();
+            }
             if (synchronizingValue.current) return;
             if (update.docChanged) {
+              setErrorAnnouncement("");
               const source = update.state.doc.toString();
               onChangeRef.current(source);
-              setQuickFixes(quickFixesForDiagram(kindRef.current, source));
+              refreshFixes(kindRef.current, source);
             }
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;
+              setCursorPosition(position);
               const line = update.state.doc.lineAt(position);
               const selection = update.state.selection.main;
               onCursorRef.current(line.number, position - line.from + 1, position, selection.anchor, selection.head);
@@ -272,8 +348,16 @@ export function CodeEditor({
   useEffect(() => {
     if (!view.current) return;
     view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
-    setQuickFixes(quickFixesForDiagram(diagramKind, view.current.state.doc.toString()));
+    refreshFixes(diagramKind, view.current.state.doc.toString());
   }, [diagramKind]);
+
+  useEffect(() => {
+    const editor = view.current;
+    if (!editor) return;
+    if (fixPicker.current) fixPicker.current.open = false;
+    editor.dispatch({ effects: setFixHighlight.of(undefined) });
+    refreshFixes(kindRef.current, editor.state.doc.toString());
+  }, [documentId, diagramKind, readOnly]);
 
   useEffect(() => {
     view.current?.dispatch({
@@ -293,7 +377,9 @@ export function CodeEditor({
     // The update listener above skips synchronized changes, so recompute quick fixes here.
     // Otherwise a kind switch (which runs first, against the previous document) leaves stale fixes
     // behind — e.g. "Add @startwbs" on a freshly created, valid WBS document.
-    setQuickFixes(quickFixesForDiagram(kindRef.current, value));
+    setErrorAnnouncement("");
+    setCursorPosition(editor.state.selection.main.head);
+    refreshFixes(kindRef.current, value);
   }, [value]);
 
   useEffect(() => {
@@ -358,6 +444,25 @@ export function CodeEditor({
   const applyQuickFix = (fix: DiagramQuickFix) => {
     const editor = view.current;
     if (!editor || readOnly) return;
+    if (
+      !isCurrentFix(
+        fixSnapshot,
+        {
+          source: editor.state.doc.toString(),
+          kind: kindRef.current,
+          documentId: documentIdRef.current,
+          revision: sourceRevision.current,
+        },
+        fix,
+      )
+    ) {
+      if (fixPicker.current) fixPicker.current.open = false;
+      editor.dispatch({ effects: setFixHighlight.of(undefined) });
+      refreshFixes(kindRef.current, editor.state.doc.toString());
+      editor.focus();
+      return;
+    }
+    if (fixPicker.current) fixPicker.current.open = false;
     editor.dispatch({
       changes: { from: fix.from, to: fix.to, insert: fix.replacement },
       selection: { anchor: fix.from + fix.replacement.length },
@@ -365,6 +470,33 @@ export function CodeEditor({
     editor.focus();
   };
 
+  const navigateError = (direction: 1 | -1) => {
+    const editor = view.current;
+    if (!editor) return false;
+    const currentErrors = errorLocations(diagnosticsForDiagram(kindRef.current, editor.state.doc.toString()));
+    const index = nextErrorIndex(currentErrors, editor.state.selection.main.head, direction);
+    const error = currentErrors[index];
+    if (!error) return false;
+    if (fixPicker.current) fixPicker.current.open = false;
+    editor.dispatch({
+      selection: { anchor: error.from },
+      effects: [setFixHighlight.of(undefined), EditorView.scrollIntoView(error.from, { y: "center" })],
+    });
+    editor.focus();
+    setErrorAnnouncement(
+      `Error ${index + 1} of ${currentErrors.length}, line ${editor.state.doc.lineAt(error.from).number}: ${error.message}`,
+    );
+    return true;
+  };
+  navigateErrorRef.current = navigateError;
+
+  const quickFixes =
+    fixSnapshot.kind === diagramKind &&
+    fixSnapshot.documentId === documentId &&
+    fixSnapshot.source === (view.current?.state.doc.toString() ?? value) &&
+    fixSnapshot.revision === sourceRevision.current
+      ? fixSnapshot.fixes
+      : [];
   const relationshipRepair = quickFixes.length === 1 && quickFixes[0]?.message.startsWith("Repair ");
   const previewSource = view.current?.state.doc.toString() ?? value;
   const fixGroups = new Map<string, DiagramQuickFix[]>();
@@ -375,26 +507,122 @@ export function CodeEditor({
     fixGroups.set(key, group);
   }
 
+  const cursorLine = view.current?.state.doc.lineAt(Math.min(cursorPosition, previewSource.length));
+  const onCursorLine = (fix: DiagramQuickFix) => cursorLine && fix.from <= cursorLine.to && fix.to >= cursorLine.from;
+  const orderedGroups = [...fixGroups.values()].sort(
+    (left, right) => Number(right.some(onCursorLine)) - Number(left.some(onCursorLine)),
+  );
+  const highlightFix = (fix?: DiagramQuickFix) => {
+    const editor = view.current;
+    if (!editor) return;
+    if (
+      fix &&
+      !isCurrentFix(
+        fixSnapshot,
+        {
+          source: editor.state.doc.toString(),
+          kind: kindRef.current,
+          documentId: documentIdRef.current,
+          revision: sourceRevision.current,
+        },
+        fix,
+      )
+    )
+      return;
+    editor.dispatch({ effects: setFixHighlight.of(fix && { from: fix.from, to: fix.to }) });
+    if (fix) editor.dispatch({ effects: EditorView.scrollIntoView(fix.from, { y: "nearest" }) });
+  };
+
   return (
     <section className="editor-pane" aria-label="Code editor section">
       <div className="editor-actions">
+        <button
+          type="button"
+          aria-label="Previous error"
+          title="Previous error (Shift+F8)"
+          disabled={!errors.length}
+          onClick={() => navigateError(-1)}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          aria-label="Next error"
+          title="Next error (F8)"
+          disabled={!errors.length}
+          onClick={() => navigateError(1)}
+        >
+          ↓
+        </button>
+        <span className="source-error-announcement" role="status">
+          {errorAnnouncement}
+        </span>
         {quickFixes.length > 0 && !readOnly && (
-          <details className="source-fixes">
-            <summary aria-label="Show source fix suggestions">
+          <details
+            className="source-fixes"
+            ref={fixPicker}
+            onToggle={(event) => {
+              if (!event.currentTarget.open) highlightFix();
+            }}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) highlightFix();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.open = false;
+                highlightFix();
+                view.current?.focus();
+                return;
+              }
+              if (event.key === "Tab") {
+                const target = event.target as HTMLElement;
+                const row = target.closest("li");
+                const preview = row?.querySelector<HTMLElement>(".source-fix-full-preview summary");
+                const apply = row?.querySelector<HTMLButtonElement>("button");
+                if ((!event.shiftKey && target === apply && preview) || (event.shiftKey && target === preview)) {
+                  event.preventDefault();
+                  (event.shiftKey ? apply : preview)?.focus();
+                }
+                return;
+              }
+              if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+              const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+              const index = buttons.indexOf(event.target as HTMLButtonElement);
+              if (index < 0) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const next =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? buttons.length - 1
+                    : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+              buttons[next]?.focus();
+            }}
+          >
+            <summary
+              aria-label="Show source fix suggestions"
+              title="Ctrl/⌘ + . opens fixes; arrows choose, Enter applies, Tab reaches previews, Escape closes"
+            >
               {relationshipRepair
                 ? "Repair relationships"
                 : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
             </summary>
             <ul aria-label="Source fix suggestions">
-              {[...fixGroups.values()].flatMap((group) =>
+              {orderedGroups.flatMap((group) =>
                 group.map((fix, index) => {
-                  const lineFrom = previewSource.lastIndexOf("\n", Math.max(0, fix.from - 1)) + 1;
-                  const nextLine = previewSource.indexOf("\n", fix.to);
-                  const lineTo = nextLine < 0 ? previewSource.length : nextLine;
-                  const preview =
-                    previewSource.slice(lineFrom, fix.from) + fix.replacement + previewSource.slice(fix.to, lineTo);
+                  const preview = sourceFixPreview(previewSource, fix);
                   return (
-                    <li key={`${fix.choiceGroup ?? fix.message}:${fix.from}:${fix.to}:${fix.replacement}:${index}`}>
+                    <li
+                      key={`${fix.choiceGroup ?? fix.message}:${fix.from}:${fix.to}:${fix.replacement}:${index}`}
+                      onFocus={() => highlightFix(fix)}
+                      onMouseEnter={() => highlightFix(fix)}
+                      onMouseLeave={(event) => {
+                        if (!event.currentTarget.contains(document.activeElement)) highlightFix();
+                      }}
+                    >
                       {group.length > 1 && index === 0 && (
                         <p role="note">
                           Choose one of {group.length} alternatives. Compare the changes before applying.
@@ -402,16 +630,26 @@ export function CodeEditor({
                       )}
                       <button type="button" onClick={() => applyQuickFix(fix)}>
                         <span>
-                          Line {previewSource.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
+                          Line {preview.line}: {fix.label ?? fix.message}
+                          {onCursorLine(fix) ? " (current line)" : ""}
                         </span>
-                        {group.length > 1 && (
+                        {(group.length > 1 || preview.expandable) && (
                           <span>
-                            Before: <del>{previewSource.slice(lineFrom, lineTo).trim() || "(empty line)"}</del>
+                            Before: <del>{preview.compactBefore.trim() || "(empty line)"}</del>
                           </span>
                         )}
-                        {group.length > 1 && <span>After:</span>}
-                        <code>{preview.trim() || "Remove this text"}</code>
+                        {(group.length > 1 || preview.expandable) && <span>After:</span>}
+                        <code>{preview.compactAfter.trim() || "Remove this text"}</code>
                       </button>
+                      {preview.expandable && (
+                        <details className="source-fix-full-preview">
+                          <summary>Show full change</summary>
+                          <strong>Before</strong>
+                          <pre>{preview.before || "(empty line)"}</pre>
+                          <strong>After</strong>
+                          <pre>{preview.after || "(removed)"}</pre>
+                        </details>
+                      )}
                     </li>
                   );
                 }),

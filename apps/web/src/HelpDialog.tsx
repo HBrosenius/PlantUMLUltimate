@@ -26,6 +26,8 @@ const shortcuts = () => [
   ["Alt + ← / →", "Move focused task one day"],
   ["Alt + Shift + ← / →", "Resize focused task one day"],
   ["Ctrl + ↑ / ↓", "Reorder focused task"],
+  ["⌘/Ctrl + .", "Open source fix suggestions in the editor"],
+  ["F8 / Shift + F8", "Next / previous source error"],
   ["F2", "Rename a semantic symbol under the code cursor"],
   ["Shift while dragging", "Snap movement to weeks"],
   ["?", "Open Help"],
