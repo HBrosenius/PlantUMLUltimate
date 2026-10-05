@@ -151,9 +151,12 @@ test("shows parser problems and applies a safe quick fix", async ({ page }) => {
   await problems.getByRole("listitem").click();
   await expect(page.locator(".statusbar")).toContainText("Ln 2");
   await problems.getByRole("button", { name: "Close class member block" }).click();
+  const fixes = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(editor).not.toContainText("+id: UUID\n}\n@enduml");
+  await fixes.getByRole("button", { name: /Close class member block/ }).click();
   await expect.poll(() => editor.innerText()).toContain("+id: UUID\n}\n@enduml");
   await expect(problemCount).toHaveCount(0);
-  await expect(page.locator(".statusbar").getByRole("status")).toHaveText(/Close class member block|✓ Valid/);
+  await expect(page.locator(".source-fix-feedback")).toContainText("No errors remain.");
 });
 
 test("creates and edits Class diagram objects, members, relationships, packages, and settings", async ({

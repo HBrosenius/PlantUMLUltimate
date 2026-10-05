@@ -6595,3 +6595,52 @@ polygon.diagram-bulk-selected {
   display: block;
   margin: 0.5rem 0 0.15rem;
 }
+
+.source-error-explanation {
+  flex: 0 0 auto;
+  max-height: 200px;
+  overflow: auto;
+  padding: 0.75rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.source-error-explanation > button:first-child {
+  float: right;
+  margin-left: 0.5rem;
+}
+.source-error-explanation p {
+  margin: 0.5rem 0 0;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+}
+.editor-host {
+  flex: 1;
+  min-height: 0;
+}
+.source-error-explanation {
+  position: relative;
+  z-index: 20;
+}
+.source-fix-feedback {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 20;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.source-fix-outcome {
+  border-top: 1px solid var(--line);
+  padding-top: 0.4rem;
+}
+.source-fix-outcome.needs-review {
+  color: var(--warning, #a15c00);
+  font-weight: 600;
+}

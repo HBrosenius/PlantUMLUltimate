@@ -1,6 +1,6 @@
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CodeEditor } from "./CodeEditor";
+import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
 import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
@@ -269,6 +269,7 @@ export function App() {
     key: string;
     label: string;
   }>();
+  const [repairRequest, setRepairRequest] = useState<SourceRepairRequest>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
@@ -3393,6 +3394,8 @@ export function App() {
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
             selectedRange={selectionRequest}
+            repairRequest={repairRequest}
+            onRepairRequestHandled={() => setRepairRequest(undefined)}
             symbolHighlights={symbolHighlights}
             remoteParticipants={collaborationAppliesToActiveDiagram ? activeParticipants : []}
             remoteEditFlash={collaborationAppliesToActiveDiagram ? remoteEditFlash : undefined}
@@ -4831,15 +4834,19 @@ export function App() {
           source={problemPreview?.source ?? workspace.source}
           diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
           quickFixes={problemPreview ? [] : activeQuickFixes}
+          readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
           notice={problemPreview?.message}
           onReveal={(diagnostic) => {
             if (workspace.viewMode === "diagram") update("viewMode", "split");
-            setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
+            if (problemPreview) {
+              setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
+              return;
+            }
+            setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, diagnostic });
           }}
-          onApplyFix={(fix) => {
-            const source = `${workspace.source.slice(0, fix.from)}${fix.replacement}${workspace.source.slice(fix.to)}`;
-            commitSource(source, fix.message);
-            setInteractionMessage(fix.message);
+          onPreviewFix={(fix) => {
+            if (workspace.viewMode === "diagram") update("viewMode", "split");
+            setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, fix });
           }}
           onClose={() => {
             setProblemsOpen(false);

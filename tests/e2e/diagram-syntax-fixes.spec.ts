@@ -718,3 +718,273 @@ for (const [type, keyword] of [
     );
   });
 }
+
+for (const width of [390, 1280]) {
+  test(`keyboard explains the selected error and returns focus at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Class diagram" })
+      .click();
+    const lines = ["@startuml", 'class "Customer as Account as Other', "@enduml"];
+    await fillSource(page, lines.join("\n"));
+    const editor = page.locator(".cm-content");
+    await editor.press("F8");
+    await editor.press("ControlOrMeta+Shift+m");
+    const explanation = page.getByRole("region", { name: "Error explanation" });
+    await expect(explanation).toBeFocused();
+    await expect(explanation).toContainText("Line 2: Quoted label has an unmatched quote");
+    await expect(explanation).toContainText("intended label boundary is ambiguous");
+    await expect(editor.locator(".cm-line")).toHaveText(lines);
+    const bounds = await explanation.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(800);
+    await page.screenshot({ path: test.info().outputPath("keyboard-error-explanation.png") });
+    await page.keyboard.press("Escape");
+    await expect(explanation).toHaveCount(0);
+    await expect(editor).toBeFocused();
+    await editor.press("ControlOrMeta+Shift+m");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Close error explanation" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(editor).toBeFocused();
+    await editor.press("ControlOrMeta+Shift+m");
+    await fillSource(page, '@startuml\nclass "Customer" as Account\n@enduml');
+    await expect(explanation).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Explain error", exact: true })).toBeDisabled();
+  });
+}
+
+test("open explanations follow error navigation and preserve keyboard focus", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Class diagram" })
+    .click();
+  const lines = ["@startuml", 'class "Customer as Account as Other', "@endum"];
+  await fillSource(page, lines.join("\n"));
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+Home");
+  await editor.press("F8");
+  await editor.press("ControlOrMeta+Shift+m");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Line 2:");
+  await expect(explanation).toContainText("intended label boundary is ambiguous");
+  await page.keyboard.press("F8");
+  await expect(explanation).toContainText("Line 3:");
+  await expect(explanation).toContainText("A correction is available");
+  await expect(explanation).toBeFocused();
+  await page.keyboard.press("F8");
+  await expect(explanation).toContainText("Line 2:");
+  await expect(explanation).toContainText("intended label boundary is ambiguous");
+  await page.keyboard.press("Shift+F8");
+  await expect(explanation).toContainText("Line 3:");
+  await page.keyboard.press("Tab");
+  const close = page.getByRole("button", { name: "Close error explanation" });
+  await expect(close).toBeFocused();
+  await page.keyboard.press("F8");
+  await expect(explanation).toContainText("Line 2:");
+  await expect(close).toBeFocused();
+  await editor.focus();
+  await editor.press("F8");
+  await expect(explanation).toContainText("Line 3:");
+  await expect(editor).toBeFocused();
+  await page.getByRole("button", { name: "Previous error", exact: true }).click();
+  await expect(explanation).toContainText("Line 2:");
+  await expect(editor).toBeFocused();
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await explanation.focus();
+  await page.keyboard.press("Escape");
+  await expect(explanation).toHaveCount(0);
+  await expect(editor).toBeFocused();
+});
+
+test("error explanation opens the matching fixes without applying until chosen", async ({ page }) => {
+  await prepareEditor(page);
+  const lines = ["@startgant", "[Build] lasts 2 days", "@endgant"];
+  await fillSource(page, lines.join("\n"));
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+End");
+  await editor.press("ControlOrMeta+Shift+m");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Line 3:");
+  await explanation.getByRole("button", { name: "Open suggested fixes" }).click();
+  await expect(explanation).toHaveCount(0);
+  const fixes = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  const choice = fixes.getByRole("button", { name: /Use @endgantt/ });
+  await expect(choice).toBeFocused();
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await page.keyboard.press("Enter");
+  await expect(editor.locator(".cm-line")).toHaveText([lines[0]!, lines[1]!, "@endgantt"]);
+  await expect(editor).toBeFocused();
+  await editor.press("ControlOrMeta+z");
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+});
+
+test("manual explanations do not offer a button for unrelated fixes", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Class diagram" })
+    .click();
+  await fillSource(page, '@startuml\nclass "Customer as Account as Other\n@endum');
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+Home");
+  await editor.press("ControlOrMeta+Shift+m");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Line 2:");
+  await expect(explanation.getByRole("button", { name: "Open suggested fixes" })).toHaveCount(0);
+  await page.keyboard.press("F8");
+  await expect(explanation).toContainText("Line 3:");
+  const open = explanation.getByRole("button", { name: "Open suggested fixes" });
+  await expect(open).toBeVisible();
+  await open.focus();
+  await page.keyboard.press("Enter");
+  const fixes = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(fixes.getByRole("button", { name: /Use @enduml/ })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(editor).toBeFocused();
+});
+
+test("block explanation opens a repair inserted after the error's header", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Class diagram" })
+    .click();
+  await fillSource(page, "@startuml\nclass Order {\n  +id: UUID\n@enduml");
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+Home");
+  await editor.press("ControlOrMeta+Shift+m");
+  await page
+    .getByRole("region", { name: "Error explanation" })
+    .getByRole("button", { name: "Open suggested fixes" })
+    .click();
+  await expect(
+    page
+      .getByRole("list", { name: "Source fix suggestions", exact: true })
+      .getByRole("button", { name: /Close class member block/ }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(editor.locator(".cm-line")).toHaveText(["@startuml", "class Order {", "  +id: UUID", "}", "@enduml"]);
+});
+
+test("explained-error picker keeps alternatives together and can show all fixes", async ({ page }) => {
+  await prepareEditor(page);
+  const lines = [
+    "@startgantt",
+    "Project starts 2026-09-21",
+    "[Design] lasts 2 days",
+    "[Build] lasts 3 days",
+    "[Build] starts at [Design]'s",
+    "[Build] is 50 completed",
+    "@endgantt",
+  ];
+  await fillSource(page, lines.join("\n"));
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+Home");
+  await editor.press("ControlOrMeta+Shift+m");
+  await page
+    .getByRole("region", { name: "Error explanation" })
+    .getByRole("button", { name: "Open suggested fixes" })
+    .click();
+  const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(picker).toContainText("Fixes for line 5");
+  await expect(picker.getByRole("button", { name: /Use predecessor start/ })).toBeVisible();
+  await expect(picker.getByRole("button", { name: /Use predecessor end/ })).toBeVisible();
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toHaveCount(0);
+  await expect(picker.locator("button[data-fix-key]")).toHaveCount(2);
+  await expect(picker.locator("button[data-fix-key]").first()).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(picker.locator("button[data-fix-key]").last()).toBeFocused();
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await picker.getByRole("button", { name: /Show all fixes/ }).click();
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeVisible();
+  await expect(picker.locator("button[data-fix-key]").first()).toBeFocused();
+  await expect(picker.getByRole("button", { name: /Show all fixes/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await editor.press("ControlOrMeta+.");
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeVisible();
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+});
+
+test("applied fixes report remaining errors and clear feedback on undo", async ({ page }) => {
+  await prepareEditor(page);
+  const lines = ["@startgantt", "Project starts 2026-09-21", "[Build] lasts 2 days", "[Build] is 50 completed", "@endgant"];
+  await fillSource(page, lines.join("\n"));
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+.");
+  const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await picker.getByRole("button", { name: /Add missing %/ }).click();
+  const feedback = page.locator(".source-fix-feedback");
+  await expect(feedback).toContainText("Applied “Add missing %” on line 4. 1 error remains. Undo: Ctrl/⌘ + Z.");
+  await expect(page.locator(".source-error-announcement")).toHaveText(await feedback.innerText());
+  await editor.press("ControlOrMeta+z");
+  await expect(feedback).toHaveCount(0);
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await editor.press("ControlOrMeta+.");
+  await picker.getByRole("button", { name: /Add missing %/ }).click();
+  await editor.press("ControlOrMeta+.");
+  await picker.getByRole("button", { name: /@endgantt/ }).click();
+  await expect(feedback).toContainText("No errors remain. Undo: Ctrl/⌘ + Z.");
+  await expect(editor).toBeFocused();
+  await editor.press("End");
+  await editor.press("Space");
+  await expect(feedback).toHaveCount(0);
+});
+
+test("Problems routes errors and suggestions through explanations and previews", async ({ page }) => {
+  await prepareEditor(page);
+  const lines = ["@startgantt", "Project starts 2026-09-21", "[Build] lasts 2 days", "[Build] is 50 completed", "@endgant"];
+  await fillSource(page, lines.join("\n"));
+  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  await problems.getByRole("listitem").filter({ hasText: "Line 4" }).click();
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Line 4:");
+  await explanation.getByRole("button", { name: "Open suggested fixes" }).click();
+  const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeVisible();
+  await expect(picker.locator("button[data-fix-key]")).toHaveCount(1);
+  const editor = page.locator(".cm-content");
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await page.keyboard.press("Escape");
+  await problems.getByRole("button", { name: "Add missing %", exact: true }).click();
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeFocused();
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await picker.getByRole("button", { name: /Add missing %/ }).click();
+  await expect(page.locator(".source-fix-feedback")).toContainText("1 error remains");
+  await editor.press("ControlOrMeta+z");
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
+  await expect(page.locator(".source-fix-feedback")).toHaveCount(0);
+});
+
+test("fix previews predict resolved and newly introduced errors without editing", async ({ page }) => {
+  await prepareEditor(page);
+  const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
+  await fillSource(page, source);
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+.");
+  const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  const completion = picker.getByRole("button", { name: /Add missing %/ });
+  await expect(completion).toContainText("Expected result: Resolves 1 error. 1 error remains.");
+  await expect(editor.locator(".cm-line")).toHaveText(source.split("\n"));
+  await completion.click();
+  await expect(page.locator(".source-fix-feedback")).toContainText("1 error remains.");
+  await editor.press("ControlOrMeta+z");
+  const cycle = "@startgantt\nProject starts 2026-09-21\n[Backend] lasts 2 days\n[Frontend] lasts 2 days\n[Backend] starts at [Frontend]'s end\n[Frontend] starts at [Backned]'s end\n@endgantt";
+  await fillSource(page, cycle);
+  await editor.press("ControlOrMeta+.");
+  const repair = picker.getByRole("button", { name: /Use task Backend/ });
+  await expect(repair).toContainText("Introduces");
+  await expect(repair).toContainText("review before applying");
+  await expect(repair.locator(".source-fix-outcome")).toHaveClass(/needs-review/);
+  await expect(editor.locator(".cm-line")).toHaveText(cycle.split("\n"));
+});

@@ -8,18 +8,20 @@ export function ProblemsPanel({
   source,
   diagnostics,
   quickFixes,
+  readOnly = false,
   notice,
   onReveal,
-  onApplyFix,
+  onPreviewFix,
   onClose,
 }: {
   diagramKind: DiagramKind;
   source: string;
   diagnostics: readonly Diagnostic[];
   quickFixes: readonly DiagramQuickFix[];
+  readOnly?: boolean | undefined;
   notice?: string | undefined;
   onReveal(diagnostic: Diagnostic): void;
-  onApplyFix(fix: DiagramQuickFix): void;
+  onPreviewFix(fix: DiagramQuickFix): void;
   onClose(): void;
 }) {
   const lines = source.split(/\r?\n/);
@@ -62,12 +64,12 @@ export function ProblemsPanel({
           );
         })}
       </div>
-      {quickFixes.length > 0 && (
+      {quickFixes.length > 0 && !readOnly && (
         <section className="problem-fixes" aria-label="Available quick fixes">
-          <strong>Safe quick fixes</strong>
+          <strong>Preview suggested fixes</strong>
           {quickFixes.map((fix, index) => (
-            <button key={`${fix.from}:${fix.to}:${index}`} type="button" onClick={() => onApplyFix(fix)}>
-              {fix.message}
+            <button key={`${fix.from}:${fix.to}:${index}`} type="button" onClick={() => onPreviewFix(fix)}>
+              {fix.label ?? fix.message}
             </button>
           ))}
         </section>
