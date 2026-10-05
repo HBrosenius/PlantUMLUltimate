@@ -1,3 +1,7 @@
+import { terminatorRepairs } from "./diagram-terminator-repairs";
+import { braceIssues } from "./diagram-brace-issues";
+import { boundaryIssues } from "./diagram-boundary-issues";
+import { quoteIssues } from "./diagram-quote-issues";
 import { syntaxRepairs } from "./diagram-syntax-repairs";
 import type { Diagnostic } from "@codemirror/lint";
 import type { DiagramKind } from "./model";
@@ -51,7 +55,14 @@ const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[
             : wbsQuickFixes(source);
 
 export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
-  const repairs = syntaxRepairs(kind, source);
+  const repairs = [
+    ...syntaxRepairs(kind, source),
+    ...braceIssues(kind, source),
+    ...terminatorRepairs(kind, source),
+    ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)].flatMap((issue) =>
+      issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
+    ),
+  ];
   return [
     ...repairs,
     ...languageQuickFixes(kind, source).filter(
@@ -61,7 +72,14 @@ export const quickFixesForDiagram = (kind: DiagramKind, source: string): Diagram
 };
 
 export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagnostic[] => {
-  const repairs = syntaxRepairs(kind, source);
+  const repairs = [
+    ...syntaxRepairs(kind, source),
+    ...braceIssues(kind, source),
+    ...terminatorRepairs(kind, source),
+    ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)].flatMap((issue) =>
+      issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
+    ),
+  ];
   return [
     ...repairs.map((fix): Diagnostic => ({
       from: fix.from,
@@ -77,6 +95,14 @@ export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagno
         },
       ],
     })),
+    ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)]
+      .filter((issue) => issue.replacement === undefined)
+      .map((issue): Diagnostic => ({
+        from: issue.from,
+        to: issue.to,
+        severity: "error",
+        message: issue.message,
+      })),
     ...languageDiagnostics(kind, source).filter(
       (item) => !repairs.some((repair) => repair.from <= item.from && repair.to >= item.to),
     ),

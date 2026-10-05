@@ -122,3 +122,134 @@ for (const [faulty, repaired] of [
     await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
   });
 }
+
+for (const [type, line, expected, label] of [
+  ["Sequence", 'participant "Client [end] as C', 'participant "Client [end]" as C', "Add missing closing quote"],
+  ["Class", 'class ""Order" as O', 'class "Order" as O', "Remove duplicated quote"],
+] as const) {
+  test(`repairs quoted ${type} labels with exact undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    const lines = ["@startuml", line, "@enduml"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(["@startuml", expected, "@enduml"]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  });
+}
+
+for (const [type, suffix, body, opening] of [
+  ["Sequence", "uml", "Alice -> Bob: Hello", true],
+  ["Gantt", "gantt", "[Build] lasts 2 days", false],
+] as const) {
+  test(`inserts missing ${type} ${opening ? "opening" : "closing"} boundary with undo`, async ({ page }) => {
+    await prepareEditor(page);
+    if (type !== "Gantt") {
+      await page.getByRole("button", { name: "New diagram tab" }).click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: `${type} diagram` })
+        .click();
+    }
+    const lines = opening ? ["' Header", "", body, `@end${suffix}`] : [`@start${suffix}`, body, "", "' Footer"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(`Insert @${opening ? "start" : "end"}${suffix}`) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(
+      opening ? [`@start${suffix}`, ...lines] : [...lines, `@end${suffix}`],
+    );
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  });
+}
+
+for (const [line, source, expected, label] of [
+  [
+    "mismatch",
+    "@startgantt\n[Build] lasts 2 days\n@enduml",
+    "@startgantt\n[Build] lasts 2 days\n@endgantt",
+    "Use @endgantt",
+  ],
+  [
+    "duplicate",
+    "@startgantt\n@startgantt\n[Build] lasts 2 days\n@endgantt",
+    "@startgantt\n[Build] lasts 2 days\n@endgantt",
+    "Remove duplicated opening tag",
+  ],
+  [
+    "reversed",
+    "@endgantt\n[Build] lasts 2 days\n@startgantt",
+    "@startgantt\n[Build] lasts 2 days\n@endgantt",
+    "Move opening tag before closing tag",
+  ],
+] as const) {
+  test(`repairs boundary ${line} with exact undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await fillSource(page, source);
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(expected.split("\n"));
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
+  });
+}
+
+for (const [type, faulty, valid, label] of [
+  ["Class", "class Order\n  +id: int\n}", "class Order {\n  +id: int\n}", "Add missing opening brace"],
+  [
+    "Component",
+    "package Services {{\n  component API\n}",
+    "package Services {\n  component API\n}",
+    "Remove duplicated opening brace",
+  ],
+  [
+    "Use Case",
+    "rectangle System {\n  usecase Login\n}}",
+    "rectangle System {\n  usecase Login\n}",
+    "Remove duplicated closing brace",
+  ],
+] as const) {
+  test(`repairs ${type} braces with exact undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    const source = `@startuml\n${faulty}\n@enduml`;
+    await fillSource(page, source);
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(["@startuml", ...valid.split("\n"), "@enduml"]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
+  });
+}
+
+for (const [type, faulty, expected, label] of [
+  ["Sequence", "alt Ready\nAlice -> Bob: Hi\nendd", "alt Ready\nAlice -> Bob: Hi\nend", "Use end"],
+  ["Activity", "start\nwhile (More?)\n:Work;\nendwhil", "start\nwhile (More?)\n:Work;\nendwhile", "Use endwhile"],
+  ["Class", "class A\nnote left of A\nText", "class A\nnote left of A\nText\nend note", "Close unclosed blocks"],
+] as const) {
+  test(`repairs ${type} block terminators with exact undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    const source = `@startuml\n${faulty}\n@enduml`;
+    await fillSource(page, source);
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(["@startuml", ...expected.split("\n"), "@enduml"]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
+  });
+}

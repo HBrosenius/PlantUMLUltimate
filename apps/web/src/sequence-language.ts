@@ -122,11 +122,24 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
   const stack: Array<{ kind: string; closer: string; from: number; to: number }> = [];
   const diagnostics: Diagnostic[] = [];
   let offset = 0;
+  let blockComment = false;
   for (const line of source.split("\n")) {
+    const text = line.trim();
+    const freeText = ["note", "ref"].includes(stack.at(-1)?.kind ?? "");
+    if (!freeText && (blockComment || text.startsWith("/'") || text.startsWith("'"))) {
+      if (text.startsWith("/'")) blockComment = !text.includes("'/", 2);
+      else if (blockComment && text.includes("'/")) blockComment = false;
+      offset += line.length + 1;
+      continue;
+    }
+    if (freeText && !new RegExp(`^end\\s+${stack.at(-1)!.kind}\\s*(?:'.*)?$`, "i").test(text)) {
+      offset += line.length + 1;
+      continue;
+    }
     const start = line.match(
       /^\s*(?:(alt|opt|loop|par|break|critical|group|box)\b|(\/?\s*(?:note|hnote|rnote))\s+(?:left|right|over|across)\b(?!.*:)|ref(?:\s+#[\w]+)?\s+over\b(?!.*:))/i,
     );
-    const end = line.match(/^\s*end(?:\s+(box|note|ref))?\s*$/i);
+    const end = line.match(/^\s*end(?:\s+(box|note|ref))?\s*(?:'.*)?$/i);
     if (start) {
       const kind = start[1]?.toLowerCase() ?? (start[2] ? "note" : "ref");
       stack.push({

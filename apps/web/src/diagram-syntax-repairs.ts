@@ -32,6 +32,9 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
   let offset = 0;
   let blockComment = false;
   let note = false;
+  const seenTags = new Set<string>();
+  let foreignBoundary = false;
+  let hasContent = false;
   for (const line of source.split("\n")) {
     const trimmed = line.trim();
     if (blockComment) {
@@ -43,10 +46,20 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
     } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":")) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
+      if (trimmed) hasContent = true;
       const directive = line.match(/^(\s*)(@+[a-z]+|(?:start|end)(?:gantt|wbs|uml))\b/i);
       if (directive) {
         const token = directive[2]!;
         const normalized = token.toLowerCase();
+        if (tags.includes(normalized)) seenTags.add(normalized);
+        if (/^@(?:start|end)/i.test(token) && canonical.has(normalized) && !tags.includes(normalized))
+          foreignBoundary = true;
+        if (
+          /^@(?:start|end)/i.test(token) &&
+          !canonical.has(normalized) &&
+          !tags.some((tag) => distance(normalized, tag) <= 2)
+        )
+          foreignBoundary = true;
         if (
           !canonical.has(normalized) &&
           token.length >= 6 &&
@@ -57,6 +70,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
             .sort((a, b) => a.score - b.score);
           const best = candidates[0]!;
           if (best.score <= 2 && best.score < candidates[1]!.score) {
+            seenTags.add(best.tag);
             const from = offset + directive[1]!.length;
             fixes.push({
               from,
@@ -185,6 +199,25 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
       }
     }
     offset += line.length + 1;
+  }
+  if (hasContent && !foreignBoundary) {
+    const newline = source.includes("\r\n") ? "\r\n" : "\n";
+    if (!seenTags.has(tags[0]!))
+      fixes.push({
+        from: 0,
+        to: 0,
+        replacement: tags[0]! + newline,
+        label: `Insert ${tags[0]}`,
+        message: `Diagram is missing ${tags[0]}`,
+      });
+    if (!seenTags.has(tags[1]!))
+      fixes.push({
+        from: source.length,
+        to: source.length,
+        replacement: (source.endsWith("\n") ? "" : newline) + tags[1]!,
+        label: `Insert ${tags[1]}`,
+        message: `Diagram is missing ${tags[1]}`,
+      });
   }
   return fixes;
 }
