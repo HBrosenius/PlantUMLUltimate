@@ -37,7 +37,8 @@ test("history captures the initial source before opening and classifies later de
   await page.reload();
   await expect(page.locator(".cm-content")).toContainText("[Frontend] starts at [Backend]'s end");
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Cancel" }).click();
 
   await fillSource(page, movedDependentTask, "[Frontend] starts 2 days after [Backend]'s end");
   history = await openHistory(page);

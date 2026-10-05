@@ -407,8 +407,10 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const systemAnchor = page.locator('.sequence-participant-anchor[data-sequence-participant-id="system"]');
   await expect(senderHandle).toBeVisible();
   await expect(systemAnchor).toBeVisible();
-  const senderBox = await senderHandle.boundingBox();
-  const systemAnchorBox = await systemAnchor.boundingBox();
+  let senderBox = await senderHandle.boundingBox();
+  await expect.poll(async () => (senderBox = await senderHandle.boundingBox())).not.toBeNull();
+  let systemAnchorBox = await systemAnchor.boundingBox();
+  await expect.poll(async () => (systemAnchorBox = await systemAnchor.boundingBox())).not.toBeNull();
   expect(senderBox).not.toBeNull();
   expect(systemAnchorBox).not.toBeNull();
   await page.mouse.move(senderBox!.x + senderBox!.width / 2, senderBox!.y + senderBox!.height / 2);

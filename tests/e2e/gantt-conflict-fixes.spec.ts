@@ -34,7 +34,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
       }
       await page.getByLabel("Show source fix suggestions").click();
       const choice = page.getByRole("button", { name: new RegExp(label) });
-      await expect(choice.locator("code")).toContainText(
+      await expect(choice.locator("..").locator("code")).toContainText(
         label.startsWith("Move") ? "starts 2026-09-28" : "[Frontend] lasts 2 days",
       );
       await choice.click();

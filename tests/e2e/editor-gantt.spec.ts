@@ -826,7 +826,11 @@ test("keeps source fixes available outside the lint tooltip", async ({ page }) =
   await expect(fix).toBeVisible();
   await expect(fix).toHaveText("Fix issue");
   await fix.click();
-  await page.getByRole("button", { name: /Fix statement.*Build.*starts 2026-09-01/ }).click();
+  const suggestion = page
+    .getByRole("list", { name: "Source fix suggestions", exact: true })
+    .getByRole("listitem")
+    .filter({ has: page.locator("code", { hasText: "[Build] starts 2026-09-01" }) });
+  await suggestion.getByRole("button", { name: /Apply fix/ }).click();
   await expect(page.locator(".cm-content")).toContainText("[Build] starts 2026-09-01");
   await expect(page.locator(".cm-content")).not.toContainText("[Build] [Build]");
   await expect(fix).toBeHidden();
@@ -1509,7 +1513,8 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
   await expect(page.locator('.document-tabs > button[title="first.puml — unsaved changes"]')).toBeVisible();
   await expect(page.locator('.document-tabs > button[title="second.puml — unsaved changes"]')).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Cancel" }).click();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
@@ -1920,7 +1925,7 @@ test("chooses an anchor fix and restores the error with undo", async ({ page }) 
   await fillSource(page, value);
   await page.getByLabel("Show source fix suggestions").click();
   const startFix = page.getByRole("button", { name: /Use predecessor start/ });
-  await expect(startFix).toContainText("[Build] starts at [Design]'s start");
+  await expect(startFix.locator("..")).toContainText("[Build] starts at [Design]'s start");
   await startFix.click();
   await expect(page.locator(".cm-content")).toContainText("[Build] starts at [Design]'s start");
   await expect(page.locator(".cm-content")).toContainText("[Build] is 50 completed");

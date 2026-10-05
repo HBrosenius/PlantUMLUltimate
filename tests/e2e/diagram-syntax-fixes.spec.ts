@@ -38,9 +38,11 @@ test("repairs missing brackets on a declaration and dependency reference", async
     "@startgantt\nProject starts 2026-09-21\n[Backend lasts 2 days\n[Frontend] starts at [Backend's end\n@endgantt",
   );
   for (const repaired of ["[Backend] lasts 2 days", "[Frontend] starts at [Backend]'s end"]) {
-    const choice = page
-      .getByRole("button", { name: /Add missing closing bracket/ })
-      .filter({ has: page.locator("code", { hasText: repaired }) });
+    const suggestion = page
+      .getByRole("list", { name: "Source fix suggestions", exact: true })
+      .getByRole("listitem")
+      .filter({ has: page.locator(".source-fix-change-preview code", { hasText: repaired }) });
+    const choice = suggestion.getByRole("button", { name: /Apply fix.*Add missing closing bracket/ });
     if (!(await choice.isVisible())) await page.getByLabel("Show source fix suggestions").click();
     await choice.click();
     await expect(page.locator(".cm-content")).toContainText(repaired);

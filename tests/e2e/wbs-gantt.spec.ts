@@ -51,8 +51,11 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
   await expect(existingLinks).toContainText("Project delivery WBS: Design");
   await expect(existingLinks).toContainText("Project delivery schedule: Design");
   await expect(existingLinks.locator("li")).toHaveCount(4);
-  await page.getByRole("button", { name: "Rename Project delivery WBS" }).click();
   const renameDialog = page.getByRole("dialog", { name: "Rename diagram" });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Rename Project delivery WBS" }).click();
+    await expect(renameDialog).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 8000 });
   await renameDialog.getByLabel("Name").fill("Work breakdown");
   await renameDialog.getByRole("button", { name: "Rename", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Open documents" })).toContainText("Work breakdown");
