@@ -504,6 +504,8 @@ test("source error navigation wraps and refreshes after repair and undo", async 
   await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Previous error", exact: true })).toBeDisabled();
   await editor.press("ControlOrMeta+z");
+  await expect(editor.locator(".cm-line")).toHaveText(["@startgantt", lines[1]!, lines[2]!]);
+  await editor.press("ControlOrMeta+z");
   await expect(editor.locator(".cm-line")).toHaveText(lines);
   await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Next error", exact: true }).click();
@@ -749,6 +751,7 @@ for (const width of [390, 1280]) {
     await expect(explanation).toHaveCount(0);
     await expect(editor).toBeFocused();
     await editor.press("ControlOrMeta+Shift+m");
+    await expect(explanation).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Close error explanation" })).toBeFocused();
     await page.keyboard.press("Enter");
