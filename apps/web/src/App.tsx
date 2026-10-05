@@ -4842,7 +4842,12 @@ export function App() {
               setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
               return;
             }
-            setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, diagnostic });
+            setRepairRequest({
+              documentId: tabs.activeId,
+              kind: workspace.diagramKind,
+              source: workspace.source,
+              diagnostic,
+            });
           }}
           onPreviewFix={(fix) => {
             if (workspace.viewMode === "diagram") update("viewMode", "split");

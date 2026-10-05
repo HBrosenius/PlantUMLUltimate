@@ -295,8 +295,7 @@ export function CodeEditor({
               // character bindings first, so claim the shifted event explicitly.
               {
                 any: (_view, event) =>
-                  event.shiftKey && !event.altKey &&
-                  (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m"
+                  event.shiftKey && !event.altKey && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m"
                     ? explainErrorRef.current()
                     : false,
               },
@@ -491,38 +490,41 @@ export function CodeEditor({
     setFixFeedback("");
   }, [documentId, diagramKind]);
 
-  const updateExplanation = useCallback((diagnostic: Diagnostic, editor: EditorView) => {
-    const source = editor.state.doc.toString();
-    const fixes = quickFixesForDiagram(kindRef.current, source);
-    const related = fixes.filter(
-      (fix) =>
-        (fix.from <= diagnostic.to && fix.to >= diagnostic.from) ||
-        (/missing\s+\}|unclosed|unterminated/i.test(diagnostic.message) &&
-          /close|insert end/i.test(fix.message) &&
-          !diagnosticsForDiagram(
-            kindRef.current,
-            source.slice(0, fix.from) + fix.replacement + source.slice(fix.to),
-          ).some(
-            (item) =>
-              item.message === diagnostic.message &&
-              item.from ===
-                diagnostic.from + (fix.to <= diagnostic.from ? fix.replacement.length - (fix.to - fix.from) : 0),
-          )),
-    );
-    const guidance =
-      manualErrorGuidance(kindRef.current, diagnostic, fixes) ??
-      (related.length === 0
-        ? "Review the highlighted source and edit it to address this diagnostic."
-        : readOnly
-        ? "This document is read-only. A suggested correction is available when editing is enabled."
-        : "A correction is available. Open suggested fixes to compare the changes before applying one.");
-    setExplanation({
-      message: diagnostic.message,
-      guidance,
-      line: editor.state.doc.lineAt(diagnostic.from).number,
-      fixKeys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
-    });
-  }, [readOnly]);
+  const updateExplanation = useCallback(
+    (diagnostic: Diagnostic, editor: EditorView) => {
+      const source = editor.state.doc.toString();
+      const fixes = quickFixesForDiagram(kindRef.current, source);
+      const related = fixes.filter(
+        (fix) =>
+          (fix.from <= diagnostic.to && fix.to >= diagnostic.from) ||
+          (/missing\s+\}|unclosed|unterminated/i.test(diagnostic.message) &&
+            /close|insert end/i.test(fix.message) &&
+            !diagnosticsForDiagram(
+              kindRef.current,
+              source.slice(0, fix.from) + fix.replacement + source.slice(fix.to),
+            ).some(
+              (item) =>
+                item.message === diagnostic.message &&
+                item.from ===
+                  diagnostic.from + (fix.to <= diagnostic.from ? fix.replacement.length - (fix.to - fix.from) : 0),
+            )),
+      );
+      const guidance =
+        manualErrorGuidance(kindRef.current, diagnostic, fixes) ??
+        (related.length === 0
+          ? "Review the highlighted source and edit it to address this diagnostic."
+          : readOnly
+            ? "This document is read-only. A suggested correction is available when editing is enabled."
+            : "A correction is available. Open suggested fixes to compare the changes before applying one.");
+      setExplanation({
+        message: diagnostic.message,
+        guidance,
+        line: editor.state.doc.lineAt(diagnostic.from).number,
+        fixKeys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
+      });
+    },
+    [readOnly],
+  );
 
   const explainError = () => {
     const editor = view.current;
@@ -685,10 +687,15 @@ export function CodeEditor({
   const fixOutcomes = useMemo(() => {
     if (!fixPickerOpen) return new Map<DiagramQuickFix, ReturnType<typeof sourceFixOutcome>>();
     const before = diagnosticsForDiagram(fixSnapshot.kind, fixSnapshot.source);
-    return new Map(fixSnapshot.fixes.map((fix) => {
-      const candidate = fixSnapshot.source.slice(0, fix.from) + fix.replacement + fixSnapshot.source.slice(fix.to);
-      return [fix, sourceFixOutcome(fixSnapshot.source, fix, before, diagnosticsForDiagram(fixSnapshot.kind, candidate))];
-    }));
+    return new Map(
+      fixSnapshot.fixes.map((fix) => {
+        const candidate = fixSnapshot.source.slice(0, fix.from) + fix.replacement + fixSnapshot.source.slice(fix.to);
+        return [
+          fix,
+          sourceFixOutcome(fixSnapshot.source, fix, before, diagnosticsForDiagram(fixSnapshot.kind, candidate)),
+        ];
+      }),
+    );
   }, [fixSnapshot, fixPickerOpen]);
   const fixGroups = new Map<string, DiagramQuickFix[]>();
   for (const fix of quickFixes) {
@@ -862,7 +869,9 @@ export function CodeEditor({
                         {(group.length > 1 || preview.expandable) && <span>After:</span>}
                         <code>{preview.compactAfter.trim() || "Remove this text"}</code>
                         {outcome && (
-                          <span className={outcome.needsReview ? "source-fix-outcome needs-review" : "source-fix-outcome"}>
+                          <span
+                            className={outcome.needsReview ? "source-fix-outcome needs-review" : "source-fix-outcome"}
+                          >
                             Expected result: {outcome.message}
                           </span>
                         )}

@@ -16,21 +16,24 @@ export function sourceFixOutcome(
     const from = diagnostic.from >= fix.to ? diagnostic.from + shift : Math.min(diagnostic.from, fix.from);
     // A point uses the same affinity at both ends. Otherwise an insertion at
     // that point shifts its start but leaves its end behind, inverting the range.
-    const to = diagnostic.from === diagnostic.to
-      ? from
-      : diagnostic.to <= fix.from
-        ? diagnostic.to
-        : diagnostic.to >= fix.to
-          ? diagnostic.to + shift
-          : fix.from + fix.replacement.length;
-    const index = after.findIndex((item, index) =>
-      unmatched.has(index) &&
-      item.message === diagnostic.message &&
-      item.severity === diagnostic.severity &&
-      ((item.from === from && item.to === to) ||
-        (diagnostic.from < fix.to && diagnostic.to > fix.from &&
-          source.slice(diagnostic.from, diagnostic.to).length > 0 &&
-          source.slice(diagnostic.from, diagnostic.to) === candidate.slice(item.from, item.to))),
+    const to =
+      diagnostic.from === diagnostic.to
+        ? from
+        : diagnostic.to <= fix.from
+          ? diagnostic.to
+          : diagnostic.to >= fix.to
+            ? diagnostic.to + shift
+            : fix.from + fix.replacement.length;
+    const index = after.findIndex(
+      (item, index) =>
+        unmatched.has(index) &&
+        item.message === diagnostic.message &&
+        item.severity === diagnostic.severity &&
+        ((item.from === from && item.to === to) ||
+          (diagnostic.from < fix.to &&
+            diagnostic.to > fix.from &&
+            source.slice(diagnostic.from, diagnostic.to).length > 0 &&
+            source.slice(diagnostic.from, diagnostic.to) === candidate.slice(item.from, item.to))),
     );
     if (index < 0) resolved.push(diagnostic);
     else unmatched.delete(index);
@@ -44,9 +47,21 @@ export function sourceFixOutcome(
   const parts: string[] = [];
   if (resolvedErrors) parts.push(`Resolves ${resolvedErrors} ${resolvedErrors === 1 ? "error" : "errors"}.`);
   if (resolvedWarnings) parts.push(`Resolves ${resolvedWarnings} ${resolvedWarnings === 1 ? "warning" : "warnings"}.`);
-  if (newErrors) parts.push(`Introduces ${newErrors} new ${newErrors === 1 ? "error" : "errors"}—review before applying.`);
-  if (newWarnings) parts.push(`Introduces ${newWarnings} new ${newWarnings === 1 ? "warning" : "warnings"}—review before applying.`);
+  if (newErrors)
+    parts.push(`Introduces ${newErrors} new ${newErrors === 1 ? "error" : "errors"}—review before applying.`);
+  if (newWarnings)
+    parts.push(`Introduces ${newWarnings} new ${newWarnings === 1 ? "warning" : "warnings"}—review before applying.`);
   if (!parts.length) parts.push("No diagnostic changes detected.");
-  parts.push(remainingErrors ? `${remainingErrors} ${remainingErrors === 1 ? "error remains" : "errors remain"}.` : "No errors remain.");
-  return { resolved, introduced, remainingErrors, needsReview: newErrors > 0 || newWarnings > 0, message: parts.join(" ") };
+  parts.push(
+    remainingErrors
+      ? `${remainingErrors} ${remainingErrors === 1 ? "error remains" : "errors remain"}.`
+      : "No errors remain.",
+  );
+  return {
+    resolved,
+    introduced,
+    remainingErrors,
+    needsReview: newErrors > 0 || newWarnings > 0,
+    message: parts.join(" "),
+  };
 }

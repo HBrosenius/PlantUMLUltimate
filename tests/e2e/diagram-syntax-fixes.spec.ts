@@ -916,7 +916,13 @@ test("explained-error picker keeps alternatives together and can show all fixes"
 
 test("applied fixes report remaining errors and clear feedback on undo", async ({ page }) => {
   await prepareEditor(page);
-  const lines = ["@startgantt", "Project starts 2026-09-21", "[Build] lasts 2 days", "[Build] is 50 completed", "@endgant"];
+  const lines = [
+    "@startgantt",
+    "Project starts 2026-09-21",
+    "[Build] lasts 2 days",
+    "[Build] is 50 completed",
+    "@endgant",
+  ];
   await fillSource(page, lines.join("\n"));
   const editor = page.locator(".cm-content");
   await editor.press("ControlOrMeta+.");
@@ -941,7 +947,13 @@ test("applied fixes report remaining errors and clear feedback on undo", async (
 
 test("Problems routes errors and suggestions through explanations and previews", async ({ page }) => {
   await prepareEditor(page);
-  const lines = ["@startgantt", "Project starts 2026-09-21", "[Build] lasts 2 days", "[Build] is 50 completed", "@endgant"];
+  const lines = [
+    "@startgantt",
+    "Project starts 2026-09-21",
+    "[Build] lasts 2 days",
+    "[Build] is 50 completed",
+    "@endgant",
+  ];
   await fillSource(page, lines.join("\n"));
   await page.getByRole("button", { name: /⚠.*problem/ }).click();
   const problems = page.getByRole("complementary", { name: "Problems" });
@@ -979,7 +991,8 @@ test("fix previews predict resolved and newly introduced errors without editing"
   await completion.click();
   await expect(page.locator(".source-fix-feedback")).toContainText("1 error remains.");
   await editor.press("ControlOrMeta+z");
-  const cycle = "@startgantt\nProject starts 2026-09-21\n[Backend] lasts 2 days\n[Frontend] lasts 2 days\n[Backend] starts at [Frontend]'s end\n[Frontend] starts at [Backned]'s end\n@endgantt";
+  const cycle =
+    "@startgantt\nProject starts 2026-09-21\n[Backend] lasts 2 days\n[Frontend] lasts 2 days\n[Backend] starts at [Frontend]'s end\n[Frontend] starts at [Backned]'s end\n@endgantt";
   await fillSource(page, cycle);
   await editor.press("ControlOrMeta+.");
   const repair = picker.getByRole("button", { name: /Use task Backend/ });
