@@ -11,7 +11,8 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:5173",
-    trace: "retain-on-failure",
+    // Avoid tracing successful first attempts in CI; retain local failure traces.
+    trace: process.env.CI ? "on-first-retry" : "retain-on-failure",
     screenshot: "only-on-failure",
   },
   projects: [

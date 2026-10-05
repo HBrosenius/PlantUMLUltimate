@@ -15,7 +15,8 @@ import { activityCompletions } from "./activity-language";
 import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode";
 import { wbsCompletions } from "./wbs-language";
 import type { DiagramKind } from "./model";
-import { diagnosticsForDiagram } from "./diagram-diagnostics";
+import { withManualErrorGuidance } from "./manual-error-guidance";
+import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
 export function languageExtensions(kind: DiagramKind): Extension {
   const mode =
@@ -58,6 +59,12 @@ export function languageExtensions(kind: DiagramKind): Extension {
     StreamLanguage.define(mode),
     syntaxHighlighting(highlights),
     autocompletion({ override: [completions] }),
-    linter((current) => diagnosticsForDiagram(kind, current.state.doc.toString()), { delay: 120 }),
+    linter(
+      (current) => {
+        const source = current.state.doc.toString();
+        return withManualErrorGuidance(kind, diagnosticsForDiagram(kind, source), quickFixesForDiagram(kind, source));
+      },
+      { delay: 120 },
+    ),
   ];
 }

@@ -639,3 +639,82 @@ test("rapid tab switches and fixes keep separate documents and previews isolated
   await expect(page.locator(".cm-fix-target")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Next error", exact: true })).toBeDisabled();
 });
+
+test("explains an ambiguous quote error and reveals it for manual editing", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Class diagram" })
+    .click();
+  const lines = ["@startuml", 'class "Customer as Account as Other', "@enduml"];
+  await fillSource(page, lines.join("\n"));
+  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  const quote = problems.getByRole("listitem").filter({ hasText: "Quoted label has an unmatched quote" });
+  await expect(quote).toContainText("How to resolve");
+  await expect(quote).toContainText("intended label boundary is ambiguous");
+  await expect(problems.getByRole("button", { name: /Add missing closing quote/ })).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath("manual-error-guidance.png") });
+  await quote.click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 2");
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  await fillSource(page, '@startuml\nclass "Customer" as Account\n@enduml');
+  await expect(problems).not.toContainText("intended label boundary is ambiguous");
+});
+
+for (const width of [390, 1280]) {
+  test(`manual guidance tooltip matches Problems and fits at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Class diagram" })
+      .click();
+    await fillSource(page, '@startuml\nclass "Customer as Account as Other\n@enduml');
+    await page.locator(".cm-lintRange-error").first().hover();
+    const tooltip = page.locator(".cm-tooltip-lint .cm-manual-error-guidance");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("How to resolve");
+    const guidance = await tooltip.locator("div").last().textContent();
+    const box = await tooltip.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(800);
+    await page.screenshot({ path: test.info().outputPath("manual-guidance-tooltip.png") });
+    await page.getByRole("button", { name: /⚠.*problem/ }).click();
+    const problems = page.getByRole("complementary", { name: "Problems" });
+    await expect(problems.locator(".problem-guidance")).toContainText(guidance!);
+    await fillSource(page, '@startuml\nclass "Customer" as Account\n@enduml');
+    await expect(page.locator(".cm-lintRange-error")).toHaveCount(0);
+    await expect(tooltip).not.toBeVisible();
+    await expect(problems.locator(".problem-guidance")).toHaveCount(0);
+  });
+}
+
+for (const [type, keyword] of [
+  ["Sequence", "participant"],
+  ["Component", "component"],
+  ["Use case", "usecase"],
+] as const) {
+  test(`manual quote guidance uses a ${type} example in tooltip and Problems`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    await fillSource(page, `@startuml\n${keyword} "Customer as Account as Other\n@enduml`);
+    await page.locator(".cm-lintRange-error").first().hover();
+    const guidance = page.locator(".cm-tooltip-lint .cm-manual-error-guidance");
+    const example = `${keyword} "Order details" as Order`;
+    await expect(guidance).toContainText(example);
+    await expect(guidance).not.toContainText('class "Order details"');
+    await page.getByRole("button", { name: /⚠.*problem/ }).click();
+    const problems = page.getByRole("complementary", { name: "Problems" });
+    await expect(problems.locator(".problem-guidance").filter({ hasText: "intended label boundary" })).toContainText(
+      example,
+    );
+  });
+}

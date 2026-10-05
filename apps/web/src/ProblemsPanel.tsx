@@ -1,7 +1,10 @@
+import type { DiagramKind } from "./model";
+import { manualErrorGuidance } from "./manual-error-guidance";
 import type { Diagnostic } from "@codemirror/lint";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
 
 export function ProblemsPanel({
+  diagramKind,
   source,
   diagnostics,
   quickFixes,
@@ -10,6 +13,7 @@ export function ProblemsPanel({
   onApplyFix,
   onClose,
 }: {
+  diagramKind: DiagramKind;
   source: string;
   diagnostics: readonly Diagnostic[];
   quickFixes: readonly DiagramQuickFix[];
@@ -35,6 +39,7 @@ export function ProblemsPanel({
       {notice && <p className="problem-notice">{notice}</p>}
       <div className="problem-results" role="list">
         {diagnostics.map((diagnostic, index) => {
+          const guidance = manualErrorGuidance(diagramKind, diagnostic, quickFixes);
           const line = source.slice(0, diagnostic.from).split(/\r?\n/).length;
           return (
             <button
@@ -48,6 +53,11 @@ export function ProblemsPanel({
                 Line {line} · {diagnostic.message}
               </span>
               <code>{lines[line - 1]?.trim()}</code>
+              {guidance && (
+                <span className="problem-guidance">
+                  <strong>How to resolve</strong> {guidance}
+                </span>
+              )}
             </button>
           );
         })}

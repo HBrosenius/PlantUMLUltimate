@@ -4827,6 +4827,7 @@ export function App() {
       )}
       {problemsOpen && (
         <ProblemsPanel
+          diagramKind={workspace.diagramKind}
           source={problemPreview?.source ?? workspace.source}
           diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
           quickFixes={problemPreview ? [] : activeQuickFixes}

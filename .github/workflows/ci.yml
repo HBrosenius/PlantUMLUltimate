@@ -35,7 +35,7 @@ jobs:
     uses: ./.github/workflows/deploy-pages.yml
 
   browser:
-    needs: validate
+    # This job installs its own dependencies; run alongside validation.
     runs-on: ubuntu-latest
     name: ${{ matrix.browser }} · shard ${{ matrix.shard }}/4
     strategy:
@@ -67,7 +67,7 @@ jobs:
           retention-days: 7
 
   pwa:
-    needs: validate
+    # This job installs its own dependencies; run alongside validation.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -93,7 +93,7 @@ jobs:
           retention-days: 7
 
   collaboration-e2e:
-    needs: validate
+    # This job installs its own dependencies; run alongside validation.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

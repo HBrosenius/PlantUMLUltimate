@@ -6575,3 +6575,23 @@ polygon.diagram-bulk-selected {
   white-space: nowrap;
   border: 0;
 }
+
+.problem-guidance {
+  margin-top: 0.5rem;
+  line-height: 1.45;
+}
+.problem-guidance strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.cm-manual-error-guidance {
+  max-width: min(360px, calc(100vw - 40px));
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.cm-manual-error-guidance strong {
+  display: block;
+  margin: 0.5rem 0 0.15rem;
+}
