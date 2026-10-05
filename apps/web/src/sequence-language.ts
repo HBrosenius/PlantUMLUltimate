@@ -132,14 +132,14 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       offset += line.length + 1;
       continue;
     }
-    if (freeText && !new RegExp(`^end\\s+${stack.at(-1)!.kind}\\s*(?:'.*)?$`, "i").test(text)) {
+    if (freeText && !new RegExp(`^end\\s+${stack.at(-1)!.kind}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
       offset += line.length + 1;
       continue;
     }
     const start = line.match(
       /^\s*(?:(alt|opt|loop|par|break|critical|group|box)\b|(\/?\s*(?:note|hnote|rnote))\s+(?:left|right|over|across)\b(?!.*:)|ref(?:\s+#[\w]+)?\s+over\b(?!.*:))/i,
     );
-    const end = line.match(/^\s*end(?:\s+(box|note|ref))?\s*(?:'.*)?$/i);
+    const end = line.match(/^\s*end(?:\s+(box|note|ref))?\s*(?:'[^\n]*)?$/i);
     if (start) {
       const kind = start[1]?.toLowerCase() ?? (start[2] ? "note" : "ref");
       stack.push({

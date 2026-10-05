@@ -367,6 +367,13 @@ export function CodeEditor({
 
   const relationshipRepair = quickFixes.length === 1 && quickFixes[0]?.message.startsWith("Repair ");
   const previewSource = view.current?.state.doc.toString() ?? value;
+  const fixGroups = new Map<string, DiagramQuickFix[]>();
+  for (const fix of quickFixes) {
+    const key = fix.choiceGroup ?? `${fix.from}:${fix.to}:${fix.message}`;
+    const group = fixGroups.get(key) ?? [];
+    group.push(fix);
+    fixGroups.set(key, group);
+  }
 
   return (
     <section className="editor-pane" aria-label="Code editor section">
@@ -379,23 +386,36 @@ export function CodeEditor({
                 : `Fix issue${quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
             </summary>
             <ul aria-label="Source fix suggestions">
-              {quickFixes.map((fix, index) => {
-                const lineFrom = previewSource.lastIndexOf("\n", Math.max(0, fix.from - 1)) + 1;
-                const nextLine = previewSource.indexOf("\n", fix.to);
-                const lineTo = nextLine < 0 ? previewSource.length : nextLine;
-                const preview =
-                  previewSource.slice(lineFrom, fix.from) + fix.replacement + previewSource.slice(fix.to, lineTo);
-                return (
-                  <li key={`${fix.from}:${fix.to}:${index}`}>
-                    <button type="button" onClick={() => applyQuickFix(fix)}>
-                      <span>
-                        Line {previewSource.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
-                      </span>
-                      <code>{preview.trim() || "Remove this text"}</code>
-                    </button>
-                  </li>
-                );
-              })}
+              {[...fixGroups.values()].flatMap((group) =>
+                group.map((fix, index) => {
+                  const lineFrom = previewSource.lastIndexOf("\n", Math.max(0, fix.from - 1)) + 1;
+                  const nextLine = previewSource.indexOf("\n", fix.to);
+                  const lineTo = nextLine < 0 ? previewSource.length : nextLine;
+                  const preview =
+                    previewSource.slice(lineFrom, fix.from) + fix.replacement + previewSource.slice(fix.to, lineTo);
+                  return (
+                    <li key={`${fix.choiceGroup ?? fix.message}:${fix.from}:${fix.to}:${fix.replacement}:${index}`}>
+                      {group.length > 1 && index === 0 && (
+                        <p role="note">
+                          Choose one of {group.length} alternatives. Compare the changes before applying.
+                        </p>
+                      )}
+                      <button type="button" onClick={() => applyQuickFix(fix)}>
+                        <span>
+                          Line {previewSource.slice(0, fix.from).split("\n").length}: {fix.label ?? fix.message}
+                        </span>
+                        {group.length > 1 && (
+                          <span>
+                            Before: <del>{previewSource.slice(lineFrom, lineTo).trim() || "(empty line)"}</del>
+                          </span>
+                        )}
+                        {group.length > 1 && <span>After:</span>}
+                        <code>{preview.trim() || "Remove this text"}</code>
+                      </button>
+                    </li>
+                  );
+                }),
+              )}
             </ul>
           </details>
         )}

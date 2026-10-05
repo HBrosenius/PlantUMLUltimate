@@ -253,3 +253,111 @@ for (const [type, faulty, expected, label] of [
     await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
   });
 }
+
+for (const [type, faulty, expected, label] of [
+  [
+    "Sequence",
+    "participant \"Client [end] as C <<service>> #LightBlue ' Keep comment",
+    'participant "Client [end]" as C <<service>> #LightBlue \' Keep comment',
+    "Add missing closing quote",
+  ],
+  [
+    "Component",
+    "component API {literal}\" as A <<service>> #LightBlue ' Keep comment",
+    'component "API {literal}" as A <<service>> #LightBlue \' Keep comment',
+    "Add missing opening quote",
+  ],
+] as const) {
+  test(`preserves decorations in ${type} quote mutation repair and undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    const lines = ["@startuml output", faulty, "@enduml"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(["@startuml output", expected, "@enduml"]);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  });
+}
+
+for (const [type, body, label, expected] of [
+  ["Sequence", "alt Ready\nAlice -> Bob: Hi\nendd", "Use end", "alt Ready\nAlice -> Bob: Hi\nend"],
+  ["Class", "class A\nnote left of A\nText\nend not", "Use end note", "class A\nnote left of A\nText\nend note"],
+] as const) {
+  test(`offers a coherent ${type} terminator repair with undo`, async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: `${type} diagram` })
+      .click();
+    const lines = ["@startuml", ...body.split("\n"), "@enduml"];
+    await fillSource(page, lines.join("\n"));
+    await page.getByLabel("Show source fix suggestions").click();
+    await expect(page.getByRole("button", { name: /Insert @enduml|Insert end|Close unclosed blocks/ })).toHaveCount(0);
+    await page.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(["@startuml", ...expected.split("\n"), "@enduml"]);
+    await expect(page.getByLabel("Show source fix suggestions")).toHaveCount(0);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+    await expect(page.getByLabel("Show source fix suggestions")).toBeVisible();
+  });
+}
+
+test("compares alternative task repairs and applies only the chosen reference", async ({ page }) => {
+  await prepareEditor(page);
+  const lines = [
+    "@startgantt",
+    "[Build] lasts 2 days",
+    "[Built] lasts 3 days",
+    "[Release] lasts 1 day",
+    "[Release] starts 5 days after [Buil]'s end",
+    "@endgantt",
+  ];
+  await fillSource(page, lines.join("\n"));
+  await page.getByLabel("Show source fix suggestions").click();
+  const suggestions = page.getByLabel("Source fix suggestions");
+  await expect(suggestions.getByRole("note")).toContainText("Choose one of 2 alternatives");
+  const choice = suggestions.getByRole("button", { name: /Use task Built/ });
+  await expect(choice).toContainText("Before:");
+  await expect(choice.locator("del")).toContainText("[Buil]'s end");
+  await expect(choice.locator("code")).toHaveText("[Release] starts 5 days after [Built]'s end");
+  await choice.click();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines.map((line) => line.replace("[Buil]", "[Built]")));
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+});
+
+test("compares class closing positions before applying the selected alternative", async ({ page }) => {
+  await prepareEditor(page);
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Class diagram" })
+    .click();
+  const lines = ["@startuml", "class Order {", "  +id: UUID", "class Customer", "@enduml"];
+  await fillSource(page, lines.join("\n"));
+  await page.getByLabel("Show source fix suggestions").click();
+  const suggestions = page.getByLabel("Source fix suggestions");
+  await expect(suggestions.getByRole("note")).toContainText("Choose one of 2 alternatives");
+  await expect(suggestions.getByRole("button", { name: /Close class at diagram end/ })).toBeVisible();
+  const choice = suggestions.getByRole("button", { name: /Close class before line 4/ });
+  await expect(choice.locator("del")).toHaveText("class Customer");
+  await expect(choice.locator("code")).toHaveText("}\nclass Customer");
+  await choice.click();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText([
+    "@startuml",
+    "class Order {",
+    "  +id: UUID",
+    "}",
+    "class Customer",
+    "@enduml",
+  ]);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+});

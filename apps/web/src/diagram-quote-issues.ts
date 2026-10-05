@@ -46,30 +46,25 @@ export function quoteIssues(kind: DiagramKind, source: string): QuoteIssue[] {
           if (slashes % 2 === 0) positions.push(index);
         }
         if (positions.length % 2 === 1) {
+          const decorations = String.raw`(?:\s+<<[^>]+>>)*(?:\s+#[\w]+)?\s*\{?\s*(?:'.*)?`;
+          const suffix = new RegExp(String.raw`^(?:\s+as\s+\w+)?${decorations}$`, "i");
           let repaired: string | undefined;
           let label: string | undefined;
           if (positions.length === 3) {
             // Only collapse an extra quote at a label boundary.
             const [a, b, c] = positions as [number, number, number];
             const duplicate = a === 0 && b === 1 ? a : a === 0 && c === b + 1 ? c : undefined;
-            if (
-              duplicate !== undefined &&
-              /^(?:\s+as\s+\w+)?(?:\s+<<[^>]+>>)?(?:\s+#[\w]+)?\s*\{?\s*(?:'.*)?$/i.test(value.slice(c + 1))
-            ) {
+            if (duplicate !== undefined && suffix.test(value.slice(c + 1))) {
               repaired = value.slice(0, duplicate) + value.slice(duplicate + 1);
               label = "Remove duplicated quote";
             }
           } else if (positions.length === 1) {
             const at = positions[0]!;
-            if (
-              at > 0 &&
-              !/\s+as\s+/i.test(value.slice(0, at)) &&
-              /^[^"]+"(?:\s+as\s+[\w]+)?\s*(?:\{|#[\w]+)?\s*$/i.test(value)
-            ) {
+            if (at > 0 && !/\s+as\s+/i.test(value.slice(0, at)) && suffix.test(value.slice(at + 1))) {
               repaired = '"' + value;
               label = "Add missing opening quote";
             } else if (at === 0) {
-              const boundaries = [...value.matchAll(/\s+as\s+[\w]+(?=\s*(?:\{|#[\w]+)?\s*$)/gi)];
+              const boundaries = [...value.matchAll(new RegExp(String.raw`\s+as\s+\w+(?=${decorations}$)`, "gi"))];
               const otherAs = [...value.matchAll(/\s+as\s+/gi)];
               if (boundaries.length === 1 && otherAs.length === 1) {
                 const end = boundaries[0]!.index!;

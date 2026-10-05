@@ -14,6 +14,7 @@ import { activityDiagnostics, activityQuickFixes } from "./activity-language";
 import { wbsDiagnostics, wbsQuickFixes } from "./wbs-language";
 
 export interface DiagramQuickFix {
+  choiceGroup?: string;
   label?: string;
   from: number;
   to: number;
@@ -54,8 +55,51 @@ const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[
             ? activityQuickFixes(source)
             : wbsQuickFixes(source);
 
-export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
-  const repairs = [
+// Compare parser results after the non-overlapping shared repairs, but retain original
+// source ranges for the editor. This removes consequences of a typo rather than unrelated errors.
+function consistentItems<T extends { from: number; to: number; message: string }>(
+  kind: DiagramKind,
+  source: string,
+  repairs: DiagramQuickFix[],
+  read: (kind: DiagramKind, source: string) => T[],
+): T[] {
+  const items = read(kind, source);
+  const overlaps = (a: DiagramQuickFix, b: DiagramQuickFix) => a.from === b.from || (a.from < b.to && b.from < a.to);
+  const selected = repairs
+    .filter((repair, index) => !repairs.some((other, otherIndex) => otherIndex !== index && overlaps(repair, other)))
+    .sort((a, b) => a.from - b.from);
+  if (!selected.length) return items;
+  let repaired = source;
+  for (const fix of [...selected].reverse())
+    repaired = repaired.slice(0, fix.from) + fix.replacement + repaired.slice(fix.to);
+  const originalOffset = (position: number) => {
+    let shift = 0;
+    for (const fix of selected) {
+      const from = fix.from + shift;
+      const end = from + fix.replacement.length;
+      if (position < from) break;
+      if (position < end) return fix.from;
+      shift += fix.replacement.length - (fix.to - fix.from);
+    }
+    return position - shift;
+  };
+  const key = (item: { from: number; to: number; message: string }) => `${item.from}:${item.to}:${item.message}`;
+  const remaining = new Map<string, number>();
+  for (const item of read(kind, repaired)) {
+    const identity = key({ ...item, from: originalOffset(item.from), to: originalOffset(item.to) });
+    remaining.set(identity, (remaining.get(identity) ?? 0) + 1);
+  }
+  return items.filter((item) => {
+    const identity = key(item);
+    const count = remaining.get(identity) ?? 0;
+    if (!count) return false;
+    remaining.set(identity, count - 1);
+    return true;
+  });
+}
+
+function sharedRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+  return [
     ...syntaxRepairs(kind, source),
     ...braceIssues(kind, source),
     ...terminatorRepairs(kind, source),
@@ -63,23 +107,39 @@ export const quickFixesForDiagram = (kind: DiagramKind, source: string): Diagram
       issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
     ),
   ];
+}
+
+function coherentRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+  const repairs = sharedRepairs(kind, source);
+  const corrections = repairs.filter((fix) => fix.from < fix.to);
+  if (!corrections.length) return repairs;
+  const remaining = consistentItems(kind, source, corrections, sharedRepairs);
+  return repairs.filter(
+    (fix) =>
+      fix.from < fix.to ||
+      remaining.includes(fix) ||
+      remaining.some((item) => item.from === fix.from && item.to === fix.to && item.message === fix.message),
+  );
+}
+
+function unfixableIssues(kind: DiagramKind, source: string) {
+  return [...quoteIssues(kind, source), ...boundaryIssues(kind, source)].filter(
+    (issue) => issue.replacement === undefined,
+  );
+}
+
+export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
+  const repairs = coherentRepairs(kind, source);
   return [
     ...repairs,
-    ...languageQuickFixes(kind, source).filter(
+    ...consistentItems(kind, source, repairs, languageQuickFixes).filter(
       (fix) => !repairs.some((repair) => repair.from <= fix.from && repair.to >= fix.to),
     ),
   ];
 };
 
 export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagnostic[] => {
-  const repairs = [
-    ...syntaxRepairs(kind, source),
-    ...braceIssues(kind, source),
-    ...terminatorRepairs(kind, source),
-    ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)].flatMap((issue) =>
-      issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
-    ),
-  ];
+  const repairs = coherentRepairs(kind, source);
   return [
     ...repairs.map((fix): Diagnostic => ({
       from: fix.from,
@@ -95,15 +155,13 @@ export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagno
         },
       ],
     })),
-    ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)]
-      .filter((issue) => issue.replacement === undefined)
-      .map((issue): Diagnostic => ({
-        from: issue.from,
-        to: issue.to,
-        severity: "error",
-        message: issue.message,
-      })),
-    ...languageDiagnostics(kind, source).filter(
+    ...consistentItems(kind, source, repairs, unfixableIssues).map((issue): Diagnostic => ({
+      from: issue.from,
+      to: issue.to,
+      severity: "error",
+      message: issue.message,
+    })),
+    ...consistentItems(kind, source, repairs, languageDiagnostics).filter(
       (item) => !repairs.some((repair) => repair.from <= item.from && repair.to >= item.to),
     ),
   ];
