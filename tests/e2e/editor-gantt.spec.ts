@@ -1926,6 +1926,7 @@ test("chooses an anchor fix and restores the error with undo", async ({ page }) 
   await expect(page.locator(".cm-content")).toContainText("[Build] is 50 completed");
   await page.locator(".cm-content").press("ControlOrMeta+z");
   await expect(page.locator(".cm-content")).not.toContainText("[Design]'s start");
+  await page.getByLabel("Show source fix suggestions").click();
   await expect(page.getByRole("button", { name: /Use predecessor end/ })).toBeVisible();
 });
 
@@ -1968,8 +1969,8 @@ test("detects and repairs project, weekday, dependency and completion keyword ty
       "Project start 2026-09-21\nsuunday are closed\n[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Architecture] lasts 6 days\n[Frontend] starts att [Backend]'s end\n[Architecture] iss 50% completed\n[Architecture] is 50% complet",
     ),
   );
-  await page.getByLabel("Show source fix suggestions").click();
   for (const keyword of ["starts", "sunday", "at", "is", "completed"]) {
+    await page.getByLabel("Show source fix suggestions").click();
     await page.getByRole("button", { name: new RegExp(`Use ${keyword}\\b`) }).click();
   }
   const code = page.locator(".cm-content");
@@ -1988,8 +1989,8 @@ test("repairs calendar and inline typos without changing duration values", async
       "sunday ar closed\nsaturday are clsoed\nprintscale dayly\n[Backend] lasts 2 days\n[Frontend] lasts 3 days\n[Frontend] starts at [Backend]'s edn\n[Architecture] lasts 5 dys\n[Architecture] starts 2026-09-21 and iss 50% completed",
     ),
   );
-  await page.getByLabel("Show source fix suggestions").click();
   for (const keyword of ["are", "closed", "daily", "end", "days", "is"]) {
+    await page.getByLabel("Show source fix suggestions").click();
     await page.getByRole("button", { name: new RegExp(`Use ${keyword}\\b`) }).click();
   }
   await expect(page.locator(".cm-content")).toContainText("[Architecture] lasts 5 days");
