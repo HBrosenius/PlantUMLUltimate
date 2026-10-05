@@ -1,3 +1,4 @@
+import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { manualErrorGuidance } from "./manual-error-guidance";
 import { isCurrentFix, type FixSnapshot } from "./source-fix-snapshot";
 import { errorLocations, nextErrorIndex } from "./error-navigation";
@@ -229,6 +230,8 @@ export function CodeEditor({
   const view = useRef<EditorView | null>(null);
   const explanationPanel = useRef<HTMLDivElement>(null);
   const explainErrorRef = useRef<() => boolean>(() => false);
+  const previewDiagnosticRef = useRef<(diagnostic: Diagnostic) => void>(() => {});
+  const previewTooltipFixes = useCallback((diagnostic: Diagnostic) => previewDiagnosticRef.current(diagnostic), []);
   const navigateErrorRef = useRef<(direction: 1 | -1) => boolean>(() => false);
   const onChangeRef = useRef(onChange);
   const onCursorRef = useRef(onCursorChange);
@@ -336,7 +339,7 @@ export function CodeEditor({
             EditorState.readOnly.of(initialReadOnly.current),
             EditorView.editable.of(!initialReadOnly.current),
           ]),
-          language.current.of(languageExtensions(initialKind.current)),
+          language.current.of(languageExtensions(initialKind.current, previewTooltipFixes)),
           lintGutter(),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
@@ -389,13 +392,15 @@ export function CodeEditor({
     });
     view.current = editor;
     return () => editor.destroy();
-  }, []);
+  }, [previewTooltipFixes]);
 
   useEffect(() => {
     if (!view.current) return;
-    view.current.dispatch({ effects: language.current.reconfigure(languageExtensions(diagramKind)) });
+    view.current.dispatch({
+      effects: language.current.reconfigure(languageExtensions(diagramKind, previewTooltipFixes)),
+    });
     refreshFixes(diagramKind, view.current.state.doc.toString());
-  }, [diagramKind]);
+  }, [diagramKind, previewTooltipFixes]);
 
   useEffect(() => {
     const editor = view.current;
@@ -502,21 +507,7 @@ export function CodeEditor({
     (diagnostic: Diagnostic, editor: EditorView) => {
       const source = editor.state.doc.toString();
       const fixes = quickFixesForDiagram(kindRef.current, source);
-      const related = fixes.filter(
-        (fix) =>
-          (fix.from <= diagnostic.to && fix.to >= diagnostic.from) ||
-          (/missing\s+\}|unclosed|unterminated/i.test(diagnostic.message) &&
-            /close|insert end/i.test(fix.message) &&
-            !diagnosticsForDiagram(
-              kindRef.current,
-              source.slice(0, fix.from) + fix.replacement + source.slice(fix.to),
-            ).some(
-              (item) =>
-                item.message === diagnostic.message &&
-                item.from ===
-                  diagnostic.from + (fix.to <= diagnostic.from ? fix.replacement.length - (fix.to - fix.from) : 0),
-            )),
-      );
+      const related = relatedDiagnosticFixes(kindRef.current, source, diagnostic, fixes);
       const guidance =
         manualErrorGuidance(kindRef.current, diagnostic, fixes) ??
         (related.length === 0
@@ -530,6 +521,7 @@ export function CodeEditor({
         line: editor.state.doc.lineAt(diagnostic.from).number,
         fixKeys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
       });
+      return related;
     },
     [readOnly],
   );
@@ -576,6 +568,19 @@ export function CodeEditor({
   const closeExplanation = () => {
     setExplanation(undefined);
     view.current?.focus();
+  };
+  previewDiagnosticRef.current = (diagnostic) => {
+    const editor = view.current;
+    if (!editor || readOnly) return;
+    const related = updateExplanation(diagnostic, editor);
+    if (!related.length || !fixPicker.current) return;
+    editor.dispatch({ selection: { anchor: diagnostic.from } });
+    setExplanation(undefined);
+    setFixFilter({
+      keys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
+      line: editor.state.doc.lineAt(diagnostic.from).number,
+    });
+    fixPicker.current.open = true;
   };
 
   const handledRepairRequest = useRef<SourceRepairRequest | undefined>(undefined);

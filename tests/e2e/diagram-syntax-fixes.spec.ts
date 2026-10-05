@@ -1036,3 +1036,40 @@ test("Ctrl Shift M opens explanations before the built-in Ctrl M command", async
   await page.keyboard.press("Escape");
   await expect(editor).toBeFocused();
 });
+
+for (const fixture of [
+  {
+    type: "Gantt diagram",
+    source: "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgantt",
+    label: "Add missing %",
+  },
+  {
+    type: "Class diagram",
+    source: "@startuml\nclass Order {\n  +id: UUID\n@enduml",
+    label: "Close class member block",
+  },
+]) {
+  test(`tooltip previews ${fixture.type} fixes before applying`, async ({ page }) => {
+    await prepareEditor(page);
+    if (fixture.type === "Class diagram") {
+      await page.getByRole("button", { name: "New diagram tab" }).click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: fixture.type })
+        .click();
+    }
+    await fillSource(page, fixture.source);
+    await page.locator(".cm-lintRange-error").first().hover();
+    const tooltip = page.locator(".cm-tooltip-lint");
+    await tooltip.getByRole("button", { name: /Preview fixes/ }).click();
+    const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+    const apply = picker.getByRole("button", { name: new RegExp(`Apply fix.*${fixture.label}`) });
+    await expect(apply).toBeFocused();
+    const editor = page.locator(".cm-content");
+    await expect(editor.locator(".cm-line")).toHaveText(fixture.source.split("\n"));
+    await apply.click();
+    await expect(page.locator(".source-fix-feedback")).toContainText("No errors remain");
+    await editor.press("ControlOrMeta+z");
+    await expect(editor.locator(".cm-line")).toHaveText(fixture.source.split("\n"));
+  });
+}

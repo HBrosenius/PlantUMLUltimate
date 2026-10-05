@@ -1,7 +1,8 @@
+import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { autocompletion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import { StreamLanguage, syntaxHighlighting } from "@codemirror/language";
-import { linter } from "@codemirror/lint";
+import { linter, type Diagnostic } from "@codemirror/lint";
 import { ganttCompletions } from "./gantt-language";
 import { plantUmlGanttHighlightStyle, plantUmlGanttMode } from "./plantuml-gantt-mode";
 import { plantUmlSequenceHighlightStyle, plantUmlSequenceMode } from "./plantuml-sequence-mode";
@@ -18,7 +19,7 @@ import type { DiagramKind } from "./model";
 import { withManualErrorGuidance } from "./manual-error-guidance";
 import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
-export function languageExtensions(kind: DiagramKind): Extension {
+export function languageExtensions(kind: DiagramKind, onPreviewFixes?: (diagnostic: Diagnostic) => void): Extension {
   const mode =
     kind === "gantt"
       ? plantUmlGanttMode
@@ -62,7 +63,24 @@ export function languageExtensions(kind: DiagramKind): Extension {
     linter(
       (current) => {
         const source = current.state.doc.toString();
-        return withManualErrorGuidance(kind, diagnosticsForDiagram(kind, source), quickFixesForDiagram(kind, source));
+        const fixes = quickFixesForDiagram(kind, source);
+        const diagnostics = withManualErrorGuidance(kind, diagnosticsForDiagram(kind, source), fixes);
+        return onPreviewFixes
+          ? diagnostics.map((diagnostic) => ({
+              ...diagnostic,
+              actions:
+                !current.state.readOnly && relatedDiagnosticFixes(kind, source, diagnostic, fixes).length
+                  ? [
+                      {
+                        name: "Preview fixes",
+                        apply(view) {
+                          if (!view.state.readOnly && view.state.doc.toString() === source) onPreviewFixes(diagnostic);
+                        },
+                      },
+                    ]
+                  : [],
+            }))
+          : diagnostics;
       },
       { delay: 120 },
     ),
