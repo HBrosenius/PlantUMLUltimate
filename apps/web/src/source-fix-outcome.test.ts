@@ -12,6 +12,24 @@ const error = (from: number, to: number, message = "Invalid statement"): Diagnos
 const fix: DiagramQuickFix = { from: 0, to: 3, replacement: "valid", message: "Repair statement" };
 
 describe("sourceFixOutcome", () => {
+  it("reports new diagnostic messages at their lines in the proposed source", () => {
+    const insertion = { ...fix, from: 4, to: 4, replacement: "new\nlines\n" };
+    const outcome = sourceFixOutcome(
+      "one\nbad",
+      insertion,
+      [],
+      [
+        error(14, 17, "Unknown task"),
+        { from: 4, to: 7, severity: "warning", message: "Review label" },
+        { from: 8, to: 13, severity: "info", message: "Extra information" },
+      ],
+    );
+    expect(outcome.introducedDetails).toEqual([
+      { severity: "error", message: "Unknown task", line: 4 },
+      { severity: "warning", message: "Review label", line: 2 },
+    ]);
+  });
+
   it("preserves a point error at EOF when text is inserted there", () => {
     const insertion = { ...fix, from: 3, to: 3, replacement: "\n" };
     const outcome = sourceFixOutcome(

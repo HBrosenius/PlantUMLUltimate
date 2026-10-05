@@ -3,6 +3,7 @@ import { isCurrentFix, type FixSnapshot } from "./source-fix-snapshot";
 import { errorLocations, nextErrorIndex } from "./error-navigation";
 import { sourceFixPreview } from "./source-fix-preview";
 import { sourceFixOutcome } from "./source-fix-outcome";
+import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
@@ -251,6 +252,11 @@ export function CodeEditor({
   }>();
   const [fixFilter, setFixFilter] = useState<{ keys: string[]; line: number }>();
   const [fixPickerOpen, setFixPickerOpen] = useState(false);
+  const [diagnosticPreview, setDiagnosticPreview] = useState<{ fix: DiagramQuickFix; line: number }>();
+  const diagnosticPreviewPanel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (diagnosticPreview) diagnosticPreviewPanel.current?.focus();
+  }, [diagnosticPreview]);
   const [errorAnnouncement, setErrorAnnouncement] = useState("");
   const [fixFeedback, setFixFeedback] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -353,6 +359,7 @@ export function CodeEditor({
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               sourceRevision.current++;
+              setDiagnosticPreview(undefined);
               setFixFeedback("");
               const picker = fixPicker.current;
               const restoreEditorFocus =
@@ -488,6 +495,7 @@ export function CodeEditor({
     setExplanation(undefined);
     setFixFilter(undefined);
     setFixFeedback("");
+    setDiagnosticPreview(undefined);
   }, [documentId, diagramKind]);
 
   const updateExplanation = useCallback(
@@ -775,6 +783,7 @@ export function CodeEditor({
             onToggle={(event) => {
               setFixPickerOpen(event.currentTarget.open);
               if (!event.currentTarget.open) {
+                setDiagnosticPreview(undefined);
                 highlightFix();
                 setFixFilter(undefined);
               }
@@ -858,9 +867,11 @@ export function CodeEditor({
                         onClick={() => applyQuickFix(fix)}
                       >
                         <span>
-                          Line {preview.line}: {fix.label ?? fix.message}
+                          Apply fix · Line {preview.line}: {fix.label ?? fix.message}
                           {onCursorLine(fix) ? " (current line)" : ""}
                         </span>
+                      </button>
+                      <div className="source-fix-change-preview">
                         {(group.length > 1 || preview.expandable) && (
                           <span>
                             Before: <del>{preview.compactBefore.trim() || "(empty line)"}</del>
@@ -875,7 +886,43 @@ export function CodeEditor({
                             Expected result: {outcome.message}
                           </span>
                         )}
-                      </button>
+                      </div>
+                      {outcome?.introducedDetails.map((item, index) => (
+                        <button
+                          type="button"
+                          className="source-fix-new-diagnostic"
+                          key={index}
+                          onClick={() => setDiagnosticPreview({ fix, line: item.line })}
+                        >
+                          New {item.severity} on line {item.line}: {item.message}
+                        </button>
+                      ))}
+                      {diagnosticPreview?.fix === fix && (
+                        <div
+                          className="source-fix-diagnostic-preview"
+                          role="region"
+                          aria-label={`Proposed source for diagnostic on line ${diagnosticPreview.line}`}
+                          tabIndex={-1}
+                          ref={diagnosticPreviewPanel}
+                        >
+                          <strong>Proposed source · line {diagnosticPreview.line}</strong>
+                          <pre>
+                            {sourceFixDiagnosticPreview(previewSource, fix, diagnosticPreview.line).map((line) =>
+                              line.highlighted ? (
+                                <mark key={line.number}>
+                                  {line.number}: {line.text || " "}
+                                  {"\n"}
+                                </mark>
+                              ) : (
+                                <span key={line.number}>
+                                  {line.number}: {line.text}
+                                  {"\n"}
+                                </span>
+                              ),
+                            )}
+                          </pre>
+                        </div>
+                      )}
                       {preview.expandable && (
                         <details className="source-fix-full-preview">
                           <summary>Show full change</summary>

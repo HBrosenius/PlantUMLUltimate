@@ -85,7 +85,7 @@ for (const [faulty, repaired, label] of [
     await fillSource(page, lines.join("\n"));
     await page.getByLabel("Show source fix suggestions").click();
     const choice = page.getByRole("button", { name: new RegExp(label) });
-    await expect(choice.locator("code")).toHaveText(repaired);
+    await expect(choice.locator("..").locator("code")).toHaveText(repaired);
     await choice.click();
     await expect(page.locator(".cm-content .cm-line")).toHaveText([
       lines[0]!,
@@ -115,7 +115,7 @@ for (const [faulty, repaired] of [
     const choice = page.getByRole("button", {
       name: /Add missing possessive marker|Use straight apostrophe in dependency/,
     });
-    await expect(choice.locator("code")).toHaveText(repaired);
+    await expect(choice.locator("..").locator("code")).toHaveText(repaired);
     await choice.click();
     await expect(page.locator(".cm-content .cm-line")).toHaveText([lines[0]!, lines[1]!, repaired, lines[3]!]);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
@@ -324,9 +324,9 @@ test("compares alternative task repairs and applies only the chosen reference", 
   const suggestions = page.getByRole("list", { name: "Source fix suggestions", exact: true });
   await expect(suggestions.getByRole("note")).toContainText("Choose one of 2 alternatives");
   const choice = suggestions.getByRole("button", { name: /Use task Built/ });
-  await expect(choice).toContainText("Before:");
-  await expect(choice.locator("del")).toContainText("[Buil]'s end");
-  await expect(choice.locator("code")).toHaveText("[Release] starts 5 days after [Built]'s end");
+  await expect(choice.locator("..")).toContainText("Before:");
+  await expect(choice.locator("..").locator("del")).toContainText("[Buil]'s end");
+  await expect(choice.locator("..").locator("code")).toHaveText("[Release] starts 5 days after [Built]'s end");
   await choice.click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(lines.map((line) => line.replace("[Buil]", "[Built]")));
   await page.getByRole("button", { name: "Undo", exact: true }).click();
@@ -347,8 +347,8 @@ test("compares class closing positions before applying the selected alternative"
   await expect(suggestions.getByRole("note")).toContainText("Choose one of 2 alternatives");
   await expect(suggestions.getByRole("button", { name: /Close class at diagram end/ })).toBeVisible();
   const choice = suggestions.getByRole("button", { name: /Close class before line 4/ });
-  await expect(choice.locator("del")).toHaveText("class Customer");
-  await expect(choice.locator("code")).toHaveText("}\nclass Customer");
+  await expect(choice.locator("..").locator("del")).toHaveText("class Customer");
+  await expect(choice.locator("..").locator("code")).toHaveText("}\nclass Customer");
   await choice.click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText([
     "@startuml",
@@ -373,8 +373,8 @@ for (const width of [390, 800]) {
     await page.getByLabel("Show source fix suggestions").click();
     const suggestions = page.getByRole("list", { name: "Source fix suggestions", exact: true });
     const apply = suggestions.getByRole("button", { name: /Move opening tag before closing tag/ });
-    await expect(apply.locator("code")).toContainText("lines omitted");
-    await expect(apply.locator("code")).not.toContainText("[Task 15]");
+    await expect(apply.locator("..").locator("code")).toContainText("lines omitted");
+    await expect(apply.locator("..").locator("code")).not.toContainText("[Task 15]");
     const full = suggestions.locator(".source-fix-full-preview");
     await full.getByText("Show full change", { exact: true }).click();
     await expect(full.locator("pre").nth(0)).toHaveText(lines.join("\n"));
@@ -986,7 +986,10 @@ test("fix previews predict resolved and newly introduced errors without editing"
   await editor.press("ControlOrMeta+.");
   const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
   const completion = picker.getByRole("button", { name: /Add missing %/ });
-  await expect(completion).toContainText("Expected result: Resolves 1 error. 1 error remains.");
+  await expect(completion.locator("..")).toContainText("Expected result: Resolves 1 error. 1 error remains.");
+  await expect(editor.locator(".cm-line")).toHaveText(source.split("\n"));
+  await expect(completion).toContainText("Apply fix");
+  await completion.locator("..").locator(".source-fix-change-preview code").click();
   await expect(editor.locator(".cm-line")).toHaveText(source.split("\n"));
   await completion.click();
   await expect(page.locator(".source-fix-feedback")).toContainText("1 error remains.");
@@ -996,10 +999,28 @@ test("fix previews predict resolved and newly introduced errors without editing"
   await fillSource(page, cycle);
   await editor.press("ControlOrMeta+.");
   const repair = picker.getByRole("button", { name: /Use task Backend/ });
-  await expect(repair).toContainText("Introduces");
-  await expect(repair).toContainText("review before applying");
-  await expect(repair.locator(".source-fix-outcome")).toHaveClass(/needs-review/);
+  await expect(repair.locator("..")).toContainText("Introduces");
+  await expect(repair.locator("..")).toContainText("review before applying");
+  await expect(repair.locator("..").locator(".source-fix-outcome")).toHaveClass(/needs-review/);
+  await expect(repair.locator("..").locator(".source-fix-new-diagnostic")).toHaveText([
+    /New warning on line 5: Dependency cycle:/,
+    /New warning on line 6: Dependency cycle:/,
+  ]);
+  const warnings = repair.locator("..").locator(".source-fix-new-diagnostic");
+  await warnings.first().click();
+  const proposed = page.getByRole("region", { name: "Proposed source for diagnostic on line 5" });
+  await expect(proposed).toBeFocused();
+  await expect(proposed.locator("mark")).toHaveText("5: [Backend] starts at [Frontend]'s end\n");
   await expect(editor.locator(".cm-line")).toHaveText(cycle.split("\n"));
+  await warnings.last().focus();
+  await page.keyboard.press("Enter");
+  const nextProposed = page.getByRole("region", { name: "Proposed source for diagnostic on line 6" });
+  await expect(nextProposed).toBeFocused();
+  await expect(nextProposed.locator("mark")).toHaveText("6: [Frontend] starts at [Backend]'s end\n");
+  await expect(editor.locator(".cm-line")).toHaveText(cycle.split("\n"));
+  await page.keyboard.press("Escape");
+  await expect(nextProposed).toHaveCount(0);
+  await expect(editor).toBeFocused();
 });
 
 test("Ctrl Shift M opens explanations before the built-in Ctrl M command", async ({ page }) => {

@@ -6535,19 +6535,36 @@ polygon.diagram-bulk-selected {
 .source-fix-full-preview summary {
   cursor: pointer;
 }
-.source-fix-full-preview pre {
+.source-fix-full-preview pre,
+.source-fix-diagnostic-preview pre {
   max-height: 220px;
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 6px 0;
 }
+.source-fix-diagnostic-preview {
+  margin: 6px 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+}
+.source-fix-diagnostic-preview mark {
+  background: color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+  color: inherit;
+}
 
-.source-fixes button code {
+.source-fix-change-preview {
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+}
+.source-fix-change-preview > span {
+  display: block;
+}
+.source-fix-change-preview code {
   max-height: 96px;
   overflow: auto;
 }
-.source-fixes button del {
+.source-fix-change-preview del {
   display: block;
   max-height: 72px;
   overflow: auto;

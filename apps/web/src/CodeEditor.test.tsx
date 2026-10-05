@@ -29,7 +29,10 @@ describe("CodeEditor quick fixes", () => {
     render(<CodeEditor diagramKind="gantt" value={source} onChange={onChange} onCursorChange={vi.fn()} />);
     fireEvent.click(screen.getByLabelText(FIX_LABEL));
     const fix = screen.getByRole("button", { name: /Use task Build B/ });
-    expect(fix).toHaveTextContent("[Test] starts at [Build B]'s end");
+    expect(fix.closest("li")).toHaveTextContent("[Test] starts at [Build B]'s end");
+    expect(fix).toHaveTextContent("Apply fix");
+    fireEvent.click(fix.closest("li")!.querySelector("code")!);
+    expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(fix);
     expect(onChange).toHaveBeenLastCalledWith(source.replace("[Build C]", "[Build B]"));
     expect(screen.queryByLabelText(FIX_LABEL)).not.toBeInTheDocument();
@@ -43,7 +46,7 @@ describe("CodeEditor quick fixes", () => {
     );
     fireEvent.click(screen.getByLabelText(FIX_LABEL));
     const startFix = screen.getByRole("button", { name: /Use predecessor start/ });
-    expect(startFix).toHaveTextContent("[Build] starts at [Design]'s start");
+    expect(startFix.closest("li")).toHaveTextContent("[Build] starts at [Design]'s start");
     expect(screen.getByRole("button", { name: /Use predecessor end/ })).toBeInTheDocument();
     fireEvent.click(startFix);
     expect(onChange).toHaveBeenLastCalledWith(source.replace("[Design]'s\n", "[Design]'s start\n"));

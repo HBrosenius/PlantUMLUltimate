@@ -60,6 +60,13 @@ export function sourceFixOutcome(
   return {
     resolved,
     introduced,
+    introducedDetails: introduced
+      .filter((item) => item.severity === "error" || item.severity === "warning")
+      .map((item) => ({
+        severity: item.severity,
+        message: item.message,
+        line: candidate.slice(0, item.from).split("\n").length,
+      })),
     remainingErrors,
     needsReview: newErrors > 0 || newWarnings > 0,
     message: parts.join(" "),
