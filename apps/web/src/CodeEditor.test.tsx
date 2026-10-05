@@ -16,6 +16,12 @@ function renderEditor(diagramKind: DiagramKind, value: string) {
 }
 
 describe("CodeEditor quick fixes", () => {
+  it.each(["m", "M"])("prioritizes Ctrl+Shift+%s over the built-in Ctrl+M command", (key) => {
+    const rendered = render(renderEditor("class", '@startuml\nclass "Customer as Account as Other\n@enduml'));
+    const content = rendered.container.querySelector(".cm-content")!;
+    fireEvent.keyDown(content, { key, code: "KeyM", keyCode: 77, ctrlKey: true, shiftKey: true });
+    expect(screen.getByRole("region", { name: "Error explanation" })).toHaveTextContent("unmatched quote");
+  });
   it("previews the corrected line and applies the chosen task reference only", () => {
     const source =
       "@startgantt\n[Build A] lasts 2 days\n[Build B] lasts 2 days\n[Test] starts at [Build C]'s end\n@endgantt";

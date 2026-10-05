@@ -291,6 +291,15 @@ export function CodeEditor({
           ),
           Prec.highest(
             keymap.of([
+              // Ctrl+M is a built-in command. CodeMirror tries unshifted
+              // character bindings first, so claim the shifted event explicitly.
+              {
+                any: (_view, event) =>
+                  event.shiftKey && !event.altKey &&
+                  (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m"
+                    ? explainErrorRef.current()
+                    : false,
+              },
               { key: "Mod-Shift-m", run: () => explainErrorRef.current(), preventDefault: true },
               { key: "F8", run: () => navigateErrorRef.current(1), preventDefault: true },
               { key: "Shift-F8", run: () => navigateErrorRef.current(-1), preventDefault: true },

@@ -988,3 +988,15 @@ test("fix previews predict resolved and newly introduced errors without editing"
   await expect(repair.locator(".source-fix-outcome")).toHaveClass(/needs-review/);
   await expect(editor.locator(".cm-line")).toHaveText(cycle.split("\n"));
 });
+
+test("Ctrl Shift M opens explanations before the built-in Ctrl M command", async ({ page }) => {
+  await prepareEditor(page);
+  await fillSource(page, "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgantt");
+  const editor = page.locator(".cm-content");
+  await editor.press("Control+Shift+m");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toBeFocused();
+  await expect(explanation).toContainText("Line 3:");
+  await page.keyboard.press("Escape");
+  await expect(editor).toBeFocused();
+});
