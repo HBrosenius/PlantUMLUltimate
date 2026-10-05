@@ -1,5 +1,5 @@
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
-import { useMemo, useRef, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { groupDiagnostics } from "./diagnostic-groups";
 import type { DiagramKind } from "./model";
 import { manualErrorGuidance } from "./manual-error-guidance";
@@ -33,6 +33,19 @@ export function ProblemsPanel({
   onPreviewDiagnostic(diagnostic: Diagnostic): void;
   onClose(): void;
 }) {
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const element = panel.current;
+    if (!open || !element) return;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    };
+    element.addEventListener("keydown", closeOnEscape, true);
+    return () => element.removeEventListener("keydown", closeOnEscape, true);
+  }, [open, onClose]);
   const results = useRef<HTMLDivElement>(null);
   const lines = source.split(/\r?\n/);
   const groups = useMemo(
@@ -87,20 +100,11 @@ export function ProblemsPanel({
             </span>
           )}
         </button>
-        {!readOnly && related.length > 0 && (
-          <button
-            type="button"
-            aria-label={`Preview fixes for line ${line}`}
-            onClick={() => onPreviewDiagnostic(diagnostic)}
-          >
-            Preview fixes for this error ({related.length})
-          </button>
-        )}
       </div>
     );
   };
   return (
-    <aside className="task-inspector problems-panel" aria-label="Problems" hidden={!open}>
+    <aside className="task-inspector problems-panel" aria-label="Problems" hidden={!open} ref={panel}>
       <header>
         <div>
           <strong>Problems</strong>
@@ -113,6 +117,7 @@ export function ProblemsPanel({
         </button>
       </header>
       {notice && <p className="problem-notice">{notice}</p>}
+      {diagnostics.length === 0 && !notice && <p role="status">No problems remain.</p>}
       {onRepairHost && (
         <div className="problem-repair-workspace" ref={onRepairHost} aria-label="Selected problem and fixes" />
       )}

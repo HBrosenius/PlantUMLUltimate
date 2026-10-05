@@ -6716,3 +6716,7 @@ polygon.diagram-bulk-selected {
 .problem-repair-workspace .source-fixes button:focus-visible {
   border-color: var(--accent);
 }
+
+.problem-repair-workspace .source-error-explanation {
+  order: -1;
+}

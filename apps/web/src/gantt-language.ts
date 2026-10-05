@@ -1,3 +1,4 @@
+import { durationUnitRepairs } from "./gantt-duration-unit-repairs";
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic as CodeMirrorDiagnostic } from "@codemirror/lint";
 import {
@@ -657,6 +658,31 @@ function normalizeDateGuess(value: string): string | undefined {
 function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
   return parsed.diagnostics.flatMap((diagnostic) => {
     const text = source.slice(diagnostic.range.from, diagnostic.range.to);
+    if (["malformed-inline-clause", "malformed-statement"].includes(diagnostic.code ?? "")) {
+      const completion = text.match(
+        /^(\s*(?:(?:then\s+)?\[[^\]]+]\s+)?)(\d{1,2}%\s+completed|100%\s+completed)(\s*)$/i,
+      );
+      if (completion)
+        return [
+          {
+            from: diagnostic.range.from,
+            to: diagnostic.range.to,
+            replacement: `${completion[1]}is ${completion[2]}${completion[3]}`,
+            label: "Add is before completion percentage",
+            message: diagnostic.message,
+          },
+        ];
+    }
+    if (["malformed-inline-clause", "malformed-statement", "invalid-duration"].includes(diagnostic.code ?? "")) {
+      const units = durationUnitRepairs(text, source, parsed, diagnostic.range.from);
+      if (units.length)
+        return units.map((repair) => ({
+          from: diagnostic.range.from,
+          to: diagnostic.range.to,
+          message: diagnostic.message,
+          ...repair,
+        }));
+    }
     if (diagnostic.code === "malformed-inline-clause") {
       const prefix = "[Task] ";
       const repair = ganttKeywordRepair(prefix + text);
@@ -761,7 +787,6 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
       }));
     }
     const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
-    const missingDurationUnit = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+\d+)\s*$/i);
     const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
     const missingCloseBracket =
@@ -810,11 +835,9 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
                     ? `${missingKeywordSpace[1]}${missingKeywordSpace[2]} ${missingKeywordSpace[3]}${missingKeywordSpace[4]}`
                     : missingDurationSpace
                       ? `${missingDurationSpace[1]}${missingDurationSpace[2]} ${missingDurationSpace[3]}`
-                      : missingDurationUnit
-                        ? `${missingDurationUnit[1]} days`
-                        : keywordSuggestion && keywordTypo
-                          ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
-                          : undefined;
+                      : keywordSuggestion && keywordTypo
+                        ? `${keywordTypo[1]}${keywordSuggestion}${keywordTypo[3]}`
+                        : undefined;
     return replacement
       ? [
           {
@@ -830,13 +853,11 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
                   ? "Normalize date"
                   : color
                     ? "Add missing in"
-                    : missingDurationUnit
-                      ? "Add days unit"
-                      : missingDurationSpace || missingKeywordSpace
-                        ? "Insert missing space"
-                        : keywordSuggestion
-                          ? `Use ${keywordSuggestion}`
-                          : "Fix statement",
+                    : missingDurationSpace || missingKeywordSpace
+                      ? "Insert missing space"
+                      : keywordSuggestion
+                        ? `Use ${keywordSuggestion}`
+                        : "Fix statement",
           },
         ]
       : [];

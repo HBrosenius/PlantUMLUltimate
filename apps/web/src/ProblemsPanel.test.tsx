@@ -42,7 +42,7 @@ it("keeps related diagnostics revealable and refreshes groups after source chang
   }
 });
 
-it("offers matching previews beside errors and hides them for read-only documents", async () => {
+it("uses the diagnostic itself without a redundant preview button", async () => {
   const diagnostic = { from: 0, to: 3, severity: "error" as const, message: "Misspelled tag" };
   vi.mocked(groupDiagnostics).mockReturnValue([{ root: diagnostic, related: [] }]);
   const onPreviewDiagnostic = vi.fn();
@@ -60,12 +60,11 @@ it("offers matching previews beside errors and hides them for read-only document
   };
   try {
     await act(async () => root.render(<ProblemsPanel {...props} />));
-    const preview = container.querySelector<HTMLButtonElement>('[aria-label="Preview fixes for line 1"]')!;
-    expect(preview).not.toBeNull();
-    await act(async () => preview.click());
-    expect(onPreviewDiagnostic).toHaveBeenCalledWith(diagnostic);
+    expect(container.querySelector('[aria-label="Preview fixes for line 1"]')).toBeNull();
+    await act(async () => container.querySelector<HTMLButtonElement>("[data-problem-diagnostic]")!.click());
+    expect(props.onReveal).toHaveBeenCalledWith(diagnostic);
+    expect(onPreviewDiagnostic).not.toHaveBeenCalled();
     expect(props.onPreviewFix).not.toHaveBeenCalled();
-    expect(props.onReveal).not.toHaveBeenCalled();
     await act(async () => root.render(<ProblemsPanel {...props} readOnly />));
     expect(container.querySelector('[aria-label="Preview fixes for line 1"]')).toBeNull();
     await act(async () => root.render(<ProblemsPanel {...props} quickFixes={[]} />));

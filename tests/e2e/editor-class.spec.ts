@@ -147,10 +147,9 @@ test("shows parser problems and applies a safe quick fix", async ({ page }) => {
   await expect(problemCount).toBeVisible();
   await problemCount.click();
   const problems = page.getByRole("complementary", { name: "Problems" });
-  await expect(problems.getByRole("listitem")).toContainText("missing }");
-  await problems.getByRole("listitem").click();
+  await expect(problems.locator("[data-problem-diagnostic]")).toContainText("missing }");
+  await problems.locator("[data-problem-diagnostic]").click();
   await expect(page.locator(".statusbar")).toContainText("Ln 2");
-  await problems.getByRole("button", { name: "Close class member block" }).click();
   const fixes = page.getByRole("list", { name: "Source fix suggestions", exact: true });
   await expect(editor).not.toContainText("+id: UUID\n}\n@enduml");
   await fixes.getByRole("button", { name: /Close class member block/ }).click();

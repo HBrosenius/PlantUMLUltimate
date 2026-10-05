@@ -3394,6 +3394,7 @@ export function App() {
             value={workspace.source}
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
+            onApplyFix={(source, label) => commitSource(source, `Apply fix: ${label}`, false)}
             selectedRange={selectionRequest}
             repairHost={repairHost}
             repairWorkspaceOpen={problemsOpen}

@@ -1,3 +1,4 @@
+import { nextRepairDiagnostic } from "./next-repair-diagnostic";
 import { createPortal, flushSync } from "react-dom";
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { manualErrorGuidance } from "./manual-error-guidance";
@@ -9,7 +10,7 @@ import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
-import { indentWithTab } from "@codemirror/commands";
+import { indentWithTab, isolateHistory } from "@codemirror/commands";
 import { lintGutter, type Diagnostic } from "@codemirror/lint";
 import { codeEditorSetup } from "./code-editor-setup";
 import type { DiagramKind } from "./model";
@@ -31,6 +32,7 @@ interface Props {
   diagramKind: DiagramKind;
   value: string;
   onChange(value: string): void;
+  onApplyFix?: (source: string, label: string) => void;
   onCursorChange(line: number, column: number, position: number, anchor: number, head: number): void;
   selectedRange?: { from: number; to: number } | undefined;
   repairRequest?: SourceRepairRequest | undefined;
@@ -219,6 +221,7 @@ export function CodeEditor({
   diagramKind,
   value,
   onChange,
+  onApplyFix,
   onCursorChange,
   selectedRange,
   repairRequest,
@@ -243,6 +246,8 @@ export function CodeEditor({
   const previewTooltipFixes = useCallback((diagnostic: Diagnostic) => previewDiagnosticRef.current(diagnostic), []);
   const navigateErrorRef = useRef<(direction: 1 | -1) => boolean>(() => false);
   const onChangeRef = useRef(onChange);
+  const onApplyFixRef = useRef(onApplyFix);
+  const applyingFix = useRef<string | undefined>(undefined);
   const onCursorRef = useRef(onCursorChange);
   const onRenameRef = useRef(onRenameRequest);
   const onSymbolContextMenuRef = useRef(onSymbolContextMenu);
@@ -260,7 +265,6 @@ export function CodeEditor({
     message: string;
     guidance: string;
     line: number;
-    fixKeys: string[];
   }>();
   const [fixFilter, setFixFilter] = useState<{ keys: string[]; line: number }>();
   const [fixPickerOpen, setFixPickerOpen] = useState(false);
@@ -268,7 +272,7 @@ export function CodeEditor({
   const openRepairWorkspace = useRef(onOpenRepairWorkspace);
   openRepairWorkspace.current = onOpenRepairWorkspace;
   useEffect(() => {
-    if (explanation || fixPickerOpen || fixFeedback) openRepairWorkspace.current?.();
+    if (explanation || (fixPickerOpen && fixPicker.current?.open) || fixFeedback) openRepairWorkspace.current?.();
   }, [explanation, fixPickerOpen, fixFeedback]);
   const previousRepairWorkspaceOpen = useRef(repairWorkspaceOpen);
   useEffect(() => {
@@ -281,8 +285,7 @@ export function CodeEditor({
       if (wasOpen)
         requestAnimationFrame(() => {
           if (previousRepairWorkspaceOpen.current === false) {
-            if (repairTrigger.current) repairTrigger.current.focus();
-            else view.current?.contentDOM.focus();
+            view.current?.contentDOM.focus();
           }
         });
     }
@@ -311,6 +314,7 @@ export function CodeEditor({
       fixes: quickFixesForDiagram(kind, source),
     });
   onChangeRef.current = onChange;
+  onApplyFixRef.current = onApplyFix;
   onCursorRef.current = onCursorChange;
   onRenameRef.current = onRenameRequest;
   onSymbolContextMenuRef.current = onSymbolContextMenu;
@@ -408,7 +412,8 @@ export function CodeEditor({
             if (update.docChanged) {
               setErrorAnnouncement("");
               const source = update.state.doc.toString();
-              onChangeRef.current(source);
+              if (applyingFix.current && onApplyFixRef.current) onApplyFixRef.current(source, applyingFix.current);
+              else onChangeRef.current(source);
               refreshFixes(kindRef.current, source);
             }
             if (update.selectionSet || update.docChanged) {
@@ -546,13 +551,22 @@ export function CodeEditor({
           ? "Review the highlighted source and edit it to address this diagnostic."
           : readOnly
             ? "This document is read-only. A suggested correction is available when editing is enabled."
-            : "A correction is available. Open suggested fixes to compare the changes before applying one.");
+            : "Suggested corrections are shown below. Compare the changes before applying one.");
       setExplanation({
         message: diagnostic.message,
         guidance,
         line: editor.state.doc.lineAt(diagnostic.from).number,
-        fixKeys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
       });
+      if (related.length && !readOnly && fixPicker.current) {
+        setFixFilter({
+          keys: related.map((fix) => `${fix.from}:${fix.to}:${fix.replacement}`),
+          line: editor.state.doc.lineAt(diagnostic.from).number,
+        });
+        fixPicker.current.open = true;
+      } else {
+        setFixFilter(undefined);
+        if (fixPicker.current) fixPicker.current.open = false;
+      }
       return related;
     },
     [readOnly],
@@ -579,25 +593,12 @@ export function CodeEditor({
     return true;
   };
   explainErrorRef.current = explainError;
-  const openExplanationFixes = () => {
-    const picker = fixPicker.current;
-    if (!picker || !explanation || readOnly) return;
-    picker.open = true;
-    const target = [...picker.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      explanation.fixKeys.includes(button.dataset.fixKey ?? ""),
-    );
-    if (!target) {
-      picker.open = false;
-      return;
-    }
-    setFixFilter({ keys: explanation.fixKeys, line: explanation.line });
-    setExplanation(undefined);
-    target.focus();
-  };
   useEffect(() => {
-    if (fixPicker.current?.open) fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
+    if (!explanationPanel.current && fixPicker.current?.open)
+      fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
   }, [fixFilter]);
   const closeExplanation = () => {
+    if (fixPicker.current) fixPicker.current.open = false;
     setExplanation(undefined);
     view.current?.focus();
   };
@@ -693,16 +694,44 @@ export function CodeEditor({
     }
     if (fixPicker.current) fixPicker.current.open = false;
     const line = editor.state.doc.lineAt(fix.from).number;
-    editor.dispatch({
-      changes: { from: fix.from, to: fix.to, insert: fix.replacement },
-      selection: { anchor: fix.from + fix.replacement.length },
-    });
-    const remaining = diagnosticsForDiagram(kindRef.current, editor.state.doc.toString()).filter(
-      (diagnostic) => diagnostic.severity === "error",
-    ).length;
+    applyingFix.current = fix.label ?? fix.message;
+    try {
+      editor.dispatch({
+        annotations: isolateHistory.of("full"),
+        changes: { from: fix.from, to: fix.to, insert: fix.replacement },
+        selection: { anchor: fix.from + fix.replacement.length },
+      });
+    } finally {
+      applyingFix.current = undefined;
+    }
+    const diagnostics = diagnosticsForDiagram(kindRef.current, editor.state.doc.toString());
+    const remaining = diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
     const feedback = `Applied “${fix.label ?? fix.message}” on line ${line}. ${remaining === 0 ? "No errors remain." : `${remaining} ${remaining === 1 ? "error remains" : "errors remain"}.`} Undo: Ctrl/⌘ + Z.`;
     setFixFeedback(feedback);
     setErrorAnnouncement(feedback);
+    if (repairHost) {
+      const next = nextRepairDiagnostic(diagnostics, fix.from);
+      if (next) {
+        editor.dispatch({
+          selection: { anchor: next.from },
+          effects: EditorView.scrollIntoView(next.from, { y: "nearest" }),
+        });
+        let related: DiagramQuickFix[] = [];
+        flushSync(() => {
+          related = updateExplanation(next, editor);
+          if (related.length)
+            setFixFilter({
+              keys: related.map((item) => `${item.from}:${item.to}:${item.replacement}`),
+              line: editor.state.doc.lineAt(next.from).number,
+            });
+        });
+        if (related.length && fixPicker.current) {
+          fixPicker.current.open = true;
+          fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
+        } else explanationPanel.current?.focus();
+        return;
+      }
+    }
     editor.focus();
   };
 
@@ -850,7 +879,13 @@ export function CodeEditor({
         {fixFilter && (
           <li>
             <p>Fixes for line {fixFilter.line}</p>
-            <button type="button" onClick={() => setFixFilter(undefined)}>
+            <button
+              type="button"
+              onClick={() => {
+                flushSync(() => setFixFilter(undefined));
+                fixPicker.current?.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
+              }}
+            >
               Show all fixes ({quickFixes.length})
             </button>
           </li>
@@ -1022,7 +1057,10 @@ export function CodeEditor({
               }
               if (event.key === "Tab" && event.target === event.currentTarget && !event.shiftKey) {
                 event.preventDefault();
-                event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
+                (fixPicker.current?.open
+                  ? fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")
+                  : event.currentTarget.querySelector<HTMLButtonElement>("button")
+                )?.focus();
                 return;
               }
               if (event.key === "Escape") {
@@ -1039,11 +1077,6 @@ export function CodeEditor({
               Line {explanation.line}: {explanation.message}
             </strong>
             <p>{explanation.guidance}</p>
-            {explanation.fixKeys.length > 0 && !readOnly && (
-              <button type="button" onClick={openExplanationFixes}>
-                Open suggested fixes
-              </button>
-            )}
           </div>,
         )}
     </section>

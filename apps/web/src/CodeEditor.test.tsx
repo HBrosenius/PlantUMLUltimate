@@ -99,3 +99,41 @@ describe("CodeEditor quick fixes", () => {
     expect(props.onChange).not.toHaveBeenCalled();
   });
 });
+
+it("reports explicit Apply actions separately from ordinary source typing", () => {
+  const source = "@startgantt\n[Build] is 50 completed\n@endgantt";
+  const onChange = vi.fn();
+  const onApplyFix = vi.fn();
+  render(
+    <CodeEditor
+      diagramKind="gantt"
+      value={source}
+      onChange={onChange}
+      onApplyFix={onApplyFix}
+      onCursorChange={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByLabelText(FIX_LABEL));
+  fireEvent.click(screen.getByRole("button", { name: /Add missing %/ }));
+  expect(onApplyFix).toHaveBeenCalledWith(source.replace("50 completed", "50% completed"), "Add missing %");
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+it("shows matching corrections immediately when explaining an error without changing source", () => {
+  const source = "@startgantt\n[Build] is 50 completed\n@endgantt";
+  const onChange = vi.fn();
+  const rendered = render(
+    <CodeEditor diagramKind="gantt" value={source} onChange={onChange} onCursorChange={vi.fn()} />,
+  );
+  fireEvent.keyDown(rendered.container.querySelector(".cm-content")!, {
+    key: "m",
+    code: "KeyM",
+    keyCode: 77,
+    ctrlKey: true,
+    shiftKey: true,
+  });
+  expect(screen.getByRole("region", { name: "Error explanation" })).toBeVisible();
+  expect(screen.getByRole("button", { name: /Apply fix.*Add missing %/ })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Open suggested fixes" })).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
