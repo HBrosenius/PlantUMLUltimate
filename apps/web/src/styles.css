@@ -3054,6 +3054,21 @@ textarea:focus-visible,
   gap: 0.45rem;
 }
 
+.problem-group,
+.problem-group [aria-label="Related diagnostics"] {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.problem-group details {
+  margin-left: 0.75rem;
+  color: var(--muted);
+}
+
+.problem-group summary {
+  cursor: pointer;
+}
+
 .problem-results button,
 .problem-fixes button {
   padding: 0.55rem;
@@ -6660,4 +6675,44 @@ polygon.diagram-bulk-selected {
 .source-fix-outcome.needs-review {
   color: var(--warning, #a15c00);
   font-weight: 600;
+}
+
+/* Repair controls share the Problems workspace instead of floating over code. */
+.problems-panel[hidden] {
+  display: none;
+}
+.problem-repair-workspace {
+  display: grid;
+  gap: 0.6rem;
+}
+.problem-repair-workspace:empty {
+  display: none;
+}
+.problem-repair-workspace .source-fixes ul {
+  position: static;
+  width: 100%;
+  max-height: min(420px, calc(100dvh - 220px));
+  overflow: auto;
+  box-shadow: none;
+}
+.problem-repair-workspace .source-error-explanation {
+  max-height: none;
+  overflow: visible;
+}
+
+.problems-panel header > div {
+  display: grid;
+  gap: 0.2rem;
+}
+.problem-repair-workspace .source-fixes button {
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.problem-repair-workspace .source-fixes button:hover,
+.problem-repair-workspace .source-fixes button:focus-visible {
+  border-color: var(--accent);
 }

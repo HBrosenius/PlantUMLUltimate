@@ -1,3 +1,4 @@
+import { createPortal, flushSync } from "react-dom";
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { manualErrorGuidance } from "./manual-error-guidance";
 import { isCurrentFix, type FixSnapshot } from "./source-fix-snapshot";
@@ -21,6 +22,7 @@ export interface SourceRepairRequest {
   kind: DiagramKind;
   source: string;
   diagnostic?: Diagnostic;
+  previewFixes?: boolean;
   fix?: DiagramQuickFix;
 }
 
@@ -32,6 +34,9 @@ interface Props {
   onCursorChange(line: number, column: number, position: number, anchor: number, head: number): void;
   selectedRange?: { from: number; to: number } | undefined;
   repairRequest?: SourceRepairRequest | undefined;
+  repairHost?: HTMLElement | null;
+  repairWorkspaceOpen?: boolean;
+  onOpenRepairWorkspace?: () => void;
   onRepairRequestHandled?: (() => void) | undefined;
   symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
   remoteParticipants?: CollaborationParticipant[] | undefined;
@@ -217,6 +222,9 @@ export function CodeEditor({
   onCursorChange,
   selectedRange,
   repairRequest,
+  repairHost,
+  repairWorkspaceOpen,
+  onOpenRepairWorkspace,
   onRepairRequestHandled,
   symbolHighlights,
   remoteParticipants,
@@ -227,10 +235,11 @@ export function CodeEditor({
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const fixPicker = useRef<HTMLDetailsElement>(null);
+  const repairTrigger = useRef<HTMLButtonElement>(null);
   const view = useRef<EditorView | null>(null);
   const explanationPanel = useRef<HTMLDivElement>(null);
   const explainErrorRef = useRef<() => boolean>(() => false);
-  const previewDiagnosticRef = useRef<(diagnostic: Diagnostic) => void>(() => {});
+  const previewDiagnosticRef = useRef<(diagnostic: Diagnostic, synchronous?: boolean) => void>(() => {});
   const previewTooltipFixes = useCallback((diagnostic: Diagnostic) => previewDiagnosticRef.current(diagnostic), []);
   const navigateErrorRef = useRef<(direction: 1 | -1) => boolean>(() => false);
   const onChangeRef = useRef(onChange);
@@ -255,13 +264,35 @@ export function CodeEditor({
   }>();
   const [fixFilter, setFixFilter] = useState<{ keys: string[]; line: number }>();
   const [fixPickerOpen, setFixPickerOpen] = useState(false);
+  const [fixFeedback, setFixFeedback] = useState("");
+  const openRepairWorkspace = useRef(onOpenRepairWorkspace);
+  openRepairWorkspace.current = onOpenRepairWorkspace;
+  useEffect(() => {
+    if (explanation || fixPickerOpen || fixFeedback) openRepairWorkspace.current?.();
+  }, [explanation, fixPickerOpen, fixFeedback]);
+  const previousRepairWorkspaceOpen = useRef(repairWorkspaceOpen);
+  useEffect(() => {
+    const wasOpen = previousRepairWorkspaceOpen.current;
+    previousRepairWorkspaceOpen.current = repairWorkspaceOpen;
+    if (repairWorkspaceOpen === false) {
+      setExplanation(undefined);
+      setFixFeedback("");
+      if (fixPicker.current) fixPicker.current.open = false;
+      if (wasOpen)
+        requestAnimationFrame(() => {
+          if (previousRepairWorkspaceOpen.current === false) {
+            if (repairTrigger.current) repairTrigger.current.focus();
+            else view.current?.contentDOM.focus();
+          }
+        });
+    }
+  }, [repairWorkspaceOpen]);
   const [diagnosticPreview, setDiagnosticPreview] = useState<{ fix: DiagramQuickFix; line: number }>();
   const diagnosticPreviewPanel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (diagnosticPreview) diagnosticPreviewPanel.current?.focus();
   }, [diagnosticPreview]);
   const [errorAnnouncement, setErrorAnnouncement] = useState("");
-  const [fixFeedback, setFixFeedback] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [fixSnapshot, setFixSnapshot] = useState<FixSnapshot>(() => ({
@@ -322,6 +353,7 @@ export function CodeEditor({
                 if (!picker) return false;
                 setFixFilter(undefined);
                 picker.open = true;
+                flushSync(() => openRepairWorkspace.current?.());
                 picker.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
                 return true;
               },
@@ -494,8 +526,8 @@ export function CodeEditor({
 
   const explanationOpen = explanation !== undefined;
   useEffect(() => {
-    if (explanationOpen) explanationPanel.current?.focus();
-  }, [explanationOpen]);
+    if (explanationOpen && repairWorkspaceOpen !== false) explanationPanel.current?.focus();
+  }, [explanationOpen, repairWorkspaceOpen]);
   useEffect(() => {
     setExplanation(undefined);
     setFixFilter(undefined);
@@ -569,7 +601,7 @@ export function CodeEditor({
     setExplanation(undefined);
     view.current?.focus();
   };
-  previewDiagnosticRef.current = (diagnostic) => {
+  previewDiagnosticRef.current = (diagnostic, synchronous = true) => {
     const editor = view.current;
     if (!editor || readOnly) return;
     const related = updateExplanation(diagnostic, editor);
@@ -581,6 +613,9 @@ export function CodeEditor({
       line: editor.state.doc.lineAt(diagnostic.from).number,
     });
     fixPicker.current.open = true;
+    if (synchronous) flushSync(() => openRepairWorkspace.current?.());
+    else openRepairWorkspace.current?.();
+    fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
   };
 
   const handledRepairRequest = useRef<SourceRepairRequest | undefined>(undefined);
@@ -603,6 +638,10 @@ export function CodeEditor({
           item.message === repairRequest.diagnostic.message,
       );
       if (!diagnostic) return;
+      if (repairRequest.previewFixes) {
+        if (!readOnly) previewDiagnosticRef.current(diagnostic, false);
+        return;
+      }
       if (fixPicker.current) fixPicker.current.open = false;
       editor.dispatch({
         selection: { anchor: diagnostic.from },
@@ -748,6 +787,167 @@ export function CodeEditor({
     if (fix) editor.dispatch({ effects: EditorView.scrollIntoView(fix.from, { y: "nearest" }) });
   };
 
+  const renderRepair = (content: React.ReactNode) => (repairHost ? createPortal(content, repairHost) : content);
+  const fixPickerContent = (
+    <details
+      className="source-fixes"
+      ref={fixPicker}
+      onToggle={(event) => {
+        setFixPickerOpen(event.currentTarget.open);
+        if (!event.currentTarget.open) {
+          setDiagnosticPreview(undefined);
+          highlightFix();
+          setFixFilter(undefined);
+        }
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) highlightFix();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          event.currentTarget.open = false;
+          highlightFix();
+          view.current?.focus();
+          return;
+        }
+        if (event.key === "Tab") {
+          const target = event.target as HTMLElement;
+          const row = target.closest("li");
+          const preview = row?.querySelector<HTMLElement>(".source-fix-full-preview summary");
+          const apply = row?.querySelector<HTMLButtonElement>("button");
+          if ((!event.shiftKey && target === apply && preview) || (event.shiftKey && target === preview)) {
+            event.preventDefault();
+            (event.shiftKey ? apply : preview)?.focus();
+          }
+          return;
+        }
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+        const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button[data-fix-key]")];
+        const index = buttons.indexOf(event.target as HTMLButtonElement);
+        if (index < 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const next =
+          event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? buttons.length - 1
+              : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+        buttons[next]?.focus();
+      }}
+    >
+      <summary
+        aria-label={repairHost ? "Suggested fixes" : "Show source fix suggestions"}
+        title="Ctrl/⌘ + . opens fixes; arrows choose, Enter applies, Tab reaches previews, Escape closes"
+      >
+        {relationshipRepair
+          ? "Repair relationships"
+          : `Fix issue${fixFilter ? ` (${visibleFixCount} of ${quickFixes.length})` : quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
+      </summary>
+      <ul aria-label="Source fix suggestions">
+        {fixFilter && (
+          <li>
+            <p>Fixes for line {fixFilter.line}</p>
+            <button type="button" onClick={() => setFixFilter(undefined)}>
+              Show all fixes ({quickFixes.length})
+            </button>
+          </li>
+        )}
+        {orderedGroups.flatMap((group) =>
+          group.map((fix, index) => {
+            const preview = sourceFixPreview(previewSource, fix);
+            const outcome = fixOutcomes.get(fix);
+            return (
+              <li
+                key={`${fix.choiceGroup ?? fix.message}:${fix.from}:${fix.to}:${fix.replacement}:${index}`}
+                onFocus={() => highlightFix(fix)}
+                onMouseEnter={() => highlightFix(fix)}
+                onMouseLeave={(event) => {
+                  if (!event.currentTarget.contains(document.activeElement)) highlightFix();
+                }}
+              >
+                {group.length > 1 && index === 0 && (
+                  <p role="note">Choose one of {group.length} alternatives. Compare the changes before applying.</p>
+                )}
+                <button
+                  type="button"
+                  data-fix-key={`${fix.from}:${fix.to}:${fix.replacement}`}
+                  onClick={() => applyQuickFix(fix)}
+                >
+                  <span>
+                    Apply fix · Line {preview.line}: {fix.label ?? fix.message}
+                    {onCursorLine(fix) ? " (current line)" : ""}
+                  </span>
+                </button>
+                <div className="source-fix-change-preview">
+                  {(group.length > 1 || preview.expandable) && (
+                    <span>
+                      Before: <del>{preview.compactBefore.trim() || "(empty line)"}</del>
+                    </span>
+                  )}
+                  {(group.length > 1 || preview.expandable) && <span>After:</span>}
+                  <code>{preview.compactAfter.trim() || "Remove this text"}</code>
+                  {outcome && (
+                    <span className={outcome.needsReview ? "source-fix-outcome needs-review" : "source-fix-outcome"}>
+                      Expected result: {outcome.message}
+                    </span>
+                  )}
+                </div>
+                {outcome?.introducedDetails.map((item, index) => (
+                  <button
+                    type="button"
+                    className="source-fix-new-diagnostic"
+                    key={index}
+                    onClick={() => setDiagnosticPreview({ fix, line: item.line })}
+                  >
+                    New {item.severity} on line {item.line}: {item.message}
+                  </button>
+                ))}
+                {diagnosticPreview?.fix === fix && (
+                  <div
+                    className="source-fix-diagnostic-preview"
+                    role="region"
+                    aria-label={`Proposed source for diagnostic on line ${diagnosticPreview.line}`}
+                    tabIndex={-1}
+                    ref={diagnosticPreviewPanel}
+                  >
+                    <strong>Proposed source · line {diagnosticPreview.line}</strong>
+                    <pre>
+                      {sourceFixDiagnosticPreview(previewSource, fix, diagnosticPreview.line).map((line) =>
+                        line.highlighted ? (
+                          <mark key={line.number}>
+                            {line.number}: {line.text || " "}
+                            {"\n"}
+                          </mark>
+                        ) : (
+                          <span key={line.number}>
+                            {line.number}: {line.text}
+                            {"\n"}
+                          </span>
+                        ),
+                      )}
+                    </pre>
+                  </div>
+                )}
+                {preview.expandable && (
+                  <details className="source-fix-full-preview">
+                    <summary>Show full change</summary>
+                    <strong>Before</strong>
+                    <pre>{preview.before || "(empty line)"}</pre>
+                    <strong>After</strong>
+                    <pre>{preview.after || "(removed)"}</pre>
+                  </details>
+                )}
+              </li>
+            );
+          }),
+        )}
+      </ul>
+    </details>
+  );
+
   return (
     <section className="editor-pane" aria-label="Code editor section">
       <div className="editor-actions">
@@ -781,215 +981,71 @@ export function CodeEditor({
         <span className="source-error-announcement" role="status">
           {errorAnnouncement}
         </span>
-        {quickFixes.length > 0 && !readOnly && (
-          <details
-            className="source-fixes"
-            ref={fixPicker}
-            onToggle={(event) => {
-              setFixPickerOpen(event.currentTarget.open);
-              if (!event.currentTarget.open) {
-                setDiagnosticPreview(undefined);
-                highlightFix();
-                setFixFilter(undefined);
+        {quickFixes.length > 0 && !readOnly && repairHost && (
+          <button
+            type="button"
+            aria-label="Show source fix suggestions"
+            ref={repairTrigger}
+            onClick={() => {
+              setFixFilter(undefined);
+              flushSync(() => openRepairWorkspace.current?.());
+              if (fixPicker.current) {
+                fixPicker.current.open = true;
+                fixPicker.current.querySelector<HTMLButtonElement>("button[data-fix-key]")?.focus();
               }
-            }}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) highlightFix();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                event.currentTarget.open = false;
-                highlightFix();
-                view.current?.focus();
-                return;
-              }
-              if (event.key === "Tab") {
-                const target = event.target as HTMLElement;
-                const row = target.closest("li");
-                const preview = row?.querySelector<HTMLElement>(".source-fix-full-preview summary");
-                const apply = row?.querySelector<HTMLButtonElement>("button");
-                if ((!event.shiftKey && target === apply && preview) || (event.shiftKey && target === preview)) {
-                  event.preventDefault();
-                  (event.shiftKey ? apply : preview)?.focus();
-                }
-                return;
-              }
-              if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-              const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button[data-fix-key]")];
-              const index = buttons.indexOf(event.target as HTMLButtonElement);
-              if (index < 0) return;
-              event.preventDefault();
-              event.stopPropagation();
-              const next =
-                event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? buttons.length - 1
-                    : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
-              buttons[next]?.focus();
             }}
           >
-            <summary
-              aria-label="Show source fix suggestions"
-              title="Ctrl/⌘ + . opens fixes; arrows choose, Enter applies, Tab reaches previews, Escape closes"
-            >
-              {relationshipRepair
-                ? "Repair relationships"
-                : `Fix issue${fixFilter ? ` (${visibleFixCount} of ${quickFixes.length})` : quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}`}
-            </summary>
-            <ul aria-label="Source fix suggestions">
-              {fixFilter && (
-                <li>
-                  <p>Fixes for line {fixFilter.line}</p>
-                  <button type="button" onClick={() => setFixFilter(undefined)}>
-                    Show all fixes ({quickFixes.length})
-                  </button>
-                </li>
-              )}
-              {orderedGroups.flatMap((group) =>
-                group.map((fix, index) => {
-                  const preview = sourceFixPreview(previewSource, fix);
-                  const outcome = fixOutcomes.get(fix);
-                  return (
-                    <li
-                      key={`${fix.choiceGroup ?? fix.message}:${fix.from}:${fix.to}:${fix.replacement}:${index}`}
-                      onFocus={() => highlightFix(fix)}
-                      onMouseEnter={() => highlightFix(fix)}
-                      onMouseLeave={(event) => {
-                        if (!event.currentTarget.contains(document.activeElement)) highlightFix();
-                      }}
-                    >
-                      {group.length > 1 && index === 0 && (
-                        <p role="note">
-                          Choose one of {group.length} alternatives. Compare the changes before applying.
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        data-fix-key={`${fix.from}:${fix.to}:${fix.replacement}`}
-                        onClick={() => applyQuickFix(fix)}
-                      >
-                        <span>
-                          Apply fix · Line {preview.line}: {fix.label ?? fix.message}
-                          {onCursorLine(fix) ? " (current line)" : ""}
-                        </span>
-                      </button>
-                      <div className="source-fix-change-preview">
-                        {(group.length > 1 || preview.expandable) && (
-                          <span>
-                            Before: <del>{preview.compactBefore.trim() || "(empty line)"}</del>
-                          </span>
-                        )}
-                        {(group.length > 1 || preview.expandable) && <span>After:</span>}
-                        <code>{preview.compactAfter.trim() || "Remove this text"}</code>
-                        {outcome && (
-                          <span
-                            className={outcome.needsReview ? "source-fix-outcome needs-review" : "source-fix-outcome"}
-                          >
-                            Expected result: {outcome.message}
-                          </span>
-                        )}
-                      </div>
-                      {outcome?.introducedDetails.map((item, index) => (
-                        <button
-                          type="button"
-                          className="source-fix-new-diagnostic"
-                          key={index}
-                          onClick={() => setDiagnosticPreview({ fix, line: item.line })}
-                        >
-                          New {item.severity} on line {item.line}: {item.message}
-                        </button>
-                      ))}
-                      {diagnosticPreview?.fix === fix && (
-                        <div
-                          className="source-fix-diagnostic-preview"
-                          role="region"
-                          aria-label={`Proposed source for diagnostic on line ${diagnosticPreview.line}`}
-                          tabIndex={-1}
-                          ref={diagnosticPreviewPanel}
-                        >
-                          <strong>Proposed source · line {diagnosticPreview.line}</strong>
-                          <pre>
-                            {sourceFixDiagnosticPreview(previewSource, fix, diagnosticPreview.line).map((line) =>
-                              line.highlighted ? (
-                                <mark key={line.number}>
-                                  {line.number}: {line.text || " "}
-                                  {"\n"}
-                                </mark>
-                              ) : (
-                                <span key={line.number}>
-                                  {line.number}: {line.text}
-                                  {"\n"}
-                                </span>
-                              ),
-                            )}
-                          </pre>
-                        </div>
-                      )}
-                      {preview.expandable && (
-                        <details className="source-fix-full-preview">
-                          <summary>Show full change</summary>
-                          <strong>Before</strong>
-                          <pre>{preview.before || "(empty line)"}</pre>
-                          <strong>After</strong>
-                          <pre>{preview.after || "(removed)"}</pre>
-                        </details>
-                      )}
-                    </li>
-                  );
-                }),
-              )}
-            </ul>
-          </details>
+            Fix issue{quickFixes.length > 1 ? ` (${quickFixes.length})` : ""}
+          </button>
         )}
+        {quickFixes.length > 0 && !readOnly && renderRepair(fixPickerContent)}
         <button type="button" onClick={() => void copySource()}>
           {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy code"}
         </button>
       </div>
       <div className="editor-host" ref={host} aria-label="PlantUML source editor" data-inspector-trigger />
-      {fixFeedback && <p className="source-fix-feedback">{fixFeedback}</p>}
-      {explanation && (
-        <div
-          className="source-error-explanation"
-          role="region"
-          aria-label="Error explanation"
-          tabIndex={-1}
-          ref={explanationPanel}
-          onKeyDown={(event) => {
-            if (event.key === "F8") {
-              event.preventDefault();
-              event.stopPropagation();
-              navigateError(event.shiftKey ? -1 : 1);
-              return;
-            }
-            if (event.key === "Tab" && event.target === event.currentTarget && !event.shiftKey) {
-              event.preventDefault();
-              event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
-              return;
-            }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              event.stopPropagation();
-              closeExplanation();
-            }
-          }}
-        >
-          <button type="button" aria-label="Close error explanation" onClick={closeExplanation}>
-            ×
-          </button>
-          <strong>
-            Line {explanation.line}: {explanation.message}
-          </strong>
-          <p>{explanation.guidance}</p>
-          {explanation.fixKeys.length > 0 && !readOnly && (
-            <button type="button" onClick={openExplanationFixes}>
-              Open suggested fixes
+      {fixFeedback && renderRepair(<p className="source-fix-feedback">{fixFeedback}</p>)}
+      {explanation &&
+        renderRepair(
+          <div
+            className="source-error-explanation"
+            role="region"
+            aria-label="Error explanation"
+            tabIndex={-1}
+            ref={explanationPanel}
+            onKeyDown={(event) => {
+              if (event.key === "F8") {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateError(event.shiftKey ? -1 : 1);
+                return;
+              }
+              if (event.key === "Tab" && event.target === event.currentTarget && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.querySelector<HTMLButtonElement>("button")?.focus();
+                return;
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                closeExplanation();
+              }
+            }}
+          >
+            <button type="button" aria-label="Close error explanation" onClick={closeExplanation}>
+              ×
             </button>
-          )}
-        </div>
-      )}
+            <strong>
+              Line {explanation.line}: {explanation.message}
+            </strong>
+            <p>{explanation.guidance}</p>
+            {explanation.fixKeys.length > 0 && !readOnly && (
+              <button type="button" onClick={openExplanationFixes}>
+                Open suggested fixes
+              </button>
+            )}
+          </div>,
+        )}
     </section>
   );
 }

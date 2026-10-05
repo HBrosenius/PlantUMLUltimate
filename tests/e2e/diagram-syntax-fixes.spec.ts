@@ -57,7 +57,7 @@ test("source entry preserves deliberate blank lines without appending extra line
 });
 
 for (const width of [390, 800, 1440]) {
-  test(`keeps start-tag fix suggestions inside the editor at ${width}px`, async ({ page }) => {
+  test(`keeps start-tag fix suggestions inside Problems at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     await prepareEditor(page);
     await fillSource(page, "@startgant\nProject starts 2026-09-21\n[A] lasts 1 day\n@endgantt");
@@ -65,7 +65,7 @@ for (const width of [390, 800, 1440]) {
     const choices = page.getByRole("list", { name: "Source fix suggestions" });
     await expect(choices).toBeVisible();
     const bounds = await choices.boundingBox();
-    const editor = await page.getByRole("region", { name: "Code editor section" }).boundingBox();
+    const editor = await page.getByRole("complementary", { name: "Problems" }).boundingBox();
     expect(bounds).not.toBeNull();
     expect(editor).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(Math.max(0, editor!.x));
@@ -959,6 +959,12 @@ test("Problems routes errors and suggestions through explanations and previews",
   await fillSource(page, lines.join("\n"));
   await page.getByRole("button", { name: /⚠.*problem/ }).click();
   const problems = page.getByRole("complementary", { name: "Problems" });
+  await problems.getByRole("button", { name: "Preview fixes for line 4", exact: true }).click();
+  const directPicker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(directPicker.getByRole("button", { name: /Add missing %/ })).toBeFocused();
+  await expect(directPicker.locator("button[data-fix-key]")).toHaveCount(1);
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  await page.keyboard.press("Escape");
   await problems.getByRole("listitem").filter({ hasText: "Line 4" }).click();
   const explanation = page.getByRole("region", { name: "Error explanation" });
   await expect(explanation).toContainText("Line 4:");
@@ -969,7 +975,7 @@ test("Problems routes errors and suggestions through explanations and previews",
   const editor = page.locator(".cm-content");
   await expect(editor.locator(".cm-line")).toHaveText(lines);
   await page.keyboard.press("Escape");
-  await problems.getByRole("button", { name: "Add missing %", exact: true }).click();
+  await problems.getByRole("button", { name: "Preview fixes for line 4", exact: true }).click();
   await expect(picker).toBeVisible();
   await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeFocused();
   await expect(editor.locator(".cm-line")).toHaveText(lines);
@@ -1059,9 +1065,11 @@ for (const fixture of [
         .click();
     }
     await fillSource(page, fixture.source);
-    await page.locator(".cm-lintRange-error").first().hover();
     const tooltip = page.locator(".cm-tooltip-lint");
-    await tooltip.getByRole("button", { name: /Preview fixes/ }).click();
+    await expect(async () => {
+      await page.locator(".cm-lintRange-error").first().hover();
+      await tooltip.getByRole("button", { name: /Preview fixes/ }).click({ timeout: 2000 });
+    }).toPass({ timeout: 8000 });
     const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
     const apply = picker.getByRole("button", { name: new RegExp(`Apply fix.*${fixture.label}`) });
     await expect(apply).toBeFocused();
@@ -1073,3 +1081,56 @@ for (const fixture of [
     await expect(editor.locator(".cm-line")).toHaveText(fixture.source.split("\n"));
   });
 }
+
+test("Problems supports keyboard navigation, reveal, and scoped fix previews", async ({ page }) => {
+  await prepareEditor(page);
+  const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
+  await fillSource(page, source);
+  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  const entries = problems.locator("[data-problem-diagnostic]");
+  await expect(entries).toHaveCount(2);
+  await entries.first().focus();
+  await entries.first().press("ArrowDown");
+  await expect(entries.last()).toBeFocused();
+  await entries.last().press("Home");
+  await expect(entries.first()).toBeFocused();
+  await entries.first().press("End");
+  await expect(entries.last()).toBeFocused();
+  await entries.last().press("Enter");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Line 3:");
+  await page.keyboard.press("Escape");
+  const completion = entries.filter({ hasText: "Line 3" });
+  await completion.focus();
+  await completion.press("Alt+Enter");
+  const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(picker.getByRole("button", { name: /Add missing %/ })).toBeFocused();
+  await expect(picker.locator("button[data-fix-key]")).toHaveCount(1);
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
+});
+
+test("all repair content stays inside the Problems workspace", async ({ page, browserName }) => {
+  await prepareEditor(page);
+  const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
+  await fillSource(page, source);
+  await page.getByLabel("Show source fix suggestions", { exact: true }).click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  await expect(problems).toBeVisible();
+  const fixes = problems.getByRole("list", { name: "Source fix suggestions", exact: true });
+  await expect(fixes).toBeVisible();
+  await expect(page.locator(".editor-actions .source-fixes")).toHaveCount(0);
+  await expect(problems.getByRole("region", { name: "Available quick fixes" })).toHaveCount(0);
+  await page.screenshot({ path: `/tmp/unified-repairs-${browserName}.png` });
+  await fixes.getByRole("button", { name: /Add missing %/ }).click();
+  await expect(problems.locator(".source-fix-feedback")).toContainText("1 error remains");
+  await problems.getByRole("listitem").filter({ hasText: "Line 4" }).click();
+  await expect(problems.getByRole("region", { name: "Error explanation" })).toBeVisible();
+  await problems.getByRole("button", { name: "Close problems", exact: true }).click();
+  await expect(problems).toBeHidden();
+  await expect(page.getByLabel("Show source fix suggestions", { exact: true })).toBeFocused();
+  await page.getByLabel("Show source fix suggestions", { exact: true }).click();
+  await expect(problems).toBeVisible();
+  await expect(fixes).toBeVisible();
+  await expect(problems.getByRole("region", { name: "Error explanation" })).toHaveCount(0);
+});

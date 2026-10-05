@@ -273,6 +273,7 @@ export function App() {
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [repairHost, setRepairHost] = useState<HTMLDivElement | null>(null);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
@@ -3035,7 +3036,7 @@ export function App() {
       onClickCapture={(event) => {
         if (!(event.target instanceof Element)) return;
         const close = event.target.closest<HTMLButtonElement>(".task-inspector > header button");
-        if (close) restorePreviousFocus(lastDiagramFocus.current);
+        if (close && !close.closest(".problems-panel")) restorePreviousFocus(lastDiagramFocus.current);
       }}
     >
       <header className="toolbar">
@@ -3394,6 +3395,12 @@ export function App() {
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
             selectedRange={selectionRequest}
+            repairHost={repairHost}
+            repairWorkspaceOpen={problemsOpen}
+            onOpenRepairWorkspace={() => {
+              setProblemPreview(undefined);
+              setProblemsOpen(true);
+            }}
             repairRequest={repairRequest}
             onRepairRequestHandled={() => setRepairRequest(undefined)}
             symbolHighlights={symbolHighlights}
@@ -4828,37 +4835,47 @@ export function App() {
           onClose={() => setUnsupportedOpen(false)}
         />
       )}
-      {problemsOpen && (
-        <ProblemsPanel
-          diagramKind={workspace.diagramKind}
-          source={problemPreview?.source ?? workspace.source}
-          diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
-          quickFixes={problemPreview ? [] : activeQuickFixes}
-          readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
-          notice={problemPreview?.message}
-          onReveal={(diagnostic) => {
-            if (workspace.viewMode === "diagram") update("viewMode", "split");
-            if (problemPreview) {
-              setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
-              return;
-            }
-            setRepairRequest({
-              documentId: tabs.activeId,
-              kind: workspace.diagramKind,
-              source: workspace.source,
-              diagnostic,
-            });
-          }}
-          onPreviewFix={(fix) => {
-            if (workspace.viewMode === "diagram") update("viewMode", "split");
-            setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, fix });
-          }}
-          onClose={() => {
-            setProblemsOpen(false);
-            setProblemPreview(undefined);
-          }}
-        />
-      )}
+      <ProblemsPanel
+        open={problemsOpen}
+        onRepairHost={setRepairHost}
+        diagramKind={workspace.diagramKind}
+        source={problemPreview?.source ?? workspace.source}
+        diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
+        quickFixes={problemPreview ? [] : activeQuickFixes}
+        readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
+        notice={problemPreview?.message}
+        onReveal={(diagnostic) => {
+          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (problemPreview) {
+            setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
+            return;
+          }
+          setRepairRequest({
+            documentId: tabs.activeId,
+            kind: workspace.diagramKind,
+            source: workspace.source,
+            diagnostic,
+          });
+        }}
+        onPreviewDiagnostic={(diagnostic) => {
+          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          setRepairRequest({
+            documentId: tabs.activeId,
+            kind: workspace.diagramKind,
+            source: workspace.source,
+            diagnostic,
+            previewFixes: true,
+          });
+        }}
+        onPreviewFix={(fix) => {
+          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, fix });
+        }}
+        onClose={() => {
+          setProblemsOpen(false);
+          setProblemPreview(undefined);
+        }}
+      />
       {schedulePreview && (
         <SchedulePreviewDialog
           preview={schedulePreview}
