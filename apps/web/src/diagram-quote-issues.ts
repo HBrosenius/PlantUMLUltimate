@@ -30,7 +30,7 @@ export function quoteIssues(kind: DiagramKind, source: string): QuoteIssue[] {
       block = !trimmed.includes("'/", 2);
     } else if (note) {
       if (/^end\s+note\b/i.test(trimmed)) note = false;
-    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":")) {
+    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(trimmed)) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
       const match = line.match(declaration);

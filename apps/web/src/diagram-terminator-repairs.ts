@@ -48,7 +48,11 @@ export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQui
         break;
       }
       const expected = stack.at(-1);
-      const command = line.match(/^(\s*)([a-z]+(?:\s+[a-z]+)?)(\s*(?:'.*)?)$/i);
+      const command = line.match(
+        kind === "activity"
+          ? /^(\s*)([a-z]+(?:\s+[a-z]+)?)(\s*(?:\([^\n]*\))?\s*(?:'.*)?)$/i
+          : /^(\s*)([a-z]+(?:\s+[a-z]+)?)(\s*(?:'.*)?)$/i,
+      );
       const token = command?.[2]?.toLowerCase().replace(/\s+/g, " ");
       if (expected && token === expected.end) stack.pop();
       else if (

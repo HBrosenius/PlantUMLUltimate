@@ -63,3 +63,17 @@ it("ignores Sequence control examples in block comments", () => {
   const source = "@startuml\n/'\nalt Example\nendd\n'/\nAlice -> Bob: Hi\n@enduml";
   expect(quickFixesForDiagram("sequence", source)).toEqual([]);
 });
+
+it("accepts Activity exit labels without suggesting an extra terminator", () => {
+  const source = "@startuml\nstart\nwhile (More?) is (yes)\n:Work;\nendwhile (no)\nstop\n@enduml";
+  expect(diagnosticsForDiagram("activity", source).filter((item) => item.severity === "error")).toEqual([]);
+  expect(quickFixesForDiagram("activity", source)).toEqual([]);
+});
+
+it("preserves Activity exit labels when repairing a terminator typo", () => {
+  const source = "@startuml\nstart\nwhile (More?) is (yes)\n:Work;\nendwhil (no) ' Exit\nstop\n@enduml";
+  const fix = quickFixesForDiagram("activity", source).find((item) => item.label === "Use endwhile")!;
+  expect(source.slice(0, fix.from) + fix.replacement + source.slice(fix.to)).toBe(
+    source.replace("endwhil", "endwhile"),
+  );
+});

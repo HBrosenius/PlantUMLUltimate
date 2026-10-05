@@ -51,3 +51,9 @@ it("keeps empty and comment-only documents quiet", () => {
   for (const source of ["", "\n  \n", "' Example\n/'\nBody\n'/"])
     expect(quickFixesForDiagram("class", source).filter((fix) => fix.label?.startsWith("Insert @"))).toEqual([]);
 });
+
+it("recognizes boundaries after inline floating notes", () => {
+  const source = '@startuml\nusecase A\nnote "Confirm the release owner" as ReleaseRisk\n@enduml';
+  expect(diagnosticsForDiagram("usecase", source).filter((item) => item.severity === "error")).toEqual([]);
+  expect(quickFixesForDiagram("usecase", source)).toEqual([]);
+});

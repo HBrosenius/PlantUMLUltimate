@@ -33,7 +33,7 @@ export function boundaryIssues(kind: DiagramKind, source: string): BoundaryIssue
       block = !trimmed.includes("'/", 2);
     } else if (note) {
       if (/^end\s+note\b/i.test(trimmed)) note = false;
-    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":")) {
+    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(trimmed)) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
       const match = text.match(/^(\s*)(@(start|end)(gantt|wbs|uml))\b/i);

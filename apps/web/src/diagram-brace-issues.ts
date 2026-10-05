@@ -23,7 +23,8 @@ export function braceIssues(kind: DiagramKind, source: string): BraceIssue[] {
     } else if (trimmed.startsWith("/'")) block = !trimmed.includes("'/", 2);
     else if (note) {
       if (/^end\s+note\b/i.test(trimmed)) note = false;
-    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":")) note = true;
+    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(trimmed))
+      note = true;
     else {
       let quoted = false;
       for (let i = 0; i < text.length; i++) {
