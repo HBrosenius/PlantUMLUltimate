@@ -15,25 +15,33 @@ export interface RenderResult {
   error?: string | undefined;
 }
 
-export const DEFAULT_SOURCE = `@startgantt
+export function createDefaultGanttSource(today = new Date()): string {
+  // Use local calendar fields for today, then UTC calendar arithmetic to avoid DST shifts.
+  const dateAt = (offset: number) =>
+    new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + offset)).toISOString().slice(0, 10);
+  return `@startgantt
 
-Project starts 2026-09-01
+Project starts ${dateAt(-7)}
 saturday are closed
 sunday are closed
+today is colored in #AAF
 
-[Architecture] starts 2026-09-01
+[Architecture] starts ${dateAt(-7)}
 [Architecture] lasts 4 days
 
-[Backend] starts 2026-09-05
+[Backend] starts ${dateAt(-3)}
 [Backend] lasts 8 days
 
-[Frontend] starts 2026-09-05
+[Frontend] starts ${dateAt(-3)}
 [Frontend] lasts 10 days
 
-[Testing] starts 2026-09-13
+[Testing] starts ${dateAt(5)}
 [Testing] lasts 5 days
 
 @endgantt`;
+}
+
+export const DEFAULT_SOURCE = createDefaultGanttSource();
 
 export const DEFAULT_SEQUENCE_SOURCE = `@startuml
 participant User

@@ -2,12 +2,12 @@ import { expect, test } from "@playwright/test";
 import { fillSource, prepareEditor } from "./editor-helpers";
 import { DEFAULT_SOURCE } from "../../apps/web/src/model";
 
-const oneDependency = DEFAULT_SOURCE.replace("[Backend] starts 2026-09-05", "").replace(
+const oneDependency = DEFAULT_SOURCE.replace(/\[Backend\] starts \d{4}-\d{2}-\d{2}/, "").replace(
   "\n@endgantt",
   "\n[Backend] starts at [Architecture]'s end\n@endgantt",
 );
 const twoDependencies = oneDependency
-  .replace("[Frontend] starts 2026-09-05", "")
+  .replace(/\[Frontend\] starts \d{4}-\d{2}-\d{2}/, "")
   .replace("\n@endgantt", "\n[Frontend] starts at [Backend]'s end\n@endgantt");
 const movedDependentTask = twoDependencies.replace(
   "[Frontend] starts at [Backend]'s end",
@@ -48,6 +48,7 @@ test("history captures the initial source before opening and classifies later de
 
 test("undoing a Gantt change leaves no semantic change to review", async ({ page }) => {
   await prepareEditor(page);
+  const initialLines = await page.locator(".cm-content .cm-line").allTextContents();
   await page.locator('[data-task-id="architecture"] .bar').click();
   const handle = await page.locator('[data-task-id="architecture"] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator('[data-task-id="backend"] .bar').boundingBox();
@@ -59,7 +60,7 @@ test("undoing a Gantt change leaves no semantic change to review", async ({ page
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("[Backend] starts at [Architecture]'s end");
   await page.getByRole("button", { name: "Undo" }).click();
-  await expect(page.locator(".cm-content")).toContainText("[Backend] starts 2026-09-05");
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(initialLines);
 
   const history = await openHistory(page);
   await expect(history.getByText("No changes between these versions.", { exact: true })).toBeVisible();

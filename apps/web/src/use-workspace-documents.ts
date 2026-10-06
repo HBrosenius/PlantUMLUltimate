@@ -5,7 +5,7 @@ import {
   DEFAULT_CLASS_SOURCE,
   DEFAULT_COMPONENT_SOURCE,
   DEFAULT_SEQUENCE_SOURCE,
-  DEFAULT_SOURCE,
+  createDefaultGanttSource,
   DEFAULT_USECASE_SOURCE,
   DEFAULT_WBS_SOURCE,
   type DiagramKind,
@@ -54,7 +54,7 @@ export function starterSource(diagramKind: DiagramKind): string {
   if (diagramKind === "component") return DEFAULT_COMPONENT_SOURCE;
   if (diagramKind === "activity") return DEFAULT_ACTIVITY_SOURCE;
   if (diagramKind === "wbs") return DEFAULT_WBS_SOURCE;
-  return DEFAULT_SOURCE;
+  return createDefaultGanttSource();
 }
 
 export function diagramKindDisplayName(diagramKind: DiagramKind): string {
