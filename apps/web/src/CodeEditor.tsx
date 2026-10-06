@@ -9,7 +9,7 @@ import { sourceFixOutcome } from "./source-fix-outcome";
 import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
-import { Decoration, EditorView, keymap, WidgetType, type DecorationSet } from "@codemirror/view";
+import { Decoration, EditorView, keymap, tooltips, WidgetType, type DecorationSet } from "@codemirror/view";
 import { indentWithTab, isolateHistory } from "@codemirror/commands";
 import { lintGutter, type Diagnostic } from "@codemirror/lint";
 import { codeEditorSetup } from "./code-editor-setup";
@@ -377,6 +377,8 @@ export function CodeEditor({
           ]),
           language.current.of(languageExtensions(initialKind.current, previewTooltipFixes)),
           lintGutter(),
+          // Keep hover actions outside the editor's scroll clipping and positioning context.
+          tooltips({ parent: host.current.ownerDocument.body }),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
           EditorView.domEventHandlers({

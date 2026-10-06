@@ -1068,10 +1068,9 @@ for (const fixture of [
     }
     await fillSource(page, fixture.source);
     const tooltip = page.locator(".cm-tooltip-lint");
-    await expect(async () => {
-      await page.locator(".cm-lintRange-error").first().hover();
-      await tooltip.getByRole("button", { name: /Preview fixes/ }).click({ timeout: 2000 });
-    }).toPass({ timeout: 8000 });
+    await page.locator(".cm-lintRange-error").first().hover();
+    // One hover must leave the action reachable, including near the top of the editor.
+    await tooltip.getByRole("button", { name: /Preview fixes/ }).click();
     const picker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
     const apply = picker.getByRole("button", { name: new RegExp(`Apply fix.*${fixture.label}`) });
     await expect(apply).toBeFocused();
