@@ -2,6 +2,7 @@
 
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { describe, expect, it } from "vitest";
+import { parseGanttCalendar } from "../gantt-calendar";
 import { addCanonicalGanttOverlay, dayColumnBounds, timelineColumnWidth } from "./canonical-gantt-overlay";
 
 describe("shared timeline column geometry", () => {
@@ -117,4 +118,64 @@ describe("Gantt task completion", () => {
     expect(result.querySelector(`[data-progress-task-id="${tasks[0]!.id}"]`)).toBeNull();
     expect(result.querySelector(`[data-progress-task-id="${tasks[2]!.id}"]`)).toBeNull();
   });
+});
+
+describe("Gantt timeline month boundaries", () => {
+  it.each([
+    ["Sep", "October 2026", [29, 30, 1, 2], ["2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"]],
+    ["Dec", "January 2027", [30, 31, 1, 2], ["2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02"]],
+    ["Feb", "March 2024", [28, 29, 1, 2], ["2024-02-28", "2024-02-29", "2024-03-01", "2024-03-02"]],
+  ])("dates the abbreviated %s header before %s correctly", (shortMonth, nextMonth, days, dates) => {
+    const tasks = parseGantt("@startgantt\n[A] lasts 1 day\n@endgantt").document.tasks;
+    const columns = (days as number[])
+      .map(
+        (day, index) =>
+          `<text x="${20 + index * 16}" y="30">${day}</text><text x="${20 + index * 16}" y="150">${day}</text>`,
+      )
+      .join("");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="10">${shortMonth}</text>
+      <text x="52" y="10">${nextMonth}</text>${columns}
+      <text x="10" y="60">A</text><rect x="20" y="50" width="12" height="13" fill="#aaa"/></svg>`;
+    const result = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    expect(
+      [...result.querySelectorAll('[data-timeline-header="top"]')].map((element) =>
+        element.getAttribute("data-timeline-date"),
+      ),
+    ).toEqual(dates);
+  });
+});
+
+it("keeps same-row task hitboxes separate across a shortened month header", () => {
+  const source =
+    "@startgantt\nProject starts 2026-09-29\nsaturday are closed\nsunday are closed\n[Architecture] starts 2026-09-29\n[Architecture] lasts 4 days\n[New task] starts at [Architecture]'s end\n[New task] lasts 1 day\n[New task] displays on same row as [Architecture]\n@endgantt";
+  const { document } = parseGantt(source);
+  const columns = [29, 30, 1, 2, 3, 4, 5, 6]
+    .map(
+      (day, index) =>
+        `<text x="${100 + index * 20}" y="30">${day}</text><text x="${100 + index * 20}" y="150">${day}</text>`,
+    )
+    .join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="100" y="10">Sep</text>
+    <text x="160" y="10">October 2026</text>${columns}
+    <text x="0" y="70">Architecture</text><rect x="100" y="60" width="76" height="13" fill="#aaa"/>
+    <text x="200" y="70">New task</text><rect x="220" y="60" width="16" height="13" fill="#aaa"/></svg>`;
+  const result = new DOMParser().parseFromString(
+    addCanonicalGanttOverlay(
+      svg,
+      document.tasks,
+      document.dependencies,
+      [],
+      "",
+      undefined,
+      "2026-09-29",
+      parseGanttCalendar(source),
+    ),
+    "image/svg+xml",
+  );
+  const owner = result.querySelector('[data-task-id="architecture"] .bar');
+  const added = result.querySelector('[data-task-id="new task"] .bar');
+  expect(owner?.getAttribute("x")).toBe("100");
+  expect(owner?.getAttribute("width")).toBe("76");
+  expect(added?.getAttribute("x")).toBe("220");
+  expect(added?.getAttribute("width")).toBe("16");
 });

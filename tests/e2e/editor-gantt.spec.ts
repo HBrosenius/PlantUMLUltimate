@@ -999,8 +999,14 @@ test("snaps a Monday task to the previous Friday using dated timeline columns", 
   await expect(page.locator(".cm-content")).not.toContainText("[A] starts 2026-09-02");
 });
 
-test("moves the default Backend task from Monday to the preceding Friday", async ({ page, browserName }) => {
+test("moves a weekend-start Backend task from Monday to the preceding Friday", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
+  await setSource(
+    page,
+    source(
+      "saturday are closed\nsunday are closed\n[Architecture] starts 2026-09-01\n[Architecture] lasts 4 days\n[Backend] starts 2026-09-05\n[Backend] lasts 8 days",
+    ),
+  );
   const friday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-04"]').boundingBox();
   const monday = await page.locator('[data-timeline-header="top"][data-timeline-date="2026-09-07"]').boundingBox();
   const bar = await page.locator("[data-task-id=backend] .bar").boundingBox();

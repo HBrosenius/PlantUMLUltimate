@@ -295,12 +295,36 @@ export function addCanonicalGanttOverlay(
       const match = text.textContent?.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
       const month = match?.[1] ? monthNames.indexOf(match[1].toLowerCase()) : -1;
       const x = numberAttribute(text, "x");
-      return month >= 0 && match?.[2] && x !== undefined ? [{ month, year: Number(match[2]), x }] : [];
+      return month >= 0 && match?.[2] && x !== undefined
+        ? [{ month, year: Number(match[2]), x, y: numberAttribute(text, "y") }]
+        : [];
     })
     .sort((a, b) => a.x - b.x)[0];
+  // A short first month is rendered as "Sep", while the next header includes its year.
+  // Anchor the first day to that leading month instead of assigning it to the next month.
+  const leadingMonth =
+    firstMonth && firstMonth.y !== undefined
+      ? texts
+          .flatMap((text) => {
+            const value = text.textContent?.trim().toLowerCase();
+            const month = monthNames.findIndex((name) => value === name || value === name.slice(0, 3));
+            const x = numberAttribute(text, "x");
+            const y = numberAttribute(text, "y");
+            return month >= 0 &&
+              x !== undefined &&
+              y !== undefined &&
+              x < firstMonth.x &&
+              Math.abs(y - firstMonth.y!) < 1
+              ? [{ month, x }]
+              : [];
+          })
+          .sort((a, b) => a.x - b.x)[0]
+      : undefined;
   const projectDate = projectStart ? new Date(`${projectStart}T00:00:00Z`) : undefined;
-  let timelineYear = firstMonth?.year ?? projectDate?.getUTCFullYear();
-  let timelineMonth = firstMonth?.month ?? projectDate?.getUTCMonth();
+  let timelineYear = firstMonth
+    ? firstMonth.year - Number(leadingMonth !== undefined && leadingMonth.month > firstMonth.month)
+    : projectDate?.getUTCFullYear();
+  let timelineMonth = leadingMonth?.month ?? firstMonth?.month ?? projectDate?.getUTCMonth();
   let previousDay: number | undefined;
   if (timelineYear !== undefined && timelineMonth !== undefined)
     for (const item of topDates) {
