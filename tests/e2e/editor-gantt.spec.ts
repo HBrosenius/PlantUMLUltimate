@@ -1252,7 +1252,9 @@ test("keeps dense charts selectable through the semantic overlay", async ({ page
 test("unloads the heavy renderer in code-only view and reloads it for preview", async ({ page }) => {
   const renderer = page.locator('iframe[title="Local PlantUML renderer"]');
   await expect(renderer).toHaveCount(1);
-  await expect(renderer).not.toHaveAttribute("srcdoc", /viz-global/);
+  await expect(
+    page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[src*="viz-global"]'),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "1 · code" }).click();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await expect(page.locator(".statusbar")).toContainText("Preview paused");

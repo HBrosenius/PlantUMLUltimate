@@ -128,7 +128,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
         .evaluate((element) => getComputedStyle(element).pointerEvents),
     )
     .toBe("none");
-  await page.locator('[data-class-object-type="entity"][data-class-object-id="inventory"]').click({ force: true });
+  await page.locator('[data-class-object-type="entity"][data-class-object-id="inventory"]').click();
   await expect(page.getByRole("complementary", { name: "Component object inspector" })).toBeVisible();
   await diagram.evaluate((element) => element.classList.remove("class-dragging-move"));
 

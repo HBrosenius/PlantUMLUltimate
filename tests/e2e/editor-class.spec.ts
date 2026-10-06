@@ -168,7 +168,9 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(chooser.getByRole("button", { name: /Class diagram/ }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: /Class diagram/ }).click();
   await expect(page.getByRole("region", { name: "Class diagram preview" })).toBeVisible();
-  await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveAttribute("srcdoc", /viz-global/);
+  await expect(
+    page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[src*="viz-global"]'),
+  ).toHaveCount(1);
   await expect(page.locator(".cm-content")).toContainText("class Order");
 
   await page.getByRole("button", { name: "Add", exact: true }).click();

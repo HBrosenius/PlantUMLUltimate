@@ -188,13 +188,19 @@ export function useRenderer(source: string, enabled = true, layoutEngine: Render
       instance.hidden = true;
       instance.title = "Local PlantUML renderer";
       instance.setAttribute("aria-hidden", "true");
-      document.body.append(instance);
-      // Write into the inherited about:blank document. Firefox treats CSP 'self'
-      // in srcdoc as about:srcdoc; a separate URL also violates frame-ancestors 'none'.
-      const frameDocumentNode = instance.contentDocument!;
-      frameDocumentNode.open();
-      frameDocumentNode.write(frameDocument(channel.current, rendererAssets, layoutEngine));
-      frameDocumentNode.close();
+      const html = frameDocument(channel.current, rendererAssets, layoutEngine);
+      if (/Firefox\//.test(navigator.userAgent)) {
+        // Firefox resolves CSP self against about:srcdoc instead of the inherited origin.
+        document.body.append(instance);
+        const frameDocumentNode = instance.contentDocument!;
+        frameDocumentNode.open();
+        frameDocumentNode.write(html);
+        frameDocumentNode.close();
+      } else {
+        // srcdoc preserves the inherited service-worker controller for offline rendering.
+        instance.srcdoc = html;
+        document.body.append(instance);
+      }
       frame.current = instance;
     };
     restartFrame.current = () => {
