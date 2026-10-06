@@ -62,8 +62,40 @@ const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[
     const closesBlocks = fix.replacement
       .trim()
       .split(/\r?\n/)
-      .every((line) => /^(?:}|end(?:\s+(?:note|ref|box|fork|split))?|endif|endwhile|endswitch)$/.test(line.trim()));
-    return !closesBlocks || !uncertainNotes.some((note) => note.from < fix.from);
+      .every((line) =>
+        /^(?:}|end(?:\s+(?:note|ref|box|fork|split))?|endhnote|endrnote|endif|endwhile|endswitch)$/.test(line.trim()),
+      );
+    if (!fix.replacement.trim() && source.slice(fix.from, fix.to).trim() === "}") {
+      let depth = 0;
+      const nested = [
+        ...source.slice(0, fix.from).matchAll(/\{[ \t]*(?:'[^\n]*)?$|^[ \t]*(}+)[ \t]*(?:'[^\n]*)?$/gm),
+      ].some(([, closers]) => {
+        depth += closers ? -closers.length : 1;
+        return depth > 1;
+      });
+      if (nested) {
+        const previousLine = source
+          .slice(0, fix.from)
+          .split(/\r?\n/)
+          .filter((line) => line.trim())
+          .at(-1);
+        const lineStart = source.lastIndexOf("\n", Math.max(0, fix.from - 1)) + 1;
+        const lineEnd = source.indexOf("\n", fix.from);
+        const currentLine = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
+        if (previousLine?.trim() !== "}" || previousLine.match(/^[ \t]*/)?.[0] !== currentLine.match(/^[ \t]*/)?.[0])
+          return false;
+      }
+    }
+    const removesTerminator =
+      !fix.replacement.trim() &&
+      /^(?:end(?:\s+(?:note|ref|box|fork|split))?|endhnote|endrnote|endif|endwhile|endswitch)\s*$/i.test(
+        source.slice(fix.from, fix.to).trim(),
+      );
+    const insertsRepeatCondition = /^repeat while\b/i.test(fix.replacement.trim());
+    return (
+      !(closesBlocks || removesTerminator || insertsRepeatCondition) ||
+      !uncertainNotes.some((issue) => issue.from <= fix.from)
+    );
   });
 };
 

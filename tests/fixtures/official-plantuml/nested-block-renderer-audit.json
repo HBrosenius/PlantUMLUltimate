@@ -1,0 +1,3245 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.6",
+  "results": [
+    {
+      "id": "activity-0-valid-control",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "activity-0-missing-4-endwhile",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "missing-4-endwhile",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "970006cd04fd79cd4bcd110ab1557f0e16ac79d7d188ba3e8f1ff90a96d312a7",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 39,
+          "to": 66,
+          "severity": "error",
+          "message": "Block is missing endwhile; review nesting and choose its closing position"
+        },
+        {
+          "from": 78,
+          "to": 83,
+          "severity": "error",
+          "message": "endif does not match an open if block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "if block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-0-typo-4-endwhile",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "typo-4-endwhile",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "247701c780f1d353e39d837ecbd7415be4222049ee1c117a9fa81127701b1221",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 87,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endwhile",
+          "actions": [
+            {
+              "name": "Use endwhile"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endwhile",
+          "rendered": {
+            "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-0-wrong-4-endwhile",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "wrong-4-endwhile",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f89044394859817e2d3a6ed723ad88cfa2a06de72b665217748d194c4ea7f1f0",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 39,
+          "to": 66,
+          "severity": "error",
+          "message": "Block is missing endwhile; review nesting and choose its closing position"
+        },
+        {
+          "from": 91,
+          "to": 96,
+          "severity": "error",
+          "message": "endif does not match an open if block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "if block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-0-duplicate-4-endwhile",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "duplicate-4-endwhile",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0b7ba0372ca1e838f9fdd1887cee8c4ad89f7a9ebe6108b46b94df3c933aa72a",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 94,
+          "to": 110,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-0-missing-5-endif",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "missing-5-endif",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d873c873f682ef0b8cd07119fe4469951f78b307a17401dad4294c8ac8c9d862",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 16,
+          "to": 38,
+          "severity": "error",
+          "message": "if block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-0-typo-5-endif",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "typo-5-endif",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a4ff41a1b41e66b88389860681686d4efe2ec589c2416358aa3747df1293a6d5",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 94,
+          "to": 98,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endif",
+          "rendered": {
+            "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-0-wrong-5-endif",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "wrong-5-endif",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d9b6b5806ebd57650c1920d16f1d2fc33fb9b377033f94ffc25c4ccdbb7fb468",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 94,
+          "to": 102,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endif",
+          "rendered": {
+            "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-0-duplicate-5-endif",
+      "kind": "activity",
+      "example": 0,
+      "mutation": "duplicate-5-endif",
+      "baseline": {
+        "hash": "2df4a397a791d8858427485a8dd827e2dfc47fda15aa7bf3b01d61489d9dbd8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "7c9752da94891f82c96fa597ef73e366c3db10068a0bc5d7656a6d31e899b2cc",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 100,
+          "to": 105,
+          "severity": "error",
+          "message": "endif does not match an open if block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-1-valid-control",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "activity-1-missing-4-endif",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "missing-4-endif",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "6d5742e5fe2a358bfe882242aa9d8c2afe7f70c98319bc6e849a570527fd1b9a",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 41,
+          "severity": "error",
+          "message": "Block is missing endwhile; review nesting and choose its closing position"
+        },
+        {
+          "from": 42,
+          "to": 66,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 78,
+          "to": 91,
+          "severity": "error",
+          "message": "endwhile does not match an open while block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 41,
+          "severity": "error",
+          "message": "while block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-1-typo-4-endif",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "typo-4-endif",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "ac9297999439acff94ad7fa003ac684bb81e6c4b7a923ba545db93dc5908ed7f",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 84,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endif",
+          "rendered": {
+            "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-1-wrong-4-endif",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "wrong-4-endif",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "424a420d68fc7f7ac4503dbb89e310f7e21d98df6200aab8c54a8f91a50d6453",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 41,
+          "severity": "error",
+          "message": "Block is missing endwhile; review nesting and choose its closing position"
+        },
+        {
+          "from": 42,
+          "to": 66,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 78,
+          "to": 88,
+          "severity": "error",
+          "message": "endwhile does not match an open while block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-1-duplicate-4-endif",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "duplicate-4-endif",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e28f9c59a1fa5c58b42e62100135f8242806aca6437123bc03f4a8e87c97c1e0",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 94,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-1-missing-5-endwhile",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "missing-5-endwhile",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "deb96bca593586a5c0d8b9a133b2cc55f2e5cf1228dc4172db900f6341abad25",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 41,
+          "severity": "error",
+          "message": "Block is missing endwhile; review nesting and choose its closing position"
+        },
+        {
+          "from": 16,
+          "to": 41,
+          "severity": "error",
+          "message": "while block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-1-typo-5-endwhile",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "typo-5-endwhile",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a0bc4ac35b24412a94f85ad4cb77a6a44d745391523b824a9b1ae0958e60223b",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 93,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endwhile",
+          "actions": [
+            {
+              "name": "Use endwhile"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endwhile",
+          "rendered": {
+            "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-1-wrong-5-endwhile",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "wrong-5-endwhile",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f076e72e062b41b14c92da1aeb72b8ce3d3798168d8730cd049b56771d2dcea1",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 91,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endwhile",
+          "actions": [
+            {
+              "name": "Use endwhile"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endwhile",
+          "rendered": {
+            "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-1-duplicate-5-endwhile",
+      "kind": "activity",
+      "example": 1,
+      "mutation": "duplicate-5-endwhile",
+      "baseline": {
+        "hash": "c71feff809d0297c66420491504106c970acd577d0b0478a54f199f83a0176fa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "522d4d67b51e82e98331ede682035d67e093b7b8e485ce56639174d1bd6659b9",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 100,
+          "to": 113,
+          "severity": "error",
+          "message": "endwhile does not match an open while block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-2-valid-control",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "activity-2-missing-5-endif",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "missing-5-endif",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "253786bd072a1e726cd48ca07b90b5a2f6375218d78b04a85c38cdda01745755",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 30,
+          "severity": "error",
+          "message": "Block is missing endswitch; review nesting and choose its closing position"
+        },
+        {
+          "from": 42,
+          "to": 66,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 78,
+          "to": 87,
+          "severity": "error",
+          "message": "endswitch does not match an open switch block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 30,
+          "severity": "error",
+          "message": "switch block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-2-typo-5-endif",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "typo-5-endif",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "692c4d1022f9760039e037032571ad3b69413b205c960aa8b7e254cfdae2bb2c",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 84,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endif",
+          "rendered": {
+            "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-2-wrong-5-endif",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "wrong-5-endif",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "abd00847ca9e7eb755702aed2bb4ab18cf4e97d6cf5550a3ea4cd26337714d24",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 88,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endif",
+          "rendered": {
+            "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-2-duplicate-5-endif",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "duplicate-5-endif",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "68cd4b902a14ff075a04f0ae0562872345583ca4417f70046da269716156e03b",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 94,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-2-missing-6-endswitch",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "missing-6-endswitch",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c341d891782e5f9d5b86b5b4ba2bd9317941ddfb1421e49c353f763ce6b49223",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 30,
+          "severity": "error",
+          "message": "Block is missing endswitch; review nesting and choose its closing position"
+        },
+        {
+          "from": 16,
+          "to": 30,
+          "severity": "error",
+          "message": "switch block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-2-typo-6-endswitch",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "typo-6-endswitch",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0690bf6e14444017a2224921e39eb6aad7e86a762485cfab854a98bd94f21a39",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 94,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endswitch",
+          "actions": [
+            {
+              "name": "Use endswitch"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endswitch",
+          "rendered": {
+            "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-2-wrong-6-endswitch",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "wrong-6-endswitch",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "66164e5a59f9d79406b925d4b84500c5389c034a3af942066812330a62997b48",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 91,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endswitch",
+          "actions": [
+            {
+              "name": "Use endswitch"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endswitch",
+          "rendered": {
+            "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-2-duplicate-6-endswitch",
+      "kind": "activity",
+      "example": 2,
+      "mutation": "duplicate-6-endswitch",
+      "baseline": {
+        "hash": "51b69e5226abe47f6ebd8a2616c4accc881c3ac0d1f23ec06a91fa92f763cf5d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c4aa2dd9df71e87e9ad2a15f91d65ebdff18d58b2d3711b8a746ec41b97d75b2",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 96,
+          "to": 105,
+          "severity": "error",
+          "message": "endswitch does not match an open switch block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-3-valid-control",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "activity-3-missing-4-endif",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "missing-4-endif",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d5743cb205d2caf83b1793d2c7de313d3161a622846ded8968924b85644d6840",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 20,
+          "severity": "error",
+          "message": "Block is missing end fork; review nesting and choose its closing position"
+        },
+        {
+          "from": 21,
+          "to": 45,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 78,
+          "to": 86,
+          "severity": "error",
+          "message": "end-fork does not match an open fork block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 20,
+          "severity": "error",
+          "message": "fork block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-3-typo-4-endif",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "typo-4-endif",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "2f2623b829b01159d9574c86fb7ac80f141bb4d5aab495995ab8e807fc9cc52f",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 59,
+          "to": 63,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endif",
+          "rendered": {
+            "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-3-wrong-4-endif",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "wrong-4-endif",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "3ef14087da2edc5de66d2d403844addce91724ffd03a7aab878c2f3111924b27",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 59,
+          "to": 67,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endif",
+          "rendered": {
+            "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-3-duplicate-4-endif",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "duplicate-4-endif",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "368c9d572a22dd53c9fcb364148a5b6e184c9da8d771da586ca2198771274599",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 65,
+          "to": 73,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-3-missing-7-end fork",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "missing-7-end fork",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "dc509d4ef21444e71ce5847a35a0651801dc2e9bb87c44a990f5066d6f0de25e",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 20,
+          "severity": "error",
+          "message": "Block is missing end fork; review nesting and choose its closing position"
+        },
+        {
+          "from": 16,
+          "to": 20,
+          "severity": "error",
+          "message": "fork block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-3-typo-7-end fork",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "typo-7-end fork",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f6a81bdbbe7935afb223e2f3c14363b83a3d48e65dfc02fc8b8c2a9bbcd90a88",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 93,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end fork",
+          "actions": [
+            {
+              "name": "Use end fork"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end fork",
+          "rendered": {
+            "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-3-wrong-7-end fork",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "wrong-7-end fork",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8823d265b6ab0356089f38712fe1f7c5b03bfd3ad2549d6efbf83dfdac0a612a",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 91,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end fork",
+          "actions": [
+            {
+              "name": "Use end fork"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end fork",
+          "rendered": {
+            "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-3-duplicate-7-end fork",
+      "kind": "activity",
+      "example": 3,
+      "mutation": "duplicate-7-end fork",
+      "baseline": {
+        "hash": "59f8d033c48aa61d2b9450487dd1d144784f29e898eff4c1199e76ccb89b1ec0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "aa500ec3b76fd3fc3f2e4e123ffa17b2e91df3373da5f95001ce3c9d528e298c",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 95,
+          "to": 103,
+          "severity": "error",
+          "message": "end-fork does not match an open fork block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-4-valid-control",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "activity-4-missing-4-endif",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "missing-4-endif",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8e3fe2b40bef555a207030c8f36e091ebc61a713f3ed570b7e9b737393e392e9",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 22,
+          "severity": "error",
+          "message": "Block is missing repeat while; review nesting and choose its closing position"
+        },
+        {
+          "from": 23,
+          "to": 47,
+          "severity": "error",
+          "message": "Block is missing endif; review nesting and choose its closing position"
+        },
+        {
+          "from": 59,
+          "to": 82,
+          "severity": "error",
+          "message": "repeat-while does not match an open repeat block",
+          "source": "PlantUML Activity"
+        },
+        {
+          "from": 16,
+          "to": 22,
+          "severity": "error",
+          "message": "repeat block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-4-typo-4-endif",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "typo-4-endif",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "28984f462f5fa93201c6af1f650035fe186cc02e91a9c2e67f477bee9117e48b",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 61,
+          "to": 65,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected endif",
+          "rendered": {
+            "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-4-wrong-4-endif",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "wrong-4-endif",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "18c9045999f2d490abc642202c8f3a8204ccd8a51dfe2faeb4c65cc2dda1e6f4",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 61,
+          "to": 69,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected endif",
+          "actions": [
+            {
+              "name": "Use endif"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected endif",
+          "rendered": {
+            "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-4-duplicate-4-endif",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "duplicate-4-endif",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "7e1a975af40beea024ff5d94af8c7866465b38118c3f2a3b90875ab2e88074b7",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 67,
+          "to": 75,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "activity-4-missing-5-repeat while",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "missing-5-repeat while",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f39f98af059771be5256582f35879d0f6a99831f2aeca5861b4e58a9015ecfd3",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 22,
+          "severity": "error",
+          "message": "Block is missing repeat while; review nesting and choose its closing position"
+        },
+        {
+          "from": 16,
+          "to": 22,
+          "severity": "error",
+          "message": "repeat block is not closed",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-4-duplicate-5-repeat while",
+      "kind": "activity",
+      "example": 4,
+      "mutation": "duplicate-5-repeat while",
+      "baseline": {
+        "hash": "c1a2d7f507ec4c439192e35d6f75793b4e354e556c376e0c08efb8211a6dfdea",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "01c07ab06dc8b97ffd36c2d718001814c2de1838cd44a2551955db8d4585c937",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 91,
+          "to": 114,
+          "severity": "error",
+          "message": "repeat-while does not match an open repeat block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-valid-control",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-missing-4-end box",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "missing-4-end box",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a786fc88bbd5d245c3ebcfe865e432f170d826a06753bd13ab80dff62eb78ac8",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 46,
+          "severity": "error",
+          "message": "Block is missing end box; review nesting and choose its closing position"
+        },
+        {
+          "from": 38,
+          "to": 46,
+          "severity": "error",
+          "message": "Unclosed box block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-typo-4-end box",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "typo-4-end box",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8e32382e8127611f8f3a4af4f27a201377693b58f72079adac73440ba521d45f",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 63,
+          "to": 69,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end box",
+          "actions": [
+            {
+              "name": "Use end box"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end box",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-wrong-4-end box",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "wrong-4-end box",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a940e1b4067ea1d55ec43702ea764ec717fdd1b4d885c3cab24433c03ae0b6d9",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 63,
+          "to": 66,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end box",
+          "actions": [
+            {
+              "name": "Use end box"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end box",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-duplicate-4-end box",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "duplicate-4-end box",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d2728be0e2bdc9d1fc9b3a1ca1d1ab10a740a5a9b6ea554e759f9827fbf36bf0",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 71,
+          "to": 78,
+          "severity": "error",
+          "message": "Unexpected end box",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected end box",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-missing-8-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "missing-8-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "5a3c15de378a1fd5e037ba6b5bdedd79201aca8d9b5eaa0d14d457b33257b042",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 71,
+          "to": 80,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 71,
+          "to": 80,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-typo-8-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "typo-8-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "7a9502f2036f164a6cea9c4b03455486e21d18d1e4e8d8b70b1706588ee7f39a",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 113,
+          "to": 116,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-wrong-8-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "wrong-8-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c4258b39f21d2eab7f110a1e2989f08c41182981f77234ec15a146d728901377",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 113,
+          "to": 120,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-duplicate-8-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "duplicate-8-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "45cce7a0a8612161dce6733a1baa7db1ee56e2258e0b8929ab102fcf22ff0b45",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 138,
+          "to": 141,
+          "severity": "error",
+          "message": "Unexpected block terminator; review nesting before removing it"
+        },
+        {
+          "from": 138,
+          "to": 141,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-missing-10-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "missing-10-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "4788de22bde6ee06c3306b780452c70c50488159f9751778a614690a5d5e6ef2",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 71,
+          "to": 80,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 71,
+          "to": 80,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-5-typo-10-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "typo-10-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "bf1b04281c57fd2b0970f443d06f7ce958759c4d56bea2326dfec648f15ac0c5",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 132,
+          "to": 135,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-wrong-10-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "wrong-10-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c87ca23c53c9b6acaa04b29843f4e1a592f0fe8246283d9dc1fa22201274220b",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 132,
+          "to": 139,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-5-duplicate-10-end",
+      "kind": "sequence",
+      "example": 5,
+      "mutation": "duplicate-10-end",
+      "baseline": {
+        "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "4b267b7a4ed2bb304d45e6965870f5468d6882b00ee35caedb9cf1ffaa961e3a",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 136,
+          "to": 139,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected end",
+          "rendered": {
+            "hash": "3d73041a4db107ed0e31a9ed59857e7b313557235c66f9033d2fb6ccf04d0d4b",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-6-valid-control",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-6-missing-5-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "missing-5-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "880f94d082ad44ab8d59ee3bb01e75c13f594e96b5c38d7adc9915db6a999f8e",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-6-typo-5-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "typo-5-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "9ecae65fdccacdb0f1270d0acd1db3c62d8be8a615a9a7ab7bb13fbe007a7618",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 83,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-6-wrong-5-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "wrong-5-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "09567d5d0e940691d74d8203c23ad3235841d9f52d635ff392d041359ac4fa86",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 87,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-6-duplicate-5-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "duplicate-5-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "512d53243e41c751728d24a6cfb0f331fba67245c0236cbaddc8a0f0b9bfcff7",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 105,
+          "to": 108,
+          "severity": "error",
+          "message": "Unexpected block terminator; review nesting before removing it"
+        },
+        {
+          "from": 105,
+          "to": 108,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-6-missing-7-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "missing-7-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a33df65d38da9ffb1dbaf1948498573f36e56fec582c7689fcccf8ea081873fd",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-6-typo-7-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "typo-7-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "57fddf1e12cda2cbf08cbc217c3af06a33086b16cd5995d860a6ce9b6b21c0a1",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 99,
+          "to": 102,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-6-wrong-7-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "wrong-7-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "80c8d26ca11e2ba529514d0105651ccc14e30ee795410cc2b30231054135aed9",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 99,
+          "to": 106,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-6-duplicate-7-end",
+      "kind": "sequence",
+      "example": 6,
+      "mutation": "duplicate-7-end",
+      "baseline": {
+        "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "708342d252de6ed8023ba5cebb0b09f24469c7e5674ad7dfdca154749d2fdee7",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 103,
+          "to": 106,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected end",
+          "rendered": {
+            "hash": "0be2972795952e73237ecfc6bc60504ce1284a0e7717a047c7b4496ea30d7182",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-7-valid-control",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-7-missing-5-end note",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "missing-5-end note",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "809c4d8cc57988f5342aeb9f1255d2e0ec4a2b1fc2253bc13d79d5340c544ac0",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 48,
+          "to": 61,
+          "severity": "error",
+          "message": "Note is missing end note"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        },
+        {
+          "from": 48,
+          "to": 61,
+          "severity": "error",
+          "message": "Unclosed note block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-7-typo-5-end note",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "typo-5-end note",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c89cb8e6a950363d0c66bd428a4355714bfaa0247100acde5e963a689f46cbac",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 80,
+          "to": 87,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end note",
+          "actions": [
+            {
+              "name": "Use end note"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end note",
+          "rendered": {
+            "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-7-wrong-5-end note",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "wrong-5-end note",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e1b0ebf011121441d1208e1170d39fa61f4f87f5000a86b6d887c3bb4041e43a",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 48,
+          "to": 61,
+          "severity": "error",
+          "message": "Note is missing end note"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        },
+        {
+          "from": 48,
+          "to": 61,
+          "severity": "error",
+          "message": "Unclosed note block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-7-duplicate-5-end note",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "duplicate-5-end note",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8dbbd9ed31eafe286ede9d3b958dedf3048e2a7fcec724b91ace871beaeb16af",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 89,
+          "to": 100,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-7-missing-7-end",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "missing-7-end",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "29d8714911e92780deea202c2629a54229e65416d1f105957e158f132cedd462",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-7-typo-7-end",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "typo-7-end",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d6c4d7e830e0fad0b8ee635b246856173ea0ceee823005f0344019e3ba68fdb4",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 104,
+          "to": 107,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-7-wrong-7-end",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "wrong-7-end",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a9e4df7defc025b53e66e86eef94195f795d0cc3a837f02a9b76a5694b32a0d3",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 104,
+          "to": 111,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-7-duplicate-7-end",
+      "kind": "sequence",
+      "example": 7,
+      "mutation": "duplicate-7-end",
+      "baseline": {
+        "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "91e49bd6c2892a2b137a60466afa20bf6b0eba0464183867baa767df918fc9cc",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 108,
+          "to": 111,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected end",
+          "rendered": {
+            "hash": "ce46487543cf205d2caa46a5e02c0279c2441d1a243ecf5bb5bd0ac95c1f1c16",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-8-valid-control",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-8-missing-5-end ref",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "missing-5-end ref",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "215fa9a25c07dd452f6e421141b7013a3902fbd7894d001b43289b2e2fed6ef7",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 48,
+          "to": 62,
+          "severity": "error",
+          "message": "Reference is missing end ref"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        },
+        {
+          "from": 48,
+          "to": 62,
+          "severity": "error",
+          "message": "Unclosed ref block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-8-typo-5-end ref",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "typo-5-end ref",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e07368f754ea5c1864bdda31b8c05a52533b7af31e0c6937638ab37334e3bdb4",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 79,
+          "to": 85,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end ref",
+          "actions": [
+            {
+              "name": "Use end ref"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end ref",
+          "rendered": {
+            "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-8-wrong-5-end ref",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "wrong-5-end ref",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "510df12de27ab2475fd0a0de41ac5c5041b54df4447bb979c116f0ceecee99d5",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 48,
+          "to": 62,
+          "severity": "error",
+          "message": "Reference is missing end ref"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        },
+        {
+          "from": 48,
+          "to": 62,
+          "severity": "error",
+          "message": "Unclosed ref block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-8-duplicate-5-end ref",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "duplicate-5-end ref",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "4dafc1492f2cd3e97998c80e5b1fb7607c13f8eb14479f1c8a48916d7392b198",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 87,
+          "to": 97,
+          "severity": "error",
+          "message": "Block terminator is duplicated",
+          "actions": [
+            {
+              "name": "Remove duplicated block terminator"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Block terminator is duplicated",
+          "rendered": {
+            "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-8-missing-7-end",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "missing-7-end",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "4313a26c61427beeaa89c439d89f19b287a6426ae6cf6c7f2a03288aaaac71e4",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Block is missing end; review nesting and choose its closing position"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "severity": "error",
+          "message": "Unclosed alt block",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-8-typo-7-end",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "typo-7-end",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "2f649027c5798199da47b3e1179cf299d8e74380bc7ce4d77c58f5bcd4145098",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 102,
+          "to": 105,
+          "severity": "error",
+          "message": "Misspelled block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Misspelled block terminator; expected end",
+          "rendered": {
+            "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-8-wrong-7-end",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "wrong-7-end",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b6144b586d14a846194f354bd77823697f5fab19a6c091751f88774977d1b8da",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 102,
+          "to": 109,
+          "severity": "error",
+          "message": "Mismatched block terminator; expected end",
+          "actions": [
+            {
+              "name": "Use end"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Mismatched block terminator; expected end",
+          "rendered": {
+            "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-8-duplicate-7-end",
+      "kind": "sequence",
+      "example": 8,
+      "mutation": "duplicate-7-end",
+      "baseline": {
+        "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "1ef58f4ba34b630f69bf6448fa5f6b67abbef4864e2676ee9e4e1785dba2b165",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 106,
+          "to": 109,
+          "severity": "error",
+          "message": "Unexpected end",
+          "source": "PlantUML Sequence"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected end",
+          "rendered": {
+            "hash": "e60d1f2775f6de095e952556922eae7ba6fdb3a67a733c50d5425f015a9da5a3",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "class-9-valid-control",
+      "kind": "class",
+      "example": 9,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-9-missing-4-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "missing-4-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "fd5d41f88a7e10efecb17cd12fdef1fdc4d8826a3c704b83d128615eab6002e0",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 25,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-9-duplicate-4-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "duplicate-4-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "669f692dea8f4cf841912d92298e13c378c76c33a259aa74f6c6cb05bcc8aa69",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 88,
+          "to": 89,
+          "severity": "error",
+          "message": "Unexpected closing brace",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-9-missing-5-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "missing-5-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0156e4c166730c9ecb31286544acdcceb97e17187c4fba7dfe5785e4806ee56c",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 25,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-9-duplicate-5-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "duplicate-5-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "68e125cf927d35b538baa8810e0ae9af0428982c9366b462d231764802148c32",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 86,
+          "to": 87,
+          "severity": "error",
+          "message": "Unexpected closing brace",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-9-missing-6-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "missing-6-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c6aaf39dacbf994fe5833eb3c1bb3618fb5368307816d7d0f2495ea93a5ec1f6",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 25,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-9-duplicate-6-}",
+      "kind": "class",
+      "example": 9,
+      "mutation": "duplicate-6-}",
+      "baseline": {
+        "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "93e6770beb2639354e7b5fdbcf71bc71d5b94b02732001d0c61dcf4011e64c27",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 84,
+          "to": 85,
+          "severity": "error",
+          "message": "Unexpected closing brace",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected closing brace",
+          "rendered": {
+            "hash": "04ac817d12fec532f1c8b534c13a9ca05f705f252d758f8b8fcef107d5377113",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "component-10-valid-control",
+      "kind": "component",
+      "example": 10,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-10-missing-3-}",
+      "kind": "component",
+      "example": 10,
+      "mutation": "missing-3-}",
+      "baseline": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "cc230cb85e5169d54e3a93df14d2b64c5b9176c56dd6f2bf51e1a7f44ffd24e0",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 25,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-10-duplicate-3-}",
+      "kind": "component",
+      "example": 10,
+      "mutation": "duplicate-3-}",
+      "baseline": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8b62149c8337c1fab82197b7451c5f776b4315bb72b0bd58cff9d333a8e3025c",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 68,
+          "to": 69,
+          "severity": "error",
+          "message": "Unexpected closing brace",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-10-missing-4-}",
+      "kind": "component",
+      "example": 10,
+      "mutation": "missing-4-}",
+      "baseline": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a0f7cd45de93bfe08ccb28697f1acae341111489b788f5ab10c69c03c690d539",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 25,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-10-duplicate-4-}",
+      "kind": "component",
+      "example": 10,
+      "mutation": "duplicate-4-}",
+      "baseline": {
+        "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "dd81615b407403e5a9b626278146f7e641442fe887c7ca5ccb9ee76789ad2383",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 66,
+          "to": 67,
+          "severity": "error",
+          "message": "Unexpected closing brace",
+          "source": "PlantUML Class"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected closing brace",
+          "rendered": {
+            "hash": "d7e92f890d83d5eb66ec90be5c277b98f8eaa419deaefe9cffc1d2d8e2a4e873",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "usecase-11-valid-control",
+      "kind": "usecase",
+      "example": 11,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-11-missing-3-}",
+      "kind": "usecase",
+      "example": 11,
+      "mutation": "missing-3-}",
+      "baseline": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a7f074783d5ce8560b2bd81e1ab755d2feaf2822dbaf53b7f13d3cbb20cf8b50",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 27,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Use Case"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-11-duplicate-3-}",
+      "kind": "usecase",
+      "example": 11,
+      "mutation": "duplicate-3-}",
+      "baseline": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a3578e24e0fa6aabc052964db2822700811bdcc0cb10e2e067551e66f4cc2bc2",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 68,
+          "to": 69,
+          "severity": "error",
+          "message": "Unexpected package closing brace",
+          "source": "PlantUML Use Case"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-11-missing-4-}",
+      "kind": "usecase",
+      "example": 11,
+      "mutation": "missing-4-}",
+      "baseline": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a2b330dc77dbea1dc43d10d865766c4094b4cf367b68fed1ccb18269147d038a",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 27,
+          "severity": "error",
+          "message": "Package Outer is missing }",
+          "source": "PlantUML Use Case"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-11-duplicate-4-}",
+      "kind": "usecase",
+      "example": 11,
+      "mutation": "duplicate-4-}",
+      "baseline": {
+        "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0014690aa9a467ccb935387d61620d6b72873c2f7193b169e56664d4043eacf5",
+        "status": "accepted"
+      },
+      "diagnostics": [
+        {
+          "from": 66,
+          "to": 67,
+          "severity": "error",
+          "message": "Unexpected package closing brace",
+          "source": "PlantUML Use Case"
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Remove unexpected closing brace",
+          "rendered": {
+            "hash": "8410646f1fe163aee4d24e9c9a9bf2a32d82888895133fdec2d61fdf9d686749",
+            "status": "accepted"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    }
+  ]
+}

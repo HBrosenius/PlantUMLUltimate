@@ -38,6 +38,7 @@ export function hasAmbiguousBraceTail(source: string, from: number, to: number, 
   const lines = tail.split(/\r?\n/);
   const indent = lines[0]?.match(/^[ \t]*/)?.[0].length ?? 0;
   let note = false;
+  let childClosed = false;
   for (const line of lines.slice(1)) {
     const text = line.trim();
     if (!text || text.startsWith("'")) continue;
@@ -45,6 +46,14 @@ export function hasAmbiguousBraceTail(source: string, from: number, to: number, 
       if (/^end\s+note\b/i.test(text)) note = false;
       continue;
     }
+    if (/^}\s*$/.test(text)) childClosed = true;
+    if (
+      block === "package" &&
+      childClosed &&
+      isOuterStatement(text) &&
+      (line.match(/^[ \t]*/)?.[0].length ?? 0) <= indent
+    )
+      return true;
     if (/^}}+\s*$/.test(text)) return true;
     if (block === "class" && isOuterStatement(text)) return true;
     if (

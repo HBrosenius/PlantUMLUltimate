@@ -7294,8 +7294,10 @@
           "to": 78
         }
       ],
-      "repairs": [
+      "repairs": [],
+      "withheldRepairs": [
         {
+          "reason": "Removing a later closer can change nested block boundaries; the recorded candidate also remained rejected by the renderer.",
           "mode": "individual",
           "message": "Remove unexpected closing brace",
           "sourceHash": "e5da6e0dc8f20975b3a748de82c4965ff67650ef7dcf3ba0f3ce91ab5d9417eb",

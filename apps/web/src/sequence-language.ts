@@ -171,7 +171,7 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       offset += line.length + 1;
       continue;
     }
-    if (freeText && !new RegExp(`^end\\s+${stack.at(-1)!.kind}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
+    if (freeText && !new RegExp(`^${stack.at(-1)!.closer}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
       offset += line.length + 1;
       continue;
     }
@@ -221,19 +221,28 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       });
     }
     const start = line.match(
-      /^\s*(?:(alt|opt|loop|par|break|critical|group|box)\b|(\/?\s*(?:note|hnote|rnote))\s+(?:left|right|over|across)\b(?!.*:)|ref(?:\s+#[\w]+)?\s+over\b(?!.*:))/i,
+      /^\s*(?:(alt|opt|loop|par|break|critical|group|partition|box)\b|(\/?\s*(?:note|hnote|rnote))\s+(?:left|right|over|across)\b(?!.*:)|ref(?:\s+#[\w]+)?\s+over\b(?!.*:))/i,
     );
-    const end = line.match(/^\s*end(?:\s+(box|note|ref))?\s*(?:'[^\n]*)?$/i);
+    const end = line.match(/^\s*end(?:\s+(box|note|ref)|([hr])note)?\s*(?:'[^\n]*)?$/i);
     if (start) {
       const kind = start[1]?.toLowerCase() ?? (start[2] ? "note" : "ref");
       stack.push({
         kind,
-        closer: kind === "box" ? "end box" : kind === "note" ? "end note" : kind === "ref" ? "end ref" : "end",
+        closer:
+          kind === "box"
+            ? "end box"
+            : kind === "note"
+              ? /^[hr]note/i.test(start[2]?.trim() ?? "")
+                ? `end${start[2]!.trim().slice(0, 1).toLowerCase()}note`
+                : "end note"
+              : kind === "ref"
+                ? "end ref"
+                : "end",
         from: offset,
         to: offset + line.length,
       });
     } else if (end) {
-      const expected = end[1]?.toLowerCase() ?? "fragment";
+      const expected = end[1]?.toLowerCase() ?? (end[2] ? "note" : "fragment");
       const open = stack.at(-1);
       const matches =
         open && (expected === "fragment" ? !["box", "note", "ref"].includes(open.kind) : open.kind === expected);
