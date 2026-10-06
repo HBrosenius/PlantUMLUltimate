@@ -1,3 +1,10 @@
+import { BaselineDependencyReport } from "./BaselineDependencyReport";
+import {
+  compareBaselineDependencies,
+  effectiveBaselineDates,
+  scheduleFinish,
+  finishDateShift,
+} from "./schedule-baseline-comparison";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
@@ -342,7 +349,24 @@ export function DiagramPreview({
     () => calculateTaskVariance(resolvedDates, baselineDates, renderedCurrentGeometry, renderedBaselineGeometry),
     [resolvedDates, baselineDates, renderedCurrentGeometry, renderedBaselineGeometry],
   );
-  const changedVariance = useMemo(() => variance.filter((item) => item.kind !== "unchanged"), [variance]);
+  const comparisonDates = useMemo(
+    () => effectiveBaselineDates(tasks, resolvedDates, calendar),
+    [tasks, resolvedDates, calendar],
+  );
+  const baselineComparisonDates = useMemo(
+    () => effectiveBaselineDates(baselineTasks, baselineDates, baselineCalendar),
+    [baselineTasks, baselineDates, baselineCalendar],
+  );
+  const changedVariance = useMemo(
+    () => calculateTaskVariance(comparisonDates, baselineComparisonDates).filter((item) => item.kind !== "unchanged"),
+    [comparisonDates, baselineComparisonDates],
+  );
+  const dependencyChanges = useMemo(
+    () => compareBaselineDependencies(dependencies, baselineDependencies),
+    [dependencies, baselineDependencies],
+  );
+  const currentFinish = scheduleFinish(tasks, resolvedDates);
+  const baselineFinish = scheduleFinish(baselineTasks, baselineDates);
   const [showCriticalPath, setShowCriticalPath] = useState(false);
   const [scheduleSort, setScheduleSort] = useState("source");
   const [criticalTasksOnly, setCriticalTasksOnly] = useState(false);
@@ -1402,7 +1426,8 @@ export function DiagramPreview({
       {!progressForecast?.enabled && baselineSource && (
         <details className="schedule-analysis-report">
           <summary>
-            Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"}
+            Baseline · {changedVariance.length} changed task{changedVariance.length === 1 ? "" : "s"} ·{" "}
+            {dependencyChanges.length} dependency change{dependencyChanges.length === 1 ? "" : "s"}
           </summary>
           <div className="schedule-analysis-report-body">
             <div className="schedule-analysis-actions">
@@ -1413,6 +1438,14 @@ export function DiagramPreview({
                 Clear baseline
               </button>
             </div>
+            <section aria-label="Baseline project finish comparison">
+              <h4>Project finish</h4>
+              <p>
+                Baseline: {baselineFinish ?? "Unavailable"} · Current: {currentFinish ?? "Unavailable"} ·{" "}
+                {finishDateShift(currentFinish, baselineFinish)}
+              </p>
+            </section>
+            <h4>Task changes</h4>
             {changedVariance.length ? (
               <table>
                 <thead>
@@ -1428,8 +1461,8 @@ export function DiagramPreview({
                     const task =
                       tasks.find((item) => item.id === change.taskId) ??
                       baselineTasks.find((item) => item.id === change.taskId);
-                    const before = baselineDates.get(change.taskId);
-                    const now = resolvedDates.get(change.taskId);
+                    const before = baselineComparisonDates.get(change.taskId);
+                    const now = comparisonDates.get(change.taskId);
                     const formatShift = (days: number) => (days === 0 ? "—" : `${days > 0 ? "+" : ""}${days}d`);
                     const status =
                       change.kind === "added"
@@ -1440,9 +1473,29 @@ export function DiagramPreview({
                     const baselineVisible = !before?.start || visibleTimelineDates.has(before.start);
                     return (
                       <tr key={change.taskId}>
-                        <th>{task?.label ?? change.taskId}</th>
-                        <td>{before ? `${before.start} – ${before.end}` : "—"}</td>
-                        <td>{now ? `${now.start} – ${now.end}` : "—"}</td>
+                        <th>
+                          {tasks.some((item) => item.id === change.taskId) ? (
+                            <button type="button" onClick={() => onTaskSelect(change.taskId)}>
+                              {task?.label ?? change.taskId}
+                            </button>
+                          ) : (
+                            (task?.label ?? change.taskId)
+                          )}
+                        </th>
+                        <td>
+                          {before
+                            ? before.start && before.end && !before.issue
+                              ? `${before.start} – ${before.end}`
+                              : "Unavailable"
+                            : "—"}
+                        </td>
+                        <td>
+                          {now
+                            ? now.start && now.end && !now.issue
+                              ? `${now.start} – ${now.end}`
+                              : "Unavailable"
+                            : "—"}
+                        </td>
                         <td>
                           {status}
                           {change.kind !== "added" && change.kind !== "removed" && !baselineVisible
@@ -1455,8 +1508,19 @@ export function DiagramPreview({
                 </tbody>
               </table>
             ) : (
-              <p>The current schedule matches the baseline.</p>
+              <p>
+                {currentFinish && baselineFinish
+                  ? "No task date changes."
+                  : "Some task dates are unavailable; a complete date comparison cannot be made."}
+              </p>
             )}
+            <BaselineDependencyReport
+              changes={dependencyChanges}
+              tasks={tasks}
+              baselineTasks={baselineTasks}
+              onTaskSelect={onTaskSelect}
+              onDependencySelect={onDependencySelect}
+            />
           </div>
         </details>
       )}

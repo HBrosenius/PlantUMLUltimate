@@ -6753,6 +6753,22 @@ polygon.diagram-bulk-selected {
   margin: 0.25rem 0.25rem 0.25rem 0;
 }
 
+.baseline-dependency-report table {
+  width: 100%;
+  table-layout: fixed;
+}
+.baseline-dependency-report th,
+.baseline-dependency-report td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.baseline-dependency-report td button {
+  display: block;
+  margin-top: 0.35rem;
+  max-width: 100%;
+}
+
 .editing-mode-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

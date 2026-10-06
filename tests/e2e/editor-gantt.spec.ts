@@ -2008,3 +2008,41 @@ test("repairs calendar and inline typos without changing duration values", async
   await expect(page.locator(".cm-content")).toContainText("[Architecture] starts 2026-09-21 and is 50% completed");
   await expect(page.getByLabel("Show source fix suggestions")).toBeHidden();
 });
+
+test("compares baseline dependencies even when dates match and reports project finish shifts", async ({
+  page,
+  browserName,
+}) => {
+  const baseline =
+    "@startgantt\nProject starts 2026-10-01\n[A] lasts 2 days\n[B] lasts 2 days\n[B] starts 3 days after [A]'s end\n@endgantt";
+  await setSource(page, baseline);
+  await expect(page.locator('[data-task-id="b"]')).toBeVisible();
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "Version history…" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await history.getByLabel("New version name").fill("Dependency baseline");
+  await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Set as baseline" }).click();
+  await history.getByRole("button", { name: "Close", exact: true }).click();
+  await setSource(page, baseline.replace("3 days after [A]'s end", "4 days after [A]'s start"));
+  const report = page.locator(".schedule-analysis-report");
+  await report.locator("summary").click();
+  await expect(report.locator("summary")).toContainText("0 changed tasks · 1 dependency change");
+  const dependencies = report.getByRole("region", { name: "Baseline dependency changes" });
+  await expect(dependencies).toContainText("Changed");
+  await expect(dependencies).toContainText("End → start · 3 days after");
+  await expect(dependencies).toContainText("Start → start · 4 days after");
+  const finish = report.getByRole("region", { name: "Baseline project finish comparison" });
+  await expect(finish).toContainText("Baseline: 2026-10-06 · Current: 2026-10-06 · Unchanged");
+  if (browserName === "chromium") {
+    await dependencies.getByRole("button", { name: "Reveal dependency" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: test.info().outputPath("baseline-dependencies.png") });
+  }
+  await dependencies.getByRole("button", { name: "Reveal dependency" }).click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 5");
+  await setSource(page, baseline.replace("3 days after [A]'s end", "5 days after [A]'s start"));
+  await expect(finish).toContainText("Current: 2026-10-07 · 1 calendar day later");
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(
+    baseline.replace("3 days after [A]'s end", "5 days after [A]'s start").split("\n"),
+  );
+});

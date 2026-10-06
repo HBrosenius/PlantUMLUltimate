@@ -3584,7 +3584,11 @@ export function App() {
               onTaskResize={resizeGanttTask}
               onDependencyCreate={connectTasks}
               selectedDependencyIndex={selectedDependencyIndex}
-              onDependencySelect={setSelectedDependencyIndex}
+              onDependencySelect={(index) => {
+                setSelectedDependencyIndex(index);
+                const dependency = index === undefined ? undefined : parseResult.document.dependencies[index];
+                if (dependency) setSelectionRequest(dependency.sourceRange);
+              }}
               onDependencyDelete={deleteDependency}
               onInteractionMessage={setInteractionMessage}
               resourceFilter={resourceFilter}
