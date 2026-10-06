@@ -335,7 +335,7 @@ test("compares alternative task repairs and applies only the chosen reference", 
   await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
 });
 
-test("compares class closing positions before applying the selected alternative", async ({ page }) => {
+test("keeps ambiguous class closures as manual errors without changing source", async ({ page }) => {
   await prepareEditor(page);
   await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
@@ -344,24 +344,18 @@ test("compares class closing positions before applying the selected alternative"
     .click();
   const lines = ["@startuml", "class Order {", "  +id: UUID", "class Customer", "@enduml"];
   await fillSource(page, lines.join("\n"));
-  await page.getByLabel("Show source fix suggestions").click();
-  const suggestions = page.getByRole("list", { name: "Source fix suggestions", exact: true });
-  await expect(suggestions.getByRole("note")).toContainText("Choose one of 2 alternatives");
-  await expect(suggestions.getByRole("button", { name: /Close class at diagram end/ })).toBeVisible();
-  const choice = suggestions.getByRole("button", { name: /Close class before line 4/ });
-  await expect(choice.locator("..").locator("del")).toHaveText("class Customer");
-  await expect(choice.locator("..").locator("code")).toHaveText("}\nclass Customer");
-  await choice.click();
-  await expect(page.locator(".cm-content .cm-line")).toHaveText([
-    "@startuml",
-    "class Order {",
-    "  +id: UUID",
-    "}",
-    "class Customer",
-    "@enduml",
-  ]);
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
+  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  const problems = page.getByRole("complementary", { name: "Problems" });
+  await expect(problems).toContainText("Order is missing }");
+  await expect(page.getByLabel("Show source fix suggestions")).toHaveCount(0);
+  await expect(problems.getByRole("list", { name: "Source fix suggestions", exact: true })).toHaveCount(0);
+  const editor = page.locator(".cm-content");
+  await editor.press("ControlOrMeta+Home");
+  await editor.press("ControlOrMeta+Shift+m");
+  const explanation = page.getByRole("region", { name: "Error explanation" });
+  await expect(explanation).toContainText("Order is missing }");
+  await expect(explanation.getByRole("button", { name: "Open suggested fixes" })).toHaveCount(0);
+  await expect(editor.locator(".cm-line")).toHaveText(lines);
 });
 
 for (const width of [390, 800]) {
