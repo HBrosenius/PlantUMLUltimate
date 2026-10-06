@@ -1,3 +1,4 @@
+import { statementIssues } from "./diagram-statement-issues";
 import { keywordRepairs } from "./diagram-keyword-repairs";
 import { terminatorIssues, terminatorRepairs } from "./diagram-terminator-repairs";
 import { braceIssues } from "./diagram-brace-issues";
@@ -111,6 +112,9 @@ function consistentItems<T extends { from: number; to: number; message: string }
 
 function sharedRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
   const existing = [
+    ...statementIssues(kind, source).flatMap((issue) =>
+      issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
+    ),
     ...syntaxRepairs(kind, source),
     ...braceIssues(kind, source),
     ...terminatorRepairs(kind, source),
@@ -140,9 +144,12 @@ function coherentRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
 }
 
 function unfixableIssues(kind: DiagramKind, source: string) {
-  return [...quoteIssues(kind, source), ...boundaryIssues(kind, source), ...terminatorIssues(kind, source)].filter(
-    (issue) => issue.replacement === undefined,
-  );
+  return [
+    ...statementIssues(kind, source),
+    ...quoteIssues(kind, source),
+    ...boundaryIssues(kind, source),
+    ...terminatorIssues(kind, source),
+  ].filter((issue) => issue.replacement === undefined);
 }
 
 export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] => {

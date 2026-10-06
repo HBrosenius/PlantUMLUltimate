@@ -1,0 +1,1827 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.6",
+  "results": [
+    {
+      "id": "class-0",
+      "kind": "class",
+      "example": 0,
+      "mutation": "A -->",
+      "baseline": {
+        "hash": "dc0bbc74bab79d1b61c8fb70201a8e2b3f73c8dda17200ff743c5314a98c4435",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "df1c7bfd4f8037e8316e17bbf381172a83ef5e6ae413270073dafb2086d661fb",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 26,
+          "to": 31,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-1",
+      "kind": "class",
+      "example": 1,
+      "mutation": "--> B",
+      "baseline": {
+        "hash": "dc0bbc74bab79d1b61c8fb70201a8e2b3f73c8dda17200ff743c5314a98c4435",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0d61ecf526f87dee5d06e37545922e723fd45c46c4fb301ab83c3db2bfbd69bf",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 26,
+          "to": 31,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-2",
+      "kind": "class",
+      "example": 2,
+      "mutation": "A > B",
+      "baseline": {
+        "hash": "4d830e7941d0a03bea5d50fc84c9d3bfa703c57f4fe4b6268f2cd1166bab003d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c71bbc1a1edd621f17d81cce7895dce5e76954cdc0ea4322a9fdced6d996b53d",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 26,
+          "to": 31,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "4d830e7941d0a03bea5d50fc84c9d3bfa703c57f4fe4b6268f2cd1166bab003d",
+            "status": "accepted",
+            "labels": ["C", "A", "C", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "2a8ecc7277c86e32adfbda073aea4405c3a09b6b5782e966ca99bb48aa802797"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "class-3",
+      "kind": "class",
+      "example": 3,
+      "mutation": "A < B",
+      "baseline": {
+        "hash": "76fc647d9943719c2e4380d6e7856f046dfb78c98746c6dfd05fa33f78bed41e",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f65df315380bb8c8397d5217ba0223e976f863ea4a467518e3bda72e82504998",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 26,
+          "to": 31,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "76fc647d9943719c2e4380d6e7856f046dfb78c98746c6dfd05fa33f78bed41e",
+            "status": "accepted",
+            "labels": ["C", "A", "C", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "5b55df2cfafc1ff90952fddcc58b89adcb663e9d83836f6f9b5d3e44023822b1"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "class-4",
+      "kind": "class",
+      "example": 4,
+      "mutation": "A B",
+      "baseline": {
+        "hash": "dc0bbc74bab79d1b61c8fb70201a8e2b3f73c8dda17200ff743c5314a98c4435",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "5741487bfe37ef3a7671fe4f77718da36cfbf8afc7151aea2fa24ccc83511200",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 26,
+          "to": 29,
+          "severity": "error",
+          "message": "Missing relationship operator between declared endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-5",
+      "kind": "class",
+      "example": 5,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "bd3eb77ace060b22358916cfab4c792c57f213b548a7cedc0c2221d6cd67f3f1",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "bd3eb77ace060b22358916cfab4c792c57f213b548a7cedc0c2221d6cd67f3f1",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-6",
+      "kind": "class",
+      "example": 6,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "dc0bbc74bab79d1b61c8fb70201a8e2b3f73c8dda17200ff743c5314a98c4435",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "dc0bbc74bab79d1b61c8fb70201a8e2b3f73c8dda17200ff743c5314a98c4435",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-7",
+      "kind": "class",
+      "example": 7,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "aefbca6145b0bd512d2c211b36772fb7455e172722725719fa8a375811ecd09d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "aefbca6145b0bd512d2c211b36772fb7455e172722725719fa8a375811ecd09d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-8",
+      "kind": "class",
+      "example": 8,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "0670e3d63d1aa9de9be37db9848160e59cb83161a4ddc918ac04d10df61ac07b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0670e3d63d1aa9de9be37db9848160e59cb83161a4ddc918ac04d10df61ac07b",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-9",
+      "kind": "class",
+      "example": 9,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "657fc073d9a4d3388843b1f670c49633735a263bfb78624026128b62b2f79c4a",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "657fc073d9a4d3388843b1f670c49633735a263bfb78624026128b62b2f79c4a",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-10",
+      "kind": "class",
+      "example": 10,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "26146fd4e2408bf08ba020a66cb2b0d5fd082cd7b9791ad7602e3c5dae6faa68",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "26146fd4e2408bf08ba020a66cb2b0d5fd082cd7b9791ad7602e3c5dae6faa68",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-11",
+      "kind": "class",
+      "example": 11,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "082889d4dc22a3121659b6c4cf694065ec1974e4dbd80e39aa895f1d452920fd",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "082889d4dc22a3121659b6c4cf694065ec1974e4dbd80e39aa895f1d452920fd",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-12",
+      "kind": "class",
+      "example": 12,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "141e50e4ac15b63114a1d6be3d1b03bc16e798ec5a85ab6795291539950e8bf1",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "141e50e4ac15b63114a1d6be3d1b03bc16e798ec5a85ab6795291539950e8bf1",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-13",
+      "kind": "class",
+      "example": 13,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "8be811622a03a6baea5c729a52ec092c58f7b1fd025e5985283735c8f2b89ed3",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8be811622a03a6baea5c729a52ec092c58f7b1fd025e5985283735c8f2b89ed3",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "class-14",
+      "kind": "class",
+      "example": 14,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "55a3d87ede2ab53c9509726857f4d1e6c5ffe83a2a96d077db0bb49d66e34483",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "55a3d87ede2ab53c9509726857f4d1e6c5ffe83a2a96d077db0bb49d66e34483",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-15",
+      "kind": "component",
+      "example": 15,
+      "mutation": "A -->",
+      "baseline": {
+        "hash": "1aea03ad0d39a759527eaecde560cf38e6616860aa357c244ab054eba697bb37",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "836e5d315fb569c149d8c1116234c78fa78d7f0a8ea5b5f3a0435a5598e78508",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 34,
+          "to": 39,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-16",
+      "kind": "component",
+      "example": 16,
+      "mutation": "--> B",
+      "baseline": {
+        "hash": "1aea03ad0d39a759527eaecde560cf38e6616860aa357c244ab054eba697bb37",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d5a4dcc80c062f5499daa9e9d00ed153a62c53f751b5dea22289b5c64602eb3f",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 34,
+          "to": 39,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-17",
+      "kind": "component",
+      "example": 17,
+      "mutation": "A > B",
+      "baseline": {
+        "hash": "691f24dd925cc458c09b7f7e107b3282d74826636a0d938e3dffbd5f0b3b3af5",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d8bb7bd43d7e76c147ac79b881a89e81fc202496bf214ea520acfc81e51f4dca",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 34,
+          "to": 39,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "691f24dd925cc458c09b7f7e107b3282d74826636a0d938e3dffbd5f0b3b3af5",
+            "status": "accepted",
+            "labels": ["A", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "64ddaada3034913ccffa2b341891a416cc2708b947bc4681eaddd87c6eb4ffdb"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "component-18",
+      "kind": "component",
+      "example": 18,
+      "mutation": "A < B",
+      "baseline": {
+        "hash": "dc8352889a7ae44d46ea32fdf198d01cf45e2ad94571a1261095ed0da5ceae8d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c39c6f3cd5ec9e8307cdb6ce81a710d8a58b4850d0e2d5a20f12366f28d72d68",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 34,
+          "to": 39,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "dc8352889a7ae44d46ea32fdf198d01cf45e2ad94571a1261095ed0da5ceae8d",
+            "status": "accepted",
+            "labels": ["A", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "21ca4aabe4d12feb5c9d86e9a3096738e2768a1e272121d5b814dfb29ebdc31d"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "component-19",
+      "kind": "component",
+      "example": 19,
+      "mutation": "A B",
+      "baseline": {
+        "hash": "1aea03ad0d39a759527eaecde560cf38e6616860aa357c244ab054eba697bb37",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b067f3ad1b086e8393489608f11f59f9893abdff0345b9c2deb8d326224be3c0",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 34,
+          "to": 37,
+          "severity": "error",
+          "message": "Missing relationship operator between declared endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-20",
+      "kind": "component",
+      "example": 20,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "566e2e958e4e5f3e7290d22b0d882aa554444f13eac50d09e7bdcc1e5097742a",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "566e2e958e4e5f3e7290d22b0d882aa554444f13eac50d09e7bdcc1e5097742a",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-21",
+      "kind": "component",
+      "example": 21,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "1aea03ad0d39a759527eaecde560cf38e6616860aa357c244ab054eba697bb37",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "1aea03ad0d39a759527eaecde560cf38e6616860aa357c244ab054eba697bb37",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-22",
+      "kind": "component",
+      "example": 22,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "d67281f465f2f8625fe40d3310730bc285a8330d11a11e69188d8072c4e341aa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d67281f465f2f8625fe40d3310730bc285a8330d11a11e69188d8072c4e341aa",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-23",
+      "kind": "component",
+      "example": 23,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "d35c80fe6a60f69206c6d0e83c5e0d7434fc318683d17b9f17c036f84316ada0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d35c80fe6a60f69206c6d0e83c5e0d7434fc318683d17b9f17c036f84316ada0",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-24",
+      "kind": "component",
+      "example": 24,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "155550185dd69011ae78aec56264f797517b89a3488192ab6327cf1137fdf52e",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "155550185dd69011ae78aec56264f797517b89a3488192ab6327cf1137fdf52e",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-25",
+      "kind": "component",
+      "example": 25,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "74315cdf2a1b79f5f7c24876c03d884258c34a04dbd7376e7224311eef3ecefb",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "74315cdf2a1b79f5f7c24876c03d884258c34a04dbd7376e7224311eef3ecefb",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-26",
+      "kind": "component",
+      "example": 26,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "63fea018836aaf950f4cdafb21ac0629022807724b51ffd65813cfd2ddc40a30",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "63fea018836aaf950f4cdafb21ac0629022807724b51ffd65813cfd2ddc40a30",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-27",
+      "kind": "component",
+      "example": 27,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "df7db03d4d5da601cf0416c396caec137978d378cee481e2a45d55c5f755e406",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "df7db03d4d5da601cf0416c396caec137978d378cee481e2a45d55c5f755e406",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-28",
+      "kind": "component",
+      "example": 28,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "e1515351dd593e3281a974d017e30e778af29c8cb18d5cd274ba6f840eee611b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e1515351dd593e3281a974d017e30e778af29c8cb18d5cd274ba6f840eee611b",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "component-29",
+      "kind": "component",
+      "example": 29,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "14da81109f4e7a8fd8458775f07226727d410a7811fe474c2a947c454ff5fe76",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "14da81109f4e7a8fd8458775f07226727d410a7811fe474c2a947c454ff5fe76",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-30",
+      "kind": "usecase",
+      "example": 30,
+      "mutation": "A -->",
+      "baseline": {
+        "hash": "19fcf44308c4eda11fd2f0bc940d07d07ab3c40cf1d3b4011791dc334e4e289b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e8f45c39f37808fb3a48f6f9b14a491d2baf43d173c29b5387aa8f83f4b17e4e",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 33,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-31",
+      "kind": "usecase",
+      "example": 31,
+      "mutation": "--> B",
+      "baseline": {
+        "hash": "19fcf44308c4eda11fd2f0bc940d07d07ab3c40cf1d3b4011791dc334e4e289b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8de1620aac1a6802c5dec345766ce15925fd800a2459785cbb5a16dded84a6ce",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 33,
+          "severity": "error",
+          "message": "Incomplete relationship; specify both endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-32",
+      "kind": "usecase",
+      "example": 32,
+      "mutation": "A > B",
+      "baseline": {
+        "hash": "9abad7101b5ffc0ee9b18bfa0b6b31960c529ce5ce3814098a4d0cc5a0dec8eb",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d6dd0cc20edea8972856c129758b17e52e90b001990099361749a80a5b306dd4",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 33,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "9abad7101b5ffc0ee9b18bfa0b6b31960c529ce5ce3814098a4d0cc5a0dec8eb",
+            "status": "accepted",
+            "labels": ["A", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "bd79d0fa07b3451d8dfe3d9a045a0bddd2b4eeefae38c99ffbcd91d69676d0a4"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "usecase-33",
+      "kind": "usecase",
+      "example": 33,
+      "mutation": "A < B",
+      "baseline": {
+        "hash": "7ad31f84374a14924a10d8ac99f44df7e076c8c255652a7f44c95479bbccd8b5",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a7b0e22409796b72f781ab52e1e5ffafb11bf3251545146850a8f2cf47397196",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 33,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "7ad31f84374a14924a10d8ac99f44df7e076c8c255652a7f44c95479bbccd8b5",
+            "status": "accepted",
+            "labels": ["A", "B"],
+            "entities": [],
+            "links": [["ent0001", "ent0002"]],
+            "visualHash": "c70b02353d996547a73094c50fe6f51b1138998f0b69dd1ea84dff371aa49c3f"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "usecase-34",
+      "kind": "usecase",
+      "example": 34,
+      "mutation": "A B",
+      "baseline": {
+        "hash": "19fcf44308c4eda11fd2f0bc940d07d07ab3c40cf1d3b4011791dc334e4e289b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "452131f15b7369319230f27c61d95e4b241a6537dded3a43f5de0d47ca6195f3",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 31,
+          "severity": "error",
+          "message": "Missing relationship operator between declared endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-35",
+      "kind": "usecase",
+      "example": 35,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "495496a5c56acd4097a63f7d50e932cd276de80d97a7d4650403c231a1320e1d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "495496a5c56acd4097a63f7d50e932cd276de80d97a7d4650403c231a1320e1d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-36",
+      "kind": "usecase",
+      "example": 36,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "19fcf44308c4eda11fd2f0bc940d07d07ab3c40cf1d3b4011791dc334e4e289b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "19fcf44308c4eda11fd2f0bc940d07d07ab3c40cf1d3b4011791dc334e4e289b",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-37",
+      "kind": "usecase",
+      "example": 37,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "3a9124fa297760f28899b7e5ce0cc417bcd060032af879b455cc87e2c204fd38",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "3a9124fa297760f28899b7e5ce0cc417bcd060032af879b455cc87e2c204fd38",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-38",
+      "kind": "usecase",
+      "example": 38,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "da416d4beecd802d7adc28da881ca1ad40fb1ac755f07a5ee0c75bf190b2a15b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "da416d4beecd802d7adc28da881ca1ad40fb1ac755f07a5ee0c75bf190b2a15b",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-39",
+      "kind": "usecase",
+      "example": 39,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "d70cdf9572ac551d627d9e2fd312b0234686317bdd80008407bc8dd537b1baaa",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d70cdf9572ac551d627d9e2fd312b0234686317bdd80008407bc8dd537b1baaa",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-40",
+      "kind": "usecase",
+      "example": 40,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "1b22d57ec4496e322ed7557bc18cc5c29de26a6b8711afb41f331b67bc538e97",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "1b22d57ec4496e322ed7557bc18cc5c29de26a6b8711afb41f331b67bc538e97",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-41",
+      "kind": "usecase",
+      "example": 41,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "08736c3d716fb54e50f6e0607d3196ed190a845fc8d4716845141fb2f8b60ca8",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "08736c3d716fb54e50f6e0607d3196ed190a845fc8d4716845141fb2f8b60ca8",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-42",
+      "kind": "usecase",
+      "example": 42,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "9e1b70a14d9dae0a0ec08b72feba23473fcd97483abc0e2d36dde95e083676f5",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "9e1b70a14d9dae0a0ec08b72feba23473fcd97483abc0e2d36dde95e083676f5",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-43",
+      "kind": "usecase",
+      "example": 43,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "c5cab3d03348e10109cdfa3f37dd0b7e9e01dda9927545c1af8c9cb04f3381ff",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "c5cab3d03348e10109cdfa3f37dd0b7e9e01dda9927545c1af8c9cb04f3381ff",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "usecase-44",
+      "kind": "usecase",
+      "example": 44,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "e03c0508bd3acaf942eaf5d8bf58494a8f3ea5c708793a49b3502a309b9dd03d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e03c0508bd3acaf942eaf5d8bf58494a8f3ea5c708793a49b3502a309b9dd03d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-45",
+      "kind": "sequence",
+      "example": 45,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "85eed87067b822ce2e9fd9f239f58d0dea1773e81a21bde693b32acf0aee7896",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-46",
+      "kind": "sequence",
+      "example": 46,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "6531188f1b55821b1c2757b747187ff7f2891aafb3fd5fed11e441f5e662fe60",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-47",
+      "kind": "sequence",
+      "example": 47,
+      "mutation": "A > B: Message",
+      "baseline": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b5061db00307a22c7e60a762fc313a57d55737303f2d8b9ecdc82df8d2d0bf66",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 52,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+            "status": "accepted",
+            "labels": ["A", "A", "B", "B", "Message"],
+            "entities": [],
+            "links": [
+              ["part1", "part2"],
+              ["part1", "part2"]
+            ],
+            "visualHash": "2c5adecc8c72f1063f34c8c3704a1104388ebdf89d783acf65b363f958bce897"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-48",
+      "kind": "sequence",
+      "example": 48,
+      "mutation": "A < B: Message",
+      "baseline": {
+        "hash": "fed7bd7a36a10062c323b862c3710311edc2e441ae79cefad5a6e947765597dd",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "9e0a8cee8590ea47265077f21764f038b87322b3ab1f8edf510b9da2cffe355f",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 52,
+          "severity": "error",
+          "message": "Relationship arrow requires a shaft",
+          "actions": [
+            {
+              "name": "Add arrow shaft"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Relationship arrow requires a shaft",
+          "rendered": {
+            "hash": "fed7bd7a36a10062c323b862c3710311edc2e441ae79cefad5a6e947765597dd",
+            "status": "accepted",
+            "labels": ["A", "A", "B", "B", "Message"],
+            "entities": [],
+            "links": [
+              ["part2", "part1"],
+              ["part2", "part1"]
+            ],
+            "visualHash": "d4c751ec26db54f41879fc5988d9bd4623e741a0a176882a6df47ba329de89c2"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        }
+      ]
+    },
+    {
+      "id": "sequence-49",
+      "kind": "sequence",
+      "example": 49,
+      "mutation": "A B: Message",
+      "baseline": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "49828bb5e5246ca588a020ea2660c14bd41b03434c1fa22aeeb7a3ebc28a0051",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 38,
+          "to": 50,
+          "severity": "error",
+          "message": "Missing relationship operator between declared endpoints"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-50",
+      "kind": "sequence",
+      "example": 50,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "dbaf7d36b1883247c41e3ea17c299f008380ab635294e691d421915fef5a6f92",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-51",
+      "kind": "sequence",
+      "example": 51,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "f57ec4fedc3fcd2fd009f5d43b81677d16ee1c7032200a97491683aad926add8",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f57ec4fedc3fcd2fd009f5d43b81677d16ee1c7032200a97491683aad926add8",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-52",
+      "kind": "sequence",
+      "example": 52,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "fed7bd7a36a10062c323b862c3710311edc2e441ae79cefad5a6e947765597dd",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "fed7bd7a36a10062c323b862c3710311edc2e441ae79cefad5a6e947765597dd",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-53",
+      "kind": "sequence",
+      "example": 53,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "2d9db3f414dbba3024a5aaa55ed1aee0ce2cccf82a75d8c7eab3fc66a11715ae",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "2d9db3f414dbba3024a5aaa55ed1aee0ce2cccf82a75d8c7eab3fc66a11715ae",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-54",
+      "kind": "sequence",
+      "example": 54,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "3da4d19ca8d538f1f2e53bb4a78ac480cb6e37bc280968d3893d13b7fbc1ba72",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "3da4d19ca8d538f1f2e53bb4a78ac480cb6e37bc280968d3893d13b7fbc1ba72",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-55",
+      "kind": "sequence",
+      "example": 55,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "ae23ea80748f8338c88e69df57f96f637e2be10932b0e049ca16b7ea99f2a318",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "ae23ea80748f8338c88e69df57f96f637e2be10932b0e049ca16b7ea99f2a318",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-56",
+      "kind": "sequence",
+      "example": 56,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "6fb6ff35bde0d57ca871b732dd87dbac3d3be71508c61fb97100eb90af1cdc91",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "6fb6ff35bde0d57ca871b732dd87dbac3d3be71508c61fb97100eb90af1cdc91",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-57",
+      "kind": "sequence",
+      "example": 57,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "0d13b0f623e93262735b5e8f255cb313a3105024a2f8a4142be0bcce6e633fc0",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "0d13b0f623e93262735b5e8f255cb313a3105024a2f8a4142be0bcce6e633fc0",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-58",
+      "kind": "sequence",
+      "example": 58,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "f681cb977900b10d3e72355b664c75dfd02f3c5ebb90ff96a04336283f7b21e1",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f681cb977900b10d3e72355b664c75dfd02f3c5ebb90ff96a04336283f7b21e1",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-59",
+      "kind": "sequence",
+      "example": 59,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "b4dfe024c05acb62cfb185c145b8022c170b29a35f47557f69fe34417474e83d",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b4dfe024c05acb62cfb185c145b8022c170b29a35f47557f69fe34417474e83d",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "sequence-60",
+      "kind": "sequence",
+      "example": 60,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "f1fe9cb2734abae5427e42cd7971cddd3613d9766720df4878ed25da4c752904",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "f1fe9cb2734abae5427e42cd7971cddd3613d9766720df4878ed25da4c752904",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "gantt-61",
+      "kind": "gantt",
+      "example": 61,
+      "mutation": "[B] starts at",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "7d819ab0aff8783c0c9c4671c1a3a6094409221e626ca19665791ac8b95e7efc",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 59,
+          "severity": "error",
+          "message": "Malformed task statement",
+          "source": "PlantUML Gantt"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "gantt-62",
+      "kind": "gantt",
+      "example": 62,
+      "mutation": "[B] starts at [A]'s",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "ed40886dbda73ef2c674bfe50369fa99cc3b429ad64344a5d5ae83a3745656d5",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 65,
+          "severity": "error",
+          "message": "Malformed task statement",
+          "source": "PlantUML Gantt",
+          "actions": [
+            {
+              "name": "Use predecessor end: [B] starts at [A]'s end"
+            },
+            {
+              "name": "Use predecessor start: [B] starts at [A]'s start"
+            }
+          ]
+        }
+      ],
+      "repairs": [
+        {
+          "mode": "individual",
+          "message": "Malformed task statement",
+          "rendered": {
+            "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+            "status": "accepted",
+            "labels": ["1", "2", "3", "4", "A", "B", "1", "2", "3", "4"],
+            "entities": [],
+            "links": [],
+            "visualHash": "99150251b110d3f1a6219dd593146a758ed76e9bc401cf0dfa37f40949eb542e"
+          },
+          "equivalent": true,
+          "exactRestoration": true
+        },
+        {
+          "mode": "individual",
+          "message": "Malformed task statement",
+          "rendered": {
+            "hash": "114ec21d86dda7cd2b6fd198caeed8dbed5be09ac5658a003b07a30811e12cf0",
+            "status": "accepted",
+            "labels": ["1", "2", "A", "B", "1", "2"],
+            "entities": [],
+            "links": [],
+            "visualHash": "a9edc5b5447f1f5cdc81f27359048fcaba386ad22a2b187bcecec1ebd94d3184"
+          },
+          "equivalent": false,
+          "exactRestoration": false
+        }
+      ]
+    },
+    {
+      "id": "gantt-63",
+      "kind": "gantt",
+      "example": 63,
+      "mutation": "[B] starts",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "303ef5649ae05e09236f99a7a4f6c7fed3ab20bf0647d856c0a52d1a2473eff4",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 56,
+          "severity": "error",
+          "message": "Malformed task statement",
+          "source": "PlantUML Gantt"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "gantt-64",
+      "kind": "gantt",
+      "example": 64,
+      "mutation": "[B] lasts",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "caf4d113c4b5b3b7db1ec58224f09c7c5a60ff555ae6d07a60d0b14e2a5a5c9e",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 55,
+          "severity": "error",
+          "message": "Malformed task statement",
+          "source": "PlantUML Gantt"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "gantt-65",
+      "kind": "gantt",
+      "example": 65,
+      "mutation": "[B] is colored in",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "90e54a82118ee7bcbb768d72a6b40bf55e1eeda14bcf63a0e6cd7f90b5961c99",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 63,
+          "severity": "error",
+          "message": "Malformed task statement",
+          "source": "PlantUML Gantt"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "gantt-66",
+      "kind": "gantt",
+      "example": 66,
+      "mutation": "Project starts",
+      "baseline": {
+        "hash": "478ca0ce09359c38ebd71a911aace2f53358a5152d59bb1148bc05a559a31ef4",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "84d49bb932a307ebe15dcdec72c2d94991620cd9241eddacd5d8738942648ffd",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 46,
+          "to": 60,
+          "severity": "error",
+          "message": "Project starts requires a date"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-67",
+      "kind": "activity",
+      "example": 67,
+      "mutation": "if then (yes)\n:Work;\nendif",
+      "baseline": {
+        "hash": "8ac314ad6fe90bea6a892614237fcdd318ddd160652ca9d75bb7e46c366ee1d7",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "9f22ccf221f645c44ac04d511b3d119e1ea9732294041e206987cffe337ca0bd",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 29,
+          "severity": "error",
+          "message": "Incomplete control statement; specify a condition in parentheses"
+        },
+        {
+          "from": 37,
+          "to": 42,
+          "severity": "error",
+          "message": "endif does not match an open if block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-68",
+      "kind": "activity",
+      "example": 68,
+      "mutation": "if\n:Work;\nendif",
+      "baseline": {
+        "hash": "8ac314ad6fe90bea6a892614237fcdd318ddd160652ca9d75bb7e46c366ee1d7",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d64f60c1c1e971a591891253af2ef8255964700c190abc3626f26138c697f3c6",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 18,
+          "severity": "error",
+          "message": "Incomplete control statement; specify a condition in parentheses"
+        },
+        {
+          "from": 26,
+          "to": 31,
+          "severity": "error",
+          "message": "endif does not match an open if block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-69",
+      "kind": "activity",
+      "example": 69,
+      "mutation": "while\n:Work;\nendwhile",
+      "baseline": {
+        "hash": "8ac314ad6fe90bea6a892614237fcdd318ddd160652ca9d75bb7e46c366ee1d7",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "304803f72bf76e88f15cd8a6ecb2d88160afdb13f43423cb2062eb6a2f683fcc",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 21,
+          "severity": "error",
+          "message": "Incomplete control statement; specify a condition in parentheses"
+        },
+        {
+          "from": 29,
+          "to": 37,
+          "severity": "error",
+          "message": "endwhile does not match an open while block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-70",
+      "kind": "activity",
+      "example": 70,
+      "mutation": "switch\ncase (one)\n:Work;\nendswitch",
+      "baseline": {
+        "hash": "8ac314ad6fe90bea6a892614237fcdd318ddd160652ca9d75bb7e46c366ee1d7",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "3ff9488f6390e873792a67aed9ab801250679545adc86d04a8908280df3e3413",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 16,
+          "to": 22,
+          "severity": "error",
+          "message": "Incomplete control statement; specify a condition in parentheses"
+        },
+        {
+          "from": 41,
+          "to": 50,
+          "severity": "error",
+          "message": "endswitch does not match an open switch block",
+          "source": "PlantUML Activity"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-71",
+      "kind": "class",
+      "example": 71,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "63534bee67b014fd99c004a3818306bdb15a263ee081f00301c93d3b8e0a1670",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "26c15c867afaab6b02ac8c936fc2eb02a45c609f6101633fa50f203982601c36",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 18,
+          "to": 27,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-72",
+      "kind": "component",
+      "example": 72,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "be383a7ea2b160b4181d7bff034e594045520cb3e43df0edac57511556ea8ec6",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "17874db8201f526f8c1b04d66511cb823b0fcd16ec9a1019c40a7005d98429b2",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 22,
+          "to": 31,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-73",
+      "kind": "usecase",
+      "example": 73,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "d95a4c82834bba56524b40b9240fc33f26b8f5c9cd016020d0bac043457e84f8",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "7f316f7e418a9a4f0ea72aac6b54d2c1a2dc9349c6cee0fc3159f151fddaf9c0",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 20,
+          "to": 29,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-74",
+      "kind": "sequence",
+      "example": 74,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "b298d394735a232af0042886076f4b3601ddbe14fb015cf13e94695c5ff40653",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "712bcf4900d471b14dcf5d67666f676f825a9eee8b2d20381946c3af0f999103",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 23,
+          "to": 32,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "activity-75",
+      "kind": "activity",
+      "example": 75,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "eec30a6346c1702dd15b20762e10dd4ac839b0a135e9e3d26efda79b7861c6f8",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "ee8fc9c9c8e649964d5cb85fa0d9fec541e1956e2876e3cfc0d0742be534cbfa",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 28,
+          "to": 37,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "gantt-76",
+      "kind": "gantt",
+      "example": 76,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "23b176ee243d7f497293d257a7e1621a93da35060a41f8415d7ab5e33908350e",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b2222fc7a0c045a99f55b38a5434738205b7beaa0524788ce023a89a98fd99bf",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 29,
+          "to": 38,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "wbs-77",
+      "kind": "wbs",
+      "example": 77,
+      "mutation": "skinparam",
+      "baseline": {
+        "hash": "33c60614d0e7bc777a707eea1adb2fa8a67daa297d4eff7c86fbea6c0ec0cc52",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "e1bcac3045a9b8773da5c56e1c62105d93182da67c0a198358c2e4e88a3771c0",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 17,
+          "to": 26,
+          "severity": "error",
+          "message": "Incomplete skinparam directive; specify a property and value, or a parameter block"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "class-78",
+      "kind": "class",
+      "example": 78,
+      "mutation": "class",
+      "baseline": {
+        "hash": "bb979170476ece2bf63df3195146f2c546b4242566d822fd1e422a01aa17c349",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "a7122222d0343f2530d79c7467c3e9b10a660fc5c12ec7f6a7db88e44a19e331",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 15,
+          "severity": "error",
+          "message": "Incomplete declaration; specify a name"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "component-79",
+      "kind": "component",
+      "example": 79,
+      "mutation": "component",
+      "baseline": {
+        "hash": "47f3c02e00f699e2c4cb0325b52bd2a6e7c6c34156576b14d9df046c83b6732c",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "d0ddce52281627665112f30ea9ef2ce424109b88baca3a89eeea943e6f6ee944",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 19,
+          "severity": "error",
+          "message": "Incomplete declaration; specify a name"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "usecase-80",
+      "kind": "usecase",
+      "example": 80,
+      "mutation": "actor",
+      "baseline": {
+        "hash": "6b6a223323a4a7449c817740ac37090b47845f8e5940a06d195448f454320d2b",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "8125e9e6bc8b9b7ac2c4959187a19556c2806ae14ad508bc51aa05be61c12757",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 15,
+          "severity": "error",
+          "message": "Incomplete declaration; specify a name"
+        }
+      ],
+      "repairs": []
+    },
+    {
+      "id": "sequence-81",
+      "kind": "sequence",
+      "example": 81,
+      "mutation": "participant",
+      "baseline": {
+        "hash": "43d68d54b613596ef38ad9f2bc1452414e32be96ffe67e421276b4959378e222",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "b04be40bffc86229da4301ef6323f7277ecf2c27909ca860dbbdfaa15b4355f6",
+        "status": "rejected"
+      },
+      "diagnostics": [
+        {
+          "from": 10,
+          "to": 21,
+          "severity": "error",
+          "message": "Incomplete declaration; specify a name"
+        }
+      ],
+      "repairs": []
+    }
+  ]
+}

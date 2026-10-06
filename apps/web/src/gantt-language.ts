@@ -12,6 +12,7 @@ import { taskElapsedDays, resolveTaskDates } from "./gantt-schedule";
 import { taskPauses, parseGanttCalendar, isWorkingDate, shiftDate } from "./gantt-calendar";
 
 export interface GanttQuickFix {
+  choiceGroup?: string;
   from: number;
   to: number;
   replacement: string;
@@ -784,9 +785,10 @@ function quickFixesForDiagnostics(source: string, parsed: ReturnType<typeof pars
         replacement: `${missingDependencyAnchor[1]} ${anchor}${missingDependencyAnchor[2]}`,
         message: diagnostic.message,
         label: `Use predecessor ${anchor}`,
+        choiceGroup: `dependency-anchor:${diagnostic.range.from}`,
       }));
     }
-    const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(\S+)\s*$/i);
+    const color = text.match(/^(\s*\[[^\]]+]\s+)is\s+colou?red\s+(?!in\b)(\S+)\s*$/i);
     const missingDurationSpace = text.match(/^(\s*\[[^\]]+]\s+(?:lasts|requires)\s+)(\d+)(days?|weeks?|months?)\s*$/i);
     const duplicateTask = text.match(/^(\s*\[([^\]]+)]\s+)\[\2]\s+(.+)$/i);
     const missingCloseBracket =
