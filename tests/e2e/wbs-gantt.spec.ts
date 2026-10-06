@@ -169,13 +169,12 @@ test("keeps a generated task's dependency and position when completion changes",
   await page.locator('[data-task-id="wbs_content_inventory"] .label-hit').click();
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
   await inspector.getByRole("button", { name: "Close task inspector" }).click();
-  const handle = page.locator('[data-task-id="wbs_content_inventory"] [data-dependency-handle]').first();
-  // Closing the inspector changes the preview layout; wait for current SVG geometry.
-  const geometry = { box: null as Awaited<ReturnType<typeof handle.boundingBox>> };
-  await expect.poll(async () => (geometry.box = await handle.boundingBox())).not.toBeNull();
-  const point = geometry.box!;
-  await page.mouse.click(point.x + point.width / 2, point.y + point.height / 2);
+  // Reopen through the visible task after the inspector changes the preview layout.
+  await page.locator('[data-task-id="wbs_content_inventory"] .bar').click();
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
+  await expect(inspector.getByLabel("Complete")).toHaveValue("40");
+  await expect(inspector.getByLabel("Start", { exact: true })).toHaveValue(startBefore);
+  await expect(inspector.getByLabel("Linked task")).toHaveValue("wbs_discovery");
 });
 
 test("links an existing WBS node to an existing Gantt task", async ({ page }) => {

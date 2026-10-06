@@ -629,42 +629,11 @@ test("drags a vertical separator and closes its inspector on an outside click", 
     return Number(element.getAttribute("data-day-width") ?? 16) * scale;
   });
   const start = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
-  await separator.dispatchEvent("pointerdown", {
-    pointerId: 18,
-    pointerType: "mouse",
-    button: 0,
-    buttons: 1,
-    clientX: start.x,
-    clientY: start.y,
-  });
-  await page.evaluate(
-    ({ x, y }) =>
-      window.dispatchEvent(
-        new PointerEvent("pointermove", {
-          bubbles: true,
-          pointerId: 18,
-          pointerType: "mouse",
-          buttons: 1,
-          clientX: x,
-          clientY: y,
-        }),
-      ),
-    { x: start.x + dayWidth, y: start.y },
-  );
-  await page.evaluate(
-    ({ x, y }) =>
-      window.dispatchEvent(
-        new PointerEvent("pointerup", {
-          bubbles: true,
-          pointerId: 18,
-          pointerType: "mouse",
-          button: 0,
-          clientX: x,
-          clientY: y,
-        }),
-      ),
-    { x: start.x + dayWidth, y: start.y },
-  );
+  // Use the browser gesture so pointerup also produces the click consumed after a drag.
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + dayWidth, start.y, { steps: 5 });
+  await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("Separator just 1 day after [Build]'s end");
   await separator.dispatchEvent("click");
   await expect(page.getByRole("complementary", { name: "Vertical separator inspector" })).toBeVisible();

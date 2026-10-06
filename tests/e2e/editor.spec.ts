@@ -552,7 +552,9 @@ test("reloads clean external file edits and merges conflicting local changes", a
   await expect(page.locator(".cm-content")).toContainText("Clean external edit");
   await expect(page.getByRole("dialog", { name: "External file changes" })).toHaveCount(0);
 
-  await page.locator(".cm-content").fill(source("[Unsaved local edit] lasts 4 days"));
+  // Wait for CodeMirror and the document state to commit before notifying the file watcher.
+  await fillSource(page, source("[Unsaved local edit] lasts 4 days"));
+  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
   await page.evaluate((contents) => {
     const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
     fileWindow.testExternalFileSource = contents;
