@@ -228,10 +228,17 @@ export async function writePlantUmlDocument(handle: WritableFileHandle, source: 
   await writable.close();
 }
 
-export async function writeDocumentBytes(handle: WritableFileHandle, bytes: Uint8Array): Promise<void> {
+export async function writeDocumentBytes(
+  handle: WritableFileHandle,
+  bytes: Uint8Array,
+  signal?: AbortSignal,
+): Promise<void> {
+  signal?.throwIfAborted();
   const writable = await handle.createWritable();
   try {
+    signal?.throwIfAborted();
     await writable.write(bytes);
+    signal?.throwIfAborted();
     await writable.close();
   } catch (error) {
     await writable.abort?.().catch(() => undefined);
@@ -242,8 +249,10 @@ export async function writeDocumentBytes(handle: WritableFileHandle, bytes: Uint
 export async function savePortableDocumentAs(
   bytes: Uint8Array,
   suggestedName: string,
+  signal?: AbortSignal,
 ): Promise<{ fileName: string; handle?: WritableFileHandle; downloaded: boolean } | undefined> {
   const name = suggestedName.replace(/\.(?:pumlu|puml|plantuml)$/i, "") + ".pumlu";
+  signal?.throwIfAborted();
   const pickerWindow = window as FilePickerWindow;
   if (!pickerWindow.showSaveFilePicker) {
     const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: "application/octet-stream" }));
@@ -259,7 +268,7 @@ export async function savePortableDocumentAs(
       suggestedName: name,
       types: [pickerTypes[0]],
     });
-    await writeDocumentBytes(handle, bytes);
+    await writeDocumentBytes(handle, bytes, signal);
     return { fileName: handle.name, handle, downloaded: false };
   } catch (error) {
     if (cancelled(error)) return undefined;

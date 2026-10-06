@@ -32,7 +32,9 @@ function validVersion(value: unknown, historyIds: ReadonlySet<string>): value is
     (version.parentVersionId === undefined || typeof version.parentVersionId === "string") &&
     (version.label === undefined || typeof version.label === "string") &&
     (version.author === undefined ||
-      (typeof version.author.id === "string" &&
+      (version.author !== null &&
+        typeof version.author === "object" &&
+        typeof version.author.id === "string" &&
         typeof version.author.name === "string" &&
         typeof version.author.color === "string" &&
         /^#[0-9a-f]{6}$/i.test(version.author.color))),
@@ -88,14 +90,148 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
   const backup = value as Partial<WorkspaceBackup>;
   if (backup.kind !== "plantuml-studio-workspace" || (backup.version !== 1 && backup.version !== 2) || !backup.session)
     throw new Error("The selected file is not a supported PlantUML Ultimate backup");
+  const candidate = backup.session as Partial<WorkspaceSession>;
+  if (
+    (candidate.version !== undefined &&
+      (!Number.isInteger(candidate.version) || candidate.version < 1 || candidate.version > 7)) ||
+    (candidate.viewMode !== undefined && !["code", "split", "diagram"].includes(candidate.viewMode)) ||
+    (candidate.theme !== undefined && !["system", "light", "dark"].includes(candidate.theme)) ||
+    [candidate.advancedMode, candidate.onboarded].some((value) => value !== undefined && typeof value !== "boolean") ||
+    (candidate.splitPercent !== undefined &&
+      (typeof candidate.splitPercent !== "number" || !Number.isFinite(candidate.splitPercent))) ||
+    (candidate.defaultDiagramTheme !== undefined && typeof candidate.defaultDiagramTheme !== "string")
+  )
+    throw new Error("The backup contains invalid workspace settings");
+  if (!Array.isArray(candidate.documents) || !candidate.documents.length)
+    throw new Error("The backup does not contain any documents");
+  const ids = new Set<string>();
+  for (const document of candidate.documents) {
+    if (
+      !document ||
+      typeof document.id !== "string" ||
+      !document.id ||
+      ids.has(document.id) ||
+      typeof document.source !== "string" ||
+      (document.diagramKind !== undefined && !DIAGRAM_KINDS.has(document.diagramKind)) ||
+      (document.historyId !== undefined && (typeof document.historyId !== "string" || !document.historyId)) ||
+      (document.fileName !== undefined && typeof document.fileName !== "string") ||
+      (document.encrypted !== undefined && document.encrypted !== false)
+    )
+      throw new Error("The backup contains invalid documents");
+    ids.add(document.id);
+    if (
+      document.cursor !== undefined &&
+      (!document.cursor ||
+        !Number.isSafeInteger(document.cursor.line) ||
+        document.cursor.line < 1 ||
+        !Number.isSafeInteger(document.cursor.column) ||
+        document.cursor.column < 1)
+    )
+      throw new Error("The backup contains invalid cursor settings");
+    if (
+      [document.dirty, document.native].some((value) => value !== undefined && typeof value !== "boolean") ||
+      [document.zoom, document.revision, document.historyMaxVersions, document.historyMaxLogicalBytes].some(
+        (value) => value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || value < 0),
+      ) ||
+      [document.baselineVersionId, document.portableDocumentId].some(
+        (value) => value !== undefined && typeof value !== "string",
+      )
+    )
+      throw new Error("The backup contains invalid document settings");
+    if (
+      document.resourceCapacities !== undefined &&
+      (!document.resourceCapacities ||
+        typeof document.resourceCapacities !== "object" ||
+        Array.isArray(document.resourceCapacities) ||
+        Object.values(document.resourceCapacities).some(
+          (value) => typeof value !== "number" || !Number.isFinite(value) || value < 0,
+        ))
+    )
+      throw new Error("The backup contains invalid resource capacities");
+    for (const field of ["wbsGanttLinks", "wbsGanttDependencies"] as const) {
+      const entries = document[field];
+      const keys = field === "wbsGanttLinks" ? ["wbsAlias", "ganttAlias"] : ["from", "to"];
+      if (
+        entries !== undefined &&
+        (!Array.isArray(entries) ||
+          !entries.every(
+            (entry) =>
+              entry &&
+              typeof entry === "object" &&
+              keys.every((key) => typeof (entry as unknown as Record<string, unknown>)[key] === "string"),
+          ))
+      )
+        throw new Error("The backup contains invalid diagram links");
+    }
+  }
+  if (candidate.activeDocumentId !== undefined && !ids.has(candidate.activeDocumentId))
+    throw new Error("The backup references an invalid active document");
+  for (const document of candidate.documents) {
+    if (
+      document.linkedWbsDocumentId !== undefined &&
+      (!ids.has(document.linkedWbsDocumentId) ||
+        !candidate.documents.some(
+          (target) => target.id === document.linkedWbsDocumentId && target.diagramKind === "wbs",
+        ))
+    )
+      throw new Error("The backup contains invalid diagram links");
+  }
   const session = normalizeSession(backup.session);
+  for (let index = 0; index < candidate.documents.length; index++) {
+    const forecast = candidate.documents[index]!.progressForecast;
+    const normalized = session.documents[index]!.progressForecast;
+    if (
+      forecast !== undefined &&
+      (!forecast ||
+        !normalized ||
+        forecast.enabled !== normalized.enabled ||
+        forecast.asOf !== normalized.asOf ||
+        forecast.timeZone !== normalized.timeZone ||
+        Object.keys(forecast.remainingDays).length !== Object.keys(normalized.remainingDays).length ||
+        Object.entries(normalized.remainingDays).some(([key, value]) => forecast.remainingDays[key] !== value))
+    )
+      throw new Error("The backup contains invalid forecast settings");
+  }
   if (!session.documents.length) throw new Error("The backup does not contain any documents");
-  const versions = backup.version === 2 && Array.isArray(backup.versions) ? backup.versions : [];
+  if (backup.version === 2 && !Array.isArray(backup.versions))
+    throw new Error("The backup contains invalid document history");
+  const versions = backup.version === 2 ? backup.versions! : [];
   const historyIds = new Set(session.documents.map((document) => document.historyId));
-  if (!versions.every((version) => validVersion(version, historyIds)))
+  if (
+    !versions.every((version) => validVersion(version, historyIds)) ||
+    new Set(versions.map((version) => version.id)).size !== versions.length
+  )
     throw new Error("The backup contains invalid document history");
   return {
     session,
     versions,
+  };
+}
+
+/** Isolate imported histories from versions belonging to the current workspace. */
+export function prepareWorkspaceRestore(bundle: ReturnType<typeof parseWorkspaceBackupBundle>) {
+  const ids = new Map(bundle.session.documents.map((document) => [document.id, crypto.randomUUID()]));
+  const historyIds = new Map(bundle.session.documents.map((document) => [document.historyId, crypto.randomUUID()]));
+  const versionIds = new Map(bundle.versions.map((version) => [version.id, crypto.randomUUID()]));
+  const mapVersion = (id: string) => versionIds.get(id) ?? id;
+  return {
+    session: {
+      ...bundle.session,
+      activeDocumentId: ids.get(bundle.session.activeDocumentId)!,
+      documents: bundle.session.documents.map((document) => ({
+        ...document,
+        id: ids.get(document.id)!,
+        historyId: historyIds.get(document.historyId)!,
+        dirty: true,
+        ...(document.baselineVersionId ? { baselineVersionId: mapVersion(document.baselineVersionId) } : {}),
+        ...(document.linkedWbsDocumentId ? { linkedWbsDocumentId: ids.get(document.linkedWbsDocumentId)! } : {}),
+      })),
+    },
+    versions: bundle.versions.map((version) => ({
+      ...version,
+      id: versionIds.get(version.id)!,
+      historyId: historyIds.get(version.historyId)!,
+      ...(version.parentVersionId ? { parentVersionId: mapVersion(version.parentVersionId) } : {}),
+    })),
   };
 }

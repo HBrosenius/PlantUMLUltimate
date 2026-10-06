@@ -5,6 +5,54 @@ import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-
 const project = { projectId: "project", schemaVersion: 2 } as PortableProject;
 
 describe("embedded project saves", () => {
+  it.each([false, true])(
+    "does not mark a replacement project saved (switch during capture: %s)",
+    async (duringCapture) => {
+      let current = !duringCapture;
+      const markSaved = vi.fn();
+      const snapshot = { projectId: "project", revision: 1, project };
+      const result = await settleSavedRevision(
+        snapshot,
+        {
+          currentRevision: () => (duringCapture ? 2 : 1),
+          captureSaveSnapshot: async () => {
+            current = true;
+            return snapshot;
+          },
+          markSaved,
+        },
+        () => !current,
+      );
+      expect(result).toBe(false);
+      expect(markSaved).not.toHaveBeenCalled();
+    },
+  );
+  it("aborts a save cancelled during write before closing the transaction", async () => {
+    const controller = new AbortController();
+    const close = vi.fn(async () => undefined);
+    const abort = vi.fn(async () => undefined);
+    await expect(
+      new EmbeddedProjectSaveCoordinator().save(
+        { projectId: "project", revision: 1, project },
+        async () => new Uint8Array([1]),
+        {
+          name: "project.pumlu",
+          getFile: async () => new File([], "project.pumlu"),
+          createWritable: async () => ({
+            write: async () => {
+              controller.abort();
+            },
+            close,
+            abort,
+          }),
+        },
+        () => 1,
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(close).not.toHaveBeenCalled();
+    expect(abort).toHaveBeenCalledOnce();
+  });
   it("keeps a newer revision dirty after writing an earlier snapshot", async () => {
     let revision = 1;
     const writes: Uint8Array[] = [];

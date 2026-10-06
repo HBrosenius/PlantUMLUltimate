@@ -669,6 +669,14 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
   await expect(projectNavigator.locator(".project-index-status")).toHaveText("Links current");
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
+  // Closing the schedule view must not revert its edited source when the whole project is saved again.
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.getByRole("button", { name: "Close Linked plan schedule", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Close Linked plan schedule", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save", exact: true }).click();
+  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
+  await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
   const bytes = await page.evaluate(() => (window as Window & { projectBytes?: number[] }).projectBytes!);
 
   const context = await browser.newContext();

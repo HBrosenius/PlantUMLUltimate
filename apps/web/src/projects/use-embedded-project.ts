@@ -21,7 +21,7 @@ import {
   loadEmbeddedProjectRecovery,
   saveEmbeddedProjectRecovery,
 } from "./embedded-project-session";
-import { enableMemoryOnlyHistory, importDocumentVersions } from "../workspace-storage";
+import { enableMemoryOnlyHistory, importDocumentVersions, type DocumentSnapshot } from "../workspace-storage";
 
 function persistentTabState(tab: {
   source: string;
@@ -46,11 +46,16 @@ function persistentTabState(tab: {
   ]);
 }
 
+export type ProjectRecoveryStatus = "idle" | "saving" | "current" | "error" | "disabled";
+
 /** Owns one embedded project snapshot and the transient tabs used to view its members. */
 export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const [project, setProject] = useState<PortableProject>();
   const [encrypted, setEncrypted] = useState(false);
+  const [recoveryStatus, setRecoveryStatus] = useState<ProjectRecoveryStatus>("idle");
   const memberTabs = useRef(new Map<string, string>());
+  // Closing a view must not discard the member's current source or persistent settings.
+  const retainedMemberTabs = useRef(new Map<string, DocumentSnapshot>());
   const projectRef = useRef(project);
   projectRef.current = project;
   const revisionRef = useRef(0);
@@ -63,12 +68,13 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const projectGeneration = useRef(0);
 
   const openProject = useCallback(
-    (next: PortableProject, options: { encrypted?: boolean } = {}) => {
+    (next: PortableProject, options: { encrypted?: boolean; unsaved?: boolean } = {}) => {
       next = {
         ...next,
         diagrams: next.diagrams.map((diagram) => ({ ...diagram, name: embeddedDiagramDisplayName(diagram.name) })),
       };
       const generation = ++projectGeneration.current;
+      retainedMemberTabs.current.clear();
       const nextEncrypted = options.encrypted ?? false;
       memberTabs.current = new Map(embeddedMemberTabs(next, tabs.documents));
       persistentStateByMember.current = new Map(
@@ -88,7 +94,9 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       );
       revisionRef.current = 0;
       setRevision(0);
-      setSavedRevision(0);
+      setSavedRevision(options.unsaved ? -1 : 0);
+      recoveryRevision.current += 1;
+      setRecoveryStatus(nextEncrypted ? "disabled" : "saving");
       setEncrypted(nextEncrypted);
       baselineByMember.current.clear();
       const nextBaselines = new Map<string, string>();
@@ -128,6 +136,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     for (const member of project.diagrams) {
       const tab = byId.get(memberTabs.current.get(member.id) ?? "");
       if (!tab) continue;
+      retainedMemberTabs.current.set(member.id, tab);
       const state = persistentTabState(tab);
       if (persistentStateByMember.current.get(member.id) === state) continue;
       persistentStateByMember.current.set(member.id, state);
@@ -143,27 +152,44 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   }, [project, tabs.documents]);
 
   const effectiveProject = useMemo(
-    () => (project ? projectWithOpenTabSources(project, memberTabs.current, tabs.documents) : undefined),
+    () =>
+      project
+        ? projectWithOpenTabSources(project, memberTabs.current, [
+            ...retainedMemberTabs.current.values(),
+            ...tabs.documents,
+          ])
+        : undefined,
     [project, tabs.documents],
   );
 
   useEffect(() => {
     if (!project) return;
     const revision = ++recoveryRevision.current;
+    setRecoveryStatus(encrypted ? "disabled" : "saving");
     void historyReady.current
-      .then(() => snapshotEmbeddedProject(project, memberTabs.current, tabs.documents))
+      .then(() =>
+        snapshotEmbeddedProject(project, memberTabs.current, [
+          ...retainedMemberTabs.current.values(),
+          ...tabs.documents,
+        ]),
+      )
       .then((snapshot) => {
         if (recoveryRevision.current === revision) return saveEmbeddedProjectRecovery(snapshot, encrypted);
       })
+      .then(() => {
+        if (recoveryRevision.current === revision) setRecoveryStatus(encrypted ? "disabled" : "current");
+      })
       .catch(() => {
-        // Recovery is a convenience; saving the actual project remains available if browser storage is full.
+        if (recoveryRevision.current === revision) setRecoveryStatus(encrypted ? "disabled" : "error");
       });
   }, [encrypted, project, tabs.documents]);
 
   const restoreProject = useCallback(async () => {
+    const generation = projectGeneration.current;
     const recovery = await loadEmbeddedProjectRecovery();
+    if (projectGeneration.current !== generation) return undefined;
     if (!recovery || recovery.state === "locked") return recovery;
-    openProject(recovery.project);
+    openProject(recovery.project, { unsaved: true });
     return recovery;
   }, [openProject]);
 
@@ -188,25 +214,33 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     async (memberId: string) => {
       if (!project) return undefined;
       await historyReady.current;
-      const member = project.diagrams.find((item) => item.id === memberId);
+      const current = projectWithOpenTabSources(project, memberTabs.current, [
+        ...retainedMemberTabs.current.values(),
+        ...tabs.documents,
+      ]);
+      const member = current.diagrams.find((item) => item.id === memberId);
       const wbsGantt = member?.wbsGantt;
       const wbsTabId = wbsGantt
         ? openEmbeddedMember(
-            project,
+            current,
             wbsGantt.wbsDiagramId,
             tabs,
             memberTabs.current,
             encrypted,
-            baselineByMember.current.get(wbsGantt.wbsDiagramId),
+            retainedMemberTabs.current.has(wbsGantt.wbsDiagramId)
+              ? retainedMemberTabs.current.get(wbsGantt.wbsDiagramId)?.baselineVersionId
+              : baselineByMember.current.get(wbsGantt.wbsDiagramId),
           )
         : undefined;
       const tabId = openEmbeddedMember(
-        project,
+        current,
         memberId,
         tabs,
         memberTabs.current,
         encrypted,
-        baselineByMember.current.get(memberId),
+        retainedMemberTabs.current.has(memberId)
+          ? retainedMemberTabs.current.get(memberId)?.baselineVersionId
+          : baselineByMember.current.get(memberId),
       );
       if (tabId && wbsGantt && wbsTabId) {
         tabs.updateDocumentFormat?.(tabId, {
@@ -283,6 +317,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       const tabId = memberTabs.current.get(memberId);
       if (tabId) tabs.closeDocument?.(tabId);
       memberTabs.current.delete(memberId);
+      retainedMemberTabs.current.delete(memberId);
       persistentStateByMember.current.delete(memberId);
       revisionRef.current += 1;
       setRevision(revisionRef.current);
@@ -320,9 +355,26 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
         const tabId = memberTabs.current.get(diagram.id);
         if (tabId) tabs.closeDocument?.(tabId);
         memberTabs.current.delete(diagram.id);
+        retainedMemberTabs.current.delete(diagram.id);
       }
       for (const diagram of next.diagrams) {
         const tabId = memberTabs.current.get(diagram.id);
+        const retained = retainedMemberTabs.current.get(diagram.id);
+        if (retained && (!tabId || !tabs.documents.some((tab) => tab.id === tabId))) {
+          retainedMemberTabs.current.set(diagram.id, {
+            ...retained,
+            source: diagram.document.current.source,
+            diagramKind: diagram.document.current.diagramKind as DiagramKind,
+            fileName: diagram.name,
+            dirty: true,
+            resourceCapacities: diagram.document.settings.resourceCapacities,
+            progressForecast: diagram.document.settings.progressForecast,
+            historyMaxVersions: diagram.document.historyPolicy.maxVersions,
+            historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
+            wbsGanttLinks: diagram.wbsGantt?.links,
+            wbsGanttDependencies: diagram.wbsGantt?.dependencies,
+          });
+        }
         if (!tabId || !tabs.documents.some((tab) => tab.id === tabId)) continue;
         tabs.updateDocumentFormat?.(tabId, {
           fileName: diagram.name,
@@ -350,7 +402,12 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     async (savedAt?: string) => {
       if (!project) return undefined;
       await historyReady.current;
-      const next = await snapshotEmbeddedProject(project, memberTabs.current, tabs.documents, savedAt);
+      const next = await snapshotEmbeddedProject(
+        project,
+        memberTabs.current,
+        [...retainedMemberTabs.current.values(), ...tabs.documents],
+        savedAt,
+      );
       setProject(next);
       return next;
     },
@@ -366,7 +423,10 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     return {
       projectId: current.projectId,
       revision,
-      project: await snapshotEmbeddedProject(current, memberTabs.current, tabs.documents),
+      project: await snapshotEmbeddedProject(current, memberTabs.current, [
+        ...retainedMemberTabs.current.values(),
+        ...tabs.documents,
+      ]),
     };
   }, [tabs.documents]);
 
@@ -377,7 +437,9 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     projectGeneration.current += 1;
     recoveryRevision.current += 1;
     memberTabs.current.clear();
+    retainedMemberTabs.current.clear();
     setEncrypted(false);
+    setRecoveryStatus("idle");
     setProject(undefined);
     void clearEmbeddedProjectRecovery();
   }, []);
@@ -387,6 +449,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     effectiveProject,
     receiveProject,
     encrypted,
+    recoveryStatus,
     openProject,
     restoreProject,
     openMember,

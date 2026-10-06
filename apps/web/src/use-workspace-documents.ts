@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { downloadText, openWorkspaceBackupFile, type FileSnapshot, type WritableFileHandle } from "./file-service";
 import {
   DEFAULT_ACTIVITY_SOURCE,
@@ -12,7 +12,7 @@ import {
 } from "./model";
 import { setPlantUmlTheme } from "./plantuml-theme";
 import { exampleFileName, type StarterExample } from "./starter-examples";
-import { parseWorkspaceBackupBundle, serializeWorkspaceBackup } from "./workspace-backup";
+import { parseWorkspaceBackupBundle, prepareWorkspaceRestore, serializeWorkspaceBackup } from "./workspace-backup";
 import {
   importDocumentVersions,
   loadDocumentVersions,
@@ -80,6 +80,9 @@ export function useWorkspaceDocuments({
   reportError,
   setInteractionMessage,
 }: Options) {
+  const latestTabs = useRef(tabs);
+  latestTabs.current = tabs;
+  const restoring = useRef(false);
   const backupWorkspace = useCallback(async () => {
     try {
       const versions = (
@@ -99,27 +102,56 @@ export function useWorkspaceDocuments({
   }, [reportError, setInteractionMessage, tabs.documents, tabs.session]);
 
   const restoreWorkspace = useCallback(async () => {
+    if (restoring.current) return;
+    restoring.current = true;
     try {
       const contents = await openWorkspaceBackupFile();
       if (!contents) return;
-      const restored = parseWorkspaceBackupBundle(contents);
+      const restored = prepareWorkspaceRestore(parseWorkspaceBackupBundle(contents));
+      const current = latestTabs.current;
+      const hasEncryptedTabs = current.documents.some((document) => document.encrypted);
       if (
-        tabs.documents.some((document) => document.dirty) &&
-        !window.confirm("Restore this backup and replace all currently open tabs?")
+        (hasEncryptedTabs || current.documents.some((document) => document.dirty)) &&
+        !window.confirm(
+          hasEncryptedTabs
+            ? "Restore this backup and replace all currently open tabs? Encrypted tabs are excluded from the checkpoint backup. Save them to files before continuing."
+            : "Restore this backup and replace all currently open tabs?",
+        )
       )
         return;
-      tabs.restoreSession(restored.session);
+      const versions = (
+        await Promise.all(current.documents.map((document) => loadDocumentVersions(document.historyId)))
+      ).flat();
+      const unchanged = () => {
+        if (latestTabs.current.session !== current.session)
+          throw new Error("The workspace changed during restore. Try restoring the backup again.");
+      };
+      unchanged();
+      downloadText(
+        serializeWorkspaceBackup(current.session, versions),
+        "plantuml-studio-before-restore.json",
+        "application/json;charset=utf-8",
+      );
       await importDocumentVersions(restored.versions);
+      unchanged();
+      current.restoreSession(restored.session);
       fileHandles.current.clear();
       fileSnapshots.current.clear();
       externalCheckSnoozedUntil.current.clear();
       retainHistories(restored.session.documents.map((document) => document.id));
       resetSelection();
       setInteractionMessage(
-        `Restored ${restored.session.documents.length} document${restored.session.documents.length === 1 ? "" : "s"}`,
+        `Restored ${restored.session.documents.length} document${restored.session.documents.length === 1 ? "" : "s"}. A backup of the previous tabs was downloaded${hasEncryptedTabs ? "; encrypted tabs are excluded" : ""}.`,
       );
     } catch (error) {
-      reportError(error);
+      const detail = error instanceof Error ? error.message : "The backup could not be restored";
+      reportError(
+        new Error(
+          `Restore failed. Your open documents were kept. ${detail} Check the backup and browser storage, then try again.`,
+        ),
+      );
+    } finally {
+      restoring.current = false;
     }
   }, [
     externalCheckSnoozedUntil,
@@ -129,7 +161,6 @@ export function useWorkspaceDocuments({
     resetSelection,
     retainHistories,
     setInteractionMessage,
-    tabs,
   ]);
 
   const createDocument = useCallback(

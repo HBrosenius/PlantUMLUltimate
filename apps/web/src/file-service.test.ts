@@ -91,4 +91,38 @@ describe("PlantUML file integration", () => {
     await writeDocumentBytes(file.value, bytes);
     expect(file.write).toHaveBeenCalledWith(bytes);
   });
+
+  it.each(["write", "close"])("aborts the pending file transaction when %s fails", async (stage) => {
+    const write = vi.fn(async () => {
+      if (stage === "write") throw new Error("Disk unavailable");
+    });
+    const close = vi.fn(async () => {
+      if (stage === "close") throw new Error("Disk unavailable");
+    });
+    const abort = vi.fn(async () => undefined);
+    const file = handle();
+    file.value.createWritable = vi.fn(async () => ({ write, close, abort }));
+    await expect(writeDocumentBytes(file.value, new Uint8Array([1]))).rejects.toThrow("Disk unavailable");
+    expect(abort).toHaveBeenCalledOnce();
+    if (stage === "write") expect(close).not.toHaveBeenCalled();
+  });
+
+  it("cancels a staged binary write before committing it", async () => {
+    const controller = new AbortController();
+    const close = vi.fn(async () => undefined);
+    const abort = vi.fn(async () => undefined);
+    const file = handle();
+    file.value.createWritable = vi.fn(async () => ({
+      write: async () => {
+        controller.abort();
+      },
+      close,
+      abort,
+    }));
+    await expect(writeDocumentBytes(file.value, new Uint8Array([1]), controller.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    });
+    expect(abort).toHaveBeenCalledOnce();
+    expect(close).not.toHaveBeenCalled();
+  });
 });

@@ -54,6 +54,7 @@ import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
+import { UnsavedProjectDialog } from "./projects/UnsavedProjectDialog";
 import type { WbsGanttProjectLink } from "./projects/wbs-gantt-project-links";
 import { collectMissingWbsGanttItems, type WbsGanttMissingItem } from "./projects/wbs-gantt-missing";
 import { embeddedMemberHistoryId } from "./projects/embedded-project";
@@ -4242,6 +4243,7 @@ export function App() {
           {...(usingSingleFileProject
             ? {
                 dirty: singleFileProject.dirty,
+                recoveryStatus: singleFileProject.recoveryStatus,
                 indexStatus: singleFileProject.indexStatus,
                 saving: singleFileProject.saving,
                 onCancelSave: singleFileProject.cancelSave,
@@ -4309,6 +4311,9 @@ export function App() {
           onUnlock={singleFileProject.unlock}
           onClose={singleFileProject.cancelUnlock}
         />
+      )}
+      {singleFileProject.leaveRequest && (
+        <UnsavedProjectDialog {...singleFileProject.leaveRequest} onChoice={singleFileProject.decideLeave} />
       )}
       {dateMenuFor && (
         <DateActionMenu

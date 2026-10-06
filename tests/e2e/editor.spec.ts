@@ -271,6 +271,7 @@ test("creates, compares, and restores durable document versions", async ({ page 
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByRole("button", { name: "Select version First draft" })).toBeVisible();
+  await expect(dialog.getByLabel("Selected version name")).toHaveValue("First draft");
   await dialog.getByLabel("Selected version name").fill("Baseline");
   await dialog.getByRole("button", { name: "Save name" }).click();
   await expect(dialog.getByRole("button", { name: "Select version Baseline" })).toBeVisible();
@@ -491,11 +492,26 @@ test("backs up and restores all open documents", async ({ page }) => {
       value: async () => [{ name: "backup.json", getFile: async () => ({ text: async () => contents }) }],
     });
   }, backup);
+  const checkpointDownload = page.waitForEvent("download");
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Restore workspace…" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Second tab] lasts 3 days");
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(2);
+  const checkpoint = await checkpointDownload;
+  expect(checkpoint.suggestedFilename()).toBe("plantuml-studio-before-restore.json");
+  const checkpointPath = await checkpoint.path();
+  expect(checkpointPath).not.toBeNull();
+  const previousWorkspace = JSON.parse(readFileSync(checkpointPath!, "utf8"));
+  expect(previousWorkspace.session.documents).toHaveLength(2);
+  expect(
+    previousWorkspace.session.documents.some((document: { source: string }) =>
+      document.source.includes("[Replaced] lasts 1 day"),
+    ),
+  ).toBe(true);
+  expect(previousWorkspace.versions.some((version: { label?: string }) => version.label === "Backup checkpoint")).toBe(
+    true,
+  );
   await page.locator(".document-tabs > button:not(.new-tab)").first().click();
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();

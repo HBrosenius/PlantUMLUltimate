@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PortableProject } from "@plantuml-studio/document-format";
-import type { DocumentSnapshot } from "../workspace-storage";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { decodeProject, encodeProject, hashSource, type PortableProject } from "@plantuml-studio/document-format";
+import { loadDocumentVersions, type DocumentSnapshot } from "../workspace-storage";
 import { useEmbeddedProject } from "./use-embedded-project";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { projectContentEqual } from "./embedded-project";
+import { loadEmbeddedProjectRecovery, saveEmbeddedProjectRecovery } from "./embedded-project-session";
 
 vi.mock("../workspace-storage", () => ({
   enableMemoryOnlyHistory: vi.fn(async () => undefined),
@@ -56,8 +57,172 @@ function projectWithDiagram(): PortableProject {
   };
 }
 
+const emptyDocuments: DocumentSnapshot[] = [];
+
 describe("useEmbeddedProject lifecycle", () => {
-  beforeEach(() => vi.clearAllMocks());
+  afterEach(cleanup);
+
+  it.each([true, false])(
+    "keeps a member's latest content after its tab closes (saved first: %s)",
+    async (savedFirst) => {
+      const value = projectWithDiagram();
+      const member = value.diagrams[0]!;
+      const original: DocumentSnapshot = {
+        id: "plan-tab",
+        historyId: `project-history-${value.projectId}-${member.id}`,
+        source: member.document.current.source,
+        diagramKind: "gantt",
+        fileName: "Plan",
+        dirty: false,
+        zoom: 1,
+        cursor: { line: 1, column: 1 },
+      };
+      const controls = { addDocument: vi.fn(() => "reopened"), activateDocument: vi.fn() };
+      const { result, rerender } = renderHook(
+        ({ documents }: { documents: DocumentSnapshot[] }) => useEmbeddedProject({ ...controls, documents }),
+        { initialProps: { documents: [original] } },
+      );
+      act(() => result.current.openProject(value));
+      const edited = {
+        ...original,
+        source: "@startgantt\n[Edited] lasts 4 days\n@endgantt",
+        dirty: true,
+        resourceCapacities: { Alice: 80 },
+        historyMaxVersions: 25,
+        portableDocumentId: member.document.documentId,
+        baselineVersionId: "local-baseline",
+        progressForecast: { enabled: true, asOf: "2026-10-06", remainingDays: { Edited: 3 } },
+      };
+      vi.mocked(loadDocumentVersions).mockResolvedValue([
+        {
+          id: "local-baseline",
+          portableId: "55555555-5555-4555-8555-555555555555",
+          historyId: original.historyId,
+          source: edited.source,
+          sourceHash: await hashSource(edited.source),
+          fileName: "Plan",
+          diagramKind: "gantt",
+          createdAt: "2026-10-06T08:00:00Z",
+          reason: "manual",
+          pinned: true,
+        },
+      ]);
+      rerender({ documents: [edited] });
+      const saved = await result.current.captureSaveSnapshot();
+      if (savedFirst) act(() => result.current.markSaved(saved!.revision));
+      rerender({ documents: [] });
+      const closed = await result.current.captureSaveSnapshot();
+      expect(closed!.project.diagrams[0]!.document.current.source).toBe(edited.source);
+      const reopened = (await decodeProject((await encodeProject(closed!.project, { compression: "none" })).bytes))
+        .project;
+      expect(reopened.diagrams[0]!.document.current.source).toBe(edited.source);
+      expect(reopened.diagrams[0]!.document.settings.resourceCapacities).toEqual(edited.resourceCapacities);
+      expect(reopened.diagrams[0]!.document.settings.progressForecast).toEqual(edited.progressForecast);
+      expect(reopened.diagrams[0]!.document.historyPolicy.maxVersions).toBe(25);
+      expect(reopened.diagrams[0]!.document.versions).toHaveLength(1);
+      expect(reopened.diagrams[0]!.document.current.baselineVersionId).toBe("55555555-5555-4555-8555-555555555555");
+      await act(async () => {
+        await result.current.openMember(member.id);
+      });
+      expect(controls.addDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: edited.source,
+          resourceCapacities: edited.resourceCapacities,
+          progressForecast: edited.progressForecast,
+        }),
+      );
+      const remote = structuredClone(value);
+      remote.diagrams[0]!.document.current.source = "@startgantt\n[Remote] lasts 2 days\n@endgantt";
+      act(() => {
+        result.current.receiveProject(remote);
+      });
+      expect((await result.current.captureSaveSnapshot())!.project.diagrams[0]!.document.current.source).toContain(
+        "[Remote]",
+      );
+      act(() => result.current.openProject(value));
+      expect((await result.current.captureSaveSnapshot())!.project.diagrams[0]!.document.current.source).toBe(
+        member.document.current.source,
+      );
+    },
+  );
+  beforeEach(() => vi.resetAllMocks());
+
+  it("restores local recovery as unsaved until a file save is confirmed", async () => {
+    const recovered = projectWithDiagram();
+    vi.mocked(loadEmbeddedProjectRecovery).mockResolvedValueOnce({ state: "unlocked", project: recovered });
+    const { result } = renderHook(() =>
+      useEmbeddedProject({
+        documents: emptyDocuments,
+        addDocument: vi.fn(() => "tab-1"),
+        activateDocument: vi.fn(),
+      }),
+    );
+    await act(async () => {
+      await result.current.restoreProject();
+    });
+    expect(result.current.project).toEqual(recovered);
+    expect(result.current.dirty).toBe(true);
+    await waitFor(() => expect(result.current.recoveryStatus).toBe("current"));
+    expect(result.current.dirty).toBe(true);
+    act(() => result.current.markSaved(result.current.currentRevision()));
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("keeps the project and unsaved changes when local recovery storage fails", async () => {
+    vi.mocked(saveEmbeddedProjectRecovery).mockRejectedValueOnce(new Error("Quota exceeded"));
+    const { result } = renderHook(() =>
+      useEmbeddedProject({
+        documents: emptyDocuments,
+        addDocument: vi.fn(() => "tab-1"),
+        activateDocument: vi.fn(),
+      }),
+    );
+    act(() => result.current.openProject(projectWithDiagram(), { unsaved: true }));
+    await waitFor(() => expect(result.current.recoveryStatus).toBe("error"));
+    expect(result.current.project?.diagrams).toEqual(projectWithDiagram().diagrams);
+    expect(result.current.dirty).toBe(true);
+    act(() => result.current.updateProject((current) => ({ ...current, name: "Edited" })));
+    await waitFor(() => expect(result.current.recoveryStatus).toBe("current"));
+    expect(result.current.dirty).toBe(true);
+  });
+
+  it("does not replace a newly opened project with a delayed recovery read", async () => {
+    let finish!: (value: Awaited<ReturnType<typeof loadEmbeddedProjectRecovery>>) => void;
+    vi.mocked(loadEmbeddedProjectRecovery).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useEmbeddedProject({
+        documents: emptyDocuments,
+        addDocument: vi.fn(() => "tab-1"),
+        activateDocument: vi.fn(),
+      }),
+    );
+    const pending = result.current.restoreProject();
+    act(() => result.current.openProject({ ...project(), name: "Chosen file" }));
+    await act(async () => {
+      finish({ state: "unlocked", project: projectWithDiagram() });
+      await pending;
+    });
+    expect(result.current.project?.name).toBe("Chosen file");
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("does not promise recovery of encrypted document contents", async () => {
+    const { result } = renderHook(() =>
+      useEmbeddedProject({
+        documents: emptyDocuments,
+        addDocument: vi.fn(() => "tab-1"),
+        activateDocument: vi.fn(),
+      }),
+    );
+    act(() => result.current.openProject(project(), { encrypted: true }));
+    await waitFor(() => expect(saveEmbeddedProjectRecovery).toHaveBeenCalled());
+    expect(result.current.recoveryStatus).toBe("disabled");
+  });
 
   it("reports the live revision when project metadata changes during a save", async () => {
     const documents: DocumentSnapshot[] = [];

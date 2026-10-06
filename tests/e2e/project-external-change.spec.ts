@@ -75,4 +75,15 @@ test("refuses to overwrite a project file changed elsewhere", async ({ page }) =
   expect(await page.evaluate(() => (window as unknown as { __projectFileSize(): number }).__projectFileSize())).toBe(
     changedSize,
   );
+
+  // Reload uses the browser recovery snapshot, which includes the unsaved third diagram.
+  // Recovery must not claim these changes are already in the file that rejected our save.
+  await expect(navigator.getByText("Local recovery current in this browser")).toBeVisible();
+  await page.reload();
+  await expect(navigator.getByText("Shared project", { exact: true })).toBeVisible();
+  await expect(navigator.getByText("Unsaved changes", { exact: true })).toBeVisible();
+  await expect(navigator.getByText("Saved", { exact: true })).toHaveCount(0);
+  for (const name of ["Architecture", "Deployment", "Operations"]) {
+    await expect(navigator.getByText(name, { exact: true })).toBeVisible();
+  }
 });

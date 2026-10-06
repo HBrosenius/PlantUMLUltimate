@@ -23,6 +23,24 @@ const project: VirtualProject = {
 afterEach(cleanup);
 
 describe("ProjectNavigator", () => {
+  it("distinguishes local recovery from a saved file and explains storage failure", () => {
+    const props = {
+      project,
+      onOpen: vi.fn(),
+      onAdd: vi.fn(),
+      onClose: vi.fn(),
+      onLinksChange: vi.fn(),
+      onElementsChange: vi.fn(),
+      dirty: true,
+    };
+    const { rerender } = render(<ProjectNavigator {...props} recoveryStatus="current" />);
+    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+    expect(screen.getByText("Local recovery current in this browser")).toBeTruthy();
+    rerender(<ProjectNavigator {...props} recoveryStatus="error" />);
+    expect(screen.getByText("Local recovery failed. Save a file copy to protect your changes.")).toBeTruthy();
+    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  });
+
   it("shows unlinked work and provides open, link, and add actions", () => {
     const onOpenWbsGanttLink = vi.fn();
     const onLinkMissingWbsGanttItem = vi.fn();

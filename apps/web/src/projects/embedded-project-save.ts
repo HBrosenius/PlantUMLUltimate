@@ -21,13 +21,15 @@ export type EmbeddedProjectRevisionSource = {
 export async function settleSavedRevision(
   snapshot: EmbeddedProjectSnapshot,
   embedded: EmbeddedProjectRevisionSource,
+  isCurrent: () => boolean = () => true,
 ): Promise<boolean> {
+  if (!isCurrent()) return false;
   if (embedded.currentRevision() === snapshot.revision) {
     embedded.markSaved(snapshot.revision);
     return true;
   }
   const latest = await embedded.captureSaveSnapshot();
-  if (!latest || !projectContentEqual(latest.project, snapshot.project)) return false;
+  if (!isCurrent() || !latest || !projectContentEqual(latest.project, snapshot.project)) return false;
   embedded.markSaved(latest.revision);
   return true;
 }
@@ -59,6 +61,7 @@ export class EmbeddedProjectSaveCoordinator {
       try {
         if (signal?.aborted) throw new DOMException("Document save cancelled", "AbortError");
         await writable.write(bytes);
+        if (signal?.aborted) throw new DOMException("Document save cancelled", "AbortError");
         await writable.close();
       } catch (error) {
         await writable.abort?.().catch(() => undefined);

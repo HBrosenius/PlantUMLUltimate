@@ -7,6 +7,7 @@ import type { WbsGanttMissingItem } from "./wbs-gantt-missing";
 import type { VirtualProject } from "./project-index";
 import { ProjectLinksPanel } from "./ProjectLinksPanel";
 import { ProjectNameDialog } from "./ProjectNameDialog";
+import type { ProjectRecoveryStatus } from "./use-embedded-project";
 import type { ProjectChangeReview } from "./project-change-review";
 
 export function ProjectNavigator({
@@ -23,6 +24,7 @@ export function ProjectNavigator({
   onRename,
   onDelete,
   dirty,
+  recoveryStatus,
   indexStatus,
   saving,
   onCancelSave,
@@ -50,6 +52,7 @@ export function ProjectNavigator({
   onRename?(documentId: string, name: string): void;
   onDelete?(documentId: string): void;
   dirty?: boolean;
+  recoveryStatus?: ProjectRecoveryStatus;
   indexStatus?: { state: "idle" | "indexing" | "ready" | "error"; message?: string };
   saving?: boolean;
   onCancelSave?(): void;
@@ -82,6 +85,17 @@ export function ProjectNavigator({
             <span className={`project-save-status ${dirty ? "is-dirty" : "is-saved"}`} role="status">
               {dirty ? "Unsaved changes" : "Saved"}
             </span>
+          )}
+          {recoveryStatus && recoveryStatus !== "idle" && (
+            <small role="status">
+              {recoveryStatus === "saving"
+                ? "Updating local recovery…"
+                : recoveryStatus === "current"
+                  ? "Local recovery current in this browser"
+                  : recoveryStatus === "disabled"
+                    ? "Local recovery disabled for encrypted documents. Save a file copy."
+                    : "Local recovery failed. Save a file copy to protect your changes."}
+            </small>
           )}
           {saving && onCancelSave && (
             <button type="button" className="project-cancel-save" onClick={onCancelSave}>

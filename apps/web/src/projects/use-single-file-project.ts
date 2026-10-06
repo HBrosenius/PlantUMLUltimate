@@ -44,6 +44,7 @@ import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } f
 import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-project-save";
 import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
+import { useUnsavedProjectGuard } from "./use-unsaved-project-guard";
 import { embeddedDiagramDisplayName } from "./embedded-project";
 import { embeddedMemberHistoryId } from "./embedded-project";
 import type { WbsGanttConversion } from "../wbs-gantt";
@@ -209,6 +210,18 @@ export function useSingleFileProject({
   reportError(error: unknown): void;
 }) {
   const embedded = useEmbeddedProject(tabs);
+  const projectGeneration = useRef(0);
+  const saveBeforeLeaving = useRef<() => Promise<boolean>>(async () => false);
+  const {
+    request: leaveRequest,
+    decide: decideLeave,
+    confirmLeave,
+  } = useUnsavedProjectGuard({
+    dirty: embedded.dirty,
+    projectId: embedded.project?.projectId,
+    projectName: embedded.project?.name,
+    save: () => saveBeforeLeaving.current(),
+  });
   const [indexed, setIndexed] = useState<VirtualProject>();
   const [indexStatus, setIndexStatus] = useState<{
     state: "idle" | "indexing" | "ready" | "error";
@@ -233,6 +246,8 @@ export function useSingleFileProject({
     if (restored.current) return;
     restored.current = true;
     void restoreEmbeddedProject().then((recovery) => {
+      if (recovery?.state === "unlocked")
+        setInteractionMessage("Restored local recovery. Save the document to keep a file copy.");
       if (recovery?.state === "locked")
         setInteractionMessage("An encrypted document was open here. Reopen its .pumlu file to unlock it.");
     });
@@ -281,7 +296,10 @@ export function useSingleFileProject({
       if (!name.trim()) return;
       const created = await projectFromPlantUml("", "gantt", new Date().toISOString());
       const project = { ...created, name: projectName(name), diagrams: [] };
-      embedded.openProject(project);
+      if (!(await confirmLeave("create a new document"))) return;
+      projectGeneration.current += 1;
+      saveAbort.current?.abort();
+      embedded.openProject(project, { unsaved: true });
       setIndexed(immediateIndex(project));
       handle.current = undefined;
       handleDigest.current = undefined;
@@ -290,7 +308,7 @@ export function useSingleFileProject({
       resetSelection();
       setInteractionMessage(`Created ${projectName(name)}. Add a diagram to begin.`);
     },
-    [embedded, resetSelection, setInteractionMessage],
+    [confirmLeave, embedded, resetSelection, setInteractionMessage],
   );
 
   const createWbsGanttProject = useCallback(
@@ -309,7 +327,10 @@ export function useSingleFileProject({
         revisionId: crypto.randomUUID(),
         diagrams: [wbsDiagram, ganttDiagram],
       };
-      embedded.openProject(project);
+      if (!(await confirmLeave("create a new document"))) return;
+      projectGeneration.current += 1;
+      saveAbort.current?.abort();
+      embedded.openProject(project, { unsaved: true });
       embedded.updateProject((current) => ({ ...current, revisionId: crypto.randomUUID() }));
       handle.current = undefined;
       handleDigest.current = undefined;
@@ -340,7 +361,7 @@ export function useSingleFileProject({
         `Created ${title} with linked WBS and Gantt diagrams. Save the document to keep them together.`,
       );
     },
-    [embedded, resetSelection, setInteractionMessage, tabs],
+    [confirmLeave, embedded, resetSelection, setInteractionMessage, tabs],
   );
 
   const addGanttFromWbs = useCallback(
@@ -468,6 +489,9 @@ export function useSingleFileProject({
           key = decoded.key;
           encrypted = decoded.encrypted;
         }
+        if (!(await confirmLeave("open another document"))) return false;
+        projectGeneration.current += 1;
+        saveAbort.current?.abort();
         unlockedKey.current = key;
         handle.current = opened.handle;
         handleDigest.current = opened.handle ? await sha256(opened.bytes) : undefined;
@@ -483,20 +507,23 @@ export function useSingleFileProject({
         return false;
       }
     },
-    [embedded, reportError, requestPassword, resetSelection, setInteractionMessage],
+    [confirmLeave, embedded, reportError, requestPassword, resetSelection, setInteractionMessage],
   );
   const openProject = useCallback(async () => openOpenedProject(await openDocumentFile()), [openOpenedProject]);
   const openPortableProject = useCallback(
-    (project: PortableProject) => {
+    async (project: PortableProject) => {
+      if (!(await confirmLeave("import another document"))) return;
       unlockedKey.current = undefined;
       handle.current = undefined;
       handleDigest.current = undefined;
-      embedded.openProject(project);
+      projectGeneration.current += 1;
+      saveAbort.current?.abort();
+      embedded.openProject(project, { unsaved: true });
       setSavedBaseline(undefined);
       resetSelection();
       setInteractionMessage(`Imported ${project.name}; save to create its one-file document.`);
     },
-    [embedded, resetSelection, setInteractionMessage],
+    [confirmLeave, embedded, resetSelection, setInteractionMessage],
   );
 
   const updateLinks = useCallback(
@@ -568,16 +595,18 @@ export function useSingleFileProject({
   );
 
   const saveProject = useCallback(async () => {
-    const snapshot = await embedded.captureSaveSnapshot();
-    if (!snapshot) return;
     if (!handle.current) return undefined;
     saveAbort.current?.abort();
     const controller = new AbortController();
     saveAbort.current = controller;
     setSaving(true);
+    const generation = projectGeneration.current;
+    const isCurrent = () => projectGeneration.current === generation;
     const target = handle.current;
     let writtenBytes: Uint8Array | undefined;
     try {
+      const snapshot = await embedded.captureSaveSnapshot();
+      if (!snapshot) return;
       const written = await saveCoordinator.current.save(
         snapshot,
         async (value, signal) => {
@@ -597,21 +626,34 @@ export function useSingleFileProject({
         embedded.currentRevision,
         controller.signal,
       );
-      if (writtenBytes && handle.current === target) handleDigest.current = await sha256(writtenBytes);
-      const result = (await settleSavedRevision(snapshot, embedded))
+      if (!isCurrent()) return { clean: false, message: "Saved previous document snapshot" };
+      if (writtenBytes) {
+        const digest = await sha256(writtenBytes);
+        if (isCurrent() && handle.current === target) handleDigest.current = digest;
+      }
+      const result = (await settleSavedRevision(snapshot, embedded, isCurrent))
         ? { clean: true, message: "Saved document" }
         : written;
+      if (!isCurrent()) return { clean: false, message: "Saved previous document snapshot" };
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(result.message);
       return result;
     } catch (error) {
+      if (!isCurrent()) return { clean: false, message: "Previous document save cancelled" };
       if (error instanceof ProjectFileChangedError) {
         setInteractionMessage(error.message);
         return { clean: false, message: error.message };
       }
-      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
-      const result = { clean: false, message: "Document save cancelled" };
+      const cancelled = error instanceof DOMException && error.name === "AbortError";
+      const detail = error instanceof Error ? error.message : "The file could not be written";
+      const result = {
+        clean: false,
+        message: cancelled
+          ? "Document save cancelled. Your changes remain in the workspace."
+          : `Document save failed: ${detail}. Your changes remain in the workspace. Retry Save, or use Save As to choose another file.`,
+      };
       setInteractionMessage(result.message);
+      if (!cancelled) reportError(new Error(result.message));
       return result;
     } finally {
       if (saveAbort.current === controller) {
@@ -619,26 +661,35 @@ export function useSingleFileProject({
         setSaving(false);
       }
     }
-  }, [embedded, setInteractionMessage]);
+  }, [embedded, reportError, setInteractionMessage]);
 
   const saveProjectAs = useCallback(async () => {
-    const snapshot = await embedded.captureSaveSnapshot();
-    if (!snapshot) return;
     saveAbort.current?.abort();
     const controller = new AbortController();
     saveAbort.current = controller;
     setSaving(true);
+    const generation = projectGeneration.current;
+    const isCurrent = () => projectGeneration.current === generation;
     try {
+      const snapshot = await embedded.captureSaveSnapshot();
+      if (!snapshot) return;
       const encoded = await encodeProject(snapshot.project, {
         ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
         signal: controller.signal,
       });
-      const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name);
-      if (!saved) return;
+      const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name, controller.signal);
+      if (!isCurrent()) return;
+      if (!saved) {
+        setInteractionMessage("Document save cancelled. Your changes remain in the workspace.");
+        return;
+      }
+      const digest = saved.handle ? await sha256(encoded.bytes) : undefined;
+      if (!isCurrent()) return;
       handle.current = saved.handle;
-      handleDigest.current = saved.handle ? await sha256(encoded.bytes) : undefined;
+      handleDigest.current = digest;
       unlockedKey.current = encoded.unlockedKey;
-      const clean = await settleSavedRevision(snapshot, embedded);
+      const clean = await settleSavedRevision(snapshot, embedded, isCurrent);
+      if (!isCurrent()) return;
       setSavedBaseline(structuredClone(snapshot.project));
       setInteractionMessage(
         saved.downloaded
@@ -647,16 +698,29 @@ export function useSingleFileProject({
             ? `Saved ${saved.fileName}`
             : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
       );
+      return { clean };
     } catch (error) {
-      if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
-      setInteractionMessage("Document save cancelled");
+      if (!isCurrent()) return;
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setInteractionMessage("Document save cancelled. Your changes remain in the workspace.");
+      } else {
+        const detail = error instanceof Error ? error.message : "The file could not be written";
+        const message = `Document Save As failed: ${detail}. Your changes remain in the workspace. Retry Save As to choose a writable file.`;
+        setInteractionMessage(message);
+        reportError(new Error(message));
+      }
     } finally {
       if (saveAbort.current === controller) {
         saveAbort.current = undefined;
         setSaving(false);
       }
     }
-  }, [embedded, setInteractionMessage]);
+  }, [embedded, reportError, setInteractionMessage]);
+
+  saveBeforeLeaving.current = async () => {
+    const result = await saveProject();
+    return Boolean((result ?? (await saveProjectAs()))?.clean);
+  };
 
   const cancelSave = useCallback(() => saveAbort.current?.abort(), []);
   const reviewChanges = useCallback(async () => {
@@ -677,15 +741,25 @@ export function useSingleFileProject({
     downloadText(report, fileName, "text/html;charset=utf-8");
     setInteractionMessage(`Exported ${fileName}`);
   }, [embedded, savedBaseline, setInteractionMessage]);
-  const closeProject = useCallback(() => {
+  const closeProject = useCallback(async () => {
+    if (!(await confirmLeave("close this document"))) return;
+    projectGeneration.current += 1;
+    saveAbort.current?.abort();
     setSavedBaseline(undefined);
     embedded.closeProject();
-  }, [embedded]);
+    handle.current = undefined;
+    handleDigest.current = undefined;
+    unlockedKey.current = undefined;
+  }, [confirmLeave, embedded]);
 
   const receiveSharedDocument = useCallback(
     (shared: SharedDocument) => {
       const next = liveProjectFromSharedDocument(shared, embedded.effectiveProject);
       const sameDocument = embedded.project?.projectId === next.projectId;
+      if (!sameDocument) {
+        projectGeneration.current += 1;
+        saveAbort.current?.abort();
+      }
       embedded.receiveProject(next);
       if (!sameDocument) {
         handle.current = undefined;
@@ -706,6 +780,7 @@ export function useSingleFileProject({
       project: indexed,
       indexStatus,
       dirty: embedded.dirty,
+      recoveryStatus: embedded.recoveryStatus,
       saving,
       newProject,
       createWbsGanttProject,
@@ -729,6 +804,8 @@ export function useSingleFileProject({
       unlock,
       cancelUnlock,
       cancelSave,
+      leaveRequest,
+      decideLeave,
       reviewChanges,
       exportReviewReport,
       hasReviewBaseline: Boolean(savedBaseline),
@@ -760,6 +837,8 @@ export function useSingleFileProject({
       unlock,
       cancelUnlock,
       cancelSave,
+      leaveRequest,
+      decideLeave,
       reviewChanges,
       exportReviewReport,
       savedBaseline,
