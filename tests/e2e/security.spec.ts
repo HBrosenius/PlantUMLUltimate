@@ -79,7 +79,7 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
   await Promise.race([onboarding.waitFor({ state: "visible" }), join.waitFor({ state: "visible" })]);
   if (await onboarding.isVisible()) {
     // The test reads .cm-content, which basic mode hides; opt into advanced mode during onboarding.
-    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("radio", { name: "Diagram + code" }).check();
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(join.getByText("This viewer link follows live changes without permission to edit.")).toBeVisible();

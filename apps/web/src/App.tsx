@@ -4405,7 +4405,7 @@ export function App() {
             setWorkspace((current) => ({
               ...current,
               ...settings,
-              viewMode: !settings.advancedMode && current.advancedMode ? "diagram" : current.viewMode,
+              viewMode: !settings.advancedMode ? "diagram" : current.advancedMode ? current.viewMode : "split",
             }));
             setSettingsOpen(false);
           }}

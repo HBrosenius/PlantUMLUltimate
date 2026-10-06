@@ -7,7 +7,7 @@ test("creates a document from a starter example", async ({ page }) => {
   await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
   if (await onboarding.isVisible()) {
     // The Code view is hidden in basic mode, so opt into advanced mode to inspect the source.
-    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("radio", { name: "Diagram + code" }).check();
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(chooser).toBeVisible();

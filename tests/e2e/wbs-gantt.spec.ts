@@ -694,7 +694,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     const chooser = reopened.getByRole("dialog", { name: "Choose a diagram type" });
     await Promise.race([welcome.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
     if (await welcome.isVisible()) {
-      await welcome.getByRole("checkbox", { name: "Advanced mode" }).check();
+      await welcome.getByRole("radio", { name: "Diagram + code" }).check();
       await welcome.getByRole("button", { name: "Get started" }).click();
     }
     await chooser.getByRole("button", { name: "Gantt diagram" }).click();

@@ -34,7 +34,7 @@ async function createGantt(page: Page) {
   await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
   if (await onboarding.isVisible()) {
     // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
-    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("radio", { name: "Diagram + code" }).check();
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(chooser).toBeVisible();
@@ -71,7 +71,7 @@ async function join(browser: Browser, link: string, name: string, role: "editor"
   await Promise.race([onboarding.waitFor({ state: "visible" }), dialog.waitFor({ state: "visible" })]);
   if (await onboarding.isVisible()) {
     // Tests need the Code view, which basic mode hides; opt into advanced mode during onboarding.
-    await onboarding.getByRole("checkbox", { name: "Advanced mode" }).check();
+    await onboarding.getByRole("radio", { name: "Diagram + code" }).check();
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(dialog).toBeVisible();

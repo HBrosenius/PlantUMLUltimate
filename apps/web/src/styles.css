@@ -6726,3 +6726,82 @@ polygon.diagram-bulk-selected {
 .problem-repair-workspace .source-error-explanation {
   order: -1;
 }
+
+.editing-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.editing-mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.editing-mode-option:hover,
+.editing-mode-option:focus-within {
+  border-color: var(--accent);
+}
+.editing-mode-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+.editing-mode-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.editing-preview-window {
+  fill: var(--panel);
+  stroke: var(--line);
+}
+.editing-preview-toolbar {
+  fill: var(--bg);
+}
+.editing-preview-caption,
+.editing-preview-code {
+  fill: var(--text);
+  font-size: 10px;
+}
+.editing-preview-code {
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+}
+.editing-preview-directive {
+  fill: var(--syntax-directive);
+}
+.editing-preview-divider,
+.editing-preview-grid {
+  stroke: var(--line);
+}
+.editing-mode-option-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-dialog .editing-mode-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.editing-mode-option-description {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+@media (max-width: 520px) {
+  .editing-mode-options {
+    grid-template-columns: 1fr;
+  }
+}
+.settings-dialog:not(.settings-dialog-onboarding) {
+  width: min(680px, calc(100vw - 32px));
+}

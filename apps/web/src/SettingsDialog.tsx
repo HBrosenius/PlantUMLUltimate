@@ -10,6 +10,65 @@ export interface AppSettings {
   defaultDiagramTheme: string;
 }
 
+function EditingModePreview({ split }: { split: boolean }) {
+  const chartX = split ? 151 : 36;
+  return (
+    <svg className="editing-mode-preview" viewBox="0 0 280 150" aria-hidden="true" focusable="false">
+      <rect className="editing-preview-window" x="1" y="1" width="278" height="148" rx="8" />
+      <path className="editing-preview-toolbar" d="M9 1h262a8 8 0 0 1 8 8v20H1V9a8 8 0 0 1 8-8Z" />
+      <circle cx="12" cy="15" r="3" fill="#ef9b9b" />
+      <circle cx="23" cy="15" r="3" fill="#e7c66c" />
+      <circle cx="34" cy="15" r="3" fill="#8fbda0" />
+      <text className="editing-preview-caption" x="46" y="18">
+        Project plan
+      </text>
+      {split && (
+        <g className="editing-preview-code">
+          <path className="editing-preview-divider" d="M140 29v120" />
+          <text x="10" y="47">
+            PlantUML code
+          </text>
+          <text className="editing-preview-directive" x="10" y="66">
+            @startgantt
+          </text>
+          <text x="10" y="83">
+            [Plan] lasts 2 days
+          </text>
+          <text x="10" y="100">
+            [Build] lasts 4 days
+          </text>
+          <text x="10" y="117">
+            [Ship] lasts 1 day
+          </text>
+          <text className="editing-preview-directive" x="10" y="134">
+            @endgantt
+          </text>
+        </g>
+      )}
+      <g transform={`translate(${chartX}, 0)`}>
+        <text className="editing-preview-caption" x="0" y="47">
+          Diagram
+        </text>
+        {[0, 1, 2, 3, 4].map((day) => (
+          <path className="editing-preview-grid" key={day} d={`M${day * (split ? 25 : 45)} 56v79`} />
+        ))}
+        <text className="editing-preview-caption" x="0" y="71">
+          Plan
+        </text>
+        <rect x="0" y="76" width={split ? 37 : 65} height="9" rx="3" fill="#80b5f8" />
+        <text className="editing-preview-caption" x={split ? 29 : 50} y="99">
+          Build
+        </text>
+        <rect x={split ? 29 : 50} y="104" width={split ? 62 : 100} height="9" rx="3" fill="#a6d2ba" />
+        <text className="editing-preview-caption" x={split ? 83 : 139} y="127">
+          Ship
+        </text>
+        <rect x={split ? 83 : 139} y="132" width={split ? 23 : 35} height="9" rx="3" fill="#e8c782" />
+      </g>
+    </svg>
+  );
+}
+
 export function SettingsDialog({
   mode,
   current,
@@ -96,13 +155,37 @@ export function SettingsDialog({
         </section>
         <section className="document-settings-section" aria-labelledby="settings-mode-heading">
           <h3 id="settings-mode-heading">Editing mode</h3>
-          <label className="document-settings-checkbox">
-            <input type="checkbox" checked={advancedMode} onChange={(event) => setAdvancedMode(event.target.checked)} />{" "}
-            Advanced mode
-          </label>
-          <p>
-            {advancedMode ? "Also shows the Code and Split views alongside Diagram." : "Shows the Diagram view only."}
-          </p>
+          <p>Choose how you want to work. You can change this at any time.</p>
+          <div className="editing-mode-options" role="radiogroup" aria-labelledby="settings-mode-heading">
+            {[false, true].map((advanced) => (
+              <label
+                className={`editing-mode-option${advancedMode === advanced ? " selected" : ""}`}
+                key={String(advanced)}
+              >
+                <EditingModePreview split={advanced} />
+                <span className="editing-mode-option-title">
+                  <input
+                    type="radio"
+                    name="editing-mode"
+                    value={advanced ? "advanced" : "visual"}
+                    checked={advancedMode === advanced}
+                    aria-label={advanced ? "Diagram + code" : "Diagram only"}
+                    aria-describedby={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
+                    onChange={() => setAdvancedMode(advanced)}
+                  />
+                  <strong>{advanced ? "Diagram + code" : "Diagram only"}</strong>
+                </span>
+                <span
+                  className="editing-mode-option-description"
+                  id={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
+                >
+                  {advanced
+                    ? "Advanced editing: opens code and diagram side by side. Includes Code, Split and Diagram views."
+                    : "Edit with visual tools in a full-width diagram. The code editor is hidden."}
+                </span>
+              </label>
+            ))}
+          </div>
         </section>
         <footer>
           {mode === "settings" && (
