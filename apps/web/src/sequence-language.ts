@@ -171,7 +171,8 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       offset += line.length + 1;
       continue;
     }
-    if (freeText && !new RegExp(`^${stack.at(-1)!.closer}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
+    const closer = stack.at(-1)?.kind === "note" ? `(?:${stack.at(-1)!.closer}|end\\s+note)` : stack.at(-1)?.closer;
+    if (freeText && !new RegExp(`^${closer}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
       offset += line.length + 1;
       continue;
     }

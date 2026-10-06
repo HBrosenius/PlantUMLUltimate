@@ -3,6 +3,8 @@ import observations from "../../../tests/fixtures/official-plantuml/nested-block
 import engine from "@plantuml/core/package.json";
 import { writeFileSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { validateGeneratedSource } from "./generated-source-validation";
+import shapedNoteObservations from "../../../tests/fixtures/official-plantuml/shaped-note-closer-audit.json";
 import { terminatorIssues } from "./diagram-terminator-repairs";
 import type { DiagramKind } from "./model";
 import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
@@ -195,5 +197,23 @@ it("accepts official Sequence partitions and shaped note closers in editor diagn
     const source = corpus.examples[index]!;
     expect(diagnosticsForDiagram("sequence", source).filter((item) => item.severity === "error")).toEqual([]);
     expect(quickFixesForDiagram("sequence", source)).toEqual([]);
+  }
+});
+
+it("accepts generic and shape-specific note closers in generated Sequence edits", () => {
+  const before = "@startuml\nparticipant A\nparticipant B\nA -> B: Before\n@enduml";
+  for (const shape of ["hnote", "rnote"] as const) {
+    for (const closer of ["end note", `end${shape}`]) {
+      const source = `@startuml\nparticipant A\nparticipant B\n${shape} over A,B\nNote text\n${closer}\nA -> B: After\n@enduml`;
+      const observed = shapedNoteObservations.results.find((item) => item.id === `${shape}-${closer}`)!;
+      expect(observed.mutated.hash).toBe(createHash("sha256").update(source).digest("hex"));
+      expect(observed.mutated.status).toBe("accepted");
+      for (const newline of ["\n", "\r\n"]) {
+        const candidate = source.replaceAll("\n", newline);
+        expect(diagnosticsForDiagram("sequence", candidate).filter((item) => item.severity === "error")).toEqual([]);
+        expect(quickFixesForDiagram("sequence", candidate)).toEqual([]);
+        expect(validateGeneratedSource("sequence", before.replaceAll("\n", newline), candidate).valid).toBe(true);
+      }
+    }
   }
 });

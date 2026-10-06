@@ -156,6 +156,7 @@ export function terminatorIssues(kind: DiagramKind, source: string): TerminatorI
       if (
         expected &&
         (token === expected.end ||
+          (["endhnote", "endrnote"].includes(expected.end) && token === "end note") ||
           (kind === "activity" && expected.end === "end fork" && ["end merge", "endfork"].includes(token ?? "")))
       )
         close();

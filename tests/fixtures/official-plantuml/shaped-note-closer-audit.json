@@ -1,0 +1,70 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.6",
+  "results": [
+    {
+      "id": "hnote-end note",
+      "kind": "sequence",
+      "example": 0,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "cb06838c57afbcd45338aa245d5384d4cf82e848f1571c80380bfeec6cee83fd",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "cb06838c57afbcd45338aa245d5384d4cf82e848f1571c80380bfeec6cee83fd",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "hnote-endhnote",
+      "kind": "sequence",
+      "example": 1,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "58ae8c4d1e85c31ee9a9e2c99dc922258cd5b63dfe47ce8352be0a917f50181c",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "58ae8c4d1e85c31ee9a9e2c99dc922258cd5b63dfe47ce8352be0a917f50181c",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "rnote-end note",
+      "kind": "sequence",
+      "example": 2,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "059669e459bfbd3ca3b6073b2c0e3f5248f153f4d724a020801cdac54811c927",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "059669e459bfbd3ca3b6073b2c0e3f5248f153f4d724a020801cdac54811c927",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    },
+    {
+      "id": "rnote-endrnote",
+      "kind": "sequence",
+      "example": 3,
+      "mutation": "valid-control",
+      "baseline": {
+        "hash": "70847676bd04ea483f3ecdc85c90cdc72324a537b4fa2df0900602c5dcd79634",
+        "status": "accepted"
+      },
+      "mutated": {
+        "hash": "70847676bd04ea483f3ecdc85c90cdc72324a537b4fa2df0900602c5dcd79634",
+        "status": "accepted"
+      },
+      "diagnostics": [],
+      "repairs": []
+    }
+  ]
+}
