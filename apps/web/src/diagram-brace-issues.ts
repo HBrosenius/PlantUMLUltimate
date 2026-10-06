@@ -40,13 +40,21 @@ export function braceIssues(kind: DiagramKind, source: string): BraceIssue[] {
   const declaration =
     kind === "usecase"
       ? /^\s*(?:package|rectangle)\s+\S/i
-      : /^\s*(?:abstract\s+class|class|interface|enum|annotation|entity|component|package|rectangle|node|database|cloud|folder|frame)\s+\S/i;
+      : /^\s*[+~#-]?(?:abstract\s+class|class|interface|enum|annotation|entity|component|package|rectangle|node|database|cloud|folder|frame)\s+\S/i;
   // Use the original declaration for quoted names, but only count structural braces outside quotes.
   const isDeclaration = (line: (typeof lines)[number]) => declaration.test(line.text) && line.code.trim().length > 0;
   const issues: BraceIssue[] = [];
   let depth = 0;
+  let preservedDepth = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
+    if (preservedDepth > 0 || /^\s*(?:skinparam|json)\b.*\{/i.test(line.code)) {
+      preservedDepth = Math.max(
+        0,
+        preservedDepth + (line.code.match(/\{/g)?.length ?? 0) - (line.code.match(/\}/g)?.length ?? 0),
+      );
+      continue;
+    }
     if (line.code.trim() === "{" && i > 0 && isDeclaration(lines[i - 1]!) && /\{\s*$/.test(lines[i - 1]!.code)) {
       const to = i + 1 < lines.length ? lines[i + 1]!.from : line.from + line.text.length;
       issues.push({
@@ -118,7 +126,7 @@ export function braceIssues(kind: DiagramKind, source: string): BraceIssue[] {
         });
       }
       depth = Math.max(0, depth - count);
-    } else if (isDeclaration(line) && /\{\s*$/.test(line.code)) depth++;
+    } else if ((isDeclaration(line) || /^\s*(?:together)\b/i.test(line.code)) && /\{\s*$/.test(line.code)) depth++;
     if (/^\s*@(?:start|end)uml\b/i.test(line.code)) depth = 0;
   }
   return issues;

@@ -5,7 +5,7 @@ export const CLASS_RELATIONSHIP_PATTERN =
   /^\s*("[^"]+"|[\p{L}\p{N}_.$-]+)(?:\s+"([^"]+)")?\s+([^\s]+)\s+(?:"([^"]+)"\s+)?("[^"]+"|[\p{L}\p{N}_.$-]+)(?:\s*:\s*(.*))?$/u;
 /** Names PlantUML accepts unquoted as a relationship endpoint. */
 export const BARE_CLASS_NAME = /^[\p{L}\p{N}_.$-]+$/u;
-const normalize = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
+const normalizedId = (v: string) => v.trim().replace(/^"|"$/g, "").toLowerCase();
 const unquote = (v: string) =>
   v
     .trim()
@@ -68,6 +68,21 @@ export function parseClassDiagram(source: string): ClassDocument {
 
 function parseClassDiagramUncached(source: string): ClassDocument {
   if (source.length > MAX_SOURCE_LENGTH) throw new RangeError("Class source exceeds the 100,000 character limit");
+  const visible = visibleSource(source);
+  // Keep existing IDs stable unless case folding would merge distinct PlantUML names.
+  const names = new Map<string, Set<string>>();
+  for (const match of visible.text.matchAll(
+    /^\s*[+~#-]?(?:abstract\s+class|abstract|class|interface|enum|annotation|package|namespace|folder|frame|node|component|database|queue|cloud|artifact|file|rectangle)\s+("[^"]+"|[^\s{#<]+)(?:\s+as\s+([^\s{#<]+))?/gim,
+  )) {
+    const name = unquote(match[2] ?? match[1]!);
+    const variants = names.get(normalizedId(name)) ?? new Set<string>();
+    variants.add(name);
+    names.set(normalizedId(name), variants);
+  }
+  const normalize = (value: string) => {
+    const name = unquote(value);
+    return (names.get(normalizedId(name))?.size ?? 0) > 1 ? name : normalizedId(name);
+  };
   const entities: ClassEntity[] = [];
   const packages: ClassPackage[] = [];
   const relationships: ClassDocument["relationships"] = [];
@@ -75,9 +90,9 @@ function parseClassDiagramUncached(source: string): ClassDocument {
   const unknown: ClassDocument["unknown"] = [];
   const diagnostics: ClassDocument["diagnostics"] = [];
   const aliases = new Map<string, string>();
+  const anonymousGroups: Array<{ depth: number; range: { from: number; to: number } }> = [];
   const stack: Array<{ item: ClassPackage; from: number }> = [];
   const lines: Array<{ text: string; from: number; to: number }> = [];
-  const visible = visibleSource(source);
   if (visible.ignored !== undefined)
     diagnostics.push({
       severity: "warning",
@@ -97,7 +112,7 @@ function parseClassDiagramUncached(source: string): ClassDocument {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     const note = line.text.match(
-      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|[^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
+      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|[^\s:#]+(?:::(?:"[^"]+"|[^\s#]+))?)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
     );
     if (!note) continue;
     let end = i;
@@ -127,11 +142,21 @@ function parseClassDiagramUncached(source: string): ClassDocument {
     });
     i = end;
   }
+  let preservedDepth = 0;
   for (let i = 0; i < lines.length; i++) {
     if (consumed.has(i)) continue;
     const line = lines[i]!;
     const text = line.text.trim();
     const range = { from: line.from, to: line.to };
+    if (preservedDepth > 0 || /^(?:skinparam|json)\b.*\{/i.test(text)) {
+      const structural = text.replace(/"(?:\\.|[^"\\])*"/g, "");
+      preservedDepth = Math.max(
+        0,
+        preservedDepth + (structural.match(/\{/g)?.length ?? 0) - (structural.match(/\}/g)?.length ?? 0),
+      );
+      unknown.push({ text: line.text, range });
+      continue;
+    }
     const linkNote = line.text.match(/^\s*note\s+on\s+link(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i);
     if (linkNote) {
       let end = i;
@@ -176,8 +201,13 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       )
     )
       continue;
+    if (/^together\s*\{\s*$/i.test(text)) {
+      anonymousGroups.push({ depth: stack.length, range });
+      unknown.push({ text: line.text, range });
+      continue;
+    }
     const pkg = line.text.match(
-      /^\s*(package|namespace|folder|frame|node)\s+("[^"]+"|[^\s{#]+)(?:\s+as\s+([^\s{#]+))?(?:\s+(#[\w]+))?\s*\{\s*$/i,
+      /^\s*(package|namespace|folder|frame|node)\s+("[^"]+"|[^\s{#]+)(?:\s+as\s+([^\s{#]+))?(?:\s*<<[^>]+>>)?(?:\s+(#[\w/|\\-]+))?\s*\{\s*$/i,
     );
     if (pkg) {
       const label = unquote(pkg[2]!);
@@ -200,6 +230,11 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       continue;
     }
     if (/^}\s*$/.test(text)) {
+      if (anonymousGroups.at(-1)?.depth === stack.length) {
+        anonymousGroups.pop();
+        unknown.push({ text: line.text, range });
+        continue;
+      }
       const open = stack.pop();
       if (open) {
         open.item.closeRange = range;
@@ -214,7 +249,7 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       continue;
     }
     const decl = line.text.match(
-      /^\s*(abstract\s+class|abstract|class|interface|enum|annotation|component|database|queue|cloud|node|artifact|file|folder|rectangle)\s+("[^"]+"|[^\s{#<]+)(?:\s+as\s+([^\s{#<]+))?(?:\s*<([^>{}]+)>)?(.*?)(\{)?\s*$/i,
+      /^\s*[+~#-]?(abstract\s+class|abstract|class|interface|enum|annotation|component|database|queue|cloud|node|artifact|file|folder|rectangle)\s+("[^"]+"|[^\s{#<]+)(?:\s+as\s+([^\s{#<]+))?(?:\s*<([^>{}]+)>)?(.*?)(\{)?\s*$/i,
     );
     if (decl) {
       const kind = (
@@ -322,7 +357,11 @@ function parseClassDiagramUncached(source: string): ClassDocument {
   const declarations = [...entities, ...packages];
   const ids = new Set(entities.map((x) => x.id));
   for (const declaration of declarations) {
-    if (declarations.filter((item) => item.id === declaration.id).length > 1)
+    if (
+      declarations.some(
+        (item) => item !== declaration && item.id === declaration.id && item.label !== declaration.label,
+      )
+    )
       diagnostics.push({
         severity: "error",
         message: `Duplicate alias: ${declaration.alias ?? declaration.label}`,
@@ -338,9 +377,16 @@ function parseClassDiagramUncached(source: string): ClassDocument {
     ids.add(r.from);
     ids.add(r.to);
   }
+  for (const group of anonymousGroups)
+    diagnostics.push({
+      severity: "error",
+      message: "Together group is missing }",
+      range: group.range,
+      code: "unterminated-group",
+    });
   const noteTargets = new Set([...ids, ...relationships.map((item) => item.id)]);
   for (const note of notes)
-    if (note.targetId && !noteTargets.has(note.targetId))
+    if (note.targetId && !noteTargets.has(normalize(note.targetId.split("::")[0]!)))
       diagnostics.push({
         severity: "error",
         message: "Unknown note target",

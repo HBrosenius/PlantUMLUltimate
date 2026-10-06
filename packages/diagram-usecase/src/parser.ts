@@ -140,11 +140,21 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
   const noteIds = new Set(notes.flatMap((note) => (note.alias ? [normalizeId(note.alias)] : [])));
 
   let skinparamDepth = 0;
+  let preservedDepth = 0;
   for (const line of lines) {
     if (noteRanges.some((range) => line.from >= range.from && line.from <= range.to)) continue;
     const text = line.text.trim();
     const range = { from: line.from, to: line.to };
     if (!text || text.startsWith("'") || /^@(?:startuml|enduml)\b/i.test(text)) continue;
+    if (preservedDepth > 0 || /^json\b.*\{/i.test(text)) {
+      const structural = text.replace(/"(?:\\.|[^"\\])*"/g, "");
+      preservedDepth = Math.max(
+        0,
+        preservedDepth + (structural.match(/\{/g)?.length ?? 0) - (structural.match(/\}/g)?.length ?? 0),
+      );
+      unknown.push({ text: line.text, range });
+      continue;
+    }
     if (skinparamDepth > 0 || /^skinparam\b.*\{/i.test(text)) {
       skinparamDepth += (text.match(/\{/g)?.length ?? 0) - (text.match(/\}/g)?.length ?? 0);
       continue;
@@ -279,7 +289,12 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
         [relation[3], to, relation[1]],
       ] as const) {
         const shorthand = /^[:(]/.test(token);
-        if ((!shorthand && !otherToken.startsWith("(")) || noteIds.has(id) || implicitEndpoints.has(id)) continue;
+        if (
+          (!shorthand && !otherToken.startsWith("(") && !/[|]/.test(relation[2])) ||
+          noteIds.has(id) ||
+          implicitEndpoints.has(id)
+        )
+          continue;
         implicitEndpoints.set(id, {
           id,
           kind: token.startsWith("(") ? "usecase" : "actor",
@@ -331,6 +346,8 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     ids.add(id);
   }
   for (const relationship of relationships) {
+    relationship.from = aliases.get(relationship.from) ?? relationship.from;
+    relationship.to = aliases.get(relationship.to) ?? relationship.to;
     if (!ids.has(relationship.from) && !noteIds.has(relationship.from))
       diagnostics.push({
         severity: "error",

@@ -165,3 +165,38 @@ describe("parseClassDiagram robustness", () => {
     expect(document.diagnostics).toMatchObject([{ severity: "warning", code: "multiple-diagrams" }]);
   });
 });
+
+it("keeps case-distinct classes and packages addressable", () => {
+  const source = "@startuml\nclass a\npackage A {\nclass Child\n}\na --> Child\n@enduml";
+  const document = parseClassDiagram(source);
+  expect(document.diagnostics).toEqual([]);
+  expect(document.entities[0]?.id).toBe("a");
+  expect(document.packages[0]?.id).toBe("A");
+  expect(document.entities[1]?.packageId).toBe("A");
+  expect(document.relationships[0]?.from).toBe("a");
+});
+
+it("retains genuine alias conflicts and unknown note errors", () => {
+  const document = parseClassDiagram(
+    "@startuml\nclass One as Shared\nclass Two as Shared\nnote right of Missing::field : unknown\n@enduml",
+  );
+  expect(document.diagnostics.map((item) => item.code)).toEqual([
+    "duplicate-alias",
+    "duplicate-alias",
+    "unknown-note-target",
+  ]);
+});
+
+it("preserves JSON braces inside strings without swallowing following classes", () => {
+  const document = parseClassDiagram(
+    `@startuml\njson JSON ${JSON.stringify({ value: '{"}' }, null, 2)}\nclass After\n@enduml`,
+  );
+  expect(document.diagnostics).toEqual([]);
+  expect(document.entities.map((item) => item.label)).toEqual(["After"]);
+});
+
+it("reports an unclosed together group while parsing its classes", () => {
+  const document = parseClassDiagram("@startuml\ntogether {\nclass A\n@enduml");
+  expect(document.entities).toHaveLength(1);
+  expect(document.diagnostics.map((item) => item.code)).toEqual(["unterminated-group"]);
+});

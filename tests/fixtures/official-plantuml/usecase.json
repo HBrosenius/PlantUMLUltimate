@@ -1,0 +1,33 @@
+{
+  "url": "https://plantuml.com/use-case-diagram",
+  "retrieved": "2026-10-06",
+  "examples": [
+    "@startuml\n\n(First usecase)\n(Another usecase) as (UC2)\nusecase UC3\nusecase (Last\\nusecase) as UC4\n\n@enduml",
+    "@startuml\n\n:First Actor:\n:Another\\nactor: as Man2\nactor Woman3\nactor :Last actor: as Person1\n\n@enduml",
+    "@startuml\n:User: --> (Use)\n\"Main Admin\" as Admin\n\"Use the application\" as (Use)\nAdmin --> (Admin the application)\n@enduml",
+    "@startuml\nskinparam actorStyle awesome\n:User: --> (Use)\n\"Main Admin\" as Admin\n\"Use the application\" as (Use)\nAdmin --> (Admin the application)\n@enduml",
+    "@startuml\nskinparam actorStyle Hollow \n:User: --> (Use)\n\"Main Admin\" as Admin\n\"Use the application\" as (Use)\nAdmin --> (Admin the application)\n@enduml",
+    "@startuml\n\nusecase UC1 as \"You can use\nseveral lines to define your usecase.\nYou can also use separators.\n--\nSeveral separators are possible.\n==\nAnd you can add titles:\n..Conclusion..\nThis allows large description.\"\n\n@enduml",
+    "@startuml\nusecase description1 as alias1\nusecase alias2 as \"description2\"\n@enduml",
+    "@startuml\nleft to right direction\nactor Guest as g\npackage Professional {\n  actor Chef as c\n  actor \"Food Critic\" as fc\n}\npackage Restaurant {\n  usecase \"Eat Food\" as UC1\n  usecase \"Pay for Food\" as UC2\n  usecase \"Drink\" as UC3\n  usecase \"Review\" as UC4\n}\nfc --> UC4\ng --> UC1\ng --> UC2\ng --> UC3\n@enduml",
+    "@startuml\nleft to right direction\nactor \"Food Critic\" as fc\nrectangle Restaurant {\n  usecase \"Eat Food\" as UC1\n  usecase \"Pay for Food\" as UC2\n  usecase \"Drink\" as UC3\n}\nfc --> UC1\nfc --> UC2\nfc --> UC3\n@enduml",
+    "@startuml\n\nUser -> (Start)\nUser --> (Use the application) : A small label\n\n:Main Admin: ---> (Use the application) : This is\\nyet another\\nlabel\n\n@enduml",
+    "@startuml\n:Main Admin: as Admin\n(Use the application) as (Use)\n\nUser <|-- Admin\n(Start) <|-- (Use)\n\n@enduml",
+    "@startuml\n:Main Admin: as Admin\n(Use the application) as (Use)\n\nUser -> (Start)\nUser --> (Use)\n\nAdmin ---> (Use)\n\nnote right of Admin : This is an example.\n\nnote right of (Use)\n  A note can also\n  be on several lines\nend note\n\nnote \"This note is connected\\nto several objects.\" as N2\n(Start) .. N2\nN2 .. (Use)\n@enduml",
+    "@startuml\nUser << Human >>\n:Main Database: as MySql << Application >>\n(Start) << One Shot >>\n(Use the application) as (Use) << Main >>\n\nUser -> (Start)\nUser --> (Use)\n\nMySql --> (Use)\n\n@enduml",
+    "@startuml\n:user: --> (Use case 1)\n:user: -> (Use case 2)\n@enduml",
+    "@startuml\n(Use case 1) <.. :user:\n(Use case 2) <- :user:\n@enduml",
+    "@startuml\n:user: -left-> (dummyLeft)\n:user: -right-> (dummyRight)\n:user: -up-> (dummyUp)\n:user: -down-> (dummyDown)\n@enduml",
+    "@startuml\nleft to right direction\n:user: -left-> (dummyLeft)\n:user: -right-> (dummyRight)\n:user: -up-> (dummyUp)\n:user: -down-> (dummyDown)\n@enduml",
+    "@startuml\n:actor1: --> (Usecase1)\nnewpage\n:actor2: --> (Usecase2)\n@enduml",
+    "@startuml\n'default\ntop to bottom direction\nuser1 --> (Usecase 1)\nuser2 --> (Usecase 2)\n\n@enduml",
+    "@startuml\n\nleft to right direction\nuser1 --> (Usecase 1)\nuser2 --> (Usecase 2)\n\n@enduml",
+    "@startuml\n!option handwritten true\n\nskinparam usecase {\nBackgroundColor DarkSeaGreen\nBorderColor DarkSlateGray\n\nBackgroundColor<< Main >> YellowGreen\nBorderColor<< Main >> YellowGreen\n\nArrowColor Olive\nActorBorderColor black\nActorFontName Courier\n\nActorBackgroundColor<< Human >> Gold\n}\n\nUser << Human >>\n:Main Database: as MySql << Application >>\n(Start) << One Shot >>\n(Use the application) as (Use) << Main >>\n\nUser -> (Start)\nUser --> (Use)\n\nMySql --> (Use)\n\n@enduml",
+    "@startuml\nleft to right direction\nskinparam packageStyle rectangle\nactor customer\nactor clerk\nrectangle checkout {\n  customer -- (checkout)\n  (checkout) .> (payment) : include\n  (help) .> (checkout) : extends\n  (checkout) -- clerk\n}\n@enduml",
+    "@startuml\n\n(First usecase)/\n(Another usecase)/ as (UC2)\nusecase/ UC3\nusecase/ (Last\\nusecase) as UC4\n\n@enduml",
+    "@startuml\n\n:First Actor:/\n:Another\\nactor:/ as Man2\nactor/ Woman3\nactor/ :Last actor: as Person1\n\n@enduml",
+    "@startuml\nactor foo\nfoo --> (bar) : normal\nfoo --> (bar1) #line:red;line.bold;text:red  : red bold\nfoo --> (bar2) #green;line.dashed;text:green : green dashed \nfoo --> (bar3) #blue;line.dotted;text:blue   : blue dotted\n@enduml",
+    "@startuml\nactor a\nactor b #pink;line:red;line.bold;text:red\nusecase c #palegreen;line:green;line.dashed;text:green\nusecase d #aliceblue;line:blue;line.dotted;text:blue\n@enduml",
+    "@startuml\nallowmixing\n\nactor     Actor\nusecase   Usecase\n\njson JSON {\n   \"fruit\":\"Apple\",\n   \"size\":\"Large\",\n   \"color\": [\"Red\", \"Green\"]\n}\n@enduml"
+  ]
+}

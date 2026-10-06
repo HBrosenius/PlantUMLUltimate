@@ -1,0 +1,1204 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`official PlantUML example validation audit > audits every class example 1`] = `
+[
+  {
+    "diagnostics": [],
+    "example": 1,
+    "preserved": [
+      {
+        "line": 6,
+        "text": "circle          circle",
+      },
+      {
+        "line": 7,
+        "text": "()              circle_short_form",
+      },
+      {
+        "line": 10,
+        "text": "dataclass       dataclass",
+      },
+      {
+        "line": 11,
+        "text": "diamond         diamond",
+      },
+      {
+        "line": 12,
+        "text": "<>              diamond_short_form",
+      },
+      {
+        "line": 13,
+        "text": "entity          entity",
+      },
+      {
+        "line": 15,
+        "text": "exception       exception",
+      },
+      {
+        "line": 17,
+        "text": "metaclass       metaclass",
+      },
+      {
+        "line": 18,
+        "text": "protocol        protocol",
+      },
+      {
+        "line": 19,
+        "text": "record          record",
+      },
+      {
+        "line": 20,
+        "text": "stereotype      stereotype",
+      },
+      {
+        "line": 21,
+        "text": "struct          struct",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 2,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 3,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 4,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 5,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 6,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 7,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 8,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "remove $C1",
+      },
+      {
+        "line": 6,
+        "text": "remove $C2",
+      },
+      {
+        "line": 7,
+        "text": "remove dollarC2",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 9,
+    "preserved": [
+      {
+        "line": 4,
+        "text": "Object : equals()",
+      },
+      {
+        "line": 5,
+        "text": "ArrayList : Object[] elementData",
+      },
+      {
+        "line": 6,
+        "text": "ArrayList : size()",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 10,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 11,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 12,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 13,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 14,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 15,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 16,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 17,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 18,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 19,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 20,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "note "This is a floating note" as N1",
+      },
+      {
+        "line": 8,
+        "text": "note "This note is connected\\nto several objects." as N2",
+      },
+      {
+        "line": 13,
+        "text": "note left: On last defined class",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 21,
+    "preserved": [
+      {
+        "line": 4,
+        "text": "note left: On last defined class",
+      },
+      {
+        "line": 12,
+        "text": "note as N1",
+      },
+      {
+        "line": 13,
+        "text": "  This note is <u>also</u>",
+      },
+      {
+        "line": 14,
+        "text": "  <b><color:royalBlue>on several</color>",
+      },
+      {
+        "line": 15,
+        "text": "  <s>words</s> lines",
+      },
+      {
+        "line": 16,
+        "text": "  And this is hosted by <img:https://plantuml.com/sourceforge.jpg>",
+      },
+      {
+        "line": 17,
+        "text": "end note",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 22,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 23,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 24,
+    "preserved": [
+      {
+        "line": 8,
+        "text": "note right on link #blue",
+      },
+      {
+        "line": 9,
+        "text": "this is my note on right link",
+      },
+      {
+        "line": 10,
+        "text": "and in blue",
+      },
+      {
+        "line": 11,
+        "text": "end note",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 25,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 26,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 27,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 28,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 29,
+    "preserved": [
+      {
+        "line": 8,
+        "text": "remove Foo2",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 30,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 31,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 32,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "remove $tag13",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 33,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "remove $tag13",
+      },
+      {
+        "line": 8,
+        "text": "restore $tag1",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 34,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "remove *",
+      },
+      {
+        "line": 8,
+        "text": "restore $tag1",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 35,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 36,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 37,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "remove @unlinked",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 38,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 39,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 40,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 41,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "scale 750 width",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 42,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 43,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "set separator ::",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 44,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "set separator none",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 45,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 46,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 47,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 48,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 49,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 50,
+    "preserved": [
+      {
+        "line": 6,
+        "text": "(Student, Course) .. Enrollment",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 51,
+    "preserved": [
+      {
+        "line": 6,
+        "text": "(Student, Course) . Enrollment",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 52,
+    "preserved": [
+      {
+        "line": 10,
+        "text": "<> diamond",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 53,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "skinparam class {",
+      },
+      {
+        "line": 4,
+        "text": "BackgroundColor PaleGreen",
+      },
+      {
+        "line": 5,
+        "text": "ArrowColor SeaGreen",
+      },
+      {
+        "line": 6,
+        "text": "BorderColor SpringGreen",
+      },
+      {
+        "line": 7,
+        "text": "}",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 54,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "skinparam class {",
+      },
+      {
+        "line": 4,
+        "text": "BackgroundColor PaleGreen",
+      },
+      {
+        "line": 5,
+        "text": "ArrowColor SeaGreen",
+      },
+      {
+        "line": 6,
+        "text": "BorderColor SpringGreen",
+      },
+      {
+        "line": 7,
+        "text": "BackgroundColor<<Foo>> Wheat",
+      },
+      {
+        "line": 8,
+        "text": "BorderColor<<Foo>> Tomato",
+      },
+      {
+        "line": 9,
+        "text": "}",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 55,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "note left of Foo #blue\\9932CC",
+      },
+      {
+        "line": 8,
+        "text": "  this is my",
+      },
+      {
+        "line": 9,
+        "text": "  note on this class",
+      },
+      {
+        "line": 10,
+        "text": "end note",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 56,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "together {",
+      },
+      {
+        "line": 9,
+        "text": "}",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 57,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "page 2x2",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 58,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 59,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 60,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "bar1 : [bold]  ",
+      },
+      {
+        "line": 6,
+        "text": "bar2 : [dashed]",
+      },
+      {
+        "line": 7,
+        "text": "bar3 : [dotted]",
+      },
+      {
+        "line": 8,
+        "text": "bar4 : [hidden]",
+      },
+      {
+        "line": 9,
+        "text": "bar5 : [plain] ",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 61,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "bar1 : [bold]  ",
+      },
+      {
+        "line": 6,
+        "text": "bar2 : [dashed]",
+      },
+      {
+        "line": 7,
+        "text": "bar3 : [dotted]",
+      },
+      {
+        "line": 8,
+        "text": "bar4 : [hidden]",
+      },
+      {
+        "line": 9,
+        "text": "bar5 : [plain] ",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 62,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "bar1 : [#red]",
+      },
+      {
+        "line": 6,
+        "text": "bar2 : [#green]",
+      },
+      {
+        "line": 7,
+        "text": "bar3 : [#blue]",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 63,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "bar1 : [thickness=1]",
+      },
+      {
+        "line": 6,
+        "text": "bar2 : [thickness=2]",
+      },
+      {
+        "line": 7,
+        "text": "bar3 : [thickness=4]",
+      },
+      {
+        "line": 8,
+        "text": "bar4 : [thickness=8]",
+      },
+      {
+        "line": 9,
+        "text": "bar5 : [thickness=16]",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 64,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "bar1 : [#red,thickness=1]",
+      },
+      {
+        "line": 6,
+        "text": "bar2 : [#red,dashed,thickness=2]",
+      },
+      {
+        "line": 7,
+        "text": "bar3 : [#green,dashed,thickness=4]",
+      },
+      {
+        "line": 8,
+        "text": "bar4 : [#blue,dotted,thickness=8]",
+      },
+      {
+        "line": 9,
+        "text": "bar5 : [#blue,plain,thickness=16]",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 65,
+    "preserved": [
+      {
+        "line": 4,
+        "text": "foo --> bar1 #line:red;line.bold;text:red  : red bold",
+      },
+      {
+        "line": 5,
+        "text": "foo --> bar2 #green;line.dashed;text:green : green dashed",
+      },
+      {
+        "line": 6,
+        "text": "foo --> bar3 #blue;line.dotted;text:blue   : blue dotted",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 66,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 67,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 68,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 69,
+    "preserved": [
+      {
+        "line": 12,
+        "text": "Foo::field1 --> Bar::field3 : foo",
+      },
+      {
+        "line": 13,
+        "text": "Foo::field2 --> Bar::field4 : bar",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 70,
+    "preserved": [
+      {
+        "line": 17,
+        "text": "User::id *-- Email::user_id",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 71,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 72,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 73,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 74,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 75,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "object Object",
+      },
+      {
+        "line": 4,
+        "text": "json JSON {",
+      },
+      {
+        "line": 5,
+        "text": "   "fruit":"Apple",",
+      },
+      {
+        "line": 6,
+        "text": "   "size":"Large",",
+      },
+      {
+        "line": 7,
+        "text": "   "color": ["Red", "Green"]",
+      },
+      {
+        "line": 8,
+        "text": "}",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 76,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 77,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "set separator none",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 78,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "!pragma useIntermediatePackages false",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 79,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "set separator none",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 80,
+    "preserved": [
+      {
+        "line": 5,
+        "text": "class1 [Qualifier] - class2",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 81,
+    "preserved": [
+      {
+        "line": 6,
+        "text": "    Shop [customerId: long] ---> "customer\\n1" Customer",
+      },
+      {
+        "line": 7,
+        "text": "    HashMap [id: Long] -r-> "value" Customer",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 82,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 83,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "!pragma layout smetana",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 84,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 85,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "!pragma layout smetana",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 86,
+    "preserved": [
+      {
+        "line": 4,
+        "text": "User "owner which is very long"/1 -- "0..n"/items Item",
+      },
+    ],
+    "repairs": [],
+  },
+]
+`;
+
+exports[`official PlantUML example validation audit > audits every usecase example 1`] = `
+[
+  {
+    "diagnostics": [],
+    "example": 1,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 2,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 3,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 4,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 5,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 6,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 7,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 8,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 9,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 10,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 11,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 12,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 13,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 14,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 15,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 16,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 17,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 18,
+    "preserved": [
+      {
+        "line": 3,
+        "text": "newpage",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 19,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 20,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 21,
+    "preserved": [
+      {
+        "line": 2,
+        "text": "!option handwritten true",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 22,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 23,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 24,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 25,
+    "preserved": [
+      {
+        "line": 4,
+        "text": "foo --> (bar1) #line:red;line.bold;text:red  : red bold",
+      },
+      {
+        "line": 5,
+        "text": "foo --> (bar2) #green;line.dashed;text:green : green dashed ",
+      },
+      {
+        "line": 6,
+        "text": "foo --> (bar3) #blue;line.dotted;text:blue   : blue dotted",
+      },
+    ],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 26,
+    "preserved": [],
+    "repairs": [],
+  },
+  {
+    "diagnostics": [],
+    "example": 27,
+    "preserved": [
+      {
+        "line": 7,
+        "text": "json JSON {",
+      },
+      {
+        "line": 8,
+        "text": "   "fruit":"Apple",",
+      },
+      {
+        "line": 9,
+        "text": "   "size":"Large",",
+      },
+      {
+        "line": 10,
+        "text": "   "color": ["Red", "Green"]",
+      },
+      {
+        "line": 11,
+        "text": "}",
+      },
+    ],
+    "repairs": [],
+  },
+]
+`;
