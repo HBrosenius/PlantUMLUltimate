@@ -137,3 +137,25 @@ it("shows matching corrections immediately when explaining an error without chan
   expect(screen.queryByRole("button", { name: "Open suggested fixes" })).not.toBeInTheDocument();
   expect(onChange).not.toHaveBeenCalled();
 });
+
+it("hides batch repair actions for read-only documents", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  try {
+    render(
+      <CodeEditor
+        diagramKind="gantt"
+        value="@startgant\n[A] lasts 2 days\n@endgant"
+        readOnly
+        repairHost={host}
+        repairWorkspaceOpen
+        onChange={vi.fn()}
+        onCursorChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Apply.*safe fixes/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Safe fixes preview" })).toBeNull();
+  } finally {
+    host.remove();
+  }
+});

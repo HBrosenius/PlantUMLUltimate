@@ -1,3 +1,5 @@
+import { repairCategory, type RepairCategory, remainingRepairSummary } from "./remaining-repair-summary";
+import { safeFixBatch } from "./safe-fix-batch";
 import { nextRepairDiagnostic } from "./next-repair-diagnostic";
 import { createPortal, flushSync } from "react-dom";
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
@@ -39,6 +41,8 @@ interface Props {
   repairHost?: HTMLElement | null;
   repairWorkspaceOpen?: boolean;
   onOpenRepairWorkspace?: () => void;
+  onFilterRepairCategory?: (category: RepairCategory) => void;
+  repairCategoryFilter?: RepairCategory | undefined;
   onRepairRequestHandled?: (() => void) | undefined;
   symbolHighlights?: Array<{ from: number; to: number; active?: boolean }> | undefined;
   remoteParticipants?: CollaborationParticipant[] | undefined;
@@ -228,6 +232,8 @@ export function CodeEditor({
   repairHost,
   repairWorkspaceOpen,
   onOpenRepairWorkspace,
+  onFilterRepairCategory,
+  repairCategoryFilter,
   onRepairRequestHandled,
   symbolHighlights,
   remoteParticipants,
@@ -269,6 +275,9 @@ export function CodeEditor({
   const [fixFilter, setFixFilter] = useState<{ keys: string[]; line: number }>();
   const [fixPickerOpen, setFixPickerOpen] = useState(false);
   const [fixFeedback, setFixFeedback] = useState("");
+  const [batchHasRemainingErrors, setBatchHasRemainingErrors] = useState(false);
+  const [batchFeedbackPrefix, setBatchFeedbackPrefix] = useState("");
+  const [batchPreview, setBatchPreview] = useState<FixSnapshot>();
   const openRepairWorkspace = useRef(onOpenRepairWorkspace);
   openRepairWorkspace.current = onOpenRepairWorkspace;
   useEffect(() => {
@@ -280,7 +289,9 @@ export function CodeEditor({
     previousRepairWorkspaceOpen.current = repairWorkspaceOpen;
     if (repairWorkspaceOpen === false) {
       setExplanation(undefined);
+      setBatchPreview(undefined);
       setFixFeedback("");
+      setBatchHasRemainingErrors(false);
       if (fixPicker.current) fixPicker.current.open = false;
       if (wasOpen)
         requestAnimationFrame(() => {
@@ -402,6 +413,7 @@ export function CodeEditor({
               sourceRevision.current++;
               setDiagnosticPreview(undefined);
               setFixFeedback("");
+              setBatchHasRemainingErrors(false);
               const picker = fixPicker.current;
               const restoreEditorFocus =
                 picker?.contains(document.activeElement) || explanationPanel.current?.contains(document.activeElement);
@@ -539,6 +551,7 @@ export function CodeEditor({
     setExplanation(undefined);
     setFixFilter(undefined);
     setFixFeedback("");
+    setBatchHasRemainingErrors(false);
     setDiagnosticPreview(undefined);
   }, [documentId, diagramKind]);
 
@@ -673,19 +686,21 @@ export function CodeEditor({
     }
   }, [repairRequest, documentId, diagramKind, readOnly, onRepairRequestHandled, updateExplanation]);
 
-  const applyQuickFix = (fix: DiagramQuickFix) => {
+  const applyQuickFix = (fix: DiagramQuickFix, batch?: readonly DiagramQuickFix[]) => {
     const editor = view.current;
     if (!editor || readOnly) return;
     if (
-      !isCurrentFix(
-        fixSnapshot,
-        {
-          source: editor.state.doc.toString(),
-          kind: kindRef.current,
-          documentId: documentIdRef.current,
-          revision: sourceRevision.current,
-        },
-        fix,
+      !(batch ?? [fix]).every((item) =>
+        isCurrentFix(
+          fixSnapshot,
+          {
+            source: editor.state.doc.toString(),
+            kind: kindRef.current,
+            documentId: documentIdRef.current,
+            revision: sourceRevision.current,
+          },
+          item,
+        ),
       )
     ) {
       if (fixPicker.current) fixPicker.current.open = false;
@@ -695,24 +710,54 @@ export function CodeEditor({
       return;
     }
     if (fixPicker.current) fixPicker.current.open = false;
+    setBatchPreview(undefined);
     const line = editor.state.doc.lineAt(fix.from).number;
     applyingFix.current = fix.label ?? fix.message;
     try {
       editor.dispatch({
         annotations: isolateHistory.of("full"),
-        changes: { from: fix.from, to: fix.to, insert: fix.replacement },
-        selection: { anchor: fix.from + fix.replacement.length },
+        changes: batch
+          ? batch.map((item) => ({ from: item.from, to: item.to, insert: item.replacement }))
+          : { from: fix.from, to: fix.to, insert: fix.replacement },
+        selection: { anchor: batch ? 0 : fix.from + fix.replacement.length },
       });
     } finally {
       applyingFix.current = undefined;
     }
     const diagnostics = diagnosticsForDiagram(kindRef.current, editor.state.doc.toString());
     const remaining = diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
-    const feedback = `Applied “${fix.label ?? fix.message}” on line ${line}. ${remaining === 0 ? "No errors remain." : `${remaining} ${remaining === 1 ? "error remains" : "errors remain"}.`} Undo: Ctrl/⌘ + Z.`;
+    const result = batch
+      ? remainingRepairSummary(
+          kindRef.current,
+          editor.state.doc.toString(),
+          diagnostics,
+          quickFixesForDiagram(kindRef.current, editor.state.doc.toString()),
+        )
+      : remaining === 0
+        ? "No errors remain."
+        : `${remaining} ${remaining === 1 ? "error remains" : "errors remain"}.`;
+    const feedback = `Applied “${fix.label ?? fix.message}” on line ${line}. ${result} Undo: Ctrl/⌘ + Z.`;
+    setBatchFeedbackPrefix(
+      `Applied “${fix.label ?? fix.message}” on line ${line}. ${remaining} ${remaining === 1 ? "error remains" : "errors remain"}: `,
+    );
     setFixFeedback(feedback);
+    setBatchHasRemainingErrors(Boolean(batch || repairCategoryFilter) && remaining > 0);
     setErrorAnnouncement(feedback);
     if (repairHost) {
-      const next = nextRepairDiagnostic(diagnostics, fix.from);
+      const next = nextRepairDiagnostic(
+        repairCategoryFilter
+          ? diagnostics.filter(
+              (item) =>
+                repairCategory(
+                  kindRef.current,
+                  editor.state.doc.toString(),
+                  item,
+                  quickFixesForDiagram(kindRef.current, editor.state.doc.toString()),
+                ) === repairCategoryFilter,
+            )
+          : diagnostics,
+        fix.from,
+      );
       if (next) {
         editor.dispatch({
           selection: { anchor: next.from },
@@ -735,6 +780,27 @@ export function CodeEditor({
       }
     }
     editor.focus();
+  };
+
+  const goToNextRepair = () => {
+    const editor = view.current;
+    if (!editor) return;
+    const source = editor.state.doc.toString();
+    const fixes = quickFixesForDiagram(kindRef.current, source);
+    const candidates = diagnosticsForDiagram(kindRef.current, source).filter(
+      (item) =>
+        item.severity === "error" &&
+        (!repairCategoryFilter || repairCategory(kindRef.current, source, item, fixes) === repairCategoryFilter),
+    );
+    const locations = errorLocations(candidates);
+    const next = locations[nextErrorIndex(locations, editor.state.selection.main.head, 1)];
+    if (!next) return;
+    editor.dispatch({
+      selection: { anchor: next.from },
+      effects: EditorView.scrollIntoView(next.from, { y: "nearest" }),
+    });
+    flushSync(() => updateExplanation(next, editor));
+    explanationPanel.current?.focus();
   };
 
   const navigateError = (direction: 1 | -1) => {
@@ -765,6 +831,28 @@ export function CodeEditor({
     fixSnapshot.revision === sourceRevision.current
       ? fixSnapshot.fixes
       : [];
+  const safeBatch = useMemo(
+    () =>
+      repairHost && repairWorkspaceOpen && !readOnly
+        ? safeFixBatch(fixSnapshot.kind, fixSnapshot.source, fixSnapshot.fixes)
+        : { fixes: [], source: fixSnapshot.source },
+    [fixSnapshot, repairHost, repairWorkspaceOpen, readOnly],
+  );
+  const repairCounts = useMemo(() => {
+    const counts = { choice: 0, review: 0, manual: 0 };
+    if (batchHasRemainingErrors)
+      for (const item of diagnosticsForDiagram(fixSnapshot.kind, fixSnapshot.source)) {
+        const category = repairCategory(fixSnapshot.kind, fixSnapshot.source, item, fixSnapshot.fixes);
+        if (category) counts[category]++;
+      }
+    return counts;
+  }, [fixSnapshot, batchHasRemainingErrors]);
+  const batchCurrent = batchPreview === fixSnapshot && quickFixes.length > 0;
+  const batchPanel = useRef<HTMLDivElement>(null);
+  const batchTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (batchCurrent) batchPanel.current?.focus();
+  }, [batchCurrent]);
   const relationshipRepair = quickFixes.length === 1 && quickFixes[0]?.message.startsWith("Repair ");
   const previewSource = view.current?.state.doc.toString() ?? value;
   const fixOutcomes = useMemo(() => {
@@ -985,8 +1073,70 @@ export function CodeEditor({
     </details>
   );
 
+  const batchContent =
+    repairHost && !readOnly && quickFixes.length > 0 && safeBatch.fixes.length > 1
+      ? renderRepair(
+          <div className="source-safe-fixes">
+            {!batchCurrent ? (
+              <button type="button" ref={batchTrigger} onClick={() => setBatchPreview(fixSnapshot)}>
+                Apply safe fixes ({safeBatch.fixes.length})
+              </button>
+            ) : (
+              <div role="region" aria-label="Safe fixes preview" tabIndex={-1} ref={batchPanel}>
+                <strong>Review {safeBatch.fixes.length} safe fixes</strong>
+                <p>Alternatives and overlapping edits are excluded. One Undo restores the original source.</p>
+                {safeBatch.fixes.map((fix) => {
+                  const preview = sourceFixPreview(previewSource, fix);
+                  return (
+                    <div key={`${fix.from}:${fix.to}`}>
+                      <strong>
+                        Line {preview.line}: {fix.label ?? fix.message}
+                      </strong>
+                      <pre>
+                        Before: {preview.compactBefore}
+                        {"\n"}After: {preview.compactAfter}
+                      </pre>
+                    </div>
+                  );
+                })}
+                <details>
+                  <summary>Combined proposed source</summary>
+                  <pre>{safeBatch.source}</pre>
+                </details>
+                <button
+                  type="button"
+                  onClick={() =>
+                    applyQuickFix(
+                      {
+                        from: 0,
+                        to: previewSource.length,
+                        replacement: safeBatch.source,
+                        message: `Apply ${safeBatch.fixes.length} safe fixes`,
+                      },
+                      safeBatch.fixes,
+                    )
+                  }
+                >
+                  Apply {safeBatch.fixes.length} safe fixes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    flushSync(() => setBatchPreview(undefined));
+                    batchTrigger.current?.focus();
+                  }}
+                >
+                  Cancel safe fixes
+                </button>
+              </div>
+            )}
+          </div>,
+        )
+      : null;
+
   return (
     <section className="editor-pane" aria-label="Code editor section">
+      {batchContent}
       <div className="editor-actions">
         <button
           type="button"
@@ -1041,7 +1191,48 @@ export function CodeEditor({
         </button>
       </div>
       <div className="editor-host" ref={host} aria-label="PlantUML source editor" data-inspector-trigger />
-      {fixFeedback && renderRepair(<p className="source-fix-feedback">{fixFeedback}</p>)}
+      {fixFeedback &&
+        renderRepair(
+          <div className="source-fix-feedback">
+            {batchHasRemainingErrors && onFilterRepairCategory ? (
+              <p aria-label="Filter remaining errors">
+                {batchFeedbackPrefix}
+                {(["choice", "review", "manual"] as const)
+                  .filter((category) => repairCounts[category] > 0)
+                  .map((category, index) => (
+                    <span key={category}>
+                      {index > 0 && ", "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExplanation(undefined);
+                          if (fixPicker.current) fixPicker.current.open = false;
+                          onFilterRepairCategory(category);
+                        }}
+                      >
+                        {repairCounts[category]} {repairCounts[category] === 1 ? "needs" : "need"}{" "}
+                        {category === "choice" ? "a choice" : category === "manual" ? "manual editing" : "review"}
+                      </button>
+                    </span>
+                  ))}
+                . Undo: Ctrl/⌘ + Z.
+              </p>
+            ) : (
+              <p>{fixFeedback}</p>
+            )}
+            {batchHasRemainingErrors && repairCategoryFilter && repairCounts[repairCategoryFilter] === 0 && (
+              <p role="status">No errors remain in this group. Choose another group above.</p>
+            )}
+            {batchHasRemainingErrors &&
+              errors.length > 0 &&
+              repairHost &&
+              (!repairCategoryFilter || repairCounts[repairCategoryFilter] > 0) && (
+                <button type="button" onClick={goToNextRepair}>
+                  Go to next error
+                </button>
+              )}
+          </div>,
+        )}
       {explanation &&
         renderRepair(
           <div

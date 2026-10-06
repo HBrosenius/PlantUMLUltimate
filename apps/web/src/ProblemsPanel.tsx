@@ -1,3 +1,4 @@
+import { repairCategory, type RepairCategory } from "./remaining-repair-summary";
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { groupDiagnostics } from "./diagnostic-groups";
@@ -19,6 +20,8 @@ export function ProblemsPanel({
   onPreviewFix,
   onPreviewDiagnostic,
   onClose,
+  categoryFilter,
+  onClearCategoryFilter,
 }: {
   diagramKind: DiagramKind;
   open?: boolean;
@@ -32,6 +35,8 @@ export function ProblemsPanel({
   onPreviewFix(fix: DiagramQuickFix): void;
   onPreviewDiagnostic(diagnostic: Diagnostic): void;
   onClose(): void;
+  categoryFilter?: RepairCategory | undefined;
+  onClearCategoryFilter?: () => void;
 }) {
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -52,6 +57,15 @@ export function ProblemsPanel({
     () => groupDiagnostics(diagramKind, source, diagnostics, quickFixes),
     [diagramKind, source, diagnostics, quickFixes],
   );
+  const visibleDiagnostics = categoryFilter
+    ? diagnostics.filter((item) => repairCategory(diagramKind, source, item, quickFixes) === categoryFilter)
+    : diagnostics;
+  const previousCategoryFilter = useRef(categoryFilter);
+  useEffect(() => {
+    if (categoryFilter || previousCategoryFilter.current)
+      results.current?.querySelector<HTMLButtonElement>("[data-problem-diagnostic]")?.focus();
+    previousCategoryFilter.current = categoryFilter;
+  }, [categoryFilter]);
   const renderDiagnostic = (diagnostic: Diagnostic, index: number) => {
     const guidance = manualErrorGuidance(diagramKind, diagnostic, quickFixes);
     const line = source.slice(0, diagnostic.from).split(/\r?\n/).length;
@@ -126,24 +140,37 @@ export function ProblemsPanel({
           Use ↑/↓ to move between errors, Enter to reveal, and Alt+Enter to preview available fixes.
         </p>
       )}
+      {categoryFilter && (
+        <div className="problem-category-filter">
+          <p>
+            Showing {visibleDiagnostics.length} error{visibleDiagnostics.length === 1 ? "" : "s"} needing{" "}
+            {categoryFilter === "choice" ? "a choice" : categoryFilter === "manual" ? "manual editing" : "review"}.
+          </p>
+          <button type="button" onClick={onClearCategoryFilter}>
+            Show all problems
+          </button>
+        </div>
+      )}
       <div className="problem-results" role="list" ref={results}>
-        {groups.map(({ root, related }, index) => (
-          <div className="problem-group" key={`${root.from}:${root.to}:${index}`}>
-            {related.length > 0 && <small>Likely root error</small>}
-            {renderDiagnostic(root, index)}
-            {related.length > 0 && (
-              <details>
-                <summary>
-                  {related.length} related diagnostic{related.length === 1 ? "" : "s"}
-                </summary>
-                <p>These messages disappear with the same suggested fix. Review the root error first.</p>
-                <div role="list" aria-label="Related diagnostics">
-                  {related.map(renderDiagnostic)}
-                </div>
-              </details>
-            )}
-          </div>
-        ))}
+        {categoryFilter
+          ? visibleDiagnostics.map(renderDiagnostic)
+          : groups.map(({ root, related }, index) => (
+              <div className="problem-group" key={`${root.from}:${root.to}:${index}`}>
+                {related.length > 0 && <small>Likely root error</small>}
+                {renderDiagnostic(root, index)}
+                {related.length > 0 && (
+                  <details>
+                    <summary>
+                      {related.length} related diagnostic{related.length === 1 ? "" : "s"}
+                    </summary>
+                    <p>These messages disappear with the same suggested fix. Review the root error first.</p>
+                    <div role="list" aria-label="Related diagnostics">
+                      {related.map(renderDiagnostic)}
+                    </div>
+                  </details>
+                )}
+              </div>
+            ))}
       </div>
       {quickFixes.length > 0 && !readOnly && !onRepairHost && (
         <section className="problem-fixes" aria-label="Available quick fixes">

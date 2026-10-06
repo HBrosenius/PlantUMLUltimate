@@ -1,3 +1,4 @@
+import type { RepairCategory } from "./remaining-repair-summary";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
@@ -274,6 +275,16 @@ export function App() {
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
   const [interactionMessage, setInteractionMessage] = useState<string>();
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [repairCategoryFilter, setRepairCategoryFilter] = useState<{
+    source: string;
+    documentId: string;
+    category: RepairCategory;
+  }>();
+  useEffect(() => {
+    setRepairCategoryFilter((current) =>
+      current?.source === workspace.source && current.documentId === tabs.activeId ? current : undefined,
+    );
+  }, [workspace.source, tabs.activeId]);
   const [repairHost, setRepairHost] = useState<HTMLDivElement | null>(null);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -3395,10 +3406,21 @@ export function App() {
             value={workspace.source}
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
-            onApplyFix={(source, label) => commitSource(source, `Apply fix: ${label}`, false)}
+            onApplyFix={(source, label) => {
+              setRepairCategoryFilter((current) => (current ? { ...current, source } : undefined));
+              commitSource(source, `Apply fix: ${label}`, false);
+            }}
             selectedRange={selectionRequest}
             repairHost={repairHost}
             repairWorkspaceOpen={problemsOpen}
+            repairCategoryFilter={
+              repairCategoryFilter?.source === workspace.source && repairCategoryFilter.documentId === tabs.activeId
+                ? repairCategoryFilter.category
+                : undefined
+            }
+            onFilterRepairCategory={(category) =>
+              setRepairCategoryFilter({ source: workspace.source, documentId: tabs.activeId, category })
+            }
             onOpenRepairWorkspace={() => {
               setProblemPreview(undefined);
               setProblemsOpen(true);
@@ -4842,6 +4864,12 @@ export function App() {
         />
       )}
       <ProblemsPanel
+        categoryFilter={
+          repairCategoryFilter?.source === workspace.source && repairCategoryFilter.documentId === tabs.activeId
+            ? repairCategoryFilter.category
+            : undefined
+        }
+        onClearCategoryFilter={() => setRepairCategoryFilter(undefined)}
         open={problemsOpen}
         onRepairHost={setRepairHost}
         diagramKind={workspace.diagramKind}
@@ -4879,6 +4907,7 @@ export function App() {
         }}
         onClose={() => {
           setProblemsOpen(false);
+          setRepairCategoryFilter(undefined);
           setProblemPreview(undefined);
         }}
       />

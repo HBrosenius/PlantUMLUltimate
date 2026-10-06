@@ -6710,7 +6710,9 @@ polygon.diagram-bulk-selected {
   display: grid;
   gap: 0.2rem;
 }
-.problem-repair-workspace .source-fixes button {
+.problem-repair-workspace .source-fixes button,
+.source-safe-fixes button,
+.problem-repair-workspace .source-fix-feedback button {
   padding: 0.5rem;
   border: 1px solid var(--line);
   border-radius: 0.4rem;
@@ -6719,12 +6721,36 @@ polygon.diagram-bulk-selected {
   font: inherit;
 }
 .problem-repair-workspace .source-fixes button:hover,
-.problem-repair-workspace .source-fixes button:focus-visible {
+.problem-repair-workspace .source-fixes button:focus-visible,
+.source-safe-fixes button:hover,
+.source-safe-fixes button:focus-visible,
+.problem-repair-workspace .source-fix-feedback button:hover,
+.problem-repair-workspace .source-fix-feedback button:focus-visible {
   border-color: var(--accent);
 }
 
 .problem-repair-workspace .source-error-explanation {
   order: -1;
+}
+
+.source-safe-fixes {
+  order: -2;
+  margin-bottom: 0.75rem;
+}
+.source-safe-fixes [role="region"] {
+  max-height: min(420px, calc(100vh - 220px));
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+.source-safe-fixes pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.source-safe-fixes button {
+  margin: 0.25rem 0.25rem 0.25rem 0;
 }
 
 .editing-mode-options {
