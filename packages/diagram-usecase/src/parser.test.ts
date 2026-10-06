@@ -72,7 +72,8 @@ skinparam usecase {
 @enduml`);
     expect(nested.useCases[0]?.packageId).toBe("system");
     expect(nested.diagnostics.map((item) => item.code)).toEqual(["unexpected-package-end"]);
-    expect(nested.packages[0]?.closeRange.from).toBe(nested.packages[0]?.sourceRange.to! - 1);
+    const nestedPackage = nested.packages[0]!;
+    expect(nestedPackage.closeRange.from).toBe(nestedPackage.sourceRange.to - 1);
   });
 
   it("rejects oversized input before applying grammar expressions", () => {
