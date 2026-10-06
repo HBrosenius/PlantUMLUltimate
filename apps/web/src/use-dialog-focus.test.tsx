@@ -24,6 +24,20 @@ function TestDialog({ onClose }: { onClose(): void }) {
 }
 
 describe("useDialogFocus", () => {
+  it("does not steal focus after the user starts interacting before the animation frame", () => {
+    let focusFrame: FrameRequestCallback | undefined;
+    const animationFrame = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      focusFrame = callback;
+      return 1;
+    });
+    render(<TestDialog onClose={() => undefined} />);
+    const last = screen.getByRole("button", { name: "Last" });
+    last.focus();
+    focusFrame?.(0);
+    expect(last).toHaveFocus();
+    animationFrame.mockRestore();
+  });
+
   it("focuses the preferred control, traps Tab, closes on Escape, and restores focus", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

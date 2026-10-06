@@ -593,21 +593,19 @@ test("protects dirty tabs from browser unload", async ({ page }) => {
     .toBe(true);
 });
 
-test("rebuilds the renderer iframe once and explains a repeated bootstrap failure", async ({ page, browserName }) => {
-  test.skip(browserName !== "chromium", "Direct srcdoc frame failure injection is Chromium-specific");
+test("rebuilds the renderer iframe once and explains a repeated bootstrap failure", async ({ page }) => {
   const iframe = page.locator('iframe[title="Local PlantUML renderer"]');
   await expect(iframe).toHaveCount(1);
   const failCurrentFrame = async () => {
-    const sourceDocument = await iframe.getAttribute("srcdoc");
-    const channel = sourceDocument?.match(/const channel = ("[^"]+")/)?.[1];
-    expect(channel).toBeTruthy();
     const frame = await (await iframe.elementHandle())!.contentFrame();
+    const channel = await frame!.evaluate(() => {
+      const value = document.querySelector("script[type=module]")?.textContent?.match(/const channel = ("[^"]+")/)?.[1];
+      return value ? (JSON.parse(value) as string) : undefined;
+    });
+    expect(channel).toBeTruthy();
     await frame!.evaluate(
       (value) =>
-        parent.postMessage(
-          { channel: JSON.parse(value), type: "bootstrap-error", error: "Injected startup failure" },
-          "*",
-        ),
+        parent.postMessage({ channel: value, type: "bootstrap-error", error: "Injected startup failure" }, "*"),
       channel!,
     );
   };

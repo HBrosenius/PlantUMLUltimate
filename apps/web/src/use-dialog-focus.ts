@@ -18,6 +18,8 @@ export function useDialogFocus(container: RefObject<HTMLElement | null>, onClose
     const previous =
       active && !active.closest('[role="dialog"], [role="alertdialog"]') ? active : lastFocusedOutsideDialog;
     const frame = requestAnimationFrame(() => {
+      // Preserve React autofocus and any focus the user has already moved into the dialog.
+      if (container.current?.contains(document.activeElement)) return;
       const preferred = container.current?.querySelector<HTMLElement>("[data-dialog-autofocus], [autofocus]");
       (preferred ?? container.current?.querySelector<HTMLElement>(focusable) ?? container.current)?.focus();
     });

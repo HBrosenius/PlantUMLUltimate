@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import * as Y from "yjs";
 
+import { prepareEditor } from "./editor-helpers";
+
 test("sanitizes active SVG content before DOM insertion", async ({ page }) => {
   await page.goto("/");
   const sanitized = await page.evaluate(async () => {
@@ -99,4 +101,29 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
   expect(transport.protocols).toContain(`access.${accessToken}`);
   expect(transport.sentKinds?.length).toBeGreaterThan(0);
   expect(transport.sentKinds?.every((kind) => kind === "text")).toBe(true);
+});
+
+test("renders native and Graphviz diagrams with the deployed CSP header", async ({ page }) => {
+  await page.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "document") return route.continue();
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        "content-security-policy":
+          "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss: ws:; worker-src 'self' blob:; frame-src 'self'",
+      },
+    });
+  });
+  await prepareEditor(page);
+  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: /Component diagram/ })
+    .click();
+  await expect(page.getByRole("region", { name: "Component diagram preview" }).locator("svg")).toBeVisible({
+    timeout: 20_000,
+  });
 });
