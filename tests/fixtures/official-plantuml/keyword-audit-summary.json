@@ -1,0 +1,86 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.6",
+  "retrieved": "2026-10-06",
+  "inventoryHash": "539c965d8e4a518a7cb665a1f6da509da9499b875d2a07ef037495506b3212d9",
+  "officialExamples": 428,
+  "results": [
+    {
+      "kind": "sequence",
+      "mutations": 35,
+      "beforeDetected": 35,
+      "beforeExactFixes": 35,
+      "afterDetected": 35,
+      "afterExactFixes": 35,
+      "rendererRejected": 35,
+      "equivalentRepairs": 35,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "class",
+      "mutations": 195,
+      "beforeDetected": 27,
+      "beforeExactFixes": 0,
+      "afterDetected": 195,
+      "afterExactFixes": 195,
+      "rendererRejected": 195,
+      "equivalentRepairs": 195,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "component",
+      "mutations": 197,
+      "beforeDetected": 27,
+      "beforeExactFixes": 0,
+      "afterDetected": 197,
+      "afterExactFixes": 197,
+      "rendererRejected": 196,
+      "equivalentRepairs": 197,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "usecase",
+      "mutations": 116,
+      "beforeDetected": 35,
+      "beforeExactFixes": 0,
+      "afterDetected": 116,
+      "afterExactFixes": 116,
+      "rendererRejected": 115,
+      "equivalentRepairs": 116,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "activity",
+      "mutations": 191,
+      "beforeDetected": 122,
+      "beforeExactFixes": 0,
+      "afterDetected": 191,
+      "afterExactFixes": 191,
+      "rendererRejected": 191,
+      "equivalentRepairs": 191,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "gantt",
+      "mutations": 101,
+      "beforeDetected": 0,
+      "beforeExactFixes": 0,
+      "afterDetected": 101,
+      "afterExactFixes": 101,
+      "rendererRejected": 101,
+      "equivalentRepairs": 101,
+      "changedRepairs": 0
+    },
+    {
+      "kind": "wbs",
+      "mutations": 35,
+      "beforeDetected": 0,
+      "beforeExactFixes": 0,
+      "afterDetected": 35,
+      "afterExactFixes": 35,
+      "rendererRejected": 35,
+      "equivalentRepairs": 35,
+      "changedRepairs": 0
+    }
+  ]
+}

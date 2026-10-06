@@ -1,3 +1,4 @@
+import { hasAmbiguousBraceTail } from "./block-repair-safety";
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic } from "@codemirror/lint";
 import { parseClassDiagram } from "@plantuml-studio/diagram-class";
@@ -103,52 +104,9 @@ export function classQuickFixes(source: string): ClassQuickFix[] {
       const newline = source.includes("\r\n") ? "\r\n" : "\n";
       const at = end?.index ?? source.length;
       const message = item.code === "unterminated-class" ? "Close class member block" : "Close package";
-      const choices: ClassQuickFix[] = [{ from: at, to: at, replacement: "}" + newline, message }];
-      if (item.code === "unterminated-class") {
-        const headerEnd = source.indexOf("\n", item.range.from);
-        const header = source.slice(item.range.from, headerEnd < 0 ? source.length : headerEnd);
-        const indent = header.match(/^\s*/)?.[0] ?? "";
-        let offset = headerEnd + 1;
-        let comment = false;
-        let note = false;
-        for (const raw of source.slice(offset, at).split("\n")) {
-          const text = raw.trim();
-          if (comment) {
-            if (text.includes("'/")) comment = false;
-          } else if (text.startsWith("/'")) comment = !text.includes("'/", 2);
-          else if (note) {
-            if (/^end\s+note\b/i.test(text)) note = false;
-          } else if (/^note\b/i.test(text) && !text.includes(":")) note = true;
-          else if (
-            !text.startsWith("'") &&
-            /^(?:abstract\s+class|class|interface|enum|annotation|entity|component|package|rectangle|node|database|cloud|folder|frame)\s+/i.test(
-              text,
-            ) &&
-            (raw.match(/^\s*/)?.[0].length ?? 0) <= indent.length
-          ) {
-            const replacement = indent + "}" + newline;
-            const candidate = source.slice(0, offset) + replacement + source.slice(offset);
-            if (
-              parseClassDiagram(candidate).diagnostics.filter((diagnostic) => diagnostic.severity === "error").length <
-              document.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length
-            ) {
-              const choiceGroup = `class-close:${item.range.from}`;
-              choices[0] = { ...choices[0]!, label: "Close class at diagram end", choiceGroup };
-              choices.push({
-                from: offset,
-                to: offset,
-                replacement,
-                message,
-                label: `Close class before line ${source.slice(0, offset).split("\n").length}`,
-                choiceGroup,
-              });
-            }
-            break;
-          }
-          offset += raw.length + 1;
-        }
-      }
-      return choices;
+      if (hasAmbiguousBraceTail(source, item.range.from, at, item.code === "unterminated-class" ? "class" : "package"))
+        return [];
+      return [{ from: at, to: at, replacement: "}" + newline, message }];
     }
     if (item.code === "unexpected-package-end")
       return [

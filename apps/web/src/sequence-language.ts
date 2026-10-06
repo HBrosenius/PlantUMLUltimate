@@ -118,11 +118,50 @@ export function sequenceCompletions(context: CompletionContext): CompletionResul
   return { from: word?.from ?? context.pos, options: KEYWORDS.map((label) => ({ label, type: "keyword" })) };
 }
 
+function sequenceKeywordCorrection(word: string): string | undefined {
+  const lower = word.toLowerCase();
+  const keywords = [
+    "participant",
+    "skinparam",
+    "boundary",
+    "control",
+    "entity",
+    "database",
+    "collections",
+    "queue",
+    "activate",
+    "deactivate",
+    "autonumber",
+  ];
+  if (keywords.includes(lower)) return undefined;
+  const candidates = keywords.filter((keyword) => {
+    if (Math.abs(lower.length - keyword.length) > 1) return false;
+    if (lower.length === keyword.length) {
+      const different = [...lower]
+        .map((letter, index) => (letter === keyword[index] ? -1 : index))
+        .filter((index) => index >= 0);
+      return (
+        different.length === 1 ||
+        (different.length === 2 &&
+          different[1] === different[0]! + 1 &&
+          lower[different[0]!] === keyword[different[1]!] &&
+          lower[different[1]!] === keyword[different[0]!])
+      );
+    }
+    const shorter = lower.length < keyword.length ? lower : keyword;
+    const longer = lower.length < keyword.length ? keyword : lower;
+    return [...longer].some((_, index) => longer.slice(0, index) + longer.slice(index + 1) === shorter);
+  });
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
 export function sequenceDiagnostics(source: string): Diagnostic[] {
   const stack: Array<{ kind: string; closer: string; from: number; to: number }> = [];
   const diagnostics: Diagnostic[] = [];
   let offset = 0;
   let blockComment = false;
+  let textBlock: string | undefined;
+  let opaqueDepth = 0;
   for (const line of source.split("\n")) {
     const text = line.trim();
     const freeText = ["note", "ref"].includes(stack.at(-1)?.kind ?? "");
@@ -135,6 +174,51 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
     if (freeText && !new RegExp(`^end\\s+${stack.at(-1)!.kind}\\s*(?:'[^\n]*)?$`, "i").test(text)) {
       offset += line.length + 1;
       continue;
+    }
+    if (textBlock) {
+      if (new RegExp(`^end${textBlock === "title" ? "title" : ` ${textBlock}`}\\s*$`, "i").test(text))
+        textBlock = undefined;
+      offset += line.length + 1;
+      continue;
+    }
+    if (/^(?:title|legend|header|footer)\s*$/i.test(text)) {
+      textBlock = text.toLowerCase();
+      offset += line.length + 1;
+      continue;
+    }
+    if (opaqueDepth || /^\s*(?:skinparam\b.*\{|<style>)/i.test(line)) {
+      if (/<style>/i.test(line)) opaqueDepth = 1;
+      else if (/<\/style>/i.test(line)) opaqueDepth = 0;
+      else opaqueDepth += (line.match(/\{/g)?.length ?? 0) - (line.match(/\}/g)?.length ?? 0);
+      offset += line.length + 1;
+      continue;
+    }
+    const keywordLike = line.match(/^\s*([a-z]+)\s+(\S.*)$/i);
+    if (keywordLike && !/(?:[-.=]+[>\\/]|<[-.=]+|\s-{1,2}\s)/.test(keywordLike[2]!.split(":")[0]!)) {
+      const correction = sequenceKeywordCorrection(keywordLike[1]!);
+      if (correction) {
+        const from = offset + line.indexOf(keywordLike[1]!);
+        diagnostics.push({
+          from,
+          to: from + keywordLike[1]!.length,
+          severity: "error",
+          message: `Unknown Sequence keyword "${keywordLike[1]}"; did you mean "${correction}"?`,
+          source: "PlantUML Sequence",
+        });
+      }
+    }
+    // A bare dash between two endpoints is a likely message with a missing arrowhead.
+    // Restrict this to message-shaped lines so prose and directives remain untouched.
+    const missingHead = line.match(/^\s*("[^"]+"|[\p{L}\p{N}_.$]+)\s*(-{1,2})\s*("[^"]+"|[\p{L}\p{N}_.$]+)\s*:/u);
+    if (missingHead) {
+      const arrowAt = offset + line.indexOf(missingHead[2]!, line.indexOf(missingHead[1]!) + missingHead[1]!.length);
+      diagnostics.push({
+        from: arrowAt,
+        to: arrowAt + missingHead[2]!.length,
+        severity: "error",
+        message: "Sequence message arrow is missing an arrowhead",
+        source: "PlantUML Sequence",
+      });
     }
     const start = line.match(
       /^\s*(?:(alt|opt|loop|par|break|critical|group|box)\b|(\/?\s*(?:note|hnote|rnote))\s+(?:left|right|over|across)\b(?!.*:)|ref(?:\s+#[\w]+)?\s+over\b(?!.*:))/i,
@@ -238,17 +322,40 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
 export function sequenceQuickFixes(source: string): SequenceQuickFix[] {
   const diagnostics = sequenceDiagnostics(source);
   const end = /^\s*@enduml\b/im.exec(source);
-  return diagnostics.map((diagnostic) => {
-    if (diagnostic.message.startsWith("Unexpected"))
-      return {
-        from: diagnostic.from,
-        to: Math.min(source.length, diagnostic.to + (source[diagnostic.to] === "\n" ? 1 : 0)),
-        replacement: "",
-        message: `Remove ${diagnostic.message.toLowerCase()}`,
-      };
-    const kind = diagnostic.message.match(/^Unclosed\s+(\S+)/)?.[1] ?? "fragment";
-    const closer = kind === "box" ? "end box" : kind === "note" ? "end note" : kind === "ref" ? "end ref" : "end";
-    const at = end?.index ?? source.length;
-    return { from: at, to: at, replacement: `${closer}\n`, message: `Insert ${closer}` };
-  });
+  return diagnostics
+    .filter(
+      (diagnostic) =>
+        /^(?:Unexpected|Unclosed|Unknown Sequence keyword)\b/.test(diagnostic.message) ||
+        diagnostic.message === "Sequence message arrow is missing an arrowhead",
+    )
+    .map((diagnostic) => {
+      if (diagnostic.message === "Sequence message arrow is missing an arrowhead")
+        return {
+          from: diagnostic.from,
+          to: diagnostic.to,
+          replacement: `${source.slice(diagnostic.from, diagnostic.to)}>`,
+          message: "Add a right-pointing arrowhead",
+        };
+      const correctedKeyword = diagnostic.message.match(
+        /^Unknown Sequence keyword .*; did you mean "([a-z]+)"\?$/,
+      )?.[1];
+      if (correctedKeyword)
+        return {
+          from: diagnostic.from,
+          to: diagnostic.to,
+          replacement: correctedKeyword,
+          message: `Replace with ${correctedKeyword}`,
+        };
+      if (diagnostic.message.startsWith("Unexpected"))
+        return {
+          from: diagnostic.from,
+          to: Math.min(source.length, diagnostic.to + (source[diagnostic.to] === "\n" ? 1 : 0)),
+          replacement: "",
+          message: `Remove ${diagnostic.message.toLowerCase()}`,
+        };
+      const kind = diagnostic.message.match(/^Unclosed\s+(\S+)/)?.[1] ?? "fragment";
+      const closer = kind === "box" ? "end box" : kind === "note" ? "end note" : kind === "ref" ? "end ref" : "end";
+      const at = end?.index ?? source.length;
+      return { from: at, to: at, replacement: `${closer}\n`, message: `Insert ${closer}` };
+    });
 }

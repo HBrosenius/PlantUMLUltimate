@@ -1,3 +1,4 @@
+import { hasAmbiguousBraceTail } from "./block-repair-safety";
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Diagnostic } from "@codemirror/lint";
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
@@ -95,12 +96,13 @@ export function getUseCaseQuickFixes(source: string): UseCaseQuickFix[] {
   const document = parseUseCase(source);
   const end = /^\s*@enduml\b/im.exec(source);
   return document.diagnostics.flatMap((item) =>
-    item.code === "unterminated-package"
+    item.code === "unterminated-package" &&
+    !hasAmbiguousBraceTail(source, item.range.from, end?.index ?? source.length, "package")
       ? [
           {
             from: end?.index ?? source.length,
             to: end?.index ?? source.length,
-            replacement: "}\n",
+            replacement: "}" + (source.includes("\r\n") ? "\r\n" : "\n"),
             message: "Close package or rectangle",
           },
         ]

@@ -1,3 +1,4 @@
+import { isOuterStatement, opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
 
@@ -12,10 +13,18 @@ function distance(a: string, b: string): number {
   return row[b.length]!;
 }
 
-export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+interface TerminatorIssue {
+  from: number;
+  to: number;
+  message: string;
+  replacement?: string;
+  label?: string;
+}
+
+export function terminatorIssues(kind: DiagramKind, source: string): TerminatorIssue[] {
   if (kind === "wbs") return [];
-  const fixes: DiagramQuickFix[] = [];
-  const stack: Array<{ end: string; indent: string }> = [];
+  const fixes: TerminatorIssue[] = [];
+  const stack: Array<{ end: string; indent: string; from?: number; to?: number; uncertain?: boolean }> = [];
   const canonical = new Set([
     "end",
     "end note",
@@ -73,12 +82,20 @@ export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQui
         });
         stack.pop();
       } else if (["end note", "end ref"].includes(expected?.end ?? "")) {
-        // Note bodies are free text; do not interpret their words as control statements.
+        // Do not guess a missing note boundary when later statements could be swallowed.
+        if (
+          expected?.end === "end note" &&
+          (isOuterStatement(text) ||
+            (token !== undefined && canonical.has(token)) ||
+            (kind === "sequence" && /^(?:alt|opt|loop|par|break|critical|group|box|ref)\b/i.test(text)) ||
+            (kind === "activity" && /^(?:start|stop|if|while|switch|fork|split|:.*;)/i.test(text)) ||
+            (kind === "gantt" && /^\[/.test(text)))
+        )
+          expected.uncertain = true;
       } else if (token && canonical.has(token)) ambiguous = true;
       else {
         const indent = line.match(/^\s*/)?.[0] ?? "";
-        if (/^(?:note|hnote|rnote)\b/i.test(text) && !text.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(text))
-          stack.push({ end: "end note", indent });
+        if (opensNoteBlock(text)) stack.push({ end: "end note", indent, from: offset, to: offset + line.length });
         else if (kind === "sequence") {
           if (/^(?:alt|opt|loop|par|break|critical|group)\b/i.test(text)) stack.push({ end: "end", indent });
           else if (/^box\b/i.test(text)) stack.push({ end: "end box", indent });
@@ -102,7 +119,15 @@ export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQui
     }
     offset += raw.length + 1;
   }
-  if (stack.length && !ambiguous) {
+  for (const opening of stack.filter((item) => item.uncertain)) {
+    fixes.push({ from: opening.from!, to: opening.to!, message: "Note is missing end note" });
+  }
+  if (stack.length && !ambiguous && !stack.some((item) => item.uncertain)) {
+    if (stack.at(-1)?.end === "end note") {
+      // Trailing blank lines belong after the note closer, not inside its rendered text.
+      const tail = /\n(?:[ \t]*\r?\n)+$/.exec(source.slice(0, insertion));
+      if (tail) insertion = tail.index + 1;
+    }
     const prefix = insertion === source.length && source.length > 0 && !source.endsWith("\n") ? newline : "";
     const replacement =
       prefix +
@@ -119,4 +144,8 @@ export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQui
     });
   }
   return fixes;
+}
+
+export function terminatorRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+  return terminatorIssues(kind, source).filter((issue): issue is DiagramQuickFix => issue.replacement !== undefined);
 }

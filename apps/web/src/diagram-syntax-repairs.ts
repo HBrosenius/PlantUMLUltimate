@@ -1,3 +1,4 @@
+import { opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
@@ -37,13 +38,19 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
   let hasContent = false;
   for (const line of source.split("\n")) {
     const trimmed = line.trim();
+    if (
+      note &&
+      /^@end(?:uml|gantt|wbs)\b/i.test(trimmed) &&
+      !/^\s*end\s+note\b/im.test(source.slice(offset + line.length))
+    )
+      note = false;
     if (blockComment) {
       if (trimmed.includes("'/")) blockComment = false;
     } else if (trimmed.startsWith("/'")) {
       blockComment = !trimmed.includes("'/", 2);
     } else if (note) {
       if (/^end\s+note\b/i.test(trimmed)) note = false;
-    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(trimmed)) {
+    } else if (opensNoteBlock(trimmed)) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
       if (trimmed) hasContent = true;

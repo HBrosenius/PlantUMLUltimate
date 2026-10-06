@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
-import { parseClassDiagram } from "@plantuml-studio/diagram-class";
-import { quickFixesForDiagram } from "./diagram-diagnostics";
+import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
 it("offers alternative task references without changing dependency dates", () => {
   const source =
@@ -15,17 +14,12 @@ it("offers alternative task references without changing dependency dates", () =>
 });
 
 for (const newline of ["\n", "\r\n"])
-  it(`offers two class closing positions with ${newline === "\n" ? "LF" : "CRLF"}`, () => {
+  it(`withholds an ambiguous class closer with ${newline === "\n" ? "LF" : "CRLF"}`, () => {
     const source = ["@startuml", "class Order {", "  +id: UUID", "class Customer", "@enduml"].join(newline);
-    const fixes = quickFixesForDiagram("class", source);
-    expect(fixes).toHaveLength(2);
-    expect(new Set(fixes.map((item) => item.choiceGroup)).size).toBe(1);
-    const before = fixes.find((item) => item.label === "Close class before line 4")!;
-    const after = source.slice(0, before.from) + before.replacement + source.slice(before.to);
-    expect(parseClassDiagram(after).entities.map((entity) => entity.label)).toEqual(["Order", "Customer"]);
-    expect(after).toContain("+id: UUID");
-    expect(after).toContain("class Customer");
-    expect(after.replace("}" + newline, "")).toBe(source);
+    expect(quickFixesForDiagram("class", source)).toEqual([]);
+    expect(diagnosticsForDiagram("class", source)).toEqual([
+      expect.objectContaining({ message: "Order is missing }", severity: "error" }),
+    ]);
   });
 
 it("ignores declaration examples inside comments when locating a closing position", () => {

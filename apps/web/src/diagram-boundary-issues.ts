@@ -1,3 +1,4 @@
+import { opensNoteBlock } from "./block-repair-safety";
 import type { DiagramKind } from "./model";
 
 interface Boundary {
@@ -27,13 +28,19 @@ export function boundaryIssues(kind: DiagramKind, source: string): BoundaryIssue
   for (const [index, raw] of source.split("\n").entries()) {
     const text = raw.replace(/\r$/, "");
     const trimmed = text.trim();
+    if (
+      note &&
+      /^@end(?:uml|gantt|wbs)\b/i.test(trimmed) &&
+      !/^\s*end\s+note\b/im.test(source.slice(offset + raw.length))
+    )
+      note = false;
     if (block) {
       if (trimmed.includes("'/")) block = false;
     } else if (trimmed.startsWith("/'")) {
       block = !trimmed.includes("'/", 2);
     } else if (note) {
       if (/^end\s+note\b/i.test(trimmed)) note = false;
-    } else if (/^note\b/i.test(trimmed) && !trimmed.includes(":") && !/^note\s+"[^"]*"\s+as\b/i.test(trimmed)) {
+    } else if (opensNoteBlock(trimmed)) {
       note = true;
     } else if (!trimmed.startsWith("'")) {
       const match = text.match(/^(\s*)(@(start|end)(gantt|wbs|uml))\b/i);

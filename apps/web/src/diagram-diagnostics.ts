@@ -1,4 +1,5 @@
-import { terminatorRepairs } from "./diagram-terminator-repairs";
+import { keywordRepairs } from "./diagram-keyword-repairs";
+import { terminatorIssues, terminatorRepairs } from "./diagram-terminator-repairs";
 import { braceIssues } from "./diagram-brace-issues";
 import { boundaryIssues } from "./diagram-boundary-issues";
 import { quoteIssues } from "./diagram-quote-issues";
@@ -42,18 +43,28 @@ const languageDiagnostics = (kind: DiagramKind, source: string): Diagnostic[] =>
           : wbsDiagnostics(source);
 };
 
-const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[] =>
-  kind === "gantt"
-    ? ganttQuickFixes(source)
-    : kind === "sequence"
-      ? sequenceQuickFixes(source)
-      : kind === "usecase"
-        ? getUseCaseQuickFixes(source)
-        : kind === "class" || kind === "component"
-          ? classQuickFixes(source)
-          : kind === "activity"
-            ? activityQuickFixes(source)
-            : wbsQuickFixes(source);
+const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
+  const fixes =
+    kind === "gantt"
+      ? ganttQuickFixes(source)
+      : kind === "sequence"
+        ? sequenceQuickFixes(source)
+        : kind === "usecase"
+          ? getUseCaseQuickFixes(source)
+          : kind === "class" || kind === "component"
+            ? classQuickFixes(source)
+            : kind === "activity"
+              ? activityQuickFixes(source)
+              : wbsQuickFixes(source);
+  const uncertainNotes = terminatorIssues(kind, source).filter((issue) => issue.replacement === undefined);
+  return fixes.filter((fix) => {
+    const closesBlocks = fix.replacement
+      .trim()
+      .split(/\r?\n/)
+      .every((line) => /^(?:}|end(?:\s+(?:note|ref|box|fork|split))?|endif|endwhile|endswitch)$/.test(line.trim()));
+    return !closesBlocks || !uncertainNotes.some((note) => note.from < fix.from);
+  });
+};
 
 // Compare parser results after the non-overlapping shared repairs, but retain original
 // source ranges for the editor. This removes consequences of a typo rather than unrelated errors.
@@ -99,12 +110,18 @@ function consistentItems<T extends { from: number; to: number; message: string }
 }
 
 function sharedRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
-  return [
+  const existing = [
     ...syntaxRepairs(kind, source),
     ...braceIssues(kind, source),
     ...terminatorRepairs(kind, source),
     ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)].flatMap((issue) =>
       issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
+    ),
+  ];
+  return [
+    ...existing,
+    ...keywordRepairs(kind, source).filter(
+      (fix) => !existing.some((repair) => repair.from < fix.to && fix.from < repair.to),
     ),
   ];
 }
@@ -123,7 +140,7 @@ function coherentRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
 }
 
 function unfixableIssues(kind: DiagramKind, source: string) {
-  return [...quoteIssues(kind, source), ...boundaryIssues(kind, source)].filter(
+  return [...quoteIssues(kind, source), ...boundaryIssues(kind, source), ...terminatorIssues(kind, source)].filter(
     (issue) => issue.replacement === undefined,
   );
 }
@@ -140,6 +157,7 @@ export const quickFixesForDiagram = (kind: DiagramKind, source: string): Diagram
 
 export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagnostic[] => {
   const repairs = coherentRepairs(kind, source);
+  const issues = consistentItems(kind, source, repairs, unfixableIssues);
   return [
     ...repairs.map((fix): Diagnostic => ({
       from: fix.from,
@@ -155,14 +173,16 @@ export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagno
         },
       ],
     })),
-    ...consistentItems(kind, source, repairs, unfixableIssues).map((issue): Diagnostic => ({
+    ...issues.map((issue): Diagnostic => ({
       from: issue.from,
       to: issue.to,
       severity: "error",
       message: issue.message,
     })),
     ...consistentItems(kind, source, repairs, languageDiagnostics).filter(
-      (item) => !repairs.some((repair) => repair.from <= item.from && repair.to >= item.to),
+      (item) =>
+        !repairs.some((repair) => repair.from <= item.from && repair.to >= item.to) &&
+        !issues.some((issue) => issue.from === item.from && issue.to === item.to && issue.message === item.message),
     ),
   ];
 };
