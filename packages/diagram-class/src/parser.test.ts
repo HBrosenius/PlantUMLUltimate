@@ -1,6 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { findClassObjectAt, parseClassDiagram } from "./parser";
 describe("parseClassDiagram", () => {
+  it("accepts implicit classes in relationships with multiplicities", () => {
+    const source = `@startuml
+
+Class01 "1" *-- "many" Class02 : contains
+
+Class03 o-- Class04 : aggregation
+
+Class05 --> "1" Class06
+
+@enduml`;
+    for (const value of [source, source.replaceAll("\n", "\r\n")]) {
+      const document = parseClassDiagram(value);
+      expect(document.diagnostics).toEqual([]);
+      expect(document.unknown).toEqual([]);
+      expect(document.relationships).toMatchObject([
+        {
+          from: "class01",
+          to: "class02",
+          kind: "composition",
+          fromMultiplicity: "1",
+          toMultiplicity: "many",
+          label: "contains",
+        },
+        { from: "class03", to: "class04", kind: "aggregation", label: "aggregation" },
+        { from: "class05", to: "class06", kind: "association", toMultiplicity: "1" },
+      ]);
+    }
+  });
+
+  it("allows notes on implicit classes and resolves later aliases", () => {
+    const document = parseClassDiagram(`@startuml
+A --> "Display name"
+class "Display name" as B
+note right of A : Implicit class
+note right of Missing : Unknown target
+@enduml`);
+    expect(document.relationships[0]).toMatchObject({ from: "a", to: "b" });
+    expect(document.diagnostics.map((item) => item.code)).toEqual(["unknown-note-target"]);
+  });
+
   it("parses component diagram elements with aliases, stereotypes, and relationships", () => {
     const document = parseClassDiagram(`@startuml
 component "Web application" as Web <<frontend>>
@@ -82,11 +122,9 @@ end note
     });
     expect(document.diagnostics).toHaveLength(0);
   });
-  it("reports broken containers and endpoints", () => {
+  it("reports broken containers while allowing implicitly declared endpoints", () => {
     const d = parseClassDiagram("@startuml\npackage P {\nclass A\nA --> Missing\n@enduml");
-    expect(d.diagnostics.map((x) => x.code)).toEqual(
-      expect.arrayContaining(["unterminated-package", "unknown-endpoint"]),
-    );
+    expect(d.diagnostics.map((x) => x.code)).toEqual(["unterminated-package"]);
   });
 });
 

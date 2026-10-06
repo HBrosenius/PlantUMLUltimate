@@ -331,13 +331,12 @@ function parseClassDiagramUncached(source: string): ClassDocument {
       });
   }
   for (const r of relationships) {
-    if (!ids.has(r.from) || !ids.has(r.to))
-      diagnostics.push({
-        severity: "error",
-        message: "Unknown relationship endpoint",
-        range: r.sourceRange,
-        code: "unknown-endpoint",
-      });
+    // PlantUML relationships introduce undeclared classes implicitly.
+    // Resolve forward declarations before collecting valid note targets.
+    r.from = aliases.get(r.from) ?? r.from;
+    r.to = aliases.get(r.to) ?? r.to;
+    ids.add(r.from);
+    ids.add(r.to);
   }
   const noteTargets = new Set([...ids, ...relationships.map((item) => item.id)]);
   for (const note of notes)

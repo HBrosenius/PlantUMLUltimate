@@ -2,6 +2,30 @@ import { describe, expect, it } from "vitest";
 import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
 
 describe("quoted label repairs", () => {
+  it("accepts multiline use-case descriptions without offering quote repairs", () => {
+    const source = `@startuml
+
+usecase UC1 as "You can use
+several lines to define your usecase.
+You can also use separators.
+--
+Several separators are possible.
+==
+And you can add titles:
+..Conclusion..
+This allows large description."
+
+@enduml`;
+    for (const value of [source, source.replaceAll("\n", "\r\n")]) {
+      expect(diagnosticsForDiagram("usecase", value).filter((item) => item.severity === "error")).toEqual([]);
+      expect(quickFixesForDiagram("usecase", value)).toEqual([]);
+    }
+    const unterminated = source.replace('description."', "description.");
+    expect(diagnosticsForDiagram("usecase", unterminated)).toContainEqual(
+      expect.objectContaining({ message: "Quoted label has an unmatched quote" }),
+    );
+  });
+
   for (const [kind, prefix, suffix] of [
     ["sequence", "participant ", " as A"],
     ["class", "class ", " as A"],

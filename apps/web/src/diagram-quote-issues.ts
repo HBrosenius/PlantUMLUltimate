@@ -1,3 +1,4 @@
+import { parseUseCase } from "@plantuml-studio/diagram-usecase";
 import type { DiagramKind } from "./model";
 
 export interface QuoteIssue {
@@ -18,10 +19,20 @@ export function quoteIssues(kind: DiagramKind, source: string): QuoteIssue[] {
         ? /^(\s*(?:abstract\s+class|class|interface|enum|annotation|entity|component|actor|usecase|package|rectangle|node|database|cloud|folder|frame)\s+)(.*)$/i
         : undefined;
   if (!declaration) return issues;
+  const multilineLabels =
+    kind === "usecase"
+      ? parseUseCase(source)
+          .useCases.filter((item) => item.label.includes("\n"))
+          .map((item) => item.sourceRange)
+      : [];
   let offset = 0;
   let block = false;
   let note = false;
   for (const raw of source.split("\n")) {
+    if (multilineLabels.some((range) => offset >= range.from && offset < range.to)) {
+      offset += raw.length + 1;
+      continue;
+    }
     const line = raw.replace(/\r$/, "");
     const trimmed = line.trim();
     if (block) {

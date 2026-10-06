@@ -377,8 +377,8 @@ export function CodeEditor({
           ]),
           language.current.of(languageExtensions(initialKind.current, previewTooltipFixes)),
           lintGutter(),
-          // Keep hover actions outside the editor's scroll clipping and positioning context.
-          tooltips({ parent: host.current.ownerDocument.body }),
+          // Escape editor scroll clipping while inheriting the app's theme variables.
+          tooltips({ parent: host.current.closest<HTMLElement>(".app") ?? host.current.ownerDocument.body }),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
           EditorView.domEventHandlers({

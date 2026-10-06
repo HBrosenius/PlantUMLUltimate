@@ -78,10 +78,30 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     offset += raw.length + 1;
   }
 
+  // PlantUML permits literal newlines inside quoted use-case labels.
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]!;
+    if (!/^\s*usecase\/?\s+(?:[^\s"]+\s+as\s+)?"[^"]*$/i.test(line.text)) continue;
+    for (let end = index + 1; end < lines.length; end += 1) {
+      const closing = lines[end]!;
+      if (/^\s*@(?:startuml|enduml)\b/i.test(closing.text)) break;
+      if (!closing.text.includes('"')) continue;
+      if (/^[^"]*"(?:\s+as\s+[^\s#<]+)?(?:\s+<<[^>]+>>)*(?:\s+#[\w]+)?\s*(?:'.*)?$/.test(closing.text)) {
+        line.text = lines
+          .slice(index, end + 1)
+          .map((part) => part.text)
+          .join("\n");
+        line.to = closing.to;
+        lines.splice(index + 1, end - index);
+      }
+      break;
+    }
+  }
+
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]!;
     const attached = line.text.match(
-      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|[^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
+      /^\s*note\s+(left|right|top|bottom)\s+of\s+("[^"]+"|\([^)]*\)|:[^:]+:|[^\s#]+)(?:\s+(#[\w]+))?\s*(?::\s*(.*))?$/i,
     );
     const floating = line.text.match(/^\s*note\s+"([^"]*)"\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
     const floatingBlock = line.text.match(/^\s*note\s+as\s+([^\s#]+)(?:\s+(#[\w]+))?\s*$/i);
@@ -117,12 +137,18 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     noteRanges.push(range);
     index = end;
   }
+  const noteIds = new Set(notes.flatMap((note) => (note.alias ? [normalizeId(note.alias)] : [])));
 
+  let skinparamDepth = 0;
   for (const line of lines) {
     if (noteRanges.some((range) => line.from >= range.from && line.from <= range.to)) continue;
     const text = line.text.trim();
     const range = { from: line.from, to: line.to };
     if (!text || text.startsWith("'") || /^@(?:startuml|enduml)\b/i.test(text)) continue;
+    if (skinparamDepth > 0 || /^skinparam\b.*\{/i.test(text)) {
+      skinparamDepth += (text.match(/\{/g)?.length ?? 0) - (text.match(/\}/g)?.length ?? 0);
+      continue;
+    }
     if (
       /^(?:title|caption|header|footer|legend|endlegend|left to right direction|top to bottom direction|hide stereotype|skinparam\b|allowmixing\b)/i.test(
         text,
@@ -170,13 +196,21 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       continue;
     }
 
-    const actor = line.text.match(
+    // Quoted declarations infer their kind from the alias delimiter.
+    const quotedDeclaration = line.text.match(/^\s*"[^"]+"\s+as\s+(\([^)]*\)|:[^:]+:|[\w.$-]+)(?:\s.*)?$/i);
+    const stereotypedActor = /^[\w.$-]+\s+<<\s*[^>]+\s*>>(?:\s+#[\w]+)?\s*$/.test(text);
+    const declarationText = quotedDeclaration
+      ? `${quotedDeclaration[1]!.startsWith("(") ? "usecase" : "actor"} ${text}`
+      : stereotypedActor
+        ? `actor ${text}`
+        : line.text;
+    const actor = declarationText.match(
       /^\s*(?:(actor)(\/)?\s+("[^"]+"|:[^:]+:|[^\s#<]+)|(:[^:]+:)(\/)?)(?:\s+as\s+([^\s#<]+))?(.*)$/i,
     );
     if (actor && !(actor[4] && isShorthandRelationship(line.text))) {
       const token = actor[3] ?? actor[4] ?? "";
       const label = unquote(token.replace(/^:|:$/g, ""));
-      const alias = actor[6];
+      const alias = actor[6]?.replace(/^:|:$/g, "");
       const id = normalizeId(alias ?? label);
       const metadata = details(actor[7] ?? "");
       elements.push({
@@ -194,13 +228,14 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       continue;
     }
 
-    const useCase = line.text.match(
+    const useCase = declarationText.match(
       /^\s*(?:(usecase)(\/)?\s+("[^"]+"|\([^)]*\)|[^\s#<]+)|(\([^)]*\))(\/)?)(?:\s+as\s+("[^"]+"|\([^)]*\)|[^\s#<]+))?(.*)$/i,
     );
     if (useCase && !(useCase[4] && isShorthandRelationship(line.text))) {
       const token = useCase[3] ?? useCase[4] ?? "";
-      const label = unquote(token.replace(/^\(|\)$/g, ""));
-      const aliasToken = useCase[6];
+      const reversed = Boolean(useCase[1] && !token.startsWith('"') && useCase[6]?.startsWith('"'));
+      const label = unquote((reversed ? useCase[6]! : token).replace(/^\(|\)$/g, ""));
+      const aliasToken = reversed ? token : useCase[6];
       const alias = aliasToken ? unquote(aliasToken.replace(/^\(|\)$/g, "")) : undefined;
       const id = normalizeId(alias ?? label);
       const metadata = details(useCase[7] ?? "");
@@ -238,16 +273,17 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
       const color = relation[2].match(/#[\w]+/)?.[0];
       const from = endpointId(relation[1], aliases);
       const to = endpointId(relation[3], aliases);
-      // PlantUML declares `:Actor:` and `(Use case)` endpoints implicitly.
-      for (const [token, id] of [
-        [relation[1], from],
-        [relation[3], to],
+      // Bare endpoints connected to a use case also declare actors implicitly.
+      for (const [token, id, otherToken] of [
+        [relation[1], from, relation[3]],
+        [relation[3], to, relation[1]],
       ] as const) {
-        if (!/^[:(]/.test(token) || implicitEndpoints.has(id)) continue;
+        const shorthand = /^[:(]/.test(token);
+        if ((!shorthand && !otherToken.startsWith("(")) || noteIds.has(id) || implicitEndpoints.has(id)) continue;
         implicitEndpoints.set(id, {
           id,
-          kind: token.startsWith(":") ? "actor" : "usecase",
-          label: unquote(token.slice(1, -1)),
+          kind: token.startsWith("(") ? "usecase" : "actor",
+          label: unquote(shorthand ? token.slice(1, -1) : token),
           business: false,
           implicit: true,
           ...(packageStack.at(-1) ? { packageId: packageStack.at(-1)!.value.id } : {}),
@@ -295,14 +331,14 @@ function parseUseCaseUncached(source: string): UseCaseDocument {
     ids.add(id);
   }
   for (const relationship of relationships) {
-    if (!ids.has(relationship.from))
+    if (!ids.has(relationship.from) && !noteIds.has(relationship.from))
       diagnostics.push({
         severity: "error",
         message: `Unknown relationship endpoint: ${relationship.from}`,
         range: relationship.sourceRange,
         code: "unknown-endpoint",
       });
-    if (!ids.has(relationship.to))
+    if (!ids.has(relationship.to) && !noteIds.has(relationship.to))
       diagnostics.push({
         severity: "error",
         message: `Unknown relationship endpoint: ${relationship.to}`,

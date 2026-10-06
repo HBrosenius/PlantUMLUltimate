@@ -6617,6 +6617,12 @@ polygon.diagram-bulk-selected {
   margin-bottom: 0.15rem;
 }
 
+.app .cm-tooltip {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--line);
+}
+
 .cm-manual-error-guidance {
   max-width: min(360px, calc(100vw - 40px));
   white-space: normal;

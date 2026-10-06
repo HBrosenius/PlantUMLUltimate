@@ -2,6 +2,79 @@ import { describe, expect, it } from "vitest";
 import { parseUseCase } from "./parser";
 
 describe("parseUseCase", () => {
+  it("parses multiline descriptions with the identifier before the quoted label", () => {
+    const label = `You can use
+several lines to define your usecase.
+You can also use separators.
+--
+Several separators are possible.
+==
+And you can add titles:
+..Conclusion..
+This allows large description.`;
+    for (const declaration of [`usecase UC1 as "${label}"`, `usecase "${label}" as UC1`]) {
+      const source = `@startuml\n\n${declaration}\n\nUC1 --> (Other)\n@enduml`;
+      const document = parseUseCase(source);
+      expect(document.diagnostics).toEqual([]);
+      expect(document.unknown).toEqual([]);
+      expect(document.useCases[0]).toMatchObject({ id: "uc1", alias: "UC1", label });
+      const range = document.useCases[0]!.sourceRange;
+      expect(source.slice(range.from, range.to)).toBe(declaration);
+      expect(document.relationships[0]?.from).toBe("uc1");
+      expect(parseUseCase(source.replaceAll("\n", "\r\n")).useCases[0]?.label).toBe(label);
+    }
+  });
+
+  it("keeps skinparam braces separate from package braces", () => {
+    const document = parseUseCase(`@startuml
+!option handwritten true
+
+skinparam usecase {
+BackgroundColor DarkSeaGreen
+BorderColor DarkSlateGray
+
+BackgroundColor<< Main >> YellowGreen
+BorderColor<< Main >> YellowGreen
+
+ArrowColor Olive
+ActorBorderColor black
+ActorFontName Courier
+
+ActorBackgroundColor<< Human >> Gold
+}
+
+User << Human >>
+:Main Database: as MySql << Application >>
+(Start) << One Shot >>
+(Use the application) as (Use) << Main >>
+
+User -> (Start)
+User --> (Use)
+
+MySql --> (Use)
+
+@enduml`);
+    expect(document.diagnostics).toEqual([]);
+    expect(document.packages).toEqual([]);
+    expect(document.actors).toContainEqual(expect.objectContaining({ id: "user", stereotype: "Human" }));
+    expect(document.elements).toHaveLength(4);
+    expect(document.relationships).toHaveLength(3);
+    expect(document.unknown.map((item) => item.text)).toEqual(["!option handwritten true"]);
+
+    const nested = parseUseCase(`@startuml
+package System {
+skinparam usecase {
+  BackgroundColor Green
+}
+(Use)
+}
+}
+@enduml`);
+    expect(nested.useCases[0]?.packageId).toBe("system");
+    expect(nested.diagnostics.map((item) => item.code)).toEqual(["unexpected-package-end"]);
+    expect(nested.packages[0]?.closeRange.from).toBe(nested.packages[0]?.sourceRange.to! - 1);
+  });
+
   it("rejects oversized input before applying grammar expressions", () => {
     expect(() => parseUseCase(" ".repeat(100_001))).toThrow(/100,000 character limit/);
   });
@@ -53,6 +126,35 @@ Person --> Missing
     expect(document.actors[0]).toMatchObject({ id: "c", business: true });
     expect(document.useCases[0]).toMatchObject({ id: "order", business: true });
     expect(document.diagnostics).toEqual([]);
+  });
+
+  it("infers actors and use cases from quoted declarations with aliases", () => {
+    const document = parseUseCase(`@startuml
+skinparam actorStyle awesome
+:User: --> (Use)
+"Main Admin" as Admin
+"Use the application" as (Use)
+Admin --> (Admin the application)
+@enduml`);
+    expect(document.diagnostics).toEqual([]);
+    expect(document.unknown).toEqual([]);
+    expect(document.actors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "admin", alias: "Admin", label: "Main Admin" }),
+        expect.objectContaining({ id: "user", implicit: true }),
+      ]),
+    );
+    expect(document.useCases).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "use", alias: "Use", label: "Use the application" }),
+        expect.objectContaining({ id: "admin the application", implicit: true }),
+      ]),
+    );
+    expect(document.elements).toHaveLength(4);
+    expect(document.relationships).toMatchObject([
+      { from: "user", to: "use" },
+      { from: "admin", to: "admin the application" },
+    ]);
   });
 
   it("parses compact and multiline floating notes without treating their bodies as unknown source", () => {
@@ -126,6 +228,42 @@ describe("parseUseCase line endings", () => {
 });
 
 describe("parseUseCase shorthand relationships", () => {
+  it("supports implicit bare actors and relationships to floating notes", () => {
+    const document = parseUseCase(`@startuml
+:Main Admin: as Admin
+(Use the application) as (Use)
+
+User -> (Start)
+User --> (Use)
+
+Admin ---> (Use)
+
+note right of Admin : This is an example.
+
+note right of (Use)
+  A note can also
+  be on several lines
+end note
+
+note "This note is connected\\nto several objects." as N2
+(Start) .. N2
+N2 .. (Use)
+@enduml`);
+    expect(document.diagnostics).toEqual([]);
+    expect(document.unknown).toEqual([]);
+    expect(document.actors).toHaveLength(2);
+    expect(document.actors).toContainEqual(expect.objectContaining({ id: "user", label: "User", implicit: true }));
+    expect(document.useCases).toHaveLength(2);
+    expect(document.elements.some((element) => element.id === "n2")).toBe(false);
+    expect(document.relationships).toHaveLength(5);
+    expect(document.relationships.slice(-2)).toMatchObject([
+      { from: "start", to: "n2" },
+      { from: "n2", to: "use" },
+    ]);
+    expect(document.notes).toHaveLength(3);
+    expect(document.notes[1]).toMatchObject({ targetIds: ["use"], text: "A note can also\n  be on several lines" });
+  });
+
   it("reads shorthand actor and use-case endpoints as relationships", () => {
     const document = parseUseCase("@startuml\n:User: --> (Login)\n(Login) .> (Verify) : <<include>>\n@enduml");
     expect(document.relationships).toHaveLength(2);
