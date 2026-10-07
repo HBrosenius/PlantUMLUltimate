@@ -1,0 +1,94 @@
+import { env, exports } from "cloudflare:workers";
+import { describe, expect, it } from "vitest";
+import * as Y from "yjs";
+
+const room = "a".repeat(43);
+
+async function connect(
+  roomId: string,
+  credentials?: { owner?: string; editor?: string; viewer?: string; access?: string },
+): Promise<WebSocket> {
+  const url = new URL(`https://collaboration.example/rooms/${roomId}`);
+  const protocols = [
+    "plantuml-collaboration",
+    ...Object.entries(credentials ?? {}).flatMap(([name, value]) => (value ? [`${name}.${value}`] : [])),
+  ];
+  const response = await exports.default.fetch(
+    new Request(url, {
+      headers: {
+        Origin: "http://localhost:5173",
+        Upgrade: "websocket",
+        "Sec-WebSocket-Protocol": protocols.join(", "),
+      },
+    }),
+  );
+  expect(response.status).toBe(101);
+  const socket = response.webSocket;
+  expect(socket).toBeDefined();
+  socket!.accept();
+  return socket!;
+}
+
+async function roomResponse(roomId: string, access?: string): Promise<Response> {
+  const url = new URL(`https://collaboration.example/rooms/${roomId}`);
+  return exports.default.fetch(
+    new Request(url, {
+      headers: {
+        Origin: "http://localhost:5173",
+        Upgrade: "websocket",
+        "Sec-WebSocket-Protocol": ["plantuml-collaboration", ...(access ? [`access.${access}`] : [])].join(", "),
+      },
+    }),
+  );
+}
+
+function nextBinary(socket: WebSocket): Promise<Uint8Array> {
+  return new Promise((resolve) => {
+    const listener = (event: MessageEvent) => {
+      if (typeof event.data === "string") return;
+      socket.removeEventListener("message", listener);
+      if (event.data instanceof ArrayBuffer) resolve(new Uint8Array(event.data));
+      else if (ArrayBuffer.isView(event.data))
+        resolve(new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength));
+      else void (event.data as Blob).arrayBuffer().then((buffer) => resolve(new Uint8Array(buffer)));
+    };
+    socket.addEventListener("message", listener);
+  });
+}
+
+function nextJsonMessage<T>(socket: WebSocket, type: string): Promise<T> {
+  return new Promise((resolve) => {
+    const listener = (event: MessageEvent) => {
+      if (typeof event.data !== "string") return;
+      const message = JSON.parse(event.data) as { type?: string };
+      if (message.type !== type) return;
+      socket.removeEventListener("message", listener);
+      resolve(message as T);
+    };
+    socket.addEventListener("message", listener);
+  });
+}
+
+it("audit: semantically invalid Yjs is broadcast and persisted", async () => {
+  const roomId = "z".repeat(43);
+  const editor = "e".repeat(43);
+  const sender = await connect(roomId, { owner: "o".repeat(43), editor, viewer: "v".repeat(43) });
+  await nextBinary(sender);
+  const receiver = await connect(roomId, { access: editor });
+  await nextBinary(receiver);
+  const broadcast = nextBinary(receiver);
+  const bad = new Y.Doc();
+  bad.getMap("document-metadata").set("id", "audit");
+  bad.getMap("document-metadata").set("name", "Audit");
+  bad.getMap("document-diagrams").set("bad", "not-a-map");
+  sender.send(Y.encodeStateAsUpdate(bad));
+  const synced = new Y.Doc();
+  Y.applyUpdate(synced, await broadcast);
+  expect(synced.getMap("document-diagrams").get("bad")).toBe("not-a-map");
+  sender.close(1000); receiver.close(1000);
+  const later = await connect(roomId, { access: editor });
+  const persisted = new Y.Doc();
+  Y.applyUpdate(persisted, await nextBinary(later));
+  expect(persisted.getMap("document-diagrams").get("bad")).toBe("not-a-map");
+  later.close(1000);
+});

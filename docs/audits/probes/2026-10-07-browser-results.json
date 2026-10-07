@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Completing Save As after switching tabs marks the wrong document clean",
+    "reproduced": true,
+    "details": [
+      {
+        "id": "a",
+        "dirty": true,
+        "fileName": "saved-a.pumlu"
+      },
+      {
+        "id": "b",
+        "dirty": false,
+        "fileName": "saved-a.pumlu"
+      }
+    ]
+  },
+  {
+    "name": "Independent windows overwrite recovery",
+    "reproduced": true,
+    "details": "Window A reloaded window B's source"
+  },
+  {
+    "name": "Denied localStorage prevents editor startup",
+    "reproduced": true,
+    "details": "Error boundary shown instead of editor"
+  },
+  {
+    "name": "Stale SVG can be exported under a different active document",
+    "reproduced": true,
+    "details": "b.svg contains WINDOW A"
+  },
+  {
+    "name": "Bare carriage returns bypass resource directive filtering",
+    "reproduced": true,
+    "details": "Directive blocked with LF but preserved with CR; no network access or exfiltration demonstrated"
+  }
+]

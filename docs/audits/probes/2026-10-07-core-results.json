@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Huge relative date throws RangeError",
+    "reproduced": true
+  },
+  {
+    "name": "Closed-week calendar exceeds 100ms execution budget",
+    "reproduced": true
+  },
+  {
+    "name": "Impossible dates silently normalize",
+    "reproduced": true
+  },
+  {
+    "name": "Parser accepts infinite task duration",
+    "reproduced": true
+  },
+  {
+    "name": "Windows write the same recovery record",
+    "reproduced": true
+  },
+  {
+    "name": "Error-boundary backup cannot be restored by backup parser",
+    "reproduced": true
+  },
+  {
+    "name": "Workspace backup accepts 6-million-character source without bounds",
+    "reproduced": true
+  },
+  {
+    "name": "Backup accepts shared history IDs for distinct documents",
+    "reproduced": true
+  },
+  {
+    "name": "Old IndexedDB wins over newer successful local fallback",
+    "reproduced": true
+  },
+  {
+    "name": "Unresponsive IndexedDB leaves recovery pending (150ms probe; no deadline in source)",
+    "reproduced": true
+  },
+  {
+    "name": "Valid Yjs with malformed diagram schema crashes shared snapshot",
+    "reproduced": true
+  }
+]
