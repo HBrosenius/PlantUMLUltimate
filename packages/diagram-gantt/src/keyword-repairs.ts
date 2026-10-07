@@ -12,19 +12,22 @@ function distance(a: string, b: string): number {
 /** Repair a single keyword only when the surrounding syntax identifies its role. */
 export function ganttKeywordRepair(text: string): { replacement: string; label: string } | undefined {
   const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const task = text.match(/^(\s*(?:then\s+)?\[[^\]]+]\s+)(.*)$/i);
-  if (task && /\s+and\s+/i.test(task[2]!)) {
-    const parts = task[2]!.split(/(\s+and\s+)/i);
-    let offset = task[1]!.length;
+  const taskPrefix = text.match(/^\s*(?:then\s+)?\[[^\]]+]\s+/i)?.[0];
+  const taskBody = taskPrefix ? text.slice(taskPrefix.length) : "";
+  // Match one separator character per side; adjacent whitespace stays in its
+  // clause. This avoids backtracking across long runs of whitespace.
+  if (taskPrefix && /\sand\s/i.test(taskBody)) {
+    const parts = taskBody.split(/(\sand\s)/i);
+    let offset = taskPrefix.length;
     for (let index = 0; index < parts.length; index++) {
       const part = parts[index]!;
       if (index % 2 === 0) {
-        const repair = ganttKeywordRepair(task[1]! + part);
+        const repair = ganttKeywordRepair(taskPrefix + part);
         if (repair)
           return {
             label: repair.label,
             replacement:
-              text.slice(0, offset) + repair.replacement.slice(task[1]!.length) + text.slice(offset + part.length),
+              text.slice(0, offset) + repair.replacement.slice(taskPrefix.length) + text.slice(offset + part.length),
           };
       }
       offset += part.length;

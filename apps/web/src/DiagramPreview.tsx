@@ -28,7 +28,7 @@ import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast, hasDelayedForecastTask } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
-import { sanitizeSvg } from "./render/sanitize-svg";
+import { sanitizeSvg, sanitizeSvgFragment } from "./render/sanitize-svg";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
@@ -465,7 +465,7 @@ export function DiagramPreview({
       !progressForecastResult &&
       !criticalPath.blockers.length
     ) {
-      const document = new DOMParser().parseFromString(decorated, "image/svg+xml");
+      const document = sanitizeSvgFragment(decorated);
       for (const element of document.querySelectorAll(
         "[data-task-id], [data-visual-task-id], [data-progress-task-id], [data-completion-marker], [data-baseline-task-id]",
       )) {
@@ -485,7 +485,7 @@ export function DiagramPreview({
         )
           element.remove();
       }
-      return new XMLSerializer().serializeToString(document.documentElement);
+      return new XMLSerializer().serializeToString(document);
     }
     return progressForecastResult
       ? addGanttForecastOverlay(decorated, progressForecastResult, forecastAsOf, calendar, forecastSelectedTaskId)

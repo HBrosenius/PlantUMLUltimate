@@ -195,7 +195,16 @@ export function sequenceDiagnostics(source: string): Diagnostic[] {
       continue;
     }
     const keywordLike = line.match(/^\s*([a-z]+)\s+(\S.*)$/i);
-    if (keywordLike && !/(?:[-.=]+[>\\/]|<[-.=]+|\s-{1,2}\s)/.test(keywordLike[2]!.split(":")[0]!)) {
+    const messageEndpoints = keywordLike?.[2]?.split(":")[0] ?? "";
+    // These are PlantUML arrow characters, not an HTML tag/comment filter.
+    let backwardArrow = false;
+    for (let index = 0; index + 1 < messageEndpoints.length; index++) {
+      if (messageEndpoints[index] === "<" && /[-.=]/.test(messageEndpoints[index + 1]!)) {
+        backwardArrow = true;
+        break;
+      }
+    }
+    if (keywordLike && !backwardArrow && !/(?:[-.=][>\\/]|\s-{1,2}\s)/.test(messageEndpoints)) {
       const correction = sequenceKeywordCorrection(keywordLike[1]!);
       if (correction) {
         const from = offset + line.indexOf(keywordLike[1]!);

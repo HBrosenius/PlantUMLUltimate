@@ -9,8 +9,8 @@ for (const [kind, body] of [
   const valid = "@startuml\n" + body + "\n@enduml";
   for (const [name, mutated] of [
     ["missing opening", body.replace(" {", "")],
-    ["duplicated opening", body.replace("{", "{{")],
-    ["duplicated closing", body.replace("}", "}}")],
+    ["duplicated opening", body.slice(0, body.indexOf("{")) + "{" + body.slice(body.indexOf("{"))],
+    ["duplicated closing", body.slice(0, body.indexOf("}")) + "}" + body.slice(body.indexOf("}"))],
   ])
     it(`repairs ${kind} ${name} brace without changing content`, () => {
       const source = "@startuml\n" + mutated + "\n@enduml";

@@ -27,9 +27,9 @@ const server = createServer(async (request, response) => {
       response.writeHead(404);
       response.end();
     }
-  } catch (error) {
+  } catch {
     response.writeHead(500);
-    response.end(String(error));
+    response.end("Could not load renderer asset");
   }
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

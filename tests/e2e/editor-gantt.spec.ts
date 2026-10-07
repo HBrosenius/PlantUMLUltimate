@@ -1438,14 +1438,17 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
   await page.waitForTimeout(500);
   await page.evaluate(async () => {
     // This fixture deliberately seeds the older IndexedDB workspace format. Remove the
-    // current synchronous recovery snapshot so it cannot take precedence on reload.
-    localStorage.removeItem("plantuml-studio.workspace.recovery.v6");
+    // shared and per-window recovery snapshots so they cannot take precedence.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("plantuml-studio.workspace.")) localStorage.removeItem(key);
+    }
     const request = indexedDB.open("plantuml-studio", 2);
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
     const transaction = database.transaction("workspace", "readwrite");
+    transaction.objectStore("workspace").clear();
     transaction.objectStore("workspace").put(
       {
         version: 4,
