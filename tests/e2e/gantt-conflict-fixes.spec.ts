@@ -245,10 +245,13 @@ test("selects and reveals an offscreen task from the sorted schedule table", asy
 });
 
 test("filters near-critical tasks in the table and diagram with an adjustable slack limit", async ({ page }) => {
+  test.setTimeout(75_000);
   await fillSource(
     page,
     "@startgantt\nProject starts 2026-09-21\n[A] lasts 10 days\n[B] lasts 8 days\n[C] lasts 7 days\n@endgantt",
   );
+  // Wait for this source's canonical preview before testing synchronous filters.
+  await expect(page.locator('.diagram [data-task-id="c"]')).toBeVisible({ timeout: 45_000 });
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const names = report.getByRole("rowheader");
