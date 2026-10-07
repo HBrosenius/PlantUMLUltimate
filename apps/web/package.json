@@ -36,6 +36,7 @@
     "codemirror": "^6.0.2",
     "dompurify": "^3.4.14",
     "fflate": "^0.8.3",
+    "linkedom": "^0.18.13",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "yjs": "^13.6.32"

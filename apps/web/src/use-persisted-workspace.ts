@@ -20,11 +20,15 @@ export function usePersistedWorkspace() {
 
   useEffect(() => {
     let active = true;
-    void loadWorkspace().then((saved) => {
-      if (!active) return;
-      setSession(saved);
-      setHydrated(true);
-    });
+    void loadWorkspace()
+      .then((saved) => {
+        if (!active) return;
+        setSession(saved);
+        setHydrated(true);
+      })
+      .catch(() => {
+        if (active) setHydrated(true);
+      });
     return () => {
       active = false;
     };

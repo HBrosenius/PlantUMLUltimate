@@ -26,6 +26,12 @@ export function StorageStatus({ onExplain }: { onExplain(message: string): void 
   const failing = health.failing.length > 0;
   const warning = failing || storageNearlyFull(health);
   const description = describeStorageHealth(health);
+  const backend =
+    health.workspaceBackend === "localstorage"
+      ? "Local recovery"
+      : health.workspaceBackend === "memory"
+        ? "Memory only"
+        : "IndexedDB";
   return (
     <button
       type="button"
@@ -41,7 +47,7 @@ export function StorageStatus({ onExplain }: { onExplain(message: string): void 
           });
       }}
     >
-      {failing ? "⚠ IndexedDB not saving" : warning ? "⚠ IndexedDB nearly full" : "IndexedDB"}
+      {failing ? `⚠ ${backend} not saving` : warning ? `⚠ ${backend} nearly full` : backend}
     </button>
   );
 }

@@ -17,6 +17,7 @@ describe("workspace backups", () => {
         {
           ...DEFAULT_SESSION.documents[0]!,
           id: "second",
+          historyId: "history-second",
           fileName: "second.puml",
           source: "@startgantt\n[B] lasts 2 days\n@endgantt",
         },

@@ -1,3 +1,4 @@
+import { MAX_SOURCE_CHARS, MAX_TASKS, MAX_WORK_DAYS } from "./limits";
 import type {
   DateExpression,
   Diagnostic,
@@ -122,6 +123,17 @@ function inlineDeclaration(task: GanttTask, kind: TaskDeclaration["kind"], claus
 }
 
 export function parseGantt(source: string): ParseResult {
+  if (source.length > MAX_SOURCE_CHARS) {
+    const limited = parseGantt("");
+    limited.diagnostics.push({
+      code: "resource-limit",
+      severity: "error",
+      message: "Diagram source exceeds 500,000 characters",
+      range: { from: 0, to: source.length },
+    });
+    return limited;
+  }
+
   const diagnostics: Diagnostic[] = [];
   const taskMap = new Map<string, GanttTask>();
   const taskReferences = new Map<string, string>();
@@ -142,6 +154,16 @@ export function parseGantt(source: string): ParseResult {
     index = end;
   }
   for (let index = 0; index < sourceLines.length; index += 1) {
+    if (taskMap.size > MAX_TASKS) {
+      const limited = parseGantt("");
+      limited.diagnostics.push({
+        code: "resource-limit",
+        severity: "error",
+        message: "Too many tasks",
+        range: { from: 0, to: source.length },
+      });
+      return limited;
+    }
     const line = sourceLines[index]!;
     const inlineNote = line.text.match(/^\s*note\s+(bottom|top|left|right)\s*:\s*(.+?)\s*$/i);
     if (inlineNote?.[1] && inlineNote[2]) {
@@ -915,5 +937,29 @@ export function parseGantt(source: string): ParseResult {
     symbols: { tasks: taskMap, references: taskReferences },
     ...(projectStart ? { projectStart } : {}),
   };
+  if (document.tasks.length > MAX_TASKS)
+    diagnostics.push({
+      code: "resource-limit",
+      severity: "error",
+      message: "Too many tasks",
+      range: { from: 0, to: source.length },
+    });
+  for (const task of document.tasks) {
+    if (
+      task.duration &&
+      (!Number.isSafeInteger(task.duration.value) ||
+        task.duration.value < 1 ||
+        task.duration.value * (task.duration.unit === "month" ? 31 : task.duration.unit === "week" ? 7 : 1) >
+          MAX_WORK_DAYS)
+    ) {
+      diagnostics.push({
+        code: "resource-limit",
+        severity: "error",
+        message: "Task duration exceeds supported limits",
+        range: task.duration.range,
+      });
+      delete task.duration;
+    }
+  }
   return { document, diagnostics };
 }

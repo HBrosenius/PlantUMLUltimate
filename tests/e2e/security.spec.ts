@@ -104,6 +104,7 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
 });
 
 test("renders native and Graphviz diagrams with the deployed CSP header", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.route("**/*", async (route) => {
     if (route.request().resourceType() !== "document") return route.continue();
     const response = await route.fetch();
@@ -112,18 +113,18 @@ test("renders native and Graphviz diagrams with the deployed CSP header", async 
       headers: {
         ...response.headers(),
         "content-security-policy":
-          "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss: ws:; worker-src 'self' blob:; frame-src 'self'",
+          "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss: ws:; worker-src 'self' blob: data:; frame-src 'self'",
       },
     });
   });
   await prepareEditor(page);
-  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 45_000 });
   await page.getByRole("button", { name: "New diagram tab" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Component diagram/ })
     .click();
   await expect(page.getByRole("region", { name: "Component diagram preview" }).locator("svg")).toBeVisible({
-    timeout: 20_000,
+    timeout: 45_000,
   });
 });

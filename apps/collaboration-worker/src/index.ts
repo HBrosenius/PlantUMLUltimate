@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import * as Y from "yjs";
+import { validateCollaborationState } from "../../../packages/shared/src/collaboration-schema";
 
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const MAX_UPDATE_BYTES = 1_000_000;
@@ -309,6 +310,7 @@ export class CollaborationRoom extends DurableObject<Env> {
     try {
       Y.applyUpdate(candidate, Y.encodeStateAsUpdate(this.document));
       Y.applyUpdate(candidate, update);
+      validateCollaborationState(candidate);
       const state = Y.encodeStateAsUpdate(candidate);
       if (state.byteLength > MAX_DOCUMENT_BYTES) {
         candidate.destroy();

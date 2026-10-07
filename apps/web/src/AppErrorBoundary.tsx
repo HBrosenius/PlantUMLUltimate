@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { loadWorkspace } from "./workspace-storage";
+import { serializeWorkspaceBackup } from "./workspace-backup";
 
 interface State {
   error?: Error;
@@ -9,7 +10,7 @@ interface State {
 /** Downloads the persisted workspace so users can keep their work after an unexpected failure. */
 async function downloadWorkspaceBackup(): Promise<void> {
   const session = await loadWorkspace();
-  const blob = new Blob([JSON.stringify(session, null, 2)], { type: "application/json" });
+  const blob = new Blob([serializeWorkspaceBackup(session, [])], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

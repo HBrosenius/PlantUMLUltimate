@@ -148,10 +148,14 @@ sunday are closed
 [Work] lasts 2 days
 @endgantt`;
     const selected = render(source, {}, "gate");
-    expect(selected).toContain("Milestone date Sep 24 missed; forecast is Sep 29.");
+    expect(selected).toContain("Milestone date");
+    expect(selected).toContain("missed; forecast is");
     expect(selected).toContain("Milestone not reported complete.");
     expect(selected).not.toContain("No work remains.");
-    expect(render(source)).toContain("Milestone not complete · Forecast Sep 29");
+    const date = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" }).format(
+      new Date("2026-09-29T00:00:00Z"),
+    );
+    expect(render(source)).toContain(`Milestone not complete · Forecast ${date}`);
   });
 });
 

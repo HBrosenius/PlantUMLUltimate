@@ -9,6 +9,8 @@ export interface RenderRequest {
 }
 
 export interface RenderResult {
+  source?: string;
+  documentId?: string;
   requestId: number;
   svg?: string | undefined;
   durationMs: number;

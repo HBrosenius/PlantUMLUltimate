@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CollaborationConnection, CollaborationParticipant, CollaborationRole } from "./collaboration";
 import { useDialogFocus } from "./use-dialog-focus";
 import { savePreference } from "./browser-preferences";
+import { storageGet } from "./safe-storage";
 
 export function CollaborationDialog({
   documentName,
@@ -41,7 +42,7 @@ export function CollaborationDialog({
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
-  const [name, setName] = useState(() => localStorage.getItem("plantuml-studio.collaboration-name") ?? "");
+  const [name, setName] = useState(() => storageGet("plantuml-studio.collaboration-name") ?? "");
   const [endpoint, setEndpoint] = useState(pendingEndpoint ?? defaultEndpoint);
   const [copied, setCopied] = useState<CollaborationRole | undefined>();
   const [copyFailed, setCopyFailed] = useState<CollaborationRole | undefined>();

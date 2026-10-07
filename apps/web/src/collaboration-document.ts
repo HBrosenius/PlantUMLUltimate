@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { validateCollaborationState } from "../../../packages/shared/src/collaboration-schema";
 import { validateProject, type PortableProject, type PortableProjectDiagram } from "@plantuml-studio/document-format";
 import type { DiagramKind } from "./model";
 
@@ -96,6 +97,11 @@ export class SharedDocumentModel {
     this.links = document.getMap("document-links");
   }
   get snapshot(): SharedDocument | undefined {
+    try {
+      validateCollaborationState(this.document);
+    } catch {
+      return undefined;
+    }
     const id = this.metadata.get("id");
     const name = this.metadata.get("name");
     if (!id || !name) return undefined;

@@ -39,6 +39,7 @@ import {
   importDocumentVersions,
   loadDocumentVersions,
   removePersistedDocument,
+  allowPlaintextPersistence,
   type DocumentSnapshot,
   type DocumentVersionReason,
   type WorkspaceSnapshot,
@@ -131,7 +132,6 @@ export async function readExternalFileSnapshot(
 export function useDocumentFiles({
   hydrated,
   workspace,
-  setWorkspace,
   tabs,
   fileHandles,
   fileSnapshots,
@@ -145,6 +145,11 @@ export function useDocumentFiles({
 }: UseDocumentFilesOptions) {
   const [externalConflict, setExternalConflict] = useState<ExternalFileConflict>();
   const checkingExternalFiles = useRef(false);
+  const saving = useRef(new Set<string>());
+  const latestTabs = useRef(tabs);
+  latestTabs.current = tabs;
+  const stillOwned = (captured: DocumentSnapshot) =>
+    latestTabs.current.getDocument(captured.id)?.historyId === captured.historyId;
 
   const addOpenedDocument = useCallback(
     async (opened: OpenedDocument | undefined) => {
@@ -276,36 +281,41 @@ export function useDocumentFiles({
   }, [addOpenedFile, hydrated, onProjectLaunch, reportError]);
 
   const saveDocumentAs = useCallback(async () => {
+    const active = tabs.getDocument(tabs.activeId);
+    if (!active || saving.current.has(active.id)) return;
+    saving.current.add(active.id);
     try {
-      const active = tabs.documents.find((document) => document.id === tabs.activeId)!;
       const capturedRevision = active.revision ?? 0;
       await recordDocumentVersion("saved", "Saved portable document");
       const portable = await assemblePortableDocument(
         { ...active, source: workspace.source, fileName: workspace.fileName },
         await loadDocumentVersions(active.historyId),
       );
-      const unlockedKey = documentKey(tabs.activeId);
+      const unlockedKey = documentKey(active.id);
       const encoded = await encodeDocument(portable, {
         compression: active.compression ?? "gzip",
         ...(unlockedKey ? { unlockedKey } : {}),
       });
       const saved = await savePortableDocumentAs(encoded.bytes, workspace.fileName);
-      if (!saved) return;
-      if (saved.handle) fileHandles.current.set(tabs.activeId, saved.handle);
-      else fileHandles.current.delete(tabs.activeId);
+      if (!saved || !stillOwned(active)) return;
+      if (saved.handle) fileHandles.current.set(active.id, saved.handle);
+      else fileHandles.current.delete(active.id);
       if (saved.handle) {
         fileSnapshots.current.set(
-          tabs.activeId,
+          active.id,
           await nativeSnapshot(encoded.bytes, workspace.source, (await saved.handle.getFile()).lastModified),
         );
-      } else fileSnapshots.current.delete(tabs.activeId);
-      tabs.updateDocumentFormat(tabs.activeId, {
+      } else fileSnapshots.current.delete(active.id);
+      tabs.updateDocumentFormat(active.id, {
         portableDocumentId: portable.documentId,
         native: true,
         fileName: saved.fileName,
       });
-      const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
-      if (clean) setWorkspace((current) => ({ ...current, fileName: saved.fileName, dirty: false }));
+      const clean = (latestTabs.current.getDocument(active.id)?.revision ?? 0) === capturedRevision;
+      latestTabs.current.updateDocumentFormat(active.id, {
+        fileName: saved.fileName,
+        ...(clean ? { dirty: false } : {}),
+      });
       setInteractionMessage(
         clean
           ? saved.downloaded
@@ -315,6 +325,8 @@ export function useDocumentFiles({
       );
     } catch (error) {
       reportError(error);
+    } finally {
+      saving.current.delete(active.id);
     }
   }, [
     fileHandles,
@@ -322,17 +334,18 @@ export function useDocumentFiles({
     recordDocumentVersion,
     reportError,
     setInteractionMessage,
-    setWorkspace,
     tabs,
     workspace.fileName,
     workspace.source,
   ]);
 
   const saveDocument = useCallback(async () => {
-    const active = tabs.documents.find((document) => document.id === tabs.activeId);
+    const active = tabs.getDocument(tabs.activeId);
     if (!active?.native) return saveDocumentAs();
-    const handle = fileHandles.current.get(tabs.activeId);
+    const handle = fileHandles.current.get(active.id);
     if (!handle) return saveDocumentAs();
+    if (saving.current.has(active.id)) return;
+    saving.current.add(active.id);
     try {
       const capturedRevision = active.revision ?? 0;
       const previous = fileSnapshots.current.get(active.id);
@@ -359,7 +372,7 @@ export function useDocumentFiles({
         { ...active, source: workspace.source, fileName: handle.name },
         await loadDocumentVersions(active.historyId),
       );
-      const unlockedKey = documentKey(tabs.activeId);
+      const unlockedKey = documentKey(active.id);
       const encoded = await encodeDocument(portable, {
         compression: active.compression ?? "gzip",
         ...(unlockedKey ? { unlockedKey } : {}),
@@ -369,11 +382,14 @@ export function useDocumentFiles({
         active.id,
         await nativeSnapshot(encoded.bytes, workspace.source, (await handle.getFile()).lastModified),
       );
-      const clean = (tabs.getDocument(tabs.activeId)?.revision ?? 0) === capturedRevision;
-      if (clean) setWorkspace((current) => ({ ...current, fileName: handle.name, dirty: false }));
+      if (!stillOwned(active)) return;
+      const clean = (latestTabs.current.getDocument(active.id)?.revision ?? 0) === capturedRevision;
+      latestTabs.current.updateDocumentFormat(active.id, { fileName: handle.name, ...(clean ? { dirty: false } : {}) });
       setInteractionMessage(clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`);
     } catch (error) {
       reportError(error);
+    } finally {
+      saving.current.delete(active.id);
     }
   }, [
     fileHandles,
@@ -382,7 +398,6 @@ export function useDocumentFiles({
     reportError,
     saveDocumentAs,
     setInteractionMessage,
-    setWorkspace,
     tabs,
     workspace.source,
   ]);
@@ -398,70 +413,79 @@ export function useDocumentFiles({
     }) => {
       const active = tabs.getDocument(tabs.activeId);
       if (!active) return;
-      if (settings.forecastTimeZone !== undefined && !validForecastTimeZone(settings.forecastTimeZone))
-        throw new Error("Enter a valid forecast time zone");
-      const patch: Partial<DocumentSnapshot> = {
-        compression: settings.compression,
-        historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
-        historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
-        dirty: true,
-        revision: (active.revision ?? 0) + 1,
-        ...(settings.forecastTimeZone !== undefined && active.progressForecast
-          ? { progressForecast: { ...active.progressForecast, timeZone: settings.forecastTimeZone } }
-          : {}),
-      };
-      if (!settings.encrypted && active.encrypted) {
-        await disableMemoryOnlyHistory(active.historyId);
-        forgetDocumentKey(active.id);
-        tabs.updateDocumentFormat(active.id, { ...patch, encrypted: false });
-        setInteractionMessage("Password protection disabled; save to write an unencrypted file");
-        return;
-      }
-      if (settings.encrypted && (!active.encrypted || settings.password)) {
-        if (!settings.password) throw new Error("A password is required to enable protection");
-        const next = { ...active, ...patch, source: workspace.source };
-        const portable = await assemblePortableDocument(next, await loadDocumentVersions(active.historyId));
-        const encoded = await encodeDocument(portable, {
+      if (saving.current.has(active.id)) throw new Error("A save is already in progress for this document");
+      saving.current.add(active.id);
+      try {
+        if (settings.forecastTimeZone !== undefined && !validForecastTimeZone(settings.forecastTimeZone))
+          throw new Error("Enter a valid forecast time zone");
+        const patch: Partial<DocumentSnapshot> = {
           compression: settings.compression,
-          password: settings.password,
-        });
-        const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
-        let fileName = active.fileName;
-        let handle = existingHandle;
-        if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
-        else {
-          const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
-          if (!saved) return;
-          fileName = saved.fileName;
-          handle = saved.handle;
+          historyMaxVersions: Math.min(500, Math.max(10, settings.maxVersions)),
+          historyMaxLogicalBytes: Math.min(64, Math.max(1, settings.maxLogicalMiB)) * 1024 * 1024,
+          dirty: true,
+          revision: (active.revision ?? 0) + 1,
+          ...(settings.forecastTimeZone !== undefined && active.progressForecast
+            ? { progressForecast: { ...active.progressForecast, timeZone: settings.forecastTimeZone } }
+            : {}),
+        };
+        if (!settings.encrypted && active.encrypted) {
+          await disableMemoryOnlyHistory(active.historyId);
+          allowPlaintextPersistence(active.id);
+          forgetDocumentKey(active.id);
+          tabs.updateDocumentFormat(active.id, { ...patch, encrypted: false });
+          setInteractionMessage("Password protection disabled; save to write an unencrypted file");
+          return;
         }
-        await removePersistedDocument(active.id);
-        await enableMemoryOnlyHistory(active.historyId);
-        rememberDocumentKey(active.id, encoded.unlockedKey!);
-        if (handle) {
-          fileHandles.current.set(active.id, handle);
-          fileSnapshots.current.set(
-            active.id,
-            await nativeSnapshot(encoded.bytes, workspace.source, (await handle.getFile()).lastModified),
-          );
+        if (settings.encrypted && (!active.encrypted || settings.password)) {
+          if (!settings.password) throw new Error("A password is required to enable protection");
+          const next = { ...active, ...patch, source: workspace.source };
+          const portable = await assemblePortableDocument(next, await loadDocumentVersions(active.historyId));
+          const encoded = await encodeDocument(portable, {
+            compression: settings.compression,
+            password: settings.password,
+          });
+          const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
+          let fileName = active.fileName;
+          let handle = existingHandle;
+          if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
+          else {
+            const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
+            if (!saved) return;
+            fileName = saved.fileName;
+            handle = saved.handle;
+          }
+          await removePersistedDocument(active.id);
+          await enableMemoryOnlyHistory(active.historyId);
+          rememberDocumentKey(active.id, encoded.unlockedKey!);
+          if (handle) {
+            fileHandles.current.set(active.id, handle);
+            fileSnapshots.current.set(
+              active.id,
+              await nativeSnapshot(encoded.bytes, workspace.source, (await handle.getFile()).lastModified),
+            );
+          }
+          if (!stillOwned(active)) return;
+          const latest = latestTabs.current.getDocument(active.id)!;
+          const clean = latest.revision === active.revision;
+          tabs.updateDocumentFormat(active.id, {
+            ...patch,
+            revision: (latest.revision ?? 0) + 1,
+            portableDocumentId: portable.documentId,
+            native: true,
+            encrypted: true,
+            fileName,
+            dirty: !clean,
+          });
+          setInteractionMessage("Saved password-protected document");
+          return;
         }
-        tabs.updateDocumentFormat(active.id, {
-          ...patch,
-          portableDocumentId: portable.documentId,
-          native: true,
-          encrypted: true,
-          fileName,
-          dirty: false,
-        });
-        setWorkspace((current) => ({ ...current, fileName, dirty: false }));
-        setInteractionMessage("Saved password-protected document");
-        return;
+        tabs.updateDocumentFormat(active.id, patch);
+        setInteractionMessage("Document settings changed; save to apply them");
+      } finally {
+        saving.current.delete(active.id);
       }
-      tabs.updateDocumentFormat(active.id, patch);
-      setWorkspace((current) => ({ ...current, dirty: true }));
-      setInteractionMessage("Document settings changed; save to apply them");
     },
-    [fileHandles, fileSnapshots, setInteractionMessage, setWorkspace, tabs, workspace.source],
+    [fileHandles, fileSnapshots, setInteractionMessage, tabs, workspace.source],
   );
 
   const checkExternalFiles = useCallback(async () => {

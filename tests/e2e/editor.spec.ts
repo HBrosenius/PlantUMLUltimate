@@ -603,10 +603,7 @@ test("rebuilds the renderer iframe once and explains a repeated bootstrap failur
       page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[type="module"]'),
     ).toHaveCount(1);
     const frame = await (await iframe.elementHandle())!.contentFrame();
-    const channel = await frame!.evaluate(() => {
-      const value = document.querySelector("script[type=module]")?.textContent?.match(/const channel = ("[^"]+")/)?.[1];
-      return value ? (JSON.parse(value) as string) : undefined;
-    });
+    const channel = await iframe.getAttribute("data-renderer-channel");
     expect(channel).toBeTruthy();
     await frame!.evaluate(
       (value) =>

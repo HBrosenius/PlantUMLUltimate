@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { GanttTask } from "@plantuml-studio/diagram-gantt";
+import { MAX_WORKLOAD_CELLS, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskElapsedDays } from "./gantt-schedule";
 import { taskPauses, isWorkingDate, type GanttCalendar } from "./gantt-calendar";
 
@@ -45,6 +45,7 @@ export function buildResourceWorkloads(
   calendar?: GanttCalendar,
   workWindows?: ReadonlyMap<string, ResourceWorkWindow>,
 ): ResourceWorkload[] {
+  let workBudget = MAX_WORKLOAD_CELLS;
   const resources = new Map<
     string,
     {
@@ -91,6 +92,7 @@ export function buildResourceWorkloads(
         // Cap the walk so a calendar that closes every day (or pauses covering them) cannot
         // freeze the tab; exhausting it simply leaves the rest of the task unscheduled.
         for (let index = 0; index < MAX_SCHEDULE_STEPS; index += 1) {
+          if (--workBudget < 0) break;
           if (duration && scheduledDays.length >= duration) break;
           const date = new Date(`${start}T00:00:00Z`);
           date.setUTCDate(date.getUTCDate() + index);

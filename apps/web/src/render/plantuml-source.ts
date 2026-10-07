@@ -13,7 +13,7 @@ const RESOURCE_DIRECTIVE = /^\s*!\s*(?:include\w*|import\w*)\b|^\s*!\s*theme\b.*
 const RESOURCE_BUILTIN = /%\s*(?:load_json|getenv|get_env|dirpath|filename\w*|file_exists|dir_exists)\b/i;
 
 export function sourceForPlantUmlRenderer(source: string): string {
-  const lines = source.split(/\r?\n/);
+  const lines = source.split(/\r\n|\r|\n/);
   let inNote = false;
   const safeSource = lines
     .map((line) => {

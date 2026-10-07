@@ -1,5 +1,6 @@
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { normalizeTaskId } from "@plantuml-studio/diagram-gantt";
+import { MAX_WORKLOAD_CELLS, MAX_WORK_DAYS } from "@plantuml-studio/diagram-gantt";
 import { taskPauses, isWorkingDate, shiftDate, type GanttCalendar } from "./gantt-calendar";
 import { forecastToday } from "./forecast-date";
 
@@ -14,7 +15,8 @@ export interface ResolvedTaskDates {
 
 export function taskWorkloadDays(task: GanttTask): number | undefined {
   if (!task.duration) return undefined;
-  return task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1);
+  const days = task.duration.value * (task.duration.unit === "month" ? 30 : task.duration.unit === "week" ? 7 : 1);
+  return Number.isSafeInteger(days) && days >= 1 && days <= MAX_WORK_DAYS ? days : undefined;
 }
 
 export function taskAllocationPercent(task: GanttTask): number {
@@ -76,12 +78,16 @@ export function resolveTaskDates(
   calendar: GanttCalendar,
   timeZone?: string,
 ): Map<string, ResolvedTaskDates> {
+  const calendarError = calendar.error;
+  if (calendarError) return new Map(tasks.map((task) => [task.id, { derived: true, issue: calendarError }]));
   const resolved = new Map<string, ResolvedTaskDates>();
   const visiting = new Set<string>();
+  let remainingWork = MAX_WORKLOAD_CELLS;
   const workingEnd = (start: string, days: number, paused: Pick<ReadonlySet<string>, "has">) => {
     let value = start;
     let remaining = Math.max(0, days);
     for (let step = 0; step < 10_000 && remaining > 0; step++) {
+      if (--remainingWork < 0) return undefined;
       if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
       if (remaining > 0) value = shiftDate(value, 1)!;
     }
@@ -91,6 +97,7 @@ export function resolveTaskDates(
     let value = end;
     let remaining = Math.max(0, days);
     for (let step = 0; step < 10_000 && remaining > 0; step++) {
+      if (--remainingWork < 0) return undefined;
       if (isWorkingDate(value, calendar) && !paused.has(value)) remaining -= 1;
       if (remaining > 0) value = shiftDate(value, -1)!;
     }

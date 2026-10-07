@@ -3,7 +3,7 @@ import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
 import { validForecastTimeZone } from "./forecast-date";
-import { reportStorageWrite } from "./storage-health";
+import { reportStorageWrite, reportWorkspaceBackend } from "./storage-health";
 
 export interface WorkspaceSnapshot {
   diagramKind: DiagramKind;
@@ -46,6 +46,7 @@ export interface DocumentSnapshot {
 
 export interface WorkspaceSession {
   version: 7;
+  recoverySavedAt?: number;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
   viewMode: ViewMode;
@@ -105,6 +106,10 @@ export const AUTOMATIC_VERSION_LIMIT = 30;
 /** Automatic "before-restore" pins beyond this many become ordinary, prunable versions. */
 export const BEFORE_RESTORE_PIN_LIMIT = 10;
 const memoryOnlyHistories = new Map<string, DocumentVersion[]>();
+const plaintextExcluded = new Set<string>();
+export function allowPlaintextPersistence(documentId: string): void {
+  plaintextExcluded.delete(documentId);
+}
 
 function wholeLineRange(source: string, range: { from: number; to: number }): { from: number; to: number } {
   const from = source.lastIndexOf("\n", Math.max(0, range.from - 1)) + 1;
@@ -332,6 +337,47 @@ export function documentDisplayNames(
   );
 }
 
+const STORAGE_TIMEOUT_MS = 3000;
+let recoveryScope: string | undefined;
+export function workspaceRecoveryScope(): string {
+  if (recoveryScope) return recoveryScope;
+  try {
+    recoveryScope = globalThis.history?.state?.plantumlRecovery;
+    if (!recoveryScope) {
+      recoveryScope = crypto.randomUUID();
+      globalThis.history?.replaceState({ ...globalThis.history.state, plantumlRecovery: recoveryScope }, "");
+    }
+  } catch {
+    recoveryScope = crypto.randomUUID();
+  }
+  return recoveryScope!;
+}
+const scopedKey = (key: string) => `${key}:${workspaceRecoveryScope()}`;
+let lastRecoveryTime = 0;
+function recoverySnapshot(snapshot: WorkspaceSession): WorkspaceSession {
+  lastRecoveryTime = Math.max(Date.now(), lastRecoveryTime + 1);
+  return { ...persistableWorkspace(snapshot), recoverySavedAt: lastRecoveryTime };
+}
+
+function pruneRecoveryJournals(): void {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    for (const prefix of [RECOVERY_KEY, LEGACY_KEY]) {
+      const keys = Object.keys(storage).filter((key) => key.startsWith(`${prefix}:`));
+      if (keys.length <= 100) continue;
+      keys.sort(
+        (a, b) =>
+          Number(JSON.parse(storage.getItem(b)!).recoverySavedAt ?? 0) -
+          Number(JSON.parse(storage.getItem(a)!).recoverySavedAt ?? 0),
+      );
+      for (const key of keys.slice(100)) if (key !== scopedKey(prefix)) storage.removeItem(key);
+    }
+  } catch {
+    /* Quota/denial is reported by the save path. */
+  }
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   if (!globalThis.indexedDB) return Promise.reject(new Error("Persistent storage is unavailable in this browser"));
   return new Promise((resolve, reject) => {
@@ -344,8 +390,29 @@ function openDatabase(): Promise<IDBDatabase> {
         versions.createIndex("historyCreatedAt", ["historyId", "createdAt"]);
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open IndexedDB"));
+    let expired = false;
+    const timer = setTimeout(() => {
+      expired = true;
+      reject(new Error("Browser storage timed out"));
+    }, STORAGE_TIMEOUT_MS);
+    request.onblocked = () => {
+      expired = true;
+      clearTimeout(timer);
+      reject(new Error("Browser storage upgrade is blocked"));
+    };
+    request.onsuccess = () => {
+      clearTimeout(timer);
+      if (expired) {
+        request.result.close();
+        return;
+      }
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
+    request.onerror = () => {
+      clearTimeout(timer);
+      reject(request.error ?? new Error("Could not open IndexedDB"));
+    };
   });
 }
 
@@ -555,34 +622,64 @@ export async function importDocumentVersions(versions: readonly DocumentVersion[
 }
 
 export async function loadWorkspace(): Promise<WorkspaceSession> {
-  try {
-    const recovery = globalThis.localStorage?.getItem(RECOVERY_KEY);
-    if (recovery) return normalizeSession(JSON.parse(recovery));
-  } catch {
-    // Continue with IndexedDB when synchronous recovery is unavailable.
+  const own: unknown[] = [];
+  const shared: unknown[] = [];
+  for (const key of [RECOVERY_KEY, LEGACY_KEY]) {
+    for (const [name, list] of [
+      [scopedKey(key), own],
+      [key, shared],
+    ] as const) {
+      try {
+        const raw = globalThis.localStorage?.getItem(name);
+        if (raw) list.push(JSON.parse(raw));
+      } catch {
+        /* Try other copies. */
+      }
+    }
   }
   try {
     const database = await openDatabase();
-    const value = await new Promise<unknown>((resolve, reject) => {
-      const request = database.transaction(STORE, "readonly").objectStore(STORE).get(CURRENT);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    database.close();
-    if (value) return normalizeSession(value);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = database.transaction(STORE, "readonly");
+        const timer = setTimeout(() => {
+          transaction.abort();
+          reject(new Error("Browser recovery timed out"));
+        }, STORAGE_TIMEOUT_MS);
+        for (const [key, list] of [
+          [scopedKey(CURRENT), own],
+          [CURRENT, shared],
+        ] as const) {
+          const request = transaction.objectStore(STORE).get(key);
+          request.onsuccess = () => {
+            if (request.result) list.push(request.result);
+          };
+        }
+        transaction.oncomplete = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        transaction.onerror = transaction.onabort = () => {
+          clearTimeout(timer);
+          reject(transaction.error ?? new Error("Browser recovery aborted"));
+        };
+      });
+    } finally {
+      database.close();
+    }
   } catch {
-    // Private browsing or storage policy may make IndexedDB unavailable.
+    /* Recovery journals remain available without IndexedDB. */
   }
-  try {
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    return legacy ? normalizeSession(JSON.parse(legacy)) : DEFAULT_SESSION;
-  } catch {
-    return DEFAULT_SESSION;
-  }
+  const candidates = own.length ? own : shared;
+  candidates.sort(
+    (a, b) =>
+      Number((b as WorkspaceSession).recoverySavedAt ?? 0) - Number((a as WorkspaceSession).recoverySavedAt ?? 0),
+  );
+  return candidates.length ? normalizeSession(candidates[0]) : DEFAULT_SESSION;
 }
 
 function persistableWorkspace(snapshot: WorkspaceSession): WorkspaceSession {
-  const documents = snapshot.documents.filter((document) => !document.encrypted);
+  const documents = snapshot.documents.filter((document) => !document.encrypted && !plaintextExcluded.has(document.id));
   return {
     ...snapshot,
     documents,
@@ -611,27 +708,63 @@ function writeRecoveryItem(key: string, value: string): boolean {
 
 /** Returns false when the synchronous recovery copy could not be written. */
 export function saveWorkspaceRecovery(snapshot: WorkspaceSession): boolean {
-  return writeRecoveryItem(RECOVERY_KEY, JSON.stringify(persistableWorkspace(snapshot)));
+  const value = JSON.stringify(recoverySnapshot(snapshot));
+  const saved = writeRecoveryItem(scopedKey(RECOVERY_KEY), value);
+  writeRecoveryItem(RECOVERY_KEY, value);
+  return saved;
 }
 
 export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
-  const persistable = persistableWorkspace(snapshot);
-  saveWorkspaceRecovery(snapshot);
+  const persistable = recoverySnapshot(snapshot);
+  const value = JSON.stringify(persistable);
+  const recovered = writeRecoveryItem(scopedKey(RECOVERY_KEY), value);
+  writeRecoveryItem(RECOVERY_KEY, value);
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(STORE, "readwrite");
-      transaction.objectStore(STORE).put(persistable, CURRENT);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
+      const timer = setTimeout(() => {
+        transaction.abort();
+        reject(new Error("Browser save timed out"));
+      }, STORAGE_TIMEOUT_MS);
+      // Protection can change while opening the database; never commit an obsolete plaintext copy.
+      const current = persistableWorkspace(persistable);
+      transaction.objectStore(STORE).put(current, CURRENT);
+      transaction.objectStore(STORE).put(current, scopedKey(CURRENT));
+      const sessions: Array<{ key: IDBValidKey; savedAt: number }> = [];
+      const cursor = transaction.objectStore(STORE).openCursor();
+      cursor.onsuccess = () => {
+        const entry = cursor.result;
+        if (entry) {
+          if (String(entry.key).startsWith(`${CURRENT}:`))
+            sessions.push({ key: entry.key, savedAt: entry.value.recoverySavedAt ?? 0 });
+          entry.continue();
+        } else {
+          sessions.sort((a, b) => b.savedAt - a.savedAt);
+          for (const entry of sessions.slice(100)) transaction.objectStore(STORE).delete(entry.key);
+        }
+      };
+      transaction.oncomplete = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      transaction.onerror = transaction.onabort = () => {
+        clearTimeout(timer);
+        reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
+      };
     });
     database.close();
     reportStorageWrite("workspace", true);
+    reportWorkspaceBackend("indexeddb");
+    pruneRecoveryJournals();
   } catch (error) {
-    const saved = writeRecoveryItem(LEGACY_KEY, JSON.stringify(persistable));
-    reportStorageWrite("workspace", saved);
-    if (!saved) throw error;
+    const fallback = JSON.stringify(persistableWorkspace(persistable));
+    const saved = writeRecoveryItem(scopedKey(LEGACY_KEY), fallback);
+    writeRecoveryItem(LEGACY_KEY, fallback);
+    reportStorageWrite("workspace", saved || recovered);
+    reportWorkspaceBackend(saved || recovered ? "localstorage" : "memory");
+    pruneRecoveryJournals();
+    if (!saved && !recovered) throw error;
   }
 }
 
@@ -639,15 +772,27 @@ export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
 export async function saveActiveProject(value: unknown): Promise<void> {
   // Write the small recovery record synchronously first, so an immediate reload cannot race IndexedDB.
   // A failed write clears the stale copy so loading cannot prefer an older project state.
-  const recovered = writeRecoveryItem(ACTIVE_PROJECT_LEGACY_KEY, JSON.stringify(value));
+  const serialized = JSON.stringify(value);
+  const recovered = writeRecoveryItem(scopedKey(ACTIVE_PROJECT_LEGACY_KEY), serialized);
+  writeRecoveryItem(ACTIVE_PROJECT_LEGACY_KEY, serialized);
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(STORE, "readwrite");
+      const timer = setTimeout(() => {
+        transaction.abort();
+        reject(new Error("Project recovery save timed out"));
+      }, STORAGE_TIMEOUT_MS);
       transaction.objectStore(STORE).put(value, ACTIVE_PROJECT);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
+      transaction.objectStore(STORE).put(value, scopedKey(ACTIVE_PROJECT));
+      transaction.oncomplete = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      transaction.onerror = transaction.onabort = () => {
+        clearTimeout(timer);
+        reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
+      };
     });
     database.close();
     reportStorageWrite("project", true);
@@ -661,34 +806,69 @@ export async function saveActiveProject(value: unknown): Promise<void> {
 /** Loads the active project recovery record, if there is one. */
 export async function loadActiveProject(): Promise<unknown | undefined> {
   try {
-    const legacy = localStorage.getItem(ACTIVE_PROJECT_LEGACY_KEY);
-    if (legacy) return JSON.parse(legacy);
+    const own = localStorage.getItem(scopedKey(ACTIVE_PROJECT_LEGACY_KEY));
+    if (own) return JSON.parse(own) ?? undefined;
   } catch {
     // Fall through to IndexedDB.
   }
   try {
     const database = await openDatabase();
     const value = await new Promise<unknown>((resolve, reject) => {
-      const request = database.transaction(STORE, "readonly").objectStore(STORE).get(ACTIVE_PROJECT);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      const transaction = database.transaction(STORE, "readonly");
+      const timer = setTimeout(() => {
+        transaction.abort();
+        reject(new Error("Project recovery timed out"));
+      }, STORAGE_TIMEOUT_MS);
+      const request = transaction.objectStore(STORE).get(scopedKey(ACTIVE_PROJECT));
+      request.onsuccess = () => {
+        if (request.result !== undefined) {
+          clearTimeout(timer);
+          resolve(request.result);
+        } else {
+          const legacyRequest = transaction.objectStore(STORE).get(ACTIVE_PROJECT);
+          legacyRequest.onsuccess = () => {
+            clearTimeout(timer);
+            resolve(legacyRequest.result);
+          };
+          legacyRequest.onerror = () => {
+            clearTimeout(timer);
+            reject(legacyRequest.error);
+          };
+        }
+      };
+      request.onerror = transaction.onabort = () => {
+        clearTimeout(timer);
+        reject(request.error ?? transaction.error);
+      };
     });
     database.close();
-    if (value !== undefined) return value;
+    if (value !== undefined) return value ?? undefined;
   } catch {
     // Fall through to the legacy browser-storage record.
+  }
+  try {
+    const legacy = localStorage.getItem(ACTIVE_PROJECT_LEGACY_KEY);
+    if (legacy) return JSON.parse(legacy) ?? undefined;
+  } catch {
+    /* Recovery may be unavailable. */
   }
   return undefined;
 }
 
 /** Removes the active-project recovery record from both supported browser stores. */
 export async function clearActiveProject(): Promise<void> {
-  localStorage.removeItem(ACTIVE_PROJECT_LEGACY_KEY);
+  writeRecoveryItem(scopedKey(ACTIVE_PROJECT_LEGACY_KEY), "null");
+  try {
+    globalThis.localStorage?.removeItem(ACTIVE_PROJECT_LEGACY_KEY);
+  } catch {
+    /* Continue with IndexedDB. */
+  }
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(STORE, "readwrite");
       transaction.objectStore(STORE).delete(ACTIVE_PROJECT);
+      transaction.objectStore(STORE).put(null, scopedKey(ACTIVE_PROJECT));
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error ?? new Error("Browser storage transaction was aborted"));
@@ -735,49 +915,46 @@ export function startMemoryOnlyHistory(historyId: string): void {
 }
 
 export async function removePersistedDocument(documentId: string): Promise<void> {
-  const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(STORE, "readwrite");
-    const store = transaction.objectStore(STORE);
-    const request = store.get(CURRENT);
-    request.onsuccess = () => {
-      const session = request.result as WorkspaceSession | undefined;
-      if (session) {
-        const documents = session.documents.filter((document) => document.id !== documentId);
-        store.put(
-          {
-            ...session,
-            documents,
-            activeDocumentId:
-              documents.find((item) => item.id === session.activeDocumentId)?.id ?? documents[0]?.id ?? "",
-          },
-          CURRENT,
-        );
-      }
+  plaintextExcluded.add(documentId);
+  const withoutDocument = (value: WorkspaceSession) => {
+    const documents = value.documents.filter((document) => document.id !== documentId);
+    return {
+      ...value,
+      documents,
+      activeDocumentId: documents.some((d) => d.id === value.activeDocumentId)
+        ? value.activeDocumentId
+        : (documents[0]?.id ?? ""),
     };
-    request.onerror = () => reject(request.error ?? new Error("Could not remove persisted plaintext document"));
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove persisted plaintext document"));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Could not remove persisted plaintext document"));
-  });
-  database.close();
-  const fallback = globalThis.localStorage?.getItem(LEGACY_KEY);
-  if (fallback) {
-    const session = normalizeSession(JSON.parse(fallback));
-    const documents = session.documents.filter((document) => document.id !== documentId);
-    globalThis.localStorage.setItem(
-      LEGACY_KEY,
-      JSON.stringify({ ...session, documents, activeDocumentId: documents[0]?.id ?? "" }),
-    );
+  };
+  const database = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE, "readwrite");
+      const request = transaction.objectStore(STORE).openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const value = cursor.value as WorkspaceSession;
+        if (Array.isArray(value?.documents)) cursor.update(withoutDocument(value));
+        cursor.continue();
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = transaction.onabort = () =>
+        reject(transaction.error ?? new Error("Could not remove persisted plaintext"));
+    });
+  } finally {
+    database.close();
   }
-  const recovery = globalThis.localStorage?.getItem(RECOVERY_KEY);
-  if (recovery) {
-    const session = normalizeSession(JSON.parse(recovery));
-    const documents = session.documents.filter((document) => document.id !== documentId);
-    globalThis.localStorage.setItem(
-      RECOVERY_KEY,
-      JSON.stringify({ ...session, documents, activeDocumentId: documents[0]?.id ?? "" }),
-    );
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    for (const key of Object.keys(storage)) {
+      if (![LEGACY_KEY, RECOVERY_KEY].some((prefix) => key === prefix || key.startsWith(`${prefix}:`))) continue;
+      const raw = storage.getItem(key);
+      if (raw) storage.setItem(key, JSON.stringify(withoutDocument(JSON.parse(raw))));
+    }
+  } catch {
+    throw new Error("Could not remove plaintext recovery copies; password protection was not completed");
   }
 }
 

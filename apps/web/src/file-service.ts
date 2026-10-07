@@ -43,6 +43,10 @@ export interface OpenedFileBytes {
 }
 
 const NATIVE_MAGIC = new TextEncoder().encode("PUMLUDOC");
+async function readBoundedText(file: File, limit = 500_000): Promise<string> {
+  if (file.size > limit) throw new Error(`File exceeds the ${Math.round(limit / 1000)} kB text limit`);
+  return file.text();
+}
 
 export function isPortableDocument(bytes: Uint8Array): boolean {
   return bytes.length >= NATIVE_MAGIC.length && NATIVE_MAGIC.every((byte, index) => bytes[index] === byte);
@@ -50,6 +54,7 @@ export function isPortableDocument(bytes: Uint8Array): boolean {
 
 export async function readDocumentBytes(handle: WritableFileHandle): Promise<OpenedFileBytes> {
   const file = await handle.getFile();
+  if (file.size > 64 * 1024 * 1024) throw new Error("Document exceeds the 64 MiB file limit");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const native = isPortableDocument(bytes);
   return {
@@ -65,13 +70,13 @@ export async function readDocumentBytes(handle: WritableFileHandle): Promise<Ope
 
 export async function readFileSnapshot(handle: WritableFileHandle): Promise<FileSnapshot> {
   const file = await handle.getFile();
-  return { source: await file.text(), lastModified: file.lastModified, size: file.size };
+  return { source: await readBoundedText(file), lastModified: file.lastModified, size: file.size };
 }
 
 export async function readPlantUmlDocument(handle: WritableFileHandle): Promise<OpenedDocument> {
   const file = await handle.getFile();
   return {
-    source: await file.text(),
+    source: await readBoundedText(file),
     fileName: file.name,
     handle,
     lastModified: file.lastModified,
@@ -119,7 +124,7 @@ function cancelled(error: unknown): boolean {
 }
 
 function fallbackUpload(): Promise<OpenedDocument | undefined> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".puml,.plantuml,text/plain";
@@ -129,25 +134,24 @@ function fallbackUpload(): Promise<OpenedDocument | undefined> {
         resolve(undefined);
         return;
       }
-      void file.text().then(
-        (source) => resolve({ source, fileName: file.name }),
-        () => resolve(undefined),
-      );
+      void readBoundedText(file).then((source) => resolve({ source, fileName: file.name }), reject);
     };
     input.click();
   });
 }
 
 function fallbackDocumentUpload(): Promise<OpenedFileBytes | undefined> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pumlu,.puml,.plantuml,application/octet-stream,text/plain";
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return resolve(undefined);
-      void file.arrayBuffer().then(
-        (buffer) => {
+      if (file.size > 64 * 1024 * 1024) return reject(new Error("Document exceeds the 64 MiB file limit"));
+      void file
+        .arrayBuffer()
+        .then((buffer) => {
           const bytes = new Uint8Array(buffer);
           const native = isPortableDocument(bytes);
           resolve({
@@ -158,9 +162,8 @@ function fallbackDocumentUpload(): Promise<OpenedFileBytes | undefined> {
             lastModified: file.lastModified,
             size: file.size,
           });
-        },
-        () => resolve(undefined),
-      );
+        })
+        .catch(reject);
     };
     input.click();
   });
@@ -194,7 +197,7 @@ export async function openPlantUmlDocument(): Promise<OpenedDocument | undefined
 export async function openWorkspaceBackupFile(): Promise<string | undefined> {
   const pickerWindow = window as FilePickerWindow;
   if (!pickerWindow.showOpenFilePicker) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".json,application/json";
@@ -204,7 +207,7 @@ export async function openWorkspaceBackupFile(): Promise<string | undefined> {
           resolve(undefined);
           return;
         }
-        void file.text().then(resolve, () => resolve(undefined));
+        void readBoundedText(file, 32_000_000).then(resolve, reject);
       };
       input.click();
     });
@@ -215,7 +218,7 @@ export async function openWorkspaceBackupFile(): Promise<string | undefined> {
       types: [{ description: "PlantUML Ultimate backup", accept: { "application/json": [".json"] } }],
     });
     if (!handle) return undefined;
-    return await (await handle.getFile()).text();
+    return await readBoundedText(await handle.getFile(), 32_000_000);
   } catch (error) {
     if (cancelled(error)) return undefined;
     throw error;
@@ -332,6 +335,7 @@ export async function rasterizeSvg(
   svg: string,
   { scale = 2, type = "image/png", background }: { scale?: number; type?: string; background?: string } = {},
 ): Promise<RasterizedSvg> {
+  if (!Number.isFinite(scale) || scale <= 0 || scale > 10) throw new Error("Invalid image export scale");
   const blobUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = new Image();
@@ -339,6 +343,9 @@ export async function rasterizeSvg(
     await image.decode();
     const width = Math.max(1, image.naturalWidth || image.width);
     const height = Math.max(1, image.naturalHeight || image.height);
+    const pixels = Math.ceil(width * scale) * Math.ceil(height * scale);
+    if (!Number.isFinite(pixels) || width * scale > 16384 || height * scale > 16384 || pixels > 32_000_000)
+      throw new Error("Image export exceeds supported dimensions");
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);

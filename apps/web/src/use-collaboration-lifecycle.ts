@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction, type RefObject } from "react";
 import { findTaskAt, parseGantt } from "@plantuml-studio/diagram-gantt";
+import { storageGet } from "./safe-storage";
 import {
   CollaborationSession,
   collaborationLinkDetails,
@@ -163,7 +164,7 @@ export function useCollaborationLifecycle({
     setDialogOpen(false);
     window.clearTimeout(remoteEditFlashTimer.current);
     setRemoteEditFlash(undefined);
-    window.history.replaceState({}, "", withoutCollaborationLink(window.location.href));
+    window.history.replaceState(window.history.state, "", withoutCollaborationLink(window.location.href));
     setInteractionMessage("Left collaboration room");
   }, [flushVersion, setInteractionMessage]);
 
@@ -197,7 +198,7 @@ export function useCollaborationLifecycle({
       pendingRemoteDocument.current = undefined;
       const documentId = tabs.activeId;
       const collaborationDocument = tabs.documents.find((document) => document.id === documentId)!;
-      const participantId = localStorage.getItem("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
+      const participantId = storageGet("plantuml-studio.collaboration-participant") ?? crypto.randomUUID();
       savePreference("plantuml-studio.collaboration-participant", participantId);
       const colors = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2"];
       const color =
@@ -311,7 +312,7 @@ export function useCollaborationLifecycle({
       });
       setPendingCollaboration(undefined);
       setDialogOpen(true);
-      window.history.replaceState({}, "", new URL(shareUrl));
+      window.history.replaceState(window.history.state, "", new URL(shareUrl));
       setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
     },
     [

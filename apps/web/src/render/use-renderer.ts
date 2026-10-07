@@ -1,289 +1,320 @@
 import { useEffect, useRef, useState } from "react";
-import type { DiagramKind, RenderResult, RenderStatus } from "../model";
+import type { RenderResult, RenderStatus } from "../model";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
+import { loadRendererAssets, frameDocument } from "./renderer-assets";
+import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
-
-export type RendererLayoutEngine = "native" | "graphviz";
-
-export function rendererLayoutEngineForDiagramKind(diagramKind: DiagramKind): RendererLayoutEngine {
-  return diagramKind === "gantt" || diagramKind === "sequence" || diagramKind === "wbs" ? "native" : "graphviz";
-}
-
-interface FrameMessage {
-  channel: string;
-  type: "ready" | "result" | "bootstrap-error";
-  requestId?: number;
-  source?: string;
-  svg?: string;
-  error?: string;
-  durationMs?: number;
-}
+import { buildFontAtlas } from "./font-atlas";
 
 interface PendingRender {
   requestId: number;
   source: string;
+  documentId: string;
   renderSource: string;
 }
-const CACHE_LIMIT = 50;
-
-function frameDocument(
-  channel: string,
-  assets: { plantUmlEngineUrl: string; graphvizUrl: string },
-  layoutEngine: RendererLayoutEngine,
-): string {
-  const { plantUmlEngineUrl, graphvizUrl } = assets;
-  const engine = JSON.stringify(new URL(plantUmlEngineUrl, window.location.href).href);
-  const graphviz = new URL(graphvizUrl, window.location.href).href.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
-  const frameChannel = JSON.stringify(channel);
-  const graphvizScript = layoutEngine === "graphviz" ? `<script src="${graphviz}"></script>` : "";
-  const appOrigin = JSON.stringify(window.location.origin);
-  return `<!doctype html><html><head><meta charset="utf-8">${graphvizScript}</head><body><script type="module">
-    const channel = ${frameChannel};
-    const appOrigin = ${appOrigin};
-    const send = (message) => parent.postMessage({ channel, ...message }, appOrigin);
-    try {
-      const { renderToString } = await import(${engine});
-      addEventListener("message", (event) => {
-        const request = event.data;
-        if (event.origin !== appOrigin || event.source !== parent || !request || request.channel !== channel || request.type !== "render") return;
-        const started = performance.now();
-        renderToString(
-          request.renderSource.split(/\\r\\n|\\r|\\n/),
-          (svg) => {
-            const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
-            const text = parsed.documentElement.textContent || "";
-            const syntaxError = text.match(/Syntax Error[?][^\\n]*/i)?.[0];
-            if (syntaxError) send({ type: "result", requestId: request.requestId, source: request.source, error: syntaxError.trim(), durationMs: performance.now() - started });
-            else send({ type: "result", requestId: request.requestId, source: request.source, svg, durationMs: performance.now() - started });
-          },
-          (error) => send({ type: "result", requestId: request.requestId, source: request.source, error: String(error), durationMs: performance.now() - started }),
-        );
-      });
-      send({ type: "ready" });
-    } catch (error) {
-      send({ type: "bootstrap-error", error: error instanceof Error ? error.message : String(error) });
-    }
-  </script></body></html>`;
+interface FrameMessage {
+  channel: string;
+  type: string;
+  requestId?: number;
+  svg?: string;
+  error?: string;
+  durationMs?: number;
+  nativeTextMetrics?: boolean;
 }
+const TIMEOUT_MS = 15_000;
+const RENDER_TIMEOUT_MS = 30_000;
+const CACHE_BYTES = 20_000_000;
+const cacheKey = (documentId: string, source: string) => JSON.stringify([documentId, source]);
 
-export function useRenderer(source: string, enabled = true, layoutEngine: RendererLayoutEngine = "graphviz") {
-  const frame = useRef<HTMLIFrameElement | null>(null);
-  const channel = useRef(`plantuml-${crypto.randomUUID()}`);
-  const ready = useRef(false);
-  const busy = useRef(false);
-  const latestRequest = useRef(0);
+export type RendererLayoutEngine = "native" | "graphviz";
+export function rendererLayoutEngineForDiagramKind(kind: string): RendererLayoutEngine {
+  return ["gantt", "sequence", "wbs"].includes(kind) ? "native" : "graphviz";
+}
+export function useRenderer(
+  source: string,
+  enabled = true,
+  layoutEngine: RendererLayoutEngine = "graphviz",
+  documentId = "default",
+) {
   const pending = useRef<PendingRender | undefined>(undefined);
-  const cache = useRef(new Map<string, Omit<RenderResult, "requestId">>());
-  const renderTimeout = useRef<number | undefined>(undefined);
-  const flushPending = useRef<(() => void) | undefined>(undefined);
-  const restartFrame = useRef<(() => void) | undefined>(undefined);
+  const latest = useRef({ source, documentId });
+  latest.current = { source, documentId };
+  const requestId = useRef(0);
+  const flush = useRef<(() => void) | undefined>(undefined);
+  const cache = useRef(new Map<string, RenderResult>());
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
-  const [retryToken, setRetryToken] = useState(0);
+  const [restart, setRestart] = useState(0);
 
   useEffect(() => {
-    if (!enabled) {
-      setStatus("idle");
-      return;
-    }
-    let instance: HTMLIFrameElement | undefined;
+    if (!enabled) return;
+    let disposed = false;
+    let frame: HTMLIFrameElement | undefined;
+    let channel = "";
+    let ready = false;
+    let nativeTextMetrics = false;
+    let booting = false;
+    let inFlight: PendingRender | undefined;
+    let timeout: number | undefined;
+    let startupTimeout: number | undefined;
     let recoveryTimer: number | undefined;
     let recoveryAttempted = false;
-    let cancelled = false;
-
+    let bootVersion = 0;
+    const isCurrent = (request: PendingRender) =>
+      request.requestId === requestId.current &&
+      request.source === latest.current.source &&
+      request.documentId === latest.current.documentId;
+    const removeFrame = () => {
+      ready = false;
+      booting = false;
+      const retired = frame;
+      if (retired) {
+        const owner = retired.contentWindow;
+        const retiredChannel = channel;
+        const finish = () => {
+          window.clearTimeout(deadline);
+          window.removeEventListener("message", disposed);
+          retired.remove();
+        };
+        const disposed = (event: MessageEvent) => {
+          if (event.source === owner && event.data?.channel === retiredChannel && event.data.type === "disposed")
+            finish();
+        };
+        const deadline = window.setTimeout(finish, 100);
+        window.addEventListener("message", disposed);
+        owner?.postMessage({ channel: retiredChannel, type: "dispose" }, "*");
+      }
+      frame = undefined;
+      window.clearTimeout(timeout);
+      window.clearTimeout(startupTimeout);
+    };
+    const fail = (error: string, request = inFlight ?? pending.current) => {
+      if (disposed || (request && !isCurrent(request))) return;
+      setStatus("error");
+      setResult((previous) => ({
+        requestId: requestId.current,
+        source: latest.current.source,
+        documentId: latest.current.documentId,
+        durationMs: 0,
+        error,
+        ...(previous?.documentId === latest.current.documentId && previous.svg
+          ? { svg: previous.svg, source: previous.source }
+          : {}),
+      }));
+    };
     const sendPending = () => {
-      if (!ready.current || busy.current || !pending.current || !instance?.contentWindow) return;
+      if (!ready || inFlight || !pending.current || !frame?.contentWindow) return;
       const request = pending.current;
       pending.current = undefined;
-      busy.current = true;
-      instance.contentWindow.postMessage(
-        { channel: channel.current, type: "render", ...request },
-        window.location.origin,
+      if (!isCurrent(request)) return;
+      inFlight = request;
+      const preparation =
+        nativeTextMetrics && document.fonts.size === 0
+          ? Promise.resolve(undefined)
+          : buildFontAtlas(request.renderSource, () => disposed || inFlight !== request || !isCurrent(request));
+      void preparation.then(
+        (fonts) => {
+          if (disposed || inFlight !== request) return;
+          if (!isCurrent(request)) {
+            inFlight = undefined;
+            window.clearTimeout(timeout);
+            sendPending();
+            return;
+          }
+          frame?.contentWindow?.postMessage(
+            { channel, type: "render", ...request, fonts },
+            "*",
+            fonts ? [fonts.metrics.buffer] : [],
+          );
+        },
+        (error) => {
+          if (disposed || inFlight !== request) return;
+          fail(error instanceof Error ? error.message : "Could not prepare diagram text", request);
+          inFlight = undefined;
+          window.clearTimeout(timeout);
+          sendPending();
+        },
       );
-      window.clearTimeout(renderTimeout.current);
-      renderTimeout.current = window.setTimeout(() => {
-        if (!busy.current) return;
-        busy.current = false;
-        ready.current = false;
-        instance?.remove();
-        frame.current = null;
-        if (latestRequest.current === request.requestId) {
-          setStatus("error");
-          setResult((previous) => ({
-            requestId: request.requestId,
-            durationMs: 15_000,
-            error: "Rendering timed out. Check the highlighted syntax errors and try again.",
-            ...(previous?.svg ? { svg: previous.svg } : {}),
-          }));
-        }
-        recoveryTimer = window.setTimeout(boot, 100);
-      }, 15_000);
+      timeout = window.setTimeout(() => {
+        if (inFlight !== request) return;
+        fail("Rendering timed out. Reduce the diagram size or check its source and try again.", request);
+        inFlight = undefined;
+        removeFrame();
+        if (pending.current) void boot();
+      }, RENDER_TIMEOUT_MS);
     };
-    flushPending.current = sendPending;
-
+    flush.current = () => {
+      if (!frame && !booting) void boot();
+      else sendPending();
+    };
+    const startupFailed = (error: string) => {
+      if (inFlight && isCurrent(inFlight) && !pending.current) pending.current = inFlight;
+      removeFrame();
+      inFlight = undefined;
+      if (!recoveryAttempted) {
+        recoveryAttempted = true;
+        recoveryTimer = window.setTimeout(() => void boot(), 100);
+      } else
+        fail(
+          `The local PlantUML renderer could not start after an automatic retry. Browser security settings or blocked asset loading may be preventing it. ${error}`,
+        );
+    };
+    const boot = async () => {
+      removeFrame();
+      window.clearTimeout(recoveryTimer);
+      booting = true;
+      const version = ++bootVersion;
+      startupTimeout = window.setTimeout(() => {
+        bootVersion += 1;
+        startupFailed("Renderer startup timed out");
+      }, TIMEOUT_MS);
+      try {
+        const assets = await loadRendererAssets();
+        if (disposed || version !== bootVersion) return;
+        channel = `plantuml-${crypto.randomUUID()}`;
+        frame = document.createElement("iframe");
+        // Keep a layout box so browser callbacks are not deferred solely because the frame is display:none.
+        Object.assign(frame.style, {
+          position: "fixed",
+          width: "1px",
+          height: "1px",
+          right: "0",
+          bottom: "0",
+          pointerEvents: "none",
+          border: "0",
+        });
+        frame.tabIndex = -1;
+        frame.title = "Local PlantUML renderer";
+        frame.setAttribute("aria-hidden", "true");
+        frame.setAttribute("sandbox", "allow-scripts");
+        frame.setAttribute("data-renderer-channel", channel);
+        frame.srcdoc = frameDocument(channel);
+        frame.onload = () => {
+          if (!disposed && version === bootVersion)
+            frame?.contentWindow?.postMessage(
+              { channel, type: "initialize", assets: { ...assets, layoutEngine } },
+              "*",
+            );
+        };
+        document.body.append(frame);
+      } catch (error) {
+        if (!disposed && version === bootVersion) startupFailed(error instanceof Error ? error.message : String(error));
+      }
+    };
     const receive = (event: MessageEvent<FrameMessage>) => {
       const message = event.data;
-      if (
-        event.origin !== window.location.origin ||
-        !message ||
-        message.channel !== channel.current ||
-        event.source !== instance?.contentWindow
-      )
-        return;
+      if (!message || message.channel !== channel || event.source !== frame?.contentWindow) return;
       if (message.type === "ready") {
-        ready.current = true;
+        nativeTextMetrics = message.nativeTextMetrics === true;
+        window.clearTimeout(startupTimeout);
+        booting = false;
+        ready = true;
         sendPending();
         return;
       }
       if (message.type === "bootstrap-error") {
-        busy.current = false;
-        window.clearTimeout(renderTimeout.current);
-        if (!recoveryAttempted) {
-          recoveryAttempted = true;
-          ready.current = false;
-          instance?.remove();
-          frame.current = null;
-          setStatus("rendering");
-          recoveryTimer = window.setTimeout(boot, 100);
-          return;
-        }
-        setStatus("error");
-        setResult((previous) => ({
-          requestId: latestRequest.current,
-          durationMs: 0,
-          error: `The local PlantUML renderer could not start after an automatic retry. Browser security settings or blocked module loading may be preventing it. ${message.error ?? "Unknown error"}`,
-          svg: previous?.svg,
-        }));
+        startupFailed(typeof message.error === "string" ? message.error.slice(0, 10_000) : "Unknown startup error");
         return;
       }
-      if (message.type !== "result" || message.requestId === undefined) return;
-      busy.current = false;
-      window.clearTimeout(renderTimeout.current);
+      if (message.type !== "result" || !inFlight || message.requestId !== inFlight.requestId) return;
+      const request = inFlight;
+      inFlight = undefined;
+      window.clearTimeout(timeout);
       const completed: RenderResult = {
-        requestId: message.requestId,
-        durationMs: message.durationMs ?? 0,
-        ...(message.svg ? { svg: sanitizeSvg(message.svg) } : {}),
-        ...(message.error ? { error: message.error } : {}),
+        requestId: request.requestId,
+        source: request.source,
+        documentId: request.documentId,
+        durationMs:
+          typeof message.durationMs === "number" && Number.isFinite(message.durationMs) && message.durationMs >= 0
+            ? message.durationMs
+            : 0,
       };
-      if (!completed.error && completed.svg && message.source) {
-        cache.current.delete(message.source);
-        cache.current.set(message.source, { svg: completed.svg, durationMs: completed.durationMs });
+      try {
+        if (message.error)
+          completed.error =
+            typeof message.error === "string"
+              ? message.error.slice(0, 10_000)
+              : "The renderer returned an invalid error";
+        else if (typeof message.svg === "string") completed.svg = sanitizeSvg(message.svg);
+        else completed.error = "The renderer returned no diagram";
+      } catch (error) {
+        completed.error = error instanceof Error ? error.message : "Invalid SVG";
       }
-      if (completed.requestId === latestRequest.current) {
-        setResult((previous) => (completed.error ? { ...completed, svg: previous?.svg } : completed));
-        setStatus(completed.error ? "error" : "idle");
+      if (completed.svg) {
+        const key = cacheKey(request.documentId, request.source);
+        cache.current.delete(key);
+        cache.current.set(key, completed);
+        let bytes = [...cache.current].reduce(
+          (total, [key, value]) => total + 2 * (key.length + (value.svg?.length ?? 0)),
+          0,
+        );
+        while (cache.current.size > 50 || bytes > CACHE_BYTES) {
+          const oldest = cache.current.entries().next().value;
+          if (!oldest) break;
+          bytes -= 2 * (oldest[0].length + (oldest[1].svg?.length ?? 0));
+          cache.current.delete(oldest[0]);
+        }
+      }
+      if (isCurrent(request)) {
+        if (completed.error) fail(completed.error, request);
+        else {
+          setResult(completed);
+          setStatus("idle");
+        }
       }
       sendPending();
     };
-
     window.addEventListener("message", receive);
-    const boot = async () => {
-      window.clearTimeout(recoveryTimer);
-      instance?.remove();
-      ready.current = false;
-      busy.current = false;
-      const { rendererAssets } = await import("./renderer-assets");
-      if (cancelled) return;
-      instance = document.createElement("iframe");
-      instance.hidden = true;
-      instance.title = "Local PlantUML renderer";
-      instance.setAttribute("aria-hidden", "true");
-      const html = frameDocument(channel.current, rendererAssets, layoutEngine);
-      if (/Firefox\//.test(navigator.userAgent)) {
-        // Firefox resolves CSP self against about:srcdoc instead of the inherited origin.
-        document.body.append(instance);
-        const frameDocumentNode = instance.contentDocument!;
-        frameDocumentNode.open();
-        frameDocumentNode.write(html);
-        frameDocumentNode.close();
-      } else {
-        // srcdoc preserves the inherited service-worker controller for offline rendering.
-        instance.srcdoc = html;
-        document.body.append(instance);
-      }
-      frame.current = instance;
-    };
-    restartFrame.current = () => {
-      window.clearTimeout(recoveryTimer);
-      recoveryTimer = window.setTimeout(boot, 100);
-    };
-    const requestIdle = (window as unknown as { requestIdleCallback?: typeof window.requestIdleCallback })
-      .requestIdleCallback;
-    const idleId = requestIdle ? requestIdle(boot, { timeout: 400 }) : window.setTimeout(boot, 50);
+    void boot();
     return () => {
-      cancelled = true;
+      disposed = true;
+      bootVersion += 1;
       window.removeEventListener("message", receive);
-      const cancelIdle = (window as unknown as { cancelIdleCallback?: typeof window.cancelIdleCallback })
-        .cancelIdleCallback;
-      if (cancelIdle && requestIdle) cancelIdle(idleId);
-      else window.clearTimeout(idleId);
-      instance?.remove();
-      frame.current = null;
-      ready.current = false;
-      busy.current = false;
-      window.clearTimeout(renderTimeout.current);
       window.clearTimeout(recoveryTimer);
-      flushPending.current = undefined;
-      restartFrame.current = undefined;
+      removeFrame();
+      flush.current = undefined;
     };
-  }, [enabled, layoutEngine]);
+  }, [enabled, restart, layoutEngine, documentId]);
 
   useEffect(() => {
+    const id = ++requestId.current;
+    pending.current = undefined;
     if (!enabled) {
       setStatus("idle");
       return;
     }
     setStatus("rendering");
     const timer = window.setTimeout(() => {
-      const requestId = ++latestRequest.current;
-      const cached = cache.current.get(source);
+      const error = renderSafetyError(source);
+      if (error) {
+        setStatus("error");
+        setResult((previous) => ({
+          requestId: id,
+          source,
+          documentId,
+          durationMs: 0,
+          error,
+          ...(previous?.documentId === documentId && previous.svg
+            ? { svg: previous.svg, source: previous.source }
+            : {}),
+        }));
+        return;
+      }
+      const cached = cache.current.get(cacheKey(documentId, source));
       if (cached) {
-        cache.current.delete(source);
-        cache.current.set(source, cached);
-        setResult({ requestId, ...cached });
+        setResult({ ...cached, requestId: id });
         setStatus("idle");
         return;
       }
-      pending.current = { requestId, source, renderSource: sourceForPlantUmlRenderer(source) };
-      const contentWindow = frame.current?.contentWindow;
-      if (ready.current && !busy.current && contentWindow) {
-        const request = pending.current;
-        pending.current = undefined;
-        busy.current = true;
-        contentWindow.postMessage({ channel: channel.current, type: "render", ...request }, window.location.origin);
-        window.clearTimeout(renderTimeout.current);
-        renderTimeout.current = window.setTimeout(() => {
-          if (!busy.current) return;
-          busy.current = false;
-          ready.current = false;
-          if (latestRequest.current === request.requestId) {
-            setStatus("error");
-            setResult((previous) => ({
-              requestId: request.requestId,
-              durationMs: 15_000,
-              error: "Rendering timed out. Check the highlighted syntax errors and try again.",
-              ...(previous?.svg ? { svg: previous.svg } : {}),
-            }));
-          }
-          restartFrame.current?.();
-        }, 15_000);
-      }
+      pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
+      flush.current?.();
     }, 150);
     return () => window.clearTimeout(timer);
-  }, [enabled, source, retryToken]);
-
-  useEffect(() => {
-    while (cache.current.size > CACHE_LIMIT) {
-      const oldest = cache.current.keys().next().value as string | undefined;
-      if (oldest === undefined) break;
-      cache.current.delete(oldest);
-    }
-  }, [result]);
+  }, [enabled, source, documentId, restart]);
 
   const retry = () => {
-    cache.current.delete(source);
-    setRetryToken((value) => value + 1);
+    cache.current.delete(cacheKey(documentId, source));
+    setRestart((value) => value + 1);
   };
-
-  return { status, result, retry };
+  return { status, result: result?.documentId === documentId ? result : undefined, retry };
 }

@@ -70,6 +70,22 @@ function nextJsonMessage<T>(socket: WebSocket, type: string): Promise<T> {
 }
 
 describe("collaboration Worker", () => {
+  it("rejects valid binary updates with invalid document values without persisting them", async () => {
+    const roomId = "z".repeat(43);
+    const editorToken = "e".repeat(43);
+    const owner = await connect(roomId, { owner: "o".repeat(43), editor: editorToken, viewer: "v".repeat(43) });
+    await nextBinary(owner);
+    const closed = new Promise<CloseEvent>((resolve) => owner.addEventListener("close", resolve));
+    const malformed = new Y.Doc();
+    malformed.getMap("document-diagrams").set("bad", "not-a-map");
+    owner.send(Y.encodeStateAsUpdate(malformed));
+    expect((await closed).code).toBe(1007);
+    const later = await connect(roomId, { access: editorToken });
+    const persisted = new Y.Doc();
+    Y.applyUpdate(persisted, await nextBinary(later));
+    expect(persisted.getMap("document-diagrams").size).toBe(0);
+    later.close(1000);
+  });
   it("reports health without creating a room", async () => {
     const response = await exports.default.fetch(new Request("https://collaboration.example/health"));
     await expect(response.json()).resolves.toEqual({ status: "ok" });

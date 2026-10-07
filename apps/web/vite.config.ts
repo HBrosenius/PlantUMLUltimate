@@ -1,3 +1,4 @@
+import { build as bundleWorker } from "esbuild";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -22,6 +23,50 @@ function openIconicAsset(): Plugin {
     },
     generateBundle() {
       this.emitFile({ type: "asset", fileName: "openiconic.js", source });
+    },
+  };
+}
+
+function isolatedRendererAssets(): Plugin {
+  return {
+    name: "isolated-renderer-assets",
+    configureServer(server) {
+      let bundled: Promise<string> | undefined;
+      server.watcher.on("change", () => {
+        bundled = undefined;
+      });
+      server.middlewares.use((req, res, next) => {
+        const path = req.url?.split("?")[0];
+        if (path === "/__renderer_assets__/canonical.worker.js") {
+          bundled ??= bundleWorker({
+            entryPoints: [fileURLToPath(new URL("./src/render/canonical.worker.ts", import.meta.url))],
+            bundle: true,
+            write: false,
+            format: "esm",
+            platform: "browser",
+            target: "es2022",
+          }).then((r) => r.outputFiles[0]!.text);
+          res.setHeader("Content-Type", "application/javascript");
+          void bundled.then(
+            (code) => res.end(code),
+            () => {
+              res.statusCode = 500;
+              res.end("Renderer unavailable");
+              bundled = undefined;
+            },
+          );
+          return;
+        }
+        const asset =
+          path === "/__renderer_assets__/plantuml.js"
+            ? "@plantuml/core/plantuml.js"
+            : path === "/__renderer_assets__/viz-global.js"
+              ? "@plantuml/core/viz-global.js"
+              : undefined;
+        if (!asset) return next();
+        res.setHeader("Content-Type", "application/javascript");
+        res.end(readFileSync(fileURLToPath(import.meta.resolve(asset))));
+      });
     },
   };
 }
@@ -75,7 +120,7 @@ function pwaServiceWorker(): Plugin {
 
 export default defineConfig({
   base: "/",
-  plugins: [react(), openIconicAsset(), pwaServiceWorker()],
+  plugins: [react(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
   worker: { format: "es" },
   build: {
     // PlantUML and Graphviz are intentionally emitted as large standalone assets and

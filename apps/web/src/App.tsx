@@ -1,3 +1,4 @@
+import { storageGet } from "./safe-storage";
 import type { RepairCategory } from "./remaining-repair-summary";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -335,6 +336,7 @@ export function App() {
     workspace.source,
     hydrated && dialog?.kind !== "new-document" && workspace.viewMode !== "code",
     rendererLayoutEngineForDiagramKind(workspace.diagramKind),
+    tabs.activeId,
   );
   useEffect(() => {
     const selector = pendingDiagramFocusSelector.current;
@@ -789,7 +791,7 @@ export function App() {
   }, []);
   const documentCollaborationBridge = useRef<CollaborationDocumentBridge | undefined>(undefined);
   const defaultCollaborationEndpoint =
-    localStorage.getItem("plantuml-studio.collaboration-server") ??
+    storageGet("plantuml-studio.collaboration-server") ??
     import.meta.env.VITE_COLLABORATION_URL ??
     "https://collaboration.plantuml.brosenius.se";
   const {
@@ -2088,14 +2090,14 @@ export function App() {
     setInteractionMessage,
   });
   const exportSvg = useCallback(() => {
-    if (!result?.svg) {
+    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting SVG");
       return;
     }
     downloadText(result.svg, svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
-  }, [result?.svg, workspace.fileName]);
+  }, [result, workspace.fileName, workspace.source, tabs.activeId]);
   const exportPng = useCallback(async () => {
-    if (!result?.svg) {
+    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting PNG");
       return;
     }
@@ -2104,9 +2106,9 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, result?.svg, workspace.fileName]);
+  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId]);
   const exportPdf = useCallback(async () => {
-    if (!result?.svg) {
+    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting PDF");
       return;
     }
@@ -2116,9 +2118,9 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, result?.svg, workspace.fileName]);
+  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId]);
   const copyImage = useCallback(async () => {
-    if (!result?.svg) {
+    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before copying it");
       return;
     }
@@ -2128,7 +2130,7 @@ export function App() {
     } catch (error) {
       setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
     }
-  }, [result?.svg]);
+  }, [result, workspace.source, tabs.activeId]);
   const copySourceAs = useCallback(async (text: string, label: string) => {
     try {
       await copyText(text);
@@ -2555,14 +2557,32 @@ export function App() {
         run: () => update("zoom", Math.max(0.5, workspace.zoom - 0.1)),
       },
       { id: "export.source", label: "Export source", category: "Export", run: exportSource },
-      { id: "export.svg", label: "Export SVG", category: "Export", enabled: Boolean(result?.svg), run: exportSvg },
-      { id: "export.png", label: "Export PNG", category: "Export", enabled: Boolean(result?.svg), run: exportPng },
-      { id: "export.pdf", label: "Export PDF", category: "Export", enabled: Boolean(result?.svg), run: exportPdf },
+      {
+        id: "export.svg",
+        label: "Export SVG",
+        category: "Export",
+        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        run: exportSvg,
+      },
+      {
+        id: "export.png",
+        label: "Export PNG",
+        category: "Export",
+        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        run: exportPng,
+      },
+      {
+        id: "export.pdf",
+        label: "Export PDF",
+        category: "Export",
+        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        run: exportPdf,
+      },
       {
         id: "export.copy-image",
         label: "Copy diagram image",
         category: "Export",
-        enabled: Boolean(result?.svg),
+        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
         run: copyImage,
       },
       { id: "export.copy-markdown", label: "Copy as Markdown", category: "Export", run: copyMarkdown },
@@ -2588,7 +2608,9 @@ export function App() {
     project,
     redo,
     restoreWorkspace,
-    result?.svg,
+    result,
+    tabs.activeId,
+    workspace.source,
     saveDocument,
     saveDocumentAs,
     setCollaborationDialogOpen,
@@ -3041,6 +3063,8 @@ export function App() {
   });
   const canDuplicateMenuElement = !!menuOccurrence && diagramMulti.canDuplicateAt(menuOccurrence.range);
 
+  if (!hydrated) return <main role="status">Restoring workspace…</main>;
+
   return (
     <div
       className={`app${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project ? " has-project-navigator" : ""}`}
@@ -3055,7 +3079,9 @@ export function App() {
         <strong>PlantUML Ultimate</strong>
         <div className="file-tools" aria-label="File controls">
           <FileMenu
-            canExport={Boolean(result?.svg)}
+            canExport={Boolean(
+              result?.svg && result.source === workspace.source && result.documentId === tabs.activeId,
+            )}
             onNew={newDocument}
             onNewProject={() => openDialog({ kind: "new-project" })}
             onOpen={() => void openDocument()}

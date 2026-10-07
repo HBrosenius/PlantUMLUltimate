@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
+import { storageGet } from "./safe-storage";
 import {
   findJiraLocalChangeFields,
   issueIdFromJiraTaskAlias,
@@ -28,7 +29,7 @@ export function useJiraIntegration({
 }) {
   const [jiraDialogOpen, setJiraDialogOpen] = useState(false);
   const endpoint =
-    localStorage.getItem("plantuml-studio.jira-integration-server") ??
+    storageGet("plantuml-studio.jira-integration-server") ??
     import.meta.env.VITE_JIRA_INTEGRATION_URL ??
     "https://jira.plantuml.brosenius.se";
   const binding = useMemo(() => parseJiraDocumentBinding(source), [source]);

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import {
   activeWorkspace,
@@ -26,6 +26,53 @@ import { DEFAULT_SOURCE } from "./model";
 beforeEach(() => {
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() });
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: undefined });
+});
+
+it("recovers the newest fallback after database writes return", async () => {
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+      removeItem: (key: string) => values.delete(key),
+    },
+  });
+  await saveWorkspace(DEFAULT_SESSION);
+  const database = globalThis.indexedDB;
+  const storage = globalThis.localStorage;
+  storage.setItem = (key, value) => {
+    if (key.startsWith("plantuml-studio.workspace.recovery.v6")) throw new Error("Quota");
+    values.set(key, value);
+  };
+  Object.defineProperty(globalThis, "indexedDB", {
+    configurable: true,
+    value: {
+      open() {
+        throw new Error("Unavailable");
+      },
+    },
+  });
+  await saveWorkspace({
+    ...DEFAULT_SESSION,
+    documents: [{ ...DEFAULT_SESSION.documents[0]!, source: "NEWEST FALLBACK" }],
+  });
+  Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: database });
+  expect((await loadWorkspace()).documents[0]!.source).toBe("NEWEST FALLBACK");
+});
+
+it("settles an unresponsive database open with in-memory recovery", async () => {
+  vi.useFakeTimers();
+  try {
+    Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: { open: () => ({}) } });
+    const restored = loadWorkspace();
+    await vi.advanceTimersByTimeAsync(3001);
+    expect(await restored).toEqual(DEFAULT_SESSION);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("closes Saturday and Sunday in new diagrams by default", () => {

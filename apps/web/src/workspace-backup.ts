@@ -80,6 +80,7 @@ export function parseWorkspaceBackup(source: string): WorkspaceSession {
 }
 
 export function parseWorkspaceBackupBundle(source: string): { session: WorkspaceSession; versions: DocumentVersion[] } {
+  if (source.length > 32_000_000) throw new Error("Backup exceeds the 32 MB limit");
   let value: unknown;
   try {
     value = JSON.parse(source);
@@ -102,9 +103,10 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
     (candidate.defaultDiagramTheme !== undefined && typeof candidate.defaultDiagramTheme !== "string")
   )
     throw new Error("The backup contains invalid workspace settings");
-  if (!Array.isArray(candidate.documents) || !candidate.documents.length)
+  if (!Array.isArray(candidate.documents) || !candidate.documents.length || candidate.documents.length > 200)
     throw new Error("The backup does not contain any documents");
   const ids = new Set<string>();
+  const owners = new Set<string>();
   for (const document of candidate.documents) {
     if (
       !document ||
@@ -112,6 +114,8 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
       !document.id ||
       ids.has(document.id) ||
       typeof document.source !== "string" ||
+      document.source.length > 500_000 ||
+      (document.historyId !== undefined && owners.has(document.historyId)) ||
       (document.diagramKind !== undefined && !DIAGRAM_KINDS.has(document.diagramKind)) ||
       (document.historyId !== undefined && (typeof document.historyId !== "string" || !document.historyId)) ||
       (document.fileName !== undefined && typeof document.fileName !== "string") ||
@@ -119,6 +123,7 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
     )
       throw new Error("The backup contains invalid documents");
     ids.add(document.id);
+    owners.add(document.historyId ?? `history-${document.id}`);
     if (
       document.cursor !== undefined &&
       (!document.cursor ||
@@ -198,7 +203,8 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
   const versions = backup.version === 2 ? backup.versions! : [];
   const historyIds = new Set(session.documents.map((document) => document.historyId));
   if (
-    !versions.every((version) => validVersion(version, historyIds)) ||
+    versions.length > 10_000 ||
+    !versions.every((version) => validVersion(version, historyIds) && version.source.length <= 500_000) ||
     new Set(versions.map((version) => version.id)).size !== versions.length
   )
     throw new Error("The backup contains invalid document history");

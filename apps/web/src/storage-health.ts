@@ -4,10 +4,15 @@ import { useSyncExternalStore } from "react";
 export type StorageWrite = "workspace" | "project";
 
 export interface StorageHealth {
+  workspaceBackend?: "indexeddb" | "localstorage" | "memory";
   /** Writes whose latest attempt failed. */
   failing: readonly StorageWrite[];
   usage?: { used: number; quota: number };
   persisted?: boolean;
+}
+
+export function reportWorkspaceBackend(workspaceBackend: NonNullable<StorageHealth["workspaceBackend"]>): void {
+  if (health.workspaceBackend !== workspaceBackend) update({ ...health, workspaceBackend });
 }
 
 /** Usage above this share of the quota is reported before writes start failing. */
