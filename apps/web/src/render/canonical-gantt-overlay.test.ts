@@ -182,7 +182,7 @@ it("keeps same-row task hitboxes separate across a shortened month header", () =
   const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="100" y="10">Sep</text>
     <text x="160" y="10">October 2026</text>${columns}
     <text x="0" y="70">Architecture</text><rect x="100" y="60" width="76" height="13" fill="#aaa"/>
-    <polygon points="174,63 220,67 174,71 174,63" fill="#181818" stroke="#181818"/>
+    <polygon points="218,63 220,67 218,71 218,63" fill="#181818" stroke="#181818"/>
     <text x="200" y="70">New task</text><rect x="220" y="60" width="16" height="13" fill="#aaa"/></svg>`;
   const result = new DOMParser().parseFromString(
     addCanonicalGanttOverlay(
