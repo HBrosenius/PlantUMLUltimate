@@ -46,6 +46,21 @@ gh api repos/HBrosenius/PlantUMLUltimate/rulesets
 
 ## Deployment order
 
+The Pages workflow runs a production rendering smoke check after deployment. It opens
+a fresh Chromium context against `https://plantuml.brosenius.se/`, checks the actual
+HTTP CSP, and renders both Gantt and Component diagrams without replacing response
+headers. Run it manually with:
+
+```sh
+npx playwright test --config=playwright.deployed.config.ts
+```
+
+The Cloudflare response-header rule **PlantUML Ultimate security headers** manages
+the HTTP CSP for this hostname. Its `script-src` and `worker-src` directives must
+allow `data:` for the isolated renderer. The HTML meta policy cannot relax a stricter
+HTTP header. A failed smoke check makes the deployment workflow fail, but does not
+automatically roll back an already published Pages deployment.
+
 Ordinary, backward-compatible changes may deploy through their path-filtered workflows.
 For contract changes, make compatibility explicit in the pull request:
 
