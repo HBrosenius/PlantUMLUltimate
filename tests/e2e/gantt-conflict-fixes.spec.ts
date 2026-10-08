@@ -80,6 +80,8 @@ test("distinguishes task and milestone slack units on a closed weekend", async (
   await expect(milestone).toContainText("0 calendar days");
   const task = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Build", exact: true }) });
   await expect(task).toContainText("0 working days");
+  // The open report can cover the milestone in the split-view viewport.
+  await report.locator(":scope > summary").click();
   await page.locator('.diagram [data-task-id="release"]').first().hover();
   const hover = page.getByLabel("Task details for Release");
   for (const label of ["Total slack", "Free slack"]) {

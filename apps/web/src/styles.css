@@ -554,14 +554,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 .editor-actions {
-  position: absolute;
-  left: 12px;
+  position: relative;
+  flex: 0 0 auto;
+  padding: 8px 12px;
   justify-content: flex-end;
   pointer-events: none;
   z-index: 5;
-  top: 8px;
-  right: 12px;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .editor-actions > * {

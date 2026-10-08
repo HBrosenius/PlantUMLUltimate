@@ -40,6 +40,12 @@ the official Playwright 1.62.1 Noble image, pinned by digest and matching the lo
 with browsers and OS dependencies already installed. Update that image together
 with Playwright dependency upgrades.
 
+Fault-injection tests now stub the worker protocol instead of the removed module
+loader. All three browsers still verify CPU-bound worker termination and bounded
+startup retries. Tooltip checks exposed an editor toolbar overlapping source at
+390px; the toolbar now reserves its own wrapping row. The milestone tooltip test
+also collapses the critical-path report before hovering its covered diagram target.
+
 The security remediation introduced fresh workers and data-URL engine modules. Reusing workers improved performance but did not restore the original speed. Comparing with the pre-security renderer confirmed the regression.
 
 ## Main cause and fix

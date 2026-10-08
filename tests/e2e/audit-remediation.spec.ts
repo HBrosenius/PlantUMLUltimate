@@ -129,10 +129,17 @@ test("CPU-bound rendering in a warm worker is terminated while the editor remain
 }) => {
   test.setTimeout(60_000);
   if (browserName !== "webkit") await page.clock.install();
-  await page.route("**/__renderer_assets__/plantuml.js", (route) =>
+  await page.route("**/__renderer_assets__/canonical.worker.js", (route) =>
     route.fulfill({
       contentType: "application/javascript",
-      body: "let calls = 0; export const renderToString = (_lines, done) => { if (++calls === 1) done('<svg xmlns=\"http://www.w3.org/2000/svg\"><text>Warmed</text></svg>'); else { while (true) {} } };",
+      body: `let calls = 0;
+        self.onmessage = ({ data }) => {
+          if (data.type === "initialize") self.postMessage({ type: "ready", nativeTextMetrics: true });
+          if (data.type !== "render") return;
+          if (++calls === 1) self.postMessage({ type: "result", requestId: data.requestId, durationMs: 1,
+            svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>Warmed</text></svg>' });
+          else { while (true) {} }
+        };`,
     }),
   );
   await open(page);
@@ -150,10 +157,10 @@ test("CPU-bound rendering in a warm worker is terminated while the editor remain
 test("stalled renderer initialization reaches an error and offers retry", async ({ page, browserName }) => {
   test.setTimeout(60_000);
   if (browserName !== "webkit") await page.clock.install();
-  await page.route("**/__renderer_assets__/plantuml.js", (route) =>
+  await page.route("**/__renderer_assets__/canonical.worker.js", (route) =>
     route.fulfill({
       contentType: "application/javascript",
-      body: "await new Promise(() => {}); export const renderToString = () => {};",
+      body: "self.onmessage = () => {};",
     }),
   );
   await open(page);
