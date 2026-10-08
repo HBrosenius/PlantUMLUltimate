@@ -373,7 +373,7 @@ export function UseCaseDiagramPreview({
   };
 
   return (
-    <section className="preview" aria-label="Use Case diagram preview">
+    <section className="preview" aria-label="Use Case diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −

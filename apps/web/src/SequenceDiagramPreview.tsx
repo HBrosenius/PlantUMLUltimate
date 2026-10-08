@@ -591,7 +591,7 @@ export function SequenceDiagramPreview({
     }
   };
   return (
-    <section className="preview" aria-label="Sequence diagram preview">
+    <section className="preview" aria-label="Sequence diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −

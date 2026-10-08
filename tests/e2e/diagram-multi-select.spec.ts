@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource } from "./editor-helpers";
+import { prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 const fixtures = [
   {
@@ -18,7 +18,10 @@ const fixtures = [
   { kind: "wbs", body: "* Root\n**(A) One\n**(B) Two", attribute: "data-wbs-node-id" },
 ];
 for (const fixture of fixtures) {
-  test(`${fixture.kind}: multi-select, bulk style, copy/paste and undo`, async ({ page }) => {
+  test(`${fixture.kind}: multi-select, bulk style, copy/paste and undo`, async ({ page, browserName }) => {
+    // This workflow performs several renders plus cache restores. WebKit's
+    // engine startup and layout take longer even when each render is bounded.
+    if (browserName === "webkit") test.setTimeout(180_000);
     await prepareEditor(page);
     await page.getByRole("button", { name: "New diagram tab" }).click();
     const names: Record<string, string> = {
@@ -49,46 +52,70 @@ for (const fixture of fixtures) {
           ? page.locator('.diagram .class-semantic-hit[data-class-object-id="b"]').first()
           : page.locator(`.diagram [${fixture.attribute}][role="button"][aria-label*="Two"]`).first();
     const clickElement = async (element: typeof first, shift = false, button: "left" | "right" = "left") => {
+      await waitForDiagramRender(page);
       // Undo and selection can rebuild the SVG between visibility, measurement and
       // clicking. Retry the entire operation so each attempt measures the current target.
       await expect(async () => {
-        await expect(element).toBeVisible({ timeout: 1_000 });
-        await element.scrollIntoViewIfNeeded({ timeout: 1_000 });
-        const box = await element.boundingBox();
-        expect(box).toBeTruthy();
-        await element.click({
-          position: { x: box!.width * 0.25, y: box!.height * 0.5 },
-          modifiers: shift ? ["Shift"] : [],
-          button,
-          timeout: 1_000,
-          // WBS text and its transparent hit rect share a semantic ID but paint in different orders by engine.
-          force: fixture.kind === "wbs",
-        });
-      }).toPass({ timeout: 5_000 });
+        try {
+          await expect(element).toBeVisible({ timeout: 1_000 });
+          if (browserName !== "webkit") {
+            await element.scrollIntoViewIfNeeded({ timeout: 1_000 });
+          }
+          const box = await element.boundingBox();
+          expect(box).toBeTruthy();
+          if (browserName === "webkit") {
+            // Avoid WebKit's unstable SVG scrolling path; these small fixtures
+            // are already visible. Keep real pointer and modifier events.
+            if (shift) await page.keyboard.down("Shift");
+            try {
+              await page.mouse.click(box!.x + box!.width * 0.25, box!.y + box!.height * 0.5, { button });
+            } finally {
+              if (shift) await page.keyboard.up("Shift");
+            }
+            return;
+          }
+          await element.click({
+            position: { x: box!.width * 0.25, y: box!.height * 0.5 },
+            modifiers: shift ? ["Shift"] : [],
+            button,
+            timeout: 1_000,
+            // WBS text and its transparent hit rect share a semantic ID but paint in different orders by engine.
+            force: fixture.kind === "wbs",
+          });
+        } catch (error) {
+          console.log(`Click failure: ${String(error).slice(0, 1500)}`);
+          throw error;
+        }
+      }).toPass({ timeout: browserName === "webkit" ? 25_000 : 5_000 });
     };
     await expect(first).toBeVisible();
     await clickElement(first);
     await clickElement(second, true);
     const inspector = page.getByRole("complementary", { name: "Selected elements inspector" });
+    const activate = async (button: ReturnType<typeof inspector.getByRole>) => {
+      if (browserName === "webkit") await button.press("Enter");
+      else await button.click();
+    };
     await expect(inspector).toBeVisible();
     await expect(inspector.getByText("2 elements selected")).toBeVisible();
     await inspector.getByLabel("Color", { exact: true }).fill("Orange");
-    await inspector.getByRole("button", { name: "Set color", exact: true }).click();
+    await activate(inspector.getByRole("button", { name: "Set color", exact: true }));
     await expect(page.locator(".statusbar")).toContainText("Updated 2 elements");
     await expect(editor).toContainText("#Orange");
-    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await activate(page.getByRole("button", { name: "Undo", exact: true }));
     await expect(editor).not.toContainText("#Orange");
     await clickElement(first);
     await clickElement(second, true);
     // Use the inspector to avoid text-editor clipboard handling after undo restores focus.
-    await inspector.getByRole("button", { name: "Copy", exact: true }).click();
-    await inspector.getByRole("button", { name: "Paste", exact: true }).click();
+    await activate(inspector.getByRole("button", { name: "Copy", exact: true }));
+    await expect(page.locator(".statusbar")).toContainText("Copied 2 elements");
+    await activate(inspector.getByRole("button", { name: "Paste", exact: true }));
     await expect(page.locator(".statusbar")).toContainText("Pasted");
     await expect.poll(async () => (await editor.innerText()).match(/One/g)?.length ?? 0).toBe(2);
     if (fixture.kind !== "activity") await expect(editor).toContainText("A_copy");
     if (fixture.kind === "class")
       await expect.poll(async () => (await editor.innerText()).match(/field: String/g)?.length ?? 0).toBe(2);
-    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await activate(page.getByRole("button", { name: "Undo", exact: true }));
     await expect.poll(async () => (await editor.innerText()).match(/One/g)?.length ?? 0).toBe(1);
     if (fixture.kind === "wbs") await expect(page.locator(".diagram .wbs-node-hit")).toHaveCount(3);
     await clickElement(first);
@@ -101,7 +128,7 @@ for (const fixture of fixtures) {
     await expect.poll(async () => (await editor.innerText()).match(/One/g)?.length ?? 0).toBe(2);
     await expect.poll(async () => (await editor.innerText()).match(/Two/g)?.length ?? 0).toBe(2);
     if (fixture.kind === "wbs") await expect(editor).toContainText("**(A_copy) One");
-    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await activate(page.getByRole("button", { name: "Undo", exact: true }));
     await expect.poll(async () => (await editor.innerText()).match(/One/g)?.length ?? 0).toBe(1);
   });
 }

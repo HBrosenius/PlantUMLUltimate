@@ -1,6 +1,7 @@
 import plantUmlEngineUrl from "@plantuml/core/plantuml.js?url";
 import graphvizUrl from "@plantuml/core/viz-global.js?url";
 import workerUrl from "./canonical.worker.ts?worker&url";
+import { classicEngineScript } from "./engine-exceptions";
 
 let assets: Promise<{ engine: string; graphviz: string; worker: string; icons: string }> | undefined;
 
@@ -29,7 +30,10 @@ export function loadRendererAssets() {
       if (!response.ok) throw new Error("Could not load the local renderer assets");
       const source = await response.text();
       if (source.length > 10_000_000) throw new Error("Renderer asset exceeds the expected size");
-      return scriptUrl(source, ["engine", "graphviz", "worker", "icons"][index]!);
+      return scriptUrl(
+        index === 0 ? classicEngineScript(source) : source,
+        ["engine", "graphviz", "worker", "icons"][index]!,
+      );
     }),
   )
     .then(([engine, graphviz, worker, icons]) => ({
@@ -57,7 +61,7 @@ export function frameDocument(channel: string): string {
     let configuration;
     const stop = () => { worker?.terminate(); worker = undefined; ready = false; nextRequest = undefined; };
     const start = () => {
-      worker = new Worker(configuration.worker, { type: "module" });
+      worker = new Worker(configuration.worker);
       worker.onerror = (event) => { send({ type: initialized ? "result" : "bootstrap-error", requestId: nextRequest?.requestId, error: event.message || "Renderer worker failed" }); stop(); };
       worker.onmessage = (event) => {
         const message = event.data;

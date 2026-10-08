@@ -213,7 +213,11 @@ export function ActivityDiagramPreview({
     return () => window.removeEventListener("pointermove", move);
   }, [document]);
   return (
-    <section className="preview activity-preview" aria-label="Activity diagram preview">
+    <section
+      className="preview activity-preview"
+      aria-label="Activity diagram preview"
+      data-render-status={renderStatus}
+    >
       <div className="preview-tools">
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −

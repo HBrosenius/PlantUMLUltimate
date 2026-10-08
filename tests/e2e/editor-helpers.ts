@@ -41,10 +41,17 @@ export async function fillSource(page: Page, value: string, visibleText = value)
 
 export async function setSource(page: Page, value: string) {
   await fillSource(page, value);
+  await waitForDiagramRender(page);
   // A cold renderer may spend 15s starting and up to 30s rendering before
   // reporting its own bounded failure, particularly on WebKit.
   await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 45_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
+}
+
+export async function waitForDiagramRender(page: Page) {
+  await expect(page.locator(".preview[data-render-status]")).toHaveAttribute("data-render-status", "idle", {
+    timeout: 45_000,
+  });
 }
 
 export async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Divider…") {

@@ -1,5 +1,31 @@
 # Rendering performance follow-up — 2026-10-07
 
+## CI follow-up — 2026-10-08
+
+The next complete CI run passed Chromium, Firefox, validation, CodeQL and the
+production rendering smoke check, but all four WebKit runners stopped after test
+failures. The final summaries were lost when the runners shut down.
+
+The renderer now uses classic workers and trusted `importScripts` assets, with
+the engine's fixed module exports adapted inside a private wrapper. The opaque
+iframe, data-only script/worker policy, network isolation and execution deadlines
+are unchanged. The adapter also avoids allocating unused native stacks for the
+TeaVM Java exceptions used during parsing; identity, messages and causes are
+preserved. Unit tests validate the installed engine's adapter targets, and an
+unsupported engine upgrade fails explicitly.
+
+Warm/fresh parity now runs one engine heap at a time and waits for worker disposal.
+It passed all native and Graphviz comparisons in Windows WebKit (about 2.6 minutes).
+Chromium passed parity, font fallback and security tests. WebKit's sampled native
+rendering remains slow: approximately 12 seconds cold and 14 seconds per edit,
+including automation and preparation (about 5 seconds of engine execution).
+This does not claim Safari performance is fully restored.
+
+Browser tests now wait for a completed preview rather than accepting an older SVG.
+The 43 bundled themes run as individual tests with the same interaction assertions,
+allowing sharding and per-theme failures. CI logs each failed test immediately so
+a later runner shutdown cannot erase the assertion details.
+
 The security remediation introduced fresh workers and data-URL engine modules. Reusing workers improved performance but did not restore the original speed. Comparing with the pre-security renderer confirmed the regression.
 
 ## Main cause and fix

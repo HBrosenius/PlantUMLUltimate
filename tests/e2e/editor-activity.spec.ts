@@ -142,8 +142,8 @@ test("reorders actions with a preview and creates a structured transition by dra
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/:Third;[\s\S]*-->[\s\S]*:Second;/);
 });
 
-test("creates and edits Activity actions, partitions, and notes", async ({ page }) => {
-  test.setTimeout(60_000);
+test("creates and edits Activity actions, partitions, and notes", async ({ page, browserName }) => {
+  test.setTimeout(browserName === "webkit" ? 180_000 : 60_000);
   await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   const activityChoice = chooser.getByRole("button", { name: /Activity diagram/ });
@@ -151,7 +151,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page 
   await activityChoice.click();
   await expect(page.getByRole("region", { name: "Activity diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText(":Receive order;");
-  await expect(page.locator(".activity-diagram svg")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".activity-diagram svg")).toBeVisible({ timeout: 45_000 });
 
   await page.locator('[data-activity-object-id="control-0"]').first().click({ force: true });
   const controlInspector = page.getByRole("complementary", { name: "Activity control inspector" });

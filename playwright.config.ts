@@ -8,7 +8,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   fullyParallel: Boolean(process.env.CI),
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:5173",
     // Avoid tracing successful first attempts in CI; retain local failure traces.

@@ -104,9 +104,10 @@ self.onmessage = async (event: MessageEvent) => {
   if (request.type === "initialize") {
     try {
       Object.defineProperty(document, "currentScript", { value: { tagName: "SCRIPT", src: request.graphviz } });
-      if (request.layoutEngine === "graphviz") await import(/* @vite-ignore */ request.graphviz);
-      ({ renderToString } = await import(/* @vite-ignore */ request.engine));
-      await import(/* @vite-ignore */ request.icons);
+      if (request.layoutEngine === "graphviz") importScripts(request.graphviz);
+      importScripts(request.engine, request.icons);
+      renderToString = (globalThis as typeof globalThis & { __plantumlRenderToString: typeof renderToString })
+        .__plantumlRenderToString;
       self.postMessage({ type: "ready", nativeTextMetrics: nativeMetrics });
     } catch (error) {
       self.postMessage({ type: "bootstrap-error", error: String(error) });

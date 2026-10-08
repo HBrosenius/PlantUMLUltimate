@@ -1132,7 +1132,12 @@ export function DiagramPreview({
   };
 
   return (
-    <section className="preview gantt-preview" ref={previewRef} aria-label="Diagram preview">
+    <section
+      className="preview gantt-preview"
+      ref={previewRef}
+      aria-label="Diagram preview"
+      data-render-status={renderStatus}
+    >
       <div className="preview-tools">
         <div className="gantt-preview-tools-main">
           {!progressForecast?.enabled && (

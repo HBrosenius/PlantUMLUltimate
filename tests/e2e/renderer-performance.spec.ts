@@ -22,6 +22,9 @@ test("renders with the font atlas when worker canvas is unavailable", async ({ p
 
 test("warm rendering matches a fresh engine after font and style changes", async ({ page, browserName }) => {
   test.setTimeout(browserName === "webkit" ? 240_000 : 180_000);
+  page.on("console", (message) => {
+    if (message.text().startsWith("Renderer parity:")) console.log(message.text());
+  });
   await prepareEditor(page);
   await page.getByRole("button", { name: "1 · code" }).click();
   const comparisons = await page.evaluate(async () => {
@@ -62,7 +65,21 @@ test("warm rendering matches a fresh engine after font and style changes", async
           "*",
         );
       document.body.append(frame);
-      await ready;
+      let deadline: ReturnType<typeof setTimeout>;
+      try {
+        await Promise.race([
+          ready,
+          new Promise<never>((_, reject) => {
+            deadline = setTimeout(() => reject(new Error(`${engine}: renderer initialization timed out`)), 30_000);
+          }),
+        ]);
+      } catch (error) {
+        window.removeEventListener("message", listener);
+        frame.remove();
+        throw error;
+      } finally {
+        clearTimeout(deadline!);
+      }
       return {
         async render(source: string) {
           const renderSource = sourceForPlantUmlRenderer(source);
@@ -75,12 +92,51 @@ test("warm rendering matches a fresh engine after font and style changes", async
             "*",
             fonts ? [fonts.metrics.buffer] : [],
           );
-          return result;
+          let renderDeadline: ReturnType<typeof setTimeout>;
+          try {
+            return await Promise.race([
+              result,
+              new Promise<never>((_, reject) => {
+                renderDeadline = setTimeout(
+                  () => reject(new Error(`${engine}: render timed out for ${source}`)),
+                  30_000,
+                );
+              }),
+            ]);
+          } finally {
+            clearTimeout(renderDeadline!);
+          }
         },
-        dispose() {
+        async dispose() {
+          let onDisposed: (event: MessageEvent) => void;
+          const disposed = new Promise<void>((resolve) => {
+            onDisposed = (event: MessageEvent) => {
+              if (
+                event.source !== frame.contentWindow ||
+                event.data?.channel !== channel ||
+                event.data.type !== "disposed"
+              )
+                return;
+              window.removeEventListener("message", onDisposed);
+              resolve();
+            };
+            window.addEventListener("message", onDisposed);
+          });
           frame.contentWindow!.postMessage({ channel, type: "dispose" }, "*");
-          window.removeEventListener("message", listener);
-          setTimeout(() => frame.remove(), 100);
+          let disposeDeadline: ReturnType<typeof setTimeout>;
+          try {
+            await Promise.race([
+              disposed,
+              new Promise<never>((_, reject) => {
+                disposeDeadline = setTimeout(() => reject(new Error(`${engine}: renderer disposal timed out`)), 5_000);
+              }),
+            ]);
+          } finally {
+            clearTimeout(disposeDeadline!);
+            window.removeEventListener("message", onDisposed!);
+            window.removeEventListener("message", listener);
+            frame.remove();
+          }
         },
       };
     }
@@ -98,10 +154,21 @@ test("warm rendering matches a fresh engine after font and style changes", async
       ],
     };
     for (const [engine, sources] of Object.entries(fixtures)) {
+      console.info(`Renderer parity: ${engine} warm initialization`);
       const warm = await harness(engine);
+      const reusedResults: { svg?: string; error?: string }[] = [];
       for (const source of sources) {
-        const reused = await warm.render(source);
+        console.info(`Renderer parity: ${engine} warm render ${sources.indexOf(source)}`);
+        reusedResults.push(await warm.render(source));
+      }
+      await warm.dispose();
+      // Compare the captured warm results with fresh workers sequentially. Two
+      // complete TeaVM heaps need not coexist to verify identical output.
+      for (const [index, source] of sources.entries()) {
+        const reused = reusedResults[index]!;
+        console.info(`Renderer parity: ${engine} fresh initialization`);
         const fresh = await harness(engine);
+        console.info(`Renderer parity: ${engine} fresh render`);
         const reference = await fresh.render(source);
         output.push({
           engine,
@@ -109,9 +176,8 @@ test("warm rendering matches a fresh engine after font and style changes", async
           equal: reused.svg === reference.svg && !!reused.svg,
           error: reused.error ?? reference.error,
         });
-        fresh.dispose();
+        await fresh.dispose();
       }
-      warm.dispose();
     }
     return output;
   });
