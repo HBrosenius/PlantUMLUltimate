@@ -45,6 +45,21 @@ describe("shared timeline column geometry", () => {
 describe("addCanonicalGanttOverlay with themed rounded-rect bars", () => {
   const tasks = parseGantt("@startgantt\n[Backend] lasts 4 days\n@endgantt").document.tasks;
 
+  it("keeps taller handwritten bars interactive without selecting the calendar background", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,0 0,43 200,43 200,0" fill="#555" />
+      <text x="200" y="74" font-size="12">Backend</text>
+      <polygon points="6,53 150,52.8 154,57 154,82 150,86.2 6,86 2,82 2,57" fill="#474747" />
+    </svg>`;
+    const parsed = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    const task = parsed.querySelector(`[data-task-id="${tasks[0]!.id}"]`);
+    expect(task).not.toBeNull();
+    expect(task?.querySelector(".bar")?.getAttribute("y")).toBe("52.8");
+    expect(
+      parsed.querySelector("polygon[points='0,0 0,43 200,43 200,0']")?.closest("[data-visual-task-id]"),
+    ).toBeNull();
+  });
+
   it("makes a task selectable when its bar is a filled rounded-rect <path> (weekend-split themed bars)", () => {
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg">' +

@@ -420,6 +420,9 @@ export function addCanonicalGanttOverlay(
     if (label) claimedLabels.add(label);
     const textY = label ? numberAttribute(label, "y") : undefined;
     if (!label || textY === undefined) continue;
+    // Handwritten fonts can produce taller bars even at the default 12px size.
+    // Scale the row cutoff with the label instead of losing those hit targets.
+    const maxRowHeight = Math.max(30, (numberAttribute(label, "font-size") ?? 12) * 3);
     const taskDates = resolvedDates?.get(task.id);
     const startColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.start);
     const endColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.end);
@@ -441,7 +444,7 @@ export function addCanonicalGanttOverlay(
         height !== undefined &&
         x !== undefined &&
         width !== undefined &&
-        height <= 30 &&
+        height <= maxRowHeight &&
         textY >= y &&
         textY <= y + height &&
         withinTaskDates({ x, y, width, height })
@@ -453,7 +456,7 @@ export function addCanonicalGanttOverlay(
           const bounds = polygonBounds(polygon);
           return (
             bounds &&
-            bounds.height <= 30 &&
+            bounds.height <= maxRowHeight &&
             textY >= bounds.y &&
             textY <= bounds.y + bounds.height &&
             withinTaskDates(bounds)
@@ -465,7 +468,7 @@ export function addCanonicalGanttOverlay(
           const bounds = pathBounds(path);
           return (
             bounds &&
-            bounds.height <= 30 &&
+            bounds.height <= maxRowHeight &&
             textY >= bounds.y &&
             textY <= bounds.y + bounds.height &&
             withinTaskDates(bounds)
@@ -476,7 +479,7 @@ export function addCanonicalGanttOverlay(
           const bounds = polygonBounds(polygon);
           return (
             bounds &&
-            bounds.height <= 30 &&
+            bounds.height <= maxRowHeight &&
             textY >= bounds.y &&
             textY <= bounds.y + bounds.height &&
             withinTaskDates(bounds)

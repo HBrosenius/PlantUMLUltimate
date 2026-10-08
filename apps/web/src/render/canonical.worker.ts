@@ -42,6 +42,12 @@ function nativeTextContext(): ReturnType<typeof atlasContext> | undefined {
 }
 const nativeMetrics = Boolean(nativeTextContext());
 
+// TeaVM writes verbose parser timing to console.log. WebKit's inspector attaches
+// the multi-megabyte data URL to every log record, making themed renders crawl
+// when DevTools or automation is connected. Results and errors use postMessage;
+// preserve console.warn/error for unexpected diagnostics.
+console.log = () => {};
+
 const { document } = parseHTML("<!doctype html><html><head></head><body></body></html>");
 const createElement = document.createElement.bind(document);
 const appendHead = document.head.appendChild.bind(document.head);

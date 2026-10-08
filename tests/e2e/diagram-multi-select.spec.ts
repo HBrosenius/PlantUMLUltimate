@@ -52,18 +52,19 @@ for (const fixture of fixtures) {
           ? page.locator('.diagram .class-semantic-hit[data-class-object-id="b"]').first()
           : page.locator(`.diagram [${fixture.attribute}][role="button"][aria-label*="Two"]`).first();
     const clickElement = async (element: typeof first, shift = false, button: "left" | "right" = "left") => {
+      const measuredPointer = browserName === "webkit" && ["component", "activity"].includes(fixture.kind);
       await waitForDiagramRender(page);
       // Undo and selection can rebuild the SVG between visibility, measurement and
       // clicking. Retry the entire operation so each attempt measures the current target.
       await expect(async () => {
         try {
           await expect(element).toBeVisible({ timeout: 1_000 });
-          if (browserName !== "webkit") {
+          if (!measuredPointer) {
             await element.scrollIntoViewIfNeeded({ timeout: 1_000 });
           }
           const box = await element.boundingBox();
           expect(box).toBeTruthy();
-          if (browserName === "webkit") {
+          if (measuredPointer) {
             // Avoid WebKit's unstable SVG scrolling path; these small fixtures
             // are already visible. Keep real pointer and modifier events.
             if (shift) await page.keyboard.down("Shift");

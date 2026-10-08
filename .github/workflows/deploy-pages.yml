@@ -44,6 +44,9 @@ jobs:
     needs: deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --ipc=host
     permissions:
       contents: read
     steps:
@@ -53,9 +56,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install Chromium
-        timeout-minutes: 6
-        run: npx playwright install --with-deps chromium
       - name: Verify deployed rendering and HTTP CSP
         run: npx playwright test --config=playwright.deployed.config.ts
       - name: Upload deployed rendering failure artifacts

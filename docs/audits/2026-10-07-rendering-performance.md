@@ -16,15 +16,29 @@ unsupported engine upgrade fails explicitly.
 
 Warm/fresh parity now runs one engine heap at a time and waits for worker disposal.
 It passed all native and Graphviz comparisons in Windows WebKit (about 2.6 minutes).
-Chromium passed parity, font fallback and security tests. WebKit's sampled native
-rendering remains slow: approximately 12 seconds cold and 14 seconds per edit,
-including automation and preparation (about 5 seconds of engine execution).
-This does not claim Safari performance is fully restored.
+Chromium and Firefox passed parity, font fallback and security tests.
+
+A second WebKit bottleneck was the engine's verbose `console.log` timing output.
+The inspector adds the enormous data URL to every console record, slowing themed
+renders and exhausting the automation process's memory. The isolated worker now
+suppresses routine log output, preserving warning/error output and structured
+render results. Sampled Windows WebKit performance improved from approximately
+12 seconds cold / 14 seconds per edit to 2.2 seconds cold / 0.4–0.5 seconds per edit
+(37–51 ms engine execution). The sketchy theme rendered in about 600 ms instead
+of failing a 100-second wait. Gantt hitbox height limits also scale with the label
+font size so taller handwritten bars remain selectable.
 
 Browser tests now wait for a completed preview rather than accepting an older SVG.
 The 43 bundled themes run as individual tests with the same interaction assertions,
 allowing sharding and per-theme failures. CI logs each failed test immediately so
 a later runner shutdown cannot erase the assertion details.
+
+The follow-up CI run exposed an infrastructure failure: timing out Playwright's
+APT installation left an `apt-get` child holding the package lock, so the retry
+failed immediately. Browser, PWA, collaboration and deployed smoke jobs now use
+the official Playwright 1.62.1 Noble image, pinned by digest and matching the lockfile,
+with browsers and OS dependencies already installed. Update that image together
+with Playwright dependency upgrades.
 
 The security remediation introduced fresh workers and data-URL engine modules. Reusing workers improved performance but did not restore the original speed. Comparing with the pre-security renderer confirmed the regression.
 
