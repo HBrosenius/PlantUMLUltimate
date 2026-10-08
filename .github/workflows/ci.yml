@@ -56,6 +56,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Align container home ownership for Firefox
+        # GitHub mounts /github/home as pwuser-owned, but container steps run as root.
+        run: chown "$(id -u):$(id -g)" "$HOME"
       - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
       - name: Upload Playwright failure artifacts
         if: failure()
