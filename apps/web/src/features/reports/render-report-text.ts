@@ -1,8 +1,11 @@
 import type { ReportMessage, ReportRow, ReportSnapshot } from "./report-model";
 import { reportDate, safeReportUrl } from "./report-format";
 export function taskLines(row: ReportRow, snapshot: ReportSnapshot): string[] {
+  const alias = row.task.alias?.value.trim();
+  const aliasSuffix =
+    alias && alias.toLocaleLowerCase() !== row.task.label.trim().toLocaleLowerCase() ? ` [${alias}]` : "";
   const lines = [
-    `${row.task.label} [${row.task.alias?.value ?? row.task.id}]${row.task.milestone ? " · Milestone" : ""}`,
+    `${row.task.label}${aliasSuffix}${row.task.milestone ? " · Milestone" : ""}`,
     `Recorded progress: ${row.completion === null ? "Not reported" : `${row.completion}%`}`,
     `Planned: ${reportDate(row.start, snapshot.options.locale)} – ${reportDate(row.end, snapshot.options.locale)}`,
     row.status,
