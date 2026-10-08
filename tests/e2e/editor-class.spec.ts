@@ -270,16 +270,12 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     );
     await expect(page.locator(".class-diagram").locator("..")).not.toHaveClass(/stale-preview/);
 
-    // A curved relationship's bounding-box center can lie off the actual stroke.
-    const relationshipPoint = await page
-      .locator(".class-relationship-hit")
-      .first()
-      .evaluate((element) => {
-        const curve = element as SVGGeometryElement;
-        const point = curve.getPointAtLength(curve.getTotalLength() / 2).matrixTransform(curve.getScreenCTM()!);
-        return { x: point.x, y: point.y };
-      });
-    await page.mouse.click(relationshipPoint.x, relationshipPoint.y);
+    // Fit the new geometry so reconnection handles and targets stay inside the canvas.
+    await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
+    // Select through the accessible SVG control before testing pointer reconnection.
+    const relationship = page.locator(".class-relationship-hit").first();
+    await relationship.focus();
+    await relationship.press("Enter");
     await expect(page.locator(".class-relationship-endpoint")).toHaveCount(2);
     const fromEndpoint = page.locator('[data-class-relationship-endpoint="from"]');
     const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');

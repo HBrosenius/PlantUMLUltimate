@@ -381,6 +381,9 @@ test("creates standalone tasks with a movable project-start date", async ({ page
 
   const task = page.locator('[data-task-id="new task"]');
   await expect(task).toHaveAttribute("data-draggable", "true");
+  // Keep the task and drag destination inside the canvas on every browser's SVG scale.
+  await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
+  await task.locator(".bar").scrollIntoViewIfNeeded();
   const bar = await task.locator(".bar").boundingBox();
   expect(bar).not.toBeNull();
   await page.mouse.move(bar!.x + bar!.width / 2, bar!.y + bar!.height / 2);
