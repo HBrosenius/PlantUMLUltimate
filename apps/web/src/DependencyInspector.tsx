@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useRef, useState } from "react";
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { ColorField } from "./ColorField";
@@ -56,7 +57,7 @@ export function DependencyInspector({
     if (applyNow) apply(updated);
   };
   return (
-    <aside className="task-inspector dependency-inspector" aria-label="Dependency inspector">
+    <InspectorPanel className="task-inspector dependency-inspector" aria-label="Dependency inspector">
       <header>
         <strong>Dependency inspector</strong>
         <button onClick={onClose} aria-label="Close dependency inspector">
@@ -158,6 +159,6 @@ export function DependencyInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

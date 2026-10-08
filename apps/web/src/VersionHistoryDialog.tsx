@@ -456,6 +456,7 @@ export function VersionHistoryDialog({
                 <button
                   type="button"
                   onClick={() => void onSetBaseline(selected.id === baselineVersionId ? undefined : selected)}
+                  disabled={creating}
                 >
                   {selected.id === baselineVersionId ? "Clear baseline" : "Set as baseline"}
                 </button>

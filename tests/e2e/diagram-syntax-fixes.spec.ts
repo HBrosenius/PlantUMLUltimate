@@ -65,7 +65,7 @@ for (const width of [390, 800, 1440]) {
     const choices = page.getByRole("list", { name: "Source fix suggestions" });
     await expect(choices).toBeVisible();
     const bounds = await choices.boundingBox();
-    const editor = await page.getByRole("complementary", { name: "Problems" }).boundingBox();
+    const editor = await page.getByRole("complementary", { name: "Issues" }).boundingBox();
     expect(bounds).not.toBeNull();
     expect(editor).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(Math.max(0, editor!.x));
@@ -344,8 +344,8 @@ test("keeps ambiguous class closures as manual errors without changing source", 
     .click();
   const lines = ["@startuml", "class Order {", "  +id: UUID", "class Customer", "@enduml"];
   await fillSource(page, lines.join("\n"));
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await expect(problems).toContainText("Order is missing }");
   await expect(page.getByLabel("Show source fix suggestions")).toHaveCount(0);
   await expect(problems.getByRole("list", { name: "Source fix suggestions", exact: true })).toHaveCount(0);
@@ -647,8 +647,8 @@ test("explains an ambiguous quote error and reveals it for manual editing", asyn
     .click();
   const lines = ["@startuml", 'class "Customer as Account as Other', "@enduml"];
   await fillSource(page, lines.join("\n"));
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   const quote = problems.getByRole("listitem").filter({ hasText: "Quoted label has an unmatched quote" });
   await expect(quote).toContainText("How to resolve");
   await expect(quote).toContainText("intended label boundary is ambiguous");
@@ -681,8 +681,8 @@ for (const width of [390, 1280]) {
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     expect(box!.y + box!.height).toBeLessThanOrEqual(800);
     await page.screenshot({ path: test.info().outputPath("manual-guidance-tooltip.png") });
-    await page.getByRole("button", { name: /⚠.*problem/ }).click();
-    const problems = page.getByRole("complementary", { name: "Problems" });
+    await page.getByRole("button", { name: /^Issues/ }).click();
+    const problems = page.getByRole("complementary", { name: "Issues" });
     await expect(problems.locator(".problem-guidance")).toContainText(guidance!);
     await fillSource(page, '@startuml\nclass "Customer" as Account\n@enduml');
     await expect(page.locator(".cm-lintRange-error")).toHaveCount(0);
@@ -709,8 +709,8 @@ for (const [type, keyword] of [
     const example = `${keyword} "Order details" as Order`;
     await expect(guidance).toContainText(example);
     await expect(guidance).not.toContainText('class "Order details"');
-    await page.getByRole("button", { name: /⚠.*problem/ }).click();
-    const problems = page.getByRole("complementary", { name: "Problems" });
+    await page.getByRole("button", { name: /^Issues/ }).click();
+    const problems = page.getByRole("complementary", { name: "Issues" });
     await expect(problems.locator(".problem-guidance").filter({ hasText: "intended label boundary" })).toContainText(
       example,
     );
@@ -948,8 +948,8 @@ test("Problems routes errors and suggestions through explanations and previews",
     "@endgant",
   ];
   await fillSource(page, lines.join("\n"));
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 4" }).click();
   const directPicker = page.getByRole("list", { name: "Source fix suggestions", exact: true });
   await expect(directPicker.getByRole("button", { name: /Add missing %/ })).toBeVisible();
@@ -957,7 +957,7 @@ test("Problems routes errors and suggestions through explanations and previews",
   await expect(directPicker.locator("button[data-fix-key]")).toHaveCount(1);
   await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  await page.getByRole("button", { name: /^Issues/ }).click();
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 4" }).click();
   const explanation = page.getByRole("region", { name: "Error explanation" });
   await expect(explanation).toContainText("Line 4:");
@@ -968,7 +968,7 @@ test("Problems routes errors and suggestions through explanations and previews",
   const editor = page.locator(".cm-content");
   await expect(editor.locator(".cm-line")).toHaveText(lines);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  await page.getByRole("button", { name: /^Issues/ }).click();
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 4" }).click();
   await expect(picker).toBeVisible();
   await expect(problems.getByRole("region", { name: "Error explanation" })).toBeFocused();
@@ -1081,8 +1081,8 @@ test("Problems supports keyboard navigation, reveal, and scoped fix previews", a
   await prepareEditor(page);
   const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   const entries = problems.locator("[data-problem-diagnostic]");
   await expect(entries).toHaveCount(2);
   await entries.first().focus();
@@ -1096,7 +1096,7 @@ test("Problems supports keyboard navigation, reveal, and scoped fix previews", a
   const explanation = page.getByRole("region", { name: "Error explanation" });
   await expect(explanation).toContainText("Line 3:");
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  await page.getByRole("button", { name: /^Issues/ }).click();
   const completion = entries.filter({ hasText: "Line 3" });
   await completion.focus();
   await completion.press("Alt+Enter");
@@ -1112,7 +1112,7 @@ test("all repair content stays inside the Problems workspace", async ({ page, br
   const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
   await fillSource(page, source);
   await page.getByLabel("Show source fix suggestions", { exact: true }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await expect(problems).toBeVisible();
   const fixes = problems.getByRole("list", { name: "Source fix suggestions", exact: true });
   await expect(fixes).toBeVisible();
@@ -1123,7 +1123,7 @@ test("all repair content stays inside the Problems workspace", async ({ page, br
   await expect(problems.locator(".source-fix-feedback")).toContainText("1 error remains");
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 4" }).click();
   await expect(problems.getByRole("region", { name: "Error explanation" })).toBeVisible();
-  await problems.getByRole("button", { name: "Close problems", exact: true }).click();
+  await problems.getByRole("button", { name: "Close issues", exact: true }).click();
   await expect(problems).toBeHidden();
   await expect(page.locator(".cm-content")).toBeFocused();
   await page.getByLabel("Show source fix suggestions", { exact: true }).click();
@@ -1136,8 +1136,8 @@ test("Apply advances to the next scoped repair and finishes in Problems", async 
   await prepareEditor(page);
   const source = "@startgantt\n[Build] lasts 2 days\n[Build] is 50 completed\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 3" }).click();
   const picker = problems.getByRole("list", { name: "Source fix suggestions", exact: true });
   await picker.getByRole("button", { name: /Add missing %/ }).click();
@@ -1146,7 +1146,7 @@ test("Apply advances to the next scoped repair and finishes in Problems", async 
   await expect(picker.locator("button[data-fix-key]")).toHaveCount(1);
   await expect(problems.getByRole("region", { name: "Error explanation" })).toContainText("Line 4:");
   await next.click();
-  await expect(problems.getByRole("status")).toHaveText("No problems remain.");
+  await expect(problems.getByRole("status")).toHaveText("No errors or warnings remain.");
   await expect(problems.getByRole("region", { name: "Error explanation" })).toHaveCount(0);
   const editor = page.locator(".cm-content");
   await expect(editor).toBeFocused();
@@ -1162,8 +1162,8 @@ test("Apply shows manual guidance when the next error has no safe fix", async ({
   await prepareEditor(page);
   const source = "@startgantt\n[Build] is 50 completed\n[Other] lasts -2 days\n@endgantt";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 2" }).click();
   await problems.getByRole("button", { name: /Apply fix.*Add missing %/ }).click();
   const explanation = problems.getByRole("region", { name: "Error explanation" });
@@ -1182,8 +1182,8 @@ test("missing chained duration units use other tasks to rank alternatives", asyn
   const source =
     "@startgantt\n[A] lasts 2 weeks\n[B] lasts 3 weeks\n[C] lasts 2 days\n[Frontend] starts 2026-10-01 and lasts 5  and is 50% completed\n@endgantt";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 5" }).click();
   const picker = problems.getByRole("list", { name: "Source fix suggestions", exact: true });
   const alternatives = picker.locator("button[data-fix-key]");
@@ -1195,7 +1195,7 @@ test("missing chained duration units use other tasks to rank alternatives", asyn
   await expect(editor.locator(".cm-line")).toHaveText(source.split("\n"));
   await alternatives.first().click();
   await expect(editor.locator(".cm-line")).toHaveText(source.replace("lasts 5", "lasts 5 weeks").split("\n"));
-  await expect(problems.getByRole("status")).toHaveText("No problems remain.");
+  await expect(problems.getByRole("status")).toHaveText("No errors or warnings remain.");
   await editor.press("ControlOrMeta+z");
   await expect(editor.locator(".cm-line")).toHaveText(source.split("\n"));
 });
@@ -1204,8 +1204,8 @@ test("missing is in a chained completion clause can be previewed, applied, and u
   await prepareEditor(page);
   const source = "@startgantt\n[Frontend] starts 2026-10-01 and lasts 5 days  and  50% completed\n@endgantt";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.locator("[data-problem-diagnostic]").filter({ hasText: "Line 2" }).click();
   const apply = problems.getByRole("button", { name: /Apply fix.*Add is before completion percentage/ });
   await expect(apply).toBeVisible();
@@ -1214,7 +1214,7 @@ test("missing is in a chained completion clause can be previewed, applied, and u
   await expect(page.locator(".cm-content .cm-line")).toHaveText(
     source.replace("50% completed", "is 50% completed").split("\n"),
   );
-  await expect(problems.getByRole("status")).toHaveText("No problems remain.");
+  await expect(problems.getByRole("status")).toHaveText("No errors or warnings remain.");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
 });
@@ -1223,9 +1223,9 @@ test("Escape closes Problems from diagnostics and suggested repairs", async ({ p
   await prepareEditor(page);
   const source = "@startgantt\n[A] lasts 5 days and 50% completed\n@endgantt";
   await fillSource(page, source);
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  const problems = page.getByRole("complementary", { name: "Issues" });
   for (const focus of ["diagnostic", "explanation", "fix"] as const) {
-    await page.getByRole("button", { name: /⚠.*problem/ }).click();
+    await page.getByRole("button", { name: /^Issues/ }).click();
     const error = problems.locator("[data-problem-diagnostic]").first();
     if (focus === "diagnostic") await error.focus();
     else {
@@ -1248,8 +1248,8 @@ test("safe fixes preview preserves alternatives and applies as one undo step", a
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts 5\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   const preview = problems.getByRole("region", { name: "Safe fixes preview" });
   await expect(preview).toBeFocused();
@@ -1279,14 +1279,14 @@ test("safe fixes preview closes on Escape and invalidates when source changes", 
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts 2 days\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   const preview = problems.getByRole("region", { name: "Safe fixes preview" });
   await expect(preview).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(problems).not.toBeVisible();
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
+  await page.getByRole("button", { name: /^Issues/ }).click();
   await expect(preview).toHaveCount(0);
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   await fillSource(page, source.replace("@startgant", "@startgantt"));
@@ -1298,12 +1298,12 @@ test("safe fixes resolve all independent errors without merging with later repai
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts 2 days and 50% completed\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (3)", exact: true }).click();
   await problems.getByRole("button", { name: "Apply 3 safe fixes", exact: true }).click();
   await expect(problems.getByRole("button", { name: "Go to next error", exact: true })).toHaveCount(0);
-  await expect(problems.getByRole("status")).toHaveText("No problems remain.");
+  await expect(problems.getByRole("status")).toHaveText("No errors or warnings remain.");
   await expect(page.locator(".cm-content .cm-line")).toHaveText([
     "@startgantt",
     "[A] lasts 2 days and is 50% completed",
@@ -1321,8 +1321,8 @@ test("next error after safe fixes opens manual guidance when no safe correction 
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts -2 days\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   await problems.getByRole("button", { name: "Apply 2 safe fixes", exact: true }).click();
   await expect(problems.locator(".source-fix-feedback")).toContainText("1 error remains: 1 needs manual editing.");
@@ -1342,8 +1342,8 @@ test("remaining error counts filter choices and manual errors and reset on Undo"
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts 5\n[B] lasts 2\n[C] lasts -2 days\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   await problems.getByRole("button", { name: "Apply 2 safe fixes", exact: true }).click();
   await problems.getByRole("button", { name: "2 need a choice", exact: true }).click();
@@ -1361,24 +1361,24 @@ test("remaining error counts filter choices and manual errors and reset on Undo"
   await expect(entries.first()).toContainText("Line 4");
   await entries.first().press("Enter");
   await expect(problems.getByRole("region", { name: "Error explanation" })).toContainText("intended duration");
-  await problems.getByRole("button", { name: "Show all problems", exact: true }).click();
+  await problems.getByRole("button", { name: "Show all issues", exact: true }).click();
   await expect(entries).toHaveCount(3);
   await problems.getByRole("button", { name: "1 needs manual editing", exact: true }).click();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(entries).toHaveCount(5);
-  await expect(problems.getByRole("button", { name: "Show all problems", exact: true })).toHaveCount(0);
+  await expect(problems.getByRole("button", { name: "Show all issues", exact: true })).toHaveCount(0);
   await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(entries).toHaveCount(3);
-  await expect(problems.getByRole("button", { name: "Show all problems", exact: true })).toHaveCount(0);
+  await expect(problems.getByRole("button", { name: "Show all issues", exact: true })).toHaveCount(0);
 });
 
 test("next error stays within a category and offers another group when finished", async ({ page }) => {
   await prepareEditor(page);
   const source = "@startgant\n[A] lasts 5\n[C] lasts -2 days\n[B] lasts 2\n@endgant";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   await problems.getByRole("button", { name: "Apply 2 safe fixes", exact: true }).click();
   await problems.getByRole("button", { name: "2 need a choice", exact: true }).click();
@@ -1412,8 +1412,8 @@ test("safe fixes retain corrections introducing warnings for explicit review", a
   const source =
     "@startgant\nProject starts 2026-09-21\n[Backend] lasts 2 days\n[Frontend] lasts 2 days\n[Frontend] starts at [Backned]'s end\n[Backend] starts at [Frontend]'s end\n[Other] lasts 1 day\n[Other] is 50 completed\n@endgantt";
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   await problems.getByRole("button", { name: "Apply 2 safe fixes", exact: true }).click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(
@@ -1440,8 +1440,8 @@ test("switching identical-source tabs dismisses safe fixes previews", async ({ p
     .getByRole("button", { name: "Gantt diagram" })
     .click();
   await fillSource(page, source);
-  await page.getByRole("button", { name: /⚠.*problem/ }).click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await problems.getByRole("button", { name: "Apply safe fixes (2)", exact: true }).click();
   const preview = problems.getByRole("region", { name: "Safe fixes preview" });
   await expect(preview).toBeFocused();

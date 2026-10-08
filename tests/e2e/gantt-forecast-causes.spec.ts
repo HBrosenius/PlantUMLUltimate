@@ -94,7 +94,7 @@ sunday are closed
   await page.getByRole("button", { name: "Copy summary" }).click();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain("Working days from plan: 0");
-  expect(copied).toContain("Delayed tasks: 1\n- Short track: 2026-09-23 → 2026-10-01");
+  expect(copied.replace(/\r\n/g, "\n")).toContain("Delayed tasks: 1\n- Short track: 2026-09-23 → 2026-10-01");
 });
 
 test("changes and restores the document forecast time zone", async ({ page }) => {

@@ -159,7 +159,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await controlInspector.getByLabel("Condition").blur();
   await expect(page.locator(".cm-content")).toContainText("if (Payment approved?) then (yes)");
 
-  await page.getByRole("button", { name: "Activity", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Activity settings" });
   const title = settings.getByLabel("Title");
   await expect

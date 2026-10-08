@@ -57,7 +57,6 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await navigator.getByRole("button", { name: "Add to document" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "Close Architecture", exact: true }).click();
@@ -125,7 +124,6 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await create("Old save in flight");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect
     .poll(() =>
       page.evaluate(() => Boolean((window as unknown as { __guardSave: { finish?: () => void } }).__guardSave.finish)),

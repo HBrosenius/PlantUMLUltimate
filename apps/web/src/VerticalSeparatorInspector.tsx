@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useState } from "react";
 import type { GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 
@@ -28,7 +29,7 @@ export function VerticalSeparatorInspector({
     direction: separator.direction,
   });
   return (
-    <aside className="task-inspector vertical-separator-inspector" aria-label="Vertical separator inspector">
+    <InspectorPanel className="task-inspector vertical-separator-inspector" aria-label="Vertical separator inspector">
       <header>
         <strong>Vertical separator</strong>
         <button onClick={onClose} aria-label="Close vertical separator inspector">
@@ -97,6 +98,6 @@ export function VerticalSeparatorInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

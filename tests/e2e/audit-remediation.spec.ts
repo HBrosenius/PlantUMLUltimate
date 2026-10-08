@@ -59,8 +59,7 @@ test("save completion belongs to its original document after tab switching", asy
   });
   await open(page);
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: /^Save/ }).first().hover();
-  await page.getByRole("menuitem", { name: /Save (diagram|document) as/ }).click();
+  await page.getByRole("menuitem", { name: "Save as…" }).click();
   await page.waitForFunction(() => Boolean((window as unknown as { finishSave?: unknown }).finishSave));
   await page.locator(".document-tabs > button").filter({ hasText: "B.pumlu" }).click();
   await page.evaluate(() => (window as unknown as { finishSave: () => void }).finishSave());
@@ -92,9 +91,9 @@ test("reloading one window restores its own session", async ({ page, context }) 
 test("stale render cannot be exported after switching documents", async ({ page }) => {
   test.setTimeout(75_000);
   await open(page);
-  await page.getByRole("button", { name: "2 · split" }).click();
+  await page.getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator(".diagram svg")).toContainText("A", { timeout: 60_000 });
-  await page.getByRole("button", { name: "1 · code" }).click();
+  await page.getByRole("button", { name: "Code", exact: true }).click();
   await page.locator(".document-tabs > button").filter({ hasText: "B.pumlu" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: /^Export/ }).hover();
@@ -143,14 +142,14 @@ test("CPU-bound rendering in a warm worker is terminated while the editor remain
     }),
   );
   await open(page);
-  await page.getByRole("button", { name: "2 · split" }).click();
+  await page.getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(1);
   await expect(page.locator(".diagram svg")).toContainText("Warmed", { timeout: 15_000 });
   await page.locator(".cm-content").fill(source("Loop"));
   await page.waitForTimeout(1500);
   if (browserName !== "webkit") await page.clock.fastForward(31_000);
   await expect(page.getByText(/Rendering timed out/).first()).toBeVisible({ timeout: 35_000 });
-  await page.getByRole("button", { name: "1 · code" }).click();
+  await page.getByRole("button", { name: "Code", exact: true }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
 });
 
@@ -164,7 +163,7 @@ test("stalled renderer initialization reaches an error and offers retry", async 
     }),
   );
   await open(page);
-  await page.getByRole("button", { name: "2 · split" }).click();
+  await page.getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(1);
   if (browserName !== "webkit") {
     await page.clock.fastForward(16_000);

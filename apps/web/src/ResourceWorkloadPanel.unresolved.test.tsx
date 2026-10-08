@@ -29,6 +29,10 @@ it("shows why a resource task was excluded and lets the user select it", () => {
     />,
   );
   expect(screen.getByText("1 unscheduled task excluded from workload")).toBeTruthy();
+  const capacity = screen.getByRole("spinbutton", { name: "Capacity for Alice" }) as HTMLInputElement;
+  expect(capacity.checkValidity()).toBe(true);
+  capacity.value = "50";
+  expect(capacity.checkValidity()).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Broken: End date cannot be resolved: $unknown" }));
   expect(onTaskSelect).toHaveBeenCalledWith("broken");
   expect(screen.queryByText(/over-allocation/)).toBeNull();

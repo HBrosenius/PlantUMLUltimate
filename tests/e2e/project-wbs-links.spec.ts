@@ -16,6 +16,7 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
   await page.getByRole("dialog", { name: "New document" }).getByRole("button", { name: "Create document" }).click();
   const navigator = page.getByRole("complementary", { name: "Document navigator" });
+  await expect(navigator.locator(".project-index-status")).toHaveText("Links current");
   for (const [name, alias] of [
     ["Research", "research"],
     ["Design", "design"],
@@ -25,16 +26,18 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
     await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("wbs");
     await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
     await navigator.getByRole("button", { name: "Add to document" }).click();
+    await expect(navigator.getByRole("combobox", { name: "Diagram type" })).toHaveCount(0);
+    await expect(page.locator(".document-tabs > button.active")).toContainText(name);
     await setSource(page, `@startwbs\n*(${alias}) ${name}\n@endwbs`);
   }
 
   const links = navigator.getByRole("region", { name: "Links between diagram items" });
   const from = links.getByRole("combobox", { name: "1. Link from" });
   const to = links.getByRole("combobox", { name: "2. Link to" });
-  await expect(from.locator("option", { hasText: "Research: research" })).toHaveCount(1);
-  await expect(from.locator("option", { hasText: "Delivery: delivery" })).toHaveCount(1);
+  await expect(from.locator("option", { hasText: /^Research: research$/ })).toHaveCount(1);
+  await expect(from.locator("option", { hasText: /^Delivery: delivery$/ })).toHaveCount(1);
   await from.selectOption({ label: "Research: research" });
-  await expect(to.locator("option", { hasText: "Research: research" })).toHaveCount(0);
+  await expect(to.locator("option", { hasText: /^Research: research$/ })).toHaveCount(0);
   await to.selectOption({ label: "Design: design" });
   await links.getByRole("button", { name: "Create WBS link" }).click();
   await from.selectOption({ label: "Design: design" });
@@ -44,7 +47,6 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await expect(navigator).toContainText("3 diagrams · 2 connections");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
 
   await page.getByRole("button", { name: "Close document navigator" }).click();
@@ -106,7 +108,6 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: /Document: / }).click();
   await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();

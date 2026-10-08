@@ -75,18 +75,23 @@ export function SettingsDialog({
   onApply,
   onClose,
   onPreview,
+  resourceWarningsEnabled = true,
+  onResourceWarningsChange,
 }: {
   mode: "onboarding" | "settings";
   current: AppSettings;
   onApply(settings: AppSettings): void;
   onClose(): void;
   onPreview?(settings: AppSettings): void;
+  resourceWarningsEnabled?: boolean;
+  onResourceWarningsChange?(enabled: boolean): void;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, mode === "onboarding" ? () => undefined : onClose);
   const [theme, setTheme] = useState<Theme>(current.theme);
   const [advancedMode, setAdvancedMode] = useState(current.advancedMode);
   const [defaultDiagramTheme, setDefaultDiagramTheme] = useState(current.defaultDiagramTheme);
+  const [showResourceWarnings, setShowResourceWarnings] = useState(resourceWarningsEnabled);
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -98,6 +103,7 @@ export function SettingsDialog({
         aria-label={mode === "onboarding" ? "Welcome to PlantUML Ultimate" : "Settings"}
         onSubmit={(event) => {
           event.preventDefault();
+          onResourceWarningsChange?.(showResourceWarnings);
           onApply({ theme, advancedMode, defaultDiagramTheme });
         }}
       >
@@ -107,7 +113,10 @@ export function SettingsDialog({
             <div className="welcome-splash-copy">
               <p className="welcome-eyebrow">Visual PlantUML workspace</p>
               <h2 id="settings-dialog-title">Welcome to PlantUML Ultimate</h2>
-              <p>Choose a few starting preferences. You can change these later from File &gt; Settings.</p>
+              <p>
+                Create a diagram, open a file, or try an example. These starting preferences are optional and can be
+                changed in Settings.
+              </p>
               <p className="welcome-byline">Created by HBrosenius · Local-first · Runs in your browser</p>
             </div>
           </header>
@@ -180,14 +189,37 @@ export function SettingsDialog({
                   id={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
                 >
                   {advanced
-                    ? "Advanced editing: opens code and diagram side by side. Includes Code, Split and Diagram views."
+                    ? "Opens code and diagram side by side. Includes Code, Split and Diagram views."
                     : "Edit with visual tools in a full-width diagram. The code editor is hidden."}
                 </span>
               </label>
             ))}
           </div>
         </section>
+        {mode === "settings" && onResourceWarningsChange && (
+          <section className="document-settings-section" aria-labelledby="settings-gantt-heading">
+            <h3 id="settings-gantt-heading">Gantt</h3>
+            <label className="document-settings-checkbox">
+              <input
+                type="checkbox"
+                checked={showResourceWarnings}
+                onChange={(event) => setShowResourceWarnings(event.target.checked)}
+                aria-describedby="settings-resource-warnings-description"
+              />
+              Show resource over-allocation warnings
+            </label>
+            <p id="settings-resource-warnings-description">
+              Turn off the warning banner when an assigned person represents a whole team. Workload calculations and
+              capacity details remain available. Applies to all Gantt diagrams in this browser.
+            </p>
+          </section>
+        )}
         <footer>
+          {mode === "onboarding" && (
+            <button type="button" onClick={() => onApply(current)}>
+              Use defaults
+            </button>
+          )}
           {mode === "settings" && (
             <button type="button" onClick={onClose}>
               Cancel

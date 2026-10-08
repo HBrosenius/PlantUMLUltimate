@@ -84,6 +84,7 @@ interface Props {
   openDocumentCount: number;
   openSourceBytes: number;
   resourceOverAllocations: readonly ResourceOverAllocation[];
+  showResourceOverAllocationWarnings?: boolean;
   resourceCapacities: ResourceCapacity;
   onOpenResourceWorkload(): void;
   onDateHighlightRequest(date: string): void;
@@ -158,6 +159,7 @@ export function DiagramPreview({
   openDocumentCount,
   openSourceBytes,
   resourceOverAllocations,
+  showResourceOverAllocationWarnings = true,
   resourceCapacities,
   onOpenResourceWorkload,
   onDateHighlightRequest,
@@ -1176,6 +1178,14 @@ export function DiagramPreview({
           </button>
           {!progressForecast?.enabled && (
             <>
+              <button
+                type="button"
+                onClick={navigation.fit}
+                aria-label="Fit diagram"
+                title="Fit the diagram in the visible canvas"
+              >
+                Fit
+              </button>
               <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
                 −
               </button>
@@ -1766,7 +1776,7 @@ export function DiagramPreview({
           </button>
         </div>
       )}
-      {resourceOverAllocations.length > 0 && (
+      {showResourceOverAllocationWarnings && resourceOverAllocations.length > 0 && (
         <aside className="resource-overallocation-alert" role="alert" aria-label="Resource over-allocation">
           <div>
             <strong>Resource over-allocation</strong>

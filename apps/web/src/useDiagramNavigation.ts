@@ -155,5 +155,30 @@ export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) 
     if (event.button === 1) event.preventDefault();
   }, []);
 
-  return { viewportRef, onWheel, onPointerDown, onAuxClick };
+  const fit = useCallback(() => {
+    const viewport = viewportRef.current;
+    const svg = viewport?.querySelector(".diagram svg");
+    if (!viewport || !svg) return;
+    const bounds = svg.getBoundingClientRect();
+    const displayedZoom = wheelRef.current?.current ?? zoomRef.current;
+    if (!bounds.width || !bounds.height) return;
+    if (wheelRef.current) cancelAnimationFrame(wheelRef.current.frame);
+    wheelRef.current = undefined;
+    viewport.classList.remove("diagram-wheel-zooming");
+    const next = Math.max(
+      MIN_DIAGRAM_ZOOM,
+      Math.min(
+        1,
+        (viewport.clientWidth - 32) / (bounds.width / displayedZoom),
+        (viewport.clientHeight - 32) / (bounds.height / displayedZoom),
+      ),
+    );
+    zoomChangeRef.current(next);
+    requestAnimationFrame(() => {
+      viewport.scrollLeft = 0;
+      viewport.scrollTop = 0;
+    });
+  }, []);
+
+  return { viewportRef, onWheel, onPointerDown, onAuxClick, fit };
 }

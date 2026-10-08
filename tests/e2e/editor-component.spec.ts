@@ -113,7 +113,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");
 
-  await page.getByRole("button", { name: "Component", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Component settings" });
   await expect(settings.getByRole("group", { name: "Members" })).toHaveCount(0);
   await expect(settings.getByLabel("Component fill", { exact: true })).toBeVisible();

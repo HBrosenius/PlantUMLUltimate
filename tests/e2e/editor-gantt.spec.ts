@@ -100,7 +100,7 @@ test("zooms with the mouse wheel and pans with the middle mouse button", async (
 
 test("keeps the split divider fixed while source selection highlights tasks", async ({ page }) => {
   await setSource(page, source("[Design] lasts 3 days\n[Build] starts at [Design]'s end and lasts 4 days"));
-  const divider = page.getByRole("separator");
+  const divider = page.locator(".divider[role=separator]");
   const editor = page.locator(".cm-content");
   const initialX = (await divider.boundingBox())!.x;
 
@@ -123,7 +123,7 @@ test("keeps the split divider fixed while source selection highlights tasks", as
 });
 
 test("searches the diagram outline and jumps to source and rendered selection", async ({ page }) => {
-  await page.getByRole("button", { name: "3 · diagram" }).click();
+  await page.getByRole("button", { name: "Diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toHaveCount(0);
   await page.keyboard.press("Control+Shift+o");
   const outline = page.getByRole("dialog", { name: "Diagram outline" });
@@ -432,7 +432,7 @@ test("suggests inline task continuations after a fixed start date", async ({ pag
 
 test("edits the diagram title from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
-  await page.getByRole("button", { name: "Project" }).click();
+  await page.getByRole("button", { name: "Calendar & schedule" }).click();
   await expect(page.getByRole("group", { name: "Closed weekdays" }).locator("label")).toHaveText([
     "Mon",
     "Tue",
@@ -450,7 +450,7 @@ test("edits the diagram title from project settings", async ({ page }) => {
 
 test("adds a colored critical date from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
-  await page.getByRole("button", { name: "Project" }).click();
+  await page.getByRole("button", { name: "Calendar & schedule" }).click();
   const highlights = page.getByRole("group", { name: "Highlighted dates" });
   await highlights.getByRole("button", { name: "Add highlighted date" }).click();
   await highlights.getByLabel("Highlight date").fill("2026-09-18");
@@ -779,14 +779,16 @@ test("moves the Automated Web Testing separator below Unified End To End Testing
 
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {
   await setSource(page, source("skinparam handwritten true\n[A] starts 2026-09-01\n[A] lasts 2 days"));
-  const count = page.getByRole("button", { name: "1 preserved line" });
+  const count = page.getByRole("button", { name: "Issues (1)" });
   await expect(count).toBeVisible();
   await count.click();
-  const panel = page.getByRole("complementary", { name: "Unsupported syntax" });
+  const panel = page.getByRole("complementary", { name: "Issues" });
+  await panel.getByText("Preserved source (1)").click();
   await expect(panel).toContainText("skinparam handwritten true");
   await panel.getByRole("button", { name: /skinparam handwritten true/ }).click();
-  await expect(panel).toBeHidden();
   await expect(page.locator(".cm-content")).toContainText("skinparam handwritten true");
+  await panel.getByRole("button", { name: "Close issues" }).click();
+  await expect(panel).toBeHidden();
 });
 
 test("keeps source fixes available outside the lint tooltip", async ({ page }) => {
@@ -892,8 +894,8 @@ test("edits, reviews, and applies a delivery scenario from the rendered preview"
   await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 2 days"));
 
   await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Delivery Scenario Lab…" }).click();
-  const dialog = page.getByRole("dialog", { name: "Delivery Scenario Lab" });
+  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Gantt analysis…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Gantt analysis", exact: true });
   await dialog.getByRole("button", { name: "Rendered preview" }).click();
   const scenario = dialog.getByLabel("Scenario preview");
   await expect(scenario.locator("svg")).toBeVisible({ timeout: 20_000 });
@@ -1225,10 +1227,10 @@ test("unloads the heavy renderer in code-only view and reloads it for preview", 
   await expect(
     page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[src*="viz-global"]'),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "1 · code" }).click();
+  await page.getByRole("button", { name: "Code", exact: true }).click();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await expect(page.locator(".statusbar")).toContainText("Preview paused");
-  await page.getByRole("button", { name: "2 · split" }).click();
+  await page.getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(1);
   await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
 });
@@ -1258,7 +1260,7 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
 test("shortens a weekend-starting task through every working endpoint", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-05\n[A] lasts 6 days"));
-  await page.getByLabel("Schedule").selectOption("single");
+  await page.getByLabel("When moving tasks").selectOption("single");
   await page.locator("[data-task-id=a] .bar").click();
   await expect(page.locator("[data-task-id=a]")).toHaveAttribute("data-selected", "true");
   const handle = page.locator("[data-task-id=a] [data-resize-handle]");
@@ -1391,7 +1393,7 @@ test("connects task anchors after switching to diagram-only view", async ({ page
   // onCursorChange handler) unmounts, so that highlight must not survive and shadow a task
   // clicked directly in the diagram afterward.
   await page.locator(".cm-line").filter({ hasText: "[A] lasts 2 days" }).click();
-  await page.getByRole("button", { name: "3 · diagram" }).click();
+  await page.getByRole("button", { name: "Diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toHaveCount(0);
 
   await page.locator('[data-task-id="b"] .bar').click();
@@ -1408,7 +1410,7 @@ test("connects task anchors after switching to diagram-only view", async ({ page
   });
   await page.mouse.up();
 
-  await page.getByRole("button", { name: "1 · code" }).click();
+  await page.getByRole("button", { name: "Code", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] ends at [B]'s end");
 });
 
@@ -1566,21 +1568,21 @@ test("keeps the relationship choice available before selecting a linked task", a
 test("keeps resource capacities isolated between document tabs", async ({ page }) => {
   const firstSource = source("[A] on {Kalle:100%} starts 2026-09-01\n[A] lasts 2 days");
   await setSource(page, firstSource);
-  await page.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: "Workload" }).click();
   await page.getByRole("spinbutton", { name: "Capacity for Kalle" }).fill("50");
   await expect(page.locator(".resource-card details")).toHaveCount(1);
   await page.getByRole("button", { name: "Close resource workload" }).click();
   await page.getByRole("button", { name: "New diagram tab" }).click();
   await page.getByRole("button", { name: "Gantt diagram" }).click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
-  await page.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: "Workload" }).click();
   await expect(page.getByRole("spinbutton", { name: "Capacity for Kalle" })).toHaveValue("100");
   await expect(page.locator(".resource-card details")).toHaveCount(0);
 });
 
 test("shows resource over-allocation directly below the diagram", async ({ page }) => {
   await setSource(page, source("[A] on {Kalle:100%} starts 2026-09-01\n[A] lasts 2 days"));
-  await page.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: "Workload" }).click();
   await page.getByRole("spinbutton", { name: "Capacity for Kalle" }).fill("50");
   await page.getByRole("button", { name: "Close resource workload" }).click();
 
@@ -1600,7 +1602,7 @@ test("does not over-allocate a person when multiple people shorten a task", asyn
   );
 
   await expect(page.getByRole("alert", { name: "Resource over-allocation" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: "Workload" }).click();
   const tyra = page.locator(".resource-card").filter({ has: page.getByRole("button", { name: "Tyra" }) });
   await expect(tyra).toContainText("Peak 100%");
 });
@@ -1769,7 +1771,8 @@ test("closes inspectors on any outside click and switches directly to another ta
   await page.locator('[data-task-id="a"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Name")).toHaveValue("A");
-  await page.getByRole("button", { name: "Help" }).click();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Help", exact: true }).click();
   await expect(inspector).toHaveCount(0);
   await page.getByRole("button", { name: "Close help" }).click();
 
@@ -1938,8 +1941,8 @@ test("explains dependency cycles and reveals each relationship", async ({ page }
       "[Architecture] lasts 2 days\n[Backend] lasts 3 days\n[Architecture] starts at [Backend]'s end\n[Backend] starts at [Architecture]'s end",
     ),
   );
-  await page.getByRole("button", { name: /2 problems/ }).click();
-  const panel = page.getByRole("complementary", { name: "Problems" });
+  await page.getByRole("button", { name: "Issues (2)" }).click();
+  const panel = page.getByRole("complementary", { name: "Issues" });
   const cycles = panel.getByRole("listitem").filter({ hasText: "Dependency cycle:" });
   await expect(cycles).toHaveCount(2);
   await expect(cycles.first()).toContainText("Backend → Architecture → Backend");

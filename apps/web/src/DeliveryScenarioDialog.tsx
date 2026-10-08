@@ -244,7 +244,7 @@ export function DeliveryScenarioDialog({
       >
         <header>
           <div>
-            <h2 id="delivery-scenario-title">Delivery Scenario Lab</h2>
+            <h2 id="delivery-scenario-title">Gantt analysis</h2>
             <p>Test schedule changes without modifying the current diagram.</p>
           </div>
           <button type="button" aria-label="Close scenario lab" onClick={requestClose}>

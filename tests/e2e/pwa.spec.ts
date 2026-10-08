@@ -58,7 +58,7 @@ test("does not offer installation from an installed app window", async ({ page }
       query === "(display-mode: standalone)" ? ({ matches: true } as MediaQueryList) : browserMatchMedia(query);
   });
   await page.goto("/");
-  await expect(page.locator(".toolbar")).toContainText("PlantUML Ultimate");
+  await expect(page.locator("header.toolbar")).toContainText("PlantUML Ultimate");
   await page.evaluate(() => {
     const prompt = new Event("beforeinstallprompt", { cancelable: true });
     Object.assign(prompt, {
@@ -86,14 +86,14 @@ test("starts its production renderer and cached offline shell", async ({ page, c
     return Boolean(registration.active);
   });
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
-  await expect(page.locator(".toolbar")).toContainText("PlantUML Ultimate");
+  await expect(page.locator("header.toolbar")).toContainText("PlantUML Ultimate");
   await expect(page.locator(".diagram svg")).toBeVisible();
   if (browserName === "webkit") return;
 
   await context.setOffline(true);
   await page.reload();
   await dismissOnboarding();
-  await expect(page.locator(".toolbar")).toContainText("PlantUML Ultimate");
+  await expect(page.locator("header.toolbar")).toContainText("PlantUML Ultimate");
   await expect(page.locator(".diagram svg")).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
   await expect(page.locator(".connection-offline")).toContainText("Offline");

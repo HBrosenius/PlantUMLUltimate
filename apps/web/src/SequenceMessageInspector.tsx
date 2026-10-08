@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef, useState } from "react";
 import type { SequenceMessage } from "@plantuml-studio/diagram-sequence";
@@ -65,7 +66,7 @@ export function SequenceMessageInspector({
   const fromMissing = !value.from.trim();
   const toMissing = !value.to.trim();
   return (
-    <aside className="task-inspector sequence-message-inspector" aria-label="Message inspector">
+    <InspectorPanel className="task-inspector sequence-message-inspector" aria-label="Message inspector">
       <header>
         <strong>Message inspector</strong>
         <button onClick={onClose} aria-label="Close message inspector">
@@ -156,7 +157,7 @@ export function SequenceMessageInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 

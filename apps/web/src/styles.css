@@ -29,6 +29,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   --text: #20242b;
   --muted: #667085;
   --accent: #2563eb;
+  --warning: #9a3412;
+  --danger: #b42318;
   --syntax-directive: #9f1239;
   --syntax-task: #0369a1;
   --syntax-keyword: #6d28d9;
@@ -40,7 +42,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   --syntax-anchor: #be185d;
   --diagram-bg: var(--bg);
   display: grid;
-  grid-template-rows: 42px 32px 1fr 25px;
+  --control-height: 32px;
+  --control-radius: 5px;
+  --properties-width: 340px;
+  --workspace-top: 126px;
+  grid-template-rows: auto 36px auto minmax(0, 1fr) auto;
   min-width: 0;
   width: 100%;
   height: 100%;
@@ -201,6 +207,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   --text: #e7eaf0;
   --muted: #9ba3b2;
   --accent: #60a5fa;
+  --warning: #fdba74;
+  --danger: #fda29b;
   --syntax-directive: #fb7185;
   --syntax-task: #38bdf8;
   --syntax-keyword: #c4b5fd;
@@ -221,6 +229,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     --text: #e7eaf0;
     --muted: #9ba3b2;
     --accent: #60a5fa;
+    --warning: #fdba74;
+    --danger: #fda29b;
     --syntax-directive: #fb7185;
     --syntax-task: #38bdf8;
     --syntax-keyword: #c4b5fd;
@@ -237,8 +247,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 20px;
-  padding: 0 12px;
+  gap: 12px;
+  padding: 6px 12px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
   font-size: 13px;
@@ -247,9 +258,161 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 3px;
 }
+.diagram-tools,
+.diagram-options {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.workspace-toolbar nav {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+}
+.toolbar button,
+.toolbar select {
+  min-height: var(--control-height);
+}
+.toolbar .save-button,
+.diagram-tools > .application-menu > button {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.document-identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin-left: auto;
+  font-size: 12px;
+}
+.file-save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.file-save-indicator.is-warning {
+  color: var(--warning);
+}
+.action-count {
+  margin-left: 6px;
+  padding-inline: 5px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.action-menu .application-menu-panel {
+  max-width: calc(100vw - 24px);
+  left: auto;
+  right: 0;
+}
+.action-menu .application-menu-panel button {
+  white-space: normal;
+}
+.storage-status-root {
+  flex-shrink: 0;
+}
+.storage-details {
+  position: fixed;
+  z-index: 40;
+  right: 12px;
+  bottom: 42px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: 60vh;
+  overflow: auto;
+  white-space: normal;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 24%);
+}
+.storage-details button {
+  padding: 7px;
+  margin-right: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--bg);
+  color: var(--text);
+}
+.render-details > div {
+  position: fixed;
+  z-index: 40;
+  bottom: 42px;
+  left: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  width: min(400px, calc(100vw - 24px));
+  max-height: 60vh;
+  overflow: auto;
+  white-space: normal;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 24%);
+}
+.render-details summary,
+.preserved-issues summary {
+  cursor: pointer;
+}
+.preserved-issues {
+  padding: 10px 0;
+  border-block: 1px solid var(--line);
+  margin-block: 12px;
+}
+.new-diagram-heading {
+  padding: 8px 0 16px;
+}
+.new-diagram-heading h2 {
+  margin: 0;
+}
+.new-diagram-heading p {
+  color: var(--muted);
+}
+.statusbar {
+  min-height: 30px;
+}
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 850px) {
+  .toolbar {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  .toolbar > strong {
+    display: none;
+  }
+  .app.has-project-navigator .workspace {
+    width: 100%;
+    max-width: 100%;
+  }
+  .document-identity {
+    margin-left: 0;
+  }
+  .statusbar {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 4px;
+    padding-block: 4px;
+  }
+  .task-inspector,
+  .project-navigator,
+  .project-inspector {
+    width: min(var(--properties-width), calc(100vw - 16px));
+  }
+}
 .file-tools {
   display: flex;
-  flex-shrink: 0;
+  min-width: 0;
+  flex-wrap: wrap;
   gap: 2px;
 }
 .file-tools > .application-menu {
@@ -331,7 +494,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--muted);
 }
 .toolbar label {
-  margin-left: auto;
+  margin-left: 0;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -447,6 +610,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .toolbar button.active {
   color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--accent);
+}
+.workspace-hint {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.workspace-hint button {
+  min-width: 32px;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .application-menu-panel {
+    max-width: calc(100vw - 16px);
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+  .application-submenu-panel {
+    position: static;
+    margin-block: 4px;
+    box-shadow: none;
+    min-width: 0;
+  }
 }
 .toolbar button:disabled {
   opacity: 0.35;
@@ -458,16 +648,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   overflow: hidden;
 }
 .app.has-side-inspector .workspace {
-  width: calc(100vw - 308px);
-  max-width: calc(100vw - 308px);
+  width: calc(100% - var(--properties-width) - 16px);
+  max-width: calc(100% - var(--properties-width) - 16px);
 }
 .app.has-project-inspector .workspace {
-  width: calc(100vw - 388px);
-  max-width: calc(100vw - 388px);
+  width: calc(100% - var(--properties-width) - 16px);
+  max-width: calc(100% - var(--properties-width) - 16px);
 }
 .app.has-project-navigator .workspace {
-  width: calc(100vw - 308px);
-  max-width: calc(100vw - 308px);
+  width: calc(100% - var(--properties-width) - 16px);
+  max-width: calc(100% - var(--properties-width) - 16px);
 }
 .workspace.mode-code,
 .workspace.mode-diagram {
@@ -677,6 +867,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .gantt-preview {
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
 }
 .gantt-preview .preview-tools {
   position: relative;
@@ -705,6 +896,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .gantt-preview-tools-forecast > .gantt-apply-forecast-trigger {
   width: auto;
   margin-right: 8px;
+}
+@container (max-width: 480px) {
+  .gantt-preview .preview-tools {
+    display: flex;
+    justify-content: flex-start;
+  }
+  .gantt-preview-tools-main,
+  .gantt-preview-tools-forecast {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
 }
 .gantt-preview .preview-viewport {
   flex: 1;
@@ -740,6 +942,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 100%;
   overflow: auto;
   padding: 48px 24px 42px;
+}
+.sequence-preview .preview-tools {
+  max-height: 88px;
+  overflow: auto;
+}
+.sequence-preview .sequence-selection-label,
+.sequence-preview .sequence-drag-hint {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.sequence-preview .preview-viewport {
+  padding-top: 104px;
 }
 .preview-viewport.diagram-pan-active,
 .preview-viewport.diagram-pan-active * {
@@ -2201,7 +2417,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 1px 6px;
   border: 1px solid #d97706;
   border-radius: 3px;
-  color: #b45309;
+  color: var(--warning);
 }
 button:focus-visible,
 select:focus-visible,
@@ -4762,10 +4978,10 @@ textarea:focus-visible,
 .task-inspector {
   position: fixed;
   z-index: 10;
-  top: 74px;
+  top: var(--workspace-top);
   right: 8px;
-  bottom: 33px;
-  width: 300px;
+  bottom: var(--footer-height, 38px);
+  width: var(--properties-width);
   overflow: auto;
   padding: 14px;
   border: 1px solid var(--line);
@@ -4779,6 +4995,19 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
+  position: sticky;
+  top: -14px;
+  z-index: 2;
+  padding-block: 8px;
+  background: var(--panel);
+}
+.task-inspector header :is(h2, h3, strong) {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.task-inspector > label {
+  font-size: 14px;
 }
 .task-inspector header button {
   border: 0;
@@ -4789,10 +5018,10 @@ textarea:focus-visible,
 .project-navigator {
   position: fixed;
   z-index: 11;
-  top: 74px;
+  top: var(--workspace-top);
   right: 8px;
-  bottom: 33px;
-  width: 300px;
+  bottom: var(--footer-height, 38px);
+  width: var(--properties-width);
   overflow: auto;
   padding: 16px;
   border: 1px solid var(--line);
@@ -5295,6 +5524,80 @@ textarea:focus-visible,
   margin: 11px 0;
   color: var(--muted);
   font-size: 12px;
+}
+.task-inspector .inspector-section > label {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+  color: var(--text);
+  font-size: 14px;
+}
+.task-inspector .field-error {
+  margin: 4px 0;
+  color: var(--danger);
+}
+.inspector-section summary {
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.task-inspector form > label {
+  font-size: 14px;
+  color: var(--text);
+}
+.inspector-section {
+  margin-block: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.inspector-section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.inspector-selection {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.task-inspector .inspector-actions {
+  position: sticky;
+  bottom: -14px;
+  z-index: 2;
+  flex-wrap: wrap;
+  padding-block: 10px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.task-inspector header button,
+.project-navigator header button {
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.inspector-resize {
+  position: fixed;
+  z-index: 12;
+  top: var(--workspace-top);
+  bottom: var(--footer-height, 38px);
+  right: calc(var(--properties-width) + 4px);
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+  border-radius: 4px;
+}
+.inspector-resize:hover,
+.inspector-resize:focus-visible {
+  background: var(--accent);
+}
+@media (max-width: 850px) {
+  .inspector-resize {
+    display: none;
+  }
 }
 .task-inspector input,
 .task-inspector select,
@@ -6223,7 +6526,7 @@ textarea:focus-visible,
   border-top: 1px solid var(--line);
 }
 .project-inspector {
-  width: min(500px, calc(100vw - 24px));
+  width: var(--properties-width);
 }
 .project-inspector fieldset {
   margin: 16px 0;
@@ -6846,4 +7149,247 @@ polygon.diagram-bulk-selected {
 }
 .settings-dialog:not(.settings-dialog-onboarding) {
   width: min(680px, calc(100vw - 32px));
+}
+.reports-backdrop {
+  padding: 3vh 2vw;
+  z-index: 40;
+}
+.reports-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1200px, 96vw);
+  max-height: 94vh;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 20px 70px rgb(0 0 0 / 22%);
+}
+.reports-dialog header {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 8px;
+}
+.reports-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reports-dialog h2 {
+  font-size: 21px;
+  margin: 3px 0 0;
+}
+.reports-dialog button {
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  padding: 6px 10px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.reports-dialog button:hover:not(:disabled) {
+  background: var(--bg);
+}
+.reports-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.reports-dialog button:focus-visible,
+.reports-dialog input:focus-visible,
+.reports-dialog select:focus-visible,
+.reports-dialog textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.reports-dialog header button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 22px;
+}
+.reports-source {
+  flex: none;
+  margin: 0;
+  padding: 0 24px 18px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.reports-source span {
+  padding: 0 6px;
+}
+.reports-dialog > p[role="alert"] {
+  margin: 0;
+  padding: 12px 24px;
+  color: var(--warning);
+  border-bottom: 1px solid var(--line);
+}
+.reports-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.reports-options {
+  overflow: auto;
+  padding: 8px 20px 20px;
+  border-right: 1px solid var(--line);
+}
+.reports-options .inspector-section {
+  margin: 0;
+  padding: 16px 0;
+}
+.reports-options .inspector-section:first-child {
+  border-top: 0;
+}
+.reports-options summary {
+  margin-bottom: 12px;
+}
+.reports-options label:not(.reports-check),
+.reports-preview > label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.reports-dialog input:not([type="checkbox"]),
+.reports-dialog select,
+.reports-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+.reports-dialog textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+.reports-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 5px 0;
+}
+.reports-check input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 2px 0;
+  accent-color: var(--accent);
+}
+.reports-options small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.reports-options button + button {
+  margin-left: 6px;
+}
+.reports-options textarea {
+  min-height: 100px;
+}
+.reports-preview {
+  min-width: 0;
+  overflow: auto;
+  padding: 20px 24px;
+  background: var(--bg);
+}
+.reports-summary {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-subject {
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.reports-preview iframe {
+  display: block;
+  width: 100%;
+  height: 540px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 4%);
+}
+.reports-preview > details {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-preview textarea {
+  width: 100%;
+  min-height: 250px;
+  margin-top: 10px;
+}
+.reports-dialog footer {
+  flex: none;
+  background: var(--panel);
+  padding: 14px 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.reports-dialog footer button.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.reports-dialog footer button.primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+  background: var(--accent);
+}
+.reports-dialog footer p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-dialog footer p:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  .reports-layout {
+    display: block;
+    overflow: auto;
+  }
+  .reports-options {
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .reports-preview {
+    overflow: visible;
+    padding: 16px;
+  }
+  .reports-preview iframe {
+    height: 420px;
+  }
+  .reports-dialog footer {
+    padding: 12px 16px;
+  }
 }

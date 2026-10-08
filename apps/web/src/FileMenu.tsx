@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 
 export function FileMenu({
   canExport,
+  saving = false,
   onNew,
   onNewProject,
   onOpen,
   onOpenProject,
-  onSaveProject,
   onProjectConnections,
   projectName,
   onSave,
@@ -14,7 +14,6 @@ export function FileMenu({
   onVersionHistory,
   onDocumentSettings,
   onDeliveryScenario,
-  onSettings,
   onJira,
   onBackup,
   onRestore,
@@ -27,11 +26,11 @@ export function FileMenu({
   onCopyConfluence,
 }: {
   canExport: boolean;
+  saving?: boolean;
   onNew(): void;
   onNewProject?: (() => void) | undefined;
   onOpen(): void;
   onOpenProject?: (() => void) | undefined;
-  onSaveProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
   onSave(): void;
@@ -39,7 +38,6 @@ export function FileMenu({
   onVersionHistory(): void;
   onDocumentSettings?: (() => void) | undefined;
   onDeliveryScenario?: (() => void) | undefined;
-  onSettings(): void;
   onJira?: (() => void) | undefined;
   onBackup(): void;
   onRestore(): void;
@@ -52,7 +50,7 @@ export function FileMenu({
   onCopyConfluence(): void;
 }) {
   const [open, setOpen] = useState(false);
-  const [activeSubmenu, setActiveSubmenu] = useState<"project" | "new" | "open" | "save" | "export">();
+  const [activeSubmenu, setActiveSubmenu] = useState<"project" | "new" | "open" | "export">();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -86,7 +84,12 @@ export function FileMenu({
   }, [open]);
 
   const focusMenuItem = (direction: 1 | -1) => {
-    const items = [...(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+    const menu = document.activeElement?.closest('[role="menu"]') ?? root.current?.querySelector('[role="menu"]');
+    const items = [
+      ...(menu?.querySelectorAll<HTMLButtonElement>(
+        ':scope > button[role="menuitem"]:not(:disabled), :scope > .application-submenu > button[role="menuitem"]:not(:disabled)',
+      ) ?? []),
+    ];
     if (!items.length) return;
     const current = items.indexOf(document.activeElement as HTMLButtonElement);
     items[(current + direction + items.length) % items.length]?.focus();
@@ -122,6 +125,24 @@ export function FileMenu({
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
               focusMenuItem(event.key === "ArrowDown" ? 1 : -1);
+            }
+            if (event.key === "ArrowRight") {
+              const button = document.activeElement as HTMLButtonElement;
+              if (button?.getAttribute("aria-haspopup") !== "menu") return;
+              event.preventDefault();
+              button.click();
+              requestAnimationFrame(() =>
+                button.parentElement
+                  ?.querySelector<HTMLButtonElement>('[role="menu"] [role="menuitem"]:not(:disabled)')
+                  ?.focus(),
+              );
+            }
+            if (event.key === "ArrowLeft") {
+              const submenu = document.activeElement?.closest(".application-submenu-panel")?.parentElement;
+              if (!submenu) return;
+              event.preventDefault();
+              setActiveSubmenu(undefined);
+              submenu.querySelector<HTMLButtonElement>(":scope > button")?.focus();
             }
           }}
         >
@@ -191,27 +212,13 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("save")}>
-            <button
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={activeSubmenu === "save"}
-              onClick={() => setActiveSubmenu("save")}
-            >
-              <span>Save</span>
-              <span aria-hidden="true">›</span>
-            </button>
-            {activeSubmenu === "save" && (
-              <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Save">
-                <button role="menuitem" onClick={() => run(onSave)}>
-                  {onSaveProject ? "Save document" : "Save diagram"}
-                </button>
-                <button role="menuitem" onClick={() => run(onSaveAs)}>
-                  {onSaveProject ? "Save document as…" : "Save diagram as…"}
-                </button>
-              </div>
-            )}
-          </div>
+          <button role="menuitem" disabled={saving} onClick={() => run(onSave)}>
+            <span>Save</span>
+            <kbd aria-hidden="true">Ctrl/Cmd+S</kbd>
+          </button>
+          <button role="menuitem" disabled={saving} onClick={() => run(onSaveAs)}>
+            Save as…
+          </button>
           <button role="menuitem" onClick={() => run(onVersionHistory)}>
             Version history…
           </button>
@@ -220,23 +227,20 @@ export function FileMenu({
           </button>
           {onDeliveryScenario && (
             <button role="menuitem" onClick={() => run(onDeliveryScenario)}>
-              Delivery Scenario Lab…
+              Gantt analysis…
             </button>
           )}
           {onJira && (
             <button role="menuitem" onClick={() => run(onJira)}>
-              Jira…
+              Integrations: Jira…
             </button>
           )}
           <span className="menu-separator" role="separator" />
           <button role="menuitem" onClick={() => run(onBackup)}>
-            Backup workspace…
+            Workspace backup…
           </button>
           <button role="menuitem" onClick={() => run(onRestore)}>
-            Restore workspace…
-          </button>
-          <button role="menuitem" onClick={() => run(onSettings)}>
-            Settings…
+            Workspace restore…
           </button>
           <span className="menu-separator" role="separator" />
           <div className="application-submenu" onPointerEnter={() => setActiveSubmenu("export")}>
@@ -245,10 +249,10 @@ export function FileMenu({
               aria-haspopup="menu"
               aria-expanded={activeSubmenu === "export"}
               onClick={() => setActiveSubmenu("export")}
-              onFocus={() => setActiveSubmenu("export")}
               onKeyDown={(event) => {
                 if (event.key === "ArrowRight") {
                   event.preventDefault();
+                  event.stopPropagation();
                   setActiveSubmenu("export");
                   requestAnimationFrame(() =>
                     root.current

@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent, type MutableRefObject } from "react";
 import type {
   ClassDocument,
@@ -201,7 +202,7 @@ export function ClassEntityInspector({
       .replace(/^[A-Z]/, (character) => character.toLowerCase()),
   }));
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector usecase-element-inspector"
       aria-label={`${componentMode ? "Component" : "Class"} object inspector`}
     >
@@ -371,7 +372,7 @@ export function ClassEntityInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -878,7 +879,7 @@ export function ClassRelationshipInspector({
     onChange(next);
   };
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector usecase-relationship-inspector"
       aria-label={`${componentMode ? "Component connection" : "Class relationship"} inspector`}
     >
@@ -1000,7 +1001,7 @@ export function ClassRelationshipInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -1122,7 +1123,7 @@ export function ClassPackageInspector({
   );
   const save = () => onChange(v);
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector usecase-package-inspector"
       aria-label={`${componentMode ? "Component container" : "Class package"} inspector`}
     >
@@ -1191,7 +1192,7 @@ export function ClassPackageInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 const isPackageDescendant = (packages: ClassPackage[], candidate: ClassPackage, ancestorId: string) => {
@@ -1306,7 +1307,7 @@ export function ClassNoteInspector({
     onChange(n);
   };
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector usecase-note-inspector"
       aria-label={`${componentMode ? "Component" : "Class"} note inspector`}
     >
@@ -1371,7 +1372,7 @@ export function ClassNoteInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 const entityLabel = (document: ClassDocument, id: string) =>

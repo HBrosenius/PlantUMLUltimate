@@ -180,13 +180,14 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(menu.getByRole("menuitem")).toHaveText([
     "New›",
     "Open›",
-    "Save›",
+    "SaveCtrl/Cmd+S",
+    "Save as…",
     "Version history…",
     "Document settings…",
-    "Delivery Scenario Lab…",
-    "Jira…",
-    "Backup workspace…",
-    "Restore workspace…",
+    "Gantt analysis…",
+    "Integrations: Jira…",
+    "Workspace backup…",
+    "Workspace restore…",
     "Settings…",
     "Export›",
   ]);
@@ -206,7 +207,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(file).toBeFocused();
 
   await file.click();
-  await menu.getByRole("menuitem", { name: "Jira…" }).click();
+  await menu.getByRole("menuitem", { name: "Integrations: Jira…" }).click();
   const jira = page.getByRole("dialog", { name: "Jira integration" });
   await expect(jira).toBeVisible();
   await jira.getByRole("button", { name: "Close Jira integration" }).click();
@@ -445,8 +446,7 @@ test("retains version history after Save As", async ({ page }) => {
   });
 
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save diagram as…" }).click();
+  await page.getByRole("menuitem", { name: "Save as…" }).click();
   await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.pumlu");
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
@@ -461,7 +461,7 @@ test("copies the current source from the code editor", async ({ page, context, b
   await setSource(page, value);
   await page.getByRole("button", { name: "Copy code" }).click();
   await expect(page.getByRole("button", { name: "Copied!" })).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
+  expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n")).toBe(value);
 });
 
 test("backs up and restores all open documents", async ({ page }) => {
@@ -478,7 +478,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   await setSource(page, source("[Second tab] lasts 3 days"));
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Backup workspace…" }).click();
+  await page.getByRole("menuitem", { name: "Workspace backup…" }).click();
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
@@ -495,7 +495,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   const checkpointDownload = page.waitForEvent("download");
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Restore workspace…" }).click();
+  await page.getByRole("menuitem", { name: "Workspace restore…" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Second tab] lasts 3 days");
   await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(2);
   const checkpoint = await checkpointDownload;

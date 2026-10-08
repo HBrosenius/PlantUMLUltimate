@@ -21,7 +21,7 @@ test("copies the source as a fenced Markdown block", async ({ page, context, bro
 
   await expect(page.getByText("Copied source as Markdown")).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
-  expect(copied).toBe("```plantuml\n" + diagram + "\n```");
+  expect(copied.replace(/\r\n/g, "\n")).toBe("```plantuml\n" + diagram + "\n```");
 });
 
 test("downloads the diagram as a PDF", async ({ page }) => {

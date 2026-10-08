@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { UseCaseSettings } from "./usecase-settings";
@@ -33,7 +34,7 @@ export function UseCaseSettingsInspector({
   );
 
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector sequence-settings-inspector usecase-settings-inspector"
       aria-label="Use Case settings"
     >
@@ -174,6 +175,6 @@ export function UseCaseSettingsInspector({
         </fieldset>
         <p className="field-hint">Text and color fields are saved when you leave the field.</p>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

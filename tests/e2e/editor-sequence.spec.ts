@@ -56,7 +56,7 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
     .click();
   await setSource(page, "@startuml\nparticipant API\nparticipant Store\nAPI -> Store: Save\n@enduml");
 
-  const divider = page.getByRole("separator");
+  const divider = page.locator(".divider[role=separator]");
   const expectedDividerX = await page.evaluate(() => window.innerWidth / 2);
   await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(expectedDividerX, 0);
   const initialDividerX = (await divider.boundingBox())!.x;
@@ -279,9 +279,9 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
-  await expect(page.getByRole("button", { name: "Project" })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Resources" })).toBeHidden();
-  await page.getByRole("button", { name: "Sequence", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Calendar & schedule" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Workload" })).toBeHidden();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const sequenceSettings = page.getByRole("complementary", { name: "Sequence settings" });
   await sequenceSettings.getByLabel("Diagram title").fill("Checkout flow");
   await sequenceSettings.getByLabel("Automatically activate lifelines").check();
@@ -606,7 +606,7 @@ test("configures advanced Sequence layout and style with undo and redo", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
-  await page.getByRole("button", { name: "Sequence", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
 
   const settings = page.getByRole("complementary", { name: "Sequence settings" });
   await settings.getByLabel("Enable Teoz layout engine").check();
@@ -851,7 +851,7 @@ test("reorders Sequence fragment branches without detaching nested bodies", asyn
   await expect(inspector.getByLabel("Branch 3 label")).toHaveValue("Timeout");
   await expect
     .poll(() => page.evaluate(() => window.getSelection()?.toString()))
-    .toContain("alt#Gold #LightBlue Primary\nA -> B: Main\nelse #Pink Failure\nloop Retry");
+    .toMatch(/alt#Gold #LightBlue Primary\s*\nA -> B: Main\s*\nelse #Pink Failure\s*\nloop Retry/);
 
   await inspector.getByRole("button", { name: "Move branch 3 up" }).click();
   await expect(inspector.getByLabel("Branch 2 label")).toHaveValue("Timeout");

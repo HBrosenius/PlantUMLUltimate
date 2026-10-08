@@ -27,7 +27,9 @@ test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
     await setSource(page, `@startwbs\n*(root) ${name}\n**(child) Child\n@endwbs`);
   }
 
-  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
+  await page.getByRole("button", { name: "Linked diagrams" }).click();
+
+  await page.getByRole("menuitem", { name: "Create Gantt chart from WBS" }).click();
   const conversion = page.getByRole("dialog", { name: "Create Gantt chart from WBS" });
   await expect(conversion.getByRole("textbox", { name: "Name" })).toHaveCount(0);
   await conversion.getByLabel("Project start date").fill("2026-10-05");
@@ -40,9 +42,10 @@ test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
   await expect(navigator).toContainText("Website WBS schedule");
   await expect(page.locator(".document-tabs")).toContainText("Website WBS schedule");
   await navigator.getByRole("button", { name: /Website WBS wbs · 2 links/ }).click();
-  await expect(page.getByRole("button", { name: /Add missing WBS tasks to Gantt \(0\)/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Linked diagrams" }).click();
+  await expect(page.getByRole("menuitem", { name: /Add missing WBS tasks to Gantt \(0\)/ })).toBeDisabled();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
 });

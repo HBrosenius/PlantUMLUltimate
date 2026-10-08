@@ -26,7 +26,7 @@ test("warm rendering matches a fresh engine after font and style changes", async
     if (message.text().startsWith("Renderer parity:")) console.log(message.text());
   });
   await prepareEditor(page);
-  await page.getByRole("button", { name: "1 · code" }).click();
+  await page.getByRole("button", { name: "Code", exact: true }).click();
   const comparisons = await page.evaluate(async () => {
     const assetsPath = "/src/render/renderer-assets.ts";
     const fontsPath = "/src/render/font-atlas.ts";

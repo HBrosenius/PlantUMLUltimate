@@ -14,6 +14,7 @@ export default tseslint.config(
       "graft/**",
       "playwright-report/**",
       "test-results/**",
+      "**/*.local/**",
     ],
   },
   eslint.configs.recommended,

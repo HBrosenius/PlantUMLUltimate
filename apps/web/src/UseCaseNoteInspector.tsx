@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type { UseCaseNote, UseCaseNoteInput } from "@plantuml-studio/diagram-usecase";
 import { ColorField } from "./ColorField";
@@ -30,7 +31,7 @@ export function UseCaseNoteInspector({
     onChange(updated);
   };
   return (
-    <aside className="task-inspector usecase-note-inspector" aria-label="Use Case note inspector">
+    <InspectorPanel className="task-inspector usecase-note-inspector" aria-label="Use Case note inspector">
       <header>
         <div>
           <strong>Note inspector</strong>
@@ -104,6 +105,6 @@ export function UseCaseNoteInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

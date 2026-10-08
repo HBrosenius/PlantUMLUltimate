@@ -40,7 +40,6 @@ test("reviews project changes against the last successful save and exports a rep
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-  await page.getByRole("menu", { name: "Save" }).getByRole("menuitem", { name: "Save document", exact: true }).click();
   // The link index registers the Component objects as project elements shortly after the diagram is
   // added; that must not flip a project saved in the meantime back to "Unsaved changes".
   await expect(navigator.getByText("Saved", { exact: true })).toBeVisible();

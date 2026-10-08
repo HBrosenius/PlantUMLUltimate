@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useId, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { SequenceSettings } from "./sequence-settings";
@@ -26,7 +27,7 @@ export function SequenceSettingsInspector({
   );
 
   return (
-    <aside className="task-inspector sequence-settings-inspector" aria-label="Sequence settings">
+    <InspectorPanel className="task-inspector sequence-settings-inspector" aria-label="Sequence settings">
       <header>
         <div>
           <strong>Sequence settings</strong>
@@ -215,6 +216,6 @@ export function SequenceSettingsInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

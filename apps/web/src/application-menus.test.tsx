@@ -48,7 +48,6 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onSaveAs: vi.fn(),
   onVersionHistory: vi.fn(),
   onDeliveryScenario: vi.fn(),
-  onSettings: vi.fn(),
   onJira: vi.fn(),
   onBackup: vi.fn(),
   onRestore: vi.fn(),
@@ -95,7 +94,7 @@ describe("application menus", () => {
     const exportItem = screen.getByRole("menuitem", { name: "Export" });
     expect(exportItem).toHaveFocus();
     expect(exportItem).toHaveAttribute("aria-haspopup", "menu");
-    expect(exportItem).toHaveAttribute("aria-expanded", "true");
+    expect(exportItem).toHaveAttribute("aria-expanded", "false");
 
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByRole("menu", { name: "Export" })).toBeInTheDocument();
@@ -108,6 +107,10 @@ describe("application menus", () => {
     await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "Copy as Markdown" })).toHaveFocus();
     await user.keyboard("{ArrowDown}{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Source" })).toHaveFocus();
+    await user.keyboard("{ArrowLeft}");
+    expect(exportItem).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "New" })).toHaveFocus();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(trigger).toHaveFocus());
@@ -143,7 +146,7 @@ describe("application menus", () => {
     render(<FileMenu canExport {...callbacks} />);
 
     await user.click(screen.getByRole("button", { name: "File" }));
-    await user.click(screen.getByRole("menuitem", { name: "Delivery Scenario Lab…" }));
+    await user.click(screen.getByRole("menuitem", { name: "Gantt analysis…" }));
 
     expect(callbacks.onDeliveryScenario).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu", { name: "File" })).not.toBeInTheDocument();
@@ -156,6 +159,6 @@ describe("application menus", () => {
     render(<FileMenu canExport {...callbacks} />);
 
     await user.click(screen.getByRole("button", { name: "File" }));
-    expect(screen.queryByRole("menuitem", { name: "Delivery Scenario Lab…" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Gantt analysis…" })).not.toBeInTheDocument();
   });
 });

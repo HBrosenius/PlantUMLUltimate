@@ -33,10 +33,12 @@ export function NewDocumentDialog({
   onChoose,
   onChooseExample,
   onClose,
+  onOpen,
 }: {
   onChoose(kind: DiagramKind): void;
   onChooseExample(example: StarterExample): void;
   onClose(): void;
+  onOpen?: () => void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   useDialogFocus(dialog, onClose);
@@ -50,17 +52,14 @@ export function NewDocumentDialog({
         aria-label="Choose a diagram type"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="welcome-splash">
-          <PlantUmlUltimateLogo />
-          <div className="welcome-splash-copy">
-            <p className="welcome-eyebrow">Visual PlantUML workspace</p>
-            <h2 id="new-document-title">PlantUML Ultimate</h2>
-            <p>
-              Create and maintain diagrams through source code and direct visual editing, with your PlantUML text always
-              kept as the source of truth.
-            </p>
-            <p className="welcome-byline">Created by HBrosenius · Local-first · Runs in your browser</p>
-          </div>
+        <header className="new-diagram-heading">
+          <h2 id="new-document-title">Create a diagram</h2>
+          <p>Choose a type or try an example. PlantUML source stays editable.</p>
+          {onOpen && (
+            <button type="button" onClick={onOpen}>
+              Open…
+            </button>
+          )}
         </header>
         <section className="diagram-kind-section" aria-labelledby="diagram-kind-title">
           <div className="diagram-kind-heading">
@@ -84,7 +83,7 @@ export function NewDocumentDialog({
         <section className="diagram-kind-section" aria-labelledby="starter-example-title">
           <div className="diagram-kind-heading">
             <div>
-              <h3 id="starter-example-title">Start from an example</h3>
+              <h3 id="starter-example-title">Try an example</h3>
               <p>Open a realistic diagram and adapt it to your own project.</p>
             </div>
           </div>

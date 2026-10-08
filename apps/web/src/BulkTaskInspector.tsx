@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useId, useState } from "react";
 import { ColorField } from "./ColorField";
 
@@ -37,7 +38,7 @@ export function BulkTaskInspector({
     (Number.isInteger(completionValue) && completionValue >= 0 && completionValue <= 100);
 
   return (
-    <aside className="task-inspector bulk-task-inspector" aria-label="Selected tasks inspector">
+    <InspectorPanel className="task-inspector bulk-task-inspector" aria-label="Selected tasks inspector">
       <header>
         <strong>{labels.length} tasks selected</strong>
         <button onClick={onClose} aria-label="Clear task selection">
@@ -46,6 +47,9 @@ export function BulkTaskInspector({
       </header>
       <p className="bulk-task-names">{labels.join(", ")}</p>
       <p className="fieldset-help">Shift- or Ctrl/⌘-click tasks in the diagram to add or remove them.</p>
+      <p className="inspector-note">
+        Changes apply when you leave a field. Invalid values stay in this panel until corrected or discarded.
+      </p>
       <form onSubmit={(event) => event.preventDefault()}>
         <div className="bulk-task-row">
           <label>
@@ -104,6 +108,9 @@ export function BulkTaskInspector({
           </button>
         </div>
         <div className="inspector-actions">
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
           <button type="button" onClick={onDuplicate}>
             Duplicate
           </button>
@@ -115,6 +122,6 @@ export function BulkTaskInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

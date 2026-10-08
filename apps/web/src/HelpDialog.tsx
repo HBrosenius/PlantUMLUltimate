@@ -32,6 +32,7 @@ const shortcuts = () => [
   ["F2", "Rename a semantic symbol under the code cursor"],
   ["Shift while dragging", "Snap movement to weeks"],
   ["?", "Open Help"],
+  ["Shift + F10 on a tab", "Open tab actions, including moving tabs left or right"],
   ["Escape", "Close a dialog"],
 ];
 
@@ -71,6 +72,23 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
           </button>
         </header>
         <div className="help-content">
+          <section>
+            <h3>Workspace controls</h3>
+            <p>
+              File, Save, undo/redo, Commands, and Collaborate are above the diagram tabs. Add, Outline, diagram
+              settings, and Code / Split / Diagram are in the workspace toolbar. More contains Settings and Help. Change
+              the app theme in Settings → Appearance or through Commands.
+            </p>
+            <p>
+              File saving and browser recovery are separate. Saved to file confirms a file write; Download requested
+              means a snapshot was sent to your browser downloads. Browser recovery restores local work and does not
+              save your file. Open Issues for errors, warnings, and source that can only be edited in Code view.
+            </p>
+            <p>
+              Use Linked diagrams for WBS/Gantt synchronization and connection review. Fit sizes the diagram to its
+              canvas.
+            </p>
+          </section>
           <section>
             <h3>Keyboard shortcuts</h3>
             <div className="shortcut-grid">
@@ -123,13 +141,17 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
               </li>
               <li>Task, person, color, and dependency names autocomplete from the document.</li>
               <li>Open the lightbulb on supported diagnostics to apply a quick fix.</li>
-              <li>Use Project for calendars and Resources for workload and capacity.</li>
+              <li>Use Calendar &amp; schedule for calendars and Workload for resource workload and capacity.</li>
+              <li>
+                In More → Settings → Gantt, turn off resource over-allocation warnings when an assignee represents a
+                team. Workload details remain available.
+              </li>
             </ul>
           </section>
           <section>
             <h3>Scheduling</h3>
             <p>
-              The Schedule selector controls whether downstream dated tasks move automatically. Relative PlantUML tasks
+              When moving tasks controls whether downstream dated tasks move automatically. Relative PlantUML tasks
               follow their predecessor naturally. Cascade changes and diagram edits are recorded as single undo
               operations.
             </p>

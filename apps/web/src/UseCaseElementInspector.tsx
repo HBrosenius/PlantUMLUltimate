@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type { UseCaseElement, UseCaseElementInput, UseCaseElementKind } from "@plantuml-studio/diagram-usecase";
 import { ColorField } from "./ColorField";
@@ -35,7 +36,7 @@ export function UseCaseElementInspector({
   };
   const labelMissing = !value.label.trim();
   return (
-    <aside className="task-inspector usecase-element-inspector" aria-label="Use Case object inspector">
+    <InspectorPanel className="task-inspector usecase-element-inspector" aria-label="Use Case object inspector">
       <header>
         <div>
           <strong>{element.kind === "actor" ? "Actor" : "Use case"} inspector</strong>
@@ -135,6 +136,6 @@ export function UseCaseElementInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

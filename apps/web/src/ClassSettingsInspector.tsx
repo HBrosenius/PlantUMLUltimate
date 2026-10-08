@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { ClassSettings } from "./class-settings";
@@ -22,7 +23,7 @@ export function ClassSettingsInspector({
   };
   const save = () => onChange(v);
   return (
-    <aside
+    <InspectorPanel
       className="task-inspector sequence-settings-inspector"
       aria-label={`${componentMode ? "Component" : "Class"} settings`}
     >
@@ -118,6 +119,6 @@ export function ClassSettingsInspector({
         </fieldset>
         <p className="field-hint">Text fields save when you leave the field.</p>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

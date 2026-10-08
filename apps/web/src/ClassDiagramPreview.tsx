@@ -439,6 +439,14 @@ export function ClassDiagramPreview({
       aria-label={`${diagramKind === "component" ? "Component" : "Class"} diagram preview`}
     >
       <div className="preview-tools">
+        <button
+          type="button"
+          onClick={navigation.fit}
+          aria-label="Fit diagram"
+          title="Fit the diagram in the visible canvas"
+        >
+          Fit
+        </button>
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>

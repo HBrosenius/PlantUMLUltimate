@@ -48,10 +48,6 @@ test("refuses to overwrite a project file changed elsewhere", async ({ page }) =
   const saveProject = async () => {
     await page.getByRole("button", { name: "File", exact: true }).click();
     await page.getByRole("menuitem", { name: "Save", exact: true }).click();
-    await page
-      .getByRole("menu", { name: "Save" })
-      .getByRole("menuitem", { name: "Save document", exact: true })
-      .click();
   };
 
   await addDiagram("Architecture");

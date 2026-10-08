@@ -36,7 +36,7 @@ it("keeps related diagnostics revealable and refreshes groups after source chang
     vi.mocked(groupDiagnostics).mockReturnValue([]);
     await act(async () => root.render(<ProblemsPanel {...props} source="fixed" diagnostics={[]} />));
     expect(container.querySelector("details")).toBeNull();
-    expect(container.textContent).toContain("0 parser diagnostics");
+    expect(container.textContent).toContain("0 errors · 0 warnings · 0 preserved lines");
   } finally {
     await act(async () => root.unmount());
   }

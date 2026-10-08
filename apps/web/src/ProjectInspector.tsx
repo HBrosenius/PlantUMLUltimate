@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_NAMES, type ProjectSettings } from "./project-settings";
 import { ColorField, ColorSwatch } from "./ColorField";
@@ -23,9 +24,9 @@ export function ProjectInspector({
     setValue((current) => ({ ...current, [key]: next }));
   const mondayFirstWeekdays = [1, 2, 3, 4, 5, 6, 0];
   return (
-    <aside className="task-inspector project-inspector" aria-label="Project and calendar inspector">
+    <InspectorPanel className="task-inspector project-inspector" aria-label="Project and calendar inspector">
       <header>
-        <strong>Project &amp; calendar</strong>
+        <strong>Calendar &amp; schedule</strong>
         <button onClick={onClose} aria-label="Close project inspector">
           ×
         </button>
@@ -338,6 +339,6 @@ export function ProjectInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

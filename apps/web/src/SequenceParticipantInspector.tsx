@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useState } from "react";
 import type { SequenceParticipant, SequenceParticipantKind } from "@plantuml-studio/diagram-sequence";
 import { ColorField, SharedColorDatalist } from "./ColorField";
@@ -47,13 +48,19 @@ export function SequenceParticipantInspector({
   ) => setValue((current) => ({ ...current, [key]: next }));
   const nameMissing = !value.label.trim();
   return (
-    <aside className="task-inspector sequence-participant-inspector" aria-label="Participant inspector">
+    <InspectorPanel className="task-inspector sequence-participant-inspector" aria-label="Participant inspector">
       <header>
-        <strong>Participant inspector</strong>
+        <div>
+          <strong>Participant inspector</strong>
+          <small className="inspector-selection">{participant.label}</small>
+        </div>
         <button onClick={onClose} aria-label="Close participant inspector">
           ×
         </button>
       </header>
+      <p className="inspector-note">
+        Changes are applied together with Apply. Close to leave this panel; unapplied changes require confirmation.
+      </p>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -128,11 +135,14 @@ export function SequenceParticipantInspector({
           <button type="button" className="danger" onClick={onDelete}>
             Delete participant
           </button>
+          <button type="button" onClick={onClose}>
+            Cancel
+          </button>
           <button type="submit" className="primary" disabled={nameMissing}>
             Apply
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

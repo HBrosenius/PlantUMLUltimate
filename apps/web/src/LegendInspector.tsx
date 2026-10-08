@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useRef, useState } from "react";
 import type { LegendEntry } from "./legend";
 
@@ -19,7 +20,7 @@ export function LegendInspector({
     focusedInput.current?.select();
   }, [focusColor]);
   return (
-    <aside className="task-inspector legend-inspector" aria-label="Legend inspector">
+    <InspectorPanel className="task-inspector legend-inspector" aria-label="Legend inspector">
       <header>
         <strong>Legend</strong>
         <button onClick={onClose} aria-label="Close legend inspector">
@@ -66,6 +67,6 @@ export function LegendInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

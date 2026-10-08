@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useRef, useState } from "react";
 import { ColorField, ColorSwatch, SharedColorDatalist } from "./ColorField";
 import type {
@@ -31,7 +32,7 @@ export function SequenceStructureInspector({
   onClose(): void;
 }) {
   return (
-    <aside className="task-inspector sequence-structure-inspector" aria-label="Sequence structure inspector">
+    <InspectorPanel className="task-inspector sequence-structure-inspector" aria-label="Sequence structure inspector">
       <header>
         <strong>Sequence structure inspector</strong>
         <button onClick={onClose} aria-label="Close Sequence structure inspector">
@@ -69,7 +70,7 @@ export function SequenceStructureInspector({
       ) : (
         <TimelineForm key={structure.id} structure={structure} onApply={onApply} onDelete={onDelete} />
       )}
-    </aside>
+    </InspectorPanel>
   );
 }
 

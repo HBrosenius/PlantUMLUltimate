@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type {
   ActivityActionInput,
@@ -291,7 +292,7 @@ export function ActivityControlInspector({
   const labelEditable = ["if", "elseif", "else", "while", "repeat-while", "case", "endwhile"].includes(item.kind);
   const canDeleteBlock = ["if", "switch", "fork", "split", "repeat", "while"].includes(item.kind);
   return (
-    <aside className="task-inspector usecase-relationship-inspector" aria-label="Activity control inspector">
+    <InspectorPanel className="task-inspector usecase-relationship-inspector" aria-label="Activity control inspector">
       <header>
         <div>
           <strong>Control inspector</strong>
@@ -338,7 +339,7 @@ export function ActivityControlInspector({
           </div>
         )}
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -352,7 +353,7 @@ export function ActivityTerminalInspector({
   onClose(): void;
 }) {
   return (
-    <aside className="task-inspector usecase-element-inspector" aria-label="Activity terminal inspector">
+    <InspectorPanel className="task-inspector usecase-element-inspector" aria-label="Activity terminal inspector">
       <header>
         <div>
           <strong>Terminal inspector</strong>
@@ -374,7 +375,7 @@ export function ActivityTerminalInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -404,7 +405,7 @@ export function ActivityArrowInspector({
     [item],
   );
   return (
-    <aside className="task-inspector usecase-relationship-inspector" aria-label="Activity arrow inspector">
+    <InspectorPanel className="task-inspector usecase-relationship-inspector" aria-label="Activity arrow inspector">
       <header>
         <div>
           <strong>Flow arrow inspector</strong>
@@ -457,7 +458,7 @@ export function ActivityArrowInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -494,7 +495,7 @@ export function ActivityActionInspector({
   );
   const labelMissing = !value.label.trim();
   return (
-    <aside className="task-inspector usecase-element-inspector" aria-label="Activity action inspector">
+    <InspectorPanel className="task-inspector usecase-element-inspector" aria-label="Activity action inspector">
       <header>
         <div>
           <strong>Action inspector</strong>
@@ -563,7 +564,7 @@ export function ActivityActionInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -729,7 +730,7 @@ export function ActivityPartitionInspector({
   );
   const labelMissing = !value.label.trim();
   return (
-    <aside className="task-inspector usecase-package-inspector" aria-label="Activity partition inspector">
+    <InspectorPanel className="task-inspector usecase-package-inspector" aria-label="Activity partition inspector">
       <header>
         <div>
           <strong>Partition inspector</strong>
@@ -782,7 +783,7 @@ export function ActivityPartitionInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -820,7 +821,7 @@ export function ActivityNoteInspector({
     [item, defaultTargetId],
   );
   return (
-    <aside className="task-inspector usecase-note-inspector" aria-label="Activity note inspector">
+    <InspectorPanel className="task-inspector usecase-note-inspector" aria-label="Activity note inspector">
       <header>
         <div>
           <strong>Note inspector</strong>
@@ -903,6 +904,6 @@ export function ActivityNoteInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

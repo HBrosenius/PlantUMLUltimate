@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useId, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { ActivitySettings } from "./activity-settings";
@@ -20,7 +21,7 @@ export function ActivitySettingsInspector({
     if (save) onChange(next);
   };
   return (
-    <aside className="task-inspector sequence-settings-inspector" aria-label="Activity settings">
+    <InspectorPanel className="task-inspector sequence-settings-inspector" aria-label="Activity settings">
       <header>
         <div>
           <strong>Activity settings</strong>
@@ -103,6 +104,6 @@ export function ActivitySettingsInspector({
         </fieldset>
         <p className="field-hint">Text fields save when you leave the field.</p>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

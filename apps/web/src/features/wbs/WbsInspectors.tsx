@@ -1,3 +1,4 @@
+import { InspectorPanel } from "../../InspectorPanel";
 import { useEffect, useState } from "react";
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsRelationship } from "@plantuml-studio/diagram-wbs";
 import { ColorField } from "../../ColorField";
@@ -63,7 +64,7 @@ export function WbsNodeInspector({
     onApply(next);
   };
   return (
-    <aside className="task-inspector wbs-node-inspector" aria-label="WBS node inspector">
+    <InspectorPanel className="task-inspector wbs-node-inspector" aria-label="WBS node inspector">
       <header>
         <h2>WBS node</h2>
         <button onClick={onClose} aria-label="Close WBS node inspector">
@@ -182,7 +183,7 @@ export function WbsNodeInspector({
           Delete subtree
         </button>
       </div>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -197,7 +198,7 @@ export function WbsSettingsInspector({
 }) {
   const [title, setTitle] = useState(source.match(/^\s*title\s+(.+)$/im)?.[1] ?? "");
   return (
-    <aside className="task-inspector" aria-label="WBS settings">
+    <InspectorPanel className="task-inspector" aria-label="WBS settings">
       <header>
         <h2>WBS settings</h2>
         <button onClick={onClose} aria-label="Close WBS settings">
@@ -211,7 +212,7 @@ export function WbsSettingsInspector({
       <div className="inspector-actions">
         <button onClick={() => onApply({ title })}>Apply</button>
       </div>
-    </aside>
+    </InspectorPanel>
   );
 }
 
@@ -234,7 +235,7 @@ export function WbsRelationshipInspector({
   const from = document.nodes.find((node) => node.alias === relationship.from)?.label ?? relationship.from;
   const to = document.nodes.find((node) => node.alias === relationship.to)?.label ?? relationship.to;
   return (
-    <aside className="task-inspector" aria-label="WBS arrow inspector">
+    <InspectorPanel className="task-inspector" aria-label="WBS arrow inspector">
       <header>
         <h2>WBS arrow</h2>
         <button onClick={onClose} aria-label="Close WBS arrow inspector">
@@ -256,6 +257,6 @@ export function WbsRelationshipInspector({
           Delete arrow
         </button>
       </div>
-    </aside>
+    </InspectorPanel>
   );
 }

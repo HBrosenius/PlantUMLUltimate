@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type { GanttDivider } from "@plantuml-studio/diagram-gantt";
 
@@ -16,7 +17,7 @@ export function DividerInspector({
   const labelMissing = !label.trim();
   useEffect(() => setLabel(divider.label), [divider.label]);
   return (
-    <aside className="task-inspector divider-inspector" aria-label="Divider inspector">
+    <InspectorPanel className="task-inspector divider-inspector" aria-label="Divider inspector">
       <header>
         <strong>Divider inspector</strong>
         <button onClick={onClose} aria-label="Close divider inspector">
@@ -54,6 +55,6 @@ export function DividerInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

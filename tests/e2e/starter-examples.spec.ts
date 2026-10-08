@@ -11,7 +11,7 @@ test("creates a document from a starter example", async ({ page }) => {
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(chooser).toBeVisible();
-  await expect(chooser.getByRole("heading", { name: "Start from an example" })).toBeVisible();
+  await expect(chooser.getByRole("heading", { name: "Try an example" })).toBeVisible();
   await chooser.getByRole("button", { name: /Login with OAuth/ }).click();
 
   await expect(chooser).toBeHidden();

@@ -1,3 +1,5 @@
+import { resourceIdentity } from "./resource-identity";
+import { InspectorPanel } from "./InspectorPanel";
 import { useMemo, useState } from "react";
 import { MAX_WORKLOAD_CELLS, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { taskElapsedDays } from "./gantt-schedule";
@@ -57,7 +59,7 @@ export function buildResourceWorkloads(
   >();
   for (const task of tasks) {
     for (const assignment of task.resources ?? []) {
-      const key = assignment.value.toLocaleLowerCase();
+      const key = resourceIdentity(assignment.value);
       const resource = resources.get(key) ?? {
         name: assignment.value,
         days: new Map(),
@@ -162,6 +164,7 @@ export function ResourceWorkloadPanel({
   onRename,
   onFilter,
   onTaskSelect,
+  onReport,
   onClose,
 }: {
   tasks: readonly GanttTask[];
@@ -172,6 +175,7 @@ export function ResourceWorkloadPanel({
   onRename(currentName: string, nextName: string): void;
   onFilter(name: string): void;
   onTaskSelect(id: string): void;
+  onReport?(name?: string): void;
   onClose(): void;
 }) {
   const [scale, setScale] = useState<"daily" | "weekly">("daily");
@@ -182,7 +186,8 @@ export function ResourceWorkloadPanel({
     [calendar, resolvedDates, tasks],
   );
   return (
-    <aside className="task-inspector resource-workload" aria-label="Resource workload">
+    <InspectorPanel className="task-inspector resource-workload" aria-label="Resource workload">
+      {onReport && <button onClick={() => onReport()}>Create task check-in…</button>}
       <header>
         <strong>Resource workload</strong>
         <button onClick={onClose} aria-label="Close resource workload">
@@ -204,6 +209,9 @@ export function ResourceWorkloadPanel({
         const conflicts = buckets.filter((item) => item.allocation > capacity);
         return (
           <section className="resource-card" key={resource.name}>
+            {onReport && (
+              <button onClick={() => onReport(resource.name)}>Create task check-in for {resource.name}…</button>
+            )}
             <div className="resource-title">
               <button className="resource-name" onClick={() => onFilter(resource.name)}>
                 {resource.name}
@@ -247,7 +255,7 @@ export function ResourceWorkloadPanel({
                   type="number"
                   min="1"
                   max="500"
-                  step="5"
+                  step="1"
                   value={capacity}
                   onChange={(event) => onCapacityChange(resource.name, Number(event.target.value))}
                 />
@@ -296,7 +304,7 @@ export function ResourceWorkloadPanel({
           </section>
         );
       })}
-    </aside>
+    </InspectorPanel>
   );
 }
 

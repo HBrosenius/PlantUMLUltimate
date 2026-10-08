@@ -143,10 +143,11 @@ test("shows parser problems and applies a safe quick fix", async ({ page }) => {
   const editor = page.locator(".cm-content");
   await editor.fill("@startuml\nclass Order {\n  +id: UUID\n@enduml");
 
-  const problemCount = page.getByRole("button", { name: "⚠ 1 problem" });
+  const problemCount = page.getByRole("button", { name: "Issues (2)", exact: true });
   await expect(problemCount).toBeVisible();
   await problemCount.click();
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  const problems = page.getByRole("complementary", { name: "Issues" });
+  await expect(problems.locator("[data-problem-diagnostic]")).toHaveCount(1);
   await expect(problems.locator("[data-problem-diagnostic]")).toContainText("missing }");
   await problems.locator("[data-problem-diagnostic]").click();
   await expect(page.locator(".statusbar")).toContainText("Ln 2");
@@ -317,7 +318,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     page.getByRole("group", { name: "Class containers" }).getByRole("button", { name: "Reporting", exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Class", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Class settings" });
   await settings.getByLabel("Layout direction").selectOption("left-to-right");
   await expect(page.locator(".cm-content")).toContainText("left to right direction");

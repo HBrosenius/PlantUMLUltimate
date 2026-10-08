@@ -189,7 +189,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await arrowInspector.getByRole("button", { name: "Delete arrow" }).click();
   await expect(page.locator(".cm-content")).not.toContainText("operations -> delivery");
   await expect(page.locator(".cm-content")).toContainText("delivery -> experience_design");
-  await page.getByRole("button", { name: "WBS", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "WBS settings" });
   await settings.getByLabel("Diagram title").fill("Delivery breakdown");
   await settings.getByRole("button", { name: "Apply" }).click();

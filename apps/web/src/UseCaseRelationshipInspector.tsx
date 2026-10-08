@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type {
   UseCaseRelationship,
@@ -44,7 +45,10 @@ export function UseCaseRelationshipInspector({
     onChange(updated);
   };
   return (
-    <aside className="task-inspector usecase-relationship-inspector" aria-label="Use Case relationship inspector">
+    <InspectorPanel
+      className="task-inspector usecase-relationship-inspector"
+      aria-label="Use Case relationship inspector"
+    >
       <header>
         <div>
           <strong>Relationship inspector</strong>
@@ -166,6 +170,6 @@ export function UseCaseRelationshipInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

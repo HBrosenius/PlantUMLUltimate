@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useEffect, useState } from "react";
 import type { UseCasePackage, UseCasePackageInput } from "@plantuml-studio/diagram-usecase";
 import { ColorField } from "./ColorField";
@@ -28,7 +29,7 @@ export function UseCasePackageInspector({
     if (value.label.trim()) onChange(value);
   };
   return (
-    <aside className="task-inspector usecase-package-inspector" aria-label="Use Case container inspector">
+    <InspectorPanel className="task-inspector usecase-package-inspector" aria-label="Use Case container inspector">
       <header>
         <div>
           <strong>Container inspector</strong>
@@ -88,6 +89,6 @@ export function UseCasePackageInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

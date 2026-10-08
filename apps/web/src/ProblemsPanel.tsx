@@ -22,6 +22,8 @@ export function ProblemsPanel({
   onClose,
   categoryFilter,
   onClearCategoryFilter,
+  preserved = [],
+  onRevealPreserved,
 }: {
   diagramKind: DiagramKind;
   open?: boolean;
@@ -37,6 +39,8 @@ export function ProblemsPanel({
   onClose(): void;
   categoryFilter?: RepairCategory | undefined;
   onClearCategoryFilter?: () => void;
+  preserved?: readonly { text: string; range: { from: number; to: number } }[];
+  onRevealPreserved?: (item: { text: string; range: { from: number; to: number } }) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -118,20 +122,38 @@ export function ProblemsPanel({
     );
   };
   return (
-    <aside className="task-inspector problems-panel" aria-label="Problems" hidden={!open} ref={panel}>
+    <aside className="task-inspector problems-panel" aria-label="Issues" hidden={!open} ref={panel}>
       <header>
         <div>
-          <strong>Problems</strong>
+          <strong>Issues</strong>
           <small>
-            {diagnostics.length} parser diagnostic{diagnostics.length === 1 ? "" : "s"}
+            {diagnostics.filter((item) => item.severity === "error").length} errors ·{" "}
+            {diagnostics.filter((item) => item.severity === "warning").length} warnings · {preserved.length} preserved
+            lines
           </small>
         </div>
-        <button onClick={onClose} aria-label="Close problems">
+        <button onClick={onClose} aria-label="Close issues">
           ×
         </button>
       </header>
       {notice && <p className="problem-notice">{notice}</p>}
-      {diagnostics.length === 0 && !notice && <p role="status">No problems remain.</p>}
+      {diagnostics.length === 0 && !notice && <p role="status">No errors or warnings remain.</p>}
+      {preserved.length > 0 && (
+        <details className="preserved-issues">
+          <summary>Preserved source ({preserved.length})</summary>
+          <p className="inspector-note">
+            Some syntax can only be edited in Code view. These lines are preserved and passed to PlantUML.
+          </p>
+          <div className="unsupported-list">
+            {preserved.map((item, index) => (
+              <button type="button" key={`${item.range.from}:${index}`} onClick={() => onRevealPreserved?.(item)}>
+                <code>{item.text.trim()}</code>
+                <span>Go to source</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
       {onRepairHost && (
         <div className="problem-repair-workspace" ref={onRepairHost} aria-label="Selected problem and fixes" />
       )}
@@ -147,7 +169,7 @@ export function ProblemsPanel({
             {categoryFilter === "choice" ? "a choice" : categoryFilter === "manual" ? "manual editing" : "review"}.
           </p>
           <button type="button" onClick={onClearCategoryFilter}>
-            Show all problems
+            Show all issues
           </button>
         </div>
       )}

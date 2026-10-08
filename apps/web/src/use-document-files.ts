@@ -1,3 +1,4 @@
+import type { FileSaveState } from "./FileSaveStatus";
 import {
   useCallback,
   useEffect,
@@ -146,6 +147,7 @@ export function useDocumentFiles({
   const [externalConflict, setExternalConflict] = useState<ExternalFileConflict>();
   const checkingExternalFiles = useRef(false);
   const saving = useRef(new Set<string>());
+  const [fileSaveState, setFileSaveState] = useState<FileSaveState>();
   const latestTabs = useRef(tabs);
   latestTabs.current = tabs;
   const stillOwned = (captured: DocumentSnapshot) =>
@@ -284,6 +286,7 @@ export function useDocumentFiles({
     const active = tabs.getDocument(tabs.activeId);
     if (!active || saving.current.has(active.id)) return;
     saving.current.add(active.id);
+    setFileSaveState({ documentId: active.id, status: "saving" });
     try {
       const capturedRevision = active.revision ?? 0;
       await recordDocumentVersion("saved", "Saved portable document");
@@ -297,7 +300,11 @@ export function useDocumentFiles({
         ...(unlockedKey ? { unlockedKey } : {}),
       });
       const saved = await savePortableDocumentAs(encoded.bytes, workspace.fileName);
-      if (!saved || !stillOwned(active)) return;
+      if (!stillOwned(active)) return;
+      if (!saved) {
+        setFileSaveState({ documentId: active.id, status: "cancelled" });
+        return;
+      }
       if (saved.handle) fileHandles.current.set(active.id, saved.handle);
       else fileHandles.current.delete(active.id);
       if (saved.handle) {
@@ -316,6 +323,7 @@ export function useDocumentFiles({
         fileName: saved.fileName,
         ...(clean ? { dirty: false } : {}),
       });
+      setFileSaveState({ documentId: active.id, status: saved.downloaded ? "downloaded" : "saved" });
       setInteractionMessage(
         clean
           ? saved.downloaded
@@ -324,9 +332,20 @@ export function useDocumentFiles({
           : `Saved snapshot ${saved.fileName}; newer changes remain unsaved`,
       );
     } catch (error) {
+      if (stillOwned(active))
+        setFileSaveState({
+          documentId: active.id,
+          status: error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "error",
+          message: `${error instanceof Error ? error.message : "File could not be written"}. Retry Save or choose Save as…`,
+        });
       reportError(error);
     } finally {
       saving.current.delete(active.id);
+      setFileSaveState((current) =>
+        current?.documentId === active.id && current.status === "saving"
+          ? { documentId: active.id, status: "cancelled" }
+          : current,
+      );
     }
   }, [
     fileHandles,
@@ -346,6 +365,7 @@ export function useDocumentFiles({
     if (!handle) return saveDocumentAs();
     if (saving.current.has(active.id)) return;
     saving.current.add(active.id);
+    setFileSaveState({ documentId: active.id, status: "saving" });
     try {
       const capturedRevision = active.revision ?? 0;
       const previous = fileSnapshots.current.get(active.id);
@@ -355,6 +375,11 @@ export function useDocumentFiles({
         if (observedDigest !== previous.rawDigest) {
           const unlockedKey = documentKey(active.id);
           const decoded = await decodeDocument(observed.bytes, unlockedKey ? { unlockedKey } : {});
+          setFileSaveState({
+            documentId: active.id,
+            status: "error",
+            message: "The file changed externally. Review the changes before retrying Save.",
+          });
           setExternalConflict({
             documentId: active.id,
             fileName: active.fileName,
@@ -385,11 +410,23 @@ export function useDocumentFiles({
       if (!stillOwned(active)) return;
       const clean = (latestTabs.current.getDocument(active.id)?.revision ?? 0) === capturedRevision;
       latestTabs.current.updateDocumentFormat(active.id, { fileName: handle.name, ...(clean ? { dirty: false } : {}) });
+      setFileSaveState({ documentId: active.id, status: "saved" });
       setInteractionMessage(clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`);
     } catch (error) {
+      if (stillOwned(active))
+        setFileSaveState({
+          documentId: active.id,
+          status: error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "error",
+          message: `${error instanceof Error ? error.message : "File could not be written"}. Retry Save or choose Save as…`,
+        });
       reportError(error);
     } finally {
       saving.current.delete(active.id);
+      setFileSaveState((current) =>
+        current?.documentId === active.id && current.status === "saving"
+          ? { documentId: active.id, status: "cancelled" }
+          : current,
+      );
     }
   }, [
     fileHandles,
@@ -747,6 +784,7 @@ export function useDocumentFiles({
   );
 
   return {
+    fileSaveState,
     externalConflict,
     openDocument,
     saveDocument,

@@ -2,8 +2,11 @@ import { expect, test } from "@playwright/test";
 import { prepareEditor } from "./editor-helpers";
 
 async function openSettings(page: Parameters<typeof prepareEditor>[0]) {
-  await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("menu", { name: "More", exact: true })
+    .getByRole("menuitem", { name: "Settings…", exact: true })
+    .click();
   return page.getByRole("dialog", { name: "Settings", exact: true });
 }
 
@@ -20,14 +23,14 @@ test("editing mode switches between visual editing and split view and survives r
   await expect(settings.getByRole("radio", { name: "Diagram only", exact: true })).toBeChecked();
   await settings.getByRole("radio", { name: "Diagram + code", exact: true }).check();
   await settings.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(viewModes.getByRole("button", { name: /split/ })).toHaveClass(/active/);
+  await expect(viewModes.getByRole("button", { name: "Split", exact: true })).toHaveClass(/active/);
   await expect(page.locator(".cm-content")).toBeVisible();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(source);
   await page.reload();
   await expect(page.locator(".cm-content")).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Gantt diagram" }).click();
-  await expect(viewModes.getByRole("button", { name: /split/ })).toHaveClass(/active/);
+  await expect(viewModes.getByRole("button", { name: "Split", exact: true })).toHaveClass(/active/);
   await expect(page.locator(".cm-content")).toBeVisible();
   settings = await openSettings(page);
   await expect(settings.getByRole("radio", { name: "Diagram + code", exact: true })).toBeChecked();
@@ -80,7 +83,9 @@ for (const width of [390, 1280]) {
 
 test("changing appearance preserves the chosen code view", async ({ page }, testInfo) => {
   await prepareEditor(page);
-  const codeView = page.getByRole("navigation", { name: "View mode" }).getByRole("button", { name: /code/ });
+  const codeView = page
+    .getByRole("navigation", { name: "View mode" })
+    .getByRole("button", { name: "Code", exact: true });
   await codeView.click();
   let settings = await openSettings(page);
   await settings.getByRole("combobox", { name: "Theme", exact: true }).selectOption("dark");

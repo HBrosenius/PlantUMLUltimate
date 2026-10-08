@@ -1,3 +1,4 @@
+import type { FileSaveState } from "../FileSaveStatus";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   decodeDocument,
@@ -229,6 +230,7 @@ export function useSingleFileProject({
   }>({ state: "idle" });
   const [unlockRequest, setUnlockRequest] = useState<{ fileName: string }>();
   const [saving, setSaving] = useState(false);
+  const [fileSaveState, setFileSaveState] = useState<FileSaveState>();
   const [savedBaseline, setSavedBaseline] = useState<PortableProject>();
   const unlockResolver = useRef<((password: string | undefined) => void) | undefined>(undefined);
   const handle = useRef<WritableFileHandle | undefined>(undefined);
@@ -298,6 +300,7 @@ export function useSingleFileProject({
       const project = { ...created, name: projectName(name), diagrams: [] };
       if (!(await confirmLeave("create a new document"))) return;
       projectGeneration.current += 1;
+      setFileSaveState(undefined);
       saveAbort.current?.abort();
       embedded.openProject(project, { unsaved: true });
       setIndexed(immediateIndex(project));
@@ -329,6 +332,7 @@ export function useSingleFileProject({
       };
       if (!(await confirmLeave("create a new document"))) return;
       projectGeneration.current += 1;
+      setFileSaveState(undefined);
       saveAbort.current?.abort();
       embedded.openProject(project, { unsaved: true });
       embedded.updateProject((current) => ({ ...current, revisionId: crypto.randomUUID() }));
@@ -491,6 +495,7 @@ export function useSingleFileProject({
         }
         if (!(await confirmLeave("open another document"))) return false;
         projectGeneration.current += 1;
+        setFileSaveState(undefined);
         saveAbort.current?.abort();
         unlockedKey.current = key;
         handle.current = opened.handle;
@@ -517,6 +522,7 @@ export function useSingleFileProject({
       handle.current = undefined;
       handleDigest.current = undefined;
       projectGeneration.current += 1;
+      setFileSaveState(undefined);
       saveAbort.current?.abort();
       embedded.openProject(project, { unsaved: true });
       setSavedBaseline(undefined);
@@ -600,6 +606,8 @@ export function useSingleFileProject({
     const controller = new AbortController();
     saveAbort.current = controller;
     setSaving(true);
+    const documentId = embedded.project?.projectId ?? "";
+    setFileSaveState({ documentId, status: "saving" });
     const generation = projectGeneration.current;
     const isCurrent = () => projectGeneration.current === generation;
     const target = handle.current;
@@ -636,11 +644,13 @@ export function useSingleFileProject({
         : written;
       if (!isCurrent()) return { clean: false, message: "Saved previous document snapshot" };
       setSavedBaseline(structuredClone(snapshot.project));
+      setFileSaveState({ documentId, status: "saved" });
       setInteractionMessage(result.message);
       return result;
     } catch (error) {
       if (!isCurrent()) return { clean: false, message: "Previous document save cancelled" };
       if (error instanceof ProjectFileChangedError) {
+        setFileSaveState({ documentId, status: "error", message: error.message });
         setInteractionMessage(error.message);
         return { clean: false, message: error.message };
       }
@@ -652,6 +662,7 @@ export function useSingleFileProject({
           ? "Document save cancelled. Your changes remain in the workspace."
           : `Document save failed: ${detail}. Your changes remain in the workspace. Retry Save, or use Save As to choose another file.`,
       };
+      setFileSaveState({ documentId, status: cancelled ? "cancelled" : "error", message: result.message });
       setInteractionMessage(result.message);
       if (!cancelled) reportError(new Error(result.message));
       return result;
@@ -659,6 +670,11 @@ export function useSingleFileProject({
       if (saveAbort.current === controller) {
         saveAbort.current = undefined;
         setSaving(false);
+        setFileSaveState((current) =>
+          current?.documentId === documentId && current.status === "saving"
+            ? { documentId, status: "cancelled" }
+            : current,
+        );
       }
     }
   }, [embedded, reportError, setInteractionMessage]);
@@ -668,6 +684,8 @@ export function useSingleFileProject({
     const controller = new AbortController();
     saveAbort.current = controller;
     setSaving(true);
+    const documentId = embedded.project?.projectId ?? "";
+    setFileSaveState({ documentId, status: "saving" });
     const generation = projectGeneration.current;
     const isCurrent = () => projectGeneration.current === generation;
     try {
@@ -680,6 +698,7 @@ export function useSingleFileProject({
       const saved = await savePortableDocumentAs(encoded.bytes, snapshot.project.name, controller.signal);
       if (!isCurrent()) return;
       if (!saved) {
+        setFileSaveState({ documentId, status: "cancelled" });
         setInteractionMessage("Document save cancelled. Your changes remain in the workspace.");
         return;
       }
@@ -691,6 +710,7 @@ export function useSingleFileProject({
       const clean = await settleSavedRevision(snapshot, embedded, isCurrent);
       if (!isCurrent()) return;
       setSavedBaseline(structuredClone(snapshot.project));
+      setFileSaveState({ documentId, status: saved.downloaded ? "downloaded" : "saved" });
       setInteractionMessage(
         saved.downloaded
           ? "Downloaded document snapshot"
@@ -702,10 +722,12 @@ export function useSingleFileProject({
     } catch (error) {
       if (!isCurrent()) return;
       if (error instanceof DOMException && error.name === "AbortError") {
+        setFileSaveState({ documentId, status: "cancelled" });
         setInteractionMessage("Document save cancelled. Your changes remain in the workspace.");
       } else {
         const detail = error instanceof Error ? error.message : "The file could not be written";
         const message = `Document Save As failed: ${detail}. Your changes remain in the workspace. Retry Save As to choose a writable file.`;
+        setFileSaveState({ documentId, status: "error", message });
         setInteractionMessage(message);
         reportError(new Error(message));
       }
@@ -713,6 +735,11 @@ export function useSingleFileProject({
       if (saveAbort.current === controller) {
         saveAbort.current = undefined;
         setSaving(false);
+        setFileSaveState((current) =>
+          current?.documentId === documentId && current.status === "saving"
+            ? { documentId, status: "cancelled" }
+            : current,
+        );
       }
     }
   }, [embedded, reportError, setInteractionMessage]);
@@ -744,6 +771,7 @@ export function useSingleFileProject({
   const closeProject = useCallback(async () => {
     if (!(await confirmLeave("close this document"))) return;
     projectGeneration.current += 1;
+    setFileSaveState(undefined);
     saveAbort.current?.abort();
     setSavedBaseline(undefined);
     embedded.closeProject();
@@ -758,6 +786,7 @@ export function useSingleFileProject({
       const sameDocument = embedded.project?.projectId === next.projectId;
       if (!sameDocument) {
         projectGeneration.current += 1;
+        setFileSaveState(undefined);
         saveAbort.current?.abort();
       }
       embedded.receiveProject(next);
@@ -782,6 +811,7 @@ export function useSingleFileProject({
       dirty: embedded.dirty,
       recoveryStatus: embedded.recoveryStatus,
       saving,
+      fileSaveState,
       newProject,
       createWbsGanttProject,
       addGanttFromWbs,
@@ -820,6 +850,7 @@ export function useSingleFileProject({
       indexed,
       indexStatus,
       saving,
+      fileSaveState,
       newProject,
       createWbsGanttProject,
       addGanttFromWbs,

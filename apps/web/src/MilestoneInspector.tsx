@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 
@@ -59,7 +60,7 @@ export function MilestoneInspector({
     setValue((current) => ({ ...current, [key]: next }));
 
   return (
-    <aside className="task-inspector" aria-label="Milestone inspector">
+    <InspectorPanel className="task-inspector" aria-label="Milestone inspector">
       <header>
         <strong>Milestone inspector</strong>
         <button onClick={onClose} aria-label="Close milestone inspector">
@@ -221,6 +222,6 @@ export function MilestoneInspector({
           </button>
         </div>
       </form>
-    </aside>
+    </InspectorPanel>
   );
 }

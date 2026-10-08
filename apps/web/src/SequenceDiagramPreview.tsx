@@ -591,8 +591,20 @@ export function SequenceDiagramPreview({
     }
   };
   return (
-    <section className="preview" aria-label="Sequence diagram preview" data-render-status={renderStatus}>
+    <section
+      className="preview sequence-preview"
+      aria-label="Sequence diagram preview"
+      data-render-status={renderStatus}
+    >
       <div className="preview-tools">
+        <button
+          type="button"
+          onClick={navigation.fit}
+          aria-label="Fit diagram"
+          title="Fit the diagram in the visible canvas"
+        >
+          Fit
+        </button>
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>

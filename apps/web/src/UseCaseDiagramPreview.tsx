@@ -375,6 +375,14 @@ export function UseCaseDiagramPreview({
   return (
     <section className="preview" aria-label="Use Case diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
+        <button
+          type="button"
+          onClick={navigation.fit}
+          aria-label="Fit diagram"
+          title="Fit the diagram in the visible canvas"
+        >
+          Fit
+        </button>
         <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>

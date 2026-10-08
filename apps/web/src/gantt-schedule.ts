@@ -42,12 +42,17 @@ function sourceToday(timeZone?: string): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function resolveDateExpression(value: string, projectStart?: string, timeZone?: string): string | undefined {
+export function resolveDateExpression(
+  value: string,
+  projectStart?: string,
+  timeZone?: string,
+  dateAnchor?: string,
+): string | undefined {
   const normalized = value.replaceAll("/", "-");
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return shiftDate(normalized, 0);
   const relative = value.match(/^(D|today)(?:([+-])(\d+))?$/i);
   if (!relative) return undefined;
-  const anchor = relative[1]?.toLowerCase() === "today" ? sourceToday(timeZone) : projectStart;
+  const anchor = relative[1]?.toLowerCase() === "today" ? (dateAnchor ?? sourceToday(timeZone)) : projectStart;
   if (!anchor) return undefined;
   const amount = Number(relative[3] ?? 0) * (relative[2] === "-" ? -1 : 1);
   return shiftDate(anchor, amount);
@@ -77,6 +82,7 @@ export function resolveTaskDates(
   projectStart: string | undefined,
   calendar: GanttCalendar,
   timeZone?: string,
+  dateAnchor?: string,
 ): Map<string, ResolvedTaskDates> {
   const calendarError = calendar.error;
   if (calendarError) return new Map(tasks.map((task) => [task.id, { derived: true, issue: calendarError }]));
@@ -114,12 +120,12 @@ export function resolveTaskDates(
       visiting.delete(task.id);
       return value;
     };
-    let start = task.start ? resolveDateExpression(task.start.value, projectStart, timeZone) : undefined;
-    let end = task.end ? resolveDateExpression(task.end.value, projectStart, timeZone) : undefined;
+    let start = task.start ? resolveDateExpression(task.start.value, projectStart, timeZone, dateAnchor) : undefined;
+    let end = task.end ? resolveDateExpression(task.end.value, projectStart, timeZone, dateAnchor) : undefined;
     if (task.start && !start) return unavailable(`Start date cannot be resolved: ${task.start.value}`);
     if (task.end && !end) return unavailable(`End date cannot be resolved: ${task.end.value}`);
     if (!start && !end && task.milestone && "resolved" in task.milestone) {
-      const milestoneDate = resolveDateExpression(task.milestone.value, projectStart, timeZone);
+      const milestoneDate = resolveDateExpression(task.milestone.value, projectStart, timeZone, dateAnchor);
       if (!milestoneDate) return unavailable(`Milestone date cannot be resolved: ${task.milestone.value}`);
       if (milestoneDate) {
         start = milestoneDate;

@@ -56,11 +56,9 @@ test("failed and cancelled project saves preserve changes and allow retry", asyn
   };
   const save = async (saveAs = false) => {
     await page.getByRole("button", { name: "File", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Save", exact: true }).click();
     await page
-      .getByRole("menu", { name: "Save" })
       .getByRole("menuitem", {
-        name: saveAs ? "Save document as…" : "Save document",
+        name: saveAs ? "Save as…" : "Save",
         exact: true,
       })
       .click();

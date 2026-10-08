@@ -1,3 +1,4 @@
+import { InspectorPanel } from "./InspectorPanel";
 import { useState } from "react";
 import { ColorField } from "./ColorField";
 import type { DiagramBulkItem } from "./diagram-bulk-operations";
@@ -23,7 +24,7 @@ export function BulkDiagramInspector({
   const colorCount = items.filter((item) => item.color).length;
   const stereotypeCount = items.filter((item) => item.stereotype).length;
   return (
-    <aside className="task-inspector bulk-task-inspector" aria-label="Selected elements inspector">
+    <InspectorPanel className="task-inspector bulk-task-inspector" aria-label="Selected elements inspector">
       <header>
         <strong>{items.length} elements selected</strong>
         <button onClick={onClose} aria-label="Clear element selection">
@@ -78,6 +79,6 @@ export function BulkDiagramInspector({
         Ctrl/⌘+C copies, Ctrl/⌘+V pastes, Ctrl/⌘+D duplicates. Each edit is one undo step. Paste into the same diagram
         type; WBS subtrees paste under the selected node.
       </p>
-    </aside>
+    </InspectorPanel>
   );
 }

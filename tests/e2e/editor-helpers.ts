@@ -16,11 +16,20 @@ export async function prepareEditor(page: Page) {
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
-  await expect(page.locator(".statusbar")).toContainText("IndexedDB");
+  await expect(page.locator(".statusbar")).toContainText("Browser recovery");
   await page.getByRole("button", { name: "Close project inspector" }).click();
 }
 
-export async function fillSource(page: Page, value: string, visibleText = value) {
+export async function readEditorSource(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = "/node_modules/.vite/deps/@codemirror_view.js";
+    const { EditorView } = await import(modulePath);
+    return EditorView.findFromDOM(document.querySelector(".cm-editor"))?.state.doc.toString() ?? "";
+  });
+}
+
+export async function fillSource(page: Page, value: string, _visibleText?: string) {
+  value = value.replace(/\r\n?/g, "\n");
   const editor = page.locator(".cm-content");
   for (let attempt = 0; attempt < 3; attempt += 1) {
     // Insert through CodeMirror's keyboard input path. WebKit's contenteditable fill can add a trailing line.
@@ -28,15 +37,13 @@ export async function fillSource(page: Page, value: string, visibleText = value)
     await editor.press("ControlOrMeta+a");
     await page.keyboard.insertText(value);
     try {
-      await expect
-        .poll(async () => (await editor.locator(".cm-line").allTextContents()).join("\n"), { timeout: 2_000 })
-        .toContain(visibleText);
+      await expect.poll(() => readEditorSource(page), { timeout: 2_000 }).toBe(value.replace(/\r\n/g, "\n"));
       return;
     } catch {
       // CodeMirror can reject a synthetic replacement while it is reconciling a previous transaction.
     }
   }
-  await expect.poll(async () => (await editor.locator(".cm-line").allTextContents()).join("\n")).toContain(visibleText);
+  await expect.poll(() => readEditorSource(page)).toBe(value.replace(/\r\n/g, "\n"));
 }
 
 export async function setSource(page: Page, value: string) {
@@ -57,6 +64,12 @@ export async function waitForDiagramRender(page: Page) {
 export async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Divider…") {
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menu", { name: "Add" }).getByRole("menuitem", { name: item }).click();
+}
+
+export async function linkedDiagramMenu(page: Page) {
+  const trigger = page.getByRole("button", { name: "Linked diagrams" });
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
+  return page.getByRole("menu", { name: "Linked diagrams", exact: true });
 }
 
 export async function pointInText(page: Page, lineIndex: number, needle: string) {

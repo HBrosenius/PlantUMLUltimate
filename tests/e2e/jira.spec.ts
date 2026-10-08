@@ -18,7 +18,7 @@ async function openGantt(page: Page) {
 
 async function openJira(page: Page) {
   await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Jira…" }).click();
+  await page.getByRole("menuitem", { name: "Integrations: Jira…" }).click();
 }
 
 function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:00:00.000Z") {

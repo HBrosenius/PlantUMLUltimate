@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { pointInText, prepareEditor, setSource } from "./editor-helpers";
+import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -97,14 +97,14 @@ test("rejects an invalid visual edit without adding it to undo history", async (
   await inspector.getByLabel("Alias").fill("B");
   await inspector.getByLabel("Alias").blur();
 
-  const problems = page.getByRole("complementary", { name: "Problems" });
+  const problems = page.getByRole("complementary", { name: "Issues" });
   await expect(problems).toBeVisible();
   await expect(problems).toContainText("Duplicate alias: B");
   await expect(problems).toContainText("The operation would introduce duplicate alias: b");
   await expect.poll(() => page.locator(".cm-content").innerText()).toBe(original);
   await expect(page.locator(".statusbar").getByRole("status")).toContainText("Cancelled update actor alpha");
 
-  await problems.getByRole("button", { name: "Close problems" }).click();
+  await problems.getByRole("button", { name: "Close issues" }).click();
   await page.getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => page.locator(".cm-content").innerText()).not.toBe(original);
 });
@@ -223,7 +223,7 @@ test("edits general Use Case settings without rewriting diagram objects", async 
     .getByRole("button", { name: "Use Case diagram" })
     .click();
 
-  await page.getByRole("button", { name: "Use Case", exact: true }).click();
+  await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Use Case settings" });
   await expect(settings).toBeVisible();
   await settings.getByLabel("Layout direction").selectOption("top-to-bottom");
@@ -264,11 +264,14 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   await expect(inspector).toBeVisible();
   await inspector.getByLabel("Line style").selectOption("dashed");
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
+  await waitForDiagramRender(page);
 
   const endpoint = page.locator(
     '[data-usecase-relationship-id="relationship-0"][data-usecase-relationship-endpoint="to"]',
   );
   const target = page.locator('[data-usecase-object-id="c"]').first();
+  await expect(endpoint).toBeVisible();
+  await expect(target).toBeVisible();
   const endpointBox = await endpoint.boundingBox();
   const targetBox = await target.boundingBox();
   expect(endpointBox).not.toBeNull();

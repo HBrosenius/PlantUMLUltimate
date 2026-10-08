@@ -45,7 +45,7 @@ export function manualErrorGuidance(
     return "Check the referenced task name against its declaration, including spelling and brackets. Correct the reference or declare the intended task before using it.";
   if (/unsupported/i.test(message))
     return `Check that this statement belongs to the selected diagram type (${kind.toUpperCase()}). Review the keyword and its arguments, then edit the statement manually; the editor has no supported correction for this syntax.`;
-  return "Review this statement and the surrounding lines using the error above. Edit the intended syntax manually, then check Problems again. No automatic correction is available for this statement.";
+  return "Review this statement and the surrounding lines using the error above. Edit the intended syntax manually, then check Issues again. No automatic correction is available for this statement.";
 }
 
 /** Add UI guidance without changing diagnostic messages, ranges, or actions. */

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import type { FileSaveState } from "../FileSaveStatus";
 import { loadActiveProject, saveActiveProject, type DocumentSnapshot } from "../workspace-storage";
 import {
   createFolderProject,
@@ -203,6 +204,7 @@ export function useFolderProject({
   reportError(error: unknown): void;
 }) {
   const [project, setProject] = useState<ActiveProject>();
+  const [fileSaveState, setFileSaveState] = useState<FileSaveState>();
   const projectRef = useRef(project);
   projectRef.current = project;
   const tabsByMember = useRef(new Map<string, string>());
@@ -500,6 +502,8 @@ export function useFolderProject({
 
   const saveZipProject = useCallback(async () => {
     if (!project || !("archiveEntries" in project)) return;
+    const documentId = project.manifest.projectId;
+    setFileSaveState({ documentId, status: "saving" });
     try {
       const savedTabs = savedProjectTabs(project, tabsByMember.current, tabs.documents);
       const plan = await planFolderProjectSave(
@@ -512,6 +516,7 @@ export function useFolderProject({
       for (const member of plan.members) archiveEntries.set(member.path, member.bytes);
       const snapshot = { ...project, manifest: plan.manifest, archiveEntries };
       downloadZip(await createZipProjectSnapshot(snapshot), snapshot.manifest.name);
+      setFileSaveState({ documentId, status: "downloaded" });
       setProject(snapshot);
       for (const saved of savedTabs) {
         if (tabs.getDocument(saved.id)?.source === saved.source) tabs.updateDocumentFormat(saved.id, { dirty: false });
@@ -522,11 +527,18 @@ export function useFolderProject({
           : "Downloaded document snapshot",
       );
     } catch (error) {
+      setFileSaveState({
+        documentId,
+        status: "error",
+        message: "Document snapshot could not be downloaded. Retry Save.",
+      });
       reportError(error);
     }
   }, [project, reportError, setInteractionMessage, tabs]);
   const saveFolderProject = useCallback(async () => {
     if (!project || !("root" in project)) return;
+    const documentId = project.manifest.projectId;
+    setFileSaveState({ documentId, status: "saving" });
     try {
       const savedTabs = savedProjectTabs(project, tabsByMember.current, tabs.documents);
       const plan = await planFolderProjectSave(
@@ -541,6 +553,7 @@ export function useFolderProject({
         path: "project.pumlproject",
         bytes: new TextEncoder().encode(serializeProjectManifest(plan.manifest)),
       });
+      setFileSaveState({ documentId, status: "saved" });
       setProject((current) => (current && "root" in current ? { ...current, manifest: plan.manifest } : current));
       for (const saved of savedTabs) {
         if (tabs.getDocument(saved.id)?.source === saved.source) tabs.updateDocumentFormat(saved.id, { dirty: false });
@@ -551,6 +564,11 @@ export function useFolderProject({
           : "Saved document metadata",
       );
     } catch (error) {
+      setFileSaveState({
+        documentId,
+        status: "error",
+        message: "Document folder could not be written. Retry Save after reviewing the file error.",
+      });
       reportError(error);
     }
   }, [project, reportError, setInteractionMessage, tabs]);
@@ -602,6 +620,7 @@ export function useFolderProject({
   }, []);
 
   return {
+    fileSaveState,
     project,
     openProject,
     newProject,
