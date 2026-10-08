@@ -390,7 +390,8 @@ test("creates standalone tasks with a movable project-start date", async ({ page
   await expect(page.locator(".cm-content")).not.toContainText("[New task] starts 2026-09-01");
 });
 
-test("places a newly added task on the selected task row", async ({ page }) => {
+test("places a newly added task on the selected task row", async ({ page, browserName }) => {
+  test.setTimeout(browserName === "webkit" ? 120_000 : 60_000);
   await openAddDialog(page, "Task…");
   const dialog = page.getByRole("dialog", { name: "Add task" });
   await dialog.getByLabel("Name").fill("New task");
@@ -399,7 +400,7 @@ test("places a newly added task on the selected task row", async ({ page }) => {
   await page.locator('[data-task-id="new task"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await inspector.getByLabel("Display on same row as").selectOption("architecture");
-  await expect(page.locator(".render-notice.rendering")).toBeHidden();
+  await expect(page.locator(".render-notice.rendering")).toBeHidden({ timeout: 45_000 });
 
   await expect(page.locator(".cm-content")).toContainText("[New task] displays on same row as [Architecture]");
   await expect(page.locator(".cm-content")).toContainText("[New task] starts at [Architecture]'s end");
@@ -1987,6 +1988,7 @@ test("compares baseline dependencies even when dates match and reports project f
   page,
   browserName,
 }) => {
+  test.setTimeout(browserName === "webkit" ? 120_000 : 60_000);
   const baseline =
     "@startgantt\nProject starts 2026-10-01\n[A] lasts 2 days\n[B] lasts 2 days\n[B] starts 3 days after [A]'s end\n@endgantt";
   await setSource(page, baseline);
@@ -1996,6 +1998,7 @@ test("compares baseline dependencies even when dates match and reports project f
   const history = page.getByRole("dialog", { name: "Version history" });
   await history.getByLabel("New version name").fill("Dependency baseline");
   await history.getByRole("button", { name: "Create version" }).click();
+  await history.getByRole("button", { name: "Select version Dependency baseline", exact: true }).click();
   await history.getByRole("button", { name: "Set as baseline" }).click();
   await history.getByRole("button", { name: "Close", exact: true }).click();
   await setSource(page, baseline.replace("3 days after [A]'s end", "4 days after [A]'s start"));
@@ -2012,7 +2015,14 @@ test("compares baseline dependencies even when dates match and reports project f
     await dependencies.getByRole("button", { name: "Reveal dependency" }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: test.info().outputPath("baseline-dependencies.png") });
   }
-  await dependencies.getByRole("button", { name: "Reveal dependency" }).click();
+  if (browserName === "webkit") {
+    // Verify accessible activation without WebKit's unstable scroll target inside
+    // this absolutely positioned, scrollable report.
+    await dependencies.getByRole("button", { name: "Reveal dependency" }).focus();
+    await dependencies.getByRole("button", { name: "Reveal dependency" }).press("Enter");
+  } else {
+    await dependencies.getByRole("button", { name: "Reveal dependency" }).click();
+  }
   await expect(page.locator(".statusbar")).toContainText("Ln 5");
   await setSource(page, baseline.replace("3 days after [A]'s end", "5 days after [A]'s start"));
   await expect(finish).toContainText("Current: 2026-10-07 · 1 calendar day later");

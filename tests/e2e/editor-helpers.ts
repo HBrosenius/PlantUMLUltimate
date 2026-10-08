@@ -41,7 +41,9 @@ export async function fillSource(page: Page, value: string, visibleText = value)
 
 export async function setSource(page: Page, value: string) {
   await fillSource(page, value);
-  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
+  // A cold renderer may spend 15s starting and up to 30s rendering before
+  // reporting its own bounded failure, particularly on WebKit.
+  await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 45_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
 }
 

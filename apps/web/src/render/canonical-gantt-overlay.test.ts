@@ -145,6 +145,30 @@ describe("Gantt timeline month boundaries", () => {
   });
 });
 
+it("keeps a unique-row task selectable when renderer offset dates differ from the schedule model", () => {
+  const source =
+    "@startgantt\nProject starts 2026-10-01\n[A] lasts 2 days\n[B] lasts 2 days\n[B] starts 3 days after [A]'s end\n@endgantt";
+  const { document } = parseGantt(source);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="18" y="10">October 2026</text>
+    ${[1, 2, 3, 4, 5, 6, 7].map((day, index) => `<text x="${5 + index * 16}" y="30">${day}</text>`).join("")}
+    <text x="6" y="51">A</text><rect x="2" y="41" width="28" height="12" fill="#aaa"/>
+    <text x="86" y="67">B</text><rect x="82" y="57" width="28" height="12" fill="#aaa"/></svg>`;
+  const result = new DOMParser().parseFromString(
+    addCanonicalGanttOverlay(
+      svg,
+      document.tasks,
+      document.dependencies,
+      [],
+      "",
+      undefined,
+      "2026-10-01",
+      parseGanttCalendar(source),
+    ),
+    "image/svg+xml",
+  );
+  expect(result.querySelector('[data-task-id="b"] .bar')?.getAttribute("x")).toBe("82");
+});
+
 it("keeps same-row task hitboxes separate across a shortened month header", () => {
   const source =
     "@startgantt\nProject starts 2026-09-29\nsaturday are closed\nsunday are closed\n[Architecture] starts 2026-09-29\n[Architecture] lasts 4 days\n[New task] starts at [Architecture]'s end\n[New task] lasts 1 day\n[New task] displays on same row as [Architecture]\n@endgantt";
@@ -158,6 +182,7 @@ it("keeps same-row task hitboxes separate across a shortened month header", () =
   const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="100" y="10">Sep</text>
     <text x="160" y="10">October 2026</text>${columns}
     <text x="0" y="70">Architecture</text><rect x="100" y="60" width="76" height="13" fill="#aaa"/>
+    <polygon points="174,63 220,67 174,71 174,63" fill="#181818" stroke="#181818"/>
     <text x="200" y="70">New task</text><rect x="220" y="60" width="16" height="13" fill="#aaa"/></svg>`;
   const result = new DOMParser().parseFromString(
     addCanonicalGanttOverlay(

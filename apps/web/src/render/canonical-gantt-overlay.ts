@@ -221,7 +221,11 @@ export function addCanonicalGanttOverlay(
   const texts = [...root.querySelectorAll("text")];
   const rects = [...root.querySelectorAll("rect")].filter(hasVisiblePaint);
   const polygons = [...root.querySelectorAll("polygon")];
-  const paintedPolygons = polygons.filter(hasVisiblePaint);
+  // Dependency arrowheads are triangles and can sit inside a successor's date
+  // column. Including them expands its task hitbox into the preceding bar.
+  const paintedPolygons = polygons.filter(
+    (polygon) => hasVisiblePaint(polygon) && new Set(polygon.getAttribute("points")?.trim().split(/\s+/)).size > 3,
+  );
   const paintedPaths = [...root.querySelectorAll("path")].filter(hasVisiblePaint);
   const canonicalDependencyPaths = [...root.querySelectorAll("path")].filter((path) => {
     const stroke = path.getAttribute("stroke")?.toLowerCase();
@@ -249,6 +253,7 @@ export function addCanonicalGanttOverlay(
   const geometry = new Map<string, Geometry>();
   const gridDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
+  const sharedRowTasks = new Set(tasks.flatMap((task) => (task.sameRowTaskId ? [task.id, task.sameRowTaskId] : [])));
   const resolvedDates = calendar ? resolveTaskDates(tasks, dependencies, projectStart, calendar) : undefined;
 
   const numberedDates = texts.flatMap((text) => {
@@ -419,6 +424,9 @@ export function addCanonicalGanttOverlay(
     const startColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.start);
     const endColumn = topDates.find((item) => item.text.getAttribute("data-timeline-date") === taskDates?.end);
     const withinTaskDates = (bounds: Geometry | undefined) => {
+      // Dates disambiguate bars on a shared row. On a unique row, the actual
+      // rendered shapes are authoritative even if engine offset semantics differ.
+      if (!sharedRowTasks.has(task.id)) return true;
       if (!bounds || !startColumn || !endColumn || !canonicalDayWidth) return true;
       const center = bounds.x + bounds.width / 2;
       return center >= startColumn.x - canonicalDayWidth / 2 && center <= endColumn.x + canonicalDayWidth / 2;

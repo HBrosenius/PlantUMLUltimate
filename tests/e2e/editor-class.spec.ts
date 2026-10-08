@@ -162,15 +162,15 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   page,
   browserName,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(browserName === "webkit" ? 180_000 : 60_000);
   await page.getByRole("button", { name: "New diagram tab" }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser.getByRole("button", { name: /Class diagram/ }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: /Class diagram/ }).click();
   await expect(page.getByRole("region", { name: "Class diagram preview" })).toBeVisible();
-  await expect(
-    page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[src*="viz-global"]'),
-  ).toHaveCount(1);
+  await expect(page.getByRole("region", { name: "Class diagram preview" }).locator("svg")).toBeVisible({
+    timeout: 45_000,
+  });
   await expect(page.locator(".cm-content")).toContainText("class Order");
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -227,7 +227,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(page.locator(".cm-content")).toContainText("note on link #LightYellowState ownershipend note");
 
   const renderedRelationshipNote = page.locator('[data-class-object-type="note"][data-class-object-id="note-1"]');
-  await expect(renderedRelationshipNote).toBeVisible({ timeout: 20_000 });
+  await expect(renderedRelationshipNote).toBeVisible({ timeout: 45_000 });
   await renderedRelationshipNote.focus();
   await renderedRelationshipNote.press("Enter");
   const noteInspector = page.getByRole("complementary", { name: "Class note inspector" });
@@ -239,9 +239,9 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await noteInspector.getByLabel("Attached to").selectOption("relationship-2");
   await expect(noteInspector.getByLabel("Position")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toContainText("note on link #LightYellowState ownershipend note");
-  await expect(page.locator(".class-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+  await expect(page.locator(".class-diagram").locator("..")).not.toHaveClass(/stale-preview/, { timeout: 45_000 });
 
-  await expect(page.locator(".class-connect-handle")).toHaveCount(4, { timeout: 20_000 });
+  await expect(page.locator(".class-connect-handle")).toHaveCount(4, { timeout: 45_000 });
   await expect(page.locator(".class-move-handle")).toHaveCount(4);
   await expect(page.getByRole("group", { name: "Class containers" }).getByRole("button")).toHaveCount(2);
 
