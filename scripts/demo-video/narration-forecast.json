@@ -1,0 +1,34 @@
+[
+  {
+    "id": "01-intro",
+    "text": "Your plan says the website launches on the sixteenth of October. But it's October second, and the work isn't going quite as planned. So when will you really launch?"
+  },
+  {
+    "id": "02-turn-on",
+    "text": "In PlantUML Ultimate, turn on Progress forecast and pick a status date. The app looks at how much of each task is complete, works out what's left, and projects the whole plan forward, respecting your dependencies and your closed weekends."
+  },
+  {
+    "id": "03-result",
+    "text": "And there's the answer. Projected finish: October twenty-first. Three working days later than planned. On the chart, the grey bar is the plan, the blue bar is the forecast, and the hatching marks work that's running past its planned finish."
+  },
+  {
+    "id": "04-why",
+    "text": "But a number isn't enough. You need to know why. Click Backend, and the inspector explains it: planned to finish on October ninth, forecast to finish on the fourteenth. It's only ten percent done, with nine working days remaining."
+  },
+  {
+    "id": "05-causes",
+    "text": "Zoom out, and the project finish causes tell you where to act. One root task is moving the release: Backend. It holds up two linked tasks, and the Launch milestone. Everything else is on plan."
+  },
+  {
+    "id": "06-what-if",
+    "text": "Now try a what-if. Suppose Backend only needs six more working days. Type it in, and the projected finish snaps back to the sixteenth. Plus zero days. Your source file hasn't changed, so it's safe to explore."
+  },
+  {
+    "id": "07-apply",
+    "text": "When the delay is real, you can accept it. Apply to plan shows exactly which tasks will change: Backend gets longer, Integration and Launch move with it. Review the changes, apply them, and the plan now matches reality."
+  },
+  {
+    "id": "08-outro",
+    "text": "Know where you really stand, see why, and test your options. Progress forecast, in PlantUML Ultimate."
+  }
+]

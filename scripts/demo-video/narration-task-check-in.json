@@ -1,0 +1,34 @@
+[
+  {
+    "id": "01-intro",
+    "text": "It's Friday afternoon, and you need to know where the project really stands. So you open the plan, work out who owns what, and write the same email to everyone on the team. Task check-in does that part for you."
+  },
+  {
+    "id": "02-open",
+    "text": "Open Reports from the More menu, and choose Task check-in. It works from the Gantt chart you already have: your tasks, your dates, and the people assigned to them."
+  },
+  {
+    "id": "03-scope",
+    "text": "First, pick what to ask about. Ongoing is the default: work that has started, or is already past its planned finish. Finished tasks, and work that hasn't begun, stay out of the way. Set the as-of date, and an optional reply-by date, so people know when you need an answer."
+  },
+  {
+    "id": "04-people",
+    "text": "Everyone assigned to those tasks appears here, with the number of tasks they need to confirm. Alice has one, Bob has two, and Carol has one. Content migration is shared between Alice and Bob, so it appears in both messages, and says so."
+  },
+  {
+    "id": "05-preview",
+    "text": "Then preview each message. This is Alice's: only her own tasks, with the recorded progress, the planned dates, and a clear flag when work is past its planned finish. And every task ends with the same short questions: is it on track, what's the updated progress, and what's blocking you?"
+  },
+  {
+    "id": "06-customize",
+    "text": "Make it yours. Edit the introduction and the sign-off, and they're remembered for next time. Add a Gantt chart showing just that person's tasks. Or switch to a combined summary, if you'd rather read everything in one place."
+  },
+  {
+    "id": "07-copy",
+    "text": "When it looks right, click Copy for email, and paste it straight into your mail app. Nothing is sent from here, so you stay in control. Then move on to Bob and Carol the same way."
+  },
+  {
+    "id": "08-outro",
+    "text": "Know who's on track, and who needs a nudge. Task check-in, in PlantUML Ultimate Reports."
+  }
+]

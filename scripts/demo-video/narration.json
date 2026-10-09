@@ -1,0 +1,46 @@
+[
+  {
+    "id": "01-intro",
+    "text": "Every project starts with one question: what exactly are we delivering? In PlantUML Ultimate, you answer it with a work breakdown structure. Here's a website redesign, split into Discovery, Design and Delivery, with the work packages underneath each phase."
+  },
+  {
+    "id": "02-create",
+    "text": "Then the next question arrives: when will it be done, and who is doing it? Normally, that means retyping everything into a separate planning tool. Here, you click Create Gantt chart from WBS, give the project a name, pick a start date... and that's it."
+  },
+  {
+    "id": "03-project",
+    "text": "You now have one project with two connected diagrams: the breakdown and the schedule. The project navigator lists every link, node to task, so nothing gets lost in translation. And because both are plain PlantUML text, the whole plan can live in Git, right next to your code."
+  },
+  {
+    "id": "04-gantt",
+    "text": "And here is the Gantt chart. Every work package is a task, every phase has its own section, weekends are already closed, and the structure of the breakdown is wired up as dependencies. The link icon on each bar tells you it's tied to the WBS."
+  },
+  {
+    "id": "05-plan-alice",
+    "text": "Now let's plan. Stakeholder interviews are done, so we mark them one hundred percent complete, and assign Alice."
+  },
+  {
+    "id": "06-plan-bob",
+    "text": "Content inventory is well underway. Sixty percent, and Bob owns it."
+  },
+  {
+    "id": "07-plan-carol",
+    "text": "Visual design needs more time than the default. We make it eight days, and put Carol on it. The bar grows the moment you type."
+  },
+  {
+    "id": "08-back-to-wbs",
+    "text": "Now, one click takes us back to the WBS, and this is where the connection pays off. Progress from the schedule shows up right inside each box, so you can see at a glance what's done, and what hasn't started yet."
+  },
+  {
+    "id": "09-hover",
+    "text": "Hover over any work package to see the plan behind it: the dates, the duration, how far along it is, and who's assigned. Your stakeholders get scope and status in one picture, without ever opening the Gantt chart."
+  },
+  {
+    "id": "10-rename",
+    "text": "And the link works both ways. Rename a work package in the WBS, and the Gantt task follows automatically. Structure lives in the breakdown, dates and people live in the schedule, and PlantUML Ultimate keeps them in sync."
+  },
+  {
+    "id": "11-outro",
+    "text": "One breakdown. One schedule. Always connected. Plan the what, and the when, together, in PlantUML Ultimate."
+  }
+]
