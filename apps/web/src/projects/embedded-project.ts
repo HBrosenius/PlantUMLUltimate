@@ -71,6 +71,7 @@ export function openEmbeddedMember(
     historyMaxVersions: member.document.historyPolicy.maxVersions,
     historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
     resourceCapacities: member.document.settings.resourceCapacities,
+    reportingHistory: member.document.settings.reportingHistory,
     progressForecast: member.document.settings.progressForecast,
     ...(baselineVersionId ? { baselineVersionId } : {}),
   });
@@ -159,7 +160,9 @@ export function projectContentEqual(a: PortableProject, b: PortableProject): boo
       JSON.stringify(diagram.document.settings.resourceCapacities) ===
         JSON.stringify(other.document.settings.resourceCapacities) &&
       JSON.stringify(diagram.document.settings.progressForecast) ===
-        JSON.stringify(other.document.settings.progressForecast)
+        JSON.stringify(other.document.settings.progressForecast) &&
+      JSON.stringify(diagram.document.settings.reportingHistory) ===
+        JSON.stringify(other.document.settings.reportingHistory)
     );
   });
 }

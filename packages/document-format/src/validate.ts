@@ -204,7 +204,48 @@ export function validateDocument(value: unknown): PortableDocument {
       : identifier(current.baselineVersionId, "current.baselineVersionId");
 
   const settings = record(document.settings, "settings");
-  exactKeys(settings, ["resourceCapacities", "progressForecast"], "settings");
+  exactKeys(settings, ["resourceCapacities", "progressForecast", "reportingHistory"], "settings");
+  if (settings.reportingHistory !== undefined) {
+    if (!Array.isArray(settings.reportingHistory)) invalid("reportingHistory must be an array");
+    if (settings.reportingHistory.length > 100) limit("Reporting history is limited to 100 pinned observations");
+    const observationIds = new Set<string>();
+    let reportingBytes = 0;
+    for (const value of settings.reportingHistory) {
+      const observation = record(value, "reporting observation");
+      exactKeys(
+        observation,
+        ["version", "id", "capturedAt", "effectiveDate", "timeZone", "sourceHash", "source", "provenance"],
+        "reporting observation",
+      );
+      if (observation.version !== 1 || observation.provenance !== "explicit")
+        invalid("Unsupported reporting observation version or provenance");
+      const id = identifier(observation.id, "reporting observation id");
+      if (observationIds.has(id)) invalid("Duplicate reporting observation id");
+      observationIds.add(id);
+      const captured = string(observation.capturedAt, "capturedAt", 40);
+      if (!Number.isFinite(Date.parse(captured)) || new Date(captured).toISOString() !== captured)
+        invalid("Invalid reporting capture timestamp");
+      const effective = string(observation.effectiveDate, "effectiveDate", 10);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(effective) ||
+        !Number.isFinite(Date.parse(effective)) ||
+        new Date(effective).toISOString().slice(0, 10) !== effective
+      )
+        invalid("Invalid reporting effective date");
+      const zone = string(observation.timeZone, "timeZone", 100);
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: zone });
+      } catch {
+        invalid("Invalid reporting time zone");
+      }
+      const hash = string(observation.sourceHash, "sourceHash", 64);
+      if (!SHA256.test(hash)) invalid("Invalid reporting source fingerprint");
+      const source = string(observation.source, "reporting source");
+      reportingBytes += UTF8.encode(source).byteLength;
+      if (UTF8.encode(source).byteLength > DOCUMENT_LIMITS.maxSourceBytes || reportingBytes > 16 * 1024 * 1024)
+        limit("Reporting observations exceed 16 MiB retention budget");
+    }
+  }
   const capacities = record(settings.resourceCapacities, "settings.resourceCapacities");
   for (const [name, capacity] of Object.entries(capacities)) {
     if (!name || name.length > DOCUMENT_LIMITS.maxAuthorNameCharacters) limit("Resource capacity name is too long");

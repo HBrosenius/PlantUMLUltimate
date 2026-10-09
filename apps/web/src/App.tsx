@@ -5073,7 +5073,22 @@ export function App() {
           documentName={workspace.fileName}
           diagramName={workspace.source.match(/^\s*title\s+(.+)$/m)?.[1] ?? workspace.fileName}
           timeZone={activeDocument.progressForecast?.timeZone}
+          forecastSettings={activeDocument.progressForecast}
           resource={reportResource}
+          baselineSource={baselineVersion?.source}
+          baselineName={
+            baselineVersion ? `${baselineVersion.label ?? "Baseline"} · ${baselineVersion.createdAt}` : undefined
+          }
+          capacities={resourceCapacities}
+          history={activeDocument.reportingHistory}
+          onRecordProgress={(observation) => {
+            const target = tabs.getDocument(tabs.activeId);
+            if (target)
+              tabs.updateDocumentFormat(target.id, {
+                reportingHistory: [...(target.reportingHistory ?? []), observation],
+                dirty: true,
+              });
+          }}
           onClose={() => setReportsOpen(false)}
         />
       )}

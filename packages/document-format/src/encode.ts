@@ -34,6 +34,10 @@ export async function encodeDocument(
   const checked = validateDocument(document);
   if ((await hashSource(checked.current.source)) !== checked.current.sourceHash)
     throw new DocumentFormatError("invalid-file", "Current source hash does not match");
+  for (const observation of checked.settings.reportingHistory ?? []) {
+    if ((await hashSource(observation.source)) !== observation.sourceHash)
+      throw new DocumentFormatError("invalid-file", "Reporting observation source hash does not match");
+  }
   await reconstructContents(checked.contents);
   const compression = options.compression ?? "gzip";
   const compressed = await compressPayload(UTF8.encode(JSON.stringify(checked)), compression, options.signal);

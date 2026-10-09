@@ -55,6 +55,10 @@ export async function decodeProject(bytes: Uint8Array, options: DecodeProjectOpt
     project.diagrams.map(async ({ document }) => {
       if ((await hashSource(document.current.source)) !== document.current.sourceHash)
         throw new DocumentFormatError("invalid-file", "Project diagram current source hash does not match");
+      for (const observation of document.settings.reportingHistory ?? []) {
+        if ((await hashSource(observation.source)) !== observation.sourceHash)
+          throw new DocumentFormatError("invalid-file", "Reporting observation source hash does not match");
+      }
       await reconstructContents(document.contents);
     }),
   );

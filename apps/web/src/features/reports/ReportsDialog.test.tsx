@@ -24,6 +24,30 @@ afterEach(() => {
   localStorage.clear();
 });
 describe("reports builder", () => {
+  it("starts forecast reports with saved status date and estimates, and blocks exports when estimates change", async () => {
+    const forecastSettings = { asOf: "2026-10-08", remainingDays: { a: 7 } };
+    const view = render(<ReportsDialog {...props} forecastSettings={forecastSettings} />);
+    fireEvent.change(screen.getByLabelText("Report type"), { target: { value: "forecast" } });
+    expect((screen.getByLabelText("As-of date") as HTMLInputElement).value).toBe("2026-10-08");
+    expect((screen.getByLabelText("Report text") as HTMLTextAreaElement).value).toContain(
+      "7 working days (saved estimate)",
+    );
+    const copy = screen.getByRole("button", { name: "Copy for email" }) as HTMLButtonElement;
+    await waitFor(() => expect(copy.disabled).toBe(false));
+    view.rerender(<ReportsDialog {...props} forecastSettings={{ ...forecastSettings, remainingDays: { a: 8 } }} />);
+    expect(copy.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    await waitFor(() => expect(copy.disabled).toBe(false));
+    expect((screen.getByLabelText("Report text") as HTMLTextAreaElement).value).toContain(
+      "8 working days (saved estimate)",
+    );
+  });
+  it("does not record observations when changing report types or rendering a preview", () => {
+    const record = vi.fn();
+    render(<ReportsDialog {...props} onRecordProgress={record} />);
+    fireEvent.change(screen.getByLabelText("Report type"), { target: { value: "history" } });
+    expect(record).not.toHaveBeenCalled();
+  });
   it("remembers wording across reopening and saves restored defaults", () => {
     const first = render(<ReportsDialog {...props} />);
     fireEvent.change(screen.getByLabelText("Introduction"), { target: { value: "Please send your update." } });

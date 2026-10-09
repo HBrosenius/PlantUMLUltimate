@@ -4,6 +4,11 @@ export const defaultIntroduction =
   "Could you confirm whether the tasks below are on track? Please reply with any progress or date changes, and flag blockers or support you need.";
 export const defaultSignOff = "Thanks,";
 export interface ReportOptions {
+  reportType?:
+    "check-in" | "critical-path" | "progress" | "milestones" | "baseline" | "workload" | "history" | "forecast";
+  historyScope?: "fixed" | "dynamic";
+  baselineSnapshotId?: string;
+  nearCriticalDays?: number;
   locale?: string;
   asOf: string;
   timeZone: string;
@@ -23,6 +28,8 @@ export interface ReportOptions {
   signOff: string;
 }
 export interface ReportRow {
+  forecast?: { start?: string | undefined; end?: string | undefined; issue?: string | undefined };
+  metrics?: string[];
   task: GanttTask;
   start?: string | undefined;
   end?: string | undefined;
@@ -34,12 +41,15 @@ export interface ReportRow {
   shared: string[];
 }
 export interface ReportMessage {
+  series?: Array<{ label: string; points: Array<{ date: string; low: number; high: number }>; step: boolean }>;
+  summary?: string[];
   id: string;
   recipient: string;
   subject: string;
   rows: ReportRow[];
 }
 export interface ReportSnapshot {
+  snapshotId?: string;
   version: 1;
   sourceIdentity: string;
   generatedAt: string;

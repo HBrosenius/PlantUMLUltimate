@@ -1,6 +1,7 @@
 import type { ReportSnapshot, ReportMessage } from "./report-model";
 import { escapeHtml, reportDate } from "./report-format";
 import { reportIntro, taskLines, replyPrompt } from "./render-report-text";
+import { reportTypes } from "./build-report";
 export interface ReportChartPanel {
   dataUrl: string;
   caption: string;
@@ -28,7 +29,7 @@ export function renderReportHtml(
       if (index === 0) return `<h1 style="font-size:22px;color:#183b56">${text(line)}</h1>`;
       let content = text(line);
       if (index === 2)
-        content = `Task check-in · <strong>${text(message.recipient)}</strong> · As of <strong>${text(reportDate(snapshot.options.asOf, snapshot.options.locale))}</strong> (${text(snapshot.options.timeZone)})`;
+        content = `${text(reportTypes[snapshot.options.reportType ?? "check-in"])} · <strong>${text(message.recipient)}</strong> · As of <strong>${text(reportDate(snapshot.options.asOf, snapshot.options.locale))}</strong> (${text(snapshot.options.timeZone)})`;
       if (index === 3)
         content = `<strong>${message.rows.length}</strong> tasks to review · <strong>${message.rows.filter((row) => row.attention).length}</strong> needing attention`;
       return `<p style="margin:12px 0">${content}</p>`;
@@ -48,8 +49,8 @@ export function renderReportHtml(
             `<p style="margin:6px 0">${index === 2 ? `<strong>${text(row.status)}</strong>` : taskField(line)}</p>`,
         )
         .join("");
-      return `${heading}<table role="presentation" width="100%" bgcolor="${background}" style="border-collapse:collapse;margin:16px 0;background:${background};color:#172b3a"><tr><td bgcolor="${background}" style="padding:16px;background:${background};border-top:1px solid ${border}"><h3 style="font-size:16px;margin:0 0 12px">${text(title!)}</h3>${fields}${snapshot.options.compact ? "" : `<p style="margin:16px 0 0">${replyFields()}</p>`}</td></tr></table>`;
+      return `${heading}<table role="presentation" width="100%" bgcolor="${background}" style="border-collapse:collapse;margin:16px 0;background:${background};color:#172b3a"><tr><td bgcolor="${background}" style="padding:16px;background:${background};border-top:1px solid ${border}"><h3 style="font-size:16px;margin:0 0 12px">${text(title!)}</h3>${fields}${snapshot.options.compact || message.summary ? "" : `<p style="margin:16px 0 0">${replyFields()}</p>`}</td></tr></table>`;
     })
     .join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(message.subject)}</title></head><body style="margin:0;background:#ffffff;color:#172b3a;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5"><main style="max-width:640px;margin:0 auto;padding:20px">${intro}${charts.map((panel) => `<p><img src="${panel.dataUrl}" width="640" style="width:100%;height:auto" alt="${escapeHtml(panel.caption)}"><br>${text(panel.caption)}</p>`).join("")}${body}${snapshot.options.compact ? `<p>${replyFields()}</p>` : ""}<p>${text(snapshot.options.signOff)}</p><p style="font-size:12px">Snapshot of the current plan as of ${escapeHtml(reportDate(snapshot.options.asOf, snapshot.options.locale))}. Please correct any information that is out of date.</p></main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(message.subject)}</title></head><body style="margin:0;background:#ffffff;color:#172b3a;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5"><main style="max-width:640px;margin:0 auto;padding:20px">${intro}${charts.map((panel) => `<p><img src="${panel.dataUrl}" width="640" style="width:100%;height:auto" alt="${escapeHtml(panel.caption)}"><br>${text(panel.caption)}</p>`).join("")}${body}${snapshot.options.compact && !message.summary ? `<p>${replyFields()}</p>` : ""}<p>${text(snapshot.options.signOff)}</p><p style="font-size:12px">Snapshot of the current plan as of ${escapeHtml(reportDate(snapshot.options.asOf, snapshot.options.locale))}. Please correct any information that is out of date.</p></main></body></html>`;
 }

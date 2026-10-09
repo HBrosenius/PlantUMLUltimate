@@ -75,8 +75,21 @@ export interface PortableCurrentDocument {
 }
 
 export interface PortableDocumentSettings {
+  reportingHistory?: ReportingObservation[];
   resourceCapacities: Record<string, number>;
   progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string };
+}
+
+/** Explicit, pinned observations. Separate from undo-history retention, inside encrypted payloads. */
+export interface ReportingObservation {
+  version: 1;
+  id: string;
+  capturedAt: string;
+  effectiveDate: string;
+  timeZone: string;
+  sourceHash: string;
+  source: string;
+  provenance: "explicit";
 }
 
 export interface PortableHistoryPolicy {

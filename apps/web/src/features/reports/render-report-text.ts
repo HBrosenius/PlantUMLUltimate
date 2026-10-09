@@ -1,5 +1,6 @@
 import type { ReportMessage, ReportRow, ReportSnapshot } from "./report-model";
 import { reportDate, safeReportUrl } from "./report-format";
+import { reportTypes } from "./build-report";
 export function taskLines(row: ReportRow, snapshot: ReportSnapshot): string[] {
   const alias = row.task.alias?.value.trim();
   const aliasSuffix =
@@ -11,6 +12,7 @@ export function taskLines(row: ReportRow, snapshot: ReportSnapshot): string[] {
     row.status,
   ];
   if (row.issue) lines.push(`Data issue: ${row.issue}`);
+  lines.push(...(row.metrics ?? []));
   if (row.shared.length) lines.push(`Shared with ${row.shared.join(", ")}`);
   if (snapshot.options.combined)
     lines.push(`Assigned resources: ${row.task.resources?.map((a) => a.value).join(", ") || "Unassigned"}`);
@@ -28,7 +30,7 @@ export function reportIntro(snapshot: ReportSnapshot, message: ReportMessage): s
   return [
     snapshot.diagramName,
     `Document: ${snapshot.documentName}`,
-    `Task check-in · ${message.recipient} · As of ${reportDate(snapshot.options.asOf, snapshot.options.locale)} (${snapshot.options.timeZone})`,
+    `${reportTypes[snapshot.options.reportType ?? "check-in"]} · ${message.recipient} · As of ${reportDate(snapshot.options.asOf, snapshot.options.locale)} (${snapshot.options.timeZone})`,
     `${message.rows.length} tasks to review · ${message.rows.filter((row) => row.attention).length} needing attention`,
     ...(snapshot.options.combined
       ? [
@@ -41,11 +43,17 @@ export function reportIntro(snapshot: ReportSnapshot, message: ReportMessage): s
           }`,
         ]
       : [`Hi ${message.recipient},`]),
-    snapshot.options.introduction,
+    ...(message.summary ?? [snapshot.options.introduction]),
     ...(snapshot.options.replyBy
       ? [`Please reply by ${reportDate(snapshot.options.replyBy, snapshot.options.locale)}.`]
       : []),
-    `Uses current recorded progress evaluated against ${reportDate(snapshot.options.asOf, snapshot.options.locale)}.`,
+    snapshot.options.reportType === "history"
+      ? "History uses explicit observation dates; task details use current recorded progress."
+      : `Uses current recorded progress evaluated against ${reportDate(snapshot.options.asOf, snapshot.options.locale)}.`,
+    ...snapshot.warnings.filter(
+      (warning) =>
+        snapshot.options.combined || warning.startsWith(`Resource name variants grouped as ${message.recipient}:`),
+    ),
   ];
 }
 export function renderReportText(snapshot: ReportSnapshot, message: ReportMessage): string {
@@ -57,9 +65,9 @@ export function renderReportText(snapshot: ReportSnapshot, message: ReportMessag
       lines.push(section);
     }
     lines.push(taskLines(row, snapshot).join("\n"));
-    if (!snapshot.options.compact) lines.push(replyPrompt);
+    if (!snapshot.options.compact && !message.summary) lines.push(replyPrompt);
   }
-  if (snapshot.options.compact) lines.push(replyPrompt);
+  if (snapshot.options.compact && !message.summary) lines.push(replyPrompt);
   lines.push(
     snapshot.options.signOff,
     `Snapshot of the current plan as of ${reportDate(snapshot.options.asOf, snapshot.options.locale)}. Please correct any information that is out of date.`,

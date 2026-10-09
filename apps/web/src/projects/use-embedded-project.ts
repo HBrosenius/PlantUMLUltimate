@@ -24,6 +24,7 @@ import {
 import { enableMemoryOnlyHistory, importDocumentVersions, type DocumentSnapshot } from "../workspace-storage";
 
 function persistentTabState(tab: {
+  reportingHistory?: DocumentSnapshot["reportingHistory"];
   source: string;
   baselineVersionId?: string | undefined;
   historyMaxVersions?: number | undefined;
@@ -41,6 +42,7 @@ function persistentTabState(tab: {
     tab.historyMaxLogicalBytes,
     Object.entries(tab.resourceCapacities ?? {}).sort(([left], [right]) => left.localeCompare(right)),
     tab.progressForecast,
+    tab.reportingHistory,
     tab.wbsGanttLinks,
     tab.wbsGanttDependencies,
   ]);
@@ -86,6 +88,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
             historyMaxVersions: member.document.historyPolicy.maxVersions,
             historyMaxLogicalBytes: member.document.historyPolicy.maxLogicalBytes,
             resourceCapacities: member.document.settings.resourceCapacities,
+            reportingHistory: member.document.settings.reportingHistory,
             progressForecast: member.document.settings.progressForecast,
             wbsGanttLinks: member.wbsGantt?.links,
             wbsGanttDependencies: member.wbsGantt?.dependencies,
@@ -273,6 +276,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
           historyMaxVersions: diagram.document.historyPolicy.maxVersions,
           historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
           resourceCapacities: diagram.document.settings.resourceCapacities,
+          reportingHistory: diagram.document.settings.reportingHistory,
           progressForecast: diagram.document.settings.progressForecast,
         }),
       );
@@ -368,6 +372,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
             fileName: diagram.name,
             dirty: true,
             resourceCapacities: diagram.document.settings.resourceCapacities,
+            reportingHistory: diagram.document.settings.reportingHistory,
             progressForecast: diagram.document.settings.progressForecast,
             historyMaxVersions: diagram.document.historyPolicy.maxVersions,
             historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,
@@ -382,6 +387,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
           diagramKind: diagram.document.current.diagramKind as DiagramKind,
           dirty: true,
           resourceCapacities: diagram.document.settings.resourceCapacities,
+          reportingHistory: diagram.document.settings.reportingHistory,
           progressForecast: diagram.document.settings.progressForecast,
           historyMaxVersions: diagram.document.historyPolicy.maxVersions,
           historyMaxLogicalBytes: diagram.document.historyPolicy.maxLogicalBytes,

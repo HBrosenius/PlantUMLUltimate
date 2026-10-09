@@ -3,7 +3,7 @@ import { useDialogFocus } from "../../use-dialog-focus";
 import { forecastToday } from "../../forecast-date";
 import { downloadBlob } from "../../file-service";
 import { resourceIdentity } from "../../resource-identity";
-import { buildTaskCheckIn } from "./build-task-check-in";
+import { buildReport, reportTypes } from "./build-report";
 import { defaultIntroduction, defaultSignOff, type ReportOptions, type TaskFilter } from "./report-model";
 import { renderReportHtml, type ReportChartPanel } from "./render-report-html";
 import { renderReportText } from "./render-report-text";
@@ -12,6 +12,8 @@ import { renderReportCharts } from "./report-gantt-chart";
 import { InspectorSection } from "../../InspectorSection";
 import { reportLocale } from "./report-format";
 import { reportWording, saveReportWording } from "./report-preferences";
+import { recordProgressObservation } from "./report-history";
+import type { ReportingObservation } from "@plantuml-studio/document-format";
 
 export function ReportsDialog({
   source,
@@ -20,6 +22,12 @@ export function ReportsDialog({
   diagramName,
   timeZone,
   resource,
+  baselineSource,
+  baselineName,
+  capacities,
+  history,
+  forecastSettings,
+  onRecordProgress,
   onClose,
 }: {
   source: string;
@@ -28,12 +36,29 @@ export function ReportsDialog({
   diagramName: string;
   timeZone?: string | undefined;
   resource?: string | undefined;
+  baselineSource?: string | undefined;
+  baselineName?: string | undefined;
+  capacities?: Record<string, number> | undefined;
+  history?: ReportingObservation[] | undefined;
+  forecastSettings?: { asOf?: string; remainingDays: Record<string, number> } | undefined;
+  onRecordProgress?(observation: ReportingObservation): void;
   onClose(): void;
 }) {
   const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const root = useRef<HTMLDivElement>(null);
   useDialogFocus(root, onClose);
-  const [captured, setCaptured] = useState({ source, sourceIdentity, documentName, diagramName, zone });
+  const [captured, setCaptured] = useState({
+    source,
+    sourceIdentity,
+    documentName,
+    diagramName,
+    zone,
+    baselineSource,
+    baselineName,
+    capacities,
+    history,
+    forecastSettings,
+  });
   const [options, setOptions] = useState<ReportOptions>(() => ({
     asOf: forecastToday(zone),
     timeZone: zone,
@@ -56,12 +81,19 @@ export function ReportsDialog({
   const result = useMemo(() => {
     try {
       return {
-        snapshot: buildTaskCheckIn(
+        snapshot: buildReport(
           captured.source,
           captured.sourceIdentity,
           captured.documentName,
           captured.diagramName,
           options,
+          {
+            baselineSource: captured.baselineSource,
+            baselineName: captured.baselineName,
+            capacities: captured.capacities,
+            history: captured.history,
+            remainingDays: captured.forecastSettings?.remainingDays,
+          },
         ),
         error: "",
       };
@@ -80,6 +112,7 @@ export function ReportsDialog({
   const message = snapshot?.messages.find((m) => m.id === recipient) ?? snapshot?.messages[0];
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [recording, setRecording] = useState(false);
   const [copied, setCopied] = useState<Record<string, string>>({});
   const [retry, setRetry] = useState(0);
   const [chartState, setChartState] = useState<{ key: string; panels: ReportChartPanel[]; error: string }>({
@@ -95,7 +128,12 @@ export function ReportsDialog({
     captured.sourceIdentity !== sourceIdentity ||
     captured.zone !== zone ||
     captured.documentName !== documentName ||
-    captured.diagramName !== diagramName;
+    captured.diagramName !== diagramName ||
+    captured.baselineSource !== baselineSource ||
+    captured.baselineName !== baselineName ||
+    JSON.stringify(captured.capacities) !== JSON.stringify(capacities) ||
+    JSON.stringify(captured.history) !== JSON.stringify(history) ||
+    JSON.stringify(captured.forecastSettings) !== JSON.stringify(forecastSettings);
   useEffect(() => {
     let cancelled = false;
     if (!snapshot || !message || !options.chart) return;
@@ -146,7 +184,7 @@ export function ReportsDialog({
         <header>
           <div>
             <span className="reports-eyebrow">Reports</span>
-            <h2 id="reports-title">Task check-in</h2>
+            <h2 id="reports-title">{reportTypes[options.reportType ?? "check-in"]}</h2>
           </div>
           <button onClick={onClose} aria-label="Close reports">
             ×
@@ -160,8 +198,23 @@ export function ReportsDialog({
             Plan changed — refresh report.{" "}
             <button
               onClick={() => {
-                setCaptured({ source, sourceIdentity, documentName, diagramName, zone });
+                setCaptured({
+                  source,
+                  sourceIdentity,
+                  documentName,
+                  diagramName,
+                  zone,
+                  baselineSource,
+                  baselineName,
+                  capacities,
+                  history,
+                  forecastSettings,
+                });
                 set("timeZone", zone);
+                if (options.reportType === "forecast") {
+                  set("timeZone", timeZone ?? "UTC");
+                  set("asOf", forecastSettings?.asOf ?? forecastToday(timeZone ?? "UTC"));
+                }
               }}
             >
               Refresh report
@@ -170,11 +223,138 @@ export function ReportsDialog({
         )}
         <div className="reports-layout">
           <section className="reports-options" aria-label="Report options">
+            <label>
+              Report type
+              <select
+                aria-label="Report type"
+                value={options.reportType ?? "check-in"}
+                onChange={(e) => {
+                  const reportType = e.target.value as NonNullable<ReportOptions["reportType"]>;
+                  setOptions((current) => ({
+                    ...current,
+                    reportType,
+                    excluded: [],
+                    ...(reportType === "forecast"
+                      ? {
+                          asOf: captured.forecastSettings?.asOf ?? forecastToday(timeZone ?? "UTC"),
+                          timeZone: timeZone ?? "UTC",
+                        }
+                      : {}),
+                    ...(reportType !== "check-in"
+                      ? { filter: "All tasks", combined: true, unassigned: true, milestones: true }
+                      : {}),
+                  }));
+                }}
+              >
+                <optgroup label="People">
+                  <option value="check-in">Task check-in</option>
+                </optgroup>
+                <optgroup label="Assignments">
+                  <option value="workload">Resource workload and assignment coverage</option>
+                </optgroup>
+                <optgroup label="Delivery">
+                  <option value="forecast">Progress forecast</option>
+                  <option value="critical-path">Critical path and schedule sensitivity</option>
+                  <option value="milestones">Milestone and delivery outlook</option>
+                </optgroup>
+                <optgroup label="Progress">
+                  <option value="progress">Progress and due-date outlook</option>
+                  <option value="history">Historical burndown and burnup</option>
+                </optgroup>
+                <optgroup label="Changes">
+                  <option value="baseline">Changes since baseline</option>
+                </optgroup>
+              </select>
+            </label>
+            {onRecordProgress && (
+              <button
+                disabled={stale || recording}
+                onClick={async () => {
+                  setRecording(true);
+                  try {
+                    const observation = await recordProgressObservation(captured.source, options, history ?? []);
+                    onRecordProgress(observation);
+                    setStatus(
+                      "Progress snapshot recorded and pinned in document metadata. Save the document to retain it in the portable file.",
+                    );
+                  } catch (error) {
+                    setStatus(error instanceof Error ? error.message : String(error));
+                  } finally {
+                    setRecording(false);
+                  }
+                }}
+              >
+                Record progress snapshot
+              </button>
+            )}
+            {options.reportType === "history" && (
+              <>
+                <small>
+                  Requires two explicit observations with stable aliases. Preview never records history. Observations
+                  are pinned separately from undo history; maximum 100 / 16 MiB.
+                </small>
+                <label>
+                  History scope
+                  <select
+                    aria-label="History scope"
+                    value={options.historyScope ?? "fixed"}
+                    onChange={(e) => set("historyScope", e.target.value as "fixed" | "dynamic")}
+                  >
+                    <option value="fixed">Fixed baseline scope</option>
+                    <option value="dynamic">Current scope over time</option>
+                  </select>
+                </label>
+                <label>
+                  Baseline reference segment
+                  <select
+                    aria-label="Baseline reference segment"
+                    value={
+                      options.baselineSnapshotId ??
+                      [...(history ?? [])].sort(
+                        (a, b) =>
+                          a.effectiveDate.localeCompare(b.effectiveDate) || a.capturedAt.localeCompare(b.capturedAt),
+                      )[0]?.id ??
+                      ""
+                    }
+                    onChange={(e) => set("baselineSnapshotId", e.target.value)}
+                  >
+                    {[...(history ?? [])]
+                      .sort(
+                        (a, b) =>
+                          a.effectiveDate.localeCompare(b.effectiveDate) || a.capturedAt.localeCompare(b.capturedAt),
+                      )
+                      .map((point) => (
+                        <option key={point.id} value={point.id}>
+                          {point.effectiveDate} · {point.capturedAt}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </>
+            )}
+            {options.reportType === "critical-path" && (
+              <label>
+                Near-critical threshold (days)
+                <input
+                  type="number"
+                  min="0"
+                  value={options.nearCriticalDays ?? 2}
+                  onChange={(e) => set("nearCriticalDays", Number(e.target.value))}
+                />
+              </label>
+            )}
+            {options.reportType === "forecast" && (
+              <small>
+                Uses the same calculations and saved remaining-work estimates as Forecast. The as-of date starts with
+                the saved forecast date or today; changing it creates a report scenario.
+              </small>
+            )}
             <InspectorSection title="Scope & dates">
               <label>
                 Tasks
                 <select
                   value={options.filter}
+                  disabled={!!options.reportType && options.reportType !== "check-in"}
                   onChange={(e) => {
                     set("filter", e.target.value as TaskFilter);
                     set("excluded", []);
@@ -189,7 +369,7 @@ export function ReportsDialog({
                 As-of date
                 <input type="date" value={options.asOf} onChange={(e) => set("asOf", e.target.value)} />
               </label>
-              <small>{zone}. Uses current recorded progress, including for past dates.</small>
+              <small>{options.timeZone}. Uses current recorded progress, including for past dates.</small>
               <label>
                 Reply by (optional)
                 <input type="date" value={options.replyBy} onChange={(e) => set("replyBy", e.target.value)} />
@@ -248,7 +428,11 @@ export function ReportsDialog({
               ).map(([field, label]) => (
                 <label className="reports-check" key={field}>
                   <input type="checkbox" checked={options[field]} onChange={(e) => set(field, e.target.checked)} />
-                  {label}
+                  {field === "chart" && (options.reportType === "progress" || options.reportType === "history")
+                    ? "Include progress chart"
+                    : field === "chart" && options.reportType === "forecast"
+                      ? "Include plan and forecast chart"
+                      : label}
                 </label>
               ))}
               <small>

@@ -44,6 +44,10 @@ export async function decodeDocument(bytes: Uint8Array, options: DecodeDocumentO
   const document = validateDocument(parsed);
   if ((await hashSource(document.current.source)) !== document.current.sourceHash)
     throw new DocumentFormatError("invalid-file", "Current source hash does not match");
+  for (const observation of document.settings.reportingHistory ?? []) {
+    if ((await hashSource(observation.source)) !== observation.sourceHash)
+      throw new DocumentFormatError("invalid-file", "Reporting observation source hash does not match");
+  }
   const contents = await reconstructContents(document.contents);
   return { document, contents, compression: envelope.header.compression, ...(unlockedKey ? { unlockedKey } : {}) };
 }

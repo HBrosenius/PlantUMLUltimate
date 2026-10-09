@@ -154,6 +154,7 @@ export function buildTaskCheckIn(
           })),
       }));
   return {
+    snapshotId: crypto.randomUUID(),
     version: 1,
     sourceIdentity,
     generatedAt: new Date().toISOString(),
@@ -167,7 +168,7 @@ export function buildTaskCheckIn(
     assignments: selectedPeople.reduce((sum, person) => sum + person.count, 0),
     unresolvedExcluded,
     warnings: recipients
-      .filter((person) => person.variants.length > 1)
+      .filter((person) => person.variants.length > 1 && options.people.includes(person.id))
       .map(
         (person) =>
           `Resource name variants grouped as ${person.name}: ${person.variants.join(", ")}. Verify these labels refer to the same recipient.`,

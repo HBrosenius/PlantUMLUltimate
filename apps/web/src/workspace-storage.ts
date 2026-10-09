@@ -20,6 +20,7 @@ export interface WorkspaceSnapshot {
 }
 
 export interface DocumentSnapshot {
+  reportingHistory?: import("@plantuml-studio/document-format").ReportingObservation[] | undefined;
   id: string;
   historyId: string;
   diagramKind: DiagramKind;
@@ -200,6 +201,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           ...(Number.isSafeInteger(item.historyMaxLogicalBytes)
             ? { historyMaxLogicalBytes: item.historyMaxLogicalBytes }
             : {}),
+          ...(Array.isArray(item.reportingHistory) ? { reportingHistory: item.reportingHistory } : {}),
           ...(item.resourceCapacities && typeof item.resourceCapacities === "object"
             ? { resourceCapacities: item.resourceCapacities }
             : {}),

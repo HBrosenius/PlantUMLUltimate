@@ -3,6 +3,49 @@ import { fillSource, prepareEditor } from "./editor-helpers";
 
 test.use({ locale: "sv-SE" });
 
+test("forecast report exports projected dates and a plan comparison chart", async ({ page }) => {
+  await prepareEditor(page);
+  await fillSource(
+    page,
+    "@startgantt\n[API] on {Alice} starts 2026-10-01\n[API] lasts 5 days\n[API] is 40% completed\n@endgantt",
+  );
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Reports…" }).click();
+  const dialog = page.locator(".reports-dialog");
+  await dialog.getByLabel("Report type", { exact: true }).selectOption("forecast");
+  await dialog.getByLabel("As-of date", { exact: true }).fill("2026-10-08");
+  const body = page.frameLocator('iframe[title="Exported email preview"]').locator("body");
+  await expect(body).toContainText("Project projected finish: 2026-10-10");
+  await expect(body).toContainText("3 working days (automatic)");
+  await expect(body.locator("strong").filter({ hasText: "Forecast past planned finish" })).toBeVisible();
+  await dialog.getByLabel("Include plan and forecast chart", { exact: true }).check();
+  await expect(dialog.getByRole("button", { name: "Copy chart 1", exact: true })).toBeVisible();
+  await expect(body.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(body).toContainText("Plan and forecast · panel 1");
+});
+
+test("expanded reports preserve uncertainty and require explicit history capture", async ({ page }) => {
+  await prepareEditor(page);
+  await fillSource(
+    page,
+    "@startgantt\nProject starts 2026-10-01\n[API] as [api] on {Alice} starts 2026-10-01\n[api] ends 2026-10-07\n[api] is 60% completed\n[Docs] as [docs] on {Alice} starts 2026-10-08\n[docs] ends 2026-10-12\n@endgantt",
+  );
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Reports…" }).click();
+  const dialog = page.locator(".reports-dialog");
+  await dialog.getByLabel("As-of date", { exact: true }).fill("2026-10-08");
+  await dialog.getByLabel("Report type", { exact: true }).selectOption("progress");
+  const body = page.frameLocator('iframe[title="Exported email preview"]').locator("body");
+  await expect(body).toContainText("0.4 known remaining + up to 1 unknown");
+  await dialog.getByLabel("Report type", { exact: true }).selectOption("history");
+  await expect(body).toContainText("at least two comparable explicit observations");
+  await dialog.getByRole("button", { name: "Record progress snapshot" }).click();
+  await expect(dialog.getByRole("button", { name: "Refresh report" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Refresh report" }).click();
+  await expect(dialog.getByLabel("Baseline reference segment").locator("option")).toHaveCount(1);
+  await expect(body).toContainText("at least two comparable explicit observations");
+});
+
 test("report wording persists and Swedish dates appear in the exported preview", async ({ page }) => {
   await prepareEditor(page);
   await fillSource(
