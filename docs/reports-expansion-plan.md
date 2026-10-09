@@ -16,40 +16,40 @@ The recommended first expansion is **Critical path**, **Progress and due-date ou
 
 ### Should have: core reports
 
-| Report | Main question and audience | Suggested contents | Data/readiness |
-| --- | --- | --- | --- |
-| Task check-in | “Are your tasks on track?” — individual assignees | Assigned tasks, recorded completion, planned dates, reply prompts, optional personal Gantt. | Already planned separately; foundation for the report system. |
-| Critical path and schedule sensitivity | “Which tasks determine the finish date?” — project lead | Critical tasks, dependency chains, total/free slack, near-critical tasks, owners, unresolved analysis issues. | Existing schedule-analysis engine; validate its coverage and present limitations. |
-| Progress and due-date outlook | “How much work remains, and when is it due?” — project lead/team | Completion-weighted remaining work, overdue remainder, upcoming due buckets, planned remaining-work curve, current observation. | Current task completion and resolved end dates suffice; history is not required. |
-| Historical burndown and burnup | “Are we reducing remaining work over time?” — project lead/stakeholders | Recorded remaining-work trend, planned reference, completed-work and scope lines, scope-change events. | Requires comparable dated observations; cannot reconstruct actual history from today's completion alone. |
-| Milestone and delivery outlook | “Which commitments need attention?” — stakeholders | Upcoming/past milestones, planned and optional forecast dates, contributing tasks, unresolved dependencies. | Current schedule; forecast can reuse existing forecast engine. |
-| Changes since baseline | “What changed since the agreed plan?” — project lead/sponsor | Added/removed tasks, shifted dates, changed dependencies, completion deltas, scope changes, finish-date change. | Existing baseline/change calculations; identity matching must be trustworthy. |
-| Resource workload and assignment coverage | “Who is overloaded or missing work assignments?” — coordinator | Allocation versus configured capacity, conflict periods, affected tasks, unassigned work, unknown schedules. | Existing workload calculations; capacity assumptions must be visible. |
+| Report                                    | Main question and audience                                              | Suggested contents                                                                                                              | Data/readiness                                                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Task check-in                             | “Are your tasks on track?” — individual assignees                       | Assigned tasks, recorded completion, planned dates, reply prompts, optional personal Gantt.                                     | Already planned separately; foundation for the report system.                                            |
+| Critical path and schedule sensitivity    | “Which tasks determine the finish date?” — project lead                 | Critical tasks, dependency chains, total/free slack, near-critical tasks, owners, unresolved analysis issues.                   | Existing schedule-analysis engine; validate its coverage and present limitations.                        |
+| Progress and due-date outlook             | “How much work remains, and when is it due?” — project lead/team        | Completion-weighted remaining work, overdue remainder, upcoming due buckets, planned remaining-work curve, current observation. | Current task completion and resolved end dates suffice; history is not required.                         |
+| Historical burndown and burnup            | “Are we reducing remaining work over time?” — project lead/stakeholders | Recorded remaining-work trend, planned reference, completed-work and scope lines, scope-change events.                          | Requires comparable dated observations; cannot reconstruct actual history from today's completion alone. |
+| Milestone and delivery outlook            | “Which commitments need attention?” — stakeholders                      | Upcoming/past milestones, planned and optional forecast dates, contributing tasks, unresolved dependencies.                     | Current schedule; forecast can reuse existing forecast engine.                                           |
+| Changes since baseline                    | “What changed since the agreed plan?” — project lead/sponsor            | Added/removed tasks, shifted dates, changed dependencies, completion deltas, scope changes, finish-date change.                 | Existing baseline/change calculations; identity matching must be trustworthy.                            |
+| Resource workload and assignment coverage | “Who is overloaded or missing work assignments?” — coordinator          | Allocation versus configured capacity, conflict periods, affected tasks, unassigned work, unknown schedules.                    | Existing workload calculations; capacity assumptions must be visible.                                    |
 
 ### Could have: useful second wave
 
-| Report | Value | Additional requirements |
-| --- | --- | --- |
-| Weekly project digest | One short stakeholder email: newly recorded completions, next due tasks, schedule changes, decisions needed. | Compare two snapshots; distinguish “first recorded complete” from actual completion date. |
-| Next 7/14/30 days | Operational lookahead grouped by person or due date, including overdue carry-over. | Mostly a preset over current data; do not build another independent calculation engine. |
-| Forecast versus plan | Planned versus projected finish, affected milestones, delay causes, remaining-duration assumptions. | Reuse current forecast engine; disclose missing progress and manual estimates. |
-| Dependency handoffs | Cross-person/team handoffs coming due and the receiving tasks they affect. | Reliable assignments and dependencies; shared assignments do not imply a single accountable owner. |
-| Schedule data quality | Missing completion, unresolved dates, cycles, unsupported analysis, unassigned work, ambiguous task identity. | Reuse diagnostics and report data-quality flags; link to actionable source locations. |
-| WBS delivery coverage | WBS items without linked Gantt work, unmatched tasks, and link inconsistencies. | Reuse existing WBS/Gantt link checks; do not count linked representations as separate work. |
-| Scenario comparison | Compare delivery alternatives by finish date, changed tasks, and resource conflicts. | Connect to Scenario Lab; label hypothetical results separately from the current plan. |
+| Report                | Value                                                                                                         | Additional requirements                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Weekly project digest | One short stakeholder email: newly recorded completions, next due tasks, schedule changes, decisions needed.  | Compare two snapshots; distinguish “first recorded complete” from actual completion date.          |
+| Next 7/14/30 days     | Operational lookahead grouped by person or due date, including overdue carry-over.                            | Mostly a preset over current data; do not build another independent calculation engine.            |
+| Forecast versus plan  | Planned versus projected finish, affected milestones, delay causes, remaining-duration assumptions.           | Reuse current forecast engine; disclose missing progress and manual estimates.                     |
+| Dependency handoffs   | Cross-person/team handoffs coming due and the receiving tasks they affect.                                    | Reliable assignments and dependencies; shared assignments do not imply a single accountable owner. |
+| Schedule data quality | Missing completion, unresolved dates, cycles, unsupported analysis, unassigned work, ambiguous task identity. | Reuse diagnostics and report data-quality flags; link to actionable source locations.              |
+| WBS delivery coverage | WBS items without linked Gantt work, unmatched tasks, and link inconsistencies.                               | Reuse existing WBS/Gantt link checks; do not count linked representations as separate work.        |
+| Scenario comparison   | Compare delivery alternatives by finish date, changed tasks, and resource conflicts.                          | Connect to Scenario Lab; label hypothetical results separately from the current plan.              |
 
 ### Nice to have: later, when the supporting data exists
 
-| Idea | Why it could be useful | Gate before implementation |
-| --- | --- | --- |
-| Milestone trend chart | Show successive forecasts of the same milestone to reveal repeated slippage. | Dated snapshots with stable milestone identity. |
-| Multi-project overview | Compare delivery outlook and attention items across documents. | Explicit project selection, identity isolation, compatible metrics, and shared-resource rules. |
-| Check-in response coverage | Show requested, answered, and overdue confirmations. | Actual request/reply records; clipboard copying is not evidence that an email was sent. |
-| Risk and blocker register | Summarize reported blockers, owners, impact, and actions. | Structured user-entered blocker/risk data; notes or low completion are not enough to infer blockers. |
-| Report packs and saved presets | Reuse a weekly combination of summary, burndown, critical path, and workload. | Stable report schemas, versioned presets, and stale-filter detection. |
-| Scheduled generation or delivery | Reduce repeated preparation of recurring reports. | Separate automation design, explicit sending authorization, and a runtime that actually runs when the app is closed. |
-| Cost/earned-value reporting | Support budget tracking and cost variance. | Explicit effort, cost, and baseline-budget models; duration and completion alone are insufficient. |
-| Narrative summary | Offer a concise draft explanation of measured changes. | Every statement grounded in report data, editable before export; do not invent causes or commitments. |
+| Idea                             | Why it could be useful                                                        | Gate before implementation                                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Milestone trend chart            | Show successive forecasts of the same milestone to reveal repeated slippage.  | Dated snapshots with stable milestone identity.                                                                      |
+| Multi-project overview           | Compare delivery outlook and attention items across documents.                | Explicit project selection, identity isolation, compatible metrics, and shared-resource rules.                       |
+| Check-in response coverage       | Show requested, answered, and overdue confirmations.                          | Actual request/reply records; clipboard copying is not evidence that an email was sent.                              |
+| Risk and blocker register        | Summarize reported blockers, owners, impact, and actions.                     | Structured user-entered blocker/risk data; notes or low completion are not enough to infer blockers.                 |
+| Report packs and saved presets   | Reuse a weekly combination of summary, burndown, critical path, and workload. | Stable report schemas, versioned presets, and stale-filter detection.                                                |
+| Scheduled generation or delivery | Reduce repeated preparation of recurring reports.                             | Separate automation design, explicit sending authorization, and a runtime that actually runs when the app is closed. |
+| Cost/earned-value reporting      | Support budget tracking and cost variance.                                    | Explicit effort, cost, and baseline-budget models; duration and completion alone are insufficient.                   |
+| Narrative summary                | Offer a concise draft explanation of measured changes.                        | Every statement grounded in report data, editable before export; do not invent causes or commitments.                |
 
 Avoid turning the first release into a dashboard catalogue. Ship a few complete reports with clear questions, useful exports, and reliable calculations.
 
@@ -103,11 +103,11 @@ The planned end-date curve is a **staircase**: a task's full planned weight leav
 
 Example with equal task weights as of the end of 8 Oct 2026:
 
-| Task | Completion | Planned finish | Remaining contribution |
-| --- | --- | --- | --- |
-| API | 60% | 7 Oct | 0.4 task equivalents, past due |
-| Tests | 25% | 10 Oct | 0.75 task equivalents |
-| Docs | Not reported | 12 Oct | 0–1 task equivalents, unknown |
+| Task  | Completion   | Planned finish | Remaining contribution         |
+| ----- | ------------ | -------------- | ------------------------------ |
+| API   | 60%          | 7 Oct          | 0.4 task equivalents, past due |
+| Tests | 25%          | 10 Oct         | 0.75 task equivalents          |
+| Docs  | Not reported | 12 Oct         | 0–1 task equivalents, unknown  |
 
 Show **1.15 known remaining + up to 1 unknown**, not a precise 2.15 actual value. For this three-task scope, planned remaining at the end of 8 Oct is 2.0. Only a current observation exists; do not draw a historical actual line through earlier dates.
 
@@ -207,13 +207,13 @@ Extend the planned report modules with pure metric builders and shared chart ren
 
 ## 7. Recommended delivery order
 
-| Phase | Deliverables | Why this order / exit criterion |
-| --- | --- | --- |
-| 1. Shared report foundation | Existing Task check-in plan, HTML/text output, optional Gantt images, common scope and data warnings. | Establish one reliable create/preview/export workflow. |
-| 2. Immediate schedule insight | Critical path, Progress and due-date outlook, Milestone outlook; begin explicit reporting snapshots. | Useful with current data; start collecting evidence for future trends. |
-| 3. Historical progress | Versioned snapshot persistence, fixed/dynamic scope rules, Burndown and Burnup. | Ship only after snapshot round-trip, task identity, unknown progress, and scope-event tests pass. |
-| 4. Planning control | Baseline changes, Resource workload, Weekly digest, Lookahead, Data quality. | Reuse validated calculations and compose existing report sections. Data-quality warnings themselves must already exist in earlier phases. |
-| 5. Optional expansion | Forecast comparison, handoffs, WBS coverage, scenarios, saved packs; then portfolio/automation if needed. | Prioritize by actual use; avoid adding data models solely for speculative charts. |
+| Phase                         | Deliverables                                                                                              | Why this order / exit criterion                                                                                                           |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Shared report foundation   | Existing Task check-in plan, HTML/text output, optional Gantt images, common scope and data warnings.     | Establish one reliable create/preview/export workflow.                                                                                    |
+| 2. Immediate schedule insight | Critical path, Progress and due-date outlook, Milestone outlook; begin explicit reporting snapshots.      | Useful with current data; start collecting evidence for future trends.                                                                    |
+| 3. Historical progress        | Versioned snapshot persistence, fixed/dynamic scope rules, Burndown and Burnup.                           | Ship only after snapshot round-trip, task identity, unknown progress, and scope-event tests pass.                                         |
+| 4. Planning control           | Baseline changes, Resource workload, Weekly digest, Lookahead, Data quality.                              | Reuse validated calculations and compose existing report sections. Data-quality warnings themselves must already exist in earlier phases. |
+| 5. Optional expansion         | Forecast comparison, handoffs, WBS coverage, scenarios, saved packs; then portfolio/automation if needed. | Prioritize by actual use; avoid adding data models solely for speculative charts.                                                         |
 
 Critical path and current progress outlook are medium-sized integrations if their calculations are reused. Historical burndown is a larger feature because trustworthy history, identity, and scope accounting matter more than drawing a line chart. Cost, response tracking, and cross-project reports are separate investments.
 
