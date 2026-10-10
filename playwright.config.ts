@@ -9,8 +9,8 @@ export default defineConfig({
   // Stop a shard with widespread failures rather than spending its full timeout retrying them.
   maxFailures: process.env.CI ? 10 : 0,
   fullyParallel: Boolean(process.env.CI),
-  // Keep renderer-heavy contexts serial within each shard to avoid Firefox process crashes.
-  workers: 1,
+  // Chromium and WebKit can share the runner; Firefox is limited per project below.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:5173",
@@ -20,7 +20,7 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "firefox", workers: 1, use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {

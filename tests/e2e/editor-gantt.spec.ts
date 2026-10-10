@@ -72,13 +72,9 @@ test("creates diagram dependencies with a hand-drawn PlantUML theme", async ({ p
   );
   await page.locator('[data-task-id="a"] .bar').click();
   await waitForDiagramRender(page);
-  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
-  const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
-  expect(handle).not.toBeNull();
-  expect(target).not.toBeNull();
-  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').hover();
   await page.mouse.down();
-  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
+  await page.locator('[data-task-id="b"] .bar').hover();
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("[B] starts at [A]'s end");
 });
@@ -1469,7 +1465,11 @@ test("connects a later default task to an earlier task without breaking PlantUML
 });
 
 test("migrates dependencies in every persisted open Gantt tab on reload", async ({ page }) => {
-  await page.waitForTimeout(500);
+  // Seed storage with the app unmounted so an autosave cannot overwrite the fixture.
+  await page.route("**/__migration_fixture", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Migration fixture</title>" }),
+  );
+  await page.goto("/__migration_fixture");
   await page.evaluate(async () => {
     // This fixture deliberately seeds the older IndexedDB workspace format. Remove the
     // shared and per-window recovery snapshots so they cannot take precedence.
@@ -1523,7 +1523,7 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
     database.close();
   });
 
-  await page.reload();
+  await page.goto("/");
   await expect(page.locator('.document-tabs > button[title*="File: first.puml"]')).toBeVisible();
   await expect(page.locator('.document-tabs > button[title*="File: second.puml"]')).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
@@ -1728,13 +1728,9 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
 
   await page.locator('[data-task-id="a"] .bar').click();
   await waitForDiagramRender(page);
-  const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
-  const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
-  expect(handle).not.toBeNull();
-  expect(target).not.toBeNull();
-  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').hover();
   await page.mouse.down();
-  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 6 });
+  await page.locator('[data-task-id="b"] .bar').hover();
   await page.mouse.up();
 
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
