@@ -96,6 +96,7 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
     .click();
   await setSource(page, '@startuml\npartition "Operations" {\n:Receive order;\n:Review order;\n}\n@enduml');
 
+  await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   await expect(page.getByRole("complementary", { name: "Activity partition inspector" })).toBeVisible();
   await page.getByRole("button", { name: "Select action Review order" }).click();
@@ -120,6 +121,7 @@ test("reorders actions with a preview and creates a structured transition by dra
   expect(firstBox).not.toBeNull();
   await page.mouse.move(thirdBox!.x + thirdBox!.width / 2, thirdBox!.y + thirdBox!.height / 2);
   await page.mouse.down();
+  await expect(page.locator(".activity-dragging-move")).toHaveCount(1);
   await page.mouse.move(firstBox!.x + firstBox!.width / 2, firstBox!.y + firstBox!.height / 4, { steps: 8 });
   await expect(page.locator(".activity-drag-preview")).toContainText("Place before First");
   await expect(page.locator(".activity-placement-preview")).toBeVisible();
@@ -178,6 +180,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await partition.getByLabel("Color", { exact: true }).fill("Lavender");
   await partition.getByRole("button", { name: "Add partition" }).click();
   await expect(page.locator(".cm-content")).toContainText('partition "Operations" #Lavender');
+  await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   const partitionInspector = page.getByRole("complementary", { name: "Activity partition inspector" });
   await partitionInspector.getByLabel("Name").fill("Operations team");

@@ -1,17 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 
-test("default Diagram mode exposes source without Settings", async ({ page }, testInfo) => {
+test("Diagram mode exposes source without Settings", async ({ page }, testInfo) => {
   await page.goto("/");
-  const welcome = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
-  await expect(welcome.getByRole("radio", { name: "Diagram only", exact: true })).toBeChecked();
-  await welcome.getByRole("button", { name: "Get started" }).click();
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
   const modes = page.getByRole("navigation", { name: "View mode" });
   await expect(modes.getByRole("button")).toHaveText(["Code", "Split", "Diagram"]);
+  await modes.getByRole("button", { name: "Diagram", exact: true }).click();
   await expect(modes.getByRole("button", { name: "Diagram", exact: true })).toHaveAttribute("aria-pressed", "true");
   await modes.getByRole("button", { name: "Code", exact: true }).click();
   await expect(page.locator(".cm-content")).toBeVisible();

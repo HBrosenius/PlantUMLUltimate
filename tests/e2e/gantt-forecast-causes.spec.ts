@@ -115,8 +115,7 @@ test("changes and restores the document forecast time zone", async ({ page }) =>
   await page.reload();
   await expect(page.locator(".gantt-forecast-summary")).toContainText("Today in Pacific/Kiritimati");
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  await expect(chooser).toBeVisible();
-  await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect(chooser).not.toBeVisible();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Document settings…" }).click();
   await expect(

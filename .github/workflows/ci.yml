@@ -36,7 +36,8 @@ jobs:
     uses: ./.github/workflows/deploy-pages.yml
 
   browser:
-    # This job installs its own dependencies; run alongside validation.
+    # Avoid the browser matrix when lint, formatting, tests or builds already fail.
+    needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Match package-lock.json; browsers and OS dependencies are preinstalled.

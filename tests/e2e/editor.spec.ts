@@ -177,11 +177,12 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   const file = page.getByRole("button", { name: "File" });
   await file.click();
   const menu = page.getByRole("menu", { name: "File" });
-  await expect(menu.getByRole("menuitem")).toHaveText([
+  await expect(menu.getByRole("menuitem").filter({ hasNotText: /^Document:/ })).toHaveText([
     "New›",
     "Open›",
     "SaveCtrl/Cmd+S",
     "Save as…",
+    "Save as starter…",
     "Version history…",
     "Document settings…",
     "Workspace backup…",
@@ -191,6 +192,8 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await menu.getByRole("menuitem", { name: "Export" }).hover();
   const exportMenu = page.getByRole("menu", { name: "Export" });
   await expect(exportMenu.getByRole("menuitem")).toHaveText([
+    "Preview export…",
+    "Link and embed…",
     "Source",
     "SVG",
     "PNG",
@@ -266,7 +269,7 @@ test("creates, compares, and restores durable document versions", async ({ page 
 
   await page.reload();
   await expect(page.locator(".cm-content")).toBeVisible();
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog", { name: "Choose a diagram type" })).toBeHidden();
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(dialog.getByRole("button", { name: "Select version First draft" })).toBeVisible();
@@ -445,7 +448,7 @@ test("retains version history after Save As", async ({ page }) => {
 
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Save as…" }).click();
-  await expect(page.locator(".document-tabs > button.active")).toContainText("forked-plan.pumlu");
+  await expect(page.locator(".document-tabs > button.active")).toHaveAttribute("title", /File: forked-plan.pumlu/);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(history.getByRole("button", { name: "Select version Saved portable document" })).toBeVisible();
@@ -472,7 +475,10 @@ test("backs up and restores all open documents", async ({ page }) => {
   await history.getByRole("button", { name: "Create version" }).click();
   await history.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "New diagram tab" }).click();
-  await page.getByRole("button", { name: "Gantt diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Gantt diagram", exact: true })
+    .click();
   await setSource(page, source("[Second tab] lasts 3 days"));
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File" }).click();

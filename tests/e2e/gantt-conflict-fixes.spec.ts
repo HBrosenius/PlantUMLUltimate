@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor } from "./editor-helpers";
+import { fillSource, prepareEditor, setSource } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => prepareEditor(page));
 
@@ -107,7 +107,7 @@ test("shows a selectable critical chain through a linked milestone", async ({ pa
 });
 
 test("shows dates and slack for every task and highlights critical tasks", async ({ page }) => {
-  await fillSource(
+  await setSource(
     page,
     [
       "@startgantt",
@@ -152,6 +152,7 @@ test("shows dates and slack for every task and highlights critical tasks", async
   await backend.getByText("Slack limits", { exact: true }).click();
   await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-14");
   await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-13");
+  await report.locator(":scope > summary").click();
   await page.locator('.diagram [data-task-id="backend"] .bar').hover();
   const hover = page.getByLabel("Task details for Backend");
   await expect(
@@ -219,7 +220,7 @@ test("sorts the schedule by slack and dates with stable ties and restores source
 });
 
 test("selects and reveals an offscreen task from the sorted schedule table", async ({ page }) => {
-  await fillSource(
+  await setSource(
     page,
     "@startgantt\nProject starts 2026-09-21\nprintscale daily\n[Early] starts 2026-09-21 and lasts 2 days\n[Late] starts 2026-12-21 and lasts 2 days\n@endgantt",
   );

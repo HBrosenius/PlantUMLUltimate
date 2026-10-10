@@ -618,9 +618,7 @@ textarea:focus-visible {
   box-shadow: inset 0 -2px var(--accent);
 }
 .workspace-hint {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: contents;
   color: var(--muted);
   font-size: 12px;
 }
@@ -7500,18 +7498,16 @@ polygon.diagram-bulk-selected {
 }
 
 .workspace-hint-content {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 10;
+  position: static;
+  flex: 1 0 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: flex-start;
-  width: min(340px, calc(100vw - 32px));
-  padding: 12px;
+  width: 100%;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
-  box-shadow: 0 7px 22px rgb(0 0 0 / 24%);
   white-space: normal;
 }
 
@@ -8665,4 +8661,23 @@ polygon.diagram-bulk-selected {
 }
 .mobile-properties-sheet footer {
   flex-wrap: wrap;
+}
+
+/* Keep preview controls in layout so wrapped tools cannot cover diagram hit targets. */
+:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) {
+  display: flex;
+  flex-direction: column;
+}
+:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) > .preview-tools {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  margin: 8px;
+  max-width: none;
+}
+:is(.class-preview, .usecase-preview, .wbs-preview, .activity-preview, .sequence-preview) > .preview-viewport {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  padding-top: 24px;
 }

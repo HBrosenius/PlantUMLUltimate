@@ -202,8 +202,8 @@ export function UseCaseDiagramPreview({
       if (drag.current) cancelActiveDrag();
       setKeyboardConnectFrom(undefined);
     };
-    window.addEventListener("keydown", cancel);
-    return () => window.removeEventListener("keydown", cancel);
+    window.addEventListener("keydown", cancel, true);
+    return () => window.removeEventListener("keydown", cancel, true);
   });
 
   const select = (event: MouseEvent<HTMLDivElement>) => {
@@ -382,7 +382,12 @@ export function UseCaseDiagramPreview({
   };
 
   return (
-    <section className="preview" aria-label="Use Case diagram preview" data-render-status={renderStatus}>
+    <section
+      className="preview usecase-preview"
+      aria-label="Use Case diagram preview"
+      data-render-status={renderStatus}
+      data-keyboard-connecting={Boolean(keyboardConnectFrom)}
+    >
       <div className="preview-tools">
         {onInlineRename && (
           <button

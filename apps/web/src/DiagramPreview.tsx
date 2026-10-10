@@ -621,8 +621,19 @@ export function DiagramPreview({
   };
   useEffect(() => {
     if (!selectedTaskId) return;
-    const timer = window.setTimeout(() => revealTask(selectedTaskId), 0);
-    return () => window.clearTimeout(timer);
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      // Wait for layout to start the zoom transition before observing its completion.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      if (cancelled) return;
+      const diagram = previewRef.current?.querySelector(".diagram");
+      await Promise.all((diagram?.getAnimations() ?? []).map((animation) => animation.finished.catch(() => undefined)));
+      if (!cancelled) revealTask(selectedTaskId);
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [revealTask, selectedTaskId, interactiveSvg, zoom]);
   useEffect(() => {
     if (selectedTaskId) setHoveredTask(undefined);
@@ -1745,7 +1756,8 @@ export function DiagramPreview({
                             <th>
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={(event) => {
+                                  event.stopPropagation();
                                   onTaskSelect(id);
                                   revealTask(id);
                                 }}

@@ -26,10 +26,6 @@ const session = {
 };
 async function open(page: Page) {
   await page.goto("/");
-  await page
-    .getByRole("dialog", { name: "Choose a diagram type" })
-    .getByRole("button", { name: "Cancel", exact: true })
-    .click();
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 test.beforeEach(async ({ context }) => {
@@ -81,10 +77,6 @@ test("reloading one window restores its own session", async ({ page, context }) 
   await other.locator(".cm-content").fill(source("OTHER"));
   await expect.poll(() => other.evaluate((key) => localStorage.getItem(key), key)).toContain("OTHER");
   await page.reload();
-  await page
-    .getByRole("dialog", { name: "Choose a diagram type" })
-    .getByRole("button", { name: "Cancel", exact: true })
-    .click();
   await expect(page.locator(".cm-content")).toContainText("[A]");
   await expect(page.locator(".cm-content")).not.toContainText("OTHER");
 });

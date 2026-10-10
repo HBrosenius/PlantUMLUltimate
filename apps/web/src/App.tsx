@@ -4489,6 +4489,12 @@ export function App() {
               setProblemPreview(undefined);
               setProblemsOpen(true);
             }}
+            onCloseRepairWorkspace={() => {
+              setProblemsOpen(false);
+              setUnsupportedOpen(false);
+              setProblemPreview(undefined);
+              requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".problem-count")?.focus());
+            }}
             repairRequest={repairRequest}
             onRepairRequestHandled={() => setRepairRequest(undefined)}
             symbolHighlights={symbolHighlights}
@@ -4523,6 +4529,8 @@ export function App() {
             onCursorChange={(line, column, position, anchor, head, sourceChanged) => {
               update("cursor", { line, column });
               if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
+              // Cursor navigation in a utility panel must not replace it with object properties.
+              if (problemsOpen || unsupportedOpen || projectInspectorOpen || resourcePanelOpen) return;
               if (workspace.diagramKind === "gantt") {
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
@@ -6048,7 +6056,10 @@ export function App() {
         onVerticalSeparatorApply={applyVerticalSeparatorInspector}
         onVerticalSeparatorDelete={deleteSelectedVerticalSeparator}
         onLegendApply={applyLegendInspector}
-        onCloseTask={() => setSelectedTaskId(undefined)}
+        onCloseTask={() => {
+          setSelectedTaskId(undefined);
+          restorePreviousFocus();
+        }}
         onCloseDependency={() => setSelectedDependencyIndex(undefined)}
         onCloseDivider={() => setSelectedDividerIndex(undefined)}
         onCloseVerticalSeparator={() => setSelectedVerticalSeparatorIndex(undefined)}

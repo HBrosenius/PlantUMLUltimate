@@ -5,6 +5,10 @@ test("keeps both toolbars usable across desktop and phone layouts", async ({ pag
   await prepareEditor(page);
   for (const width of [1280, 1024, 768, 390]) {
     await page.setViewportSize({ width, height: 800 });
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Diagram", exact: true })
+      .click();
     for (const toolbar of await page.locator(".toolbar").all()) {
       expect(await toolbar.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     }
@@ -74,6 +78,8 @@ test("opens secondary actions by keyboard and restores the trigger on Escape", a
   await more.focus();
   await more.press("ArrowDown");
   const menu = page.getByRole("menu", { name: "More", exact: true });
+  await expect(menu.getByRole("menuitem", { name: "Presentation & local review…" })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Settings…" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Help" })).toBeFocused();

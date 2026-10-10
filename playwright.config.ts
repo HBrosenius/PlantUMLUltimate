@@ -5,9 +5,12 @@ export default defineConfig({
   testIgnore: ["collaboration-live.spec.ts", "**/deployed/**"],
   timeout: process.env.CI ? 75_000 : 30_000,
   expect: { timeout: process.env.CI ? 25_000 : 8_000 },
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
+  // Stop a shard with widespread failures rather than spending its full timeout retrying them.
+  maxFailures: process.env.CI ? 10 : 0,
   fullyParallel: Boolean(process.env.CI),
-  workers: 1,
+  // GitHub-hosted runners can exercise two isolated browser contexts concurrently.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:5173",

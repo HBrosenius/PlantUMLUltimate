@@ -59,7 +59,7 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await expect(navigator.locator(".project-save-status")).toHaveText("Saved");
   page.once("dialog", (dialog) => void dialog.accept());
-  await page.getByRole("button", { name: "Close Architecture", exact: true }).click();
+  await page.getByRole("button", { name: "Close Architecture in Original plan", exact: true }).click();
   await navigator.getByRole("button", { name: "Rename Architecture", exact: true }).click();
   const rename = page.getByRole("dialog", { name: "Rename diagram" });
   await rename.getByRole("textbox", { name: "Name" }).fill("Architecture revised");
@@ -75,7 +75,9 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await navigator.getByRole("button", { name: "Close document", exact: true }).click();
   await expect(guard).toContainText("Original plan");
   await guard.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(navigator.getByText("Architecture revised", { exact: true })).toBeVisible();
+  await expect(
+    navigator.getByRole("button", { name: "Inspect diagram Architecture revised", exact: true }),
+  ).toBeVisible();
   await create("Replacement plan");
   await guard.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(navigator.getByText("Original plan", { exact: true })).toBeVisible();
@@ -103,7 +105,9 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await open();
   await guard.getByRole("button", { name: "Discard changes" }).click();
   await expect(navigator.getByText("Original plan", { exact: true })).toBeVisible();
-  await expect(navigator.getByText("Architecture revised", { exact: true })).toBeVisible();
+  await expect(
+    navigator.getByRole("button", { name: "Inspect diagram Architecture revised", exact: true }),
+  ).toBeVisible();
   await navigator.getByRole("button", { name: "Close document", exact: true }).click();
   await expect(guard).toHaveCount(0);
   await expect(navigator).toHaveCount(0);

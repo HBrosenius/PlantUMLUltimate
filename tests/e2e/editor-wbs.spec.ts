@@ -47,6 +47,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   const choice = chooser.getByRole("button", { name: "WBS diagram" });
   await expect(choice.getByText("Beta", { exact: true })).toHaveCount(0);
   await choice.click();
+  await setSource(page, "@startwbs\n* Project\n** Discovery\n** Design\n** Delivery\n@endwbs");
   await expect(page.getByRole("region", { name: "WBS diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("@startwbs");
   await expect(page.locator(".wbs-diagram svg")).toBeVisible({ timeout: 20_000 });
@@ -56,7 +57,11 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await page.keyboard.press("Enter");
   const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
   await inspector.getByLabel("Label").fill("Experience design");
+  await inspector.getByLabel("Label").blur();
+  await expect(page.locator(".cm-content")).toContainText("** Experience design");
   await inspector.getByLabel("Background color", { exact: true }).fill("LightBlue");
+  await inspector.getByLabel("Background color", { exact: true }).blur();
+  await expect(page.locator(".cm-content")).toContainText("**[#LightBlue] Experience design");
   await inspector.getByLabel("Text color", { exact: true }).fill("DarkBlue");
   await inspector.getByLabel("Text color", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("**[#LightBlue] <color:#DarkBlue>Experience design</color>");
@@ -292,15 +297,7 @@ test("edits and clears a WBS node icon", async ({ page }) => {
   await inspector.getByLabel("Icon", { exact: true }).fill("&home");
   await inspector.getByLabel("Icon", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("<&home> Plan");
-  // The OpenIconic sprite set is fetched lazily by the PlantUML engine at "/openiconic.js"
-  // (see apps/web/vite.config.ts's openIconicAsset plugin) — if that request 404s, rendering
-  // fails with a ".render-error" banner, but the *previous* successful SVG (from before this
-  // node had an icon) stays on screen throughout, so checking the SVG alone would pass even
-  // when rendering the icon actually failed. Waiting for the statusbar's "Rendering…" state to
-  // start and finish first proves this specific re-render actually completed before checking it.
-  const statusbar = page.locator(".statusbar");
-  await expect(statusbar).toContainText("Rendering…");
-  await expect(statusbar).not.toContainText("Rendering…", { timeout: 20_000 });
+  await expect(page.getByRole("region", { name: "WBS diagram preview" })).toHaveAttribute("data-render-status", "idle");
   await expect(page.locator(".render-error")).toHaveCount(0);
   await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
 

@@ -147,7 +147,13 @@ export function InspectorPanel({
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (!closeOnOutsideEscape && !element.contains(event.target as Node)) return;
       // Modal dialogs, menus, and field popovers get first use of Escape.
-      if (sidePanelOverlayOpen()) return;
+      if (
+        sidePanelOverlayOpen() ||
+        document.querySelector(
+          '.usecase-dragging-connection, .usecase-dragging-move, [data-keyboard-connecting="true"]',
+        )
+      )
+        return;
       const close =
         element.querySelector<HTMLButtonElement>('header button[aria-label^="Close"]') ??
         [...element.querySelectorAll<HTMLButtonElement>(".inspector-actions button")].find(
@@ -175,7 +181,14 @@ export function InspectorPanel({
       if (target instanceof Element && target.closest("button")?.textContent?.trim() === "Apply") submitted();
     };
     const guardShortcut = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && sidePanelOverlayOpen()) return;
+      if (
+        event.key === "Escape" &&
+        (sidePanelOverlayOpen() ||
+          document.querySelector(
+            '.usecase-dragging-connection, .usecase-dragging-move, [data-keyboard-connecting="true"]',
+          ))
+      )
+        return;
       const target = event.target as Element | null;
       const outside = !element.contains(target);
       const closes =

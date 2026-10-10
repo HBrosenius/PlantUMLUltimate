@@ -63,13 +63,14 @@ export function ProblemsPanel({
         const replacement = [...document.querySelectorAll<HTMLElement>(".task-inspector")].some(
           (item) => !item.hidden && item.style.display !== "none",
         );
-        if (
-          !replacement &&
-          previousFocus instanceof HTMLElement &&
-          previousFocus.isConnected &&
-          (element.contains(document.activeElement) || document.activeElement === document.body)
-        )
-          previousFocus.focus({ preventScroll: true });
+        if (!replacement && (element.contains(document.activeElement) || document.activeElement === document.body)) {
+          const previousVisible =
+            previousFocus instanceof HTMLElement && previousFocus.isConnected && previousFocus.getClientRects().length;
+          const target = previousVisible
+            ? previousFocus
+            : document.querySelector<HTMLElement>(".cm-content, .problem-count");
+          target?.focus({ preventScroll: true });
+        }
       });
     };
   }, [open]);

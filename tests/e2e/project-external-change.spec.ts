@@ -80,6 +80,6 @@ test("refuses to overwrite a project file changed elsewhere", async ({ page }) =
   await expect(navigator.getByText("Unsaved changes", { exact: true })).toBeVisible();
   await expect(navigator.getByText("Saved", { exact: true })).toHaveCount(0);
   for (const name of ["Architecture", "Deployment", "Operations"]) {
-    await expect(navigator.getByText(name, { exact: true })).toBeVisible();
+    await expect(navigator.getByRole("button", { name: `Inspect diagram ${name}`, exact: true })).toBeVisible();
   }
 });

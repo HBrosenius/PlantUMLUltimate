@@ -30,7 +30,10 @@ test("Help shortcuts and command labels wrap without collisions", async ({ page 
         .map((row) => row.textContent),
     );
     expect(collisions).toEqual([]);
-    await help.getByRole("heading", { name: "Keyboard shortcuts" }).scrollIntoViewIfNeeded();
+    await help
+      .getByRole("region", { name: "General help", exact: true })
+      .getByRole("heading", { name: "Keyboard shortcuts" })
+      .scrollIntoViewIfNeeded();
     if (testInfo.project.name === "chromium")
       await help.screenshot({ path: testInfo.outputPath(`help-${viewport.width}.png`) });
     await help.getByRole("button", { name: "Close Help" }).click();

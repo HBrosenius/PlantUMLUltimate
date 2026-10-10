@@ -237,7 +237,6 @@ async function dismissHover() {
 }
 const bar = (id) => page.locator(`[data-task-id="${id}"]`).first();
 const dialog = page.locator(".reports-dialog");
-const emailBody = page.frameLocator('iframe[title="Exported email preview"]').locator("body");
 const previewRecipient = dialog.getByLabel("Preview recipient");
 async function chooseRecipient(name) {
   const value = await previewRecipient.locator("option").filter({ hasText: name }).first().getAttribute("value");

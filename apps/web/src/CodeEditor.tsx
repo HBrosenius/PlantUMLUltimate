@@ -51,6 +51,7 @@ interface Props {
   repairHost?: HTMLElement | null;
   repairWorkspaceOpen?: boolean;
   onOpenRepairWorkspace?: () => void;
+  onCloseRepairWorkspace?: () => void;
   onFilterRepairCategory?: (category: RepairCategory) => void;
   repairCategoryFilter?: RepairCategory | undefined;
   onRepairRequestHandled?: (() => void) | undefined;
@@ -243,6 +244,7 @@ export function CodeEditor({
   repairHost,
   repairWorkspaceOpen,
   onOpenRepairWorkspace,
+  onCloseRepairWorkspace,
   onFilterRepairCategory,
   repairCategoryFilter,
   onRepairRequestHandled,
@@ -964,7 +966,8 @@ export function CodeEditor({
           event.stopPropagation();
           event.currentTarget.open = false;
           highlightFix();
-          view.current?.focus();
+          if (repairHost && onCloseRepairWorkspace) onCloseRepairWorkspace();
+          else view.current?.focus();
           return;
         }
         if (event.key === "Tab") {
@@ -1301,6 +1304,7 @@ export function CodeEditor({
                 event.preventDefault();
                 event.stopPropagation();
                 closeExplanation();
+                if (repairHost) onCloseRepairWorkspace?.();
               }
             }}
           >

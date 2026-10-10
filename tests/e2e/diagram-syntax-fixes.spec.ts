@@ -1125,7 +1125,7 @@ test("all repair content stays inside the Problems workspace", async ({ page, br
   await expect(problems.getByRole("region", { name: "Error explanation" })).toBeVisible();
   await problems.getByRole("button", { name: "Close issues", exact: true }).click();
   await expect(problems).toBeHidden();
-  await expect(page.locator(".cm-content")).toBeFocused();
+  await expect(page.getByLabel("Show source fix suggestions", { exact: true })).toBeFocused();
   await page.getByLabel("Show source fix suggestions", { exact: true }).click();
   await expect(problems).toBeVisible();
   await expect(fixes).toBeVisible();
@@ -1238,7 +1238,7 @@ test("Escape closes Problems from diagnostics and suggested repairs", async ({ p
     }
     await page.keyboard.press("Escape");
     await expect(problems).not.toBeVisible();
-    await expect(page.locator(".cm-content")).toBeFocused();
+    await expect(page.getByRole("button", { name: /^Issues/ })).toBeFocused();
     await expect(page.locator(".cm-content .cm-line")).toHaveText(source.split("\n"));
     await expect(page.locator(".cm-fix-target")).toHaveCount(0);
   }

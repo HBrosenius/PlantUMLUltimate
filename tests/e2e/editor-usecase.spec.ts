@@ -97,14 +97,13 @@ test("rejects an invalid visual edit without adding it to undo history", async (
   await inspector.getByLabel("Alias").fill("B");
   await inspector.getByLabel("Alias").blur();
 
-  const problems = page.getByRole("complementary", { name: "Issues" });
-  await expect(problems).toBeVisible();
-  await expect(problems).toContainText("Duplicate alias: B");
-  await expect(problems).toContainText("The operation would introduce duplicate alias: b");
   await expect.poll(() => page.locator(".cm-content").innerText()).toBe(original);
-  await expect(page.locator(".statusbar").getByRole("status")).toContainText("Cancelled update actor alpha");
-
-  await problems.getByRole("button", { name: "Close issues" }).click();
+  await expect(page.locator(".statusbar").getByRole("status")).toContainText(
+    "The operation would introduce duplicate alias: b",
+  );
+  await inspector.getByLabel("Alias").fill("A");
+  await inspector.getByLabel("Alias").blur();
+  await inspector.getByRole("button", { name: /Close/ }).click();
   await page.getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => page.locator(".cm-content").innerText()).not.toBe(original);
 });

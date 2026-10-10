@@ -1,7 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-import { fillSource, openAddDialog, pointInText, prepareEditor, setSource, source } from "./editor-helpers";
+import {
+  fillSource,
+  openAddDialog,
+  pointInText,
+  prepareEditor,
+  setSource,
+  source,
+  waitForDiagramRender,
+} from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -292,6 +300,10 @@ test("reports added, removed, moved, and out-of-range baseline tasks", async ({ 
 
 test("clears baseline variance when a moved task returns to its original dates", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-10-01\n[Frontend] starts 2026-10-02\n[Frontend] lasts 10 days\n@endgantt",
+  );
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   const history = page.getByRole("dialog", { name: "Version history" });
@@ -303,6 +315,7 @@ test("clears baseline variance when a moved task returns to its original dates",
 
   const task = page.locator('[data-task-id="frontend"]');
   const dragByDays = async (days: number) => {
+    await waitForDiagramRender(page);
     const headers = page.locator('[data-timeline-header="top"]');
     await expect(headers.nth(1)).toBeVisible();
     let dayWidth = 0;
@@ -342,6 +355,7 @@ test("groups creation commands in an accessible Add menu", async ({ page }) => {
     `Task…${modifier}T`,
     `Milestone…${modifier}M`,
     `Divider…${modifier}D`,
+    "Closed day…",
   ]);
   await menu.getByRole("menuitem", { name: "Milestone…" }).click();
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeVisible();
@@ -402,6 +416,7 @@ test("places a newly added task on the selected task row", async ({ page, browse
 
   await page.locator('[data-task-id="new task"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByText("Appearance", { exact: true }).click();
   await inspector.getByLabel("Display on same row as").selectOption("architecture");
   await expect(page.locator(".render-notice.rendering")).toBeHidden({ timeout: 45_000 });
 
@@ -1337,6 +1352,11 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
 });
 
 test("reviews a visual Backend to Frontend connection as one dependency change", async ({ page }) => {
+  await page
+    .getByRole("navigation", { name: "View mode" })
+    .getByRole("button", { name: "Diagram", exact: true })
+    .click();
+  await waitForDiagramRender(page);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   const history = page.getByRole("dialog", { name: "Version history" });
@@ -1345,6 +1365,7 @@ test("reviews a visual Backend to Frontend connection as one dependency change",
   await history.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.locator('[data-task-id="backend"] .bar').click();
+  await waitForDiagramRender(page);
   const handle = await page.locator('[data-task-id="backend"] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator('[data-task-id="frontend"] .bar').boundingBox();
   expect(handle).not.toBeNull();
@@ -1353,6 +1374,7 @@ test("reviews a visual Backend to Frontend connection as one dependency change",
   await page.mouse.down();
   await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
   await page.mouse.up();
+  await page.getByRole("navigation", { name: "View mode" }).getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("[Frontend] starts at [Backend]'s end");
 
   await page.getByRole("button", { name: "File" }).click();
@@ -1504,8 +1526,7 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
   await expect(page.locator('.document-tabs > button[title*="File: first.puml"]')).toBeVisible();
   await expect(page.locator('.document-tabs > button[title*="File: second.puml"]')).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  await expect(chooser).toBeVisible();
-  await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect(chooser).toBeHidden();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
@@ -1581,7 +1602,10 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
   await expect(page.locator(".resource-card details")).toHaveCount(1);
   await page.getByRole("button", { name: "Close resource workload" }).click();
   await page.getByRole("button", { name: "New diagram tab" }).click();
-  await page.getByRole("button", { name: "Gantt diagram" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Gantt diagram", exact: true })
+    .click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
   await page.getByRole("button", { name: "Workload" }).click();
   await expect(page.getByRole("spinbutton", { name: "Capacity for Kalle" })).toHaveValue("100");

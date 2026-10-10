@@ -78,6 +78,7 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
   await page
     .getByRole("complementary", { name: "Task inspector" })
     .getByRole("status")
+    .and(page.locator(':not([aria-label="Property commit status"])'))
     .getByText(/Linked to Design/)
     .waitFor();
   await page
@@ -86,9 +87,12 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     .click();
   await expect(page.getByRole("complementary", { name: "WBS node inspector" })).toBeVisible();
   await expect(page.locator(".diagram-link-icon")).toHaveCount(4);
-  await expect(page.getByRole("complementary", { name: "WBS node inspector" }).getByRole("status")).toContainText(
-    "Linked to",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "WBS node inspector" })
+      .getByRole("status")
+      .and(page.locator(':not([aria-label="Property commit status"])')),
+  ).toContainText("Linked to");
   await expect(
     page.getByRole("complementary", { name: "WBS node inspector" }).getByLabel("Linked Gantt task"),
   ).not.toContainText("Build");
@@ -229,6 +233,10 @@ test("shows unlinked work in the project and adds selected items in either direc
   await expect(coverage).toContainText("Unlinked: 0 WBS nodes · 1 Gantt task");
   const review = coverage.locator("li", { hasText: "Review" });
   await review.getByRole("button", { name: "Add to WBS" }).click();
+  await page
+    .getByRole("dialog", { name: "Review linked work" })
+    .getByRole("button", { name: "Apply linked work" })
+    .click();
   await expect(page.locator(".cm-content")).toContainText("Review");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: /Document: / }).click();
@@ -242,6 +250,10 @@ test("shows unlinked work in the project and adds selected items in either direc
   await page.getByRole("menu", { name: "Document" }).getByRole("menuitem", { name: "Diagram connections" }).click();
   await expect(coverage).toContainText("Unlinked: 1 WBS node · 0 Gantt tasks");
   await coverage.locator("li", { hasText: "Build" }).getByRole("button", { name: "Add to Gantt" }).click();
+  await page
+    .getByRole("dialog", { name: "Review linked work" })
+    .getByRole("button", { name: "Apply linked work" })
+    .click();
   await expect(page.locator(".cm-content")).toContainText("[Build] as [wbs_build]");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: /Document: / }).click();
@@ -498,9 +510,12 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
   await expect(page.locator(".cm-content")).toContainText("[Design] as [wbs_design]");
   await expect(page.locator(".cm-content")).toContainText("2026-09-24");
   await page.locator('[data-task-id="wbs_design"]').first().click();
-  await expect(page.getByRole("complementary", { name: "Task inspector" }).getByRole("status")).toContainText(
-    "Unlinked from WBS",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "Task inspector" })
+      .getByRole("status")
+      .and(page.locator(':not([aria-label="Property commit status"])')),
+  ).toContainText("Unlinked from WBS");
 });
 
 test("deletes linked Gantt work when deleting in both diagrams", async ({ page }) => {
@@ -570,9 +585,12 @@ test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
   await expect(marker).toHaveCount(1);
   await expect(page.locator(".wbs-preview")).toHaveAttribute("data-render-status", "idle");
   await marker.press("Enter");
-  await expect(page.getByRole("complementary", { name: "WBS arrow inspector" }).getByRole("status")).toContainText(
-    "would create a cycle",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "WBS arrow inspector" })
+      .getByRole("status")
+      .and(page.locator(':not([aria-label="Property commit status"])')),
+  ).toContainText("would create a cycle");
 });
 
 test("opens linked diagrams from both node context menus", async ({ page }) => {

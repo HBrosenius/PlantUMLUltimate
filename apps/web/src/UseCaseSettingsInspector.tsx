@@ -1,5 +1,5 @@
 import { InspectorPanel } from "./InspectorPanel";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ColorField, SharedColorDatalist } from "./ColorField";
 import type { UseCaseSettings } from "./usecase-settings";
 
@@ -14,7 +14,13 @@ export function UseCaseSettingsInspector({
 }) {
   const [value, setValue] = useState(settings);
   const colorListId = useId();
-  useEffect(() => setValue(settings), [settings]);
+  const previousSettings = useRef(JSON.stringify(settings));
+  useEffect(() => {
+    const next = JSON.stringify(settings);
+    if (next === previousSettings.current) return;
+    previousSettings.current = next;
+    setValue(settings);
+  }, [settings]);
   const update = <K extends keyof UseCaseSettings>(key: K, next: UseCaseSettings[K], save = false) => {
     const updated = { ...value, [key]: next };
     setValue(updated);

@@ -15,9 +15,15 @@ export async function prepareEditor(page: Page) {
   await expect(chooser).toBeVisible();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  if ((page.viewportSize()?.width ?? 1280) <= 600)
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Code", exact: true })
+      .click();
   await expect(page.locator(".cm-content")).toBeVisible();
   await expect(page.locator(".statusbar")).toContainText("Browser recovery");
-  await page.getByRole("button", { name: "Close project inspector" }).click();
+  const closeInspector = page.getByRole("button", { name: "Close project inspector" });
+  if (await closeInspector.isVisible()) await closeInspector.click();
 }
 
 export async function readEditorSource(page: Page) {
@@ -56,8 +62,19 @@ export async function setSource(page: Page, value: string) {
 }
 
 export async function waitForDiagramRender(page: Page) {
+  // Idle can still describe the retained SVG during the next render debounce.
+  await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 45_000 });
   await expect(page.locator(".preview[data-render-status]")).toHaveAttribute("data-render-status", "idle", {
     timeout: 45_000,
+  });
+  // Initial fitting commits after the SVG render; measure drag targets after that layout update.
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    await Promise.all(
+      [...document.querySelectorAll(".diagram")].flatMap((diagram) =>
+        diagram.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+      ),
+    );
   });
 }
 

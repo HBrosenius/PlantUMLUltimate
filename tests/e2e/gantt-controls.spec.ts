@@ -51,6 +51,10 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
   if (testInfo.project.name === "chromium") {
     await page.screenshot({ path: testInfo.outputPath("gantt-controls-desktop.png") });
     await page.setViewportSize({ width: 390, height: 844 });
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Diagram", exact: true })
+      .click();
     await expect(page.getByRole("button", { name: /^Move policy:/ })).toBeInViewport();
     await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toBeInViewport();
     await page.screenshot({ path: testInfo.outputPath("gantt-controls-phone.png") });

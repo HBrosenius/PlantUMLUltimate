@@ -60,6 +60,8 @@ test("uses one phone pane and restores desktop Split without losing source", asy
   const views = page.getByRole("navigation", { name: "View mode" });
   await views.getByRole("button", { name: "Split", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("region", { name: "Mobile task list", exact: true })).toBeVisible();
+  await views.getByRole("button", { name: "Diagram", exact: true }).click();
   await expect(page.locator(".workspace")).toHaveClass(/mode-diagram/);
   await views.getByRole("button", { name: "Code", exact: true }).click();
   await expect(page.locator(".cm-content")).toBeVisible();

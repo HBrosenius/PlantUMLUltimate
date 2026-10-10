@@ -59,7 +59,6 @@ Promotion must create a semantic/source review against the current document. The
 
 Multiple scenario branches, probability simulation, Monte Carlo forecasts, Jira publication, shared scenarios, portable scenario persistence, automatic architecture-to-schedule dependency creation, and AI-generated assumptions.
 
-
 ## A28 persistence follow-up — 2026-10-10
 
 The original session-local first slice now has named browser-local saves, scoped to the active diagram's recovered identity. It retains exact base and scenario sources, resource capacities and assumption notes. This extends the session boundary without changing the portable project schema: saved files and collaborators do not receive these alternatives.
