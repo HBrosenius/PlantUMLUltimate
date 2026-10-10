@@ -40,7 +40,7 @@ test("imports pasted source into a new tab and rejects invalid or cancelled work
   await dialog.getByRole("button", { name: "Import source", exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(tabs(page)).toHaveCount(count + 1);
-  expect(await readEditorSource(page)).toBe(source);
+  await expect.poll(() => readEditorSource(page)).toBe(source);
   await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
   dialog = await openWork(page);
   await expect(dialog.getByText("No recent files yet.", { exact: false })).toBeVisible();
@@ -65,7 +65,7 @@ test("shares file decoding for drop, picker, native documents and recent fallbac
   const source = "@startuml\nclass ImportedOrder\n@enduml";
   await drop(page, "orders.puml", Array.from(new TextEncoder().encode(source)));
   await expect(dialog).toBeHidden();
-  expect(await readEditorSource(page)).toBe(source);
+  await expect.poll(() => readEditorSource(page)).toBe(source);
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save as…", exact: true }).click();
@@ -73,7 +73,7 @@ test("shares file decoding for drop, picker, native documents and recent fallbac
   dialog = await openWork(page);
   await drop(page, "orders.pumlu", Array.from(readFileSync(file!)));
   await expect(dialog).toBeHidden();
-  expect(await readEditorSource(page)).toBe(source);
+  await expect.poll(() => readEditorSource(page)).toBe(source);
   await page.reload();
   dialog = await openWork(page);
   await dialog.getByRole("button", { name: "orders.puml", exact: true }).click();
@@ -82,7 +82,7 @@ test("shares file decoding for drop, picker, native documents and recent fallbac
   await dialog.getByRole("button", { name: "Locate file…", exact: true }).click();
   await (await chooser).setFiles({ name: "orders.puml", mimeType: "text/plain", buffer: Buffer.from(source) });
   await expect(dialog).toBeHidden();
-  expect(await readEditorSource(page)).toBe(source);
+  await expect.poll(() => readEditorSource(page)).toBe(source);
   await page.keyboard.press("ControlOrMeta+n");
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
@@ -118,7 +118,7 @@ test("permission denial preserves current work and offers explicit file recovery
   await expect(dialog.getByRole("alert")).toContainText("access was denied");
   await expect(dialog.getByRole("alert")).toBeInViewport();
   await expect(dialog.getByRole("button", { name: "Locate file…", exact: true })).toBeVisible();
-  expect(await readEditorSource(page)).toBe(source);
+  await expect.poll(() => readEditorSource(page)).toBe(source);
   await expect(tabs(page)).toHaveCount(count);
   await dialog.screenshot({ path: "test-results/a21-permission-recovery.png" });
   await dialog.getByRole("button", { name: "Remove permission.puml from recent files", exact: true }).click();

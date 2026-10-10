@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { pointInText, prepareEditor, setSource } from "./editor-helpers";
+import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -127,7 +127,7 @@ test("reorders actions with a preview and creates a structured transition by dra
   await expect(page.locator(".activity-placement-preview")).toBeVisible();
   await page.mouse.up();
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/:Third;[\s\S]*:First;/);
-  await expect(page.locator(".statusbar")).not.toContainText("Rendering…");
+  await waitForDiagramRender(page);
 
   const connect = page.getByRole("button", { name: "Drag to connect Third" });
   await expect(connect).toBeVisible();

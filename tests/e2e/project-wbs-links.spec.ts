@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource } from "./editor-helpers";
+import { prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test("links nodes in three WBS diagrams and saves the project", async ({ page }) => {
   await page.addInitScript(() => {
@@ -69,6 +69,7 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
     .click();
   await expect(page.getByRole("complementary", { name: "WBS node inspector" })).toContainText("Research");
   const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
+  await waitForDiagramRender(page);
   await inspector.getByRole("textbox", { name: "Label" }).fill("Research renamed");
   await inspector.getByRole("textbox", { name: "Label" }).blur();
   await expect(inspector.getByRole("textbox", { name: "Label" })).toHaveValue("Research renamed");

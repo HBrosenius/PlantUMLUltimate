@@ -9,8 +9,8 @@ export default defineConfig({
   // Stop a shard with widespread failures rather than spending its full timeout retrying them.
   maxFailures: process.env.CI ? 10 : 0,
   fullyParallel: Boolean(process.env.CI),
-  // GitHub-hosted runners can exercise two isolated browser contexts concurrently.
-  workers: process.env.CI ? 2 : 1,
+  // Keep renderer-heavy contexts serial within each shard to avoid Firefox process crashes.
+  workers: 1,
   reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:5173",

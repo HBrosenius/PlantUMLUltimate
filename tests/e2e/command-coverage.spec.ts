@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
+import { prepareEditor, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 
 async function palette(page: Page, query = "") {
   await page.getByRole("button", { name: "Commands", exact: true }).click();
@@ -46,16 +46,19 @@ test("palette creation commands match every diagram family", async ({ page }) =>
 
 test("palette navigation uses existing handlers and recent commands stay applicable", async ({ page }, testInfo) => {
   await prepareEditor(page);
-  await fillSource(page, "@startgantt\nProject starts 2026-09-04\n[Design] as [a] lasts 3 days\n@endgantt");
+  await setSource(page, "@startgantt\nProject starts 2026-09-04\n[Design] as [a] lasts 3 days\n@endgantt");
   await expect(page.locator(".diagram svg")).toBeVisible();
   const original = await readEditorSource(page);
   await run(page, "Document settings…");
   await expect(page.getByRole("dialog", { name: "Document settings", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await run(page, "Version history…");
-  await expect(page.getByRole("dialog", { name: /Version history/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close version history", exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: /Version history/ })).not.toBeVisible();
+  await waitForDiagramRender(page);
+  await page.getByRole("button", { name: /Reset zoom/ }).click();
+  await expect(page.getByRole("button", { name: /Reset zoom/ })).toHaveText("100%");
   const zoomBeforeFit = await page.getByRole("button", { name: /Reset zoom/ }).textContent();
   await run(page, "Fit diagram");
   await expect(page.getByRole("button", { name: /Reset zoom/ })).not.toHaveText(zoomBeforeFit!);

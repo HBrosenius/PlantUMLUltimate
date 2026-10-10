@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-import { pointInText, prepareEditor, setSource } from "./editor-helpers";
+import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -825,6 +825,7 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
   await inspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("destroy Orders");
 
+  await waitForDiagramRender(page);
   await page.getByRole("button", { name: "Drag Duration: elapsed vertically", exact: true }).click();
   await inspector.getByLabel("Arrow").fill("<->");
   await inspector.getByLabel("Label").fill("total time");

@@ -71,6 +71,7 @@ test("creates diagram dependencies with a hand-drawn PlantUML theme", async ({ p
     source("!theme sketchy\n[A] starts 2026-09-01 and lasts 2 days\n[B] starts 2026-09-01 and lasts 2 days"),
   );
   await page.locator('[data-task-id="a"] .bar').click();
+  await waitForDiagramRender(page);
   const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
   expect(handle).not.toBeNull();
@@ -1726,6 +1727,7 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
     .toBeLessThan(10);
 
   await page.locator('[data-task-id="a"] .bar').click();
+  await waitForDiagramRender(page);
   const handle = await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator('[data-task-id="b"] .bar').boundingBox();
   expect(handle).not.toBeNull();

@@ -4493,7 +4493,6 @@ export function App() {
               setProblemsOpen(false);
               setUnsupportedOpen(false);
               setProblemPreview(undefined);
-              requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".problem-count")?.focus());
             }}
             repairRequest={repairRequest}
             onRepairRequestHandled={() => setRepairRequest(undefined)}

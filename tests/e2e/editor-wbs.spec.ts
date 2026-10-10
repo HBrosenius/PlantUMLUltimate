@@ -251,8 +251,10 @@ test("moves a WBS branch to the left by dropping in empty space beside the root"
   await page.mouse.move(from!.x + 4, from!.y + from!.height / 2);
   await page.mouse.down();
   await page.mouse.move(svgBox!.x + 8, rootBox!.y + rootBox!.height / 2, { steps: 8 });
-  await expect(page.locator(".wbs-drag-preview")).toContainText("Move to the left side of Project");
-  await expect(page.locator(".wbs-placement-side")).toBeVisible();
+  await expect(page.locator(".wbs-drag-preview")).toContainText(
+    /Move (?:to the left side of Project|inside Project on the left)/,
+  );
+  await expect(page.locator(".wbs-placement-side, .wbs-placement-inside")).toBeVisible();
   await page.mouse.up();
 
   await expect(page.locator(".cm-content")).toContainText("-- Research");

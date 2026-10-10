@@ -1303,8 +1303,11 @@ export function CodeEditor({
               if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
-                closeExplanation();
-                if (repairHost) onCloseRepairWorkspace?.();
+                if (repairHost && onCloseRepairWorkspace) {
+                  if (fixPicker.current) fixPicker.current.open = false;
+                  setExplanation(undefined);
+                  onCloseRepairWorkspace();
+                } else closeExplanation();
               }
             }}
           >
