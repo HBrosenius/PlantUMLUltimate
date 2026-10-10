@@ -1,5 +1,8 @@
 export interface WritableFileHandle {
   readonly name: string;
+  queryPermission?(options: { mode: "read" }): Promise<PermissionState>;
+  requestPermission?(options: { mode: "read" }): Promise<PermissionState>;
+  isSameEntry?(other: WritableFileHandle): Promise<boolean>;
   getFile(): Promise<File>;
   createWritable(): Promise<{
     write(data: string | Uint8Array | Blob): Promise<void>;
@@ -17,6 +20,7 @@ interface FilePickerWindow extends Window {
 }
 
 export interface OpenedDocument {
+  importedSource?: boolean;
   source: string;
   fileName: string;
   handle?: WritableFileHandle;
@@ -33,6 +37,7 @@ export interface FileSnapshot {
 }
 
 export interface OpenedFileBytes {
+  importedSource?: boolean;
   kind: "native" | "legacy";
   bytes: Uint8Array;
   source?: string;
@@ -52,20 +57,23 @@ export function isPortableDocument(bytes: Uint8Array): boolean {
   return bytes.length >= NATIVE_MAGIC.length && NATIVE_MAGIC.every((byte, index) => bytes[index] === byte);
 }
 
-export async function readDocumentBytes(handle: WritableFileHandle): Promise<OpenedFileBytes> {
-  const file = await handle.getFile();
+export async function readDocumentFile(file: File, handle?: WritableFileHandle): Promise<OpenedFileBytes> {
   if (file.size > 64 * 1024 * 1024) throw new Error("Document exceeds the 64 MiB file limit");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const native = isPortableDocument(bytes);
+  if (!native && bytes.length > 500_000) throw new Error("PlantUML source exceeds the 500 kB text limit");
   return {
     kind: native ? "native" : "legacy",
     bytes,
     ...(native ? {} : { source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) }),
     fileName: file.name,
-    handle,
+    ...(handle ? { handle } : {}),
     lastModified: file.lastModified,
     size: file.size,
   };
+}
+export async function readDocumentBytes(handle: WritableFileHandle): Promise<OpenedFileBytes> {
+  return readDocumentFile(await handle.getFile(), handle);
 }
 
 export async function readFileSnapshot(handle: WritableFileHandle): Promise<FileSnapshot> {
@@ -145,25 +153,11 @@ function fallbackDocumentUpload(): Promise<OpenedFileBytes | undefined> {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pumlu,.puml,.plantuml,application/octet-stream,text/plain";
+    input.oncancel = () => resolve(undefined);
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return resolve(undefined);
-      if (file.size > 64 * 1024 * 1024) return reject(new Error("Document exceeds the 64 MiB file limit"));
-      void file
-        .arrayBuffer()
-        .then((buffer) => {
-          const bytes = new Uint8Array(buffer);
-          const native = isPortableDocument(bytes);
-          resolve({
-            kind: native ? "native" : "legacy",
-            bytes,
-            ...(native ? {} : { source: new TextDecoder("utf-8", { fatal: true }).decode(bytes) }),
-            fileName: file.name,
-            lastModified: file.lastModified,
-            size: file.size,
-          });
-        })
-        .catch(reject);
+      void readDocumentFile(file).then(resolve, reject);
     };
     input.click();
   });

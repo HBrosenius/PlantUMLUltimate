@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 const classInteractionSelector =
@@ -23,6 +23,8 @@ function classMemberRenderedText(member: ClassDocument["entities"][number]["memb
 }
 export function ClassDiagramPreview({
   diagramKind = "class",
+  onInlineRename,
+  initialFit,
   svg,
   zoom,
   onZoomChange,
@@ -41,7 +43,9 @@ export function ClassDiagramPreview({
   onReorder,
 }: {
   diagramKind?: "class" | "component";
+  onInlineRename?: ((id: string, anchor: Element) => boolean) | undefined;
   svg?: string | undefined;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(v: number): void;
   renderStatus: RenderStatus;
@@ -58,7 +62,7 @@ export function ClassDiagramPreview({
   onMoveToPackage(id: string, packageId?: string): void;
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const renderObserver = useRef<MutationObserver | undefined>(undefined);
@@ -353,6 +357,11 @@ export function ClassDiagramPreview({
     const type = classObjectType(target);
     const memberId = target?.getAttribute("data-class-member-id");
     if (!id) return;
+    if (event.key === "F2" && onInlineRename?.(id, event.target as Element)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (event.key.toLowerCase() === "c" && type === "entity") {
       event.preventDefault();
       setKeyboardConnectFrom(id);
@@ -439,6 +448,29 @@ export function ClassDiagramPreview({
       aria-label={`${diagramKind === "component" ? "Component" : "Class"} diagram preview`}
     >
       <div className="preview-tools">
+        {onInlineRename && (
+          <button
+            type="button"
+            disabled={
+              !selectedId ||
+              !(
+                document.entities.some((item) => item.id === selectedId) ||
+                document.packages.some((item) => item.id === selectedId)
+              ) ||
+              renderStatus !== "idle"
+            }
+            title="Rename selected label (F2)"
+            data-inspector-trigger
+            onClick={() => {
+              const target = root.current
+                ?.closest(".preview")
+                ?.querySelector(`[data-class-object-id="${CSS.escape(selectedId ?? "")}"]:not([data-class-member-id])`);
+              if (selectedId && target) onInlineRename(selectedId, target);
+            }}
+          >
+            Rename label
+          </button>
+        )}
         <button
           type="button"
           onClick={navigation.fit}

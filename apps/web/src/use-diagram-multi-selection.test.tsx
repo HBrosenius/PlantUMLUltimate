@@ -153,3 +153,20 @@ it("does not hijack select-all, copy or paste in text fields", () => {
     expect(fireEvent.keyDown(screen.getByLabelText("Text field"), { key, ctrlKey: true })).toBe(true);
   expect(screen.getByTestId("commits")).toHaveTextContent("0");
 });
+
+it("lets an open menu consume Escape before clearing diagram selection", () => {
+  render(<Harness />);
+  fireEvent.click(screen.getByRole("button", { name: "One" }), { shiftKey: true });
+  expect(screen.getByTestId("selected")).toHaveTextContent("1");
+  const menu = document.createElement("div");
+  menu.setAttribute("role", "menu");
+  document.body.append(menu);
+  try {
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.getByTestId("selected")).toHaveTextContent("1");
+  } finally {
+    menu.remove();
+  }
+  fireEvent.keyDown(document.body, { key: "Escape" });
+  expect(screen.getByTestId("selected")).toHaveTextContent("0");
+});

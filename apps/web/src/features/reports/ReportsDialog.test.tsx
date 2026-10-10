@@ -95,3 +95,44 @@ describe("reports builder", () => {
     );
   });
 });
+
+it("opens Issues and preserves report options while the dialog is suspended", () => {
+  const onOpenIssues = vi.fn();
+  const invalid = { ...props, source: "@startgantt\n[A] lasts -2 days\n@endgantt", onOpenIssues };
+  const view = render(<ReportsDialog {...invalid} />);
+  fireEvent.change(screen.getByLabelText("Introduction"), { target: { value: "Keep my report draft" } });
+  fireEvent.click(screen.getByRole("button", { name: "Open Issues" }));
+  expect(onOpenIssues).toHaveBeenCalledOnce();
+  view.rerender(<ReportsDialog {...invalid} suspended />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(props.onClose).not.toHaveBeenCalled();
+  view.rerender(<ReportsDialog {...invalid} source={source} />);
+  expect((screen.getByLabelText("Introduction") as HTMLTextAreaElement).value).toBe("Keep my report draft");
+});
+
+it("offers an explicit coordinator preset for unassigned work without changing the source", () => {
+  const unassigned = "@startgantt\n[A] starts 2099-10-01\n[A] lasts 3 days\n@endgantt";
+  render(<ReportsDialog {...props} source={unassigned} documentName="Roadmap" />);
+  expect(screen.getByText(/No people are assigned/)).toBeTruthy();
+  expect((screen.getByLabelText("Report type") as HTMLSelectElement).value).toBe("check-in");
+  expect(document.querySelector(".reports-source")?.textContent).toBe("Roadmap");
+  fireEvent.click(screen.getByRole("button", { name: "Create coordinator summary" }));
+  expect((screen.getByLabelText("Report text") as HTMLTextAreaElement).value).toContain("A");
+  expect((screen.getByLabelText("Output") as HTMLSelectElement).value).toBe("combined");
+  expect((screen.getByLabelText("Tasks") as HTMLSelectElement).value).toBe("All tasks");
+  fireEvent.click(screen.getByLabelText("A", { selector: "input" }));
+  expect(screen.getByText("All candidate tasks are individually excluded.")).toBeTruthy();
+});
+
+it("distinguishes dates from individual exclusions and restores the selected scope", () => {
+  render(<ReportsDialog {...props} />);
+  fireEvent.change(screen.getByLabelText("As-of date"), { target: { value: "2026-09-01" } });
+  expect(screen.getByText(/No tasks match the selected dates/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Coordinator summary · all tasks" }));
+  fireEvent.click(screen.getByLabelText("A", { selector: "input" }));
+  fireEvent.click(screen.getByLabelText("B", { selector: "input" }));
+  expect(screen.getByText("All candidate tasks are individually excluded.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Reset exclusions" }));
+  expect(screen.getByLabelText("Report text")).toBeTruthy();
+});

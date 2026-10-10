@@ -1,0 +1,13 @@
+# A21 opening existing work
+
+The shared Recent files & import… dialog is available from File → Open and the start chooser. Direct Diagram…/Document… file pickers remain available.
+
+Recent entries retain file names, last-opened time, destination and a file-system reference where the browser supports it. They do not contain file bytes, diagram source or passwords. At most 12 references are kept; updates are serialized so concurrent opens do not lose entries. File-system references use a separate IndexedDB store, with metadata and a locate-file fallback when persistent handles are unavailable. Reopening reads the current file and requests read permission only after the user chooses its entry. Denied access and moved files explain how to locate the file again. Removing an entry also removes its stored handle. Recovered workspace tabs and pasted source are not recent files.
+
+The explicit drop area accepts one .puml/.plantuml/.pumlu file. Pasted PlantUML detects its diagram type and opens a new unsaved tab, or a document when explicitly selected. Pasted documents are unsaved; imported diagram names use the filename rather than a timestamp. Opening a document retains the existing navigator/member-selection flow and unsaved-work guards. Outside-area file drops are prevented from navigating away or importing into the active source.
+
+Picker, drop and handle reopening use the same byte reader, native-format detection, UTF-8 decoding and size limits. Native documents use the existing validated decoder/history import. Plain source validates a single supported start/end envelope and type before a tab is added; syntax problems inside the envelope remain editable through existing diagnostics. Validation/cancellation preserves current work. The fallback upload handles the browser cancel event. Errors scroll into view beside the recovery controls.
+
+Validation: 201 unit files / 2,159 tests pass; production build, changed-file lint/format and whitespace checks pass. Twelve browser journeys pass across Chromium, Firefox and WebKit, plus three existing portable-document save/open/history regressions. Cases cover invalid source, corrupt native files, separate-tab and document destinations, source preservation, native round trips, picker/drop equivalence, recent metadata after reload, locating files, permission denial, removal, outside drops, and phone width.
+
+Browser file pickers and permission responses are controlled by fixtures. Actual operating-system permission dialogs and durable native handle grants were not exercised; fallback behavior and the permission API branches were verified. Screenshots: a21-open-work-phone.png and a21-permission-recovery.png.

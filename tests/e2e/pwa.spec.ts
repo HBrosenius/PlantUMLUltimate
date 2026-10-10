@@ -17,11 +17,7 @@ test("opens a PlantUML file delivered by the installed app launch queue", async 
     });
   });
   await page.goto("/");
-  const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
-  await onboarding.waitFor({ state: "visible" });
-  // The test reads .cm-content, which basic mode hides; opt into advanced mode during onboarding.
-  await onboarding.getByRole("radio", { name: "Diagram + code" }).check();
-  await onboarding.getByRole("button", { name: "Get started" }).click();
+  await expect(page.getByRole("dialog", { name: "Choose a diagram type" })).toBeVisible();
   await page.waitForFunction(() =>
     Boolean((window as Window & { testLaunchConsumer?: (params: { files: unknown[] }) => void }).testLaunchConsumer),
   );
@@ -46,7 +42,7 @@ test("opens a PlantUML file delivered by the installed app launch queue", async 
       ],
     });
   });
-  await expect(page.locator('.document-tabs > button[title="launched.plantuml"]')).toBeVisible();
+  await expect(page.locator('.document-tabs > button[title*="File: launched.plantuml"]')).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("Opened from Windows");
 });
 

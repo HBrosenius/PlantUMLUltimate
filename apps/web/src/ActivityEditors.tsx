@@ -298,7 +298,9 @@ export function ActivityControlInspector({
           <strong>Control inspector</strong>
           <small>{item.kind.replaceAll("-", " ")}</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity control inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>
@@ -359,7 +361,9 @@ export function ActivityTerminalInspector({
           <strong>Terminal inspector</strong>
           <small>{item.kind}</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity terminal inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>
@@ -411,7 +415,9 @@ export function ActivityArrowInspector({
           <strong>Flow arrow inspector</strong>
           <small>Label and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity arrow inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>
@@ -501,7 +507,9 @@ export function ActivityActionInspector({
           <strong>Action inspector</strong>
           <small>Content and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity action inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>
@@ -736,7 +744,9 @@ export function ActivityPartitionInspector({
           <strong>Partition inspector</strong>
           <small>Name and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity partition inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>
@@ -827,7 +837,9 @@ export function ActivityNoteInspector({
           <strong>Note inspector</strong>
           <small>Content and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity note inspector">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>

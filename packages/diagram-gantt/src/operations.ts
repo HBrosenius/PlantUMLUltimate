@@ -612,7 +612,10 @@ export function renameTask(
 
   const labelKey = normalizeTaskId(task.label);
   const occurrences = taskOccurrences(source, document, task).filter(
-    (item) => !task.alias || item.role === "declaration" || normalizeTaskId(item.value) === labelKey,
+    (item) =>
+      !task.alias ||
+      item.role === "declaration" ||
+      (item.value !== task.alias.value && normalizeTaskId(item.value) === labelKey),
   );
   return { edits: occurrences.map((item) => ({ range: item.range, text: nextLabel })) };
 }

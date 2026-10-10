@@ -1,43 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
 import type { DiagramKind } from "./model";
-import { PLANTUML_THEMES, setPlantUmlTheme } from "./plantuml-theme";
-import { rendererLayoutEngineForDiagramKind, useRenderer } from "./render/use-renderer";
+import { ThemeGallery } from "./ThemeGallery";
 import { browserForecastTimeZone, validForecastTimeZone } from "./forecast-date";
-
-const THEME_PREVIEW_SOURCES: Record<DiagramKind, string> = {
-  gantt: [
-    "@startgantt",
-    "Project starts 2026-09-01",
-    "[Plan] lasts 3 days",
-    "[Build] starts at [Plan]'s end",
-    "[Build] lasts 4 days",
-    "@endgantt",
-  ].join("\n"),
-  sequence: [
-    "@startuml",
-    "actor User",
-    "participant App",
-    "User -> App: Request",
-    "App --> User: Response",
-    "@enduml",
-  ].join("\n"),
-  usecase: ["@startuml", "actor User", "(Sign in) as Login", "User --> Login", "@enduml"].join("\n"),
-  class: ["@startuml", "class Order {", "  +total(): Money", "}", "class Item", "Order *-- Item", "@enduml"].join("\n"),
-  component: [
-    "@startuml",
-    'component "Web application" as Web',
-    'component "Order service" as Orders',
-    'database "Orders" as Database',
-    "Web --> Orders",
-    "Orders --> Database",
-    "@enduml",
-  ].join("\n"),
-  activity: ["@startuml", "start", ":Plan;", "if (Approved?) then (yes)", "  :Build;", "endif", "stop", "@enduml"].join(
-    "\n",
-  ),
-  wbs: ["@startwbs", "* Project", "** Discovery", "** Delivery", "@endwbs"].join("\n"),
-};
 
 export interface DocumentFormatSettings {
   compression: "gzip" | "none";
@@ -71,16 +36,6 @@ export function DocumentSettingsDialog({
   const [diagramTheme, setDiagramTheme] = useState(current.diagramTheme ?? "");
   const [forecastTimeZone, setForecastTimeZone] = useState(current.forecastTimeZone ?? "");
   const deviceTimeZone = browserForecastTimeZone();
-  const customDiagramTheme = diagramTheme && !PLANTUML_THEMES.some((theme) => theme === diagramTheme);
-  const previewSource = useMemo(
-    () => setPlantUmlTheme(THEME_PREVIEW_SOURCES[diagramKind], diagramTheme || undefined),
-    [diagramKind, diagramTheme],
-  );
-  const themePreview = useRenderer(
-    previewSource,
-    current.diagramTheme !== undefined,
-    rendererLayoutEngineForDiagramKind(diagramKind),
-  );
   const [busy, setBusy] = useState(false);
   const needsPassword = encrypted && (!current.encrypted || Boolean(password));
   const passwordError = needsPassword && (password.length < 12 || password !== confirmation);
@@ -117,34 +72,16 @@ export function DocumentSettingsDialog({
         {current.diagramTheme !== undefined && (
           <section className="document-settings-section" aria-labelledby="diagram-appearance-heading">
             <h3 id="diagram-appearance-heading">Diagram appearance</h3>
-            <label>
-              PlantUML theme
-              <select value={diagramTheme} onChange={(event) => setDiagramTheme(event.target.value)}>
-                <option value="">Default PlantUML</option>
-                {customDiagramTheme && <option value={diagramTheme}>{diagramTheme} (from source)</option>}
-                {PLANTUML_THEMES.map((theme) => (
-                  <option key={theme} value={theme}>
-                    {theme}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ThemeGallery
+              value={diagramTheme}
+              onChange={setDiagramTheme}
+              diagramKind={diagramKind}
+              label="PlantUML theme"
+            />
             <p>
-              Stored as a native !theme directive so it travels with the diagram.{" "}
-              <a href="https://plantuml.com/theme-gallery" target="_blank" rel="noreferrer">
-                View the official theme gallery
-              </a>
-              .
+              Applies to this diagram on Apply and is stored as a native !theme directive. Cancel leaves the diagram
+              unchanged. Exports use this authored appearance.
             </p>
-            <div className="document-theme-preview" aria-label="Theme preview" aria-live="polite">
-              {themePreview.result?.svg ? (
-                <div dangerouslySetInnerHTML={{ __html: themePreview.result.svg }} />
-              ) : themePreview.status === "error" ? (
-                <span>Theme preview unavailable</span>
-              ) : (
-                <span>Rendering theme preview…</span>
-              )}
-            </div>
           </section>
         )}
         {current.forecastTimeZone !== undefined && (

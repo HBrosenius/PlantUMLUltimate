@@ -77,3 +77,23 @@ it("preserves Activity exit labels when repairing a terminator typo", () => {
     source.replace("endwhil", "endwhile"),
   );
 });
+
+for (const [opening, closing] of [
+  ["group Work", "end"],
+  ["alt Ready", "end"],
+  ["loop Retry", "end"],
+  ["opt Ready", "end"],
+  ["par Work", "end"],
+  ["critical Work", "end"],
+  ["box Services", "end box"],
+  ["partition Work", "end"],
+] as const) {
+  it(`exposes the supported Sequence closer for ${opening}`, () => {
+    const source = `@startuml\n${opening}\nAlice -> Bob: Work\n@enduml`;
+    const fix = quickFixesForDiagram("sequence", source).find((item) => item.label === "Close unclosed blocks");
+    expect(fix).toBeDefined();
+    expect(source.slice(0, fix!.from) + fix!.replacement + source.slice(fix!.to)).toBe(
+      source.replace("@enduml", `${closing}\n@enduml`),
+    );
+  });
+}

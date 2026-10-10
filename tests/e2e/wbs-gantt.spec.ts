@@ -162,8 +162,8 @@ test("keeps a generated task's dependency and position when completion changes",
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
   const startBefore = await inspector.getByLabel("Start", { exact: true }).inputValue();
-  await inspector.getByLabel("Complete").fill("40");
-  await inspector.getByLabel("Complete").blur();
+  await inspector.getByLabel("Progress (%)").fill("40");
+  await inspector.getByLabel("Progress (%)").blur();
   await expect(code).toContainText(dependency);
   await expect(inspector.getByLabel("Start", { exact: true })).toHaveValue(startBefore);
   await expect(inspector.getByLabel("Linked task")).toHaveValue("wbs_discovery");
@@ -174,7 +174,7 @@ test("keeps a generated task's dependency and position when completion changes",
   // Reopen through the visible task after the inspector changes the preview layout.
   await page.locator('[data-task-id="wbs_content_inventory"] .bar').click();
   await expect(inspector.getByRole("textbox", { name: "Name" })).toHaveValue("Content inventory");
-  await expect(inspector.getByLabel("Complete")).toHaveValue("40");
+  await expect(inspector.getByLabel("Progress (%)")).toHaveValue("40");
   await expect(inspector.getByLabel("Start", { exact: true })).toHaveValue(startBefore);
   await expect(inspector.getByLabel("Linked task")).toHaveValue("wbs_discovery");
 });
@@ -480,8 +480,8 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
   await task.getByLabel("Start", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("[wbs_project] starts 2026-09-24");
   await page.locator('[data-task-id="wbs_design"]').first().click();
-  await task.getByLabel("Complete", { exact: true }).fill("60");
-  await task.getByLabel("Complete", { exact: true }).blur();
+  await task.getByLabel("Progress (%)", { exact: true }).fill("60");
+  await task.getByLabel("Progress (%)", { exact: true }).blur();
   await task.getByRole("button", { name: "Open linked WBS node: Design" }).click();
   await page
     .getByRole("complementary", { name: "WBS node inspector" })
@@ -682,8 +682,10 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await task.getByLabel("Start", { exact: true }).fill("2026-09-23");
   await task.getByLabel("Start", { exact: true }).blur();
   await page.locator('[data-task-id="wbs_build"]').first().click();
-  await task.getByLabel("Complete", { exact: true }).fill("60");
-  await task.getByLabel("Complete", { exact: true }).blur();
+  await task.getByLabel("Progress (%)", { exact: true }).fill("60");
+  await task.getByLabel("Progress (%)", { exact: true }).blur();
+  if (!(await task.getByRole("button", { name: "+ Add person" }).isVisible()))
+    await task.getByText("Resources", { exact: true }).click();
   await task.getByRole("button", { name: "+ Add person" }).click();
   await task.getByLabel("Person name").fill("Alice");
   await task.getByLabel("Person name").blur();
@@ -703,8 +705,10 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
   // Closing the schedule view must not revert its edited source when the whole project is saved again.
   page.once("dialog", (dialog) => void dialog.accept());
-  await page.getByRole("button", { name: "Close Linked plan schedule", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Close Linked plan schedule", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close Linked plan schedule in Linked plan", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Close Linked plan schedule in Linked plan", exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
   await expect(projectNavigator.locator(".project-save-status")).toHaveText("Saved");
@@ -753,7 +757,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await expect(reopened.locator(".cm-content")).toContainText("2026-09-23");
     await reopened
       .getByRole("navigation", { name: "Open documents" })
-      .getByRole("button", { name: /^Work breakdown Document/ })
+      .getByRole("button", { name: /Work breakdown Document/ })
       .click();
     await selectWbsNode(reopened, "Build");
     await expect(reopened.getByRole("button", { name: "Open linked Gantt task" })).toBeVisible();
@@ -810,9 +814,9 @@ test("adds a task after an aliased WBS summary without invalidating the Gantt", 
   await page.getByRole("menuitem", { name: "Task…" }).click();
   const dialog = page.getByRole("dialog", { name: "Add task" });
   await dialog.getByRole("textbox", { name: "Name" }).fill("Test");
-  await dialog.getByLabel("Starts after").selectOption({ label: "Website redesign" });
+  await dialog.getByLabel("Starts after").selectOption({ label: "Project" });
   await dialog.getByRole("button", { name: "Add task" }).click();
-  await expect(page.locator(".cm-content")).toContainText("[Test] starts at [wbs_website_redesign]'s end");
+  await expect(page.locator(".cm-content")).toContainText("[Test] starts at [wbs_project]'s end");
   const preview = page.getByRole("region", { name: "Diagram preview" });
   await expect(preview.locator("svg")).toContainText("Test");
   await expect(preview.locator("svg")).not.toContainText("Syntax Error");

@@ -8,6 +8,7 @@ export function AddMenu({
   onTask,
   onMilestone,
   onDivider,
+  onClosedDay,
   onParticipant,
   onMessage,
   onFragment,
@@ -38,6 +39,7 @@ export function AddMenu({
   onTask(): void;
   onMilestone(): void;
   onDivider(): void;
+  onClosedDay(): void;
   onParticipant(): void;
   onMessage(): void;
   onFragment(): void;
@@ -107,7 +109,7 @@ export function AddMenu({
   };
 
   return (
-    <div className="application-menu" ref={root}>
+    <div className="application-menu" ref={root} data-inspector-trigger={diagramKind === "gantt" || undefined}>
       <button
         ref={trigger}
         type="button"
@@ -151,6 +153,9 @@ export function AddMenu({
               <button role="menuitem" onClick={() => run(onDivider)}>
                 <span>Divider…</span>
                 <kbd>{dividerShortcut}</kbd>
+              </button>
+              <button role="menuitem" onClick={() => run(onClosedDay)}>
+                Closed day…
               </button>
             </>
           ) : diagramKind === "sequence" ? (

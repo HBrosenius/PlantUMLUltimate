@@ -47,3 +47,12 @@ describe("diagnostic grouping", () => {
     expect(groupDiagnostics("gantt", "@startgantt\n[Build] lasts 2 days\n@endgantt", [], [])).toEqual([]);
   });
 });
+
+it("does not merge independent errors on the same line", () => {
+  const sameLine = { ...dependent, from: 4, to: 8 };
+  vi.mocked(diagnosticsForDiagram).mockReturnValueOnce([sameLine]);
+  expect(groupDiagnostics("gantt", source, [root, sameLine], [fix])).toEqual([
+    { root, related: [] },
+    { root: sameLine, related: [] },
+  ]);
+});

@@ -446,6 +446,12 @@ function describeGanttChange(
     const before = removed[0]!.value;
     const after = added[0]!.value;
     if (before.id === after.id) {
+      if (before.label !== after.label && before.alias?.value === after.alias?.value)
+        return {
+          title: `Rename task ${before.label} to ${after.label}`,
+          detail: "The unchanged task alias confirms identity; source review includes any other changed fields.",
+          confidence: "confirmed",
+        };
       if (
         removed[0]!.declarationKind === "duration" &&
         before.duration &&
@@ -691,6 +697,17 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     const themeOnly = [...changedLeftLines, ...replacement]
       .filter((line) => line.trim())
       .every((line) => /^\s*!theme\b/i.test(line));
+    const covered = (lines: string[], first: number, items: GanttItem[], dependencies: GanttDependencyItem[]) =>
+      lines.every(
+        (line, offset) =>
+          !line.trim() ||
+          items.some((item) => item.line === first + offset && item.declarationKind !== "unknown") ||
+          dependencies.some((item) => item.line === first + offset),
+      );
+    const ganttFullyCovered =
+      kind !== "gantt" ||
+      (covered(changedLeftLines, startLeft, removedGantt, removedGanttDependencies) &&
+        covered(replacement, startRight, addedGantt, addedGanttDependencies));
     const description =
       themeOnly && beforeTheme !== afterTheme
         ? {
@@ -702,21 +719,28 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
             detail: "The changed source is a native PlantUML theme directive.",
             confidence: "confirmed" as const,
           }
-        : kind === "sequence"
-          ? describeSequenceChange(removed, added)
-          : kind === "gantt"
-            ? describeGanttChange(
-                removedGantt,
-                addedGantt,
-                removedGanttDependencies,
-                addedGanttDependencies,
-                leftGanttItems,
-                rightGanttItems,
-                rightGanttDependencies,
-              )
-            : kind === "component"
-              ? describeComponentChange(removedClass, addedClass)
-              : describeSequenceChange([], []);
+        : !ganttFullyCovered
+          ? {
+              title: "Unclassified source change",
+              detail:
+                "This group includes source outside recognized task or dependency declarations. Review every changed line in Source.",
+              confidence: "unclassified" as const,
+            }
+          : kind === "sequence"
+            ? describeSequenceChange(removed, added)
+            : kind === "gantt"
+              ? describeGanttChange(
+                  removedGantt,
+                  addedGantt,
+                  removedGanttDependencies,
+                  addedGanttDependencies,
+                  leftGanttItems,
+                  rightGanttItems,
+                  rightGanttDependencies,
+                )
+              : kind === "component"
+                ? describeComponentChange(removedClass, addedClass)
+                : describeSequenceChange([], []);
     return {
       id,
       ...description,
@@ -771,7 +795,30 @@ export function buildReviewGroups(leftSource: string, rightSource: string, kind:
     }
     groups.push(createGroup(`change-${groups.length + 1}`, startLeft, startRight, deleteCount, replacement));
   }
-  if (kind !== "gantt") return groups;
+  if (kind === "gantt") {
+    const beforeTasks = new Map(leftGanttItems.map((item) => [item.value.id, item.value]));
+    const afterTasks = new Map(rightGanttItems.map((item) => [item.value.id, item.value]));
+    const removedTasks = [...beforeTasks.values()].filter((task) => !afterTasks.has(task.id));
+    const addedTasks = [...afterTasks.values()].filter((task) => !beforeTasks.has(task.id));
+    if (groups.length > 1 && removedTasks.length === 1 && addedTasks.length === 1) {
+      const before = removedTasks[0]!,
+        after = addedTasks[0]!;
+      for (const group of groups) {
+        if (group.confidence === "unclassified") continue;
+        if (
+          [...group.leftTargets, ...group.rightTargets].some(
+            (target) => target.kind === "gantt-task" && (target.id === before.id || target.id === after.id),
+          )
+        ) {
+          group.title = `Possible task rename or replacement: ${before.label} → ${after.label}`;
+          group.detail =
+            "No stable identity confirms whether this is a rename or replacement. Review both source regions together; partial semantic acceptance is disabled.";
+          group.confidence = "probable";
+        }
+      }
+    }
+  }
+  if (kind !== "gantt" || groups.some((group) => group.confidence === "unclassified")) return groups;
   const rightLines = rightSource.split("\n");
   if (groups.length === 2) {
     const removalIndex = groups.findIndex(

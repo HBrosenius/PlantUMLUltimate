@@ -1,10 +1,12 @@
+import { loadEditorPreferences, saveEditorPreferences } from "./editor-preferences";
 import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
-import { PLANTUML_THEMES } from "./plantuml-theme";
+import { ThemeGallery } from "./ThemeGallery";
 import { PlantUmlUltimateLogo } from "./NewDocumentDialog";
 import type { Theme } from "./model";
 
 export interface AppSettings {
+  startupMode?: "restore" | "chooser" | undefined;
   theme: Theme;
   advancedMode: boolean;
   defaultDiagramTheme: string;
@@ -75,6 +77,8 @@ export function SettingsDialog({
   onApply,
   onClose,
   onPreview,
+  scheduleMode = "ask",
+  onScheduleModeChange,
   resourceWarningsEnabled = true,
   onResourceWarningsChange,
 }: {
@@ -83,14 +87,19 @@ export function SettingsDialog({
   onApply(settings: AppSettings): void;
   onClose(): void;
   onPreview?(settings: AppSettings): void;
+  scheduleMode?: "ask" | "single" | "cascade";
+  onScheduleModeChange?(value: "ask" | "single" | "cascade"): void;
   resourceWarningsEnabled?: boolean;
   onResourceWarningsChange?(enabled: boolean): void;
 }) {
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, mode === "onboarding" ? () => undefined : onClose);
+  const [editor, setEditor] = useState(loadEditorPreferences);
   const [theme, setTheme] = useState<Theme>(current.theme);
   const [advancedMode, setAdvancedMode] = useState(current.advancedMode);
   const [defaultDiagramTheme, setDefaultDiagramTheme] = useState(current.defaultDiagramTheme);
+  const [startupMode, setStartupMode] = useState(current.startupMode ?? "restore");
+  const [movePolicy, setMovePolicy] = useState(scheduleMode);
   const [showResourceWarnings, setShowResourceWarnings] = useState(resourceWarningsEnabled);
 
   return (
@@ -103,8 +112,10 @@ export function SettingsDialog({
         aria-label={mode === "onboarding" ? "Welcome to PlantUML Ultimate" : "Settings"}
         onSubmit={(event) => {
           event.preventDefault();
+          saveEditorPreferences(editor);
           onResourceWarningsChange?.(showResourceWarnings);
-          onApply({ theme, advancedMode, defaultDiagramTheme });
+          onScheduleModeChange?.(movePolicy);
+          onApply({ theme, advancedMode, defaultDiagramTheme, startupMode });
         }}
       >
         {mode === "onboarding" ? (
@@ -130,6 +141,7 @@ export function SettingsDialog({
           <label>
             Theme
             <select
+              aria-label="Theme"
               value={theme}
               onChange={(event) => {
                 const value = event.target.value as Theme;
@@ -142,25 +154,34 @@ export function SettingsDialog({
               <option value="dark">Dark</option>
             </select>
           </label>
-          <label>
-            Default diagram theme
-            <select
-              value={defaultDiagramTheme}
-              onChange={(event) => {
-                const value = event.target.value;
-                setDefaultDiagramTheme(value);
-                onPreview?.({ theme, advancedMode, defaultDiagramTheme: value });
-              }}
-            >
-              <option value="">Default PlantUML</option>
-              {PLANTUML_THEMES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+          <label className="document-settings-checkbox">
+            <input
+              type="checkbox"
+              checked={editor.adaptPreview}
+              onChange={(event) => setEditor({ ...editor, adaptPreview: event.target.checked })}
+              aria-describedby="adapt-preview-help"
+            />
+            Adapt preview to app theme
           </label>
-          <p>Applied to new diagrams you create. Existing diagrams keep their own saved theme.</p>
+          <p id="adapt-preview-help">
+            Adds a soft light backing and dims diagram colors in dark app appearance. Preview only: source and exported
+            images keep their authored colors. Off by default.
+          </p>
+        </section>
+        <section className="document-settings-section" aria-labelledby="settings-diagram-theme-heading">
+          <h3 id="settings-diagram-theme-heading">New diagram theme</h3>
+          <ThemeGallery
+            value={defaultDiagramTheme}
+            onChange={(value) => {
+              setDefaultDiagramTheme(value);
+              onPreview?.({ theme, advancedMode, defaultDiagramTheme: value });
+            }}
+            label="Default diagram theme"
+          />
+          <p>
+            Applied to new diagrams you create. Existing diagrams keep their own saved theme. Change the current diagram
+            in Document settings.
+          </p>
         </section>
         <section className="document-settings-section" aria-labelledby="settings-mode-heading">
           <h3 id="settings-mode-heading">Editing mode</h3>
@@ -189,16 +210,117 @@ export function SettingsDialog({
                   id={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
                 >
                   {advanced
-                    ? "Opens code and diagram side by side. Includes Code, Split and Diagram views."
-                    : "Edit with visual tools in a full-width diagram. The code editor is hidden."}
+                    ? "Starts with code and diagram side by side. Switch views at any time."
+                    : "Starts with a full-width diagram. Use Code or Split to reveal the source at any time."}
                 </span>
               </label>
             ))}
           </div>
         </section>
+        <section className="document-settings-section" aria-labelledby="settings-editor-heading">
+          <h3 id="settings-editor-heading">Code editor · this browser</h3>
+          <p>Applies to source editors without changing diagram source.</p>
+          <label>
+            Font size (px)
+            <input
+              type="number"
+              min="10"
+              max="32"
+              value={editor.fontSize}
+              onChange={(event) => setEditor({ ...editor, fontSize: Number(event.target.value) })}
+            />
+          </label>
+          <label>
+            Tab size
+            <select
+              aria-label="Tab size"
+              value={editor.tabSize}
+              onChange={(event) => setEditor({ ...editor, tabSize: Number(event.target.value) })}
+            >
+              {[2, 4, 8].map((size) => (
+                <option key={size} value={size}>
+                  {size} spaces
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="document-settings-checkbox">
+            <input
+              type="checkbox"
+              checked={editor.wordWrap}
+              onChange={(event) => setEditor({ ...editor, wordWrap: event.target.checked })}
+            />
+            Word wrap
+          </label>
+          <label className="document-settings-checkbox">
+            <input
+              type="checkbox"
+              checked={editor.lineNumbers}
+              onChange={(event) => setEditor({ ...editor, lineNumbers: event.target.checked })}
+            />
+            Line numbers
+          </label>
+        </section>
+        <section className="document-settings-section" aria-labelledby="settings-defaults-heading">
+          <h3 id="settings-defaults-heading">New diagram tabs · this browser</h3>
+          <p>Defaults apply when opening a new tab without saved choices. Existing tabs keep their view and zoom.</p>
+          <label>
+            Default view
+            <select
+              aria-label="Default view"
+              value={editor.defaultView}
+              onChange={(event) =>
+                setEditor({ ...editor, defaultView: event.target.value as typeof editor.defaultView })
+              }
+            >
+              <option value="current">Use current view</option>
+              <option value="code">Code</option>
+              <option value="split">Split</option>
+              <option value="diagram">Diagram</option>
+            </select>
+          </label>
+          <label>
+            Default zoom
+            <select
+              aria-label="Default zoom"
+              value={editor.defaultZoom}
+              onChange={(event) =>
+                setEditor({ ...editor, defaultZoom: event.target.value === "fit" ? "fit" : Number(event.target.value) })
+              }
+            >
+              <option value="fit">Fit diagram</option>
+              {[0.5, 0.75, 1, 1.5, 2].map((zoom) => (
+                <option key={zoom} value={zoom}>
+                  {zoom * 100}%
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
         {mode === "settings" && onResourceWarningsChange && (
           <section className="document-settings-section" aria-labelledby="settings-gantt-heading">
-            <h3 id="settings-gantt-heading">Gantt</h3>
+            <h3 id="settings-gantt-heading">Gantt preferences</h3>
+            {onScheduleModeChange && (
+              <>
+                <label>
+                  When moving tasks
+                  <select
+                    value={movePolicy}
+                    onChange={(event) => setMovePolicy(event.target.value as typeof movePolicy)}
+                    aria-describedby="move-policy-help"
+                  >
+                    <option value="ask">Always ask</option>
+                    <option value="single">Only task</option>
+                    <option value="cascade">Include dependents</option>
+                  </select>
+                </label>
+                <p id="move-policy-help">
+                  Default for task moves and rescheduling in this browser. Only task changes the selected task; Include
+                  dependents can also move linked tasks. Always ask reviews affected dates when needed. Changing this
+                  preference does not edit the plan.
+                </p>
+              </>
+            )}
             <label className="document-settings-checkbox">
               <input
                 type="checkbox"
@@ -211,6 +333,25 @@ export function SettingsDialog({
             <p id="settings-resource-warnings-description">
               Turn off the warning banner when an assigned person represents a whole team. Workload calculations and
               capacity details remain available. Applies to all Gantt diagrams in this browser.
+            </p>
+          </section>
+        )}
+        {mode === "settings" && (
+          <section className="document-settings-section" aria-labelledby="settings-startup-heading">
+            <h3 id="settings-startup-heading">Startup</h3>
+            <label>
+              On startup
+              <select
+                value={startupMode}
+                onChange={(event) => setStartupMode(event.target.value as "restore" | "chooser")}
+              >
+                <option value="restore">Restore last workspace</option>
+                <option value="chooser">Start with chooser</option>
+              </select>
+            </label>
+            <p>
+              Both options restore your diagrams. The chooser lets you add a new diagram without replacing recovered
+              work.
             </p>
           </section>
         )}

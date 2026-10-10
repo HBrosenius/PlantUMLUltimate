@@ -1,5 +1,7 @@
 export interface WbsGanttProjectLink {
   id: string;
+  missingWbsNode?: boolean;
+  missingGanttTask?: boolean;
   wbsLabel: string;
   ganttLabel: string;
   wbsDiagramName: string;

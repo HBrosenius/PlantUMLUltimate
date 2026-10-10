@@ -19,7 +19,6 @@ import {
   highlightActiveLineGutter,
   highlightSpecialChars,
   keymap,
-  lineNumbers,
   rectangularSelection,
 } from "@codemirror/view";
 
@@ -28,7 +27,6 @@ import {
  * edits; a second CodeMirror history would compete for Mod-z and for Safari's native undo events.
  */
 export const codeEditorSetup: Extension = [
-  lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),
   foldGutter(),

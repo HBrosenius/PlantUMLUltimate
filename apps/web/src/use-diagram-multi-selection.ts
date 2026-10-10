@@ -9,6 +9,7 @@ import {
   type DiagramClipboard,
   type DiagramBulkItem,
 } from "./diagram-bulk-operations";
+import { sidePanelOverlayOpen } from "./side-panel-events";
 import type { DiagramKind } from "./model";
 
 export function useDiagramMultiSelection({
@@ -245,6 +246,7 @@ export function useDiagramMultiSelection({
         return;
       if (window.document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       if (event.key === "Escape") {
+        if (event.defaultPrevented || sidePanelOverlayOpen()) return;
         state.clear();
         return;
       }

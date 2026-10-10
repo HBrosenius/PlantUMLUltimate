@@ -211,7 +211,9 @@ export function ClassEntityInspector({
           <strong>{entity.kind} inspector</strong>
           <small>Edit identity, appearance, and placement{componentMode ? "" : ", including members"}</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label={`Close ${componentMode ? "Component" : "Class"} object inspector`}>
+          ×
+        </button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         <fieldset>
@@ -888,7 +890,12 @@ export function ClassRelationshipInspector({
           <strong>{componentMode ? "Connection" : "Relationship"} inspector</strong>
           <small>Endpoints, {componentMode ? "direction" : "relationship type and multiplicity"}, and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button
+          onClick={onClose}
+          aria-label={`Close ${componentMode ? "Component connection" : "Class relationship"} inspector`}
+        >
+          ×
+        </button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         <fieldset>
@@ -1132,7 +1139,12 @@ export function ClassPackageInspector({
           <strong>{componentMode ? "Container" : "Package"} inspector</strong>
           <small>Container identity and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button
+          onClick={onClose}
+          aria-label={`Close ${componentMode ? "Component container" : "Class package"} inspector`}
+        >
+          ×
+        </button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         <fieldset>
@@ -1316,7 +1328,9 @@ export function ClassNoteInspector({
           <strong>Note inspector</strong>
           <small>Attachment, content, and appearance</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label={`Close ${componentMode ? "Component" : "Class"} note inspector`}>
+          ×
+        </button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         <fieldset>

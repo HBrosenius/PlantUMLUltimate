@@ -39,7 +39,6 @@ test("selects a native PlantUML theme from document settings", async ({ page }) 
   await page.waitForTimeout(450);
   await page.reload();
   await expect(page.locator(".cm-content")).toContainText("!theme blueprint");
-  await page.getByRole("dialog", { name: "Choose a diagram type" }).getByRole("button", { name: "Cancel" }).click();
   await expect.poll(() => diagram.evaluate((element) => element.outerHTML)).toContain("#003153");
 
   const downloadPromise = page.waitForEvent("download");
@@ -145,7 +144,8 @@ test("searches the diagram outline and jumps to source and rendered selection", 
   await expect(outlineSearch).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(outline).toBeHidden();
-  await expect(page.getByRole("complementary", { name: "Task inspector" })).toHaveCount(0);
+  // Escape dismisses the outline while retaining the selected task inspector.
+  await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
 });
 
 test("highlights and renames task and person references from the editor", async ({ page }) => {
@@ -896,9 +896,9 @@ test("edits, reviews, and applies a delivery scenario from the rendered preview"
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 2 days"));
 
-  await page.getByRole("button", { name: "File", exact: true }).click();
-  await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Gantt analysis…" }).click();
-  const dialog = page.getByRole("dialog", { name: "Gantt analysis", exact: true });
+  await page.getByRole("button", { name: "Plan", exact: true }).click();
+  await page.getByRole("menu", { name: "Plan" }).getByRole("menuitem", { name: "What-if scenario…" }).click();
+  const dialog = page.getByRole("dialog", { name: "What-if scenario", exact: true });
   await dialog.getByRole("button", { name: "Rendered preview" }).click();
   const scenario = dialog.getByLabel("Scenario preview");
   await expect(scenario.locator("svg")).toBeVisible({ timeout: 20_000 });
@@ -1263,7 +1263,12 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
 test("shortens a weekend-starting task through every working endpoint", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-05\n[A] lasts 6 days"));
+  await page.getByRole("button", { name: /^Move policy:/ }).click();
   await page.getByLabel("When moving tasks").selectOption("single");
+  await page
+    .getByRole("dialog", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Apply", exact: true })
+    .click();
   await page.locator("[data-task-id=a] .bar").click();
   await expect(page.locator("[data-task-id=a]")).toHaveAttribute("data-selected", "true");
   const handle = page.locator("[data-task-id=a] [data-resize-handle]");
@@ -1496,8 +1501,8 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
   });
 
   await page.reload();
-  await expect(page.locator('.document-tabs > button[title="first.puml — unsaved changes"]')).toBeVisible();
-  await expect(page.locator('.document-tabs > button[title="second.puml — unsaved changes"]')).toBeVisible();
+  await expect(page.locator('.document-tabs > button[title*="File: first.puml"]')).toBeVisible();
+  await expect(page.locator('.document-tabs > button[title*="File: second.puml"]')).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Cancel" }).click();
@@ -1507,7 +1512,7 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
       return text.indexOf("[Frontend] starts at [Testing]'s end") > text.indexOf("[Testing] lasts 2 days");
     })
     .toBe(true);
-  await page.locator('.document-tabs > button[title="second.puml — unsaved changes"]').click();
+  await page.locator('.document-tabs > button[title*="File: second.puml"]').click();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
@@ -1615,6 +1620,8 @@ test("shows resource over-allocation after dragging assigned tasks into overlap"
   for (const taskId of ["a", "b"]) {
     await page.locator(`[data-task-id="${taskId}"] .bar`).click();
     const inspector = page.getByRole("complementary", { name: "Task inspector" });
+    if (!(await inspector.getByRole("button", { name: "+ Add person" }).isVisible()))
+      await inspector.getByText("Resources", { exact: true }).click();
     await inspector.getByRole("button", { name: "+ Add person" }).click();
     await inspector.getByLabel("Person name").fill("Kalle");
     await inspector.getByLabel("Person name").blur();
@@ -1737,6 +1744,7 @@ test("saves task inspector text fields on blur instead of while typing", async (
   await setSource(page, source("[Build] lasts 2 days"));
   await page.locator('[data-task-id="build"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByText("Appearance", { exact: true }).click();
   await expect(inspector.getByRole("button", { name: "Apply" })).toHaveCount(0);
   await inspector.getByLabel("Color", { exact: true }).fill("Orange");
   await expect(page.locator(".cm-content")).not.toContainText("[Build] is colored in Orange");
@@ -1753,6 +1761,7 @@ test("applies a color picked from the palette immediately, without a separate bl
   await setSource(page, source("[Build] lasts 2 days"));
   await page.locator('[data-task-id="build"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByText("Appearance", { exact: true }).click();
   await inspector.getByRole("button", { name: "Choose color from a palette" }).click();
   await expect(inspector.locator('[aria-label="Color palette"]')).toBeVisible();
   await inspector.getByRole("button", { name: "Orange", exact: true }).click();
@@ -1896,6 +1905,7 @@ test("suggests PlantUML color names in the task inspector", async ({ page }) => 
   await setSource(page, source("[A] starts 2026-09-01 and lasts 3 days"));
   await page.locator("[data-task-id=a] .bar").click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
+  await inspector.getByText("Appearance", { exact: true }).click();
   const color = inspector.getByRole("combobox", { name: "Color" });
   const listId = await color.getAttribute("list");
   expect(listId).toBeTruthy();

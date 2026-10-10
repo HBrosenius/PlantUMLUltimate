@@ -10,10 +10,12 @@ import {
 } from "react";
 import type { UseCaseDocument } from "@plantuml-studio/diagram-usecase";
 import type { RenderStatus } from "./model";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function UseCaseDiagramPreview({
+  onInlineRename,
+  initialFit,
   svg,
   zoom,
   onZoomChange,
@@ -28,7 +30,9 @@ export function UseCaseDiagramPreview({
   onMoveToPackage,
   onReorder,
 }: {
+  onInlineRename?: ((id: string, anchor: Element) => boolean) | undefined;
   svg?: string | undefined;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(zoom: number): void;
   renderStatus: RenderStatus;
@@ -42,7 +46,7 @@ export function UseCaseDiagramPreview({
   onMoveToPackage(elementId: string, packageId: string): void;
   onReorder(elementId: string, targetId: string, placement: "before" | "after"): void;
 }) {
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
@@ -220,6 +224,11 @@ export function UseCaseDiagramPreview({
       event.target instanceof Element ? event.target.closest<SVGElement>("[data-usecase-object-id]") : null;
     const id = target?.getAttribute("data-usecase-object-id");
     if (!id) return;
+    if (event.key === "F2" && onInlineRename?.(id, event.target as Element)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const type = target?.getAttribute("data-usecase-object-type");
     const connectable = type === "actor" || type === "usecase";
     if (event.key.toLowerCase() === "c" && connectable) {
@@ -375,6 +384,29 @@ export function UseCaseDiagramPreview({
   return (
     <section className="preview" aria-label="Use Case diagram preview" data-render-status={renderStatus}>
       <div className="preview-tools">
+        {onInlineRename && (
+          <button
+            type="button"
+            disabled={
+              !selectedId ||
+              !(
+                document.elements.some((item) => item.id === selectedId) ||
+                document.packages.some((item) => item.id === selectedId)
+              ) ||
+              renderStatus !== "idle"
+            }
+            title="Rename selected label (F2)"
+            data-inspector-trigger
+            onClick={() => {
+              const target = root.current
+                ?.closest(".preview")
+                ?.querySelector(`[data-usecase-object-id="${CSS.escape(selectedId ?? "")}"]`);
+              if (selectedId && target) onInlineRename(selectedId, target);
+            }}
+          >
+            Rename label
+          </button>
+        )}
         <button
           type="button"
           onClick={navigation.fit}

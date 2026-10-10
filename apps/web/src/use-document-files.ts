@@ -1,3 +1,5 @@
+import { importedDiagramKind } from "./import-source";
+import { rememberRecentFile } from "./recent-files";
 import type { FileSaveState } from "./FileSaveStatus";
 import {
   useCallback,
@@ -88,6 +90,7 @@ type UseDocumentFilesOptions = {
   resetSelection: () => void;
   reportError: (error: unknown) => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
+  notifySuccess?: (message: string) => void;
   onProjectLaunch?: (opened: OpenedFileBytes) => Promise<boolean>;
 };
 
@@ -142,8 +145,10 @@ export function useDocumentFiles({
   resetSelection,
   reportError,
   setInteractionMessage,
+  notifySuccess,
   onProjectLaunch,
 }: UseDocumentFilesOptions) {
+  const reportSuccess = notifySuccess ?? setInteractionMessage;
   const [externalConflict, setExternalConflict] = useState<ExternalFileConflict>();
   const checkingExternalFiles = useRef(false);
   const saving = useRef(new Set<string>());
@@ -157,13 +162,20 @@ export function useDocumentFiles({
     async (opened: OpenedDocument | undefined) => {
       if (!opened) return;
       const historyId = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const diagramKind = detectDiagramKind(opened.source) ?? "gantt";
+      const diagramKind = importedDiagramKind(opened.source);
+      await recordDocumentVersion("opened", "Opened file", {
+        historyId,
+        source: opened.source,
+        fileName: opened.fileName,
+        diagramKind,
+      });
       const id = tabs.addDocument({
         historyId,
         diagramKind,
         source: opened.source,
         fileName: opened.fileName,
-        dirty: false,
+        dirty: Boolean(opened.importedSource),
+        fileCopy: opened.importedSource ? "new" : "file",
         cursor: { line: 1, column: 1 },
       });
       if (opened.handle) {
@@ -174,39 +186,28 @@ export function useDocumentFiles({
           size: opened.size ?? new Blob([opened.source]).size,
         });
       }
-      await recordDocumentVersion("opened", "Opened file", {
-        historyId,
-        source: opened.source,
-        fileName: opened.fileName,
-        diagramKind,
-      });
       refreshHistoryControls();
       resetSelection();
-      setInteractionMessage(`Opened ${opened.fileName}`);
+      reportSuccess(`Opened ${opened.fileName}`);
     },
-    [
-      fileHandles,
-      fileSnapshots,
-      recordDocumentVersion,
-      refreshHistoryControls,
-      resetSelection,
-      setInteractionMessage,
-      tabs,
-    ],
+    [fileHandles, fileSnapshots, recordDocumentVersion, refreshHistoryControls, resetSelection, reportSuccess, tabs],
   );
 
   const addOpenedFile = useCallback(
     async (opened: Awaited<ReturnType<typeof openDocumentFile>>) => {
-      if (!opened) return;
+      if (!opened) return false;
       if (opened.kind === "legacy") {
         await addOpenedDocument({
           source: opened.source!,
+          ...(opened.importedSource ? { importedSource: true } : {}),
           fileName: opened.fileName,
           ...(opened.handle ? { handle: opened.handle } : {}),
           lastModified: opened.lastModified,
           size: opened.size,
         });
-        return;
+        if (!opened.importedSource)
+          await rememberRecentFile(opened.fileName, opened.handle, "diagram").catch(() => undefined);
+        return true;
       }
       let decoded;
       try {
@@ -214,7 +215,7 @@ export function useDocumentFiles({
       } catch (error) {
         if (!(error instanceof DocumentFormatError) || error.code !== "password-required") throw error;
         const password = window.prompt("This document is encrypted. Enter its password:");
-        if (password === null) return;
+        if (password === null) return false;
         decoded = await decodeDocument(opened.bytes, { password });
       }
       const mapped = mapPortableHistoryToLocal(
@@ -226,12 +227,16 @@ export function useDocumentFiles({
       const encrypted = Boolean(decoded.unlockedKey);
       if (encrypted) await enableMemoryOnlyHistory(mapped.historyId);
       await importDocumentVersions(mapped.versions);
+      const snapshot = opened.handle
+        ? await nativeSnapshot(opened.bytes, decoded.document.current.source, opened.lastModified)
+        : undefined;
       const id = tabs.addDocument({
         historyId: mapped.historyId,
         source: decoded.document.current.source,
         diagramKind: decoded.document.current.diagramKind,
         fileName: opened.fileName,
         dirty: false,
+        fileCopy: "file",
         cursor: { line: 1, column: 1 },
         portableDocumentId: decoded.document.documentId,
         native: true,
@@ -247,24 +252,15 @@ export function useDocumentFiles({
       if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
       if (opened.handle) {
         fileHandles.current.set(id, opened.handle);
-        fileSnapshots.current.set(
-          id,
-          await nativeSnapshot(opened.bytes, decoded.document.current.source, opened.lastModified),
-        );
+        fileSnapshots.current.set(id, snapshot!);
       }
       refreshHistoryControls();
       resetSelection();
-      setInteractionMessage(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
+      reportSuccess(`Opened ${opened.fileName}${encrypted ? " (encrypted)" : ""}`);
+      await rememberRecentFile(opened.fileName, opened.handle, "diagram").catch(() => undefined);
+      return true;
     },
-    [
-      addOpenedDocument,
-      fileHandles,
-      fileSnapshots,
-      refreshHistoryControls,
-      resetSelection,
-      setInteractionMessage,
-      tabs,
-    ],
+    [addOpenedDocument, fileHandles, fileSnapshots, refreshHistoryControls, resetSelection, reportSuccess, tabs],
   );
 
   const openDocument = useCallback(async () => {
@@ -316,6 +312,7 @@ export function useDocumentFiles({
       } else fileSnapshots.current.delete(active.id);
       tabs.updateDocumentFormat(active.id, {
         portableDocumentId: portable.documentId,
+        fileCopy: saved.downloaded ? "download" : "file",
         native: true,
         fileName: saved.fileName,
       });
@@ -325,7 +322,7 @@ export function useDocumentFiles({
         ...(clean ? { dirty: false } : {}),
       });
       setFileSaveState({ documentId: active.id, status: saved.downloaded ? "downloaded" : "saved" });
-      setInteractionMessage(
+      (clean ? reportSuccess : setInteractionMessage)(
         clean
           ? saved.downloaded
             ? `Downloaded snapshot ${saved.fileName}`
@@ -353,6 +350,7 @@ export function useDocumentFiles({
     fileSnapshots,
     recordDocumentVersion,
     reportError,
+    reportSuccess,
     setInteractionMessage,
     tabs,
     workspace.fileName,
@@ -410,9 +408,15 @@ export function useDocumentFiles({
       );
       if (!stillOwned(active)) return;
       const clean = (latestTabs.current.getDocument(active.id)?.revision ?? 0) === capturedRevision;
-      latestTabs.current.updateDocumentFormat(active.id, { fileName: handle.name, ...(clean ? { dirty: false } : {}) });
+      latestTabs.current.updateDocumentFormat(active.id, {
+        fileName: handle.name,
+        fileCopy: "file",
+        ...(clean ? { dirty: false } : {}),
+      });
       setFileSaveState({ documentId: active.id, status: "saved" });
-      setInteractionMessage(clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`);
+      (clean ? reportSuccess : setInteractionMessage)(
+        clean ? `Saved ${handle.name}` : `Saved snapshot; newer changes remain unsaved`,
+      );
     } catch (error) {
       if (stillOwned(active))
         setFileSaveState({
@@ -435,6 +439,7 @@ export function useDocumentFiles({
     recordDocumentVersion,
     reportError,
     saveDocumentAs,
+    reportSuccess,
     setInteractionMessage,
     tabs,
     workspace.source,
@@ -484,12 +489,14 @@ export function useDocumentFiles({
           });
           const existingHandle = active.native ? fileHandles.current.get(active.id) : undefined;
           let fileName = active.fileName;
+          let fileCopy = existingHandle ? ("file" as const) : active.fileCopy;
           let handle = existingHandle;
           if (existingHandle) await writeDocumentBytes(existingHandle, encoded.bytes);
           else {
             const saved = await savePortableDocumentAs(encoded.bytes, active.fileName);
             if (!saved) return;
             fileName = saved.fileName;
+            fileCopy = saved.downloaded ? "download" : "file";
             handle = saved.handle;
           }
           await removePersistedDocument(active.id);
@@ -512,6 +519,7 @@ export function useDocumentFiles({
             native: true,
             encrypted: true,
             fileName,
+            fileCopy,
             dirty: !clean,
           });
           setInteractionMessage("Saved password-protected document");
@@ -790,6 +798,7 @@ export function useDocumentFiles({
     fileSaveState,
     externalConflict,
     openDocument,
+    importDocumentFile: addOpenedFile,
     saveDocument,
     saveDocumentAs,
     dismissExternalConflict,

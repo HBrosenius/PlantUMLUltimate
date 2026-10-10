@@ -175,7 +175,7 @@ export function ResourceWorkloadPanel({
   onRename(currentName: string, nextName: string): void;
   onFilter(name: string): void;
   onTaskSelect(id: string): void;
-  onReport?(name?: string): void;
+  onReport?(name?: string, coordinator?: boolean): void;
   onClose(): void;
 }) {
   const [scale, setScale] = useState<"daily" | "weekly">("daily");
@@ -186,14 +186,18 @@ export function ResourceWorkloadPanel({
     [calendar, resolvedDates, tasks],
   );
   return (
-    <InspectorPanel className="task-inspector resource-workload" aria-label="Resource workload">
-      {onReport && <button onClick={() => onReport()}>Create task check-in…</button>}
+    <InspectorPanel closeOnOutsideEscape className="task-inspector resource-workload" aria-label="Resource workload">
       <header>
         <strong>Resource workload</strong>
         <button onClick={onClose} aria-label="Close resource workload">
           ×
         </button>
       </header>
+      {onReport && (
+        <button className="secondary-action workload-report" onClick={() => onReport()}>
+          Create task check-in…
+        </button>
+      )}
       <label className="workload-scale">
         Summary
         <select value={scale} onChange={(event) => setScale(event.target.value as "daily" | "weekly")}>
@@ -201,7 +205,17 @@ export function ResourceWorkloadPanel({
           <option value="weekly">Weekly</option>
         </select>
       </label>
-      {workloads.length === 0 && <p className="empty-workload">Assign people to tasks to see workload.</p>}
+      {workloads.length === 0 && (
+        <div className="empty-workload">
+          <p>
+            {tasks.length
+              ? "No people are assigned. Assign people to tasks to see workload."
+              : "No tasks in this plan yet."}
+          </p>
+          {tasks.length > 0 && <button onClick={() => onTaskSelect(tasks[0]!.id)}>Open task assignment</button>}
+          {onReport && <button onClick={() => onReport(undefined, true)}>Create coordinator summary</button>}
+        </div>
+      )}
       {workloads.map((resource) => {
         const capacity = capacities[resource.name] ?? 100;
         const buckets = scale === "daily" ? resource.days : weeklyBuckets(resource.days);
@@ -209,9 +223,6 @@ export function ResourceWorkloadPanel({
         const conflicts = buckets.filter((item) => item.allocation > capacity);
         return (
           <section className="resource-card" key={resource.name}>
-            {onReport && (
-              <button onClick={() => onReport(resource.name)}>Create task check-in for {resource.name}…</button>
-            )}
             <div className="resource-title">
               <button className="resource-name" onClick={() => onFilter(resource.name)}>
                 {resource.name}
@@ -226,6 +237,11 @@ export function ResourceWorkloadPanel({
                 Rename
               </button>
             </div>
+            {onReport && (
+              <button className="secondary-action workload-report" onClick={() => onReport(resource.name)}>
+                Create task check-in for {resource.name}…
+              </button>
+            )}
             {renaming === resource.name && (
               <form
                 className="resource-rename"

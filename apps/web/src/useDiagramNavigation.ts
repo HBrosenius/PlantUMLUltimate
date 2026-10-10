@@ -7,9 +7,18 @@ import {
   type WheelEvent,
 } from "react";
 
+import { initialDiagramZoom } from "./initial-diagram-zoom";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 
-export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) => void) {
+export interface InitialDiagramFit {
+  documentId: string;
+}
+
+export function useDiagramNavigation(
+  zoom: number,
+  onZoomChange: (zoom: number) => void,
+  options?: { svg?: string | undefined; initialFit?: InitialDiagramFit | undefined },
+) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | undefined>(undefined);
   const zoomRef = useRef(zoom);
@@ -73,6 +82,29 @@ export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) 
       window.removeEventListener("pointercancel", end);
     };
   }, []);
+
+  const fittedDocument = useRef<string | undefined>(undefined);
+  const initialDocumentId = options?.initialFit?.documentId;
+  useEffect(() => {
+    if (!initialDocumentId || fittedDocument.current === initialDocumentId || !options?.svg || wheelRef.current) return;
+    const viewport = viewportRef.current;
+    const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
+    if (!viewport || !svg || !viewport.clientWidth || !viewport.clientHeight) return;
+    const bounds = svg.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    fittedDocument.current = initialDocumentId;
+    zoomChangeRef.current(
+      initialDiagramZoom(
+        bounds.width / zoomRef.current,
+        bounds.height / zoomRef.current,
+        viewport.clientWidth,
+        viewport.clientHeight,
+        svg.viewBox.baseVal.width || svg.width.baseVal.value || bounds.width / zoomRef.current,
+      ),
+    );
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+  }, [initialDocumentId, options?.svg]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current;
@@ -157,7 +189,7 @@ export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) 
 
   const fit = useCallback(() => {
     const viewport = viewportRef.current;
-    const svg = viewport?.querySelector(".diagram svg");
+    const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
     if (!viewport || !svg) return;
     const bounds = svg.getBoundingClientRect();
     const displayedZoom = wheelRef.current?.current ?? zoomRef.current;
@@ -179,6 +211,14 @@ export function useDiagramNavigation(zoom: number, onZoomChange: (zoom: number) 
       viewport.scrollTop = 0;
     });
   }, []);
+
+  useEffect(() => {
+    const handleFit = () => {
+      if (viewportRef.current?.closest(".workspace") && !viewportRef.current.closest('[role="dialog"]')) fit();
+    };
+    window.addEventListener("fit-active-diagram", handleFit);
+    return () => window.removeEventListener("fit-active-diagram", handleFit);
+  }, [fit]);
 
   return { viewportRef, onWheel, onPointerDown, onAuxClick, fit };
 }

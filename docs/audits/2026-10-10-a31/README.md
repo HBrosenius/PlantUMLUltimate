@@ -1,0 +1,9 @@
+# A31 — Visual semantic review
+
+Gantt task groups now expose changed fields with Before / After this group values: label, task/milestone type, duration, start/end, progress (%) and resources. Field review describes the selected group independently of other changes to the same task. Existing diagram highlighting and Source fallback remain available in version history and imported comparisons.
+
+Unchanged aliases confirm task renames. Ambiguous cross-hunk rename/replacement candidates are probable, with selective application disabled. A recognized declaration cannot make a mixed unsupported source block confirmed. Combined selections must pass source validation, including dependency validity and preservation of unsupported source. Historical selective restoration explicitly acknowledges replacement of unselected working-copy differences. Application rechecks the exact source, document and editing access after checkpoint creation and creates one undoable edit.
+
+Scope: Gantt-first object field review; existing Sequence and Component semantic review retained. No multi-file acceptance or global identity service.
+
+Validation: 215 unit files / 2,273 tests passed; production build and changed-file ESLint passed. Eighteen browser checks passed; six proposal checks were repeated after the phone layout adjustment. Browser checks cover imported proposals, task field review, source fallback, one-step Undo, persisted baselines and Sequence selective restoration across Chromium, Firefox and WebKit. Desktop and phone captures were inspected and retained here. At phone width the dialog body scrolls as a whole so comparison controls cannot squeeze the field table out of view. The first browser run found test assumptions about mobile Code visibility and the recovered-document chooser; checks were corrected.

@@ -37,3 +37,26 @@ it("shows why a resource task was excluded and lets the user select it", () => {
   expect(onTaskSelect).toHaveBeenCalledWith("broken");
   expect(screen.queryByText(/over-allocation/)).toBeNull();
 });
+
+it("offers assignment and an explicit coordinator summary before people are assigned", () => {
+  const source = "@startgantt\n[A] lasts 2 days\n@endgantt";
+  const onReport = vi.fn();
+  const onTaskSelect = vi.fn();
+  render(
+    <ResourceWorkloadPanel
+      tasks={parseGantt(source).document.tasks}
+      calendar={parseGanttCalendar(source)}
+      capacities={{}}
+      onCapacityChange={vi.fn()}
+      onRename={vi.fn()}
+      onFilter={vi.fn()}
+      onTaskSelect={onTaskSelect}
+      onReport={onReport}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Create coordinator summary" }));
+  expect(onReport).toHaveBeenCalledWith(undefined, true);
+  fireEvent.click(screen.getByRole("button", { name: "Open task assignment" }));
+  expect(onTaskSelect).toHaveBeenCalledWith("a");
+});

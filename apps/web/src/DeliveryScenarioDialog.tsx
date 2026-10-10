@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseGantt, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { buildResourceOverAllocations, type ResourceCapacity } from "./ResourceWorkloadPanel";
 import { compareDeliveryScenarios } from "./delivery-scenario";
@@ -11,6 +11,16 @@ import { DiagramPreview } from "./DiagramPreview";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveTaskDates } from "./gantt-schedule";
 import { ScenarioSourceEditor } from "./ScenarioSourceEditor";
+
+import {
+  capacityRevision,
+  deleteDeliveryScenario,
+  loadSavedScenarios,
+  saveDeliveryScenario,
+  validateScenarioSource,
+  type SavedDeliveryScenario,
+} from "./saved-delivery-scenarios";
+import { resolveThreeWayMerge, threeWayMerge } from "./external-file-merge";
 
 function signed(value: number | undefined): string {
   if (value === undefined) return "Changed";
@@ -156,15 +166,42 @@ function ScenarioTaskEditor({
 export function DeliveryScenarioDialog({
   currentSource,
   capacities,
+  documentId,
   onApply,
   onClose,
 }: {
   currentSource: string;
   capacities: ResourceCapacity;
-  onApply(source: string): boolean;
+  documentId?: string;
+  onApply(source: string, expectedBase: string): boolean;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLElement>(null);
+  const [baseSource, setBaseSource] = useState(currentSource);
+  const [baseCapacities, setBaseCapacities] = useState(capacities);
+  const [saved, setSaved] = useState<SavedDeliveryScenario>();
+  const [entries, setEntries] = useState<SavedDeliveryScenario[]>([]);
+  const [name, setName] = useState("");
+  const [assumptions, setAssumptions] = useState("");
+  const [storageError, setStorageError] = useState("");
+  const [storageMessage, setStorageMessage] = useState("");
+  const [selectedSavedId, setSelectedSavedId] = useState("");
+  const [pendingOpen, setPendingOpen] = useState<SavedDeliveryScenario | "new">();
+  const [deleteRequested, setDeleteRequested] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const [choices, setChoices] = useState<Record<number, "local" | "external">>({});
+  const stale = baseSource !== currentSource || capacityRevision(baseCapacities) !== capacityRevision(capacities);
+  const refreshSaved = useCallback(() => {
+    try {
+      setEntries(loadSavedScenarios().filter((item) => item.documentId === documentId));
+      setStorageError("");
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : "Could not read saved scenarios.");
+    }
+  }, [documentId]);
+  useEffect(() => {
+    refreshSaved();
+  }, [refreshSaved]);
   const [scenarioSource, setScenarioSource] = useState(currentSource);
   const [view, setView] = useState<"edit" | "preview" | "review">("edit");
   const [editorMode, setEditorMode] = useState<"structured" | "source">("structured");
@@ -180,23 +217,75 @@ export function DeliveryScenarioDialog({
   const [scenarioDependencyIndex, setScenarioDependencyIndex] = useState<number>();
   const [scenarioInteractionMessage, setScenarioInteractionMessage] = useState<string>();
   const comparison = useMemo(
-    () => compareDeliveryScenarios(currentSource, scenarioSource, capacities),
-    [capacities, currentSource, scenarioSource],
+    () => compareDeliveryScenarios(baseSource, scenarioSource, baseCapacities),
+    [baseCapacities, baseSource, scenarioSource],
   );
-  const changed = scenarioSource !== currentSource;
+  const changed = scenarioSource !== baseSource;
+  const unsaved =
+    scenarioSource !== (saved?.source ?? currentSource) ||
+    baseSource !== (saved?.baseSource ?? currentSource) ||
+    name !== (saved?.name ?? "") ||
+    assumptions !== (saved?.assumptions ?? "") ||
+    capacityRevision(baseCapacities) !== capacityRevision(saved?.capacities ?? capacities);
+  const merge = useMemo(
+    () => (stale ? threeWayMerge(baseSource, currentSource, scenarioSource) : undefined),
+    [baseSource, currentSource, scenarioSource, stale],
+  );
+  useEffect(() => {
+    setChoices({});
+  }, [merge]);
+  const openScenario = (item: SavedDeliveryScenario | "new") => {
+    const entry = item === "new" ? undefined : item;
+    setSaved(entry);
+    setSelectedSavedId(entry?.id ?? "");
+    setBaseSource(entry?.baseSource ?? currentSource);
+    setBaseCapacities(entry?.capacities ?? capacities);
+    setScenarioSource(entry?.source ?? currentSource);
+    setName(entry?.name ?? "");
+    setAssumptions(entry?.assumptions ?? "");
+    setView("edit");
+    setPendingOpen(undefined);
+    setDiscardRequested(false);
+    setReconciling(false);
+    setDeleteRequested(false);
+    setScenarioEditError("");
+    setStorageMessage("");
+    setScenarioVisualTaskId(undefined);
+    setScenarioDependencyIndex(undefined);
+  };
+  const requestOpen = (item: SavedDeliveryScenario | "new") => {
+    if (unsaved) setPendingOpen(item);
+    else openScenario(item);
+  };
+  const save = (copy = false) => {
+    if (!documentId) return;
+    try {
+      const entry = saveDeliveryScenario(
+        { documentId, name, assumptions, baseSource, source: scenarioSource, capacities: baseCapacities },
+        copy ? undefined : saved?.id,
+      );
+      setSaved(entry);
+      setName(entry.name);
+      setSelectedSavedId(entry.id);
+      refreshSaved();
+      setStorageMessage(`Saved “${entry.name}” in this browser.`);
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : "Could not save scenario.");
+    }
+  };
   const requestClose = () => {
-    if (changed) setDiscardRequested(true);
+    if (unsaved) setDiscardRequested(true);
     else onClose();
   };
   useDialogFocus(dialog, requestClose);
-  const currentRender = useRenderer(currentSource, view === "preview", "native");
+  const currentRender = useRenderer(baseSource, view === "preview", "native");
   const scenarioRender = useRenderer(scenarioSource, view === "preview", "native");
   const currentSvg = useMemo(() => {
     if (!currentRender.result?.svg) return undefined;
-    const document = parseGantt(currentSource).document;
+    const document = parseGantt(baseSource).document;
     return addCanonicalGanttOverlay(currentRender.result.svg, document.tasks, document.dependencies);
-  }, [currentRender.result?.svg, currentSource]);
-  const diff = useMemo(() => diffVersionSources(currentSource, scenarioSource), [currentSource, scenarioSource]);
+  }, [currentRender.result?.svg, baseSource]);
+  const diff = useMemo(() => diffVersionSources(baseSource, scenarioSource), [baseSource, scenarioSource]);
   const scenarioDocument = useMemo(() => parseGantt(scenarioSource).document, [scenarioSource]);
   const scenarioCalendar = useMemo(() => parseGanttCalendar(scenarioSource), [scenarioSource]);
   const scenarioResolvedDates = useMemo(
@@ -210,8 +299,8 @@ export function DeliveryScenarioDialog({
     [scenarioCalendar, scenarioDocument],
   );
   const scenarioResourceConflicts = useMemo(
-    () => buildResourceOverAllocations(scenarioDocument.tasks, capacities, scenarioResolvedDates, scenarioCalendar),
-    [capacities, scenarioCalendar, scenarioDocument.tasks, scenarioResolvedDates],
+    () => buildResourceOverAllocations(scenarioDocument.tasks, baseCapacities, scenarioResolvedDates, scenarioCalendar),
+    [baseCapacities, scenarioCalendar, scenarioDocument.tasks, scenarioResolvedDates],
   );
   const scenarioTasks = scenarioDocument.tasks.filter((task) => !task.milestone);
   const selectedTask = scenarioTasks.find((task) => task.id === selectedTaskId) ?? scenarioTasks[0];
@@ -244,13 +333,202 @@ export function DeliveryScenarioDialog({
       >
         <header>
           <div>
-            <h2 id="delivery-scenario-title">Gantt analysis</h2>
+            <h2 id="delivery-scenario-title">What-if scenario</h2>
             <p>Test schedule changes without modifying the current diagram.</p>
           </div>
-          <button type="button" aria-label="Close scenario lab" onClick={requestClose}>
+          <button type="button" aria-label="Close what-if scenario" onClick={requestClose}>
             ×
           </button>
         </header>
+
+        {documentId && (
+          <details className="scenario-library" open={view === "edit"}>
+            <summary>Saved scenarios{saved ? ` · ${saved.name}` : ""}</summary>
+            <p>
+              Saved locally in this browser for this diagram. Scenarios are not included in saved files or shared with
+              collaborators.
+            </p>
+            <div className="scenario-library-controls">
+              <label>
+                Saved scenarios
+                <select
+                  aria-label="Saved scenario"
+                  value={selectedSavedId}
+                  onChange={(event) => setSelectedSavedId(event.target.value)}
+                >
+                  <option value="">Choose a scenario</option>
+                  {entries.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                disabled={!entries.some((item) => item.id === selectedSavedId)}
+                onClick={() => {
+                  const entry = entries.find((item) => item.id === selectedSavedId);
+                  if (entry) requestOpen(entry);
+                }}
+              >
+                Open saved scenario
+              </button>
+              <button onClick={() => requestOpen("new")}>New scenario from current plan</button>
+            </div>
+            <label>
+              Scenario name
+              <input
+                aria-label="Scenario name"
+                maxLength={100}
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setStorageMessage("");
+                }}
+              />
+            </label>
+            <label>
+              Assumptions
+              <textarea
+                aria-label="Scenario assumptions"
+                maxLength={2000}
+                value={assumptions}
+                onChange={(event) => {
+                  setAssumptions(event.target.value);
+                  setStorageMessage("");
+                }}
+                placeholder="Why this alternative might work"
+              />
+            </label>
+            <small>
+              Use Update scenario to include task-control edits before saving. Saved resource capacities are used for
+              comparison.
+            </small>
+            <div className="scenario-library-controls">
+              <button disabled={!name.trim() || comparison.issues.length > 0} onClick={() => save()}>
+                {saved ? "Save scenario changes" : "Save scenario"}
+              </button>
+              {saved && (
+                <button disabled={!name.trim() || comparison.issues.length > 0} onClick={() => save(true)}>
+                  Save as new scenario
+                </button>
+              )}
+              {saved && <button onClick={() => setDeleteRequested(true)}>Delete saved scenario</button>}
+            </div>
+            {storageMessage && <p role="status">{storageMessage}</p>}
+            {deleteRequested && (
+              <div role="alert">
+                <p>Delete “{saved?.name}” from this browser? The current working scenario will remain open.</p>
+                <button onClick={() => setDeleteRequested(false)}>Keep saved scenario</button>
+                <button
+                  onClick={() => {
+                    if (!saved) return;
+                    try {
+                      deleteDeliveryScenario(saved.id, saved.documentId);
+                      setSaved(undefined);
+                      setSelectedSavedId("");
+                      setDeleteRequested(false);
+                      refreshSaved();
+                    } catch (error) {
+                      setStorageError(error instanceof Error ? error.message : "Could not delete scenario.");
+                    }
+                  }}
+                >
+                  Confirm delete scenario
+                </button>
+              </div>
+            )}
+          </details>
+        )}
+
+        {pendingOpen && (
+          <div className="scenario-switch-confirmation" role="alert">
+            <p>Discard unsaved scenario changes before opening another scenario?</p>
+            <button onClick={() => setPendingOpen(undefined)}>Keep editing</button>
+            <button onClick={() => openScenario(pendingOpen)}>Discard and open scenario</button>
+          </div>
+        )}
+
+        {storageError && <p role="alert">{storageError}</p>}
+
+        {stale && (
+          <section className="scenario-reconciliation" aria-label="Reconcile scenario">
+            <p role="alert">
+              The current plan or resource capacities changed since this scenario’s base. Compare against the saved base
+              below; reconcile before applying.
+            </p>
+            <button
+              onClick={() => {
+                setReconciling(!reconciling);
+                setChoices({});
+              }}
+            >
+              Reconcile with current plan
+            </button>
+            {reconciling && merge && (
+              <>
+                <p>
+                  Changes on separate lines are kept from both plans. Choose each overlapping change explicitly. The
+                  result must pass source validation, then be reviewed again before Apply.
+                </p>
+                {merge.conflicts.map((conflict, index) => (
+                  <fieldset key={index}>
+                    <legend>Conflict {index + 1}</legend>
+                    <div className="scenario-conflict-sources">
+                      <div>
+                        <strong>Current plan</strong>
+                        <pre>{conflict.local.join("\n")}</pre>
+                      </div>
+                      <div>
+                        <strong>Scenario</strong>
+                        <pre>{conflict.external.join("\n")}</pre>
+                      </div>
+                    </div>
+                    <label>
+                      Keep
+                      <select
+                        aria-label={`Resolve scenario conflict ${index + 1}`}
+                        value={choices[index] ?? ""}
+                        onChange={(event) =>
+                          setChoices((current) => ({ ...current, [index]: event.target.value as "local" | "external" }))
+                        }
+                      >
+                        <option value="">Choose a version</option>
+                        <option value="local">Current plan</option>
+                        <option value="external">Scenario</option>
+                      </select>
+                    </label>
+                  </fieldset>
+                ))}
+                <button
+                  disabled={merge.conflicts.some((_, index) => !choices[index])}
+                  onClick={() => {
+                    const next = resolveThreeWayMerge(
+                      merge,
+                      merge.conflicts.map((_, index) => choices[index]!),
+                    );
+                    try {
+                      validateScenarioSource(next);
+                      setBaseSource(currentSource);
+                      setBaseCapacities(capacities);
+                      setScenarioSource(next);
+                      setReconciling(false);
+                      setView("review");
+                      setStorageError("");
+                      setScenarioInteractionMessage(
+                        "Reconciled with the current plan. Review the updated source patch before applying.",
+                      );
+                    } catch (error) {
+                      setStorageError(error instanceof Error ? error.message : "The reconciled source is invalid.");
+                    }
+                  }}
+                >
+                  Use reconciled scenario
+                </button>
+              </>
+            )}
+          </section>
+        )}
 
         <nav className="scenario-view-switch" aria-label="Scenario view">
           <button type="button" className={view === "edit" ? "active" : ""} onClick={() => setView("edit")}>
@@ -330,9 +608,9 @@ export function DeliveryScenarioDialog({
               <div className="scenario-editors">
                 <label>
                   <span>
-                    Current plan <small>snapshot</small>
+                    Base plan <small>snapshot</small>
                   </span>
-                  <ScenarioSourceEditor label="Current plan source" value={currentSource} readOnly />
+                  <ScenarioSourceEditor label="Base plan source" value={baseSource} readOnly />
                 </label>
                 <label>
                   <span>
@@ -354,9 +632,9 @@ export function DeliveryScenarioDialog({
 
         {view === "preview" && (
           <div className="scenario-rendered" aria-label="Scenario rendered comparison">
-            <section aria-label="Current plan preview">
+            <section aria-label="Base plan preview">
               <h3>
-                Current plan <small>read only</small>
+                Base plan <small>read only</small>
               </h3>
               <div className="version-render-canvas scenario-render-canvas">
                 {currentRender.status === "rendering" && !currentSvg && <p>Rendering…</p>}
@@ -433,7 +711,7 @@ export function DeliveryScenarioDialog({
                   openDocumentCount={1}
                   openSourceBytes={scenarioSource.length}
                   resourceOverAllocations={scenarioResourceConflicts}
-                  resourceCapacities={capacities}
+                  resourceCapacities={baseCapacities}
                   onOpenResourceWorkload={() =>
                     setScenarioInteractionMessage("Resource workload is available after applying the scenario.")
                   }
@@ -479,6 +757,7 @@ export function DeliveryScenarioDialog({
         )}
 
         <section className="scenario-impact" aria-label="Scenario impact">
+          <p>Compared with this scenario’s base plan and saved resource capacities.</p>
           <div className="scenario-summary">
             <span>
               <strong>{comparison.taskChanges.length}</strong> tasks changed
@@ -491,7 +770,7 @@ export function DeliveryScenarioDialog({
               conflicts
             </span>
             <span>
-              <strong>{signed(comparison.criticalPath.durationDeltaDays)}</strong> project duration
+              <strong>{signed(comparison.criticalPath.durationDeltaDays)}</strong> project duration change
             </span>
           </div>
 
@@ -506,7 +785,15 @@ export function DeliveryScenarioDialog({
             </div>
           )}
 
-          {!changed && <p className="scenario-empty">Edit the scenario source to see delivery impact.</p>}
+          {!changed && (
+            <p className="scenario-empty">
+              {view === "preview"
+                ? "Drag tasks in the scenario preview to see delivery impact."
+                : editorMode === "structured"
+                  ? "Change task values and choose Update scenario to see delivery impact."
+                  : "Edit the scenario source to see delivery impact."}
+            </p>
+          )}
           {changed && comparison.issues.length === 0 && (
             <div className="scenario-results">
               <section>
@@ -575,7 +862,8 @@ export function DeliveryScenarioDialog({
         {discardRequested && (
           <div className="scenario-discard-confirmation" role="alert">
             <span>
-              <strong>Discard this scenario?</strong> Your unapplied changes will be lost.
+              <strong>Discard this scenario?</strong> Your unsaved changes will be lost. Saved scenarios will remain
+              available.
             </span>
             <button type="button" autoFocus onClick={() => setDiscardRequested(false)}>
               Keep editing
@@ -591,7 +879,7 @@ export function DeliveryScenarioDialog({
             type="button"
             disabled={!changed}
             onClick={() => {
-              setScenarioSource(currentSource);
+              setScenarioSource(baseSource);
               setView("edit");
               setDiscardRequested(false);
             }}
@@ -609,8 +897,12 @@ export function DeliveryScenarioDialog({
               <button
                 type="button"
                 className="primary"
-                disabled={!changed || comparison.issues.length > 0}
-                onClick={() => onApply(scenarioSource)}
+                disabled={!changed || stale || comparison.issues.length > 0}
+                onClick={() => {
+                  if (stale) return;
+                  if (!onApply(scenarioSource, baseSource))
+                    setStorageError("The scenario could not be applied. Check the current plan and edit permissions.");
+                }}
               >
                 Apply scenario
               </button>

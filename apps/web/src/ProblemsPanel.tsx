@@ -1,9 +1,10 @@
+import { sidePanelOverlayOpen } from "./side-panel-events";
 import { repairCategory, type RepairCategory } from "./remaining-repair-summary";
 import { relatedDiagnosticFixes } from "./diagram-diagnostic-fixes";
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { groupDiagnostics } from "./diagnostic-groups";
 import type { DiagramKind } from "./model";
-import { manualErrorGuidance } from "./manual-error-guidance";
+import { genericManualErrorGuidance, manualErrorGuidance } from "./manual-error-guidance";
 import type { Diagnostic } from "@codemirror/lint";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
 
@@ -43,18 +44,35 @@ export function ProblemsPanel({
   onRevealPreserved?: (item: { text: string; range: { from: number; to: number } }) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const element = panel.current;
     if (!open || !element) return;
+    const previousFocus = document.activeElement;
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || event.defaultPrevented || sidePanelOverlayOpen()) return;
       event.preventDefault();
-      event.stopPropagation();
-      onClose();
+      event.stopImmediatePropagation();
+      closeRef.current();
     };
-    element.addEventListener("keydown", closeOnEscape, true);
-    return () => element.removeEventListener("keydown", closeOnEscape, true);
-  }, [open, onClose]);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      queueMicrotask(() => {
+        const replacement = [...document.querySelectorAll<HTMLElement>(".task-inspector")].some(
+          (item) => !item.hidden && item.style.display !== "none",
+        );
+        if (
+          !replacement &&
+          previousFocus instanceof HTMLElement &&
+          previousFocus.isConnected &&
+          (element.contains(document.activeElement) || document.activeElement === document.body)
+        )
+          previousFocus.focus({ preventScroll: true });
+      });
+    };
+  }, [open]);
   const results = useRef<HTMLDivElement>(null);
   const lines = source.split(/\r?\n/);
   const groups = useMemo(
@@ -112,12 +130,18 @@ export function ProblemsPanel({
             Line {line} · {diagnostic.message}
           </span>
           <code>{lines[line - 1]?.trim()}</code>
-          {guidance && (
+          {guidance && guidance !== genericManualErrorGuidance && (
             <span className="problem-guidance">
               <strong>How to resolve</strong> {guidance}
             </span>
           )}
         </button>
+        {guidance === genericManualErrorGuidance && (
+          <details className="problem-guidance">
+            <summary>How to resolve</summary>
+            <p>{guidance}</p>
+          </details>
+        )}
       </div>
     );
   };

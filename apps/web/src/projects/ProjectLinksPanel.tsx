@@ -1,6 +1,6 @@
 import { hashSource } from "@plantuml-studio/document-format";
 import { canCreateLink, reverseImpact, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { VirtualProject } from "./project-index";
 import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
 
@@ -59,6 +59,14 @@ export function ProjectLinksPanel({
 }) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
+  const latest = useRef({ project, readOnly });
+  latest.current = { project, readOnly };
+  const [repairPreview, setRepairPreview] = useState<{
+    project: VirtualProject;
+    element: ProjectElement;
+    candidate: { symbolKey: string; declarationHash: string; from: number; to: number };
+  }>();
+  const [repairError, setRepairError] = useState("");
   const elements = project.manifest.elements;
   const from = elements.find((item) => item.id === fromId);
   const compatible = useMemo(
@@ -99,6 +107,7 @@ export function ProjectLinksPanel({
         ),
     );
     if (!missing.length) return;
+    let cancelled = false;
     void Promise.all(
       missing.map(async ({ member, declaration }) => ({
         id: crypto.randomUUID(),
@@ -113,33 +122,51 @@ export function ProjectLinksPanel({
           to: declaration.to,
         },
       })),
-    ).then((registered) => onElementsRegistered([...elements, ...registered]));
-  }, [elements, onElementsRegistered, registrations]);
+    ).then((registered) => {
+      if (!cancelled && latest.current.project === project) onElementsRegistered([...elements, ...registered]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [elements, onElementsRegistered, registrations, project]);
   const repair = (
     element: ProjectElement,
     candidate: { symbolKey: string; declarationHash: string; from: number; to: number },
   ) => {
-    const member = project.members.find((item) => item.documentId === element.documentId);
+    setRepairError("");
+    setRepairPreview({ project, element, candidate });
+  };
+  const applyRepair = async () => {
+    if (!repairPreview || latest.current.readOnly) return;
+    const { project: base, element, candidate } = repairPreview;
+    const member = base.members.find((item) => item.documentId === element.documentId);
     if (!member?.source) return;
-    void hashSource(member.source).then((sourceHash) =>
-      onElementsChange(
-        elements.map((item) =>
-          item.id === element.id
-            ? {
-                ...item,
-                locator: {
-                  ...item.locator,
-                  symbolKey: candidate.symbolKey,
-                  declarationHash: candidate.declarationHash,
-                  sourceHash,
-                  from: candidate.from,
-                  to: candidate.to,
-                },
-              }
-            : item,
-        ),
-      ),
+    const sourceHash = await hashSource(member.source);
+    if (latest.current.project !== base || latest.current.readOnly) {
+      setRepairError("The document changed. Cancel and review the repair again.");
+      return;
+    }
+    const duplicates = base.manifest.elements.filter(
+      (item) =>
+        item.id !== element.id &&
+        item.documentId === element.documentId &&
+        item.kind === element.kind &&
+        item.locator.declarationHash === candidate.declarationHash &&
+        item.locator.from === candidate.from &&
+        item.locator.to === candidate.to,
     );
+    if (duplicates.some((item) => base.manifest.links.some((link) => link.from === item.id || link.to === item.id))) {
+      setRepairError("This target already has connections. Review those connections before repairing this identity.");
+      return;
+    }
+    onElementsChange(
+      base.manifest.elements
+        .filter((item) => !duplicates.includes(item))
+        .map((item) =>
+          item.id === element.id ? { ...item, locator: { ...item.locator, ...candidate, sourceHash } } : item,
+        ),
+    );
+    setRepairPreview(undefined);
   };
 
   return (
@@ -216,6 +243,7 @@ export function ProjectLinksPanel({
                   <button
                     type="button"
                     className="project-link-endpoint"
+                    disabled={link.missingWbsNode}
                     onClick={() => onOpenWbsGanttLink?.(link.wbsDocumentId, "wbs", link.wbsNodeId)}
                   >
                     {link.wbsDiagramName}: {link.wbsLabel}
@@ -224,6 +252,7 @@ export function ProjectLinksPanel({
                   <button
                     type="button"
                     className="project-link-endpoint"
+                    disabled={link.missingGanttTask}
                     onClick={() => onOpenWbsGanttLink?.(link.ganttDocumentId, "gantt", link.ganttTaskId)}
                   >
                     {link.ganttDiagramName}: {link.ganttLabel}
@@ -262,6 +291,33 @@ export function ProjectLinksPanel({
           </ul>
         )}
       </section>
+      {repairPreview && (
+        <section className="project-link-repair" aria-label="Review connection repair">
+          <h3>Review connection repair</h3>
+          <p>
+            {repairPreview.element.locator.symbolKey} → {repairPreview.candidate.symbolKey}
+          </p>
+          <p>
+            Update this connection’s target in{" "}
+            {project.members.find((member) => member.documentId === repairPreview.element.documentId)?.path}. Diagram
+            sources stay unchanged; existing connection IDs are preserved.
+          </p>
+          {repairError && <p role="alert">{repairError}</p>}
+          <button
+            type="button"
+            disabled={readOnly || project !== repairPreview.project}
+            onClick={() => void applyRepair()}
+          >
+            Apply connection repair
+          </button>
+          <button type="button" onClick={() => setRepairPreview(undefined)}>
+            Cancel repair
+          </button>
+          {project !== repairPreview.project && (
+            <p role="status">The document changed. Cancel and review the repair again.</p>
+          )}
+        </section>
+      )}
       {attentionElements.length > 0 && (
         <section className="project-link-repairs" aria-labelledby="project-link-repairs-heading">
           <h3 id="project-link-repairs-heading">Items needing attention</h3>

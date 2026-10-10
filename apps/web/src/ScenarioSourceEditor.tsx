@@ -1,7 +1,9 @@
+import { useEditorPreferences, editorPreferenceExtensions, loadEditorPreferences } from "./editor-preferences";
+import { codeEditorSetup } from "./code-editor-setup";
+import { history, historyKeymap } from "@codemirror/commands";
 import { useEffect, useRef } from "react";
-import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { lintGutter } from "@codemirror/lint";
 import { languageExtensions } from "./diagram-language-extensions";
@@ -17,6 +19,8 @@ export function ScenarioSourceEditor({
   readOnly?: boolean;
   label: string;
 }) {
+  const preferences = useEditorPreferences();
+  const preferenceCompartment = useRef(new Compartment());
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -31,11 +35,12 @@ export function ScenarioSourceEditor({
       state: EditorState.create({
         doc: initialValue.current,
         extensions: [
-          basicSetup,
-          keymap.of([indentWithTab]),
+          codeEditorSetup,
+          history(),
+          keymap.of([...historyKeymap, indentWithTab]),
           languageExtensions("gantt"),
           lintGutter(),
-          EditorView.lineWrapping,
+          preferenceCompartment.current.of(editorPreferenceExtensions(loadEditorPreferences())),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.contentAttributes.of({ "aria-label": label }),
@@ -52,6 +57,12 @@ export function ScenarioSourceEditor({
       editor.destroy();
     };
   }, [label, readOnly]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: preferenceCompartment.current.reconfigure(editorPreferenceExtensions(preferences)),
+    });
+  }, [preferences]);
 
   useEffect(() => {
     const editor = view.current;

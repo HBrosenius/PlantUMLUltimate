@@ -45,6 +45,7 @@ type Options = {
   openProjectInspector: () => void;
   reportError: (error: unknown) => void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
+  notifySuccess?: (message: string, context?: { documentId: string; source: string }) => void;
 };
 
 export function starterSource(diagramKind: DiagramKind): string {
@@ -79,6 +80,7 @@ export function useWorkspaceDocuments({
   openProjectInspector,
   reportError,
   setInteractionMessage,
+  notifySuccess = setInteractionMessage,
 }: Options) {
   const latestTabs = useRef(tabs);
   latestTabs.current = tabs;
@@ -164,13 +166,22 @@ export function useWorkspaceDocuments({
   ]);
 
   const createDocument = useCallback(
-    (diagramKind: DiagramKind, example?: Pick<StarterExample, "title" | "source">) => {
+    (
+      diagramKind: DiagramKind,
+      example?: Pick<StarterExample, "title" | "source" | "personal">,
+      name?: string,
+      contentSource?: string,
+    ) => {
       const replacedDocumentId = replaceActiveDocumentOnCreate ? tabs.activeId : undefined;
-      const initialSource = example?.source ?? starterSource(diagramKind);
-      const source = defaultDiagramTheme ? setPlantUmlTheme(initialSource, defaultDiagramTheme) : initialSource;
-      tabs.addDocument({
+      const initialSource = example?.source ?? contentSource ?? starterSource(diagramKind);
+      const source =
+        defaultDiagramTheme && !example?.personal
+          ? setPlantUmlTheme(initialSource, defaultDiagramTheme)
+          : initialSource;
+      const createdId = tabs.addDocument({
         diagramKind,
         source,
+        displayName: name?.trim() || example?.title || `${diagramKindDisplayName(diagramKind)} diagram`,
         fileName: example ? exampleFileName(example) : "untitled.pumlu",
         dirty: false,
         cursor: { line: 1, column: 1 },
@@ -185,10 +196,11 @@ export function useWorkspaceDocuments({
       resetSelection();
       refreshHistoryControls();
       closeNewDocumentDialog();
-      setInteractionMessage(
+      notifySuccess(
         example
-          ? `Created a new ${diagramKindDisplayName(diagramKind)} diagram from example "${example.title}"`
+          ? `Created a new ${diagramKindDisplayName(diagramKind)} diagram from ${example.personal ? "starter" : "example"} "${example.title}"`
           : `Created a new ${diagramKindDisplayName(diagramKind)} diagram`,
+        { documentId: createdId, source },
       );
       if (diagramKind === "gantt") window.setTimeout(openProjectInspector, 0);
     },
@@ -202,8 +214,8 @@ export function useWorkspaceDocuments({
       removeHistory,
       replaceActiveDocumentOnCreate,
       resetSelection,
-      setInteractionMessage,
       closeNewDocumentDialog,
+      notifySuccess,
       tabs,
     ],
   );

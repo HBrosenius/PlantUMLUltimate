@@ -42,7 +42,7 @@ interface UseSequenceActionsOptions {
   confirmDelete(message: string): boolean;
   closeDialog(kind: "participant" | "message" | "structure"): void;
   selectParticipant(id: string | undefined): void;
-  selectMessage(id: string | undefined): void;
+  selectMessage(id: string | undefined, updatedDocument?: SequenceDocument): void;
   selectStructure(id: string | undefined): void;
   closeSettings(): void;
   reportMessage(message: string): void;
@@ -140,8 +140,9 @@ export function useSequenceActions(options: UseSequenceActionsOptions) {
   const applySequenceMessage = useCallback(
     (value: SequenceMessageInspectorValue) => {
       if (!selectedMessage) return;
-      if (!commitSource(updateSequenceMessage(source, selectedMessage, value), "Update Sequence message")) return;
-      selectMessage(selectedMessage.id);
+      const next = updateSequenceMessage(source, selectedMessage, value);
+      if (!commitSource(next, "Update Sequence message")) return;
+      selectMessage(selectedMessage.id, parseSequence(next));
       reportMessage("Updated message");
     },
     [commitSource, reportMessage, selectedMessage, selectMessage, source],

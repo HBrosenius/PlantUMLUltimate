@@ -1,3 +1,4 @@
+import { useEditorPreferences, editorPreferenceExtensions, loadEditorPreferences } from "./editor-preferences";
 import { repairCategory, type RepairCategory, remainingRepairSummary } from "./remaining-repair-summary";
 import { safeFixBatch } from "./safe-fix-batch";
 import { nextRepairDiagnostic } from "./next-repair-diagnostic";
@@ -12,6 +13,7 @@ import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, tooltips, WidgetType, type DecorationSet } from "@codemirror/view";
+import { gotoLine } from "@codemirror/search";
 import { indentWithTab, isolateHistory } from "@codemirror/commands";
 import { lintGutter, type Diagnostic } from "@codemirror/lint";
 import { codeEditorSetup } from "./code-editor-setup";
@@ -35,7 +37,15 @@ interface Props {
   value: string;
   onChange(value: string): void;
   onApplyFix?: (source: string, label: string) => void;
-  onCursorChange(line: number, column: number, position: number, anchor: number, head: number): void;
+  onFormatSource?: (() => void) | undefined;
+  onCursorChange(
+    line: number,
+    column: number,
+    position: number,
+    anchor: number,
+    head: number,
+    sourceChanged?: boolean,
+  ): void;
   selectedRange?: { from: number; to: number } | undefined;
   repairRequest?: SourceRepairRequest | undefined;
   repairHost?: HTMLElement | null;
@@ -226,6 +236,7 @@ export function CodeEditor({
   value,
   onChange,
   onApplyFix,
+  onFormatSource,
   onCursorChange,
   selectedRange,
   repairRequest,
@@ -243,6 +254,13 @@ export function CodeEditor({
   onSymbolContextMenu,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const goToLine = () => {
+      if (view.current) gotoLine(view.current);
+    };
+    window.addEventListener("go-to-source-line", goToLine);
+    return () => window.removeEventListener("go-to-source-line", goToLine);
+  }, []);
   const fixPicker = useRef<HTMLDetailsElement>(null);
   const repairTrigger = useRef<HTMLButtonElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -264,6 +282,8 @@ export function CodeEditor({
   const kindRef = useRef(diagramKind);
   const documentIdRef = useRef(documentId);
   const sourceRevision = useRef(0);
+  const preferences = useEditorPreferences();
+  const preferenceCompartment = useRef(new Compartment());
   const language = useRef(new Compartment());
   const editable = useRef(new Compartment());
   const errors = useMemo(() => errorLocations(diagnosticsForDiagram(diagramKind, value)), [diagramKind, value]);
@@ -295,7 +315,10 @@ export function CodeEditor({
       if (fixPicker.current) fixPicker.current.open = false;
       if (wasOpen)
         requestAnimationFrame(() => {
-          if (previousRepairWorkspaceOpen.current === false) {
+          if (
+            previousRepairWorkspaceOpen.current === false &&
+            (document.activeElement === document.body || host.current?.contains(document.activeElement))
+          ) {
             view.current?.contentDOM.focus();
           }
         });
@@ -390,7 +413,7 @@ export function CodeEditor({
           lintGutter(),
           // Escape editor scroll clipping while inheriting the app's theme variables.
           tooltips({ parent: host.current.closest<HTMLElement>(".app") ?? host.current.ownerDocument.body }),
-          EditorView.lineWrapping,
+          preferenceCompartment.current.of(editorPreferenceExtensions(loadEditorPreferences())),
           EditorView.contentAttributes.of({ "aria-label": "PlantUML source editor" }),
           EditorView.domEventHandlers({
             click: (_event, currentView) => {
@@ -435,7 +458,14 @@ export function CodeEditor({
               setCursorPosition(position);
               const line = update.state.doc.lineAt(position);
               const selection = update.state.selection.main;
-              onCursorRef.current(line.number, position - line.from + 1, position, selection.anchor, selection.head);
+              onCursorRef.current(
+                line.number,
+                position - line.from + 1,
+                position,
+                selection.anchor,
+                selection.head,
+                update.docChanged,
+              );
             }
           }),
         ],
@@ -444,6 +474,12 @@ export function CodeEditor({
     view.current = editor;
     return () => editor.destroy();
   }, [previewTooltipFixes]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: preferenceCompartment.current.reconfigure(editorPreferenceExtensions(preferences)),
+    });
+  }, [preferences]);
 
   useEffect(() => {
     if (!view.current) return;
@@ -1186,6 +1222,11 @@ export function CodeEditor({
           </button>
         )}
         {quickFixes.length > 0 && !readOnly && renderRepair(fixPickerContent)}
+        {onFormatSource && (
+          <button type="button" disabled={readOnly} onClick={onFormatSource}>
+            Format source…
+          </button>
+        )}
         <button type="button" onClick={() => void copySource()}>
           {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy code"}
         </button>

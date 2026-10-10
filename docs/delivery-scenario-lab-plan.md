@@ -58,3 +58,12 @@ Promotion must create a semantic/source review against the current document. The
 ## Explicitly deferred
 
 Multiple scenario branches, probability simulation, Monte Carlo forecasts, Jira publication, shared scenarios, portable scenario persistence, automatic architecture-to-schedule dependency creation, and AI-generated assumptions.
+
+
+## A28 persistence follow-up — 2026-10-10
+
+The original session-local first slice now has named browser-local saves, scoped to the active diagram's recovered identity. It retains exact base and scenario sources, resource capacities and assumption notes. This extends the session boundary without changing the portable project schema: saved files and collaborators do not receive these alternatives.
+
+Reopening a saved alternative compares against its captured base. If current source or resource capacities differ, Apply is blocked until explicit three-way reconciliation. Nonoverlapping lines are preserved from both inputs; conflicting lines require a choice. The reconciled result is validated and returned to source review against the current plan before normal one-step promotion/undo.
+
+See the A28 delivery record in [the consolidated plan](ui-consolidated-implementation-plan-2026-10-09.md) and [validation evidence](audits/2026-10-10-a28/README.md). Portable persistence, branch ancestry and simultaneous multi-alternative comparisons remain deferred.

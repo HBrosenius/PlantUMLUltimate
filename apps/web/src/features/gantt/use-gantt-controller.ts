@@ -8,7 +8,6 @@ export type GanttScheduleMode = "ask" | "single" | "cascade";
 
 export function useGanttController(diagramKind: DiagramKind) {
   const [focusNoteTaskId, setFocusNoteTaskId] = useState<string>();
-  const [projectInspectorOpen, setProjectInspectorOpen] = useState(false);
   const [legendInspectorOpen, setLegendInspectorOpen] = useState(false);
   const [legendFocusColor, setLegendFocusColor] = useState<string>();
   const [highlightDate, setHighlightDate] = useState<string>();
@@ -18,7 +17,6 @@ export function useGanttController(diagramKind: DiagramKind) {
   const [scheduleMode, setScheduleMode] = useState<GanttScheduleMode>(
     () => (storageGet("plantuml-studio.schedule-mode") as GanttScheduleMode | null) ?? "ask",
   );
-  const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
 
   useEffect(() => {
     savePreference("plantuml-studio.schedule-mode", scheduleMode);
@@ -27,21 +25,17 @@ export function useGanttController(diagramKind: DiagramKind) {
   useEffect(() => {
     if (diagramKind === "gantt") return;
     setFocusNoteTaskId(undefined);
-    setProjectInspectorOpen(false);
     setLegendInspectorOpen(false);
     setLegendFocusColor(undefined);
     setHighlightDate(undefined);
     setDateMenuFor(undefined);
     setResourceFilter("");
     setSchedulePreview(undefined);
-    setResourcePanelOpen(false);
   }, [diagramKind]);
 
   return {
     focusNoteTaskId,
     setFocusNoteTaskId,
-    projectInspectorOpen,
-    setProjectInspectorOpen,
     legendInspectorOpen,
     setLegendInspectorOpen,
     legendFocusColor,
@@ -56,7 +50,5 @@ export function useGanttController(diagramKind: DiagramKind) {
     setSchedulePreview,
     scheduleMode,
     setScheduleMode,
-    resourcePanelOpen,
-    setResourcePanelOpen,
   };
 }

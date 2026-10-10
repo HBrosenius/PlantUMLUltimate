@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CommandPalette } from "./CommandPalette";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 const command = (id: string, overrides: Partial<Command> = {}): Command => ({
   id,
@@ -64,4 +67,20 @@ describe("CommandPalette", () => {
     expect(commands[0]!.run).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
+});
+
+it("remembers commands by ID and drops unavailable or disabled recent actions", () => {
+  const commands = [command("alpha"), command("beta"), command("disabled", { enabled: false })];
+  localStorage.setItem("plantuml-studio.recent-commands", JSON.stringify(["gone", "disabled", "beta"]));
+  const view = render(<CommandPalette commands={commands} onClose={vi.fn()} />);
+  expect(screen.getByText("Recent commands")).toBeInTheDocument();
+  expect(screen.getAllByRole("option")[0]).toHaveTextContent("beta");
+  fireEvent.click(screen.getByRole("option", { name: /Test\s*alpha/ }));
+  expect(JSON.parse(localStorage.getItem("plantuml-studio.recent-commands")!)[0]).toBe("alpha");
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "beta" } });
+  expect(screen.queryByText("Recent commands")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("option")).toHaveLength(1);
+  view.unmount();
+  render(<CommandPalette commands={[command("disabled", { enabled: false })]} onClose={vi.fn()} />);
+  expect(screen.queryByText("Recent commands")).not.toBeInTheDocument();
 });

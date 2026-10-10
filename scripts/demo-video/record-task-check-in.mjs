@@ -265,7 +265,7 @@ await scene("01-intro", async () => {
 
 await scene("02-open", async () => {
   await wait(800);
-  await click(page.getByRole("button", { name: "More", exact: true }));
+  await click(page.getByRole("button", { name: "Plan", exact: true }));
   await click(page.getByRole("menuitem", { name: "Reports…" }));
   await dialog.waitFor();
   await wait(1200);

@@ -32,7 +32,9 @@ export function ClassSettingsInspector({
           <strong>{componentMode ? "Component" : "Class"} settings</strong>
           <small>Presentation, typography, and colors{componentMode ? "" : ", including members"}</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label={`Close ${componentMode ? "Component" : "Class"} settings`}>
+          ×
+        </button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         <fieldset>

@@ -5,14 +5,22 @@ import { ColorField, ColorSwatch } from "./ColorField";
 
 export function ProjectInspector({
   settings,
+  focusClosedDay = 0,
   onApply,
   onClose,
 }: {
   settings: ProjectSettings;
+  focusClosedDay?: number;
   onApply(value: ProjectSettings): void;
   onClose(): void;
 }) {
   const [value, setValue] = useState(settings);
+  const addExceptionRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!focusClosedDay) return;
+    addExceptionRef.current?.focus();
+    addExceptionRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [focusClosedDay]);
   const previousSettings = useRef(JSON.stringify(settings));
   useEffect(() => {
     const snapshot = JSON.stringify(settings);
@@ -24,7 +32,11 @@ export function ProjectInspector({
     setValue((current) => ({ ...current, [key]: next }));
   const mondayFirstWeekdays = [1, 2, 3, 4, 5, 6, 0];
   return (
-    <InspectorPanel className="task-inspector project-inspector" aria-label="Project and calendar inspector">
+    <InspectorPanel
+      closeOnOutsideEscape
+      className="task-inspector project-inspector"
+      aria-label="Project and calendar inspector"
+    >
       <header>
         <strong>Calendar &amp; schedule</strong>
         <button onClick={onClose} aria-label="Close project inspector">
@@ -38,47 +50,11 @@ export function ProjectInspector({
         }}
       >
         <label>
-          Diagram title
-          <input
-            type="text"
-            placeholder="Optional project title"
-            value={value.title}
-            onChange={(event) => update("title", event.target.value)}
-          />
-        </label>
-        <label>
-          Header
-          <input
-            type="text"
-            placeholder="Optional page header"
-            value={value.header}
-            onChange={(event) => update("header", event.target.value)}
-          />
-        </label>
-        <label>
-          Footer
-          <input
-            type="text"
-            placeholder="Optional page footer"
-            value={value.footer}
-            onChange={(event) => update("footer", event.target.value)}
-          />
-        </label>
-        <label>
-          Caption
-          <input
-            type="text"
-            placeholder="Optional diagram caption"
-            value={value.caption}
-            onChange={(event) => update("caption", event.target.value)}
-          />
-        </label>
-        <label>
           Project starts
           <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} />
         </label>
         <label>
-          Time scale
+          Timeline scale
           <select
             value={value.scale}
             onChange={(event) => update("scale", event.target.value as ProjectSettings["scale"])}
@@ -89,7 +65,7 @@ export function ProjectInspector({
           </select>
         </label>
         <label>
-          Scale zoom
+          Timeline scale factor
           <input
             type="number"
             min="1"
@@ -99,6 +75,10 @@ export function ProjectInspector({
             onChange={(event) => update("scaleZoom", event.target.value)}
           />
         </label>
+        <p className="calculated-hint">
+          Timeline scale changes the time axis in diagram source when you Apply. Preview zoom only changes the canvas
+          view.
+        </p>
         <fieldset>
           <legend>Closed weekdays</legend>
           <div className="weekday-grid">
@@ -191,6 +171,7 @@ export function ProjectInspector({
                 { id: `rule-${Date.now()}`, from: value.startDate, to: value.startDate, state: "closed" },
               ])
             }
+            ref={addExceptionRef}
           >
             + Add exception
           </button>
@@ -332,6 +313,42 @@ export function ProjectInspector({
         <p className="inspector-note">
           Scale zoom changes PlantUML’s timeline density. The diagram zoom buttons only magnify the preview.
         </p>
+        <label>
+          Diagram title
+          <input
+            type="text"
+            placeholder="Optional project title"
+            value={value.title}
+            onChange={(event) => update("title", event.target.value)}
+          />
+        </label>
+        <label>
+          Header
+          <input
+            type="text"
+            placeholder="Optional page header"
+            value={value.header}
+            onChange={(event) => update("header", event.target.value)}
+          />
+        </label>
+        <label>
+          Footer
+          <input
+            type="text"
+            placeholder="Optional page footer"
+            value={value.footer}
+            onChange={(event) => update("footer", event.target.value)}
+          />
+        </label>
+        <label>
+          Caption
+          <input
+            type="text"
+            placeholder="Optional diagram caption"
+            value={value.caption}
+            onChange={(event) => update("caption", event.target.value)}
+          />
+        </label>
         <div className="inspector-actions">
           <span />
           <button type="submit" className="primary">

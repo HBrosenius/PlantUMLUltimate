@@ -27,7 +27,9 @@ export function ActivitySettingsInspector({
           <strong>Activity settings</strong>
           <small>Presentation, typography, and colors</small>
         </div>
-        <button onClick={onClose}>×</button>
+        <button onClick={onClose} aria-label="Close Activity settings">
+          ×
+        </button>
       </header>
       <form onSubmit={(event) => event.preventDefault()}>
         <fieldset>

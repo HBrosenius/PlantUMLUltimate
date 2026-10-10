@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
 import type { RenderStatus } from "./model";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { wbsProgressInk } from "./wbs-progress";
@@ -25,6 +25,7 @@ interface Props {
   dependencyWarnings?: ReadonlyMap<string, string>;
   selectedId: string | undefined;
   selectedRelationshipId: string | undefined;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   renderStatus: RenderStatus;
   renderError: string | undefined;
@@ -44,6 +45,7 @@ function focusRequest(target: Element, svg: string | undefined) {
 }
 
 export function WbsDiagramPreview({
+  initialFit,
   svg,
   document,
   linkedNodeIds = new Set(),
@@ -63,7 +65,7 @@ export function WbsDiagramPreview({
   onRelationshipCreate,
   onRelationshipReconnect,
 }: Props) {
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
     | {

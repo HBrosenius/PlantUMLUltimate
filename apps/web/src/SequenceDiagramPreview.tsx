@@ -1,10 +1,12 @@
 import { useMemo, useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
+import { ActionMenu } from "./ActionMenu";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function SequenceDiagramPreview({
+  initialFit,
   svg,
   zoom,
   onZoomChange,
@@ -29,6 +31,7 @@ export function SequenceDiagramPreview({
   onMessageExternalize,
 }: {
   svg?: string | undefined;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(zoom: number): void;
   renderStatus: RenderStatus;
@@ -51,7 +54,7 @@ export function SequenceDiagramPreview({
   onMessageCreate(fromParticipantId: string, toParticipantId: string): void;
   onMessageExternalize(messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?"): void;
 }) {
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const diagramRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<
@@ -631,12 +634,16 @@ export function SequenceDiagramPreview({
                 : `Element: ${structureLabel(selectedStructure!)}`}
           </span>
         )}
-        <span className="sequence-drag-hint">Drag participants sideways · timeline elements vertically</span>
         {selectedMessage && (
-          <span className="sequence-edge-actions">
-            <button onClick={() => onMessageExternalize(selectedMessage.id, "from", "[")}>From edge</button>
-            <button onClick={() => onMessageExternalize(selectedMessage.id, "to", "]")}>To edge</button>
-            <button onClick={() => onMessageExternalize(selectedMessage.id, "to", "?")}>Mark lost</button>
+          <span data-inspector-trigger className="sequence-edge-actions">
+            <ActionMenu
+              label="Message actions"
+              actions={[
+                { label: "From edge", run: () => onMessageExternalize(selectedMessage.id, "from", "[") },
+                { label: "To edge", run: () => onMessageExternalize(selectedMessage.id, "to", "]") },
+                { label: "Mark lost", run: () => onMessageExternalize(selectedMessage.id, "to", "?") },
+              ]}
+            />
           </span>
         )}
       </div>

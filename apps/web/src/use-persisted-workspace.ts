@@ -1,7 +1,9 @@
+import { loadEditorPreferences } from "./editor-preferences";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   activeWorkspace,
   DEFAULT_SESSION,
+  documentDisplayNames,
   loadWorkspace,
   normalizeSession,
   saveWorkspace,
@@ -54,6 +56,7 @@ export function usePersistedWorkspace() {
       const next = typeof action === "function" ? action(previous) : action;
       return {
         ...current,
+        startupMode: next.startupMode ?? "restore",
         viewMode: next.viewMode,
         splitPercent: next.splitPercent,
         theme: next.theme,
@@ -67,11 +70,12 @@ export function usePersistedWorkspace() {
                 source: next.source,
                 fileName: next.fileName,
                 dirty: next.dirty,
+                viewMode: next.viewMode,
                 zoom: next.zoom,
                 cursor: next.cursor,
                 revision: (item.revision ?? 0) + 1,
               }
-            : item,
+            : { ...item, viewMode: item.viewMode ?? current.viewMode },
         ),
       };
     });
@@ -79,6 +83,8 @@ export function usePersistedWorkspace() {
 
   const addDocument = useCallback((input?: Partial<Omit<DocumentSnapshot, "id">>) => {
     const id = `document-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const preferences = loadEditorPreferences();
+    const defaultZoom = preferences.defaultZoom;
     const document: DocumentSnapshot = {
       id,
       historyId: input?.historyId ?? `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -86,7 +92,15 @@ export function usePersistedWorkspace() {
       source: input?.source ?? DEFAULT_SESSION.documents[0]!.source,
       fileName: input?.fileName ?? "untitled.pumlu",
       dirty: input?.dirty ?? false,
-      zoom: input?.zoom ?? 1,
+      fileCopy: input?.fileCopy ?? "new",
+      ...(input?.displayName ? { displayName: input.displayName } : {}),
+      viewMode:
+        input?.viewMode ??
+        (preferences.defaultView === "current"
+          ? activeWorkspace(sessionRef.current).viewMode
+          : preferences.defaultView),
+      zoom: input?.zoom ?? (defaultZoom === "fit" ? 1 : defaultZoom),
+      zoomInitialized: input?.zoomInitialized ?? (input?.zoom !== undefined || defaultZoom !== "fit"),
       cursor: input?.cursor ?? { line: 1, column: 1 },
       ...(input?.baselineVersionId ? { baselineVersionId: input.baselineVersionId } : {}),
       ...(input?.portableDocumentId ? { portableDocumentId: input.portableDocumentId } : {}),
@@ -101,7 +115,14 @@ export function usePersistedWorkspace() {
       ...(input?.wbsGanttLinks ? { wbsGanttLinks: input.wbsGanttLinks } : {}),
       ...(input?.wbsGanttDependencies ? { wbsGanttDependencies: input.wbsGanttDependencies } : {}),
     };
-    setSession((current) => ({ ...current, documents: [...current.documents, document], activeDocumentId: id }));
+    setSession((current) => ({
+      ...current,
+      documents: [
+        ...current.documents.map((item) => ({ ...item, viewMode: item.viewMode ?? current.viewMode })),
+        document,
+      ],
+      activeDocumentId: id,
+    }));
     return id;
   }, []);
 
@@ -138,6 +159,8 @@ export function usePersistedWorkspace() {
         id: nextId,
         historyId: `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         fileName: `Copy of ${original.fileName}`,
+        displayName: `Copy of ${documentDisplayNames([original]).get(original.id)}`,
+        fileCopy: "new",
         dirty: true,
       };
       if (copy.encrypted) startMemoryOnlyHistory(copy.historyId);

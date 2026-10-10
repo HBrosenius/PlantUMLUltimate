@@ -4,6 +4,7 @@ export interface MenuAction {
   label: string;
   run(): void;
   disabled?: boolean;
+  opensInspector?: boolean;
 }
 
 /** A small, keyboard-accessible menu for secondary workspace actions. */
@@ -82,8 +83,9 @@ export function ActionMenu({ label, actions, count }: { label: string; actions: 
               type="button"
               role="menuitem"
               disabled={action.disabled}
+              data-inspector-trigger={action.opensInspector || undefined}
               onClick={() => {
-                close();
+                close(true);
                 action.run();
               }}
             >

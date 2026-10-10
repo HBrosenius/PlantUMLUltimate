@@ -44,7 +44,7 @@ test("saves and reopens a portable document with retained history", async ({ pag
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Open", exact: true }).click();
   await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Diagram…" }).click();
-  await expect(page.locator('.document-tabs > button[title="round-trip.pumlu"]')).toHaveCount(2);
+  await expect(page.locator('.document-tabs > button[title*="File: round-trip.pumlu"]')).toHaveCount(2);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(page.getByRole("dialog", { name: "Version history" })).toContainText("Saved portable document");

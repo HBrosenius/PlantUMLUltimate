@@ -15,6 +15,7 @@ const actions = () => ({
   onTask: vi.fn(),
   onMilestone: vi.fn(),
   onDivider: vi.fn(),
+  onClosedDay: vi.fn(),
   onParticipant: vi.fn(),
   onMessage: vi.fn(),
   onFragment: vi.fn(),
@@ -47,8 +48,6 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
   onSave: vi.fn(),
   onSaveAs: vi.fn(),
   onVersionHistory: vi.fn(),
-  onDeliveryScenario: vi.fn(),
-  onJira: vi.fn(),
   onBackup: vi.fn(),
   onRestore: vi.fn(),
   onExportSource: vi.fn(),
@@ -70,10 +69,10 @@ describe("application menus", () => {
     trigger.focus();
     await user.keyboard("{ArrowDown}");
     expect(await screen.findByRole("menu", { name: "Add" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("menuitem", { name: /Task/ })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /^Task…/ })).toHaveFocus());
 
     await user.keyboard("{ArrowUp}");
-    expect(screen.getByRole("menuitem", { name: /Divider/ })).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: /Closed day/ })).toHaveFocus();
     await user.keyboard("{ArrowDown}{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: /Milestone/ })).toHaveFocus();
 
@@ -140,25 +139,10 @@ describe("application menus", () => {
     );
   });
 
-  it("opens the Delivery Scenario Lab from File when available", async () => {
+  it("keeps planning actions out of File", async () => {
     const user = userEvent.setup();
-    const callbacks = fileActions();
-    render(<FileMenu canExport {...callbacks} />);
-
+    render(<FileMenu canExport {...fileActions()} />);
     await user.click(screen.getByRole("button", { name: "File" }));
-    await user.click(screen.getByRole("menuitem", { name: "Gantt analysis…" }));
-
-    expect(callbacks.onDeliveryScenario).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("menu", { name: "File" })).not.toBeInTheDocument();
-  });
-
-  it("hides the Delivery Scenario Lab when no diagram-specific action is provided", async () => {
-    const user = userEvent.setup();
-    const callbacks = fileActions();
-    delete callbacks.onDeliveryScenario;
-    render(<FileMenu canExport {...callbacks} />);
-
-    await user.click(screen.getByRole("button", { name: "File" }));
-    expect(screen.queryByRole("menuitem", { name: "Gantt analysis…" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /scenario|Jira/i })).not.toBeInTheDocument();
   });
 });

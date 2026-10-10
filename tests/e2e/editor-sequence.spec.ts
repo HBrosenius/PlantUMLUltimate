@@ -230,6 +230,8 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   const report = await reportDownload;
   expect(report.suggestedFilename()).toBe("untitled.pumlu-review.html");
   expect(readFileSync((await report.path())!, "utf8")).toContain("Rename participant Payment API to Billing API");
+  const replacement = dialog.getByRole("checkbox", { name: /Replace the working copy with this selection/ });
+  if (await replacement.isVisible()) await replacement.check();
   await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
 
   await expect(page.locator(".cm-content")).toContainText('participant "Billing API" as Pay');
@@ -259,6 +261,8 @@ test("applies adjacent Sequence edits as one confirmed transaction", async ({ pa
   await expect(dialog.getByLabel("Semantic changes")).toContainText("Update 1 participant and 1 message");
   await expect(dialog.locator(".semantic-review-group")).toHaveCount(1);
   await dialog.getByRole("checkbox", { name: "Select Update 1 participant and 1 message" }).check();
+  const replacement = dialog.getByRole("checkbox", { name: /Replace the working copy with this selection/ });
+  if (await replacement.isVisible()) await replacement.check();
   await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
 
   await expect(page.locator(".cm-content")).toContainText('participant "Billing API" as Pay');
@@ -340,6 +344,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Message…" }).click();
   const edgeMessage = page.getByRole("dialog", { name: "Add message" });
+  await edgeMessage.getByText("Advanced", { exact: true }).click();
   await edgeMessage.getByLabel("Message type").selectOption("outgoing");
   await edgeMessage.getByLabel("From", { exact: true }).fill("User");
   await edgeMessage.getByRole("combobox", { name: "Arrow type" }).click();
@@ -869,4 +874,34 @@ test("reorders Sequence fragment branches without detaching nested bodies", asyn
     })
     .toBe(true);
   await expect(page.locator(".sequence-diagram").locator("..")).not.toHaveClass(/stale-preview/);
+});
+
+test("keeps Sequence inspector edits on the selected message after preceding source insertion", async ({ page }) => {
+  await page.getByRole("button", { name: "New diagram tab" }).click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  const original =
+    "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: First\nBob -> Alice: Selected\n@enduml";
+  await setSource(page, original);
+  await page.locator('[data-sequence-drag-hit][aria-label="Drag message Selected"]').click();
+  const inspector = page.getByRole("complementary", { name: "Message inspector" });
+  await expect(inspector.getByLabel("Message text")).toHaveValue("Selected");
+  // Preserve the selected message's mapped source selection while inserting above
+  // it. Replacing the entire editor would intentionally move the cursor away.
+  await page.evaluate(async () => {
+    const modulePath = "/node_modules/.vite/deps/@codemirror_view.js";
+    const { EditorView } = await import(modulePath);
+    const view = EditorView.findFromDOM(document.querySelector(".cm-editor"));
+    const from = view.state.doc.toString().indexOf("Alice -> Bob: First");
+    view.dispatch({ changes: { from, insert: "Alice -> Bob: Inserted\n" } });
+  });
+  await expect(inspector.getByLabel("Message text")).toHaveValue("Selected");
+  await inspector.getByLabel("Message text").fill("Edited selection");
+  await inspector.getByRole("button", { name: "Apply" }).click();
+  await expect(page.locator(".cm-content")).toContainText("Bob -> Alice: Edited selection");
+  await expect(inspector.getByLabel("Message text")).toHaveValue("Edited selection");
+  await expect(page.locator(".cm-content")).toContainText("Alice -> Bob: First");
+  await expect(page.locator(".cm-content")).toContainText("Alice -> Bob: Inserted");
 });

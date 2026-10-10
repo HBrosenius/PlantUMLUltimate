@@ -251,6 +251,7 @@ describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
       version: 7,
+      startupMode: "restore",
       activeDocumentId: "second",
       viewMode: "diagram",
       splitPercent: 63,
@@ -485,4 +486,60 @@ describe("enabling memory-only history", () => {
     discardMemoryOnlyHistory(historyId);
     expect(await loadDocumentVersions(historyId)).toEqual([]);
   });
+});
+
+it("retains explicit file-copy outcomes without guessing older recovery provenance", () => {
+  for (const fileCopy of ["new", "file", "download"] as const) {
+    const document = { ...DEFAULT_SESSION.documents[0]!, fileCopy };
+    expect(normalizeSession({ ...DEFAULT_SESSION, documents: [document] }).documents[0]?.fileCopy).toBe(fileCopy);
+  }
+  const { fileCopy: _fileCopy, ...older } = DEFAULT_SESSION.documents[0]!;
+  expect(normalizeSession({ ...DEFAULT_SESSION, documents: [older] }).documents[0]?.fileCopy).toBeUndefined();
+});
+
+it("disambiguates provisional diagram names independently from file names", () => {
+  const documents = [
+    {
+      id: "one",
+      fileName: "untitled.pumlu",
+      fileCopy: "new" as const,
+      diagramKind: "gantt" as const,
+      displayName: "Release plan",
+    },
+    { id: "two", fileName: "untitled.pumlu", fileCopy: "new" as const, diagramKind: "sequence" as const },
+    {
+      id: "three",
+      fileName: "untitled.pumlu",
+      fileCopy: "new" as const,
+      diagramKind: "gantt" as const,
+      displayName: "Release plan",
+    },
+  ];
+  expect([...documentDisplayNames(documents).values()]).toEqual([
+    "Release plan (1)",
+    "Sequence diagram",
+    "Release plan (2)",
+  ]);
+  expect(documentDisplayNames([{ ...documents[1]!, fileName: "Payment flow" }]).get("two")).toBe("Payment flow");
+  const restored = normalizeSession({
+    ...DEFAULT_SESSION,
+    documents: documents.map((item) => ({ ...DEFAULT_SESSION.documents[0], ...item })),
+  });
+  expect(restored.documents[0]?.displayName).toBe("Release plan");
+  expect(restored.documents[0]?.fileName).toBe("untitled.pumlu");
+});
+
+it("retains initialized zoom and pending initial fit separately across recovery", () => {
+  for (const zoomInitialized of [true, false]) {
+    const session = normalizeSession({
+      ...DEFAULT_SESSION,
+      documents: [{ ...DEFAULT_SESSION.documents[0]!, zoom: 1.65, zoomInitialized }],
+    });
+    expect(session.documents[0]?.zoom).toBe(1.65);
+    expect(session.documents[0]?.zoomInitialized).toBe(zoomInitialized);
+  }
+  const { zoomInitialized: _initialized, ...older } = DEFAULT_SESSION.documents[0]!;
+  const session = normalizeSession({ ...DEFAULT_SESSION, documents: [{ ...older, zoom: 1.65 }] });
+  expect(session.documents[0]?.zoomInitialized).toBeUndefined();
+  expect(session.documents[0]?.zoom).toBe(1.65);
 });

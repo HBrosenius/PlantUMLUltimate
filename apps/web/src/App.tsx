@@ -1,7 +1,25 @@
+import { InlineLabelEditor } from "./InlineLabelEditor";
+import { inlineLabelRenameRequest } from "./inline-label-rename";
+import { LinkedWorkPreviewDialog, type LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
+import { MobileWorkList } from "./MobileWorkList";
+import { GanttTaskTable } from "./GanttTaskTable";
+import { editTaskRow, editTaskRows, type TaskRowDraft } from "./gantt-task-table";
+import { FormatSourceDialog } from "./FormatSourceDialog";
+import { ExportDialog } from "./ExportDialog";
+import { OpenWorkDialog } from "./OpenWorkDialog";
+import { useEditorPreferences } from "./editor-preferences";
+import { requestSidePanelChange } from "./side-panel-events";
+import { useSidePanelState } from "./use-side-panel-state";
+import { previewStatusLabel } from "./render/preview-status";
 import { ReportsDialog } from "./features/reports/ReportsDialog";
+import { useInteractionMessage } from "./use-interaction-message";
+import { startupChooserPolicy } from "./startup-chooser-policy";
 import { FileSaveStatus } from "./FileSaveStatus";
 import { useWorkspaceLayout } from "./use-workspace-layout";
 import { ActionMenu } from "./ActionMenu";
+import { PresentationDialog } from "./PresentationDialog";
+import type { PresentationDocument } from "./presentation-review";
+import { useResponsiveViewMode } from "./use-responsive-view-mode";
 import { WorkspaceHint } from "./WorkspaceHint";
 import { storageGet } from "./safe-storage";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
@@ -48,8 +66,13 @@ import { findResourceConflicts } from "./features/gantt/gantt-resource-conflicts
 import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 import { CommandPalette } from "./CommandPalette";
-import { DiagramOutlineDialog } from "./DiagramOutlineDialog";
-import { buildDiagramOutlineEntries, outlineLine, type DiagramOutlineEntry } from "./diagram-outline";
+import { DiagramOutlineDialog, DiagramOutlinePanel } from "./DiagramOutlineDialog";
+import {
+  buildDiagramOutlineEntries,
+  outlineLine,
+  outlineTargetSelector,
+  type DiagramOutlineEntry,
+} from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
 import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
@@ -80,6 +103,7 @@ import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
 import { JiraDialog } from "./JiraDialog";
 import { AddMenu } from "./AddMenu";
+import { SaveStarterDialog } from "./PersonalStarters";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { SequenceDialogs, type SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { SequenceInspectors } from "./features/sequence/SequenceInspectors";
@@ -147,7 +171,7 @@ import { useDocumentFiles } from "./use-document-files";
 import { collaborationLinkDetails } from "./collaboration";
 import { useCollaborationLifecycle, type CollaborationDocumentBridge } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
-import { useWorkspaceDocuments } from "./use-workspace-documents";
+import { useWorkspaceDocuments, diagramKindDisplayName, starterSource } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import {
   SOURCE_EDIT_DESCRIPTION,
@@ -204,6 +228,94 @@ const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 export function App() {
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
+  const editorPreferences = useEditorPreferences();
+  const [openWorkOpen, setOpenWorkOpen] = useState(false);
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const presentationReturnFocus = useRef<HTMLElement | null>(null);
+  const openPresentation = () => {
+    const opener = document.activeElement as HTMLElement | null;
+    presentationReturnFocus.current = opener?.closest(".application-menu")?.querySelector("button") ?? opener;
+    setPresentationOpen(true);
+  };
+  const [starterDraft, setStarterDraft] = useState<{ kind: DiagramKind; source: string; name: string }>();
+  const [closedDayFocus, setClosedDayFocus] = useState(0);
+  const [outlineMode, setOutlineMode] = useState<"dock" | "find">();
+  const [outlineWide, setOutlineWide] = useState(
+    () => typeof window.matchMedia === "function" && window.matchMedia("(min-width: 1100px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia?.("(min-width: 1100px)");
+    if (!media) return;
+    const change = () => setOutlineWide(media.matches);
+    media.addEventListener("change", change);
+    return () => media.removeEventListener("change", change);
+  }, []);
+  const [outlineMatches, setOutlineMatches] = useState<readonly DiagramOutlineEntry[]>([]);
+  const [outlineReveal, setOutlineReveal] = useState<{ entry: DiagramOutlineEntry }>();
+  const persistViewMode = useCallback(
+    (mode: ViewMode) => setWorkspace((current) => ({ ...current, viewMode: mode })),
+    [setWorkspace],
+  );
+  const {
+    narrow,
+    viewMode: normalViewMode,
+    selectViewMode: selectNormalViewMode,
+  } = useResponsiveViewMode(workspace.viewMode, persistViewMode);
+  const [taskViewDocument, setTaskViewDocument] = useState<string>();
+  const [taskTablePane, setTaskTablePane] = useState<"table" | "chart">("table");
+  const [taskTablePercent, setTaskTablePercent] = useState(55);
+  const [taskTableInspector, setTaskTableInspector] = useState(false);
+  const [taskRowDrafts, setTaskRowDrafts] = useState<Record<string, TaskRowDraft[]>>({});
+  const [tasksNarrow, setTasksNarrow] = useState(
+    () => typeof window.matchMedia === "function" && window.matchMedia("(max-width: 900px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia?.("(max-width: 900px)");
+    if (!media) return;
+    const change = () => setTasksNarrow(media.matches);
+    media.addEventListener("change", change);
+    return () => media.removeEventListener("change", change);
+  }, []);
+  const [mobileDiagramDocument, setMobileDiagramDocument] = useState<string>();
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [mobileReveal, setMobileReveal] = useState<{
+    documentId: string;
+    kind: "gantt" | "wbs";
+    id: string;
+    source: string;
+  }>();
+  const mobileSupported =
+    (narrow || mobileSheetOpen) && (workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs");
+  const taskViewActive = taskViewDocument === tabs.activeId && workspace.diagramKind === "gantt";
+  const mobileListActive =
+    mobileSupported &&
+    !taskViewActive &&
+    (mobileSheetOpen || (normalViewMode !== "code" && mobileDiagramDocument !== tabs.activeId));
+  const mobileRevealActive =
+    mobileReveal?.documentId === tabs.activeId &&
+    mobileReveal.kind === workspace.diagramKind &&
+    mobileReveal.source === workspace.source
+      ? mobileReveal
+      : undefined;
+  const viewMode: ViewMode = mobileListActive
+    ? "code"
+    : taskViewActive
+      ? tasksNarrow
+        ? taskTablePane === "table"
+          ? "code"
+          : "diagram"
+        : "split"
+      : normalViewMode;
+  const selectViewMode = useCallback(
+    (mode: ViewMode) => {
+      setTaskViewDocument(undefined);
+      setTaskTableInspector(false);
+      setMobileReveal(undefined);
+      setMobileDiagramDocument(mode === "diagram" ? tabs.activeId : undefined);
+      selectNormalViewMode(mode);
+    },
+    [selectNormalViewMode, tabs.activeId],
+  );
   const [pendingWbsDeleteId, setPendingWbsDeleteId] = useState<string>();
   const [pendingGanttDeleteTaskId, setPendingGanttDeleteTaskId] = useState<string>();
   const [pendingWbsRelink, setPendingWbsRelink] = useState<{
@@ -231,8 +343,6 @@ export function App() {
   const {
     focusNoteTaskId,
     setFocusNoteTaskId,
-    projectInspectorOpen,
-    setProjectInspectorOpen,
     legendInspectorOpen,
     setLegendInspectorOpen,
     legendFocusColor,
@@ -247,8 +357,6 @@ export function App() {
     setSchedulePreview,
     scheduleMode,
     setScheduleMode,
-    resourcePanelOpen,
-    setResourcePanelOpen,
   } = useGanttController(workspace.diagramKind);
   const { dialog, openDialog, closeDialog, toggleCommandPalette } = useAppDialog();
   const newDocumentOpen = dialog?.kind === "new-document";
@@ -280,8 +388,11 @@ export function App() {
   }>();
   const [repairRequest, setRepairRequest] = useState<SourceRepairRequest>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
-  const [interactionMessage, setInteractionMessage] = useState<string>();
-  const [problemsOpen, setProblemsOpen] = useState(false);
+  const {
+    message: interactionMessage,
+    setMessage: setInteractionMessage,
+    notifySuccess,
+  } = useInteractionMessage(tabs.activeId, workspace.source);
   const [repairCategoryFilter, setRepairCategoryFilter] = useState<{
     source: string;
     documentId: string;
@@ -296,10 +407,10 @@ export function App() {
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
+  const [linkedWorkPreview, setLinkedWorkPreview] = useState<LinkedWorkPreview>();
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
   const [draggedTabId, setDraggedTabId] = useState<string>();
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number }>();
-  const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const fileHandles = useRef(new Map<string, WritableFileHandle>());
   const fileSnapshots = useRef(new Map<string, FileSnapshot>());
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
@@ -309,6 +420,12 @@ export function App() {
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const lastDiagramFocusSelector = useRef<string | undefined>(undefined);
   const renameReturnFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
+  const [inlineRename, setInlineRename] = useState<{
+    request: SemanticRenameRequest;
+    source: string;
+    documentId: string;
+    anchor: { left: number; bottom: number };
+  }>();
   const pendingDiagramFocusSelector = useRef<string | undefined>(undefined);
   const startupSplashShown = useRef(false);
   const { activeHistory, refreshHistoryControls, removeHistory, retainHistories, recordSourceChange } =
@@ -342,7 +459,7 @@ export function App() {
     retry: retryRender,
   } = useRenderer(
     workspace.source,
-    hydrated && dialog?.kind !== "new-document" && workspace.viewMode !== "code",
+    hydrated && dialog?.kind !== "new-document" && viewMode !== "code",
     rendererLayoutEngineForDiagramKind(workspace.diagramKind),
     tabs.activeId,
   );
@@ -633,6 +750,7 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [
     activeHistory,
+    setInteractionMessage,
     linkedGantt,
     refreshHistoryControls,
     updateLinkedSource,
@@ -705,11 +823,11 @@ export function App() {
       );
       const next = occurrences[(Math.max(0, currentIndex) + direction + occurrences.length) % occurrences.length];
       if (next) {
-        if (workspace.viewMode === "diagram") setWorkspace((current) => ({ ...current, viewMode: "split" }));
+        if (viewMode === "diagram") selectViewMode("split");
         setSelectionRequest({ ...next.range });
       }
     },
-    [occurrencesFor, setWorkspace, workspace.viewMode],
+    [occurrencesFor, selectViewMode, viewMode],
   );
   const diagramOccurrenceForTarget = useCallback(
     (target: Element): SemanticSymbolOccurrence | undefined => {
@@ -791,9 +909,12 @@ export function App() {
     });
     return true;
   }, []);
-  const reportFileError = useCallback((error: unknown) => {
-    setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
-  }, []);
+  const reportFileError = useCallback(
+    (error: unknown) => {
+      setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
+    },
+    [setInteractionMessage],
+  );
   const recordDocumentVersionRef = useRef<RecordDocumentVersion | undefined>(undefined);
   const recordCollaborationVersion = useCallback<RecordDocumentVersion>((reason, label, override) => {
     if (!recordDocumentVersionRef.current) return Promise.reject(new Error("Version history is not ready"));
@@ -828,11 +949,13 @@ export function App() {
     setInteractionMessage,
   });
   useEffect(() => {
-    if (!hydrated || startupSplashShown.current || !tabs.session.onboarded) return;
+    if (!hydrated || startupSplashShown.current) return;
+    if (!tabs.session.onboarded) tabs.setOnboarded();
     startupSplashShown.current = true;
     if (collaborationLinkDetails(window.location.href).roomId) return;
-    openDialog({ kind: "new-document", replaceActiveDocument: activeDocument.historyId === "history-welcome" });
-  }, [activeDocument.historyId, hydrated, openDialog, tabs.session.onboarded]);
+    const policy = startupChooserPolicy(tabs.session);
+    if (policy) openDialog({ kind: "new-document", replaceActiveDocument: policy === "replace-welcome" });
+  }, [hydrated, openDialog, tabs]);
   useEffect(() => {
     if (workspace.diagramKind !== "wbs") closeDialog("add-wbs-node");
   }, [closeDialog, workspace.diagramKind]);
@@ -1000,7 +1123,15 @@ export function App() {
   const ganttCalendar = useMemo(() => parseGanttCalendar(workspace.source), [workspace.source]);
   // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [reportsSuspended, setReportsSuspended] = useState(false);
   const [reportResource, setReportResource] = useState<string>();
+  const [reportCoordinator, setReportCoordinator] = useState(false);
+  const openReports = useCallback(() => {
+    setReportResource(undefined);
+    setReportCoordinator(false);
+    setReportsSuspended(false);
+    setReportsOpen(true);
+  }, []);
   const planTimeZone = activeDocument.progressForecast?.enabled
     ? (activeDocument.progressForecast.timeZone ?? "UTC")
     : undefined;
@@ -1057,6 +1188,18 @@ export function App() {
   );
 
   useEffect(() => {
+    if (!mobileRevealActive || mobileListActive || status !== "idle" || result?.source !== workspace.source) return;
+    const frame = requestAnimationFrame(() => {
+      const attribute = mobileRevealActive.kind === "gantt" ? "data-task-id" : "data-wbs-node-id";
+      workspaceElement.current
+        ?.querySelector(`[${attribute}="${CSS.escape(mobileRevealActive.id)}"]`)
+        ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      workspaceElement.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [mobileRevealActive, mobileListActive, status, result?.source, workspace.source]);
+
+  useEffect(() => {
     setSourceHighlightedTaskId(undefined);
     setSourceSymbol(undefined);
     setSourceSymbolPosition(undefined);
@@ -1070,8 +1213,8 @@ export function App() {
     // last time the editor was visible. DiagramPreview prefers that highlight over a task
     // clicked directly in the diagram, which silently pinned the anchor/selection markers to
     // a stale task and made connection handles unclickable. Clear it once the editor is gone.
-    if (workspace.viewMode === "diagram") setSourceHighlightedTaskId(undefined);
-  }, [setSourceHighlightedTaskId, workspace.viewMode]);
+    if (viewMode === "diagram") setSourceHighlightedTaskId(undefined);
+  }, [setSourceHighlightedTaskId, viewMode]);
 
   useEffect(() => {
     if (!hydrated || pendingProjectWbsSelection?.tabId === tabs.activeId) return;
@@ -1145,13 +1288,13 @@ export function App() {
     };
   }, [symbolMenu]);
 
-  const dismissAllInspectors = useCallback(() => {
+  const clearDiagramMultiSelection = useRef<() => void>(() => {});
+  const dismissPropertyInspectors = useCallback(() => {
     dismissInspectorSelection();
     dismissSequenceInspector();
     dismissUseCaseInspector();
     dismissClassInspector();
     dismissActivityInspector();
-    setProjectInspectorOpen(false);
     setFocusNoteTaskId(undefined);
   }, [
     dismissActivityInspector,
@@ -1160,8 +1303,71 @@ export function App() {
     dismissSequenceInspector,
     dismissUseCaseInspector,
     setFocusNoteTaskId,
-    setProjectInspectorOpen,
   ]);
+
+  const prepareUtilityPanel = useCallback(() => {
+    if (!requestSidePanelChange()) return false;
+    dismissPropertyInspectors();
+    setLegendInspectorOpen(false);
+    setLegendFocusColor(undefined);
+    setExtraSelectedTaskIds([]);
+    clearDiagramMultiSelection.current();
+    clearSelectedWbsNode();
+    clearSelectedWbsRelationship();
+    closeWbsSettings();
+    setProjectNavigatorOpen(false);
+    return true;
+  }, [
+    dismissPropertyInspectors,
+    clearSelectedWbsNode,
+    clearSelectedWbsRelationship,
+    closeWbsSettings,
+    setLegendInspectorOpen,
+    setLegendFocusColor,
+  ]);
+  const openTasksView = useCallback(() => {
+    if (!requestSidePanelChange()) return;
+    setTaskTableInspector(false);
+    setTaskTablePane("table");
+    setTaskViewDocument(tabs.activeId);
+  }, [tabs.activeId]);
+  const propertySelections = [
+    selectedTaskId,
+    selectedDependencyIndex,
+    selectedDividerIndex,
+    selectedVerticalSeparatorIndex,
+    selectedSequenceParticipantId,
+    selectedSequenceMessageId,
+    selectedSequenceStructureId,
+    selectedUseCaseObjectId,
+    selectedClassObjectId,
+    selectedActivityObjectId,
+    selectedWbsNodeId,
+    selectedWbsRelationshipId,
+    sequenceSettingsOpen || undefined,
+    useCaseSettingsOpen || undefined,
+    classSettingsOpen || undefined,
+    activitySettingsOpen || undefined,
+    wbsSettingsOpen || undefined,
+    legendInspectorOpen || undefined,
+  ];
+  const propertySelection = propertySelections.some((value) => value !== undefined)
+    ? JSON.stringify(propertySelections)
+    : undefined;
+  const {
+    projectInspectorOpen,
+    setProjectInspectorOpen,
+    resourcePanelOpen,
+    setResourcePanelOpen,
+    problemsOpen,
+    setProblemsOpen,
+    unsupportedOpen,
+    setUnsupportedOpen,
+  } = useSidePanelState(workspace.diagramKind, propertySelection, prepareUtilityPanel);
+  const dismissAllInspectors = useCallback(() => {
+    dismissPropertyInspectors();
+    setProjectInspectorOpen(false);
+  }, [dismissPropertyInspectors, setProjectInspectorOpen]);
 
   const showDocumentNavigator = useCallback(() => {
     dismissAllInspectors();
@@ -1178,6 +1384,8 @@ export function App() {
     clearSelectedWbsRelationship,
     closeWbsSettings,
     setResourcePanelOpen,
+    setProblemsOpen,
+    setUnsupportedOpen,
   ]);
 
   useEffect(() => {
@@ -1520,23 +1728,40 @@ export function App() {
       );
     }
 
+    const contexts = new Map<string, { label: string; parentId?: string | undefined }>();
+    if (workspace.diagramKind === "wbs") {
+      for (const node of wbsDocument.nodes) contexts.set(node.id, node);
+    } else if (workspace.diagramKind === "usecase") {
+      for (const item of useCaseDocument.packages) contexts.set(item.id, item);
+      for (const item of useCaseDocument.elements)
+        contexts.set(item.id, { label: item.label, parentId: item.packageId });
+    } else if (workspace.diagramKind === "class" || workspace.diagramKind === "component") {
+      for (const item of classDocument.packages) contexts.set(item.id, item);
+      for (const item of classDocument.entities) contexts.set(item.id, { label: item.label, parentId: item.packageId });
+    } else if (workspace.diagramKind === "activity") {
+      for (const item of activityDocument.partitions) contexts.set(item.id, item);
+      for (const item of activityDocument.nodes)
+        contexts.set(item.id, { label: item.label ?? item.kind, parentId: item.partitionId });
+    }
     const groupedSemantic = semantic.map((item) => {
       const key = item.target.type === "semantic" ? item.target.occurrence.key : "";
       const task = parseResult.document.tasks.find((object) => object.id === key);
       const activityNode = activityDocument.nodes.find((object) => object.id === key);
-      const parentId =
-        useCaseDocument.elements.find((object) => object.id === key)?.packageId ??
-        useCaseDocument.packages.find((object) => object.id === key)?.parentId ??
-        classDocument.entities.find((object) => object.id === key)?.packageId ??
-        classDocument.packages.find((object) => object.id === key)?.parentId ??
-        activityDocument.nodes.find((object) => object.id === key)?.partitionId ??
-        activityDocument.partitions.find((object) => object.id === key)?.parentId ??
-        wbsDocument.nodes.find((object) => object.id === key)?.parentId;
+      const ancestors: string[] = [];
+      const seen = new Set([key]);
+      let parentId = contexts.get(key)?.parentId;
+      while (parentId && !seen.has(parentId)) {
+        seen.add(parentId);
+        const parent = contexts.get(parentId);
+        if (!parent) break;
+        ancestors.unshift(parent.label);
+        parentId = parent.parentId;
+      }
       return {
         ...item,
         ...(task?.milestone ? { kind: "gantt-milestone", typeLabel: "Milestone" } : {}),
         ...(activityNode && activityNode.kind !== "action" ? { kind: "activity-terminal", typeLabel: "Terminal" } : {}),
-        ...(parentId ? { group: named(parentId) } : {}),
+        ...(ancestors.length ? { group: ancestors.join(" / "), depth: ancestors.length } : {}),
       };
     });
     return [...groupedSemantic, ...extras].sort((left, right) => left.range.from - right.range.from);
@@ -1553,8 +1778,8 @@ export function App() {
     workspace.source,
   ]);
 
-  const revealOutlineOccurrence = (occurrence: SemanticSymbolOccurrence) => {
-    if (workspace.viewMode === "diagram") update("viewMode", "split");
+  const revealOutlineOccurrence = (occurrence: SemanticSymbolOccurrence, showSource = true) => {
+    if (showSource && viewMode === "diagram") update("viewMode", "split");
     setSourceSymbol({ kind: occurrence.kind, key: occurrence.key });
     setSourceSymbolPosition(occurrence.range.from);
     setSelectionRequest({ ...occurrence.range });
@@ -1584,12 +1809,13 @@ export function App() {
     }
   };
 
-  const revealOutlineEntry = (entry: DiagramOutlineEntry) => {
-    if (workspace.viewMode === "diagram") update("viewMode", "split");
+  const revealOutlineEntry = (entry: DiagramOutlineEntry, showSource = true) => {
+    setOutlineReveal({ entry });
+    if (showSource && viewMode === "diagram") update("viewMode", "split");
     setSelectionRequest({ ...entry.range });
     switch (entry.target.type) {
       case "semantic":
-        revealOutlineOccurrence(entry.target.occurrence);
+        revealOutlineOccurrence(entry.target.occurrence, showSource);
         break;
       case "gantt-dependency":
         setSelectedTaskId(undefined);
@@ -1630,11 +1856,7 @@ export function App() {
     }
   };
 
-  const openProjectInspector = useCallback(() => {
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-    setProjectInspectorOpen(true);
-  }, [setProjectInspectorOpen, setSelectedDependencyIndex, setSelectedTaskId]);
+  const openProjectInspector = useCallback(() => setProjectInspectorOpen(true), [setProjectInspectorOpen]);
 
   const openDateActionMenu = useCallback(
     (date: string) => {
@@ -1647,27 +1869,29 @@ export function App() {
     [setDateMenuFor, setProjectInspectorOpen, setResourcePanelOpen, setSelectedDependencyIndex, setSelectedTaskId],
   );
 
-  const openResourcePanel = useCallback(() => {
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-    setProjectInspectorOpen(false);
-    setResourcePanelOpen(true);
-  }, [setProjectInspectorOpen, setResourcePanelOpen, setSelectedDependencyIndex, setSelectedTaskId]);
+  const openResourcePanel = useCallback(() => setResourcePanelOpen(true), [setResourcePanelOpen]);
 
+  const activeZoomDocumentId = tabs.activeId;
+  const updateZoomMetadata = tabs.updateDocumentFormat;
   const update = useCallback(
     <K extends keyof typeof workspace>(key: K, value: (typeof workspace)[K]) => {
+      if (key === "viewMode") {
+        selectViewMode(value as ViewMode);
+        return;
+      }
+      if (key === "zoom") {
+        updateZoomMetadata(activeZoomDocumentId, { zoom: value as number, zoomInitialized: true });
+        return;
+      }
       setWorkspace((current) => ({ ...current, [key]: value }));
     },
-    [setWorkspace],
+    [setWorkspace, selectViewMode, activeZoomDocumentId, updateZoomMetadata],
   );
 
   const viewModes = useMemo(
-    () => (workspace.advancedMode ? (["code", "split", "diagram"] as ViewMode[]) : (["diagram"] as ViewMode[])),
-    [workspace.advancedMode],
+    () => (narrow ? ["code", "diagram"] : ["code", "split", "diagram"]) as ViewMode[],
+    [narrow],
   );
-  useEffect(() => {
-    if (!workspace.advancedMode && workspace.viewMode !== "diagram") update("viewMode", "diagram");
-  }, [update, workspace.advancedMode, workspace.viewMode]);
 
   const { commitSource, commitGeneratedSource, undo, redo } = useSourceCommands({
     source: workspace.source,
@@ -1733,6 +1957,7 @@ export function App() {
     setSelectedDependencyIndex(undefined);
   }, [setSelectedDependencyIndex, setSelectedTaskId]);
   const {
+    importDocumentFile,
     fileSaveState: standaloneSaveState,
     externalConflict,
     openDocument,
@@ -1757,6 +1982,7 @@ export function App() {
     resetSelection: resetFileSelection,
     reportError: reportFileError,
     setInteractionMessage,
+    notifySuccess,
     onProjectLaunch: async (opened) => projectLaunchRef.current?.(opened) ?? false,
   });
   const {
@@ -1815,9 +2041,15 @@ export function App() {
   const addProjectDiagram = usingSingleFileProject ? singleFileProject.addProjectDiagram : addLegacyProjectDiagram;
   const isProjectMemberTab = usingSingleFileProject
     ? (id: string) =>
-        tabs.documents.some((document) => document.id === id && document.historyId.startsWith("project-history-"))
+        tabs.documents.some(
+          (document) =>
+            document.id === id &&
+            document.historyId.startsWith(`project-history-${singleFileProject.portableProject!.projectId}-`),
+        )
     : isLegacyProjectMemberTab;
   const portable = singleFileProject.portableProject;
+  const linkedWorkContext = useRef({ portable, collaboration });
+  linkedWorkContext.current = { portable, collaboration };
   const portableWbsDiagramId =
     portable && activeDocument.historyId.startsWith(`project-history-${portable.projectId}-`)
       ? activeDocument.historyId.slice(`project-history-${portable.projectId}-`.length)
@@ -1845,18 +2077,20 @@ export function App() {
         return (ganttTab?.wbsGanttLinks ?? connection.links).flatMap((link) => {
           const node = nodes.get(link.wbsAlias);
           const task = tasks.get(link.ganttAlias.toLowerCase());
-          if (!node || !task) return [];
+
           return [
             {
               id: `${gantt.id}:${link.wbsAlias}:${link.ganttAlias}`,
-              wbsLabel: node.label,
-              ganttLabel: task.label,
+              missingWbsNode: !node,
+              missingGanttTask: !task,
+              wbsLabel: node?.label ?? `${link.wbsAlias} (missing)`,
+              ganttLabel: task?.label ?? `${link.ganttAlias} (missing)`,
               wbsDiagramName: wbs.name,
               ganttDiagramName: gantt.name,
               wbsDocumentId: wbs.id,
               ganttDocumentId: gantt.id,
-              wbsNodeId: node.id,
-              ganttTaskId: task.id,
+              wbsNodeId: node?.id ?? link.wbsAlias,
+              ganttTaskId: task?.id ?? link.ganttAlias.toLowerCase(),
             },
           ];
         });
@@ -1887,45 +2121,77 @@ export function App() {
     const wbs = portable.diagrams.find((diagram) => diagram.id === wbsId);
     const gantt = portable.diagrams.find((diagram) => diagram.id === ganttId);
     if (!wbs || !gantt?.wbsGantt) return;
+    const connection = gantt.wbsGantt;
     const ganttTabId = await singleFileProject.openMember(ganttId);
     const wbsTabId = await singleFileProject.openMember(wbsId);
     if (!ganttTabId || !wbsTabId) return;
-    const wbsTab = tabs.documents.find((tab) => tab.id === wbsTabId);
-    const ganttTab = tabs.documents.find((tab) => tab.id === ganttTabId);
+    const wbsTab = tabsRef.current.documents.find((tab) => tab.id === wbsTabId);
+    const ganttTab = tabsRef.current.documents.find((tab) => tab.id === ganttTabId);
     const wbsSource = wbsTab?.source ?? wbs.document.current.source;
     const ganttSource = ganttTab?.source ?? gantt.document.current.source;
-    const links = ganttTab?.wbsGanttLinks ?? gantt.wbsGantt.links;
-    const dependencies = ganttTab?.wbsGanttDependencies ?? gantt.wbsGantt.dependencies;
+    const links = ganttTab?.wbsGanttLinks ?? connection.links;
+    const dependencies = ganttTab?.wbsGanttDependencies ?? connection.dependencies;
     try {
       const result =
         item.kind === "wbs"
           ? convertWbsToGantt(wbsSource, ganttSource, links, dependencies, "keep-scheduled", true, [item.key])
           : addMissingGanttTasksToWbs(wbsSource, ganttSource, links, dependencies, [item.key]);
-      updateLinkedSource({ id: wbsTabId, source: wbsSource }, result.wbsSource, "wbs", "Add missing linked work");
-      updateLinkedSource(
-        { id: ganttTabId, source: ganttSource },
-        result.ganttSource,
-        "gantt",
-        "Add missing linked work",
-      );
-      tabs.updateDocumentFormat(ganttTabId, {
-        wbsGanttLinks: result.links,
-        wbsGanttDependencies: result.dependencies,
+      const metadata = JSON.stringify({ links, dependencies });
+      setLinkedWorkPreview({
+        label: item.label,
+        diagrams: [
+          { id: wbsTabId, name: wbs.name, before: wbsSource, after: result.wbsSource },
+          { id: ganttTabId, name: gantt.name, before: ganttSource, after: result.ganttSource },
+        ],
+        warnings: result.warnings,
+        apply: () => {
+          const context = linkedWorkContext.current;
+          const currentWbs = tabsRef.current.documents.find((tab) => tab.id === wbsTabId);
+          const currentGantt = tabsRef.current.documents.find((tab) => tab.id === ganttTabId);
+          if (
+            context.portable?.projectId !== portable.projectId ||
+            !context.portable.diagrams.some((diagram) => diagram.id === wbsId) ||
+            context.portable.diagrams.find((diagram) => diagram.id === ganttId)?.wbsGantt?.wbsDiagramId !== wbsId ||
+            (context.collaboration?.sharedDocumentId === portable.projectId &&
+              context.collaboration.role === "viewer") ||
+            currentWbs?.source !== wbsSource ||
+            currentGantt?.source !== ganttSource ||
+            JSON.stringify({
+              links: currentGantt?.wbsGanttLinks ?? connection.links,
+              dependencies: currentGantt?.wbsGanttDependencies ?? connection.dependencies,
+            }) !== metadata
+          ) {
+            setInteractionMessage("The connected document changed. Cancel and create a fresh preview.");
+            return false;
+          }
+          updateLinkedSource({ id: wbsTabId, source: wbsSource }, result.wbsSource, "wbs", "Add missing linked work");
+          updateLinkedSource(
+            { id: ganttTabId, source: ganttSource },
+            result.ganttSource,
+            "gantt",
+            "Add missing linked work",
+          );
+          tabsRef.current.updateDocumentFormat(ganttTabId, {
+            wbsGanttLinks: result.links,
+            wbsGanttDependencies: result.dependencies,
+          });
+          setInteractionMessage(
+            `Added ${item.label} to ${item.kind === "wbs" ? gantt.name : wbs.name}${result.warnings.length ? `. ${result.warnings.join(" ")}` : ""}`,
+          );
+          if (item.kind === "wbs") {
+            const alias = parseWbs(result.wbsSource).nodes.find((node) => node.id === item.key)?.alias;
+            const taskAlias = result.links.find((link) => link.wbsAlias === alias)?.ganttAlias;
+            tabsRef.current.activateDocument(ganttTabId);
+            if (taskAlias) window.setTimeout(() => setSelectedTaskId(taskAlias.toLowerCase()), 100);
+          } else {
+            const alias = result.links.find((link) => link.ganttAlias.toLowerCase() === item.key)?.wbsAlias;
+            const node = parseWbs(result.wbsSource).nodes.find((candidate) => candidate.alias === alias);
+            tabsRef.current.activateDocument(wbsTabId);
+            if (node) setPendingProjectWbsSelection({ tabId: wbsTabId, nodeId: node.id });
+          }
+          return true;
+        },
       });
-      setInteractionMessage(
-        `Added ${item.label} to ${item.kind === "wbs" ? gantt.name : wbs.name}${result.warnings.length ? `. ${result.warnings.join(" ")}` : ""}`,
-      );
-      if (item.kind === "wbs") {
-        const alias = parseWbs(result.wbsSource).nodes.find((node) => node.id === item.key)?.alias;
-        const taskAlias = result.links.find((link) => link.wbsAlias === alias)?.ganttAlias;
-        tabs.activateDocument(ganttTabId);
-        if (taskAlias) window.setTimeout(() => setSelectedTaskId(taskAlias.toLowerCase()), 100);
-      } else {
-        const alias = result.links.find((link) => link.ganttAlias.toLowerCase() === item.key)?.wbsAlias;
-        const node = parseWbs(result.wbsSource).nodes.find((candidate) => candidate.alias === alias);
-        tabs.activateDocument(wbsTabId);
-        if (node) setPendingProjectWbsSelection({ tabId: wbsTabId, nodeId: node.id });
-      }
     } catch (error) {
       setInteractionMessage(error instanceof Error ? error.message : "Could not add linked work");
     }
@@ -1973,6 +2239,9 @@ export function App() {
         ? standaloneSaveState
         : undefined;
   const fileSaving = currentFileSaveState?.status === "saving";
+  const fileDirty = activeInSingleFileProject ? singleFileProject.dirty : Boolean(activeDocument.dirty);
+  const fileCopy = activeInSingleFileProject || activeInLegacyProject ? undefined : activeDocument.fileCopy;
+  const saveNeeded = fileDirty || fileCopy === "new" || currentFileSaveState?.status === "error";
   const saveCurrentDocument = useCallback(async () => {
     if (fileSaving) return;
     if (activeInSingleFileProject) await saveActiveProject();
@@ -2138,8 +2407,8 @@ export function App() {
     ];
     if (warnings.length > 0 && !window.confirm(`${warnings.join("\n\n")}\n\nExport source anyway?`)) return;
     downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
-    setInteractionMessage("Exported PlantUML source (plaintext)");
-  }, [activeDocument.encrypted, activeDocument.progressForecast, workspace.fileName, workspace.source]);
+    notifySuccess("Exported PlantUML source (plaintext)");
+  }, [activeDocument.encrypted, activeDocument.progressForecast, workspace.fileName, workspace.source, notifySuccess]);
   const resetWorkspaceDocumentSelection = useCallback(() => {
     setSelectedTaskId(undefined);
     setSelectedDependencyIndex(undefined);
@@ -2160,14 +2429,21 @@ export function App() {
     openProjectInspector,
     reportError: reportFileError,
     setInteractionMessage,
+    notifySuccess,
   });
+  const [formatDraft, setFormatDraft] = useState<{ source: string; kind: DiagramKind; documentId: string }>();
+  const openFormatSource = useCallback(
+    () => setFormatDraft({ source: workspace.source, kind: workspace.diagramKind, documentId: tabs.activeId }),
+    [workspace.source, workspace.diagramKind, tabs.activeId],
+  );
+  const [exportDialog, setExportDialog] = useState<"export" | "share">();
   const exportSvg = useCallback(() => {
     if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting SVG");
       return;
     }
     downloadText(result.svg, svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
-  }, [result, workspace.fileName, workspace.source, tabs.activeId]);
+  }, [result, workspace.fileName, workspace.source, tabs.activeId, setInteractionMessage]);
   const exportPng = useCallback(async () => {
     if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting PNG");
@@ -2178,7 +2454,7 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId]);
+  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId, setInteractionMessage]);
   const exportPdf = useCallback(async () => {
     if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before exporting PDF");
@@ -2186,11 +2462,19 @@ export function App() {
     }
     try {
       await downloadDiagramPdf(result.svg, workspace.fileName);
-      setInteractionMessage("Exported PDF");
+      notifySuccess("Exported PDF");
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId]);
+  }, [
+    reportFileError,
+    result,
+    workspace.fileName,
+    workspace.source,
+    tabs.activeId,
+    setInteractionMessage,
+    notifySuccess,
+  ]);
   const copyImage = useCallback(async () => {
     if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
       setInteractionMessage("Render a valid diagram before copying it");
@@ -2198,19 +2482,22 @@ export function App() {
     }
     try {
       await copyDiagramImage(result.svg);
-      setInteractionMessage("Copied diagram image");
+      notifySuccess("Copied diagram image");
     } catch (error) {
       setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
     }
-  }, [result, workspace.source, tabs.activeId]);
-  const copySourceAs = useCallback(async (text: string, label: string) => {
-    try {
-      await copyText(text);
-      setInteractionMessage(`Copied ${label}`);
-    } catch (error) {
-      setInteractionMessage(error instanceof Error ? error.message : `Could not copy ${label}`);
-    }
-  }, []);
+  }, [result, workspace.source, tabs.activeId, setInteractionMessage, notifySuccess]);
+  const copySourceAs = useCallback(
+    async (text: string, label: string) => {
+      try {
+        await copyText(text);
+        notifySuccess(`Copied ${label}`);
+      } catch (error) {
+        setInteractionMessage(error instanceof Error ? error.message : `Could not copy ${label}`);
+      }
+    },
+    [setInteractionMessage, notifySuccess],
+  );
   const copyMarkdown = useCallback(
     () => copySourceAs(plantUmlMarkdown(workspace.source), "source as Markdown"),
     [copySourceAs, workspace.source],
@@ -2484,7 +2771,46 @@ export function App() {
     report: setInteractionMessage,
   });
 
+  const commandReadOnly = collaborationAppliesToActiveDiagram && collaboration?.role === "viewer";
+  const reviewApplyContext = useRef({ documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly });
+  reviewApplyContext.current = { documentId: tabs.activeId, source: workspace.source, readOnly: commandReadOnly };
+  const startInlineRename = (id: string, anchor: Element) => {
+    if (commandReadOnly || diagramMulti.multiple || status !== "idle" || anchor.closest("[data-class-member-id]"))
+      return false;
+    const request = inlineLabelRenameRequest(symbolProvider, workspace.diagramKind, id);
+    if (!request) {
+      setInteractionMessage(
+        "This label cannot be identified uniquely for inline editing. Rename its declaration in the source editor.",
+      );
+      return false;
+    }
+    const focusTarget = anchor.closest<HTMLElement | SVGElement>("[tabindex], button");
+    if (focusTarget) renameReturnFocus.current = focusTarget;
+    const bounds = anchor.getBoundingClientRect();
+    setInlineRename({
+      request,
+      source: workspace.source,
+      documentId: tabs.activeId,
+      anchor: { left: bounds.left, bottom: bounds.bottom },
+    });
+    return true;
+  };
+  const renameCommandPosition =
+    workspace.source
+      .split("\n")
+      .slice(0, workspace.cursor.line - 1)
+      .reduce((offset, line) => offset + line.length + 1, 0) +
+    workspace.cursor.column -
+    1;
+  const renameCommandOccurrence = symbolAt(renameCommandPosition);
+  const canRenameCommand =
+    !commandReadOnly && !!renameCommandOccurrence && !!symbolProvider.renameRequest(renameCommandOccurrence);
+
   const commands = useMemo<Command[]>(() => {
+    const revealViewCommand = (eventName: string, targetView: "code" | "diagram") => {
+      if (viewMode !== "split") update("viewMode", targetView);
+      requestAnimationFrame(() => window.dispatchEvent(new Event(eventName)));
+    };
     const diagramCommands: Command[] =
       workspace.diagramKind === "gantt"
         ? [
@@ -2515,15 +2841,12 @@ export function App() {
               id: "view.reports",
               label: "Reports…",
               category: "View",
-              run: () => {
-                setReportResource(undefined);
-                setReportsOpen(true);
-              },
+              run: openReports,
             },
             { id: "view.resource-workload", label: "Resource workload…", category: "View", run: openResourcePanel },
             {
               id: "view.delivery-scenario",
-              label: "Gantt analysis…",
+              label: "What-if scenario…",
               category: "View",
               run: () => openDialog({ kind: "delivery-scenario" }),
             },
@@ -2544,41 +2867,166 @@ export function App() {
                 run: openWbsSettings,
               },
             ]
-          : [
-              {
-                id: "edit.add-participant",
-                label: "Add participant…",
+          : workspace.diagramKind === "sequence"
+            ? [
+                {
+                  id: "edit.add-participant",
+                  label: "Add participant…",
+                  category: "Edit",
+                  shortcut: optionShortcut("P"),
+                  run: () => openDialog({ kind: "add-sequence-participant" }),
+                },
+                {
+                  id: "edit.add-message",
+                  label: "Add message…",
+                  category: "Edit",
+                  shortcut: optionShortcut("M"),
+                  run: () => openDialog({ kind: "add-sequence-message" }),
+                },
+                {
+                  id: "edit.add-fragment",
+                  label: "Add combined fragment…",
+                  category: "Edit",
+                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
+                },
+                {
+                  id: "edit.add-activation",
+                  label: "Add activation…",
+                  category: "Edit",
+                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
+                },
+                {
+                  id: "edit.add-note",
+                  label: "Add Sequence note…",
+                  category: "Edit",
+                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
+                },
+              ]
+            : [];
+    const creationCommands: Command[] =
+      workspace.diagramKind === "usecase"
+        ? [
+            {
+              id: "edit.add-usecase-actor",
+              label: "Add actor…",
+              category: "Edit",
+              run: () => openDialog({ kind: "add-usecase-element", elementKind: "actor" }),
+            },
+            {
+              id: "edit.add-usecase",
+              label: "Add use case…",
+              category: "Edit",
+              run: () => openDialog({ kind: "add-usecase-element", elementKind: "usecase" }),
+            },
+            ...(["relationship", "package", "note"] as const).map((kind) => ({
+              id: `edit.add-usecase-${kind}`,
+              label: `Add ${kind}…`,
+              category: "Edit",
+              run: () => openDialog({ kind: `add-usecase-${kind}` }),
+            })),
+          ]
+        : workspace.diagramKind === "class" || workspace.diagramKind === "component"
+          ? (["entity", "relationship", "package", "note"] as const).map((kind) => ({
+              id: `edit.add-class-${kind}`,
+              label: `Add ${kind}…`,
+              category: "Edit",
+              run: () => openDialog({ kind: `add-class-${kind}` }),
+            }))
+          : workspace.diagramKind === "activity"
+            ? (["action", "partition", "note", "structure", "terminal", "arrow"] as const).map((kind) => ({
+                id: `edit.add-activity-${kind}`,
+                label: `Add ${kind}…`,
                 category: "Edit",
-                shortcut: optionShortcut("P"),
-                run: () => openDialog({ kind: "add-sequence-participant" }),
-              },
-              {
-                id: "edit.add-message",
-                label: "Add message…",
-                category: "Edit",
-                shortcut: optionShortcut("M"),
-                run: () => openDialog({ kind: "add-sequence-message" }),
-              },
-              {
-                id: "edit.add-fragment",
-                label: "Add combined fragment…",
-                category: "Edit",
-                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
-              },
-              {
-                id: "edit.add-activation",
-                label: "Add activation…",
-                category: "Edit",
-                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
-              },
-              {
-                id: "edit.add-note",
-                label: "Add Sequence note…",
-                category: "Edit",
-                run: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
-              },
-            ];
+                run: () => openDialog({ kind: `add-activity-${kind}` }),
+              }))
+            : workspace.diagramKind === "sequence"
+              ? (["separator", "reference", "box"] as const).map((kind) => ({
+                  id: `edit.add-sequence-${kind}`,
+                  label: `Add Sequence ${kind}…`,
+                  category: "Edit",
+                  run: () => openDialog({ kind: "add-sequence-structure", structureKind: kind }),
+                }))
+              : [];
+    const settingsCommand =
+      workspace.diagramKind === "sequence"
+        ? openSequenceSettings
+        : workspace.diagramKind === "usecase"
+          ? openUseCaseSettingsFromToolbar
+          : workspace.diagramKind === "class" || workspace.diagramKind === "component"
+            ? openClassSettingsFromToolbar
+            : workspace.diagramKind === "activity"
+              ? openActivitySettingsFromToolbar
+              : undefined;
     return [
+      { id: "file.version-history", label: "Version history…", category: "File", run: () => void openVersionHistory() },
+      {
+        id: "file.document-settings",
+        label: "Document settings…",
+        category: "Document",
+        run: () => setDocumentSettingsOpen(true),
+      },
+      {
+        id: "file.close-tab",
+        label: "Close tab",
+        category: "File",
+        shortcut: "⌘W",
+        run: () => closeTab(tabs.activeId),
+      },
+      ...([-1, 1] as const).map((direction) => ({
+        id: direction === 1 ? "view.next-tab" : "view.previous-tab",
+        label: direction === 1 ? "Next tab" : "Previous tab",
+        category: "View",
+        enabled: tabs.documents.length > 1,
+        run: () => {
+          const index = tabs.documents.findIndex((tab) => tab.id === tabs.activeId);
+          const next = tabs.documents[(index + direction + tabs.documents.length) % tabs.documents.length];
+          if (next) activateTab(next.id);
+        },
+      })),
+      {
+        id: "view.fit",
+        label: "Fit diagram",
+        category: "View",
+        enabled: !!result?.svg,
+        run: () => revealViewCommand("fit-active-diagram", "diagram"),
+      },
+      {
+        id: "edit.go-to-line",
+        label: "Go to line…",
+        category: "Edit",
+        run: () => revealViewCommand("go-to-source-line", "code"),
+      },
+      {
+        id: "edit.format-source",
+        label: "Format source…",
+        category: "Edit",
+        enabled: !commandReadOnly,
+        run: openFormatSource,
+      },
+      {
+        id: "edit.rename-symbol",
+        label: "Rename symbol at cursor…",
+        category: "Edit",
+        enabled: canRenameCommand,
+        run: () => {
+          requestSymbolRename(renameCommandPosition);
+        },
+      },
+      ...(settingsCommand
+        ? [
+            {
+              id: "edit.diagram-settings",
+              label: "Diagram settings…",
+              category: "Edit",
+              enabled: !commandReadOnly,
+              run: settingsCommand,
+            },
+          ]
+        : []),
+      ...(workspace.diagramKind === "gantt"
+        ? [{ id: "plan.jira", label: "Jira…", category: "Plan", run: () => setJiraDialogOpen(true) }]
+        : []),
+      ...creationCommands.map((command) => ({ ...command, enabled: !commandReadOnly })),
       { id: "file.new", label: "New diagram", category: "File", shortcut: "⌘N", run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveCurrentDocument },
@@ -2616,7 +3064,10 @@ export function App() {
         shortcut: "⇧⌘O",
         run: () => openDialog({ kind: "diagram-outline" }),
       },
-      ...diagramCommands,
+      ...diagramCommands.map((command) => ({
+        ...command,
+        enabled: command.category === "Edit" ? !commandReadOnly : command.enabled,
+      })),
       {
         id: "help.reference",
         label: "Help & keyboard shortcuts",
@@ -2626,11 +3077,14 @@ export function App() {
       },
       { id: "edit.undo", label: "Undo", category: "Edit", shortcut: "⌘Z", enabled: activeHistory.canUndo, run: undo },
       { id: "edit.redo", label: "Redo", category: "Edit", shortcut: "⇧⌘Z", enabled: activeHistory.canRedo, run: redo },
-      ...viewModes.map((mode, index) => ({
+      ...(workspace.diagramKind === "gantt"
+        ? [{ id: "view.tasks", label: "Tasks view", category: "View", run: openTasksView }]
+        : []),
+      ...viewModes.map((mode) => ({
         id: `view.${mode}`,
         label: `${mode[0]!.toUpperCase()}${mode.slice(1)} view`,
         category: "View",
-        shortcut: `⌘${index + 1}`,
+        shortcut: `⌘${mode === "code" ? 1 : mode === "split" ? 2 : 3}`,
         run: () => update("viewMode", mode),
       })),
       {
@@ -2678,6 +3132,22 @@ export function App() {
       { id: "export.copy-confluence", label: "Copy for Confluence", category: "Export", run: copyConfluence },
     ];
   }, [
+    commandReadOnly,
+    openFormatSource,
+    canRenameCommand,
+    renameCommandPosition,
+    requestSymbolRename,
+    viewMode,
+    activateTab,
+    closeTab,
+    tabs.documents,
+    openVersionHistory,
+    openSequenceSettings,
+    openUseCaseSettingsFromToolbar,
+    openClassSettingsFromToolbar,
+    openActivitySettingsFromToolbar,
+    setJiraDialogOpen,
+    setProblemsOpen,
     activeHistory,
     backupWorkspace,
     collaboration,
@@ -2694,6 +3164,7 @@ export function App() {
     openWbsSettings,
     openProjectInspector,
     openResourcePanel,
+    openReports,
     project,
     redo,
     restoreWorkspace,
@@ -2708,12 +3179,14 @@ export function App() {
     undo,
     update,
     viewModes,
+    openTasksView,
     workspace.zoom,
     workspace.diagramKind,
   ]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (document.querySelector(".presentation-shell")) return;
       const target = event.target as HTMLElement | null;
       const editing =
         event.target instanceof HTMLInputElement ||
@@ -2727,7 +3200,8 @@ export function App() {
         (target?.isContentEditable && !target.closest(".cm-editor"));
       const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       if (event.key === "Escape") {
-        if (document.querySelector(".icon-field-panel, .color-field-panel")) return;
+        if (event.defaultPrevented || modalOpen || document.querySelector(".icon-field-panel, .color-field-panel"))
+          return;
         dismissAllInspectors();
         clearSelectedWbsNode();
         clearSelectedWbsRelationship();
@@ -2879,13 +3353,15 @@ export function App() {
   ]);
 
   const resize = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (workspace.viewMode !== "split") return;
+    if (viewMode !== "split") return;
     const root = event.currentTarget.parentElement;
     if (!root) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (moveEvent: PointerEvent) => {
       const rect = root.getBoundingClientRect();
-      update("splitPercent", Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / rect.width) * 100)));
+      const percent = Math.min(80, Math.max(20, ((moveEvent.clientX - rect.left) / rect.width) * 100));
+      if (taskViewActive) setTaskTablePercent(percent);
+      else update("splitPercent", percent);
     };
     const end = () => {
       window.removeEventListener("pointermove", move);
@@ -3006,7 +3482,7 @@ export function App() {
     setLegendFocusColor(undefined);
   };
   const sideInspectorOpen = Boolean(
-    selectedTask ||
+    (selectedTask && (!taskViewActive || taskTableInspector)) ||
     selectedDependency ||
     selectedSequenceParticipant ||
     selectedSequenceMessage ||
@@ -3152,20 +3628,244 @@ export function App() {
       else selectWbsRelationship(item.id);
     },
   });
+  clearDiagramMultiSelection.current = diagramMulti.clear;
   const canDuplicateMenuElement = !!menuOccurrence && diagramMulti.canDuplicateAt(menuOccurrence.range);
 
+  const linkedDiagramActions = [
+    ...(workspace.diagramKind === "wbs"
+      ? [
+          {
+            label:
+              linkedGantt && isProjectMemberTab(tabs.activeId)
+                ? `Add missing WBS tasks to Gantt (${missingWbsTaskCount})`
+                : existingProjectGantt
+                  ? "Open linked Gantt chart"
+                  : "Create Gantt chart from WBS",
+            disabled:
+              diagramMulti.readOnly ||
+              Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0),
+            run: () =>
+              linkedGantt && isProjectMemberTab(tabs.activeId)
+                ? convertCurrentWbs()
+                : existingProjectGantt
+                  ? void singleFileProject.openMember(existingProjectGantt.id)
+                  : openDialog({ kind: "wbs-gantt-project" }),
+          },
+        ]
+      : [
+          {
+            label: `Add missing Gantt tasks to WBS (${missingGanttTaskCount})`,
+            disabled: diagramMulti.readOnly || missingGanttTaskCount === 0,
+            run: importCurrentGanttToWbs,
+          },
+        ]),
+    ...(project
+      ? [
+          {
+            label: projectWbsGanttIssues.length
+              ? `Review sync issues (${projectWbsGanttIssues.length})`
+              : "Diagram connections",
+            run: showDocumentNavigator,
+          },
+        ]
+      : []),
+  ];
+
+  const initialDiagramFit =
+    activeDocument.zoomInitialized === false &&
+    result?.documentId === tabs.activeId &&
+    result.source === workspace.source &&
+    result.svg
+      ? { documentId: tabs.activeId }
+      : undefined;
+
+  useEffect(() => {
+    setOutlineMode(undefined);
+    setOutlineReveal(undefined);
+  }, [tabs.activeId]);
+  useEffect(() => {
+    const root = workspaceElement.current;
+    if (!root || !outlineMode) return;
+    const selectors = new Set(outlineMatches.map(outlineTargetSelector).filter(Boolean));
+    const attributes = [
+      "data-task-id",
+      "data-dependency-index",
+      "data-divider-index",
+      "data-vertical-separator-index",
+      "data-sequence-participant-id",
+      "data-sequence-message-id",
+      "data-sequence-structure-id",
+      "data-usecase-object-id",
+      "data-class-object-id",
+      "data-activity-object-id",
+      "data-wbs-node-id",
+      "data-wbs-relationship-id",
+    ];
+    const mark = () => {
+      root.querySelectorAll("[data-outline-match]").forEach((element) => element.removeAttribute("data-outline-match"));
+      if (!selectors.size) return;
+      for (const element of root.querySelectorAll(".diagram [" + attributes.join("], .diagram [") + "]")) {
+        if (
+          attributes.some((attribute) => {
+            const value = element.getAttribute(attribute);
+            return value !== null && selectors.has(`[${attribute}="${CSS.escape(value)}"]`);
+          })
+        )
+          element.setAttribute("data-outline-match", "true");
+      }
+    };
+    mark();
+    const observer = new MutationObserver(mark);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      root.querySelectorAll("[data-outline-match]").forEach((element) => element.removeAttribute("data-outline-match"));
+    };
+  }, [outlineMode, outlineMatches, workspace.source]);
+  useEffect(() => {
+    if (!outlineReveal) return;
+    const selector = outlineTargetSelector(outlineReveal.entry);
+    if (!selector) return;
+    const root = workspaceElement.current;
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const target = root?.querySelector<SVGElement>(`.diagram ${selector}`);
+        target?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [outlineReveal]);
+
+  const applySemanticRename = (target: SemanticRenameRequest, nextValue: string): boolean => {
+    if (commandReadOnly) return false;
+    const result = symbolProvider.rename(target, nextValue);
+    if (result.error || !result.source) {
+      setInteractionMessage(result.error ?? "Rename made no changes");
+      return false;
+    }
+    if (result.validateGenerated) {
+      if (!commitGeneratedSource(result.source, `Rename ${target.mode}`)) return false;
+    } else commitSource(result.source, `Rename ${target.mode}`);
+    if (target.occurrence.kind === "wbs-node") {
+      const node = wbsDocument.nodes.find((item) => item.id === target.occurrence.key);
+      if (node) mapWbsProjectEdit(node, result.source);
+    }
+    if (result.personRename) {
+      renameCapacity(result.personRename.from, result.personRename.to);
+      setResourceFilter((current) =>
+        current.toLocaleLowerCase() === result.personRename!.from.toLocaleLowerCase()
+          ? result.personRename!.to
+          : current,
+      );
+    }
+    if (result.nextKey) {
+      if (target.occurrence.kind === "participant") setSourceHighlightedSequenceParticipantId(result.nextKey);
+      else if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase")
+        setSourceHighlightedUseCaseId(result.nextKey);
+      else if (target.occurrence.kind === "class-entity") setSourceHighlightedClassEntityId(result.nextKey);
+      else if (target.occurrence.kind === "activity-action" || target.occurrence.kind === "activity-partition")
+        setSourceHighlightedActivityId(result.nextKey);
+      else if (target.occurrence.kind === "wbs-node") setSourceHighlightedWbsNodeId(result.nextKey);
+    }
+    if (referenceSymbol?.kind === target.occurrence.kind && referenceSymbol.key === target.occurrence.key)
+      setReferenceSymbol({
+        kind: target.occurrence.kind,
+        key: result.nextKey ?? target.occurrence.key,
+        label: nextValue.trim(),
+      });
+    setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
+    restoreRenamedDiagramFocus(target.occurrence.kind, result.nextKey);
+    return true;
+  };
+
+  const presentationDocuments: PresentationDocument[] = presentationOpen
+    ? tabs.documents.map((item) => ({
+        id: item.historyId,
+        name: tabLabels.get(item.id) ?? item.displayName ?? item.fileName,
+        kind: item.diagramKind,
+        source: item.source,
+      }))
+    : [];
+  const presentationConnections: { from: string; to: string }[] = [];
+  if (presentationOpen) {
+    for (const item of tabs.documents) {
+      const linked = tabs.documents.find((other) => other.id === item.linkedWbsDocumentId);
+      if (linked) presentationConnections.push({ from: item.historyId, to: linked.historyId });
+    }
+    if (portable) {
+      const reviewId = (id: string) => embeddedMemberHistoryId(portable.projectId, id);
+      for (const diagram of portable.diagrams) {
+        if (!presentationDocuments.some((item) => item.id === reviewId(diagram.id)))
+          presentationDocuments.push({
+            id: reviewId(diagram.id),
+            name: diagram.name,
+            kind: diagram.document.current.diagramKind as DiagramKind,
+            source: diagram.document.current.source,
+          });
+        if (diagram.wbsGantt)
+          presentationConnections.push({ from: reviewId(diagram.id), to: reviewId(diagram.wbsGantt.wbsDiagramId) });
+      }
+      for (const link of portable.links) {
+        const from = portable.elements.find((item) => item.id === link.from)?.documentId;
+        const to = portable.elements.find((item) => item.id === link.to)?.documentId;
+        if (from && to && from !== to) presentationConnections.push({ from: reviewId(from), to: reviewId(to) });
+      }
+    }
+  }
   if (!hydrated) return <main role="status">Restoring workspace…</main>;
 
   return (
     <div
-      className={`app${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple ? " has-project-navigator" : ""}`}
+      inert={presentationOpen || mobileSheetOpen}
+      aria-hidden={presentationOpen || mobileSheetOpen || undefined}
+      className={`app${outlineMode === "dock" && outlineWide ? " has-outline-dock" : ""}${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple ? " has-project-navigator" : ""}`}
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (event.dataTransfer.files.length) event.preventDefault();
+      }}
       data-theme={workspace.theme}
+      data-adapt-preview={editorPreferences.adaptPreview ? "true" : undefined}
       onClickCapture={(event) => {
         if (!(event.target instanceof Element)) return;
+        // Safari does not focus mouse-activated buttons by default. Remember an
+        // actual panel trigger so keyboard dismissal can return to it consistently.
+        event.target.closest<HTMLButtonElement>("button[data-inspector-trigger]")?.focus({ preventScroll: true });
         const close = event.target.closest<HTMLButtonElement>(".task-inspector > header button");
-        if (close && !close.closest(".problems-panel")) restorePreviousFocus(lastDiagramFocus.current);
+        // Shared panels restore their own opener. Keep the canvas fallback only
+        // for legacy panels that do not use the shared inspector shell.
+        if (
+          close &&
+          !close.closest(".problems-panel") &&
+          !close.closest(".task-inspector")?.querySelector(".inspector-resize")
+        )
+          restorePreviousFocus(lastDiagramFocus.current);
       }}
     >
+      {formatDraft && (
+        <FormatSourceDialog
+          source={formatDraft.source}
+          kind={formatDraft.kind}
+          current={formatDraft.source === workspace.source && formatDraft.documentId === tabs.activeId}
+          readOnly={Boolean(collaborationAppliesToActiveDiagram && collaboration?.role === "viewer")}
+          onClose={() => setFormatDraft(undefined)}
+          onApply={(source) => {
+            if (formatDraft.source !== workspace.source || formatDraft.documentId !== tabs.activeId) return false;
+            return commitSource(source, "Format source");
+          }}
+        />
+      )}
+      {exportDialog && (
+        <ExportDialog
+          mode={exportDialog}
+          source={workspace.source}
+          svg={result?.documentId === tabs.activeId ? result.svg : undefined}
+          fileName={workspace.fileName}
+          current={Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId)}
+          onClose={() => setExportDialog(undefined)}
+        />
+      )}
       <header className="toolbar">
         <strong>PlantUML Ultimate</strong>
         <div className="file-tools" aria-label="File controls">
@@ -3176,20 +3876,26 @@ export function App() {
             )}
             onNew={newDocument}
             onNewProject={() => openDialog({ kind: "new-project" })}
+            onOpenRecent={() => setOpenWorkOpen(true)}
             onOpen={() => void openDocument()}
             onOpenProject={() => void singleFileProject.openProject()}
             onProjectConnections={project ? showDocumentNavigator : undefined}
             projectName={project?.manifest.name}
             onSave={() => void saveCurrentDocument()}
             onSaveAs={() => void saveCurrentDocumentAs()}
+            onSaveAsStarter={() =>
+              setStarterDraft({
+                kind: workspace.diagramKind,
+                source: workspace.source,
+                name: tabs.documents.find((item) => item.id === tabs.activeId)?.displayName ?? "My starter",
+              })
+            }
             onVersionHistory={() => void openVersionHistory()}
             onDocumentSettings={() => setDocumentSettingsOpen(true)}
-            onDeliveryScenario={
-              workspace.diagramKind === "gantt" ? () => openDialog({ kind: "delivery-scenario" }) : undefined
-            }
-            onJira={workspace.diagramKind === "gantt" ? () => setJiraDialogOpen(true) : undefined}
             onBackup={backupWorkspace}
             onRestore={() => void restoreWorkspace()}
+            onExportPreview={() => setExportDialog("export")}
+            onShareLink={() => setExportDialog("share")}
             onExportSource={exportSource}
             onExportSvg={exportSvg}
             onExportPng={() => void exportPng()}
@@ -3200,18 +3906,43 @@ export function App() {
           />
           <button
             type="button"
-            className="save-button"
+            className={`save-button${saveNeeded ? " save-needed" : ""}`}
             disabled={fileSaving}
             onClick={() => void saveCurrentDocument()}
             title="Save (Ctrl/Cmd+S)"
           >
             Save
           </button>
-          <button onClick={() => openDialog({ kind: "command-palette" })} title="Command palette (Cmd/Ctrl+Shift+P)">
+          {(workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs") && (
+            <ActionMenu
+              label="Plan"
+              actions={[
+                ...(workspace.diagramKind === "gantt"
+                  ? [
+                      { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
+                      { label: "Workload…", run: openResourcePanel, opensInspector: true },
+                      { label: "Reports…", run: openReports },
+                      { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
+                      { label: "Jira…", run: () => setJiraDialogOpen(true) },
+                    ]
+                  : []),
+                ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
+              ]}
+            />
+          )}
+          <button
+            className="desktop-command-trigger"
+            onClick={() => openDialog({ kind: "command-palette" })}
+            title="Command palette (Cmd/Ctrl+Shift+P)"
+          >
             Commands
           </button>
           <button
-            className={collaboration ? `collaboration-button ${collaboration.connection}` : "collaboration-button"}
+            className={
+              collaboration
+                ? `collaboration-button desktop-command-trigger ${collaboration.connection}`
+                : "collaboration-button desktop-command-trigger"
+            }
             onClick={() => setCollaborationDialogOpen(true)}
           >
             {collaboration ? `${collaboration.participants.length} online` : "Collaborate"}
@@ -3219,17 +3950,16 @@ export function App() {
           <ActionMenu
             label="More"
             actions={[
-              ...(workspace.diagramKind === "gantt"
+              ...(narrow
                 ? [
+                    { label: "Commands…", run: () => openDialog({ kind: "command-palette" }) },
                     {
-                      label: "Reports…",
-                      run: () => {
-                        setReportResource(undefined);
-                        setReportsOpen(true);
-                      },
+                      label: collaboration ? `${collaboration.participants.length} online` : "Collaborate…",
+                      run: () => setCollaborationDialogOpen(true),
                     },
                   ]
                 : []),
+              { label: "Presentation & local review…", run: openPresentation },
               { label: "Settings…", run: () => setSettingsOpen(true) },
               { label: "Help", run: () => openDialog({ kind: "help" }) },
             ]}
@@ -3245,22 +3975,13 @@ export function App() {
             }
           >
             {activeInSingleFileProject || activeInLegacyProject
-              ? (project?.manifest.name ?? workspace.fileName)
-              : workspace.fileName}
+              ? `${tabLabels.get(activeDocument.id)} — ${project?.manifest.name ?? workspace.fileName}`
+              : `${tabLabels.get(activeDocument.id)} — ${activeDocument.fileCopy === "new" ? "New separate file" : workspace.fileName}`}
           </span>
           <FileSaveStatus
-            dirty={activeInSingleFileProject ? singleFileProject.dirty : Boolean(activeDocument.dirty)}
-            state={
-              activeInSingleFileProject
-                ? singleFileProject.fileSaveState?.documentId === singleFileProject.portableProject?.projectId
-                  ? singleFileProject.fileSaveState
-                  : undefined
-                : activeInLegacyProject && legacySaveState?.documentId === project?.manifest.projectId
-                  ? legacySaveState
-                  : standaloneSaveState?.documentId === tabs.activeId
-                    ? standaloneSaveState
-                    : undefined
-            }
+            dirty={fileDirty}
+            fileCopy={fileCopy}
+            state={currentFileSaveState}
             onRetry={() => void saveCurrentDocument()}
           />
         </div>
@@ -3312,19 +4033,20 @@ export function App() {
               if (id) tabs.reorderDocument(id, document.id);
               setDraggedTabId(undefined);
             }}
-            title={`${document.fileName}${isProjectMemberTab(document.id) ? ` — diagram in document ${project?.manifest.name}` : ""}${document.dirty ? " — unsaved changes" : ""}`}
+            title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
           >
             <span className="tab-label">
               <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
                 ●
               </span>
+              <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
               {tabLabels.get(document.id)}
               {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
             </span>
             <span
               className="tab-close"
               role="button"
-              aria-label={`Close ${document.fileName}`}
+              aria-label={`Close ${tabLabels.get(document.id)}${isProjectMemberTab(document.id) ? ` in ${project?.manifest.name}` : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
                 closeTab(document.id);
@@ -3347,6 +4069,10 @@ export function App() {
             onTask={() => openDialog({ kind: "add-task" })}
             onMilestone={() => openDialog({ kind: "add-milestone" })}
             onDivider={() => openDialog({ kind: "add-divider" })}
+            onClosedDay={() => {
+              openProjectInspector();
+              setClosedDayFocus((value) => value + 1);
+            }}
             onParticipant={() => openDialog({ kind: "add-sequence-participant" })}
             onMessage={() => openDialog({ kind: "add-sequence-message" })}
             onFragment={() => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })}
@@ -3372,6 +4098,16 @@ export function App() {
             onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
             onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
           />
+          <button
+            type="button"
+            onClick={() => {
+              closeDialog("diagram-outline");
+              if (viewMode === "code") selectViewMode(narrow ? "diagram" : "split");
+              setOutlineMode("find");
+            }}
+          >
+            Find in diagram
+          </button>
           <button
             type="button"
             className={dialog?.kind === "diagram-outline" ? "active" : ""}
@@ -3416,45 +4152,7 @@ export function App() {
                 (workspace.diagramKind === "wbs" ? missingWbsTaskCount : missingGanttTaskCount) +
                 projectWbsGanttIssues.length
               }
-              actions={[
-                ...(workspace.diagramKind === "wbs"
-                  ? [
-                      {
-                        label:
-                          linkedGantt && isProjectMemberTab(tabs.activeId)
-                            ? `Add missing WBS tasks to Gantt (${missingWbsTaskCount})`
-                            : existingProjectGantt
-                              ? "Open linked Gantt chart"
-                              : "Create Gantt chart from WBS",
-                        disabled:
-                          diagramMulti.readOnly ||
-                          Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0),
-                        run: () =>
-                          linkedGantt && isProjectMemberTab(tabs.activeId)
-                            ? convertCurrentWbs()
-                            : existingProjectGantt
-                              ? void singleFileProject.openMember(existingProjectGantt.id)
-                              : openDialog({ kind: "wbs-gantt-project" }),
-                      },
-                    ]
-                  : [
-                      {
-                        label: `Add missing Gantt tasks to WBS (${missingGanttTaskCount})`,
-                        disabled: diagramMulti.readOnly || missingGanttTaskCount === 0,
-                        run: importCurrentGanttToWbs,
-                      },
-                    ]),
-                ...(project
-                  ? [
-                      {
-                        label: projectWbsGanttIssues.length
-                          ? `Review sync issues (${projectWbsGanttIssues.length})`
-                          : "Diagram connections",
-                        run: showDocumentNavigator,
-                      },
-                    ]
-                  : []),
-              ]}
+              actions={linkedDiagramActions}
             />
           )}
           {workspace.diagramKind === "wbs" && (
@@ -3468,50 +4166,51 @@ export function App() {
             </button>
           )}
         </div>
-        <div className="diagram-options">
-          {" "}
-          {workspace.diagramKind === "gantt" && (
-            <label className="resource-filter">
-              Filter by resource{" "}
-              <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)}>
-                <option value="">All</option>
-                {resourceNames.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          {workspace.diagramKind === "gantt" && (
-            <label
-              className="schedule-mode"
-              title="When moving tasks: ask which tasks to move, move only this task, or include dependents"
-            >
-              When moving tasks{" "}
-              <select
-                value={scheduleMode}
-                onChange={(event) => setScheduleMode(event.target.value as typeof scheduleMode)}
-              >
-                <option value="ask">Always ask</option>
-                <option value="single">Only task</option>
-                <option value="cascade">Include dependents</option>
-              </select>
-            </label>
-          )}
-        </div>
         <nav aria-label="View mode">
-          {viewModes.map((mode, index) => (
+          {viewModes.map((mode) => (
             <button
-              className={workspace.viewMode === mode ? "active" : ""}
+              className={!mobileListActive && !taskViewActive && viewMode === mode ? "active" : ""}
               onClick={() => update("viewMode", mode)}
-              aria-pressed={workspace.viewMode === mode}
-              title={`Ctrl/Cmd+${index + 1}`}
+              aria-pressed={!mobileListActive && !taskViewActive && viewMode === mode}
+              title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : 3})`}
               key={mode}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
           ))}
+          {workspace.diagramKind === "gantt" && !mobileSupported && (
+            <button className={taskViewActive ? "active" : ""} aria-pressed={taskViewActive} onClick={openTasksView}>
+              Tasks
+            </button>
+          )}
+          {mobileSupported && (
+            <button
+              className={mobileListActive ? "active" : ""}
+              aria-pressed={mobileListActive}
+              onClick={() => {
+                if (!requestSidePanelChange()) return;
+                dismissAllInspectors();
+                setTaskViewDocument(undefined);
+                setMobileDiagramDocument(undefined);
+                setMobileReveal(undefined);
+                selectNormalViewMode("diagram");
+              }}
+            >
+              {workspace.diagramKind === "gantt" ? "Task list" : "WBS list"}
+            </button>
+          )}
         </nav>
-        <WorkspaceHint key={workspace.diagramKind} kind={workspace.diagramKind} />
+        {taskViewActive && tasksNarrow && (
+          <nav aria-label="Tasks pane">
+            <button aria-pressed={taskTablePane === "table"} onClick={() => setTaskTablePane("table")}>
+              Table
+            </button>
+            <button aria-pressed={taskTablePane === "chart"} onClick={() => setTaskTablePane("chart")}>
+              Chart
+            </button>
+          </nav>
+        )}
+        {!mobileListActive && <WorkspaceHint key={workspace.diagramKind} kind={workspace.diagramKind} />}
       </section>
       {tabMenu && (
         <div
@@ -3536,6 +4235,24 @@ export function App() {
             items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
           }}
         >
+          <button
+            role="menuitem"
+            disabled={collaboration?.role === "viewer" && isProjectMemberTab(tabMenu.id)}
+            onClick={() => {
+              const target = tabs.documents.find((item) => item.id === tabMenu.id);
+              if (!target) return;
+              const name = window.prompt("Diagram name", tabLabels.get(target.id));
+              if (!name?.trim()) return;
+              const member = portable?.diagrams.find(
+                (item) => target.historyId === embeddedMemberHistoryId(portable.projectId, item.id),
+              );
+              if (member) singleFileProject.renameDiagram(member.id, name);
+              else tabs.updateDocumentFormat(target.id, { displayName: name.trim() });
+              setTabMenu(undefined);
+            }}
+          >
+            Rename diagram…
+          </button>
           <button
             role="menuitem"
             disabled={tabs.documents.findIndex((document) => document.id === tabMenu.id) <= 0}
@@ -3580,7 +4297,7 @@ export function App() {
       <main
         ref={workspaceElement}
         tabIndex={-1}
-        className={`workspace mode-${workspace.viewMode}`}
+        className={`workspace mode-${viewMode}${taskViewActive ? " tasks-workspace" : ""}`}
         onClickCapture={diagramMulti.onClickCapture}
         onKeyDownCapture={diagramMulti.onKeyDownCapture}
         onPointerDownCapture={(event) => {
@@ -3612,6 +4329,20 @@ export function App() {
         }}
         onKeyDown={(event) => {
           if (
+            (event.ctrlKey || event.metaKey) &&
+            !event.altKey &&
+            !event.shiftKey &&
+            event.key.toLowerCase() === "f" &&
+            event.target instanceof Element &&
+            event.target.closest(".preview, .diagram") &&
+            !event.target.closest("input, textarea, [contenteditable='true']")
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            setOutlineMode("find");
+            return;
+          }
+          if (
             (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) ||
             !(event.target instanceof Element)
           )
@@ -3622,17 +4353,122 @@ export function App() {
         }}
         style={{
           gridTemplateColumns:
-            workspace.viewMode === "split"
-              ? `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
+            viewMode === "split"
+              ? taskViewActive
+                ? `minmax(0, ${taskTablePercent}fr) 5px minmax(0, ${100 - taskTablePercent}fr)`
+                : `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
-        {workspace.viewMode !== "diagram" && (
+        {mobileListActive && (workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs") && (
+          <MobileWorkList
+            key={tabs.activeId}
+            kind={workspace.diagramKind}
+            source={workspace.source}
+            readOnly={commandReadOnly}
+            onSheetChange={setMobileSheetOpen}
+            onApply={(draft) => {
+              if (commandReadOnly || draft.source !== workspace.source)
+                return "The source or editing permission changed. Cancel and reopen this task.";
+              const result = editTaskRow(workspace.source, draft);
+              if ("error" in result) return result.error;
+              if (!commitLinkedGanttSchedule(result.source, "Update task check-in"))
+                return "The check-in could not be applied. Review source errors or editing permission.";
+              setInteractionMessage(`Updated ${result.task.label} check-in`);
+              return undefined;
+            }}
+            onDiagram={(id) => {
+              dismissAllInspectors();
+              setMobileDiagramDocument(tabs.activeId);
+              selectNormalViewMode("diagram");
+              setMobileReveal({
+                documentId: tabs.activeId,
+                kind: workspace.diagramKind as "gantt" | "wbs",
+                id,
+                source: workspace.source,
+              });
+              setInteractionMessage("Showing the selected item in the diagram");
+            }}
+          />
+        )}
+        {taskViewActive && viewMode !== "diagram" && (
+          <GanttTaskTable
+            key={tabs.activeId}
+            tasks={parseResult.document.tasks}
+            source={workspace.source}
+            selectedTaskId={selectedTaskId}
+            readOnly={Boolean(collaborationAppliesToActiveDiagram && collaboration?.role === "viewer")}
+            drafts={taskRowDrafts[tabs.activeId] ?? []}
+            onDraftChange={(draft) => setTaskRowDrafts((current) => ({ ...current, [tabs.activeId]: draft }))}
+            onSelect={(id) => {
+              if (!requestSidePanelChange()) return false;
+              setTaskTableInspector(false);
+              selectTask(id);
+              requestAnimationFrame(() =>
+                workspaceElement.current
+                  ?.querySelector(`[data-task-id="${CSS.escape(id)}"]`)
+                  ?.scrollIntoView({ block: "nearest", inline: "nearest" }),
+              );
+              return true;
+            }}
+            onDetails={(id) => {
+              if (!requestSidePanelChange()) return;
+              selectTask(id);
+              setTaskTableInspector(true);
+            }}
+            onApply={(draft) => {
+              if (!requestSidePanelChange()) return "Review the inspector draft before applying the task row.";
+              const batch = editTaskRows(workspace.source, draft);
+              if ("error" in batch) return batch.error;
+              const edit = batch.edits[0];
+              if (!edit) return undefined;
+              if (!commitLinkedGanttSchedule(batch.source, `Edit ${batch.edits.length} task rows`))
+                return "The row could not be applied. Review source errors or edit permissions.";
+              setSelectedTaskId(edit.taskId);
+              rememberSelectedTask(edit.taskId);
+              let linkedSource = linkedWbs?.source;
+              for (const edit of batch.edits) {
+                if (edit.original.label !== edit.task.label) {
+                  void mapProjectRename(
+                    "gantt-task",
+                    edit.original.sourceRange.from,
+                    { symbolKey: edit.task.alias?.value ?? edit.task.label, ...edit.task.sourceRange },
+                    batch.source,
+                  );
+                  const link = activeDocument.wbsGanttLinks?.find(
+                    (item) => item.ganttAlias.toLowerCase() === edit.original.id,
+                  );
+                  const node =
+                    linkedWbs &&
+                    linkedSource &&
+                    link &&
+                    parseWbs(linkedSource).nodes.find((item) => item.alias === link.wbsAlias);
+                  if (linkedSource && node)
+                    linkedSource = updateWbsNode(linkedSource, node, {
+                      label: edit.task.label.replace(/^(?:↳\s*)+/, "").trim(),
+                      ...(node.color ? { color: node.color } : {}),
+                      ...(node.textColor ? { textColor: node.textColor } : {}),
+                      ...(node.stereotype ? { stereotype: node.stereotype } : {}),
+                      ...(node.link ? { link: node.link } : {}),
+                      ...(node.icon ? { icon: node.icon } : {}),
+                      side: node.side === "left" ? "left" : "right",
+                    });
+                }
+              }
+              if (linkedWbs && linkedSource && linkedSource !== linkedWbs.source)
+                updateLinkedSource(linkedWbs, linkedSource, "wbs", "Rename nodes from linked Gantt");
+              setInteractionMessage(`Updated ${batch.edits.length} tasks from Tasks`);
+              return undefined;
+            }}
+          />
+        )}
+        {!mobileListActive && !taskViewActive && viewMode !== "diagram" && (
           <CodeEditor
             documentId={tabs.activeId}
             diagramKind={workspace.diagramKind}
             value={workspace.source}
             readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
+            onFormatSource={openFormatSource}
             onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
             onApplyFix={(source, label) => {
               setRepairCategoryFilter((current) => (current ? { ...current, source } : undefined));
@@ -3684,7 +4520,7 @@ export function App() {
                   }
                 : undefined
             }
-            onCursorChange={(line, column, position, anchor, head) => {
+            onCursorChange={(line, column, position, anchor, head, sourceChanged) => {
               update("cursor", { line, column });
               if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
               if (workspace.diagramKind === "gantt") {
@@ -3695,6 +4531,10 @@ export function App() {
                   occurrence?.kind === "task" ? occurrence.key : findTaskAt(parseResult.document, position)?.id,
                 );
               } else if (workspace.diagramKind === "sequence") {
+                // A source transaction reports its cursor before React has parsed the
+                // new source. Let the controller reconcile selection instead of
+                // looking up the new offset in the previous document.
+                if (sourceChanged) return;
                 const occurrence = symbolAt(position);
                 setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
                 setSourceSymbolPosition(occurrence ? position : undefined);
@@ -3739,12 +4579,38 @@ export function App() {
             }}
           />
         )}
-        {workspace.viewMode === "split" && (
-          <div className="divider" onPointerDown={resize} role="separator" aria-orientation="vertical" />
+        {viewMode === "split" && (
+          <div
+            className="divider"
+            onPointerDown={resize}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={taskViewActive ? "Task table and chart divider" : "Code and diagram divider"}
+            tabIndex={taskViewActive ? 0 : undefined}
+            aria-valuenow={taskViewActive ? Math.round(taskTablePercent) : undefined}
+            aria-valuemin={taskViewActive ? 20 : undefined}
+            aria-valuemax={taskViewActive ? 80 : undefined}
+            onKeyDown={
+              taskViewActive
+                ? (event) => {
+                    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    setTaskTablePercent((current) =>
+                      event.key === "Home"
+                        ? 20
+                        : event.key === "End"
+                          ? 80
+                          : Math.max(20, Math.min(80, current + (event.key === "ArrowLeft" ? -5 : 5))),
+                    );
+                  }
+                : undefined
+            }
+          />
         )}
-        {workspace.viewMode !== "code" &&
+        {viewMode !== "code" &&
           (workspace.diagramKind === "gantt" ? (
             <DiagramPreview
+              initialFit={initialDiagramFit}
               svg={result?.svg}
               tasks={parseResult.document.tasks}
               dependencies={parseResult.document.dependencies}
@@ -3754,11 +4620,15 @@ export function App() {
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               selectedTaskId={selectedTaskId}
-              highlightedTaskId={sourceHighlightedTaskId}
+              highlightedTaskId={mobileRevealActive?.kind === "gantt" ? mobileRevealActive.id : sourceHighlightedTaskId}
               remoteEditTaskId={collaborationAppliesToActiveDiagram ? remoteEditFlash?.taskId : undefined}
               remoteEditColor={collaborationAppliesToActiveDiagram ? remoteEditFlash?.color : undefined}
               remoteEditName={collaborationAppliesToActiveDiagram ? remoteEditFlash?.name : undefined}
-              onTaskSelect={selectTask}
+              onTaskSelect={(id) => {
+                setMobileReveal(undefined);
+                if (taskViewActive) setTaskTableInspector(false);
+                selectTask(id);
+              }}
               onTaskToggle={toggleTaskSelection}
               selectedTaskIds={selectedTaskIds}
               onTasksMove={(ids, days) => applyBulkTaskChange("Moved", moveTasksByDays(workspace.source, ids, days))}
@@ -3820,6 +4690,11 @@ export function App() {
               onDependencyDelete={deleteDependency}
               onInteractionMessage={setInteractionMessage}
               resourceFilter={resourceFilter}
+              resourceNames={resourceNames}
+              onResourceFilterChange={setResourceFilter}
+              scheduleMode={scheduleMode}
+              onOpenGanttPreferences={() => setSettingsOpen(true)}
+              onOpenCalendar={openProjectInspector}
               scheduleGhost={
                 schedulePreview
                   ? { taskIds: schedulePreview.affected.map((item) => item.id), days: schedulePreview.days }
@@ -3900,6 +4775,7 @@ export function App() {
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
+              initialFit={initialDiagramFit}
               svg={result?.svg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
@@ -3932,6 +4808,8 @@ export function App() {
             />
           ) : workspace.diagramKind === "usecase" ? (
             <UseCaseDiagramPreview
+              onInlineRename={commandReadOnly ? undefined : startInlineRename}
+              initialFit={initialDiagramFit}
               svg={result?.svg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
@@ -3956,6 +4834,8 @@ export function App() {
             />
           ) : workspace.diagramKind === "class" || workspace.diagramKind === "component" ? (
             <ClassDiagramPreview
+              onInlineRename={commandReadOnly ? undefined : startInlineRename}
+              initialFit={initialDiagramFit}
               diagramKind={workspace.diagramKind}
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -3982,6 +4862,8 @@ export function App() {
             />
           ) : workspace.diagramKind === "activity" ? (
             <ActivityDiagramPreview
+              onInlineRename={commandReadOnly ? undefined : startInlineRename}
+              initialFit={initialDiagramFit}
               svg={result?.svg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
@@ -4008,6 +4890,7 @@ export function App() {
             />
           ) : (
             <WbsDiagramPreview
+              initialFit={initialDiagramFit}
               svg={result?.svg}
               document={wbsDocument}
               dependencyWarnings={wbsDependencyWarnings}
@@ -4020,7 +4903,13 @@ export function App() {
                     .map((node) => node.id),
                 )
               }
-              selectedId={diagramMulti.multiple ? undefined : (sourceHighlightedWbsNodeId ?? selectedWbsNodeId)}
+              selectedId={
+                diagramMulti.multiple
+                  ? undefined
+                  : mobileRevealActive?.kind === "wbs"
+                    ? mobileRevealActive.id
+                    : (sourceHighlightedWbsNodeId ?? selectedWbsNodeId)
+              }
               selectedRelationshipId={diagramMulti.multiple ? undefined : selectedWbsRelationshipId}
               zoom={workspace.zoom}
               renderStatus={status}
@@ -4028,6 +4917,7 @@ export function App() {
               onRenderRetry={retryRender}
               onZoomChange={(zoom) => update("zoom", zoom)}
               onSelect={(id) => {
+                setMobileReveal(undefined);
                 selectWbsNode(id);
                 const node = wbsDocument.nodes.find((item) => item.id === id);
                 if (node) setSelectionRequest({ ...node.sourceRange });
@@ -4045,12 +4935,16 @@ export function App() {
       </main>
       <footer className="statusbar">
         <span role="status" aria-live="polite">
-          {interactionMessage ??
-            (result?.error ? `⚠ ${result.error}` : diagnosticCount ? "Source has problems" : "✓ Valid")}
+          {result?.error
+            ? `⚠ ${result.error}`
+            : diagnosticCount
+              ? "Source has problems"
+              : (interactionMessage ?? "✓ Valid")}
         </span>
         <button
           type="button"
           className="problem-count"
+          data-inspector-trigger
           onClick={() => {
             setProblemsOpen(true);
             setUnsupportedOpen(false);
@@ -4075,17 +4969,9 @@ export function App() {
         </span>
         <details className="render-details">
           <summary>
-            {workspace.viewMode === "code"
-              ? "Preview paused"
-              : status === "error" || result?.error
-                ? "Preview failed"
-                : status === "rendering"
-                  ? result?.svg
-                    ? "Rendering… · previous preview"
-                    : "Rendering…"
-                  : result?.svg && (result.source !== workspace.source || result.documentId !== tabs.activeId)
-                    ? "Previous preview"
-                    : "Preview current"}
+            {mobileListActive
+              ? "List view"
+              : previewStatusLabel(viewMode === "code", status, result, workspace.source, tabs.activeId)}
           </summary>
           <div>
             <p>Render {Math.round(result?.durationMs ?? 0)} ms</p>
@@ -4096,7 +4982,7 @@ export function App() {
             </p>
           </div>
         </details>
-        {workspace.viewMode !== "diagram" && (
+        {viewMode !== "diagram" && (
           <span>
             Ln {workspace.cursor.line}, Col {workspace.cursor.column}
           </span>
@@ -4134,11 +5020,33 @@ export function App() {
         )}
       </footer>
       {dialog?.kind === "command-palette" && (
-        <CommandPalette commands={commands} onClose={() => closeDialog("command-palette")} />
+        <CommandPalette
+          commands={[
+            ...commands,
+            ...(workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs"
+              ? linkedDiagramActions.map((action, index) => ({
+                  id: `plan.${workspace.diagramKind}.linked-${index}`,
+                  label: action.label,
+                  category: "Plan",
+                  enabled: !action.disabled,
+                  run: action.run,
+                }))
+              : []),
+          ]}
+          onClose={() => closeDialog("command-palette")}
+        />
       )}
       {dialog?.kind === "diagram-outline" && (
         <DiagramOutlineDialog
           entries={diagramOutlineEntries}
+          onDock={
+            outlineWide
+              ? () => {
+                  closeDialog("diagram-outline");
+                  setOutlineMode("dock");
+                }
+              : undefined
+          }
           onSelect={(entry) => {
             closeDialog("diagram-outline");
             revealOutlineEntry(entry);
@@ -4146,14 +5054,91 @@ export function App() {
           onClose={() => closeDialog("diagram-outline")}
         />
       )}
+      {outlineMode &&
+        ((outlineMode === "dock" ? !outlineWide : narrow) ? (
+          <DiagramOutlineDialog
+            title={outlineMode === "find" ? "Find in diagram" : "Diagram outline"}
+            entries={diagramOutlineEntries}
+            onMatches={setOutlineMatches}
+            onSelect={(entry) => {
+              setOutlineMode(undefined);
+              revealOutlineEntry(entry, false);
+            }}
+            onClose={() => {
+              setOutlineMode(undefined);
+              restorePreviousFocus();
+            }}
+          />
+        ) : (
+          <DiagramOutlinePanel
+            key={outlineMode}
+            mode={outlineMode}
+            title={outlineMode === "find" ? "Find in diagram" : "Diagram outline"}
+            entries={diagramOutlineEntries}
+            onMatches={setOutlineMatches}
+            onSelect={(entry) => revealOutlineEntry(entry, false)}
+            onClose={() => {
+              setOutlineMode(undefined);
+              restorePreviousFocus();
+            }}
+          />
+        ))}
+      {starterDraft && <SaveStarterDialog {...starterDraft} onClose={() => setStarterDraft(undefined)} />}
+      {openWorkOpen && (
+        <OpenWorkDialog
+          onClose={() => setOpenWorkOpen(false)}
+          onOpen={async (file, destination) =>
+            destination === "document" ? singleFileProject.openOpenedProject(file) : importDocumentFile(file)
+          }
+        />
+      )}
       {newDocumentOpen && (
         <NewDocumentDialog
+          onOpenRecent={() => {
+            closeNewDocumentDialog();
+            setOpenWorkOpen(true);
+          }}
           onOpen={() => {
             closeNewDocumentDialog();
             void openDocument();
           }}
-          onChoose={createDocument}
-          onChooseExample={(example) => createDocument(example.kind, example)}
+          documentName={project?.manifest.name}
+          onAddToDocument={
+            project &&
+            (activeInSingleFileProject ||
+              activeInLegacyProject ||
+              (usingSingleFileProject && portable?.diagrams.length === 0)) &&
+            !(collaborationAppliesToActiveDiagram && collaboration?.role === "viewer")
+              ? async (kind, name, initialSource, preserveStyles) => {
+                  let targetName = name;
+                  if (!usingSingleFileProject) {
+                    const base =
+                      name
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]+/g, "-")
+                        .replace(/^-|-$/g, "") || `${kind}-diagram`;
+                    targetName = `${base}.puml`;
+                    let suffix = 2;
+                    while (
+                      project.manifest.documents.some(
+                        (member) => member.path.toLowerCase() === targetName.toLowerCase(),
+                      )
+                    )
+                      targetName = `${base}-${suffix++}.puml`;
+                  }
+                  const source = initialSource ?? starterSource(kind);
+                  return addProjectDiagram(
+                    kind,
+                    targetName,
+                    workspace.defaultDiagramTheme && !preserveStyles
+                      ? setPlantUmlTheme(source, workspace.defaultDiagramTheme)
+                      : source,
+                  );
+                }
+              : undefined
+          }
+          onChoose={(kind, name, source) => createDocument(kind, undefined, name, source)}
+          onChooseExample={(example, name) => createDocument(example.kind, example, name)}
           onClose={closeNewDocumentDialog}
         />
       )}
@@ -4465,9 +5450,23 @@ export function App() {
       />
       {projectInspectorOpen && (
         <ProjectInspector
+          focusClosedDay={closedDayFocus}
           settings={parseProjectSettings(workspace.source)}
           onApply={applyProjectSettings}
           onClose={() => setProjectInspectorOpen(false)}
+        />
+      )}
+      {linkedWorkPreview && (
+        <LinkedWorkPreviewDialog
+          preview={linkedWorkPreview}
+          current={
+            linkedWorkPreview.diagrams.every(
+              (diagram) => tabs.documents.find((tab) => tab.id === diagram.id)?.source === diagram.before,
+            ) &&
+            Boolean(portable) &&
+            !(collaboration?.sharedDocumentId === portable?.projectId && collaboration?.role === "viewer")
+          }
+          onClose={() => setLinkedWorkPreview(undefined)}
         />
       )}
       {project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple && (
@@ -4519,7 +5518,9 @@ export function App() {
               }
             : {})}
           onOpen={openMember}
-          onAdd={addProjectDiagram}
+          onAdd={async (kind, name) => {
+            await addProjectDiagram(kind, name);
+          }}
           {...(usingSingleFileProject ? { onImport: singleFileProject.importDiagram } : {})}
           onClose={() => setProjectNavigatorOpen(false)}
           {...(usingSingleFileProject ? { onCloseProject: singleFileProject.closeProject } : {})}
@@ -4615,10 +5616,21 @@ export function App() {
           baselineVersionId={activeDocument.baselineVersionId}
           diagramKind={workspace.diagramKind}
           fileName={workspace.fileName}
-          onApplyReview={async (source) => {
+          readOnly={commandReadOnly}
+          onApplyReview={async (source, expectedSource) => {
+            const documentId = tabs.activeId;
+            const isCurrent = () =>
+              reviewApplyContext.current.documentId === documentId &&
+              reviewApplyContext.current.source === expectedSource &&
+              !reviewApplyContext.current.readOnly;
+            if (!isCurrent()) return false;
             try {
               await recordDocumentVersion("before-restore", "Before semantic review");
-              const applied = commitSource(source, "Apply semantic review selection");
+              if (!isCurrent()) {
+                setInteractionMessage("The working copy changed during review. Nothing was applied.");
+                return false;
+              }
+              const applied = commitGeneratedSource(source, "Apply semantic review selection");
               if (applied) {
                 setInteractionMessage("Applied selected review changes");
                 setVersionHistoryOpen(false);
@@ -4662,54 +5674,30 @@ export function App() {
       {settingsOpen && (
         <SettingsDialog
           mode="settings"
+          scheduleMode={scheduleMode}
+          onScheduleModeChange={setScheduleMode}
           resourceWarningsEnabled={resourceWarningsEnabled}
           onResourceWarningsChange={setResourceWarningsEnabled}
           current={{
             theme: workspace.theme,
             advancedMode: workspace.advancedMode,
             defaultDiagramTheme: workspace.defaultDiagramTheme,
+            startupMode: workspace.startupMode,
           }}
           onApply={(settings) => {
             setWorkspace((current) => ({
               ...current,
               ...settings,
-              viewMode: !settings.advancedMode ? "diagram" : current.advancedMode ? current.viewMode : "split",
+              viewMode:
+                settings.advancedMode === current.advancedMode
+                  ? current.viewMode
+                  : settings.advancedMode
+                    ? "split"
+                    : "diagram",
             }));
             setSettingsOpen(false);
           }}
           onClose={() => setSettingsOpen(false)}
-        />
-      )}
-      {hydrated && !tabs.session.onboarded && (
-        <SettingsDialog
-          mode="onboarding"
-          current={{
-            theme: workspace.theme,
-            advancedMode: workspace.advancedMode,
-            defaultDiagramTheme: workspace.defaultDiagramTheme,
-          }}
-          onApply={(settings) => {
-            setWorkspace((current) => ({
-              ...current,
-              ...settings,
-              viewMode: settings.advancedMode ? "split" : "diagram",
-            }));
-            tabs.setOnboarded();
-          }}
-          onClose={tabs.setOnboarded}
-          onPreview={(settings) => {
-            setWorkspace((current) => ({
-              ...current,
-              theme: settings.theme,
-              defaultDiagramTheme: settings.defaultDiagramTheme,
-            }));
-            const themedSource = setPlantUmlTheme(workspace.source, settings.defaultDiagramTheme);
-            if (themedSource === workspace.source) return;
-            // Previewing restyles the untouched welcome diagram without adding undo steps or unsaved state.
-            if (activeHistory.canUndo || activeHistory.canRedo)
-              commitSource(themedSource, "Preview diagram theme", false);
-            else setWorkspace((current) => ({ ...current, source: themedSource }));
-          }}
         />
       )}
       {externalConflict && (
@@ -4810,7 +5798,7 @@ export function App() {
         onMemberDelete={removeClassMember}
         onMemberMove={moveClassMember}
         onMemberReveal={(member) => {
-          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (viewMode === "diagram") update("viewMode", "split");
           setSelectionRequest({ ...member.sourceRange });
         }}
         onRelationshipChange={applyClassRelationship}
@@ -4918,7 +5906,7 @@ export function App() {
         />
       )}
       <GanttInspectors
-        selectedTask={multipleTasksSelected ? undefined : selectedTask}
+        selectedTask={multipleTasksSelected || (taskViewActive && !taskTableInspector) ? undefined : selectedTask}
         linkedWbsAlias={
           selectedTask
             ? activeDocument.wbsGanttLinks?.find((link) => link.ganttAlias.toLowerCase() === selectedTask.id)?.wbsAlias
@@ -5075,6 +6063,7 @@ export function App() {
           timeZone={activeDocument.progressForecast?.timeZone}
           forecastSettings={activeDocument.progressForecast}
           resource={reportResource}
+          coordinator={reportCoordinator}
           baselineSource={baselineVersion?.source}
           baselineName={
             baselineVersion ? `${baselineVersion.label ?? "Baseline"} · ${baselineVersion.createdAt}` : undefined
@@ -5089,13 +6078,21 @@ export function App() {
                 dirty: true,
               });
           }}
+          suspended={reportsSuspended}
+          onOpenIssues={() => {
+            if (!prepareUtilityPanel()) return;
+            setProblemsOpen(true);
+            setReportsSuspended(true);
+          }}
           onClose={() => setReportsOpen(false)}
         />
       )}
       {resourcePanelOpen && (
         <ResourceWorkloadPanel
-          onReport={(name) => {
+          onReport={(name, coordinator = false) => {
             setReportResource(name);
+            setReportCoordinator(coordinator);
+            setReportsSuspended(false);
             setReportsOpen(true);
           }}
           tasks={parseResult.document.tasks}
@@ -5138,7 +6135,7 @@ export function App() {
         open={problemsOpen || unsupportedOpen}
         preserved={preservedSyntax}
         onRevealPreserved={(item) => {
-          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (viewMode === "diagram") update("viewMode", "split");
           setSelectionRequest({ ...item.range });
         }}
         onRepairHost={setRepairHost}
@@ -5149,7 +6146,7 @@ export function App() {
         readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
         notice={problemPreview?.message}
         onReveal={(diagnostic) => {
-          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (viewMode === "diagram") update("viewMode", "split");
           if (problemPreview) {
             setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
             return;
@@ -5162,7 +6159,7 @@ export function App() {
           });
         }}
         onPreviewDiagnostic={(diagnostic) => {
-          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (viewMode === "diagram") update("viewMode", "split");
           setRepairRequest({
             documentId: tabs.activeId,
             kind: workspace.diagramKind,
@@ -5172,7 +6169,7 @@ export function App() {
           });
         }}
         onPreviewFix={(fix) => {
-          if (workspace.viewMode === "diagram") update("viewMode", "split");
+          if (viewMode === "diagram") update("viewMode", "split");
           setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, fix });
         }}
         onClose={() => {
@@ -5199,9 +6196,12 @@ export function App() {
       )}
       {dialog?.kind === "delivery-scenario" && (
         <DeliveryScenarioDialog
+          key={activeDocument.historyId}
+          documentId={activeDocument.historyId}
           currentSource={workspace.source}
           capacities={resourceCapacities}
-          onApply={(source) => {
+          onApply={(source, expectedBase) => {
+            if (workspace.source !== expectedBase) return false;
             if (!commitSource(source, "Apply delivery scenario")) return false;
             closeDialog("delivery-scenario");
             setInteractionMessage("Applied delivery scenario");
@@ -5210,7 +6210,7 @@ export function App() {
           onClose={() => closeDialog("delivery-scenario")}
         />
       )}
-      {dialog?.kind === "help" && <HelpDialog onClose={() => closeDialog("help")} />}
+      {dialog?.kind === "help" && <HelpDialog kind={workspace.diagramKind} onClose={() => closeDialog("help")} />}
       {classMemberMenu && (
         <div
           className="tab-menu"
@@ -5239,7 +6239,7 @@ export function App() {
                 .find((item) => item.id === classMemberMenu.entityId)
                 ?.members.find((item) => item.id === classMemberMenu.memberId);
               if (member) {
-                if (workspace.viewMode === "diagram") update("viewMode", "split");
+                if (viewMode === "diagram") update("viewMode", "split");
                 setSelectionRequest({ ...member.sourceRange });
               }
               setClassMemberMenu(undefined);
@@ -5368,7 +6368,7 @@ export function App() {
                 ? (occurrencesFor(occurrence).find((item) => item.role === "declaration") ?? occurrence)
                 : undefined;
               if (declaration) {
-                if (workspace.viewMode === "diagram") update("viewMode", "split");
+                if (viewMode === "diagram") update("viewMode", "split");
                 setSelectionRequest({ ...declaration.range });
               }
               setSymbolMenu(undefined);
@@ -5408,10 +6408,42 @@ export function App() {
           source={workspace.source}
           occurrences={occurrencesFor(referenceSymbol)}
           onSelect={(occurrence) => {
-            if (workspace.viewMode === "diagram") update("viewMode", "split");
+            if (viewMode === "diagram") update("viewMode", "split");
             setSelectionRequest({ ...occurrence.range });
           }}
           onClose={() => setReferenceSymbol(undefined)}
+        />
+      )}
+      {inlineRename && inlineRename.documentId === tabs.activeId && viewMode !== "code" && (
+        <InlineLabelEditor
+          value={inlineRename.request.occurrence.value}
+          anchor={inlineRename.anchor}
+          current={!commandReadOnly && workspace.source === inlineRename.source && !diagramMulti.multiple}
+          validate={(value) => symbolProvider.validateRename(inlineRename.request, value)}
+          onApply={(value) => {
+            if (
+              commandReadOnly ||
+              workspace.source !== inlineRename.source ||
+              tabs.activeId !== inlineRename.documentId
+            )
+              return false;
+            return applySemanticRename(inlineRename.request, value);
+          }}
+          onClose={() => {
+            setInlineRename(undefined);
+            restorePreviousFocus(renameReturnFocus.current);
+          }}
+        />
+      )}
+      {presentationOpen && (
+        <PresentationDialog
+          documents={presentationDocuments}
+          connections={presentationConnections}
+          initialId={activeDocument.historyId}
+          onClose={() => {
+            setPresentationOpen(false);
+            requestAnimationFrame(() => presentationReturnFocus.current?.focus());
+          }}
         />
       )}
       {renameSymbol && (
@@ -5423,45 +6455,7 @@ export function App() {
           occurrences={symbolProvider.renameOccurrences(renameSymbol)}
           source={workspace.source}
           onRename={(nextValue) => {
-            const target = renameSymbol;
-            const result = symbolProvider.rename(target, nextValue);
-            if (result.error || !result.source) {
-              setInteractionMessage(result.error ?? "Rename made no changes");
-              return;
-            }
-            if (result.validateGenerated) {
-              if (!commitGeneratedSource(result.source, `Rename ${target.mode}`)) return;
-            } else commitSource(result.source, `Rename ${target.mode}`);
-            if (target.occurrence.kind === "wbs-node") {
-              const node = wbsDocument.nodes.find((item) => item.id === target.occurrence.key);
-              if (node) mapWbsProjectEdit(node, result.source);
-            }
-            if (result.personRename) {
-              renameCapacity(result.personRename.from, result.personRename.to);
-              setResourceFilter((current) =>
-                current.toLocaleLowerCase() === result.personRename!.from.toLocaleLowerCase()
-                  ? result.personRename!.to
-                  : current,
-              );
-            }
-            if (result.nextKey) {
-              if (target.occurrence.kind === "participant") setSourceHighlightedSequenceParticipantId(result.nextKey);
-              else if (target.occurrence.kind === "actor" || target.occurrence.kind === "usecase")
-                setSourceHighlightedUseCaseId(result.nextKey);
-              else if (target.occurrence.kind === "class-entity") setSourceHighlightedClassEntityId(result.nextKey);
-              else if (target.occurrence.kind === "activity-action" || target.occurrence.kind === "activity-partition")
-                setSourceHighlightedActivityId(result.nextKey);
-              else if (target.occurrence.kind === "wbs-node") setSourceHighlightedWbsNodeId(result.nextKey);
-            }
-            if (referenceSymbol?.kind === target.occurrence.kind && referenceSymbol.key === target.occurrence.key)
-              setReferenceSymbol({
-                kind: target.occurrence.kind,
-                key: result.nextKey ?? target.occurrence.key,
-                label: nextValue.trim(),
-              });
-            setRenameSymbol(undefined);
-            setInteractionMessage(`Renamed ${target.occurrence.value} to ${nextValue.trim()}`);
-            restoreRenamedDiagramFocus(target.occurrence.kind, result.nextKey);
+            if (applySemanticRename(renameSymbol, nextValue)) setRenameSymbol(undefined);
           }}
           onClose={() => {
             setRenameSymbol(undefined);

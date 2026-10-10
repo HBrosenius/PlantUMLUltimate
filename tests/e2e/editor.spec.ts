@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("shows the diagram splash after closing the final tab", async ({ page }) => {
-  await page.getByRole("button", { name: "Close untitled.pumlu", exact: true }).click();
+  await page.getByRole("button", { name: "Close Gantt diagram", exact: true }).click();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
@@ -184,8 +184,6 @@ test("groups document commands in an accessible File and Export menu", async ({ 
     "Save as…",
     "Version history…",
     "Document settings…",
-    "Gantt analysis…",
-    "Integrations: Jira…",
     "Workspace backup…",
     "Workspace restore…",
     "Export›",
@@ -206,7 +204,8 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(file).toBeFocused();
 
   await file.click();
-  await menu.getByRole("menuitem", { name: "Integrations: Jira…" }).click();
+  await page.getByRole("button", { name: "Plan", exact: true }).click();
+  await page.getByRole("menu", { name: "Plan" }).getByRole("menuitem", { name: "Jira…" }).click();
   const jira = page.getByRole("dialog", { name: "Jira integration" });
   await expect(jira).toBeVisible();
   await jira.getByRole("button", { name: "Close Jira integration" }).click();

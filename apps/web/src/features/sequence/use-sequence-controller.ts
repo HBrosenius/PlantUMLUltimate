@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { SequenceDocument, SequenceStructure } from "@plantuml-studio/diagram-sequence";
+import type { SequenceDocument, SequenceMessage, SequenceStructure } from "@plantuml-studio/diagram-sequence";
 import type { DiagramKind } from "../../model";
+
+function messageIdentity(message: SequenceMessage): string {
+  return JSON.stringify([
+    message.from,
+    message.to,
+    message.arrow,
+    message.label,
+    message.modifiers ?? "",
+    message.anchor ?? "",
+  ]);
+}
 
 export function useSequenceController(
   diagramKind: DiagramKind,
@@ -13,19 +24,42 @@ export function useSequenceController(
   const [selectedStructureId, setSelectedStructureId] = useState<string>();
   const [sourceHighlightedParticipantId, setSourceHighlightedParticipantId] = useState<string>();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectionDocument, setSelectionDocument] = useState(document);
+
+  // Parser message IDs are positional. Reconcile before rendering inspectors so no
+  // event handler ever receives the message that merely inherited an old index.
+  let resolvedMessageId = selectedMessageId;
+  if (selectionDocument !== document) {
+    const previous = selectionDocument.messages.find((item) => item.id === selectedMessageId);
+    const identity = previous ? messageIdentity(previous) : undefined;
+    const previousMatches =
+      identity === undefined ? [] : selectionDocument.messages.filter((item) => messageIdentity(item) === identity);
+    const matches =
+      identity === undefined ? [] : document.messages.filter((item) => messageIdentity(item) === identity);
+    resolvedMessageId = previousMatches.length === 1 && matches.length === 1 ? matches[0]!.id : undefined;
+    setSelectionDocument(document);
+    setSelectedMessageId(resolvedMessageId);
+  }
 
   const selectedParticipant = useMemo(
     () => document.participants.find((item) => item.id === selectedParticipantId),
     [document.participants, selectedParticipantId],
   );
   const selectedMessage = useMemo(
-    () => document.messages.find((item) => item.id === selectedMessageId),
-    [document.messages, selectedMessageId],
+    () => document.messages.find((item) => item.id === resolvedMessageId),
+    [document.messages, resolvedMessageId],
   );
   const selectedStructure = useMemo(
     () => structures.find((item) => item.id === selectedStructureId),
     [selectedStructureId, structures],
   );
+
+  // An inspector Apply knows exactly which statement it updated. Anchor its
+  // explicit reselection to that parsed revision; free-form edits stay conservative.
+  const setMessageSelection = useCallback((id: string | undefined, updatedDocument?: SequenceDocument) => {
+    if (updatedDocument) setSelectionDocument(updatedDocument);
+    setSelectedMessageId(id);
+  }, []);
 
   const selectParticipant = useCallback(
     (id: string | undefined, reveal = true) => {
@@ -86,7 +120,7 @@ export function useSequenceController(
 
   return {
     selectedParticipantId,
-    selectedMessageId,
+    selectedMessageId: resolvedMessageId,
     selectedStructureId,
     sourceHighlightedParticipantId,
     settingsOpen,
@@ -95,7 +129,7 @@ export function useSequenceController(
     selectedStructure,
     setSourceHighlightedParticipantId,
     setSelectedParticipantId,
-    setSelectedMessageId,
+    setSelectedMessageId: setMessageSelection,
     setSelectedStructureId,
     selectParticipant,
     selectMessage,

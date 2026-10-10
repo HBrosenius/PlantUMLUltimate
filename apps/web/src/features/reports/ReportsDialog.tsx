@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useDialogFocus } from "../../use-dialog-focus";
 import { forecastToday } from "../../forecast-date";
 import { downloadBlob } from "../../file-service";
@@ -22,6 +22,7 @@ export function ReportsDialog({
   diagramName,
   timeZone,
   resource,
+  coordinator = false,
   baselineSource,
   baselineName,
   capacities,
@@ -29,6 +30,8 @@ export function ReportsDialog({
   forecastSettings,
   onRecordProgress,
   onClose,
+  suspended = false,
+  onOpenIssues,
 }: {
   source: string;
   sourceIdentity: string;
@@ -36,6 +39,7 @@ export function ReportsDialog({
   diagramName: string;
   timeZone?: string | undefined;
   resource?: string | undefined;
+  coordinator?: boolean;
   baselineSource?: string | undefined;
   baselineName?: string | undefined;
   capacities?: Record<string, number> | undefined;
@@ -43,10 +47,11 @@ export function ReportsDialog({
   forecastSettings?: { asOf?: string; remainingDays: Record<string, number> } | undefined;
   onRecordProgress?(observation: ReportingObservation): void;
   onClose(): void;
+  suspended?: boolean;
+  onOpenIssues?(): void;
 }) {
   const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const root = useRef<HTMLDivElement>(null);
-  useDialogFocus(root, onClose);
   const [captured, setCaptured] = useState({
     source,
     sourceIdentity,
@@ -62,13 +67,13 @@ export function ReportsDialog({
   const [options, setOptions] = useState<ReportOptions>(() => ({
     asOf: forecastToday(zone),
     timeZone: zone,
-    filter: "Ongoing",
+    filter: coordinator ? "All tasks" : "Ongoing",
     people: resource ? [resourceIdentity(resource)] : [],
     excluded: [],
     unresolved: true,
     milestones: false,
-    combined: false,
-    unassigned: false,
+    combined: coordinator,
+    unassigned: coordinator,
     notes: false,
     links: false,
     compact: false,
@@ -102,6 +107,22 @@ export function ReportsDialog({
     }
   }, [captured, options]);
   const snapshot = result.snapshot;
+  const scopeSummary = useMemo(() => {
+    if (!result.snapshot) return undefined;
+    const all = buildReport(captured.source, captured.sourceIdentity, captured.documentName, captured.diagramName, {
+      ...options,
+      reportType: "check-in",
+      filter: "All tasks",
+      unresolved: true,
+      milestones: true,
+      excluded: [],
+    });
+    return {
+      total: all.candidates.length,
+      unassigned: all.candidates.filter((row) => !row.task.resources?.length).length,
+      milestones: all.candidates.filter((row) => row.task.milestone).length,
+    };
+  }, [captured, options, result.snapshot]);
   useEffect(() => {
     if (!initialized && snapshot) {
       setInitialized(true);
@@ -159,6 +180,20 @@ export function ReportsDialog({
     setOptions((current) => ({ ...current, [field]: value }));
     setStatus("");
   };
+  const preset = (delivery = false) => {
+    setOptions((current) => ({
+      ...current,
+      reportType: delivery ? "milestones" : "check-in",
+      filter: "All tasks",
+      combined: true,
+      unassigned: true,
+      unresolved: true,
+      milestones: true,
+      excluded: [],
+      people: snapshot?.recipients.map((person) => person.id) ?? [],
+    }));
+    setStatus("");
+  };
   const perform = async (action: () => Promise<void>, success: string, body = false) => {
     try {
       await action();
@@ -171,6 +206,7 @@ export function ReportsDialog({
       );
     }
   };
+  if (suspended) return null;
   return (
     <div className="modal-backdrop reports-backdrop">
       <div
@@ -181,6 +217,7 @@ export function ReportsDialog({
         aria-labelledby="reports-title"
         tabIndex={-1}
       >
+        <ReportsDialogFocus root={root} onClose={onClose} />
         <header>
           <div>
             <span className="reports-eyebrow">Reports</span>
@@ -191,7 +228,13 @@ export function ReportsDialog({
           </button>
         </header>
         <p className="reports-source">
-          {documentName} <span aria-hidden="true">/</span> {diagramName}
+          {documentName}
+          {documentName !== diagramName && (
+            <>
+              {" "}
+              <span aria-hidden="true">/</span> {diagramName}
+            </>
+          )}
         </p>
         {stale && (
           <p role="alert">
@@ -266,6 +309,10 @@ export function ReportsDialog({
                 </optgroup>
               </select>
             </label>
+            <div aria-label="Report presets">
+              <button onClick={() => preset()}>Coordinator summary · all tasks</button>
+              <button onClick={() => preset(true)}>Delivery outlook · all tasks</button>
+            </div>
             {onRecordProgress && (
               <button
                 disabled={stale || recording}
@@ -450,7 +497,7 @@ export function ReportsDialog({
                 </label>
               )}
             </InspectorSection>
-            <InspectorSection title="Message wording">
+            <InspectorSection title="Message wording" defaultOpen={false}>
               <small>Remembered in this browser for your next report.</small>
               <label>
                 Introduction
@@ -477,7 +524,7 @@ export function ReportsDialog({
                 Restore default wording
               </button>
             </InspectorSection>
-            <InspectorSection title={`Individual tasks · ${options.excluded.length} excluded`}>
+            <InspectorSection title={`Individual tasks · ${options.excluded.length} excluded`} defaultOpen={false}>
               <button onClick={() => set("excluded", [])}>Reset exclusions</button>
               {snapshot?.candidates.map((row) => (
                 <label className="reports-check" key={row.task.id}>
@@ -499,13 +546,49 @@ export function ReportsDialog({
             </InspectorSection>
           </section>
           <section className="reports-preview" aria-label="Report preview">
-            {result.error && <p role="alert">{result.error} Open Problems to review source issues.</p>}
+            {result.error && (
+              <p role="alert">
+                {result.error}{" "}
+                {onOpenIssues ? (
+                  <button type="button" onClick={onOpenIssues}>
+                    Open Issues
+                  </button>
+                ) : (
+                  "Open Issues to review source issues."
+                )}
+              </p>
+            )}
             {snapshot && (
               <>
                 <p className="reports-summary">
                   {snapshot.recipients.filter((p) => options.people.includes(p.id) && p.count).length} people ·{" "}
-                  {snapshot.uniqueTasks} unique tasks · {snapshot.assignments} assignments
+                  {snapshot.uniqueTasks} unique tasks · {snapshot.assignments} assignments ·{" "}
+                  {snapshot.candidates.length} candidate tasks
                 </p>
+                {scopeSummary && (
+                  <p>
+                    {scopeSummary.total} tasks in the plan · {scopeSummary.unassigned} unassigned.
+                    {(!options.reportType || options.reportType === "check-in") && (
+                      <>
+                        {" "}
+                        {scopeSummary.total - snapshot.candidates.length} outside the selected date, progress, or
+                        content scope.
+                        {!options.milestones && scopeSummary.milestones > 0 && (
+                          <> {scopeSummary.milestones} milestones omitted; enable Include milestones.</>
+                        )}
+                      </>
+                    )}
+                    {scopeSummary.unassigned > 0 &&
+                      !(options.combined && options.unassigned) &&
+                      " Unassigned tasks need a combined summary with Include unassigned tasks enabled."}
+                  </p>
+                )}
+                {options.excluded.length > 0 && (
+                  <p>
+                    {options.excluded.length} tasks individually excluded. Reset exclusions in Individual tasks or
+                    choose a preset.
+                  </p>
+                )}
                 {snapshot.unresolvedExcluded > 0 && (
                   <p>
                     {snapshot.unresolvedExcluded} unresolved tasks excluded. Enable schedule clarification to include
@@ -518,10 +601,27 @@ export function ReportsDialog({
               </>
             )}
             {!message && (
-              <p>
-                No matching tasks or recipients. Select people, choose All tasks, or include unassigned work in a
-                combined summary.
-              </p>
+              <div className="reports-empty" role="status">
+                <p>
+                  {snapshot?.recipients.length === 0 && !(options.combined && options.unassigned)
+                    ? "No people are assigned. Individual check-ins need task assignments."
+                    : snapshot?.candidates.length === 0
+                      ? "No tasks match the selected dates, progress, and content scope."
+                      : snapshot?.candidates.every((row) => options.excluded.includes(row.task.id))
+                        ? "All candidate tasks are individually excluded."
+                        : "No tasks match the selected people. Select people or include unassigned tasks in a coordinator summary."}
+                </p>
+                <button onClick={() => preset()}>Create coordinator summary</button>
+                <button onClick={() => preset(true)}>Create delivery outlook</button>
+                <button
+                  onClick={() => {
+                    set("filter", "All tasks");
+                    set("excluded", []);
+                  }}
+                >
+                  Show all tasks and reset exclusions
+                </button>
+              </div>
             )}
             {message && (
               <>
@@ -625,4 +725,10 @@ export function ReportsDialog({
       </div>
     </div>
   );
+}
+
+/** Mount focus handling only while the report is visible; keep the draft above. */
+function ReportsDialogFocus({ root, onClose }: { root: RefObject<HTMLDivElement | null>; onClose(): void }) {
+  useDialogFocus(root, onClose);
+  return null;
 }

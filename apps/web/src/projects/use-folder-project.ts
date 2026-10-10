@@ -419,8 +419,8 @@ export function useFolderProject({
   );
 
   const addProjectDiagram = useCallback(
-    async (diagramKind: DiagramKind, path: string) => {
-      if (!project) return;
+    async (diagramKind: DiagramKind, path: string, initialSource?: string) => {
+      if (!project) return false;
       const requestedPath = path.trim();
       const normalizedPath = /\.puml$/i.test(requestedPath) ? requestedPath : `${requestedPath}.puml`;
       if (
@@ -429,10 +429,10 @@ export function useFolderProject({
         project.manifest.documents.some((item) => item.path === normalizedPath)
       ) {
         setInteractionMessage("Choose a unique, safe .puml document-relative path");
-        return;
+        return false;
       }
       const documentId = crypto.randomUUID();
-      const source = starterSource(diagramKind);
+      const source = initialSource ?? starterSource(diagramKind);
       const manifest = {
         ...project.manifest,
         revisionId: crypto.randomUUID(),
@@ -468,6 +468,7 @@ export function useFolderProject({
       tabsByMember.current.set(`${manifest.projectId}:${documentId}`, tabId);
       resetSelection();
       setInteractionMessage(`Added ${normalizedPath}; save the document to keep it`);
+      return true;
     },
     [project, resetSelection, setInteractionMessage, tabs],
   );

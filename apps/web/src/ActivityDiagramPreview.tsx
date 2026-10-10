@@ -1,10 +1,12 @@
 import { useMemo, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function ActivityDiagramPreview({
+  onInlineRename,
+  initialFit,
   svg,
   zoom,
   onZoomChange,
@@ -19,7 +21,9 @@ export function ActivityDiagramPreview({
   onConnect,
   onAttachNote,
 }: {
+  onInlineRename?: ((id: string, anchor: Element) => boolean) | undefined;
   svg?: string | undefined;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(value: number): void;
   renderStatus: RenderStatus;
@@ -33,7 +37,7 @@ export function ActivityDiagramPreview({
   onConnect(fromId: string, toId: string): void;
   onAttachNote(noteId: string, targetId: string): void;
 }) {
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
@@ -219,6 +223,29 @@ export function ActivityDiagramPreview({
       data-render-status={renderStatus}
     >
       <div className="preview-tools">
+        {onInlineRename && (
+          <button
+            type="button"
+            disabled={
+              !selectedId ||
+              !(
+                document.nodes.some((item) => item.kind === "action" && item.id === selectedId) ||
+                document.partitions.some((item) => item.id === selectedId)
+              ) ||
+              renderStatus !== "idle"
+            }
+            title="Rename selected label (F2)"
+            data-inspector-trigger
+            onClick={() => {
+              const target = root.current
+                ?.closest(".preview")
+                ?.querySelector(`[data-activity-object-id="${CSS.escape(selectedId ?? "")}"]`);
+              if (selectedId && target) onInlineRename(selectedId, target);
+            }}
+          >
+            Rename label
+          </button>
+        )}
         <button
           type="button"
           onClick={navigation.fit}
@@ -425,6 +452,11 @@ export function ActivityDiagramPreview({
                 .closest("[data-activity-object-id]")
                 ?.getAttribute("data-activity-object-id");
               if (!id) return;
+              if (event.key === "F2" && onInlineRename?.(id, event.target as Element)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 onSelect(id);

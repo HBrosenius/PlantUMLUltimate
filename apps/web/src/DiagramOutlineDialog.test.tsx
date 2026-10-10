@@ -54,3 +54,35 @@ describe("DiagramOutlineDialog", () => {
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ label: "Release" }));
   });
 });
+
+describe("outline context and large result sets", () => {
+  it("finds descendants by displayed ancestry, clears search and explains filtered empty states", () => {
+    const entries = buildDiagramOutlineEntries(source, occurrences, "gantt").map((entry) => ({
+      ...entry,
+      group: "Delivery / Platform",
+    }));
+    render(<DiagramOutlineDialog entries={entries} onSelect={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Search diagram elements"), { target: { value: "platform release" } });
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Clear outline search" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText("Search diagram elements"), { target: { value: "missing" } });
+    fireEvent.change(screen.getByLabelText("Filter diagram element type"), { target: { value: "task" } });
+    expect(screen.getByText(/Try All types/)).toBeTruthy();
+  });
+
+  it("bounds rendered rows while allowing access to all matches", () => {
+    const base = buildDiagramOutlineEntries(source, occurrences, "gantt")[0]!;
+    const entries = Array.from({ length: 5000 }, (_, index) => ({
+      ...base,
+      id: String(index),
+      label: `Element ${index}`,
+    }));
+    render(<DiagramOutlineDialog entries={entries} onSelect={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(200);
+    fireEvent.click(screen.getByRole("button", { name: "Show more results" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(400);
+    fireEvent.change(screen.getByLabelText("Search diagram elements"), { target: { value: "Element 4999" } });
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+});

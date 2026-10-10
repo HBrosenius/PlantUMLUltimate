@@ -2,6 +2,7 @@ import type { DiagramKind } from "./model";
 
 export interface StarterExample {
   id: string;
+  personal?: boolean;
   kind: DiagramKind;
   title: string;
   description: string;

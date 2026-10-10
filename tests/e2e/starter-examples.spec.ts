@@ -18,7 +18,7 @@ test("creates a document from a starter example", async ({ page }) => {
   const editor = page.locator(".cm-content");
   await expect(editor).toContainText('participant "Identity provider" as IdP');
   await expect(editor).toContainText("alt consent granted");
-  await expect(page.getByText("login-with-oauth.pumlu").first()).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Open documents" })).toContainText("Login with OAuth");
   await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
   await expect(page.locator(".diagram svg")).toContainText("Exchange code for tokens");

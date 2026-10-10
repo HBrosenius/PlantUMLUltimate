@@ -2,6 +2,9 @@ import type { DiagramKind } from "./model";
 import type { Diagnostic } from "@codemirror/lint";
 import type { DiagramQuickFix } from "./diagram-diagnostics";
 
+export const genericManualErrorGuidance =
+  "Review this statement and the surrounding lines using the error above. Edit the intended syntax manually, then check Issues again. No automatic correction is available for this statement.";
+
 export function manualErrorGuidance(
   kind: DiagramKind,
   diagnostic: Diagnostic,
@@ -43,9 +46,11 @@ export function manualErrorGuidance(
     return "Check the intended duration and enter a supported positive value with its unit, for example: [Build] lasts 3 days. The editor cannot choose the duration for you.";
   if (/unknown.*task|task.*(not found|does not exist)|undefined.*task/i.test(message))
     return "Check the referenced task name against its declaration, including spelling and brackets. Correct the reference or declare the intended task before using it.";
+  if (/missing.*(?:end|terminator)|review nesting|unclosed|unterminated/i.test(message))
+    return "Match this opening block with its closing token and review the surrounding nested blocks. Choose the closing position manually so later statements stay in the intended block.";
   if (/unsupported/i.test(message))
     return `Check that this statement belongs to the selected diagram type (${kind.toUpperCase()}). Review the keyword and its arguments, then edit the statement manually; the editor has no supported correction for this syntax.`;
-  return "Review this statement and the surrounding lines using the error above. Edit the intended syntax manually, then check Issues again. No automatic correction is available for this statement.";
+  return genericManualErrorGuidance;
 }
 
 /** Add UI guidance without changing diagnostic messages, ranges, or actions. */

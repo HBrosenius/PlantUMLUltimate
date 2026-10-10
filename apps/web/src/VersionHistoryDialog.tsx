@@ -1,3 +1,5 @@
+import { validateGeneratedSource } from "./generated-source-validation";
+import { GanttReviewDetails } from "./GanttReviewDetails";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { DocumentVersion } from "./workspace-storage";
 import { diffVersionSources } from "./version-diff";
@@ -55,6 +57,7 @@ export function VersionHistoryDialog({
   diagramKind,
   fileName,
   onApplyReview,
+  readOnly = false,
   onClose,
 }: {
   versions: readonly DocumentVersion[];
@@ -67,7 +70,8 @@ export function VersionHistoryDialog({
   onSetBaseline(version?: DocumentVersion): Promise<void>;
   diagramKind: DiagramKind;
   fileName: string;
-  onApplyReview(source: string): Promise<boolean>;
+  readOnly?: boolean;
+  onApplyReview(source: string, expectedSource: string): Promise<boolean>;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -99,7 +103,10 @@ export function VersionHistoryDialog({
     compareId === "imported" ? (importedComparison?.source ?? currentSource) : (compare?.source ?? currentSource);
   const leftSource =
     importedBase?.source ?? (compareId === "imported" ? currentSource : (selected?.source ?? currentSource));
-  const canApplyReview = !importedBase || importedBase.source === currentSource;
+  const canApplyReview =
+    !readOnly && (leftSource === currentSource || (!importedBase && rightSource === currentSource));
+  const [replaceConfirmed, setReplaceConfirmed] = useState(false);
+  const [applyError, setApplyError] = useState("");
   const layoutEngine =
     /^\s*@startgantt\b/im.test(leftSource) && /^\s*@startgantt\b/im.test(rightSource) ? "native" : "graphviz";
   const leftRendered = useRenderer(leftSource, comparisonView === "rendered", layoutEngine);
@@ -113,6 +120,11 @@ export function VersionHistoryDialog({
     () => applyReviewGroups(leftSource, reviewGroups, selectedGroups),
     [leftSource, reviewGroups, selectedGroups],
   );
+  const selectionValidation = useMemo(
+    () => validateGeneratedSource(diagramKind, currentSource, reviewedSource),
+    [diagramKind, currentSource, reviewedSource],
+  );
+  const requiresReplacement = leftSource !== currentSource && reviewedSource !== currentSource;
   const visibleDiff = useMemo(
     () => (changesOnly ? diff.filter((line) => line.kind !== "equal") : diff),
     [changesOnly, diff],
@@ -141,6 +153,8 @@ export function VersionHistoryDialog({
     setEditLabel(selected?.label ?? "");
     setChangeIndex(0);
     setSelectedGroups(new Set());
+    setReplaceConfirmed(false);
+    setApplyError("");
     setVisibleGroupIds(new Set());
     hiddenGroupIds.current = new Set();
     setActiveGroupId(reviewGroups[0]?.id);
@@ -500,7 +514,10 @@ export function VersionHistoryDialog({
                 <header>
                   <div>
                     <strong>Proposed change groups</strong>
-                    <p>Confirmed groups can be applied independently. Unclassified source remains visible in Source.</p>
+                    <p>
+                      Select confirmed groups, then review their combined result. Unclassified changes require Source
+                      review.
+                    </p>
                   </div>
                   <span>
                     {reviewGroups.length} group{reviewGroups.length === 1 ? "" : "s"}
@@ -542,6 +559,7 @@ export function VersionHistoryDialog({
                             <strong>{group.title}</strong>
                             <small>{group.confidence[0]!.toUpperCase() + group.confidence.slice(1)}</small>
                             <span>{group.detail}</span>
+                            {diagramKind === "gantt" && <GanttReviewDetails group={group} before={leftSource} />}
                           </span>
                           <span className="semantic-review-inspect">
                             <button
@@ -610,19 +628,51 @@ export function VersionHistoryDialog({
                   </button>
                   <button
                     type="button"
-                    disabled={!selectedGroups.size || applying || !canApplyReview}
+                    disabled={
+                      !selectedGroups.size ||
+                      applying ||
+                      !canApplyReview ||
+                      !selectionValidation.valid ||
+                      (requiresReplacement && !replaceConfirmed)
+                    }
                     onClick={() => {
+                      if (!canApplyReview || !selectionValidation.valid || (requiresReplacement && !replaceConfirmed))
+                        return;
                       setApplying(true);
-                      void onApplyReview(reviewedSource).finally(() => setApplying(false));
+                      setApplyError("");
+                      void onApplyReview(reviewedSource, currentSource)
+                        .then((applied) => {
+                          if (!applied)
+                            setApplyError(
+                              "The selection was not applied. The working copy or editing access may have changed; review again.",
+                            );
+                        })
+                        .catch(() => setApplyError("Could not apply the selection. Your working copy was kept."))
+                        .finally(() => setApplying(false));
                     }}
                   >
                     {applying ? "Applying…" : `Apply selected (${selectedGroups.size})`}
                   </button>
                 </div>
+                {!!selectedGroups.size && requiresReplacement && canApplyReview && (
+                  <label className="version-import-warning">
+                    <input
+                      type="checkbox"
+                      checked={replaceConfirmed}
+                      onChange={(event) => setReplaceConfirmed(event.target.checked)}
+                    />
+                    Replace the working copy with this selection from the review base; unselected differences will be
+                    removed.
+                  </label>
+                )}
+                {!!selectedGroups.size && !selectionValidation.valid && (
+                  <p role="alert">{selectionValidation.message} Select related groups together or use Source review.</p>
+                )}
+                {applyError && <p role="alert">{applyError}</p>}
                 {!canApplyReview ? (
                   <p className="version-import-warning" role="status">
-                    Applying is disabled because the working copy does not match the imported base. You can still export
-                    the selected patch.
+                    Applying is disabled because editing access or the working copy does not match the imported base or
+                    either reviewed revision. You can still export the selected patch.
                   </p>
                 ) : null}
               </div>

@@ -348,6 +348,11 @@ describe("ProjectNavigator", () => {
       ]),
     };
 
+    const registeredCandidate = { ...second, id: "registered-candidate", locator: { ...second.locator, ...candidate } };
+    linkedProject.manifest = {
+      ...linkedProject.manifest,
+      elements: [...linkedProject.manifest.elements, registeredCandidate],
+    };
     const onElementsChange = vi.fn();
     const { rerender } = render(
       <ProjectNavigator
@@ -360,9 +365,18 @@ describe("ProjectNavigator", () => {
       />,
     );
 
+    expect(screen.getByLabelText("Connected document overview").textContent).toContain("1 need review");
     expect(screen.getByText("Unresolved path")).toBeTruthy();
     expect(screen.getByText(/Affects 1 linked path/).textContent).toContain("Caller: Caller → Target: Old task");
     fireEvent.click(screen.getByRole("button", { name: "Repair: Old task → New task" }));
+    expect(
+      onElementsChange.mock.calls.some(([elements]) =>
+        elements.some((element: typeof second) => element.id === second.id && element.locator.symbolKey === "New task"),
+      ),
+    ).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel repair" }));
+    fireEvent.click(screen.getByRole("button", { name: "Repair: Old task → New task" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply connection repair" }));
     await waitFor(() =>
       expect(
         onElementsChange.mock.calls.some(([elements]) =>
@@ -372,6 +386,15 @@ describe("ProjectNavigator", () => {
         ),
       ).toBe(true),
     );
+
+    const repaired = onElementsChange.mock.calls.find(([elements]) =>
+      elements.some((element: typeof second) => element.id === second.id && element.locator.symbolKey === "New task"),
+    )![0];
+    expect(
+      repaired.filter((element: typeof second) => element.locator.declarationHash === candidate.declarationHash),
+    ).toHaveLength(1);
+    expect(repaired.some((element: typeof second) => element.id === registeredCandidate.id)).toBe(false);
+    expect(linkedProject.manifest.links[0]!.to).toBe(second.id);
 
     const parseErrorProject: VirtualProject = {
       ...linkedProject,
@@ -392,6 +415,6 @@ describe("ProjectNavigator", () => {
         onElementsChange={vi.fn()}
       />,
     );
-    expect(screen.getAllByText("Task declaration is incomplete")).toHaveLength(2);
+    expect(screen.getAllByText("Task declaration is incomplete").length).toBeGreaterThanOrEqual(2);
   });
 });

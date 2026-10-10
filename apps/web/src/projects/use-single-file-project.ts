@@ -1,3 +1,5 @@
+import { importedDiagramKind } from "../import-source";
+import { rememberRecentFile } from "../recent-files";
 import type { FileSaveState } from "../FileSaveStatus";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
@@ -428,13 +430,15 @@ export function useSingleFileProject({
     [embedded, resetSelection, setInteractionMessage],
   );
   const addProjectDiagram = useCallback(
-    async (kind: DiagramKind, name: string) => {
+    async (kind: DiagramKind, name: string, initialSource?: string) => {
       try {
         const displayName = projectDiagramName(name, `${kind} diagram`);
-        const staged = await projectFromPlantUml(starterSource(kind), kind, displayName);
+        const staged = await projectFromPlantUml(initialSource ?? starterSource(kind), kind, displayName);
         addPortableDiagram({ ...staged.diagrams[0]!, name: displayName });
+        return true;
       } catch (error) {
         reportError(error);
+        return false;
       }
     },
     [addPortableDiagram, reportError],
@@ -482,9 +486,8 @@ export function useSingleFileProject({
         if (opened.kind === "legacy") {
           const source = opened.source;
           if (source === undefined) throw new Error("Could not read this PlantUML file");
-          const kind = detectDiagramKind(source);
-          if (!kind) throw new Error("Could not identify this PlantUML diagram type");
-          project = await projectFromPlantUml(source, kind, new Date().toISOString());
+          const kind = importedDiagramKind(source);
+          project = await projectFromPlantUml(source, kind, opened.fileName.replace(/\.(?:puml|plantuml)$/i, ""));
           project = { ...project, name: opened.fileName.replace(/\.(?:puml|plantuml)$/i, "") };
         } else {
           const decoded = await decodePortableProjectFile(opened.bytes, opened.fileName, requestPassword);
@@ -500,12 +503,14 @@ export function useSingleFileProject({
         unlockedKey.current = key;
         handle.current = opened.handle;
         handleDigest.current = opened.handle ? await sha256(opened.bytes) : undefined;
-        embedded.openProject(project, { encrypted });
+        embedded.openProject(project, { encrypted, unsaved: Boolean(opened.importedSource) });
         setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
         setInteractionMessage(
           `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
         );
+        if (!opened.importedSource)
+          await rememberRecentFile(opened.fileName, opened.handle, "document").catch(() => undefined);
         return true;
       } catch (error) {
         reportError(error);

@@ -6,17 +6,19 @@ export function FileMenu({
   onNew,
   onNewProject,
   onOpen,
+  onOpenRecent,
   onOpenProject,
   onProjectConnections,
   projectName,
   onSave,
   onSaveAs,
+  onSaveAsStarter,
   onVersionHistory,
   onDocumentSettings,
-  onDeliveryScenario,
-  onJira,
   onBackup,
   onRestore,
+  onExportPreview,
+  onShareLink,
   onExportSource,
   onExportSvg,
   onExportPng,
@@ -30,17 +32,19 @@ export function FileMenu({
   onNew(): void;
   onNewProject?: (() => void) | undefined;
   onOpen(): void;
+  onOpenRecent?: (() => void) | undefined;
   onOpenProject?: (() => void) | undefined;
   onProjectConnections?: (() => void) | undefined;
   projectName?: string | undefined;
   onSave(): void;
   onSaveAs(): void;
+  onSaveAsStarter?: (() => void) | undefined;
   onVersionHistory(): void;
   onDocumentSettings?: (() => void) | undefined;
-  onDeliveryScenario?: (() => void) | undefined;
-  onJira?: (() => void) | undefined;
   onBackup(): void;
   onRestore(): void;
+  onExportPreview?: (() => void) | undefined;
+  onShareLink?: (() => void) | undefined;
   onExportSource(): void;
   onExportSvg(): void;
   onExportPng(): void;
@@ -133,7 +137,7 @@ export function FileMenu({
               button.click();
               requestAnimationFrame(() =>
                 button.parentElement
-                  ?.querySelector<HTMLButtonElement>('[role="menu"] [role="menuitem"]:not(:disabled)')
+                  ?.querySelector<HTMLButtonElement>(':scope > [role="menu"] > [role="menuitem"]:not(:disabled)')
                   ?.focus(),
               );
             }
@@ -204,6 +208,11 @@ export function FileMenu({
                 <button role="menuitem" onClick={() => run(onOpen)}>
                   Diagram…
                 </button>
+                {onOpenRecent && (
+                  <button role="menuitem" onClick={() => run(onOpenRecent)}>
+                    Recent files & import…
+                  </button>
+                )}
                 {onOpenProject && (
                   <button role="menuitem" onClick={() => run(onOpenProject)}>
                     Document…
@@ -219,22 +228,17 @@ export function FileMenu({
           <button role="menuitem" disabled={saving} onClick={() => run(onSaveAs)}>
             Save as…
           </button>
+          {onSaveAsStarter && (
+            <button role="menuitem" onClick={() => run(onSaveAsStarter)}>
+              Save as starter…
+            </button>
+          )}
           <button role="menuitem" onClick={() => run(onVersionHistory)}>
             Version history…
           </button>
           <button role="menuitem" onClick={() => run(() => onDocumentSettings?.())}>
             Document settings…
           </button>
-          {onDeliveryScenario && (
-            <button role="menuitem" onClick={() => run(onDeliveryScenario)}>
-              Gantt analysis…
-            </button>
-          )}
-          {onJira && (
-            <button role="menuitem" onClick={() => run(onJira)}>
-              Integrations: Jira…
-            </button>
-          )}
           <span className="menu-separator" role="separator" />
           <button role="menuitem" onClick={() => run(onBackup)}>
             Workspace backup…
@@ -267,6 +271,16 @@ export function FileMenu({
             </button>
             {activeSubmenu === "export" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Export">
+                {onExportPreview && (
+                  <button role="menuitem" onClick={() => run(onExportPreview)}>
+                    Preview export…
+                  </button>
+                )}
+                {onShareLink && (
+                  <button role="menuitem" onClick={() => run(onShareLink)}>
+                    Link and embed…
+                  </button>
+                )}
                 <button role="menuitem" onClick={() => run(onExportSource)}>
                   Source
                 </button>

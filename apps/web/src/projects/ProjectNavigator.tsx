@@ -129,6 +129,88 @@ export function ProjectNavigator({
           </button>
         )}
       </header>
+      <section className="project-navigator-section" aria-label="Connected document overview">
+        <h2>Connected document overview</h2>
+        <button
+          type="button"
+          onClick={(event) => {
+            const target = event.currentTarget
+              .closest("aside")
+              ?.querySelector<HTMLElement>(".project-link-repairs, .project-existing-links");
+            target?.scrollIntoView({ block: "start", behavior: "smooth" });
+            if (target) {
+              target.tabIndex = -1;
+              target.focus({ preventScroll: true });
+            }
+          }}
+        >
+          Review object connections
+        </button>
+        <p>Open a diagram to inspect its objects, then review connections and any unlinked work below.</p>
+        {(wbsGanttLinks ?? []).some((link) => link.missingWbsNode || link.missingGanttTask) && (
+          <p role="status">
+            Some WBS–Gantt connections have missing objects. Inspect their remaining endpoint in Existing links below,
+            then use Linked diagrams to repair the connection.
+          </p>
+        )}
+        <ul>
+          {project.members.map((member) => {
+            const ids = new Set(
+              project.manifest.elements
+                .filter((element) => element.documentId === member.documentId)
+                .map((element) => element.id),
+            );
+            const connections = project.manifest.links.filter((link) => ids.has(link.from) || ids.has(link.to));
+            const needsReview = connections.filter((link) =>
+              [link.from, link.to].some((id) => {
+                const state = project.resolutions.get(id)?.state;
+                return state !== "resolved" && state !== undefined;
+              }),
+            ).length;
+            const pending = connections.filter((link) =>
+              [link.from, link.to].some((id) => !project.resolutions.has(id)),
+            ).length;
+            const scheduled = (wbsGanttLinks ?? []).filter(
+              (link) => link.wbsDocumentId === member.documentId || link.ganttDocumentId === member.documentId,
+            ).length;
+            return (
+              <li key={member.documentId}>
+                <button
+                  type="button"
+                  aria-label={`Inspect diagram ${member.path}`}
+                  disabled={member.state !== "available"}
+                  onClick={() => onOpen(member.documentId)}
+                >
+                  {member.path}
+                </button>
+                <span>
+                  {" "}
+                  · {connections.length} object connections · {scheduled} WBS–Gantt connections
+                </span>
+                {needsReview > 0 && <span> · {needsReview} need review</span>}
+                {pending > 0 && <span> · {pending} awaiting link check</span>}
+                {member.state !== "available" && <span> · {member.reason ?? member.state}</span>}
+              </li>
+            );
+          })}
+        </ul>
+        {!project.manifest.links.length && !wbsGanttLinks?.length && (
+          <p>
+            No connected objects yet. Use Links between diagram items below, or open a WBS diagram and choose Linked
+            diagrams to create a connected Gantt chart.
+          </p>
+        )}
+        {!!wbsGanttMissing?.length && (
+          <p>
+            {wbsGanttMissing.length} unlinked items: use WBS–Gantt coverage below to link existing work or preview
+            adding its counterpart.
+          </p>
+        )}
+        {!!wbsGanttIssues?.length && (
+          <p>{wbsGanttIssues.length} warnings in open linked diagrams: inspect WBS–Gantt issues below.</p>
+        )}
+        {onReviewChanges && <p>Use Review changes below to inspect the effect on connected diagrams before saving.</p>}
+      </section>
       <section className="project-navigator-section" aria-labelledby="project-diagrams-heading">
         <div className="project-section-heading">
           <div>

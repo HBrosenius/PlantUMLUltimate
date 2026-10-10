@@ -27,7 +27,7 @@ it("applies the warning override only when Settings is submitted", async () => {
   expect(change).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Apply" }));
   expect(change).toHaveBeenCalledWith(false);
-  expect(apply).toHaveBeenCalledWith(current);
+  expect(apply).toHaveBeenCalledWith({ ...current, startupMode: "restore" });
 });
 
 it("keeps the saved preference when the draft is cancelled", async () => {

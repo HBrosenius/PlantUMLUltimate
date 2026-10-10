@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { PersonalStarterLibrary } from "./PersonalStarters";
+import { useRef, useState } from "react";
 import type { DiagramKind } from "./model";
 import { STARTER_EXAMPLES, type StarterExample } from "./starter-examples";
+import { starterSource } from "./use-workspace-documents";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const OPTIONS: Array<{ kind: DiagramKind; title: string; description: string }> = [
@@ -34,16 +36,77 @@ export function NewDocumentDialog({
   onChooseExample,
   onClose,
   onOpen,
+  onOpenRecent,
+  documentName,
+  onAddToDocument,
 }: {
-  onChoose(kind: DiagramKind): void;
-  onChooseExample(example: StarterExample): void;
+  onChoose(kind: DiagramKind, name?: string, source?: string): void;
+  onChooseExample(example: StarterExample, name?: string): void;
   onClose(): void;
   onOpen?: () => void;
+  onOpenRecent?: () => void;
+  documentName?: string | undefined;
+  onAddToDocument?:
+    | ((kind: DiagramKind, name: string, initialSource?: string, preserveStyles?: boolean) => Promise<boolean>)
+    | undefined;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
-  useDialogFocus(dialog, onClose);
+  const [destination, setDestination] = useState(onAddToDocument ? "document" : "separate");
+  const [name, setName] = useState("");
+  const [content, setContent] = useState("starter");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const choose = async (kind: DiagramKind, example?: StarterExample) => {
+    if (busy) return;
+    const today = new Date();
+    const projectStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const initialSource =
+      example?.source ??
+      (content === "blank"
+        ? kind === "gantt"
+          ? `@startgantt\nProject starts ${projectStart}\n@endgantt`
+          : kind === "wbs"
+            ? "@startwbs\n* Project\n@endwbs"
+            : kind === "activity"
+              ? "@startuml\nstart\nstop\n@enduml"
+              : "@startuml\n@enduml"
+        : kind === "wbs"
+          ? "@startwbs\n* Project\n** Deliverable\n@endwbs"
+          : starterSource(kind));
+    if (destination !== "document" || !onAddToDocument) {
+      if (example) onChooseExample(example, name);
+      else onChoose(kind, name, initialSource);
+      return;
+    }
+    setBusy(true);
+    setError(undefined);
+    try {
+      if (
+        await onAddToDocument(
+          kind,
+          name.trim() || example?.title || `${kindLabel(kind)} diagram`,
+          initialSource,
+          example?.personal,
+        )
+      )
+        onClose();
+      else setError("The diagram could not be added. Check the document and try again.");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "The diagram could not be added.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  useDialogFocus(dialog, () => {
+    if (!busy) onClose();
+  });
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={() => {
+        if (!busy) onClose();
+      }}
+    >
       <div
         ref={dialog}
         className="task-dialog new-document-dialog"
@@ -56,11 +119,59 @@ export function NewDocumentDialog({
           <h2 id="new-document-title">Create a diagram</h2>
           <p>Choose a type or try an example. PlantUML source stays editable.</p>
           {onOpen && (
-            <button type="button" onClick={onOpen}>
+            <button className="secondary-action" type="button" onClick={onOpen} disabled={busy}>
               Open…
             </button>
           )}
         </header>
+        {onOpenRecent && (
+          <button type="button" onClick={onOpenRecent} disabled={busy}>
+            Recent files & import…
+          </button>
+        )}
+        <nav className="start-routes" aria-label="Start options">
+          <a href="#diagram-kind-title">Create</a>
+          <a href="#starter-example-title">Try an example</a>
+          <a href="#personal-starters">Personal starters</a>
+          <a href="#start-learning">Quick tour & what’s new</a>
+        </nav>
+        <p className="start-preferences">Preferences are available later in More → Settings.</p>
+        <section className="diagram-creation-destination">
+          <label>
+            Start with
+            <select value={content} onChange={(event) => setContent(event.target.value)} disabled={busy}>
+              <option value="blank">Blank · minimal source</option>
+              <option value="starter">Simple starter · editable sample content</option>
+            </select>
+          </label>
+          <label>
+            Create in
+            <select
+              data-dialog-autofocus
+              value={destination}
+              onChange={(event) => setDestination(event.target.value)}
+              disabled={busy}
+            >
+              {onAddToDocument && <option value="document">Add to {documentName}</option>}
+              <option value="separate">New separate file</option>
+            </select>
+          </label>
+          <label>
+            Diagram name{" "}
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Use diagram type or example name"
+              disabled={busy}
+            />
+          </label>
+          <p>
+            {destination === "document"
+              ? `Saved with ${documentName}.`
+              : "Creates a separate diagram tab. Save chooses its file name and location."}
+          </p>
+          {error && <p role="alert">{error}</p>}
+        </section>
         <section className="diagram-kind-section" aria-labelledby="diagram-kind-title">
           <div className="diagram-kind-heading">
             <div>
@@ -69,8 +180,14 @@ export function NewDocumentDialog({
             </div>
           </div>
           <div className="diagram-kind-options">
-            {OPTIONS.map((option, index) => (
-              <button key={option.kind} type="button" autoFocus={index === 0} onClick={() => onChoose(option.kind)}>
+            {OPTIONS.map((option) => (
+              <button
+                key={option.kind}
+                aria-label={option.title}
+                type="button"
+                disabled={busy}
+                onClick={() => void choose(option.kind)}
+              >
                 <DiagramKindPreview kind={option.kind} />
                 <span className="diagram-kind-copy">
                   <strong>{option.title}</strong>
@@ -89,7 +206,8 @@ export function NewDocumentDialog({
           </div>
           <div className="starter-example-options">
             {STARTER_EXAMPLES.map((example) => (
-              <button key={example.id} type="button" onClick={() => onChooseExample(example)}>
+              <button key={example.id} type="button" disabled={busy} onClick={() => void choose(example.kind, example)}>
+                <DiagramKindPreview kind={example.kind} />
                 <span className="starter-example-kind">{kindLabel(example.kind)}</span>
                 <strong>{example.title}</strong>
                 <span>{example.description}</span>
@@ -97,8 +215,25 @@ export function NewDocumentDialog({
             ))}
           </div>
         </section>
+        <PersonalStarterLibrary busy={busy} onChoose={(example) => void choose(example.kind, example)} />
+        <details id="start-learning" className="start-learning">
+          <summary>Quick tour & what’s new</summary>
+          <p>
+            Create a diagram or open a file. Use Add to build it, click an item to edit its properties, and use Code /
+            Split / Diagram to choose your view.
+          </p>
+          <p>
+            For planning, Plan contains Reports, Forecast and What-if scenarios. Commands finds actions; Outline
+            navigates large diagrams.
+          </p>
+          <p>
+            What’s new: named diagrams within documents, clearer save status, report presets for unassigned work, and
+            simpler property panels.
+          </p>
+          <p>Reopen this guide from File → New, or More → Help for workspace and scheduling guidance.</p>
+        </details>
         <div className="dialog-actions">
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={onClose} disabled={busy}>
             Cancel
           </button>
         </div>
@@ -161,7 +296,7 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
           <rect x="28" y="67" width="60" height="20" rx="6" />
           <rect x="152" y="67" width="60" height="20" rx="6" />
         </g>
-        <g fill="#fff" textAnchor="middle">
+        <g fill="#fff" textAnchor="middle" className="preview-light-labels">
           <text x="120" y="24">
             Project
           </text>

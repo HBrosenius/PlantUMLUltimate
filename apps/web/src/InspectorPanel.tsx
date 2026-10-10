@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { sidePanelOverlayOpen } from "./side-panel-events";
+import { Children, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 import { storageGet } from "./safe-storage";
 
 const WIDTH_KEY = "plantuml-ultimate.properties-width";
@@ -16,9 +17,15 @@ const snapshot = (panel: HTMLElement) =>
 export function InspectorPanel({
   children,
   invalidDraft = false,
+  closeOnOutsideEscape = true,
   ...props
-}: ComponentProps<"aside"> & { invalidDraft?: boolean }) {
+}: ComponentProps<"aside"> & { invalidDraft?: boolean; closeOnOutsideEscape?: boolean }) {
   const panel = useRef<HTMLElement>(null);
+  const [commitState, setCommitState] = useState("Applied");
+  const [staged, setStaged] = useState(false);
+  const refreshStatus = useRef<() => void>(() => {});
+  const content = Children.toArray(children);
+  useLayoutEffect(() => refreshStatus.current(), [invalidDraft]);
   const baseline = useRef("");
   const initialized = useRef(false);
   const touched = useRef(false);
@@ -43,6 +50,7 @@ export function InspectorPanel({
     const element = panel.current;
     if (!element) return;
     const previousFocus = document.activeElement;
+    const focusFallback = element.closest(".app")?.querySelector<HTMLElement>(".workspace");
     if (!initialized.current) {
       baseline.current = snapshot(element);
       initialized.current = true;
@@ -51,6 +59,49 @@ export function InspectorPanel({
     const initialWidth = Number.isFinite(stored) && stored >= 300 ? clampWidth(stored) : 340;
     setWidth(initialWidth);
     element.closest<HTMLElement>(".app")?.style.setProperty("--properties-width", `${initialWidth}px`);
+    const isStaged = () =>
+      Boolean(element.querySelector('form button[type="submit"]')) ||
+      [...element.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Apply");
+    const isInvalid = () =>
+      invalidDraftRef.current ||
+      [...draftFields(element)].some((field) => !field.validity.valid || field.getAttribute("aria-invalid") === "true");
+    const refresh = () => {
+      setStaged(isStaged());
+      setCommitState(
+        isInvalid()
+          ? "Invalid changes — correct the highlighted fields"
+          : touched.current && baseline.current !== snapshot(element)
+            ? "Unapplied changes"
+            : "Applied",
+      );
+    };
+    refreshStatus.current = refresh;
+    refresh();
+    const changed = (event: Event) =>
+      queueMicrotask(() => {
+        const field = event.target;
+        if (
+          event.type === "change" &&
+          !isStaged() &&
+          !isInvalid() &&
+          (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type === "checkbox"))
+        ) {
+          baseline.current = snapshot(element);
+          touched.current = false;
+        }
+        refresh();
+      });
+    const blurred = () =>
+      requestAnimationFrame(() => {
+        if (!isStaged() && !isInvalid()) {
+          baseline.current = snapshot(element);
+          touched.current = false;
+        }
+        refresh();
+      });
+    element.addEventListener("input", changed);
+    element.addEventListener("change", changed);
+    element.addEventListener("focusout", blurred);
     const needsReview = () => {
       if (!touched.current || baseline.current === snapshot(element)) return false;
       const staged =
@@ -93,12 +144,19 @@ export function InspectorPanel({
       }
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || !element.contains(event.target as Node)) return;
-      // Nested menus and color pickers get first use of Escape.
-      if ((event.target as Element).closest('[role="menu"], .color-field-panel')) return;
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (!closeOnOutsideEscape && !element.contains(event.target as Node)) return;
+      // Modal dialogs, menus, and field popovers get first use of Escape.
+      if (sidePanelOverlayOpen()) return;
+      const close =
+        element.querySelector<HTMLButtonElement>('header button[aria-label^="Close"]') ??
+        [...element.querySelectorAll<HTMLButtonElement>(".inspector-actions button")].find(
+          (button) => button.textContent?.trim() === "Close",
+        );
+      if (!close) return;
       event.preventDefault();
-      event.stopPropagation();
-      element.querySelector<HTMLButtonElement>('header button[aria-label^="Close"]')?.click();
+      event.stopImmediatePropagation();
+      close.click();
     };
     const unload = (event: BeforeUnloadEvent) => {
       if (needsReview()) {
@@ -110,12 +168,14 @@ export function InspectorPanel({
       requestAnimationFrame(() => {
         baseline.current = snapshot(element);
         touched.current = false;
+        refresh();
       });
     const applied = (event: MouseEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest("button")?.textContent?.trim() === "Apply") submitted();
     };
     const guardShortcut = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && sidePanelOverlayOpen()) return;
       const target = event.target as Element | null;
       const outside = !element.contains(target);
       const closes =
@@ -133,21 +193,31 @@ export function InspectorPanel({
         event.stopImmediatePropagation();
       }
     };
+    const guardPanelChange = (event: Event) => {
+      if (!mayLeave()) event.preventDefault();
+    };
+    window.addEventListener("before-side-panel-change", guardPanelChange);
     window.addEventListener("keydown", guardShortcut, true);
     window.addEventListener("pointerdown", guard, true);
     window.addEventListener("click", guard, true);
     window.addEventListener("beforeunload", unload);
-    element.addEventListener("keydown", escape);
+    // Handle before the source editor consumes Escape when selection leaves focus there.
+    window.addEventListener("keydown", escape, true);
     element.addEventListener("submit", submitted);
     element.addEventListener("click", applied);
     if (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 850px)").matches)
       element.querySelector<HTMLButtonElement>('header button[aria-label^="Close"]')?.focus();
     return () => {
+      window.removeEventListener("before-side-panel-change", guardPanelChange);
       window.removeEventListener("keydown", guardShortcut, true);
       window.removeEventListener("pointerdown", guard, true);
       window.removeEventListener("click", guard, true);
       window.removeEventListener("beforeunload", unload);
-      element.removeEventListener("keydown", escape);
+      window.removeEventListener("keydown", escape, true);
+      element.removeEventListener("input", changed);
+      element.removeEventListener("change", changed);
+      element.removeEventListener("focusout", blurred);
+      refreshStatus.current = () => {};
       element.removeEventListener("submit", submitted);
       element.removeEventListener("click", applied);
       // Source updates and selection changes can replace a panel. Restore its
@@ -156,16 +226,14 @@ export function InspectorPanel({
         const replacement = [...document.querySelectorAll<HTMLElement>(".task-inspector")].some(
           (item) => !item.hidden && item.style.display !== "none",
         );
-        if (
-          !replacement &&
-          previousFocus instanceof HTMLElement &&
-          previousFocus.isConnected &&
-          (element.contains(document.activeElement) || document.activeElement === document.body)
-        )
-          previousFocus.focus({ preventScroll: true });
+        if (!replacement && (element.contains(document.activeElement) || document.activeElement === document.body)) {
+          const target =
+            previousFocus instanceof HTMLElement && previousFocus.isConnected ? previousFocus : focusFallback;
+          target?.focus({ preventScroll: true });
+        }
       });
     };
-  }, []);
+  }, [closeOnOutsideEscape]);
   return (
     <aside
       {...props}
@@ -209,7 +277,14 @@ export function InspectorPanel({
           dragStart.current = undefined;
         }}
       />
-      {children}
+      {content[0]}
+      <p className="inspector-commit-status" role="status" aria-label="Property commit status">
+        <strong>{commitState}</strong> ·{" "}
+        {staged
+          ? "Choose Apply to commit edits."
+          : "Valid changes apply automatically; text fields apply when you leave them."}
+      </p>
+      {content.slice(1)}
     </aside>
   );
 }

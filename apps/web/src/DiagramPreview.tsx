@@ -22,7 +22,7 @@ import {
 } from "./schedule-analysis";
 import { useRenderer } from "./render/use-renderer";
 import { decorateRemoteEditBadge } from "./render/remote-edit-badge";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast, hasDelayedForecastTask } from "./gantt-progress-forecast";
@@ -41,6 +41,7 @@ interface Props {
   dividers: readonly GanttDivider[];
   verticalSeparators: readonly GanttVerticalSeparator[];
   source: string;
+  initialFit?: InitialDiagramFit | undefined;
   zoom: number;
   onZoomChange(zoom: number): void;
   selectedTaskId?: string | undefined;
@@ -75,6 +76,11 @@ interface Props {
   onDependencyDelete(): void;
   onInteractionMessage(message: string | undefined): void;
   resourceFilter: string;
+  resourceNames?: readonly string[] | undefined;
+  onResourceFilterChange?: ((value: string) => void) | undefined;
+  scheduleMode?: "ask" | "single" | "cascade" | undefined;
+  onOpenGanttPreferences?: (() => void) | undefined;
+  onOpenCalendar?: (() => void) | undefined;
   scheduleGhost?: { taskIds: readonly string[]; days: number } | undefined;
   projectStart?: string | undefined;
   renderStatus: RenderStatus;
@@ -118,6 +124,7 @@ export type ProjectDiagramLink = {
 };
 
 export function DiagramPreview({
+  initialFit,
   svg,
   tasks,
   dependencies,
@@ -150,6 +157,11 @@ export function DiagramPreview({
   onDependencyDelete,
   onInteractionMessage,
   resourceFilter,
+  resourceNames = [],
+  onResourceFilterChange,
+  scheduleMode = "ask",
+  onOpenGanttPreferences,
+  onOpenCalendar,
   scheduleGhost,
   projectStart,
   renderStatus,
@@ -179,7 +191,7 @@ export function DiagramPreview({
   onApplyForecast,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
-  const navigation = useDiagramNavigation(zoom, onZoomChange);
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const viewportRef = navigation.viewportRef;
   const feedbackRef = useRef<HTMLOutputElement>(null);
   const pointerTaskIdRef = useRef<string | undefined>(undefined);
@@ -1142,85 +1154,85 @@ export function DiagramPreview({
     >
       <div className="preview-tools">
         <div className="gantt-preview-tools-main">
+          <div className="gantt-control-group" role="group" aria-label="Task navigation">
+            <span className="gantt-control-label">Navigate</span>
+            {!progressForecast?.enabled && (
+              <>
+                <button
+                  data-inspector-trigger
+                  onClick={() => adjacentTask(-1)}
+                  aria-label="Previous task"
+                  title="Select and reveal the previous task; source stays unchanged"
+                >
+                  ↑
+                </button>
+                <button
+                  data-inspector-trigger
+                  onClick={() => adjacentTask(1)}
+                  aria-label="Next task"
+                  title="Select and reveal the next task; source stays unchanged"
+                >
+                  ↓
+                </button>
+                <button
+                  data-inspector-trigger
+                  onClick={() => revealTask(selectedTaskId)}
+                  disabled={!selectedTaskId}
+                  aria-label="Jump to selected task"
+                >
+                  Selected
+                </button>
+              </>
+            )}
+            <button
+              onClick={() =>
+                progressForecast?.enabled
+                  ? onProgressForecastChange?.({
+                      enabled: true,
+                      remainingDays: progressForecast.remainingDays,
+                      ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
+                    })
+                  : jumpToday()
+              }
+              aria-label={
+                progressForecast?.enabled ? `Set forecast date to today in ${forecastTimeZone}` : "Jump to today"
+              }
+            >
+              Today
+            </button>
+          </div>
           {!progressForecast?.enabled && (
             <>
-              <button data-inspector-trigger onClick={() => adjacentTask(-1)} aria-label="Previous task">
-                ↑
-              </button>
-              <button data-inspector-trigger onClick={() => adjacentTask(1)} aria-label="Next task">
-                ↓
-              </button>
-              <button
-                data-inspector-trigger
-                onClick={() => revealTask(selectedTaskId)}
-                disabled={!selectedTaskId}
-                aria-label="Jump to selected task"
-              >
-                Selected
-              </button>
-            </>
-          )}
-          <button
-            onClick={() =>
-              progressForecast?.enabled
-                ? onProgressForecastChange?.({
-                    enabled: true,
-                    remainingDays: progressForecast.remainingDays,
-                    ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
-                  })
-                : jumpToday()
-            }
-            aria-label={
-              progressForecast?.enabled ? `Set forecast date to today in ${forecastTimeZone}` : "Jump to today"
-            }
-          >
-            Today
-          </button>
-          {!progressForecast?.enabled && (
-            <>
-              <button
-                type="button"
-                onClick={navigation.fit}
-                aria-label="Fit diagram"
-                title="Fit the diagram in the visible canvas"
-              >
-                Fit
-              </button>
-              <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
-                −
-              </button>
-              <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
-                {Math.round(zoom * 100)}%
-              </button>
-              <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
-                +
-              </button>
-              <select
-                aria-label="Timeline zoom preset"
-                value=""
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value === "fit") {
-                    onZoomChange(1);
-                    viewportRef.current?.scrollTo({ left: 0, top: 0, behavior: "smooth" });
-                  } else onZoomChange(value === "day" ? 2 : value === "week" ? 1.35 : 0.8);
-                }}
-              >
-                <option value="" disabled>
-                  View
-                </option>
-                <option value="day">Day</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
-                <option value="fit">Fit project</option>
-              </select>
-              <button
-                type="button"
-                aria-pressed={showCriticalPath}
-                onClick={() => setShowCriticalPath((value) => !value)}
-              >
-                Critical path
-              </button>
+              <div className="gantt-control-group" role="group" aria-label="Preview zoom">
+                <span className="gantt-control-label">Preview zoom</span>
+                <button
+                  type="button"
+                  onClick={navigation.fit}
+                  aria-label="Fit diagram"
+                  title="Fit the diagram in the visible canvas"
+                >
+                  Fit
+                </button>
+                <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
+                  −
+                </button>
+                <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
+                  {Math.round(zoom * 100)}%
+                </button>
+                <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
+                  +
+                </button>
+              </div>
+              <div className="gantt-control-group" role="group" aria-label="Overlays">
+                <span className="gantt-control-label">Overlays</span>
+                <button
+                  type="button"
+                  aria-pressed={showCriticalPath}
+                  onClick={() => setShowCriticalPath((value) => !value)}
+                >
+                  Critical path
+                </button>
+              </div>
             </>
           )}
           {selectedDependencyIndex !== undefined && (
@@ -1229,7 +1241,8 @@ export function DiagramPreview({
             </button>
           )}
         </div>
-        <div className="gantt-preview-tools-forecast">
+        <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
+          <span className="gantt-control-label">Forecast</span>
           {progressForecastResult &&
             !progressForecastResult.unavailable &&
             hasDelayedForecastTask(progressForecastResult) &&
@@ -1283,6 +1296,50 @@ export function DiagramPreview({
           )}
         </div>
       </div>
+      <div className="gantt-context-controls">
+        <div className="gantt-control-group" role="group" aria-label="Schedule controls">
+          {onOpenCalendar && (
+            <button
+              data-inspector-trigger
+              onClick={onOpenCalendar}
+              title="Change the time axis in Calendar & schedule; Apply edits diagram source"
+            >
+              Timeline scale…
+            </button>
+          )}
+          {onOpenGanttPreferences && (
+            <button
+              onClick={onOpenGanttPreferences}
+              title="Change the default for task moves and rescheduling in Gantt preferences"
+            >
+              Move policy:{" "}
+              {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
+            </button>
+          )}
+        </div>
+        {onResourceFilterChange && (
+          <div className="gantt-control-group" role="group" aria-label="Resource filter">
+            <label className="resource-filter">
+              Filter by resource{" "}
+              <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
+                <option value="">All</option>
+                {resourceNames.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            {resourceFilter && (
+              <>
+                <strong>Showing: {resourceFilter}</strong>
+                <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <p className="gantt-controls-help">
+        View controls leave source unchanged. Timeline scale and task edits change the diagram.
+      </p>
       <div
         className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}
@@ -1805,10 +1862,17 @@ export function DiagramPreview({
         <span>Timeline</span>
         <input
           aria-label="Timeline position"
+          title="Scroll horizontally without editing source. Use arrow keys, Home or End."
           type="range"
           min="0"
           max="100"
           value={scrollPercent}
+          onKeyDown={(event) => {
+            if (event.key !== "Home" && event.key !== "End") return;
+            event.preventDefault();
+            const viewport = viewportRef.current;
+            if (viewport) viewport.scrollLeft = event.key === "Home" ? 0 : viewport.scrollWidth - viewport.clientWidth;
+          }}
           onChange={(event) => {
             const viewport = viewportRef.current;
             if (viewport)

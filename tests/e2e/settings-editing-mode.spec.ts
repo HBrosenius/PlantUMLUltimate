@@ -17,7 +17,8 @@ test("editing mode switches between visual editing and split view and survives r
   let settings = await openSettings(page);
   await settings.getByRole("radio", { name: "Diagram only", exact: true }).check();
   await settings.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(viewModes.getByRole("button")).toHaveCount(1);
+  await expect(viewModes.getByRole("button")).toHaveCount(4);
+  await expect(viewModes.getByRole("button", { name: "Diagram", exact: true })).toHaveClass(/active/);
   await expect(page.locator(".cm-content")).toHaveCount(0);
   settings = await openSettings(page);
   await expect(settings.getByRole("radio", { name: "Diagram only", exact: true })).toBeChecked();
@@ -48,8 +49,8 @@ test("cancel leaves the current editing mode unchanged", async ({ page }) => {
 
 for (const width of [390, 1280]) {
   test(`editing mode previews fit and support keyboard selection at ${width}px`, async ({ page }, testInfo) => {
-    await page.setViewportSize({ width, height: 900 });
     await prepareEditor(page);
+    await page.setViewportSize({ width, height: 900 });
     const settings = await openSettings(page);
     const group = settings.getByRole("radiogroup", { name: "Editing mode" });
     const visual = group.getByRole("radio", { name: "Diagram only", exact: true });

@@ -817,3 +817,16 @@ describe("resizeTaskByDays", () => {
     expect(resizeTaskByDays(task, -2).unavailableReason).toContain("at least one day");
   });
 });
+
+it("preserves an explicit alias matching the old label when renaming a task", () => {
+  const source =
+    "@startgantt\n[Build] as [build] lasts 3 days\n[build] is 20% completed\n[Build] links to [[https://example.com]]\n[Ship] lasts 1 day\n[Ship] starts at [build]'s end\n@endgantt";
+  const document = parseGantt(source).document;
+  const task = document.symbols.tasks.get("build")!;
+  const after = applySourceEdits(source, renameTask(source, document, task, "Delivery").edits);
+  expect(after).toContain("[Delivery] as [build] lasts 3 days");
+  expect(after).toContain("[build] is 20% completed");
+  expect(after).toContain("[Delivery] links to [[https://example.com]]");
+  expect(after).toContain("[Ship] starts at [build]'s end");
+  expect(parseGantt(after).document.symbols.tasks.get("build")?.label).toBe("Delivery");
+});

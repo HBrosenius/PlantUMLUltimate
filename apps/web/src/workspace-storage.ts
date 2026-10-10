@@ -6,6 +6,7 @@ import { validForecastTimeZone } from "./forecast-date";
 import { reportStorageWrite, reportWorkspaceBackend } from "./storage-health";
 
 export interface WorkspaceSnapshot {
+  startupMode?: "restore" | "chooser" | undefined;
   diagramKind: DiagramKind;
   source: string;
   fileName: string;
@@ -20,6 +21,12 @@ export interface WorkspaceSnapshot {
 }
 
 export interface DocumentSnapshot {
+  viewMode?: ViewMode | undefined;
+  /** False until the first fit or explicit zoom; older recovery keeps its saved zoom. */
+  zoomInitialized?: boolean | undefined;
+  displayName?: string | undefined;
+  /** Last confirmed file-copy outcome; omitted for older recovery records. */
+  fileCopy?: "new" | "file" | "download" | undefined;
   reportingHistory?: import("@plantuml-studio/document-format").ReportingObservation[] | undefined;
   id: string;
   historyId: string;
@@ -46,6 +53,7 @@ export interface DocumentSnapshot {
 }
 
 export interface WorkspaceSession {
+  startupMode?: "restore" | "chooser" | undefined;
   version: 7;
   recoverySavedAt?: number;
   documents: DocumentSnapshot[];
@@ -59,6 +67,7 @@ export interface WorkspaceSession {
 }
 
 export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
+  startupMode: "restore",
   diagramKind: "gantt",
   source: DEFAULT_SOURCE,
   fileName: "untitled.pumlu",
@@ -73,10 +82,13 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
 };
 
 export const DEFAULT_SESSION: WorkspaceSession = {
+  startupMode: "restore",
   version: 7,
   documents: [
     {
       id: "welcome",
+      zoomInitialized: false,
+      fileCopy: "new",
       historyId: "history-welcome",
       diagramKind: "gantt",
       source: DEFAULT_SOURCE,
@@ -87,10 +99,10 @@ export const DEFAULT_SESSION: WorkspaceSession = {
     },
   ],
   activeDocumentId: "welcome",
-  viewMode: "diagram",
+  viewMode: "split",
   splitPercent: 50,
   theme: "system",
-  advancedMode: false,
+  advancedMode: true,
   defaultDiagramTheme: "",
   onboarded: false,
 };
@@ -186,7 +198,15 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           diagramKind,
           source,
           fileName: item.fileName || "untitled.puml",
+          ...(typeof item.displayName === "string" && item.displayName.trim()
+            ? { displayName: item.displayName.trim() }
+            : {}),
           dirty: Boolean(item.dirty) || source !== item.source,
+          ...(["new", "file", "download"].includes(item.fileCopy ?? "") ? { fileCopy: item.fileCopy } : {}),
+          ...(["code", "split", "diagram"].includes(item.viewMode as string)
+            ? { viewMode: item.viewMode as ViewMode }
+            : {}),
+          ...(typeof item.zoomInitialized === "boolean" ? { zoomInitialized: item.zoomInitialized } : {}),
           zoom: Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, Number(item.zoom) || 1)),
           cursor: {
             line: Math.max(1, Number(item.cursor?.line) || 1),
@@ -264,6 +284,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       advancedMode: candidate.advancedMode ?? true,
       defaultDiagramTheme: typeof candidate.defaultDiagramTheme === "string" ? candidate.defaultDiagramTheme : "",
       onboarded: candidate.onboarded ?? true,
+      startupMode: candidate.startupMode === "chooser" ? "chooser" : "restore",
     };
   }
   const legacy = normalizeWorkspace(value);
@@ -313,7 +334,8 @@ export function activeWorkspace(session: WorkspaceSession): WorkspaceSnapshot {
     dirty: document.dirty,
     zoom: document.zoom,
     cursor: document.cursor,
-    viewMode: session.viewMode,
+    startupMode: session.startupMode ?? "restore",
+    viewMode: document.viewMode ?? session.viewMode,
     splitPercent: session.splitPercent,
     theme: session.theme,
     advancedMode: session.advancedMode,
@@ -322,19 +344,25 @@ export function activeWorkspace(session: WorkspaceSession): WorkspaceSnapshot {
 }
 
 export function documentDisplayNames(
-  documents: readonly Pick<DocumentSnapshot, "id" | "fileName">[],
+  documents: readonly (Pick<DocumentSnapshot, "id" | "fileName"> &
+    Partial<Pick<DocumentSnapshot, "displayName" | "fileCopy" | "diagramKind">>)[],
 ): Map<string, string> {
+  const name = (document: (typeof documents)[number]) =>
+    document.displayName ||
+    (document.fileCopy === "new" &&
+    /^untitled\.(?:pumlu|puml|plantuml)$/i.test(document.fileName) &&
+    document.diagramKind
+      ? `${document.diagramKind === "wbs" ? "WBS" : document.diagramKind === "usecase" ? "Use Case" : document.diagramKind[0]!.toUpperCase() + document.diagramKind.slice(1)} diagram`
+      : document.fileName);
   const totals = new Map<string, number>();
-  for (const document of documents) totals.set(document.fileName, (totals.get(document.fileName) ?? 0) + 1);
+  for (const document of documents) totals.set(name(document), (totals.get(name(document)) ?? 0) + 1);
   const seen = new Map<string, number>();
   return new Map(
     documents.map((document) => {
-      const occurrence = (seen.get(document.fileName) ?? 0) + 1;
-      seen.set(document.fileName, occurrence);
-      return [
-        document.id,
-        (totals.get(document.fileName) ?? 0) > 1 ? `${document.fileName} (${occurrence})` : document.fileName,
-      ];
+      const label = name(document);
+      const occurrence = (seen.get(label) ?? 0) + 1;
+      seen.set(label, occurrence);
+      return [document.id, (totals.get(label) ?? 0) > 1 ? `${label} (${occurrence})` : label];
     }),
   );
 }

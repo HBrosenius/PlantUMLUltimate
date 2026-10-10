@@ -132,3 +132,38 @@ it("navigates visible diagnostics and previews the focused error with Alt Enter"
     container.remove();
   }
 });
+
+it("collapses generic guidance while leaving a specific remedy beside its issue", async () => {
+  const generic = { from: 0, to: 1, severity: "error" as const, message: "Unknown statement" };
+  const specific = { ...generic, from: 2, to: 3, message: "Invalid duration" };
+  vi.mocked(groupDiagnostics).mockReturnValue([
+    { root: generic, related: [] },
+    { root: specific, related: [] },
+  ]);
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  try {
+    await act(async () =>
+      root.render(
+        <ProblemsPanel
+          diagramKind="gantt"
+          source="a\nb"
+          diagnostics={[generic, specific]}
+          quickFixes={[]}
+          onReveal={vi.fn()}
+          onPreviewFix={vi.fn()}
+          onPreviewDiagnostic={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      ),
+    );
+    const guidance = container.querySelector<HTMLDetailsElement>("details.problem-guidance")!;
+    expect(guidance.open).toBe(false);
+    expect(guidance.textContent).toContain("No automatic correction");
+    const buttons = container.querySelectorAll("[data-problem-diagnostic]");
+    expect(buttons[0]!.textContent).not.toContain("No automatic correction");
+    expect(buttons[1]!.textContent).toContain("positive value");
+  } finally {
+    await act(async () => root.unmount());
+  }
+});

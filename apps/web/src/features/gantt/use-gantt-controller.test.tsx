@@ -13,18 +13,14 @@ describe("useGanttController", () => {
       initialProps: { kind: "gantt" as DiagramKind },
     });
     act(() => {
-      result.current.setProjectInspectorOpen(true);
       result.current.setLegendInspectorOpen(true);
       result.current.setHighlightDate("2026-09-18");
       result.current.setResourceFilter("Backend");
-      result.current.setResourcePanelOpen(true);
     });
     rerender({ kind: "class" });
-    expect(result.current.projectInspectorOpen).toBe(false);
     expect(result.current.legendInspectorOpen).toBe(false);
     expect(result.current.highlightDate).toBeUndefined();
     expect(result.current.resourceFilter).toBe("");
-    expect(result.current.resourcePanelOpen).toBe(false);
   });
 
   it("persists the chosen schedule mode", () => {

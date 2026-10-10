@@ -126,6 +126,8 @@ export function TaskInspector({
     if (!focusNote) return;
     const note = noteRef.current;
     if (!note) return;
+    const section = note.closest("details");
+    if (section) section.open = true;
     note.focus();
     note.setSelectionRange(note.value.length, note.value.length);
   }, [focusNote]);
@@ -172,9 +174,6 @@ export function TaskInspector({
           </span>
         </p>
       )}
-      <p className="inspector-note">
-        Changes apply when you leave a field. Invalid values stay in this panel until corrected or discarded.
-      </p>
       {!validTaskDraft(value) && (
         <p className="field-error" role="status">
           Some changes cannot be applied. Check the name, duration, completion, and resource assignments.
@@ -197,44 +196,6 @@ export function TaskInspector({
                 Enter a task name.
               </span>
             )}
-          </label>
-        </InspectorSection>
-        <InspectorSection title="Dependencies">
-          <label>
-            Linked task
-            <select
-              aria-label="Linked task"
-              value={value.predecessorId}
-              onChange={(event) => update("predecessorId", event.target.value, true)}
-            >
-              <option value="">No dependency</option>
-              {tasks
-                .filter((item) => item.id !== task.id)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label>
-            Relationship
-            <select
-              aria-label="Relationship"
-              value={value.dependencyRelation}
-              onChange={(event) =>
-                update(
-                  "dependencyRelation",
-                  event.target.value as GanttDependency["relation"],
-                  Boolean(value.predecessorId),
-                )
-              }
-            >
-              <option value="start-after-end">Starts at linked task's end</option>
-              <option value="start-after-start">Starts at linked task's start</option>
-              <option value="end-after-end">Ends at linked task's end</option>
-              <option value="end-after-start">Ends at linked task's start</option>
-            </select>
           </label>
         </InspectorSection>
         <InspectorSection title="Schedule">
@@ -261,9 +222,13 @@ export function TaskInspector({
               onBlur={() => apply()}
             />
           </label>
-          {value.predecessorId && value.dependencyRelation.startsWith("end-") && value.endDate === effectiveEnd && (
-            <p className="calculated-hint">Calculated from dependency. Edit the date to override it.</p>
-          )}
+          <p className="calculated-hint">
+            {value.scheduleMode === "duration"
+              ? "Calculated end: start + duration using the working calendar. Switch to end date to store an explicit end."
+              : task.end
+                ? "Explicit end date stored in source. Switch to duration to calculate the end from working time."
+                : "End date calculated from the linked task. Editing it stores an explicit override."}
+          </p>
           <div className="schedule-conversion" role="group" aria-label="Convert task schedule">
             <button
               type="button"
@@ -313,8 +278,11 @@ export function TaskInspector({
               </select>
             </span>
           </label>
+          <p className="calculated-hint">
+            Duration uses the working calendar; closed days can make the calendar span longer.
+          </p>
           <label>
-            Complete
+            Progress (%)
             <input
               type="number"
               min="0"
@@ -327,7 +295,51 @@ export function TaskInspector({
             />
           </label>
         </InspectorSection>
-        <InspectorSection title="Appearance">
+        <InspectorSection title="Dependencies">
+          <label>
+            Linked task
+            <select
+              aria-label="Linked task"
+              value={value.predecessorId}
+              onChange={(event) => update("predecessorId", event.target.value, true)}
+            >
+              <option value="">No dependency</option>
+              {tasks
+                .filter((item) => item.id !== task.id)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            Relationship
+            <select
+              aria-label="Relationship"
+              value={value.dependencyRelation}
+              onChange={(event) =>
+                update(
+                  "dependencyRelation",
+                  event.target.value as GanttDependency["relation"],
+                  Boolean(value.predecessorId),
+                )
+              }
+            >
+              <option value="start-after-end">Starts at linked task's end</option>
+              <option value="start-after-start">Starts at linked task's start</option>
+              <option value="end-after-end">Ends at linked task's end</option>
+              <option value="end-after-start">Ends at linked task's start</option>
+            </select>
+          </label>
+        </InspectorSection>
+        <InspectorSection
+          title="Appearance"
+          rememberKey="gantt.appearance"
+          defaultOpen={Boolean(
+            value.color || value.pauses.length || value.links.length || value.note || value.sameRowTaskId,
+          )}
+        >
           <ColorField value={value.color} onChange={(color) => update("color", color)} onBlur={() => apply()} />
           <fieldset className="structured-rows">
             <legend>Pauses</legend>
@@ -452,7 +464,7 @@ export function TaskInspector({
             />
           </label>
         </InspectorSection>
-        <InspectorSection title="Resources">
+        <InspectorSection title="Resources" rememberKey="gantt.resources" defaultOpen={value.resources.length > 0}>
           <fieldset className="resource-assignments">
             <legend>People</legend>
             <div className="resource-headings">

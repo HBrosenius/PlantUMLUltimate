@@ -150,4 +150,16 @@ describe("safe workspace restoration", () => {
     expect(importDocumentVersions).not.toHaveBeenCalled();
     expect(input.tabs.restoreSession).not.toHaveBeenCalled();
   });
+  it("preserves personal starter styling instead of applying the new-diagram default", () => {
+    const input = options();
+    input.defaultDiagramTheme = "minty";
+    const { result } = renderHook(() => useWorkspaceDocuments(input));
+    const source = "@startuml\n!theme cerulean\nAlice -> Bob: Hello\n@enduml";
+    act(() => result.current.createDocument("sequence", { title: "My sequence", source, personal: true }));
+    expect(input.tabs.addDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ source, displayName: "My sequence" }),
+    );
+    expect(input.tabs.closeDocument).not.toHaveBeenCalled();
+    expect(input.fileHandles.current.size).toBe(1);
+  });
 });

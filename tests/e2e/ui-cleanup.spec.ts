@@ -12,7 +12,9 @@ test("keeps both toolbars usable across desktop and phone layouts", async ({ pag
     await expect(page.getByRole("button", { name: "Workload", exact: true })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toBeVisible();
     await expect(
-      page.getByRole("navigation", { name: "View mode" }).getByRole("button", { name: "Split", exact: true }),
+      page
+        .getByRole("navigation", { name: "View mode" })
+        .getByRole("button", { name: width <= 600 ? "Diagram" : "Split", exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Calendar & schedule" }).click();
     const panel = page.getByRole("complementary", { name: "Project and calendar inspector" });
@@ -72,8 +74,6 @@ test("opens secondary actions by keyboard and restores the trigger on Escape", a
   await more.focus();
   await more.press("ArrowDown");
   const menu = page.getByRole("menu", { name: "More", exact: true });
-  await expect(menu.getByRole("menuitem", { name: "Reports…" })).toBeFocused();
-  await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Settings…" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Help" })).toBeFocused();
@@ -149,4 +149,86 @@ test("keeps controls and properties reachable at doubled UI scale", async ({ pag
   await expect(page.locator(".cm-content")).toContainText("Large UI");
   const save = await page.getByRole("button", { name: "Save", exact: true }).boundingBox();
   expect(save!.x + save!.width).toBeLessThanOrEqual(1280);
+});
+
+test("gives Calendar, Workload, Issues, and task properties one side-panel owner", async ({ page }, testInfo) => {
+  await prepareEditor(page);
+  await setSource(page, source("[Build] on {Alice} lasts 3 days"));
+  const workload = page.getByRole("complementary", { name: "Resource workload" });
+  const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
+  await page.getByRole("button", { name: "Workload", exact: true }).click();
+  await expect(workload).toBeVisible();
+  await page.getByRole("button", { name: "Calendar & schedule" }).click();
+  await expect(calendar).toBeVisible();
+  await expect(workload).toBeHidden();
+  await expect(page.locator(".task-inspector:visible")).toHaveCount(1);
+  await page.screenshot({ path: testInfo.outputPath("calendar-exclusive.png") });
+  await calendar.getByLabel("Diagram title", { exact: true }).fill("Retained draft");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "Workload", exact: true }).click();
+  await expect(calendar.getByLabel("Diagram title", { exact: true })).toHaveValue("Retained draft");
+  await expect(workload).toBeHidden();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Workload", exact: true }).click();
+  await expect(workload).toBeVisible();
+  await expect(calendar).toBeHidden();
+  await expect(page.locator(".task-inspector:visible")).toHaveCount(1);
+  expect((await page.getByRole("region", { name: "Diagram preview" }).boundingBox())!.width).toBeGreaterThan(200);
+  await page.screenshot({ path: testInfo.outputPath("workload-exclusive.png") });
+  await workload.getByRole("button", { name: "Rename Alice", exact: true }).click();
+  await workload.getByRole("textbox", { name: "New name for Alice" }).fill("Alice draft");
+  await page.getByRole("button", { name: "Workload", exact: true }).focus();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.keyboard.press("Escape");
+  await expect(workload.getByRole("textbox", { name: "New name for Alice" })).toHaveValue("Alice draft");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.keyboard.press("Escape");
+  await expect(workload).toBeHidden();
+  await expect(page.getByRole("button", { name: "Workload", exact: true })).toBeFocused();
+  await expect(page.locator(".cm-content")).not.toContainText("Alice draft");
+  await page.getByRole("button", { name: "Workload", exact: true }).click();
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  const issues = page.getByRole("complementary", { name: "Issues", exact: true });
+  await expect(issues).toBeVisible();
+  await expect(workload).toBeHidden();
+  await page.getByRole("button", { name: "Select Build", exact: true }).click();
+  const task = page.getByRole("complementary", { name: "Task inspector", exact: true });
+  await expect(task).toBeVisible();
+  await expect(issues).toBeHidden();
+  await page.getByRole("button", { name: /^Issues/ }).click();
+  await expect(issues).toBeVisible();
+  await expect(task).toBeHidden();
+  await issues.getByRole("button", { name: "Close issues", exact: true }).focus();
+  await page.keyboard.press("Escape");
+  await expect(issues).toBeHidden();
+  await expect(page.getByRole("button", { name: /^Issues/ })).toBeFocused();
+});
+
+test("labels a retained preview by its rendered revision and recovers on undo", async ({ page }) => {
+  await prepareEditor(page);
+  const valid = source("[Build] lasts 3 days");
+  await setSource(page, valid);
+  const label = page.locator(".render-details summary");
+  await expect(label).toHaveText("Preview current");
+  const bars = page.locator(".diagram svg rect[data-visual-task-id]");
+  const geometry = () =>
+    bars.evaluateAll((elements) =>
+      elements.map((element) => ["x", "y", "width", "height"].map((name) => element.getAttribute(name))),
+    );
+  const before = await geometry();
+  const { fillSource } = await import("./editor-helpers");
+  await fillSource(
+    page,
+    source(
+      "monday are closed\ntuesday are closed\nwednesday are closed\nthursday are closed\nfriday are closed\nsaturday are closed\nsunday are closed\n[Build] lasts 3 days",
+    ),
+  );
+  await expect(page.locator(".preview[data-render-status]")).toHaveAttribute("data-render-status", "error");
+  await expect(label).toHaveText("Showing last valid preview");
+  await expect(page.locator(".diagram svg")).toBeVisible();
+  await expect(page.locator(".diagram svg")).toContainText("Build");
+  expect(await geometry()).toEqual(before);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".cm-content .cm-line")).toHaveText(valid.split("\n"));
+  await expect(label).toHaveText("Preview current");
 });
