@@ -118,6 +118,16 @@ function pwaServiceWorker(): Plugin {
   };
 }
 
+export function jiraDevelopmentOrigin(
+  origin: string | undefined,
+  host: string | undefined,
+  method: string | undefined,
+): string | undefined {
+  if ((!origin && method === "GET") || (host && (origin === `http://${host}` || origin === `https://${host}`)))
+    return "http://localhost:5173";
+  return origin;
+}
+
 export default defineConfig({
   base: "/",
   plugins: [react(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
@@ -128,6 +138,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/__jira/, ""),
         configure(proxy) {
+          proxy.on("proxyReq", (upstream, request) => {
+            const origin = jiraDevelopmentOrigin(request.headers.origin, request.headers.host, request.method);
+            if (origin) upstream.setHeader("Origin", origin);
+          });
           proxy.on("proxyRes", (response) => {
             const cookies = response.headers["set-cookie"];
             if (cookies)
