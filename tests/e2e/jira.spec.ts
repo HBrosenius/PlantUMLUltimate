@@ -198,7 +198,7 @@ test("disconnects Jira without exposing credentials to the browser", async ({ pa
   await expect(dialog.getByLabel("Jira site")).toHaveValue("cloud-1");
   await dialog.getByRole("button", { name: "Disconnect" }).click();
 
-  await expect(dialog.getByRole("button", { name: "Connect Jira" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Connect with Atlassian OAuth" })).toBeVisible();
   expect(requests.some((request) => request.url === "/api/disconnect" && request.method === "POST")).toBe(true);
   expect(requests.every((request) => !JSON.stringify(request).toLowerCase().includes("client_secret"))).toBe(true);
 });
@@ -225,7 +225,7 @@ test("recovers from an expired Jira session and reports OAuth denial", async ({ 
   await openJira(page);
 
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
-  const connect = dialog.getByRole("button", { name: "Connect Jira" });
+  const connect = dialog.getByRole("button", { name: "Connect with Atlassian OAuth" });
   await expect(connect).toBeVisible();
   await expect(dialog.getByRole("alert")).toHaveCount(0);
   await connect.click();
@@ -274,7 +274,7 @@ test("keeps disconnect available when loading Jira fields fails", async ({ page 
   const dialog = page.getByRole("dialog", { name: "Jira integration" });
   await expect(dialog.getByRole("alert")).toContainText("Atlassian is temporarily unavailable");
   await dialog.getByRole("button", { name: "Disconnect" }).click();
-  await expect(dialog.getByRole("button", { name: "Connect Jira" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Connect with Atlassian OAuth" })).toBeVisible();
   expect(requests).toContain("POST /api/disconnect");
 });
 
