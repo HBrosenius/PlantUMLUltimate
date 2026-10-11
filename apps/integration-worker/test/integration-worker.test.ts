@@ -358,6 +358,8 @@ describe("Jira API token connection", () => {
   }
   it("verifies credentials, keeps them private, reuses the cloud ID, and disconnects", async () => {
     const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      // Workerd rejects redirect: "error"; never follow redirects carrying credentials.
+      expect(init?.redirect).toBe("manual");
       if (String(input).endsWith("/_edge/tenant_info")) return Response.json({ cloudId: "cloud-1" });
       expect(new Headers(init?.headers).get("Authorization")).toBe(`Basic ${btoa("user@example.com:secret-token")}`);
       return Response.json(String(input).endsWith("/field") ? [] : { accountId: "user-1" });

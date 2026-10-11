@@ -343,6 +343,7 @@ async function jiraFetch(
       : `Bearer ${payload.accessToken}`;
   return fetch(`${base}${path}`, {
     ...init,
+    redirect: "manual",
     headers: { Authorization: authorization, Accept: "application/json", ...init?.headers },
   });
 }
@@ -384,17 +385,17 @@ async function connectApiToken(request: Request, env: Env): Promise<Response> {
     accessExpiresAt: 0,
     resources: [{ id: site.hostname, url: site.origin, name: site.hostname, scopes: [] }],
   };
-  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, { redirect: "error" });
+  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, { redirect: "manual" });
   if (!tenantResponse.ok) return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
   const tenant = await limitedJson<{ cloudId?: unknown }>(tenantResponse);
   if (typeof tenant.cloudId !== "string" || !tenant.cloudId)
     return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
   payload.resources[0]!.id = tenant.cloudId;
-  let verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "error" });
+  let verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "manual" });
   if (verified.status === 401 || verified.status === 403) {
     // Scoped API tokens must use Atlassian's gateway rather than the site URL.
     payload.tokenGateway = true;
-    verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "error" });
+    verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "manual" });
   }
   if (!verified.ok)
     return Response.json(
