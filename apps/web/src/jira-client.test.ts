@@ -127,3 +127,10 @@ it("sends API credentials in the POST body with the session cookie", async () =>
     body: JSON.stringify(credentials),
   });
 });
+
+it("uses the same-origin development proxy for the hosted Jira service", async () => {
+  const outbound = vi.fn(async () => Response.json({ connected: true }));
+  vi.stubGlobal("fetch", outbound);
+  await jiraConnection("https://jira.plantuml.brosenius.se");
+  expect(outbound).toHaveBeenCalledWith("/__jira/api/connection", expect.objectContaining({ credentials: "include" }));
+});

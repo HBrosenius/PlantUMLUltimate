@@ -49,3 +49,29 @@ it("connects with email and API token and links to Atlassian token creation", as
   fireEvent.click(screen.getByRole("button", { name: "Connect with API token" }));
   await waitFor(() => expect(screen.queryByLabelText("API token")).toBeNull());
 });
+
+it("reports a lost session after Jira accepts the token instead of silently returning to the form", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/api/connect-token")) return Response.json({ connected: true });
+      return Response.json({ connected: false }, { status: 401 });
+    }),
+  );
+  render(
+    <JiraDialog
+      endpoint="https://integrations.example"
+      source="@startgantt\n@endgantt"
+      binding={undefined}
+      readOnly={false}
+      onApply={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  await screen.findByLabelText("API token");
+  fireEvent.change(screen.getByLabelText("Jira site URL"), { target: { value: "https://acme.atlassian.net" } });
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.com" } });
+  fireEvent.change(screen.getByLabelText("API token"), { target: { value: "secret" } });
+  fireEvent.click(screen.getByRole("button", { name: "Connect with API token" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("browser could not keep the connection session");
+});

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const integrationOrigin = "https://jira.plantuml.brosenius.se";
+const integrationRoute = /(?:https:\/\/jira\.plantuml\.brosenius\.se|http:\/\/[^/]+\/__jira)\//;
 
 async function openGantt(page: Page) {
   await page.goto("/");
@@ -43,9 +43,10 @@ async function mockJira(
   fields = [{ id: "customfield_10042", name: "Start date", custom: true, type: "date" }],
 ) {
   const requests: Array<{ url: string; method: string; body?: unknown }> = [];
-  await page.route(`${integrationOrigin}/**`, async (route) => {
+  await page.route(integrationRoute, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    url.pathname = url.pathname.replace(/^\/__jira/, "");
     let body: unknown;
     if (request.postData()) body = request.postDataJSON();
     requests.push({ url: url.pathname + url.search, method: request.method(), body });
@@ -213,8 +214,9 @@ test("recovers from an expired Jira session and reports OAuth denial", async ({ 
       },
     });
   });
-  await page.route(`${integrationOrigin}/**`, async (route) => {
+  await page.route(integrationRoute, async (route) => {
     const url = new URL(route.request().url());
+    url.pathname = url.pathname.replace(/^\/__jira/, "");
     if (url.pathname === "/api/connection") {
       await route.fulfill({ status: 401, json: { error: "Jira session is invalid" } });
       return;
@@ -245,9 +247,10 @@ test("recovers from an expired Jira session and reports OAuth denial", async ({ 
 
 test("keeps disconnect available when loading Jira fields fails", async ({ page }) => {
   const requests: string[] = [];
-  await page.route(`${integrationOrigin}/**`, async (route) => {
+  await page.route(integrationRoute, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    url.pathname = url.pathname.replace(/^\/__jira/, "");
     requests.push(`${request.method()} ${url.pathname}`);
     if (url.pathname === "/api/connection") {
       await route.fulfill({
@@ -309,4 +312,46 @@ test("requires an explicit choice when a Jira refresh conflicts with a local edi
 
   await expect(editor).toContainText("Use the Jira title");
   await expect(editor).not.toContainText("Keep my local title");
+});
+
+test("keeps the token session on localhost through the Jira development proxy", async ({ page }) => {
+  await page.route("**/__jira/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/connect-token")) {
+      await route.fulfill({
+        json: { connected: true },
+        headers: { "Set-Cookie": "jira_session=local-test-session; Path=/__jira/; HttpOnly; SameSite=Lax" },
+      });
+      return;
+    }
+    if (path.endsWith("/connection")) {
+      const cookie = await request.headerValue("cookie");
+      const connected = cookie?.includes("jira_session=local-test-session") ?? false;
+      await route.fulfill({
+        json: {
+          connected,
+          sites: connected ? [{ id: "cloud-1", name: "Acme Jira", url: "https://acme.atlassian.net" }] : [],
+        },
+      });
+      return;
+    }
+    if (path.endsWith("/fields")) {
+      await route.fulfill({ json: { fields: [] } });
+      return;
+    }
+    await route.abort();
+  });
+  await openGantt(page);
+  await openJira(page);
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await dialog.getByLabel("Jira site URL").fill("https://acme.atlassian.net");
+  await dialog.getByLabel("Email address").fill("user@example.com");
+  await dialog.getByLabel("API token", { exact: true }).fill("test-token");
+  await dialog.getByRole("button", { name: "Connect with API token" }).click();
+  await expect(dialog.getByRole("combobox", { name: "Jira site" })).toHaveValue("cloud-1");
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  const session = (await page.context().cookies()).find((cookie) => cookie.name === "jira_session");
+  expect(session?.httpOnly).toBe(true);
+  expect(session?.path).toBe("/__jira/");
 });

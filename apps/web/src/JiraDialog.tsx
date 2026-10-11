@@ -103,12 +103,17 @@ export function JiraDialog({
   const dateFields = useMemo(() => fields.filter((field) => field.type === "date"), [fields]);
 
   const loadConnection = useCallback(
-    async (isActive: () => boolean = () => true) => {
+    async (isActive: () => boolean = () => true, requireSession = false) => {
       setLoading(true);
       setError(undefined);
       try {
         const connection = await jiraConnection(endpoint);
         if (!isActive()) return;
+        if (requireSession && (!connection.connected || !connection.sites?.length)) {
+          throw new Error(
+            "Jira accepted your credentials, but the browser could not keep the connection session. Restart the local development server and try again.",
+          );
+        }
         const nextSites = connection.sites ?? [];
         setSites(nextSites);
         setCloudId((current) => (nextSites.some((site) => site.id === current) ? current : (nextSites[0]?.id ?? "")));
@@ -407,7 +412,7 @@ export function JiraDialog({
                 try {
                   await connectJiraApiToken(endpoint, { siteUrl: tokenSite, email: tokenEmail, apiToken });
                   setApiToken("");
-                  await loadConnection();
+                  await loadConnection(() => true, true);
                 } catch (cause) {
                   setError(cause instanceof Error ? cause.message : "Could not connect to Jira");
                 } finally {

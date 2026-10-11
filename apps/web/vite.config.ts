@@ -121,6 +121,24 @@ function pwaServiceWorker(): Plugin {
 export default defineConfig({
   base: "/",
   plugins: [react(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
+  server: {
+    proxy: {
+      "/__jira/api/": {
+        target: "https://jira.plantuml.brosenius.se",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__jira/, ""),
+        configure(proxy) {
+          proxy.on("proxyRes", (response) => {
+            const cookies = response.headers["set-cookie"];
+            if (cookies)
+              response.headers["set-cookie"] = cookies.map((value) =>
+                value.replace(/;\s*Secure\b/gi, "").replace(/Path=\//gi, "Path=/__jira/"),
+              );
+          });
+        },
+      },
+    },
+  },
   worker: { format: "es" },
   build: {
     // PlantUML and Graphviz are intentionally emitted as large standalone assets and

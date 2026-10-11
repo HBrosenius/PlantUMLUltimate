@@ -61,7 +61,9 @@ class JiraRequestError extends Error {
 }
 
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${endpoint.replace(/\/$/, "")}${path}`, { ...init, credentials: "include" });
+  const base = endpoint.replace(/\/$/, "");
+  const apiBase = import.meta.env.DEV && base === "https://jira.plantuml.brosenius.se" ? "/__jira" : base;
+  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: "include" });
   if (!response.ok) {
     let message = `Jira request failed (${response.status})`;
     try {
