@@ -344,3 +344,98 @@ describe("Jira integration Worker", () => {
     expect(after.status).toBe(401);
   });
 });
+
+describe("Jira API token connection", () => {
+  const credentials = { siteUrl: "https://acme.atlassian.net", email: "user@example.com", apiToken: "secret-token" };
+  function request(body: unknown, origin = APP_ORIGIN) {
+    return exports.default.fetch(
+      new Request(`${WORKER_ORIGIN}/api/connect-token`, {
+        method: "POST",
+        headers: { Origin: origin, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+  it("verifies credentials, keeps them private, reuses the cloud ID, and disconnects", async () => {
+    const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/_edge/tenant_info")) return Response.json({ cloudId: "cloud-1" });
+      expect(new Headers(init?.headers).get("Authorization")).toBe(`Basic ${btoa("user@example.com:secret-token")}`);
+      return Response.json(String(input).endsWith("/field") ? [] : { accountId: "user-1" });
+    });
+    vi.stubGlobal("fetch", outbound);
+    const connected = await request(credentials);
+    expect(connected.status).toBe(200);
+    const body = await connected.text();
+    expect(body).toContain("cloud-1");
+    expect(body).not.toContain("secret-token");
+    expect(body).not.toContain("user@example.com");
+    const session = cookieValue(connected, "jira_session");
+    const headers = { Origin: APP_ORIGIN, Cookie: `jira_session=${session}` };
+    const fields = await exports.default.fetch(new Request(`${WORKER_ORIGIN}/api/fields?cloudId=cloud-1`, { headers }));
+    expect(fields.status).toBe(200);
+    expect(outbound).toHaveBeenCalledWith("https://acme.atlassian.net/rest/api/3/field", expect.anything());
+    await exports.default.fetch(new Request(`${WORKER_ORIGIN}/api/disconnect`, { method: "POST", headers }));
+    expect((await exports.default.fetch(new Request(`${WORKER_ORIGIN}/api/connection`, { headers }))).status).toBe(401);
+  });
+  it("rejects untrusted origins, sites and missing credentials before contacting Jira", async () => {
+    const outbound = vi.fn();
+    vi.stubGlobal("fetch", outbound);
+    expect((await request(credentials, "https://evil.example")).status).toBe(403);
+    for (const siteUrl of [
+      "http://acme.atlassian.net",
+      "https://evil.example",
+      "https://acme.atlassian.net/path",
+      "https://acme.atlassian.net.evil.example",
+    ])
+      expect((await request({ ...credentials, siteUrl })).status).toBe(400);
+    expect((await request({ ...credentials, apiToken: "" })).status).toBe(400);
+    expect(outbound).not.toHaveBeenCalled();
+  });
+  it("does not create a session when Jira rejects credentials", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).endsWith("/_edge/tenant_info")
+          ? Response.json({ cloudId: "cloud-1" })
+          : new Response(null, { status: 401 }),
+      ),
+    );
+    const response = await request(credentials);
+    expect(response.status).toBe(401);
+    expect(response.headers.get("Set-Cookie")).toBeNull();
+  });
+});
+
+it("uses the gateway for scoped tokens and remembers it for later requests", async () => {
+  const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/_edge/tenant_info")) return Response.json({ cloudId: "cloud-1" });
+    expect(new Headers(init?.headers).get("Authorization")).toBe(`Basic ${btoa("user@example.com:scoped-token")}`);
+    if (url.startsWith("https://acme.atlassian.net/")) return new Response(null, { status: 401 });
+    return Response.json(url.endsWith("/field") ? [] : { accountId: "user-1" });
+  });
+  vi.stubGlobal("fetch", outbound);
+  const response = await exports.default.fetch(
+    new Request(`${WORKER_ORIGIN}/api/connect-token`, {
+      method: "POST",
+      headers: { Origin: APP_ORIGIN, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        siteUrl: "https://acme.atlassian.net",
+        email: "user@example.com",
+        apiToken: "scoped-token",
+      }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  const session = cookieValue(response, "jira_session");
+  const fields = await exports.default.fetch(
+    new Request(`${WORKER_ORIGIN}/api/fields?cloudId=cloud-1`, {
+      headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${session}` },
+    }),
+  );
+  expect(fields.status).toBe(200);
+  expect(outbound).toHaveBeenCalledWith(
+    "https://api.atlassian.com/ex/jira/cloud-1/rest/api/3/field",
+    expect.anything(),
+  );
+});

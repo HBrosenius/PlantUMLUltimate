@@ -2892,6 +2892,15 @@ textarea:focus-visible,
   max-height: calc(100vh - 80px);
   overflow: auto;
 }
+.jira-token-form > label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.jira-token-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
 .jira-dialog > header {
   display: flex;
   align-items: flex-start;

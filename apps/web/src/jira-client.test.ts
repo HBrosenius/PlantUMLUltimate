@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   jiraAuthorizationUrl,
+  connectJiraApiToken,
   jiraConnection,
   jiraPopupReturnUrl,
   jiraUpdateIssues,
@@ -111,5 +112,18 @@ describe("Jira client", () => {
     expect(requests).toHaveLength(2);
     expect((requests[0] as { updates: unknown[] }).updates).toHaveLength(25);
     expect((requests[1] as { updates: unknown[] }).updates).toHaveLength(1);
+  });
+});
+
+it("sends API credentials in the POST body with the session cookie", async () => {
+  const outbound = vi.fn(async () => Response.json({ connected: true, sites: [] }));
+  vi.stubGlobal("fetch", outbound);
+  const credentials = { siteUrl: "https://acme.atlassian.net", email: "user@example.com", apiToken: "secret" };
+  await connectJiraApiToken("https://integrations.example/", credentials);
+  expect(outbound).toHaveBeenCalledWith("https://integrations.example/api/connect-token", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
   });
 });

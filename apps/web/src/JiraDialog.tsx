@@ -22,6 +22,7 @@ import {
 } from "@plantuml-studio/jira-integration";
 import {
   disconnectJira,
+  connectJiraApiToken,
   jiraAuthorizationUrl,
   jiraConnection,
   jiraFields,
@@ -81,6 +82,9 @@ export function JiraDialog({
   const currentSource = useRef(source);
   currentSource.current = source;
   useDialogFocus(dialog, onClose);
+  const [tokenSite, setTokenSite] = useState("");
+  const [tokenEmail, setTokenEmail] = useState("");
+  const [apiToken, setApiToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState<JiraSite[]>([]);
   const [cloudId, setCloudId] = useState(binding?.cloudId ?? "");
@@ -394,12 +398,78 @@ export function JiraDialog({
         ) : sites.length === 0 ? (
           <>
             <p>Connect Jira to choose a site and import issues. Credentials stay in the integration service.</p>
+            <form
+              className="jira-token-form"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setBusy(true);
+                setError(undefined);
+                try {
+                  await connectJiraApiToken(endpoint, { siteUrl: tokenSite, email: tokenEmail, apiToken });
+                  setApiToken("");
+                  await loadConnection();
+                } catch (cause) {
+                  setError(cause instanceof Error ? cause.message : "Could not connect to Jira");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <label>
+                Jira site URL
+                <input
+                  type="url"
+                  required
+                  placeholder="https://team.atlassian.net"
+                  value={tokenSite}
+                  onChange={(event) => setTokenSite(event.target.value)}
+                  disabled={busy}
+                />
+              </label>
+              <label>
+                Email address
+                <input
+                  type="email"
+                  required
+                  autoComplete="username"
+                  value={tokenEmail}
+                  onChange={(event) => setTokenEmail(event.target.value)}
+                  disabled={busy}
+                />
+              </label>
+              <label>
+                API token
+                <input
+                  type="password"
+                  required
+                  autoComplete="off"
+                  value={apiToken}
+                  onChange={(event) => setApiToken(event.target.value)}
+                  disabled={busy}
+                />
+              </label>
+              <p>
+                Create an{" "}
+                <a
+                  href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Atlassian API token
+                </a>{" "}
+                with access to read Jira issues, fields, and your user profile. To publish changes, also allow issue
+                updates. Tokens with and without scopes are supported.
+              </p>
+              <button type="submit" className="primary" disabled={busy}>
+                {busy ? "Connecting…" : "Connect with API token"}
+              </button>
+            </form>
             <div className="dialog-actions">
               <button type="button" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="primary" onClick={connect}>
-                Connect Jira
+              <button type="button" disabled={busy} onClick={connect}>
+                Connect with Atlassian OAuth
               </button>
             </div>
           </>

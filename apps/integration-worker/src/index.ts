@@ -21,6 +21,9 @@ interface TokenResponse {
 }
 
 interface SessionPayload {
+  authMethod?: "api-token";
+  email?: string;
+  tokenGateway?: boolean;
   accessToken: string;
   refreshToken?: string;
   accessExpiresAt: number;
@@ -254,7 +257,7 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
 }
 
 async function refreshTokens(payload: SessionPayload, env: Env): Promise<SessionPayload> {
-  if (payload.accessExpiresAt > nowSeconds() + 60) return payload;
+  if (payload.authMethod === "api-token" || payload.accessExpiresAt > nowSeconds() + 60) return payload;
   if (!payload.refreshToken) throw new InvalidSessionError("Jira connection needs authorization again");
   let response: Response;
   try {
@@ -328,16 +331,114 @@ async function jiraFetch(
   path: string,
   init?: RequestInit,
 ): Promise<Response> {
-  if (!resourceFor(payload, cloudId)) return Response.json({ error: "Jira site is not authorized" }, { status: 403 });
-  return fetch(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}${path}`, {
+  const resource = resourceFor(payload, cloudId);
+  if (!resource) return Response.json({ error: "Jira site is not authorized" }, { status: 403 });
+  const base =
+    payload.authMethod === "api-token" && !payload.tokenGateway
+      ? resource.url
+      : `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}`;
+  const authorization =
+    payload.authMethod === "api-token"
+      ? `Basic ${btoa(String.fromCharCode(...new TextEncoder().encode(`${payload.email}:${payload.accessToken}`)))}`
+      : `Bearer ${payload.accessToken}`;
+  return fetch(`${base}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${payload.accessToken}`, Accept: "application/json", ...init?.headers },
+    headers: { Authorization: authorization, Accept: "application/json", ...init?.headers },
   });
+}
+
+async function connectApiToken(request: Request, env: Env): Promise<Response> {
+  const body = await limitedJson<{ siteUrl?: unknown; email?: unknown; apiToken?: unknown }>(request);
+  let site: URL;
+  try {
+    site = new URL(typeof body.siteUrl === "string" ? body.siteUrl.trim() : "");
+  } catch {
+    return Response.json({ error: "Enter a Jira Cloud site URL" }, { status: 400 });
+  }
+  if (
+    site.protocol !== "https:" ||
+    !/^[a-z0-9-]+\.atlassian\.net$/.test(site.hostname) ||
+    site.port ||
+    site.username ||
+    site.password ||
+    site.search ||
+    site.hash ||
+    (site.pathname !== "/" && site.pathname !== "")
+  )
+    return Response.json(
+      { error: "Use your Jira Cloud site URL, such as https://team.atlassian.net" },
+      { status: 400 },
+    );
+  if (
+    typeof body.email !== "string" ||
+    !/^[^\s@:]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ||
+    typeof body.apiToken !== "string" ||
+    !body.apiToken.trim() ||
+    body.apiToken.length > 4096
+  )
+    return Response.json({ error: "Enter your Atlassian email address and API token" }, { status: 400 });
+  const payload: SessionPayload = {
+    authMethod: "api-token",
+    email: body.email.trim(),
+    accessToken: body.apiToken.trim(),
+    accessExpiresAt: 0,
+    resources: [{ id: site.hostname, url: site.origin, name: site.hostname, scopes: [] }],
+  };
+  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, { redirect: "error" });
+  if (!tenantResponse.ok) return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
+  const tenant = await limitedJson<{ cloudId?: unknown }>(tenantResponse);
+  if (typeof tenant.cloudId !== "string" || !tenant.cloudId)
+    return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
+  payload.resources[0]!.id = tenant.cloudId;
+  let verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "error" });
+  if (verified.status === 401 || verified.status === 403) {
+    // Scoped API tokens must use Atlassian's gateway rather than the site URL.
+    payload.tokenGateway = true;
+    verified = await jiraFetch(payload, tenant.cloudId, "/rest/api/3/myself", { redirect: "error" });
+  }
+  if (!verified.ok)
+    return Response.json(
+      {
+        error:
+          verified.status === 401 || verified.status === 403
+            ? "Jira rejected the connection. Check your Atlassian email, token expiry, Jira site access, and token scopes (including read:user:jira)."
+            : "Jira is temporarily unavailable; try again shortly",
+      },
+      { status: verified.status === 401 || verified.status === 403 ? verified.status : 503 },
+    );
+  const session = randomToken();
+  const timestamp = nowSeconds();
+  await env.JIRA_DB.prepare(
+    "INSERT INTO jira_sessions (session_hash, encrypted_payload, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+  )
+    .bind(
+      await tokenHash(session),
+      await encryptJson(payload, env.TOKEN_ENCRYPTION_KEY),
+      timestamp + SESSION_SECONDS,
+      timestamp,
+      timestamp,
+    )
+    .run();
+  const previous = cookies(request).get(SESSION_COOKIE);
+  if (previous)
+    await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
+      .bind(await tokenHash(previous))
+      .run();
+  return Response.json(
+    { connected: true, sites: payload.resources.map(({ id, url, name }) => ({ id, url, name })) },
+    {
+      headers: {
+        "Set-Cookie": cookie(SESSION_COOKIE, session, new URL(request.url), SESSION_SECONDS),
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
 
 async function apiRequest(request: Request, env: Env): Promise<Response> {
   if (!requestOriginAllowed(request, env)) return Response.json({ error: "Origin not allowed" }, { status: 403 });
   const url = new URL(request.url);
+  if (url.pathname === "/api/connect-token" && request.method === "POST") return connectApiToken(request, env);
   const rawSession = cookies(request).get(SESSION_COOKIE);
   if (url.pathname === "/api/disconnect" && request.method === "POST") {
     if (rawSession)

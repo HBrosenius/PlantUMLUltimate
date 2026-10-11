@@ -189,3 +189,14 @@ export function normalizeJiraIssue(issue: RawJiraIssue, startFieldId?: string): 
       : { assignee: null }),
   };
 }
+
+export async function connectJiraApiToken(
+  endpoint: string,
+  credentials: { siteUrl: string; email: string; apiToken: string },
+): Promise<JiraConnectionResponse> {
+  return apiJson(endpoint, "/api/connect-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  });
+}
