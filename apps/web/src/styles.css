@@ -5345,6 +5345,7 @@ textarea:focus-visible,
 }
 .project-add-diagram-form input,
 .project-add-diagram-form select,
+.project-link-form input,
 .project-link-form select,
 .project-links-workflow select {
   width: 100%;
@@ -5376,6 +5377,22 @@ textarea:focus-visible,
 }
 .project-link-form {
   margin-top: 2px;
+}
+.project-item-select {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+.project-item-select > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.project-item-select > div > span {
+  flex: 1 0 100%;
 }
 .project-create-link:disabled {
   cursor: not-allowed;

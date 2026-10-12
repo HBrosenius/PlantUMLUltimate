@@ -1,0 +1,155 @@
+{
+  "startedAtUtc": "2026-10-12T06:23:37.047Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-200",
+      "fileBytes": 61780,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1305.5803000000005,
+        "memberClickMs": 552.4895999999999,
+        "memberReadyMs": 2274.9144000000006
+      },
+      "initial": {
+        "wallMs": 4372.7076,
+        "engineMs": 948,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 556,
+        "domNodes": 5523,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 948 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…Update available"
+      },
+      "outline": {
+        "openMs": 363.1196,
+        "searchMs": 101.27399999999943,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 3441.389699999998
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3560.0174000000006
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1212.7960999999996
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1481.3562000000002,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 565.3250000000007,
+        "reopenMs": 2923.5125000000007,
+        "bytes": 210011,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61780,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1408.2925000000032,
+        "memberClickMs": 800.2184999999954,
+        "memberReadyMs": 3378.313399999999
+      },
+      "initial": {
+        "wallMs": 6072.003800000002,
+        "engineMs": 1180,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 533,
+        "domNodes": 5523,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1180 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 404.1203000000023,
+        "searchMs": 61.34410000000207,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2789.1135000000068
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2644.3280000000013
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1010.7441000000035
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2085.547400000003,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 722.254200000003,
+        "reopenMs": 3308.275100000006,
+        "bytes": 204848,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

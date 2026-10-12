@@ -2,6 +2,7 @@ import { hashSource } from "@plantuml-studio/document-format";
 import { canCreateLink, reverseImpact, type ProjectElement, type ProjectLink } from "@plantuml-studio/project-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { VirtualProject } from "./project-index";
+import { ProjectItemSelect } from "./ProjectItemSelect";
 import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
 
 function attentionMessage(project: VirtualProject, element: ProjectElement): string {
@@ -206,34 +207,24 @@ export function ProjectLinksPanel({
               setToId("");
             }}
           >
-            <label>
-              <span>1. Link from</span>
-              <select
-                value={fromId}
-                onChange={(event) => {
-                  setFromId(event.target.value);
-                  setToId("");
-                }}
-              >
-                <option value="">Choose the item that starts the link…</option>
-                {elements.map((element) => (
-                  <option key={element.id} value={element.id}>
-                    {elementLabel(element.id)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>2. Link to</span>
-              <select value={toId} disabled={!from} onChange={(event) => setToId(event.target.value)}>
-                <option value="">Choose what it relates to…</option>
-                {compatible.map((element) => (
-                  <option key={element.id} value={element.id}>
-                    {elementLabel(element.id)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ProjectItemSelect
+              label="1. Link from"
+              placeholder="Choose the item that starts the link…"
+              options={elements.map((element) => ({ id: element.id, label: elementLabel(element.id) }))}
+              value={fromId}
+              onChange={(id) => {
+                setFromId(id);
+                setToId("");
+              }}
+            />
+            <ProjectItemSelect
+              label="2. Link to"
+              placeholder="Choose what it relates to…"
+              options={compatible.map((element) => ({ id: element.id, label: elementLabel(element.id) }))}
+              value={toId}
+              disabled={!from}
+              onChange={setToId}
+            />
             <button type="submit" className="project-create-link" disabled={readOnly || !kind}>
               {kind === "relates" ? "Create WBS link" : `Create ${kind ?? ""} link`}
             </button>

@@ -544,6 +544,38 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
           stage("member-switching");
           record.memberSwitches = [];
           const navigator = page.getByRole("complementary", { name: "Document navigator", exact: true });
+          stage("link-selector");
+          const linksPanel = navigator.getByRole("region", { name: "Links between diagram items", exact: true });
+          const fromSelect = linksPanel.getByRole("combobox", { name: "1. Link from", exact: true });
+          const sourceSearch = linksPanel.getByRole("searchbox", { name: "Search link from items", exact: true });
+          await sourceSearch.waitFor();
+          if ((await fromSelect.locator("option").count()) > 102) throw new Error("Unbounded source selector");
+          await linksPanel.getByRole("button", { name: "Next link from items", exact: true }).click();
+          const wbsMembers = item.project.diagrams.filter((member) => member.document.current.diagramKind === "wbs");
+          const sourceMember = wbsMembers.at(-1);
+          const targetMember = wbsMembers.at(-2);
+          const sourceElement = item.project.elements.find((element) => element.documentId === sourceMember.id);
+          const targetElement = item.project.elements.find((element) => element.documentId === targetMember.id);
+          await sourceSearch.fill(`${sourceMember.name}:`);
+          await fromSelect.selectOption(sourceElement.id);
+          const toSelect = linksPanel.getByRole("combobox", { name: "2. Link to", exact: true });
+          await linksPanel
+            .getByRole("searchbox", { name: "Search link to items", exact: true })
+            .fill(`${targetMember.name}:`);
+          await toSelect.selectOption(targetElement.id);
+          await linksPanel.getByRole("button", { name: "Create WBS link", exact: true }).click();
+          const removeLinks = linksPanel.getByRole("button", { name: "Remove", exact: true });
+          await expect(removeLinks).toHaveCount(item.project.links.length + 1);
+          await removeLinks.last().click();
+          await expect(removeLinks).toHaveCount(item.project.links.length);
+          await sourceSearch.fill("");
+          await expect(fromSelect).toHaveValue(sourceElement.id);
+          record.linkSelector = {
+            paged: true,
+            searchedLateMembers: true,
+            createdAndRemovedLink: true,
+            selectionRetained: true,
+          };
           stage("document-search");
           const search = navigator.getByRole("searchbox", { name: "Find diagrams by name or type" });
           const lateMember = item.project.diagrams.at(-1);

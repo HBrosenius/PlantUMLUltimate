@@ -1,0 +1,79 @@
+{
+  "startedAtUtc": "2026-10-12T06:11:55.925Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61840,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1164.5531,
+        "memberClickMs": 832.6219999999994,
+        "memberReadyMs": 3161.8134
+      },
+      "initial": {
+        "wallMs": 5513.7932,
+        "engineMs": 1023,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 735,
+        "domNodes": 5414,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1023 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery current"
+      },
+      "outline": {
+        "openMs": 377.33430000000044,
+        "searchMs": 59.15940000000046,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2606.8505000000005
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2605.380299999999
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 837.586800000001
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1741.1326000000008,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 744.5308999999979,
+        "reopenMs": 3485.1597,
+        "bytes": 199659,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

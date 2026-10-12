@@ -1,0 +1,437 @@
+{
+  "startedAtUtc": "2026-10-12T06:21:10.141Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-50",
+      "fileBytes": 18082,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 265.4758999999999,
+        "memberClickMs": 34.32290000000012,
+        "memberReadyMs": 465.21619999999984
+      },
+      "initial": {
+        "wallMs": 1857.6175999999996,
+        "engineMs": 679.2999999523163,
+        "mainThreadLongTasks": 2,
+        "mainThreadBlockedMs": 155,
+        "longestMainThreadTaskMs": 97,
+        "maxTimerDelayMs": 109.20000004768372,
+        "domNodes": 3490,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 81400000,
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 679 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery current"
+      },
+      "outline": {
+        "openMs": 92.57150000000001,
+        "searchMs": 22.298499999999876,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1251.9989999999998
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 1850.1059000000005
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 351.58920000000035
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 1099.1007,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 121.06319999999869,
+        "reopenMs": 856.4310000000005,
+        "bytes": 50530,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61802,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 544.1234000000004,
+        "memberClickMs": 63.42499999999927,
+        "memberReadyMs": 837.5434999999998
+      },
+      "initial": {
+        "wallMs": 2516.233,
+        "engineMs": 705.8999999761581,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 391,
+        "longestMainThreadTaskMs": 164,
+        "maxTimerDelayMs": 151.60000002384186,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 123000000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 706 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 122.20199999999932,
+        "searchMs": 26.904700000000958,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1747.3650000000016
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 1800.3154000000031
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 563.2380999999987
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1441.500500000002,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 263.3699000000015,
+        "reopenMs": 1798.4988999999987,
+        "bytes": 188268,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-50",
+      "fileBytes": 18082,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 445.77449999999953,
+        "memberClickMs": 84.64890000000014,
+        "memberReadyMs": 777.7703999999976
+      },
+      "initial": {
+        "wallMs": 2991.2896999999975,
+        "engineMs": 1141,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 220,
+        "domNodes": 3490,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1141 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 189.28080000000045,
+        "searchMs": 75.86779999999999,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1915.2184999999954
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 2996.2039000000004
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 1543.903999999995
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 1543.2990000000063,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 673.5982000000004,
+        "reopenMs": 3281.962400000004,
+        "bytes": 53728,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-200",
+      "fileBytes": 61802,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 2830.048299999995,
+        "memberClickMs": 2174.7006000000038,
+        "memberReadyMs": 7696.192299999995
+      },
+      "initial": {
+        "wallMs": 12560.493599999994,
+        "engineMs": 2409,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 999,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 2409 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 355.3862999999983,
+        "searchMs": 104.98120000000927,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 3791.3864999999932
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3646.9519
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1283.6232000000018
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1664.981700000004,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 610.0862000000052,
+        "reopenMs": 2968.4492000000027,
+        "bytes": 209822,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-50",
+      "fileBytes": 18082,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 837.0585999999894,
+        "memberClickMs": 304.29370000000927,
+        "memberReadyMs": 1609.756199999989
+      },
+      "initial": {
+        "wallMs": 4514.341199999995,
+        "engineMs": 1198,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 204,
+        "domNodes": 3491,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1198 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 325.05860000000393,
+        "searchMs": 45.10150000000431,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 2163.7868000000017
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 2847.9988999999914
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 459.8834000000061
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 2248.227199999994,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 892.2274000000034,
+        "reopenMs": 1634.006899999993,
+        "bytes": 54234,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61802,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1249.3258999999962,
+        "memberClickMs": 779.6174000000028,
+        "memberReadyMs": 3415.446200000006
+      },
+      "initial": {
+        "wallMs": 5881.128700000001,
+        "engineMs": 1077,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 699,
+        "domNodes": 5523,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1077 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 385.14590000000317,
+        "searchMs": 49.234399999986636,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2615.7949999999983
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2854.8536999999924
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 932.8263000000006
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2318.202799999999,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 739.3407000000007,
+        "reopenMs": 3343.880600000004,
+        "bytes": 203590,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}
