@@ -4459,6 +4459,8 @@ textarea:focus-visible,
   }
 }
 .diagram-kind-options button {
+  min-width: 0;
+  overflow-wrap: anywhere;
   position: relative;
   display: grid;
   min-height: 220px;
@@ -4491,6 +4493,7 @@ textarea:focus-visible,
   overflow: visible;
 }
 .diagram-kind-copy {
+  min-width: 0;
   display: grid;
   gap: 5px;
   padding: 0 4px 3px;
@@ -6865,6 +6868,8 @@ textarea:focus-visible,
   }
 }
 .starter-example-options button {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: grid;
   align-content: start;
   gap: 4px;
