@@ -533,14 +533,16 @@ export function DiagramPreview({
     calendar,
   ]);
   const visibleTimelineDates = useMemo(() => {
-    if (!selectedSvg || typeof DOMParser === "undefined") return new Set<string>();
+    // Timeline visibility is only displayed in the baseline comparison report.
+    if (!baselineSource || progressForecast?.enabled || !selectedSvg || typeof DOMParser === "undefined")
+      return new Set<string>();
     const document = new DOMParser().parseFromString(selectedSvg, "image/svg+xml");
     return new Set(
       [...document.querySelectorAll<SVGElement>("[data-timeline-date]")]
         .map((element) => element.getAttribute("data-timeline-date"))
         .filter((date): date is string => Boolean(date)),
     );
-  }, [selectedSvg]);
+  }, [baselineSource, progressForecast?.enabled, selectedSvg]);
   useEffect(() => {
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
     if (!svg) return;

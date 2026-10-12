@@ -187,7 +187,12 @@ for (const item of selected)
 
 async function instruments(page) {
   await page.addInitScript(() => {
-    window.audit = { renders: [], longTasks: [], gaps: [], errors: [], svgInsertions: [] };
+    window.audit = { renders: [], longTasks: [], gaps: [], errors: [], svgInsertions: [], svgParses: [] };
+    const parseFromString = window.DOMParser.prototype.parseFromString;
+    window.DOMParser.prototype.parseFromString = function (input, type) {
+      if (type === "image/svg+xml") window.audit.svgParses.push(performance.now());
+      return parseFromString.call(this, input, type);
+    };
     const innerHtml = Object.getOwnPropertyDescriptor(window.Element.prototype, "innerHTML");
     Object.defineProperty(window.Element.prototype, "innerHTML", {
       ...innerHtml,
@@ -324,6 +329,7 @@ async function sample(page, start) {
       longestMainThreadTaskMs: Math.max(0, ...tasks.map((x) => x.ms)),
       maxTimerDelayMs: Math.max(0, ...window.audit.gaps.filter((x) => x.at >= start).map((x) => x.ms)),
       svgDomInsertions: window.audit.svgInsertions.filter((at) => at >= start).length,
+      svgXmlParses: window.audit.svgParses.filter((at) => at >= start).length,
       domNodes: document.querySelectorAll("*").length,
       svgNodes: svg?.querySelectorAll("*").length,
       svgWidth: svg?.getAttribute("width"),

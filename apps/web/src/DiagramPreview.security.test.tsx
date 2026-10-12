@@ -3,11 +3,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import { DiagramPreview } from "./DiagramPreview";
 
 afterEach(cleanup);
 
-function preview(svg: string, linkedTaskIds?: ReadonlySet<string>) {
+function preview(
+  svg: string,
+  linkedTaskIds?: ReadonlySet<string>,
+  overrides?: Partial<ComponentProps<typeof DiagramPreview>>,
+) {
   const callback = vi.fn();
   return (
     <DiagramPreview
@@ -48,6 +53,7 @@ function preview(svg: string, linkedTaskIds?: ReadonlySet<string>) {
       onLegendEditRequest={callback}
       onChangeBaseline={callback}
       onClearBaseline={callback}
+      {...overrides}
     />
   );
 }
@@ -68,6 +74,28 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("role")).toBe("button");
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("tabindex")).toBe("0");
   expect(svg?.querySelector("text")?.textContent).toBe("Safe & sound");
+});
+
+it("only parses timeline visibility while the baseline comparison report is available", () => {
+  const parser = vi.spyOn(DOMParser.prototype, "parseFromString");
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg"><text data-timeline-date="2026-10-12">Timeline marker</text></svg>';
+  const timelineParses = () =>
+    parser.mock.calls.filter(([input, type]) => type === "image/svg+xml" && String(input).includes("Timeline marker"));
+  try {
+    const view = render(preview(svg));
+    expect(timelineParses()).toHaveLength(0);
+    view.rerender(preview(svg, undefined, { baselineSource: "@startgantt\n@endgantt" }));
+    expect(timelineParses()).toHaveLength(1);
+    view.rerender(preview(svg, undefined, { baselineSource: "@startgantt\n@endgantt" }));
+    expect(timelineParses()).toHaveLength(1);
+    view.rerender(preview(svg));
+    expect(timelineParses()).toHaveLength(1);
+    view.rerender(preview(svg, undefined, { baselineSource: "@startgantt\n@endgantt" }));
+    expect(timelineParses()).toHaveLength(2);
+  } finally {
+    parser.mockRestore();
+  }
 });
 
 it("retains unchanged SVG nodes when link metadata rerenders and updates changed SVG safely", () => {
