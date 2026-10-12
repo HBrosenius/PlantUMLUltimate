@@ -5,6 +5,9 @@ import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export interface InitialDiagramFit {
   documentId: string;
+  fit?: boolean;
+  scroll?: { left: number; top: number } | undefined;
+  onScrollChange?(scroll: { left: number; top: number }, flushRecovery?: boolean): void;
 }
 
 export function useDiagramNavigation(
@@ -77,10 +80,75 @@ export function useDiagramNavigation(
     };
   }, []);
 
-  const fittedDocument = useRef<string | undefined>(undefined);
+  const restoredDocument = useRef<string | undefined>(undefined);
   const initialDocumentId = options?.initialFit?.documentId;
+  const savedScroll = options?.initialFit?.scroll;
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!initialDocumentId || !options?.svg || !viewport || restoredDocument.current === initialDocumentId) return;
+    if (!viewport.querySelector(".diagram svg") || !viewport.clientWidth || !viewport.clientHeight) return;
+    let frame: number | undefined;
+    const restore = () => {
+      const diagram = viewport.querySelector<HTMLElement>(".diagram");
+      // A reused preview can still be transitioning from the previous tab's zoom.
+      // Assigning scroll offsets before it settles would clamp them to the old bounds.
+      if (
+        diagram?.offsetWidth &&
+        Math.abs(diagram.getBoundingClientRect().width - diagram.offsetWidth * zoom) > Math.max(1, zoom)
+      ) {
+        frame = requestAnimationFrame(restore);
+        return;
+      }
+      restoredDocument.current = initialDocumentId;
+      viewport.scrollLeft = savedScroll?.left ?? 0;
+      viewport.scrollTop = savedScroll?.top ?? 0;
+    };
+    frame = requestAnimationFrame(restore);
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [initialDocumentId, options?.svg, savedScroll, zoom]);
+
   useEffect(() => {
-    if (!initialDocumentId || fittedDocument.current === initialDocumentId || !options?.svg || wheelRef.current) return;
+    const viewport = viewportRef.current;
+    const save = options?.initialFit?.onScrollChange;
+    if (!initialDocumentId || !viewport || !save) return;
+    let timer: number | undefined;
+    let pending: { left: number; top: number } | undefined;
+    const flush = (event?: Event) => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      if (pending) {
+        if (event?.type === "pagehide") save(pending, true);
+        else save(pending);
+      }
+      pending = undefined;
+    };
+    const scroll = () => {
+      if (restoredDocument.current !== initialDocumentId) return;
+      pending = { left: viewport.scrollLeft, top: viewport.scrollTop };
+      if (timer !== undefined) window.clearTimeout(timer);
+      timer = window.setTimeout(flush, 120);
+    };
+    viewport.addEventListener("scroll", scroll);
+    scroll();
+    window.addEventListener("pagehide", flush);
+    return () => {
+      viewport.removeEventListener("scroll", scroll);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [initialDocumentId, options?.svg, options?.initialFit?.onScrollChange]);
+
+  const fittedDocument = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (
+      options?.initialFit?.fit === false ||
+      !initialDocumentId ||
+      fittedDocument.current === initialDocumentId ||
+      !options?.svg ||
+      wheelRef.current
+    )
+      return;
     const viewport = viewportRef.current;
     const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
     if (!viewport || !svg || !viewport.clientWidth || !viewport.clientHeight) return;
@@ -98,7 +166,7 @@ export function useDiagramNavigation(
     );
     viewport.scrollLeft = 0;
     viewport.scrollTop = 0;
-  }, [initialDocumentId, options?.svg]);
+  }, [initialDocumentId, options?.svg, options?.initialFit?.fit]);
 
   const onWheel = useCallback((event: WheelEvent) => {
     const viewport = viewportRef.current;

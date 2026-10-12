@@ -2,15 +2,17 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useDiagramNavigation } from "./useDiagramNavigation";
+import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 
-function Canvas() {
+function Canvas({ initialFit }: { initialFit?: InitialDiagramFit } = {}) {
   const [zoom, setZoom] = useState(1);
-  const navigation = useDiagramNavigation(zoom, setZoom);
+  const navigation = useDiagramNavigation(zoom, setZoom, { svg: "<svg />", initialFit });
   return (
     <div ref={navigation.viewportRef} data-testid="viewport">
       <output>{zoom}</output>
-      <div className="diagram" />
+      <div className="diagram">
+        <svg />
+      </div>
     </div>
   );
 }
@@ -96,4 +98,54 @@ it("pans horizontal line and page gestures instead of discarding them", () => {
   wheel(viewport, { deltaX: 1, deltaMode: 2 });
   expect(viewport.scrollLeft).toBe(348);
   expect(viewport.querySelector("output")?.textContent).toBe("1");
+});
+
+it("restores scroll per document and flushes pending scrolling to its original owner", async () => {
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(200);
+  const saveA = vi.fn();
+  const saveB = vi.fn();
+  const view = render(
+    <Canvas initialFit={{ documentId: "a", fit: false, scroll: { left: 50, top: 80 }, onScrollChange: saveA }} />,
+  );
+  const viewport = view.getByTestId("viewport");
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(32);
+  });
+  expect(viewport.scrollLeft).toBe(50);
+  expect(viewport.scrollTop).toBe(80);
+  act(() => {
+    viewport.scrollLeft = 90;
+    viewport.scrollTop = 120;
+    viewport.dispatchEvent(new Event("scroll"));
+  });
+  view.rerender(
+    <Canvas initialFit={{ documentId: "b", fit: false, scroll: { left: 20, top: 30 }, onScrollChange: saveB }} />,
+  );
+  expect(saveA).toHaveBeenLastCalledWith({ left: 90, top: 120 });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(32);
+  });
+  expect(viewport.scrollLeft).toBe(20);
+  expect(viewport.scrollTop).toBe(30);
+  act(() => viewport.dispatchEvent(new Event("scroll")));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(150);
+  });
+  expect(saveB).toHaveBeenLastCalledWith({ left: 20, top: 30 });
+  view.rerender(
+    <Canvas initialFit={{ documentId: "a", fit: false, scroll: { left: 90, top: 120 }, onScrollChange: saveA }} />,
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(32);
+  });
+  expect(viewport.scrollLeft).toBe(90);
+  expect(viewport.scrollTop).toBe(120);
+  act(() => {
+    viewport.scrollLeft = 140;
+    viewport.dispatchEvent(new Event("scroll"));
+    window.dispatchEvent(new Event("pagehide"));
+  });
+  expect(saveA).toHaveBeenLastCalledWith({ left: 140, top: 120 }, true);
+  vi.restoreAllMocks();
 });

@@ -1875,6 +1875,12 @@ export function App() {
 
   const activeZoomDocumentId = tabs.activeId;
   const updateZoomMetadata = tabs.updateDocumentFormat;
+  const saveDiagramScroll = useCallback(
+    (scroll: { left: number; top: number }, flushRecovery = false) => {
+      updateZoomMetadata(activeZoomDocumentId, { diagramScroll: scroll }, flushRecovery);
+    },
+    [activeZoomDocumentId, updateZoomMetadata],
+  );
   const update = useCallback(
     <K extends keyof typeof workspace>(key: K, value: (typeof workspace)[K]) => {
       if (key === "viewMode") {
@@ -3675,11 +3681,13 @@ export function App() {
   ];
 
   const initialDiagramFit =
-    activeDocument.zoomInitialized === false &&
-    result?.documentId === tabs.activeId &&
-    result.source === workspace.source &&
-    result.svg
-      ? { documentId: tabs.activeId }
+    result?.documentId === tabs.activeId && result.source === workspace.source && result.svg
+      ? {
+          documentId: tabs.activeId,
+          fit: activeDocument.zoomInitialized === false,
+          scroll: activeDocument.diagramScroll,
+          onScrollChange: saveDiagramScroll,
+        }
       : undefined;
 
   useEffect(() => {

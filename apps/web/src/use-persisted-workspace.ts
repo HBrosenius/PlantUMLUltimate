@@ -234,7 +234,16 @@ export function usePersistedWorkspace() {
     },
     [],
   );
-  const updateDocumentFormat = useCallback((id: string, patch: Partial<DocumentSnapshot>) => {
+  const updateDocumentFormat = useCallback((id: string, patch: Partial<DocumentSnapshot>, flushRecovery = false) => {
+    if (flushRecovery) {
+      const current = sessionRef.current;
+      const next = {
+        ...current,
+        documents: current.documents.map((document) => (document.id === id ? { ...document, ...patch } : document)),
+      };
+      sessionRef.current = next;
+      saveWorkspaceRecovery(next);
+    }
     setSession((current) => ({
       ...current,
       documents: current.documents.map((document) => (document.id === id ? { ...document, ...patch } : document)),

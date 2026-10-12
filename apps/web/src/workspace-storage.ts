@@ -21,6 +21,7 @@ export interface WorkspaceSnapshot {
 }
 
 export interface DocumentSnapshot {
+  diagramScroll?: { left: number; top: number } | undefined;
   viewMode?: ViewMode | undefined;
   /** False until the first fit or explicit zoom; older recovery keeps its saved zoom. */
   zoomInitialized?: boolean | undefined;
@@ -207,6 +208,11 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             ? { viewMode: item.viewMode as ViewMode }
             : {}),
           ...(typeof item.zoomInitialized === "boolean" ? { zoomInitialized: item.zoomInitialized } : {}),
+          ...(item.diagramScroll && Number.isFinite(item.diagramScroll.left) && Number.isFinite(item.diagramScroll.top)
+            ? {
+                diagramScroll: { left: Math.max(0, item.diagramScroll.left), top: Math.max(0, item.diagramScroll.top) },
+              }
+            : {}),
           zoom: Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, Number(item.zoom) || 1)),
           cursor: {
             line: Math.max(1, Number(item.cursor?.line) || 1),

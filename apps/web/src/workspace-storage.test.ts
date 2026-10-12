@@ -543,3 +543,17 @@ it("retains initialized zoom and pending initial fit separately across recovery"
   expect(session.documents[0]?.zoomInitialized).toBeUndefined();
   expect(session.documents[0]?.zoom).toBe(1.65);
 });
+
+it("normalizes recovered per-document diagram positions", () => {
+  const session = normalizeSession({
+    ...DEFAULT_SESSION,
+    documents: [
+      { ...DEFAULT_SESSION.documents[0]!, diagramScroll: { left: 123, top: 456 } },
+      { ...DEFAULT_SESSION.documents[0]!, id: "negative", diagramScroll: { left: -5, top: -10 } },
+      { ...DEFAULT_SESSION.documents[0]!, id: "invalid", diagramScroll: { left: Infinity, top: 10 } },
+    ],
+  });
+  expect(session.documents[0]?.diagramScroll).toEqual({ left: 123, top: 456 });
+  expect(session.documents[1]?.diagramScroll).toEqual({ left: 0, top: 0 });
+  expect(session.documents[2]?.diagramScroll).toBeUndefined();
+});
