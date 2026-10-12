@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseGantt, type GanttTask } from "@plantuml-studio/diagram-gantt";
 import { buildResourceOverAllocations, type ResourceCapacity } from "./ResourceWorkloadPanel";
 import { compareDeliveryScenarios } from "./delivery-scenario";
@@ -217,6 +217,72 @@ export function DeliveryScenarioDialog({
   const [selectedTaskId, setSelectedTaskId] = useState(initialTaskId);
   const [scenarioEditError, setScenarioEditError] = useState("");
   const [scenarioZoom, setScenarioZoom] = useState(1);
+  const [baseZoom, setBaseZoom] = useState(1);
+  const [linkedNavigation, setLinkedNavigation] = useState(false);
+  const comparisonCanvas = useRef<HTMLDivElement>(null);
+  const navigationDriver = useRef<Element | null>(null);
+  const linkedFrame = useRef<number | undefined>(undefined);
+  useEffect(
+    () => () => {
+      if (linkedFrame.current !== undefined) cancelAnimationFrame(linkedFrame.current);
+    },
+    [linkedNavigation, view],
+  );
+  const pendingNavigation = useRef<{ target: HTMLElement; x: number; y: number } | undefined>(undefined);
+  const startNavigation = (target: EventTarget) => {
+    if (!(target instanceof Element)) return;
+    // Only user input changes the driver; mirrored scroll events must not echo back.
+    navigationDriver.current =
+      target.closest(".scenario-render-canvas, .preview-viewport") ??
+      target
+        .closest('[aria-label="Base plan preview"], [aria-label="Scenario preview"]')
+        ?.querySelector(".scenario-render-canvas, .preview-viewport") ??
+      null;
+  };
+  const syncNavigation = (origin: HTMLElement) => {
+    if (!linkedNavigation || navigationDriver.current !== origin) return;
+    const base = comparisonCanvas.current?.querySelector<HTMLElement>('[aria-label="Base plan rendered diagram"]');
+    const scenario = comparisonCanvas.current?.querySelector<HTMLElement>(".preview-viewport");
+    const target = origin === base ? scenario : base;
+    if (!target) return;
+    const displayedZoom = Number(
+      origin.querySelector<HTMLElement>(".diagram")?.style.transform.match(/scale\(([^)]+)\)/)?.[1],
+    );
+    if (displayedZoom > 0) {
+      if (origin === base) setScenarioZoom(displayedZoom);
+      else setBaseZoom(displayedZoom);
+    }
+    const x = origin.scrollLeft / Math.max(1, origin.scrollWidth - origin.clientWidth);
+    const y = origin.scrollTop / Math.max(1, origin.scrollHeight - origin.clientHeight);
+    pendingNavigation.current = { target, x, y };
+    target.scrollLeft = x * (target.scrollWidth - target.clientWidth);
+    target.scrollTop = y * (target.scrollHeight - target.clientHeight);
+  };
+  const startWheelNavigation = (target: EventTarget) => {
+    startNavigation(target);
+    if (!linkedNavigation) return;
+    if (linkedFrame.current !== undefined) cancelAnimationFrame(linkedFrame.current);
+    const origin = navigationDriver.current;
+    const follow = () => {
+      if (!(origin instanceof HTMLElement) || navigationDriver.current !== origin) return;
+      syncNavigation(origin);
+      linkedFrame.current = origin.classList.contains("diagram-wheel-zooming")
+        ? requestAnimationFrame(follow)
+        : undefined;
+    };
+    linkedFrame.current = requestAnimationFrame(follow);
+  };
+  useLayoutEffect(() => {
+    const pending = pendingNavigation.current;
+    if (!linkedNavigation || !pending) return;
+    pending.target.scrollLeft = pending.x * (pending.target.scrollWidth - pending.target.clientWidth);
+    pending.target.scrollTop = pending.y * (pending.target.scrollHeight - pending.target.clientHeight);
+    pendingNavigation.current = undefined;
+  }, [baseZoom, scenarioZoom, linkedNavigation]);
+  const changeZoom = (side: "base" | "scenario", value: number) => {
+    if (side === "base" || linkedNavigation) setBaseZoom(value);
+    if (side === "scenario" || linkedNavigation) setScenarioZoom(value);
+  };
   const [scenarioVisualTaskId, setScenarioVisualTaskId] = useState<string>();
   const [scenarioDependencyIndex, setScenarioDependencyIndex] = useState<number>();
   const [scenarioInteractionMessage, setScenarioInteractionMessage] = useState<string>();
@@ -635,12 +701,51 @@ export function DeliveryScenarioDialog({
         )}
 
         {view === "preview" && (
-          <div className="scenario-rendered" aria-label="Scenario rendered comparison">
+          <div
+            ref={comparisonCanvas}
+            className="scenario-rendered"
+            aria-label="Scenario rendered comparison"
+            data-linked-navigation={linkedNavigation}
+            onWheelCapture={(event) => startWheelNavigation(event.target)}
+            onPointerDownCapture={(event) => startNavigation(event.target)}
+            onFocusCapture={(event) => startNavigation(event.target)}
+            onScrollCapture={(event) => syncNavigation(event.target as HTMLElement)}
+          >
+            <label className="scenario-linked-navigation">
+              <input
+                type="checkbox"
+                checked={linkedNavigation}
+                onChange={(event) => {
+                  setLinkedNavigation(event.target.checked);
+                  if (event.target.checked) {
+                    setScenarioZoom(baseZoom);
+                    const base = comparisonCanvas.current?.querySelector<HTMLElement>(
+                      '[aria-label="Base plan rendered diagram"]',
+                    );
+                    const target = comparisonCanvas.current?.querySelector<HTMLElement>(".preview-viewport");
+                    navigationDriver.current = base ?? null;
+                    if (base && target)
+                      pendingNavigation.current = {
+                        target,
+                        x: base.scrollLeft / Math.max(1, base.scrollWidth - base.clientWidth),
+                        y: base.scrollTop / Math.max(1, base.scrollHeight - base.clientHeight),
+                      };
+                  }
+                }}
+              />
+              Link zoom and scrolling
+            </label>
             <section aria-label="Base plan preview">
               <h3>
                 Base plan <small>read only</small>
               </h3>
-              <BasePlanPreview svg={currentSvg} status={currentRender.status} error={currentRender.result?.error} />
+              <BasePlanPreview
+                zoom={baseZoom}
+                onZoomChange={(value) => changeZoom("base", value)}
+                svg={currentSvg}
+                status={currentRender.status}
+                error={currentRender.result?.error}
+              />
             </section>
             <section aria-label="Scenario preview">
               <h3>
@@ -655,7 +760,7 @@ export function DeliveryScenarioDialog({
                   verticalSeparators={scenarioDocument.verticalSeparators}
                   source={scenarioSource}
                   zoom={scenarioZoom}
-                  onZoomChange={setScenarioZoom}
+                  onZoomChange={(value) => changeZoom("scenario", value)}
                   selectedTaskId={scenarioVisualTaskId}
                   onTaskSelect={(taskId) => {
                     setScenarioVisualTaskId(taskId);
@@ -921,33 +1026,36 @@ export function DeliveryScenarioDialog({
 }
 
 function BasePlanPreview({
+  zoom,
+  onZoomChange,
   svg,
   status,
   error,
 }: {
+  zoom: number;
+  onZoomChange(zoom: number): void;
   svg: string | undefined;
   status: "idle" | "rendering" | "error";
   error: string | undefined;
 }) {
-  const [zoom, setZoom] = useState(1);
-  const navigation = useDiagramNavigation(zoom, setZoom, { svg });
+  const navigation = useDiagramNavigation(zoom, onZoomChange, { svg });
   return (
     <>
       <div className="scenario-base-navigation" role="group" aria-label="Base plan navigation">
         <button
           type="button"
           aria-label="Zoom out base plan"
-          onClick={() => setZoom((value) => Math.max(MIN_DIAGRAM_ZOOM, value / 1.2))}
+          onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom / 1.2))}
         >
           −
         </button>
-        <button type="button" aria-label="Reset base plan zoom" onClick={() => setZoom(1)}>
+        <button type="button" aria-label="Reset base plan zoom" onClick={() => onZoomChange(1)}>
           {Math.round(zoom * 100)}%
         </button>
         <button
           type="button"
           aria-label="Zoom in base plan"
-          onClick={() => setZoom((value) => Math.min(MAX_DIAGRAM_ZOOM, value * 1.2))}
+          onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom * 1.2))}
         >
           +
         </button>

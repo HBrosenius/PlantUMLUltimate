@@ -8729,3 +8729,15 @@ polygon.diagram-bulk-selected {
   gap: 6px;
   padding: 8px 12px;
 }
+
+.scenario-linked-navigation {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.scenario-rendered[data-linked-navigation="true"] .diagram {
+  transition: none;
+}
