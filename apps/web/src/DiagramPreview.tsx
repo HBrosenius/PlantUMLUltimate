@@ -7,6 +7,7 @@ import {
 } from "./schedule-baseline-comparison";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
 import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
@@ -36,6 +37,7 @@ import { trackWindowPointerDrag, type WindowPointerDragHandlers } from "./pointe
 
 interface Props {
   svg: string | undefined;
+  renderedSource?: string | undefined;
   tasks: readonly GanttTask[];
   dependencies: readonly GanttDependency[];
   dividers: readonly GanttDivider[];
@@ -126,6 +128,7 @@ export type ProjectDiagramLink = {
 export function DiagramPreview({
   initialFit,
   svg,
+  renderedSource,
   tasks,
   dependencies,
   dividers,
@@ -264,36 +267,53 @@ export function DiagramPreview({
     }, 0);
   };
   const calendar = useMemo(() => parseGanttCalendar(source), [source]);
+  // An older preview stays visible during typing. Its geometry and interaction
+  // overlays must describe the source that produced that SVG.
+  const renderedGantt = useMemo(
+    () => (renderedSource === undefined ? undefined : parseGantt(renderedSource).document),
+    [renderedSource],
+  );
+  const overlaySource = renderedSource ?? source;
+  const overlayCalendar = useMemo(() => parseGanttCalendar(overlaySource), [overlaySource]);
+  const overlayTasks = renderedGantt?.tasks ?? tasks;
+  const overlayDependencies = renderedGantt?.dependencies ?? dependencies;
+  const overlayDividers = renderedGantt?.dividers ?? dividers;
+  const overlaySeparators = renderedGantt?.verticalSeparators ?? verticalSeparators;
+  const overlayProjectStart = renderedGantt
+    ? renderedGantt.projectStart?.resolved
+      ? renderedGantt.projectStart.value
+      : undefined
+    : projectStart;
   const overlayResult = useMemo(() => {
     const started = performance.now();
     const value = svg
       ? addCanonicalGanttOverlay(
           svg,
-          tasks,
-          dependencies,
-          dividers,
+          overlayTasks,
+          overlayDependencies,
+          overlayDividers,
           resourceFilter,
           scheduleGhost,
-          projectStart,
-          calendar,
-          verticalSeparators,
+          overlayProjectStart,
+          overlayCalendar,
+          overlaySeparators,
         )
       : svg;
     return {
-      value: value ? makeLegendLabelsInteractive(value, parseLegendEntries(source)) : value,
+      value: value ? makeLegendLabelsInteractive(value, parseLegendEntries(overlaySource)) : value,
       durationMs: performance.now() - started,
     };
   }, [
     svg,
-    tasks,
-    dependencies,
-    dividers,
-    verticalSeparators,
+    overlayTasks,
+    overlayDependencies,
+    overlayDividers,
+    overlaySeparators,
     resourceFilter,
     scheduleGhost,
-    projectStart,
-    calendar,
-    source,
+    overlayProjectStart,
+    overlayCalendar,
+    overlaySource,
   ]);
   const interactiveSvg = overlayResult.value;
   const forecastTimeZone = progressForecast?.timeZone ?? "UTC";

@@ -714,6 +714,87 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
             await writeFile(resolve(output, `${activeBrowser}-${item.name}-edits.cpuprofile`), JSON.stringify(profile));
             await editProfiler.detach();
           }
+          if (process.env.LARGE_DOCUMENT_TYPING) {
+            stage("project-rapid-typing");
+            await editor.focus();
+            await page.keyboard.press("ControlOrMeta+Home");
+            await page.keyboard.press("ArrowDown");
+            await page.keyboard.press("Home");
+            await page.keyboard.press("Shift+End");
+            const prefix = "title Rapid typing audit ";
+            await page.keyboard.insertText(prefix);
+            await page.evaluate(() => {
+              window.audit.typing = [];
+              const content = document.querySelector(".cm-content");
+              const listener = (event) => {
+                if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+                const entry = { key: event.key, at: performance.now() };
+                window.audit.typing.push(entry);
+                const observer = new window.MutationObserver(() => {
+                  entry.domUpdateMs = performance.now() - entry.at;
+                  observer.disconnect();
+                });
+                observer.observe(content, { subtree: true, childList: true, characterData: true });
+                requestAnimationFrame(() => {
+                  entry.nextFrameMs = performance.now() - entry.at;
+                  entry.source = content.innerText;
+                  observer.disconnect();
+                });
+              };
+              content.addEventListener("keydown", listener, true);
+              window.audit.stopTyping = () => content.removeEventListener("keydown", listener, true);
+            });
+            const suffix = "123456789012";
+            const typingProfiler =
+              process.env.LARGE_DOCUMENT_PROFILE && activeBrowser === "chromium"
+                ? await page.context().newCDPSession(page)
+                : undefined;
+            if (typingProfiler) {
+              await typingProfiler.send("Profiler.enable");
+              await typingProfiler.send("Profiler.start");
+            }
+            const typingStarted = performance.now();
+            await page.keyboard.type(suffix, { delay: 30 });
+            await expect(editor.locator(".cm-line").nth(1)).toHaveText(prefix + suffix);
+            const editorReadyMs = performance.now() - typingStarted;
+            await expect(page.locator(".diagram svg")).toContainText(`Rapid typing audit ${suffix}`, {
+              timeout: 65_000,
+            });
+            await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
+            await expect(navigator.locator(".project-index-status")).toHaveText("Links current", { timeout: 30_000 });
+            const previewReadyMs = performance.now() - typingStarted;
+            if (typingProfiler) {
+              const { profile } = await typingProfiler.send("Profiler.stop");
+              await writeFile(
+                resolve(output, `${activeBrowser}-${item.name}-typing.cpuprofile`),
+                JSON.stringify(profile),
+              );
+              await typingProfiler.detach();
+            }
+            const samples = await page.evaluate(() => {
+              window.audit.stopTyping();
+              return window.audit.typing;
+            });
+            expect(samples.map((entry) => entry.key).join("")).toBe(suffix);
+            expect(
+              samples.every((entry, index) =>
+                entry.source.split("\n")[1]?.startsWith(prefix + suffix.slice(0, index + 1)),
+              ),
+            ).toBe(true);
+            expect(
+              samples.every((entry) => Number.isFinite(entry.domUpdateMs) && Number.isFinite(entry.nextFrameMs)),
+            ).toBe(true);
+            let undoCount = 0;
+            while (!(await editor.innerText()).includes(originalTitle) && undoCount < suffix.length + 2) {
+              await editor.press("ControlOrMeta+z");
+              undoCount++;
+            }
+            await expect(editor).toContainText(originalTitle);
+            await expect(page.locator(".diagram svg")).not.toContainText("Rapid typing audit");
+            await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
+            await expect(navigator.locator(".project-index-status")).toHaveText("Links current", { timeout: 30_000 });
+            record.rapidTyping = { editorReadyMs, previewReadyMs, undoCount, samples };
+          }
         }
         stage("save-reopen");
         record.persistence = await saveAndReopen(

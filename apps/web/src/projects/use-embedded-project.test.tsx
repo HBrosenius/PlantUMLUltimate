@@ -201,6 +201,11 @@ describe("useEmbeddedProject lifecycle", () => {
     await act(async () => {
       await result.current.openMember("three");
     });
+    if (encrypted) {
+      // Opening one member only waits for that member. The other eager imports
+      // can still be reconstructing their histories when it finishes.
+      await waitFor(() => expect(importDocumentVersions).toHaveBeenCalledTimes(value.diagrams.length));
+    }
     if (!encrypted) {
       expect(
         vi

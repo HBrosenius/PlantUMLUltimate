@@ -5,8 +5,35 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { DiagramPreview } from "./DiagramPreview";
+import * as ganttOverlay from "./render/canonical-gantt-overlay";
 
 afterEach(cleanup);
+
+it("keeps overlays aligned with the displayed render while source changes", () => {
+  const overlay = vi.spyOn(ganttOverlay, "addCanonicalGanttOverlay");
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Old task</text></svg>';
+  const oldSource = "@startgantt\n[Old task] lasts 2 days\n@endgantt";
+  const nextSource = "@startgantt\n[New task] lasts 3 days\n@endgantt";
+  try {
+    const view = render(preview(svg, undefined, { source: oldSource, renderedSource: oldSource }));
+    expect(overlay).toHaveBeenCalledTimes(1);
+    expect(overlay.mock.calls[0]?.[1]?.[0]?.label).toBe("Old task");
+    const originalSvg = view.container.querySelector(".diagram-svg-host svg");
+    view.rerender(
+      preview(svg, undefined, { source: nextSource, renderedSource: oldSource, renderStatus: "rendering" }),
+    );
+    expect(overlay).toHaveBeenCalledTimes(1);
+    expect(view.container.querySelector(".diagram-svg-host svg")).toBe(originalSvg);
+    view.rerender(
+      preview(svg.replace("Old task", "New task"), undefined, { source: nextSource, renderedSource: nextSource }),
+    );
+    expect(overlay).toHaveBeenCalledTimes(2);
+    expect(overlay.mock.calls[1]?.[1]?.[0]?.label).toBe("New task");
+    expect(view.container.querySelector(".diagram-svg-host svg")?.textContent).toBe("New task");
+  } finally {
+    overlay.mockRestore();
+  }
+});
 
 function preview(
   svg: string,

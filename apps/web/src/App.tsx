@@ -4622,6 +4622,7 @@ export function App() {
             <DiagramPreview
               initialFit={initialDiagramFit}
               svg={result?.svg}
+              renderedSource={result?.source}
               tasks={parseResult.document.tasks}
               dependencies={parseResult.document.dependencies}
               dividers={parseResult.document.dividers}
