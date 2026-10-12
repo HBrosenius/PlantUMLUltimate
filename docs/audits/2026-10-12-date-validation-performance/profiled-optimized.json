@@ -1,0 +1,308 @@
+{
+  "startedAtUtc": "2026-10-12T07:30:31.932Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 1,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61739,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 575.1151,
+        "memberClickMs": 68.23759999999993,
+        "memberReadyMs": 873.2412999999997
+      },
+      "initial": {
+        "wallMs": 2316.2372000000005,
+        "engineMs": 576.1000000238419,
+        "mainThreadLongTasks": 3,
+        "mainThreadBlockedMs": 266,
+        "longestMainThreadTaskMs": 113,
+        "maxTimerDelayMs": 156.70000004768372,
+        "svgDomInsertions": 1,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 97400000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 576 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "mainThreadProfile": [
+        {
+          "function": "(idle)",
+          "url": "",
+          "line": 0,
+          "selfMs": 1173.7239999999977
+        },
+        {
+          "function": "(program)",
+          "url": "",
+          "line": 0,
+          "selfMs": 362.9589999999999
+        },
+        {
+          "function": "(garbage collector)",
+          "url": "",
+          "line": 0,
+          "selfMs": 39.553
+        },
+        {
+          "function": "setItem",
+          "url": "",
+          "line": 0,
+          "selfMs": 32.366
+        },
+        {
+          "function": "",
+          "url": "data:text/javascript;base64,CiAgICBjb25zdCBjaGFubmVsID0gInBsYW50dW1sLTRhYTIyNDkxLWRmZWQtNGE5Ny1hZTNmLTBjMWFhYzUzNWI2NiI7CiAgICBjb25zdCBzZW5kID0gKG1lc3NhZ2UpID0+IHBhcmVudC5wb3N0TWVzc2FnZSh7IGNoYW5uZWwsIC4uLm1lc3NhZ2UgfSwgIioiKTsKICAgIGxldCB3b3JrZXI7CiAgICBsZXQgbmV4dFJlcXVlc3Q7CiAgICBsZXQgcmVhZHkgPSBmYWxzZTsKICAgIGxldCBpbml0aWFsaXplZCA9IGZhbHNlOwogICAgbGV0IGNvbXBsZXRlZFJlbmRlcnMgPSAwOwogICAgbGV0IGNvbmZpZ3VyYXRpb247CiAgICBjb25zdCBzdG9wID0gKCkgPT4geyB3b3JrZXI/LnRlcm1pbmF0ZSgpOyB3b3JrZXIgPSB1bmRlZmluZWQ7IHJlYWR5ID0gZmFsc2U7IG5leHRSZXF1ZXN0ID0gdW5kZWZpbmVkOyB9OwogICAgY29uc3Qgc3RhcnQgPSAoKSA9PiB7CiAgICAgIHdvcmtlciA9IG5ldyBXb3JrZXIoY29uZmlndXJhdGlvbi53b3JrZXIpOwogICAgICB3b3JrZXIub25lcnJvciA9IChldmVudCkgPT4geyBzZW5kKHsgdHlwZTogaW5pdGlhbGl6ZWQgPyAicmVzdWx0IiA6ICJib290c3RyYXAtZXJyb3IiLCByZXF1ZXN0SWQ6IG5leHRSZXF1ZXN0Py5yZXF1ZXN0SWQsIGVycm9yOiBldmVudC5tZXNzYWdlIHx8ICJSZW5kZXJlciB3b3JrZXIgZmFpbGVkIiB9KTsgc3RvcCgpOyB9OwogICAgICB3b3JrZXIub25tZXNzYWdlID0gKGV2ZW50KSA9PiB7CiAgICAgICAgY29uc3QgbWVzc2FnZSA9IGV2ZW50LmRhdGE7CiAgICAg",
+          "line": 35,
+          "selfMs": 23.238999999999997
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17586,
+          "selfMs": 20.851
+        },
+        {
+          "function": "kr",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 76,
+          "selfMs": 17.095999999999997
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17744,
+          "selfMs": 16.996
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 75,
+          "selfMs": 14.363999999999999
+        },
+        {
+          "function": "tt",
+          "url": "http://127.0.0.1:4175/assets/diagram-engines-BiF6IKCm.js",
+          "line": 1,
+          "selfMs": 12.608
+        },
+        {
+          "function": "FR",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17744,
+          "selfMs": 12.566
+        },
+        {
+          "function": "nt",
+          "url": "http://127.0.0.1:4175/assets/diagram-engines-BiF6IKCm.js",
+          "line": 1,
+          "selfMs": 12.449
+        },
+        {
+          "function": "put",
+          "url": "",
+          "line": 0,
+          "selfMs": 12.232
+        },
+        {
+          "function": "set innerHTML",
+          "url": "",
+          "line": 0,
+          "selfMs": 11.128000000000002
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17639,
+          "selfMs": 9.443
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 75,
+          "selfMs": 9.37
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17639,
+          "selfMs": 9.220999999999998
+        },
+        {
+          "function": "getTextAlternativeInternal",
+          "url": "",
+          "line": 3623,
+          "selfMs": 9.206
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 18023,
+          "selfMs": 9.176
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 9.158999999999999
+        },
+        {
+          "function": "getAttributeType",
+          "url": "",
+          "line": 0,
+          "selfMs": 8.277
+        },
+        {
+          "function": "randomUUID",
+          "url": "",
+          "line": 0,
+          "selfMs": 7.714
+        },
+        {
+          "function": "rs",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 75,
+          "selfMs": 7.465
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 7.356
+        },
+        {
+          "function": "query",
+          "url": "",
+          "line": 5301,
+          "selfMs": 7.260000000000001
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17639,
+          "selfMs": 6.67
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 76,
+          "selfMs": 6.29
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 6.256
+        },
+        {
+          "function": "RegExp: ^[0-9a-f]{64}$",
+          "url": "",
+          "line": 0,
+          "selfMs": 6.224
+        },
+        {
+          "function": "U.R.onload",
+          "url": "http://127.0.0.1:4175/assets/index-lEW6s7P8.js",
+          "line": 17556,
+          "selfMs": 6.197
+        }
+      ],
+      "outline": {
+        "openMs": 99.00879999999961,
+        "searchMs": 27.9991,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1531.7813999999998
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 1650.1327
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 532.9821000000011
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1186.6010999999999,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 1115.4992000000002,
+          "previewAndIndexReadyMs": 1123.7054000000007,
+          "engineMs": 587.3999999761581,
+          "undoMs": 643.2059000000008,
+          "undoSvgDomInsertions": 2,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 398,
+          "longestMainThreadTaskMs": 212,
+          "maxTimerDelayMs": 313.89999997615814,
+          "svgDomInsertions": 2,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 97400000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 587 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        },
+        {
+          "editMs": 809.5756000000001,
+          "previewAndIndexReadyMs": 817.6751999999997,
+          "engineMs": 292.3000000715256,
+          "undoMs": 644.4380000000001,
+          "undoSvgDomInsertions": 2,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 347,
+          "longestMainThreadTaskMs": 172,
+          "maxTimerDelayMs": 277.6999999284744,
+          "svgDomInsertions": 2,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 97400000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 292 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        }
+      ],
+      "persistence": {
+        "saveMs": 229.60109999999986,
+        "reopenMs": 1207.4458999999988,
+        "bytes": 190199,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

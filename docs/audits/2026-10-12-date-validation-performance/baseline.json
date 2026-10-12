@@ -1,0 +1,308 @@
+{
+  "startedAtUtc": "2026-10-12T07:28:38.408Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 1,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61873,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 575.3380999999999,
+        "memberClickMs": 311.5608000000002,
+        "memberReadyMs": 1097.1776
+      },
+      "initial": {
+        "wallMs": 2691.8954,
+        "engineMs": 590.1999999284744,
+        "mainThreadLongTasks": 5,
+        "mainThreadBlockedMs": 379,
+        "longestMainThreadTaskMs": 99,
+        "maxTimerDelayMs": 129.59999990463257,
+        "svgDomInsertions": 1,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 97400000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 590 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "mainThreadProfile": [
+        {
+          "function": "(idle)",
+          "url": "",
+          "line": 0,
+          "selfMs": 1295.4869999999983
+        },
+        {
+          "function": "(program)",
+          "url": "",
+          "line": 0,
+          "selfMs": 401.02800000000013
+        },
+        {
+          "function": "setItem",
+          "url": "",
+          "line": 0,
+          "selfMs": 64.11700000000002
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17744,
+          "selfMs": 46.26200000000001
+        },
+        {
+          "function": "(garbage collector)",
+          "url": "",
+          "line": 0,
+          "selfMs": 41.399
+        },
+        {
+          "function": "FR",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17744,
+          "selfMs": 29.145999999999997
+        },
+        {
+          "function": "put",
+          "url": "",
+          "line": 0,
+          "selfMs": 22.956999999999997
+        },
+        {
+          "function": "",
+          "url": "data:text/javascript;base64,CiAgICBjb25zdCBjaGFubmVsID0gInBsYW50dW1sLTA1Y2RjNTA3LWM5ZTktNGMyNy1hZjhmLTdjZmZkYjZiZTQ4NyI7CiAgICBjb25zdCBzZW5kID0gKG1lc3NhZ2UpID0+IHBhcmVudC5wb3N0TWVzc2FnZSh7IGNoYW5uZWwsIC4uLm1lc3NhZ2UgfSwgIioiKTsKICAgIGxldCB3b3JrZXI7CiAgICBsZXQgbmV4dFJlcXVlc3Q7CiAgICBsZXQgcmVhZHkgPSBmYWxzZTsKICAgIGxldCBpbml0aWFsaXplZCA9IGZhbHNlOwogICAgbGV0IGNvbXBsZXRlZFJlbmRlcnMgPSAwOwogICAgbGV0IGNvbmZpZ3VyYXRpb247CiAgICBjb25zdCBzdG9wID0gKCkgPT4geyB3b3JrZXI/LnRlcm1pbmF0ZSgpOyB3b3JrZXIgPSB1bmRlZmluZWQ7IHJlYWR5ID0gZmFsc2U7IG5leHRSZXF1ZXN0ID0gdW5kZWZpbmVkOyB9OwogICAgY29uc3Qgc3RhcnQgPSAoKSA9PiB7CiAgICAgIHdvcmtlciA9IG5ldyBXb3JrZXIoY29uZmlndXJhdGlvbi53b3JrZXIpOwogICAgICB3b3JrZXIub25lcnJvciA9IChldmVudCkgPT4geyBzZW5kKHsgdHlwZTogaW5pdGlhbGl6ZWQgPyAicmVzdWx0IiA6ICJib290c3RyYXAtZXJyb3IiLCByZXF1ZXN0SWQ6IG5leHRSZXF1ZXN0Py5yZXF1ZXN0SWQsIGVycm9yOiBldmVudC5tZXNzYWdlIHx8ICJSZW5kZXJlciB3b3JrZXIgZmFpbGVkIiB9KTsgc3RvcCgpOyB9OwogICAgICB3b3JrZXIub25tZXNzYWdlID0gKGV2ZW50KSA9PiB7CiAgICAgICAgY29uc3QgbWVzc2FnZSA9IGV2ZW50LmRhdGE7CiAgICAg",
+          "line": 35,
+          "selfMs": 21.215000000000003
+        },
+        {
+          "function": "query",
+          "url": "",
+          "line": 5301,
+          "selfMs": 17.182999999999996
+        },
+        {
+          "function": "kr",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 76,
+          "selfMs": 16.965000000000003
+        },
+        {
+          "function": "getTextAlternativeInternal",
+          "url": "",
+          "line": 3623,
+          "selfMs": 16.951999999999998
+        },
+        {
+          "function": "tt",
+          "url": "http://127.0.0.1:4175/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 15.477999999999998
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 18023,
+          "selfMs": 12.530999999999999
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 76,
+          "selfMs": 12.290999999999999
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 75,
+          "selfMs": 12.257
+        },
+        {
+          "function": "nt",
+          "url": "http://127.0.0.1:4175/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 12.181
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 75,
+          "selfMs": 11.366
+        },
+        {
+          "function": "set innerHTML",
+          "url": "",
+          "line": 0,
+          "selfMs": 10.888
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17639,
+          "selfMs": 9.296999999999999
+        },
+        {
+          "function": "gs",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17744,
+          "selfMs": 9.28
+        },
+        {
+          "function": "",
+          "url": "",
+          "line": 0,
+          "selfMs": 9.223999999999998
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17639,
+          "selfMs": 9.206
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 9.188
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17639,
+          "selfMs": 8.17
+        },
+        {
+          "function": "YL",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17744,
+          "selfMs": 7.964
+        },
+        {
+          "function": "randomUUID",
+          "url": "",
+          "line": 0,
+          "selfMs": 7.9239999999999995
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 7.818
+        },
+        {
+          "function": "encode",
+          "url": "",
+          "line": 0,
+          "selfMs": 7.797000000000001
+        },
+        {
+          "function": "rs",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 75,
+          "selfMs": 7.7669999999999995
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4175/assets/index-BZ0cZePg.js",
+          "line": 17639,
+          "selfMs": 7.76
+        }
+      ],
+      "outline": {
+        "openMs": 97.23970000000008,
+        "searchMs": 23.65819999999985,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1630.2641999999996
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 1632.8041000000012
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 439.0066000000006
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1174.6540999999997,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 1161.4969999999994,
+          "previewAndIndexReadyMs": 1169.4601999999995,
+          "engineMs": 590.7999999523163,
+          "undoMs": 648.7169999999987,
+          "undoSvgDomInsertions": 2,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 441,
+          "longestMainThreadTaskMs": 248,
+          "maxTimerDelayMs": 315.60000002384186,
+          "svgDomInsertions": 2,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 97400000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 591 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        },
+        {
+          "editMs": 792.0379000000012,
+          "previewAndIndexReadyMs": 799.7898999999998,
+          "engineMs": 273,
+          "undoMs": 620.7793000000001,
+          "undoSvgDomInsertions": 2,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 358,
+          "longestMainThreadTaskMs": 186,
+          "maxTimerDelayMs": 266.60000002384186,
+          "svgDomInsertions": 2,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 97400000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 273 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        }
+      ],
+      "persistence": {
+        "saveMs": 216.05589999999938,
+        "reopenMs": 1205.9822999999997,
+        "bytes": 191532,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

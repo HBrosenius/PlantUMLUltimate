@@ -1,0 +1,1835 @@
+{
+  "elapsedMs": 3653.274,
+  "functions": [
+    {
+      "function": "(idle)",
+      "source": "",
+      "line": 0,
+      "selfMs": 612.9560000000004
+    },
+    {
+      "function": "(program)",
+      "source": "",
+      "line": 0,
+      "selfMs": 574.0099999999996
+    },
+    {
+      "function": "parseFromString",
+      "source": "",
+      "line": 0,
+      "selfMs": 202.77399999999997
+    },
+    {
+      "function": "",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 149,
+      "selfMs": 148.61100000000005
+    },
+    {
+      "function": "set innerHTML",
+      "source": "",
+      "line": 0,
+      "selfMs": 88.70700000000001
+    },
+    {
+      "function": "getAttributeType",
+      "source": "",
+      "line": 0,
+      "selfMs": 78.402
+    },
+    {
+      "function": "sha256",
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "line": 6,
+      "selfMs": 78.348
+    },
+    {
+      "function": "(garbage collector)",
+      "source": "",
+      "line": 0,
+      "selfMs": 76.24799999999999
+    },
+    {
+      "function": "rs",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2175,
+      "selfMs": 73.21
+    },
+    {
+      "function": "getBBox",
+      "source": "",
+      "line": 0,
+      "selfMs": 62.041999999999994
+    },
+    {
+      "function": "parseGantt",
+      "source": "../../../../packages/diagram-gantt/src/parser.ts",
+      "line": 125,
+      "selfMs": 61.782
+    },
+    {
+      "function": "setItem",
+      "source": "",
+      "line": 0,
+      "selfMs": 59.21700000000001
+    },
+    {
+      "function": "encode",
+      "source": "",
+      "line": 0,
+      "selfMs": 46.056000000000004
+    },
+    {
+      "function": "ganttKeywordRepair",
+      "source": "../../../../packages/diagram-gantt/src/keyword-repairs.ts",
+      "line": 13,
+      "selfMs": 38.705
+    },
+    {
+      "function": "collapse",
+      "source": "",
+      "line": 0,
+      "selfMs": 36.71599999999999
+    },
+    {
+      "function": "serializeToString",
+      "source": "",
+      "line": 0,
+      "selfMs": 35.727000000000004
+    },
+    {
+      "function": "digest",
+      "source": "",
+      "line": 0,
+      "selfMs": 34.241
+    },
+    {
+      "function": "query",
+      "source": "",
+      "line": 5607,
+      "selfMs": 34.091
+    },
+    {
+      "function": "",
+      "source": "../../src/workspace-storage.ts",
+      "line": 810,
+      "selfMs": 32.728
+    },
+    {
+      "function": "saveActiveProject",
+      "source": "../../src/workspace-storage.ts",
+      "line": 802,
+      "selfMs": 31.002
+    },
+    {
+      "function": "isWorkingDate",
+      "source": "../../src/gantt-calendar.ts",
+      "line": 93,
+      "selfMs": 29.790000000000006
+    },
+    {
+      "function": "validForecastTimeZone",
+      "source": "../../src/forecast-date.ts",
+      "line": 1,
+      "selfMs": 28.12900000000001
+    },
+    {
+      "function": "addCanonicalGanttOverlay",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 206,
+      "selfMs": 28.094
+    },
+    {
+      "function": "shiftIsoDateSafely",
+      "source": "../../../../packages/diagram-gantt/src/limits.ts",
+      "line": 19,
+      "selfMs": 28.072
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 110,
+      "selfMs": 26.513000000000005
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 83,
+      "selfMs": 24.980999999999998
+    },
+    {
+      "function": "cloneNode",
+      "source": "",
+      "line": 0,
+      "selfMs": 23.314000000000007
+    },
+    {
+      "function": "serializeProjectManifest",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 210,
+      "selfMs": 21.302
+    },
+    {
+      "function": "getCSSContent",
+      "source": "",
+      "line": 3440,
+      "selfMs": 20.883
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 105,
+      "selfMs": 20.631999999999998
+    },
+    {
+      "function": "value",
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "line": 8,
+      "selfMs": 20.165
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 107,
+      "selfMs": 19.910999999999998
+    },
+    {
+      "function": "getAttribute",
+      "source": "",
+      "line": 0,
+      "selfMs": 19.253
+    },
+    {
+      "function": "option",
+      "source": "../../src/projects/ProjectItemSelect.tsx",
+      "line": 26,
+      "selfMs": 19.02
+    },
+    {
+      "function": "put",
+      "source": "",
+      "line": 0,
+      "selfMs": 16.881
+    },
+    {
+      "function": "diagram",
+      "source": "../../src/projects/use-single-file-project.ts",
+      "line": 80,
+      "selfMs": 16.165
+    },
+    {
+      "function": "id",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 38,
+      "selfMs": 16.000999999999998
+    },
+    {
+      "function": "commitMutationEffectsOnFiber",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 9427,
+      "selfMs": 15.667
+    },
+    {
+      "function": "e.sanitize",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2321,
+      "selfMs": 15.654
+    },
+    {
+      "function": "updateProperties",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 13577,
+      "selfMs": 15.161
+    },
+    {
+      "function": "setAttribute",
+      "source": "",
+      "line": 0,
+      "selfMs": 13.944999999999999
+    },
+    {
+      "function": "query",
+      "source": "",
+      "line": 5301,
+      "selfMs": 13.761
+    },
+    {
+      "function": "element",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 49,
+      "selfMs": 13.539000000000001
+    },
+    {
+      "function": "declaration",
+      "source": "../../src/projects/project-index.ts",
+      "line": 56,
+      "selfMs": 12.802999999999999
+    },
+    {
+      "function": "text",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 437,
+      "selfMs": 12.606
+    },
+    {
+      "function": "checkVisibility",
+      "source": "",
+      "line": 0,
+      "selfMs": 12.52
+    },
+    {
+      "function": "querySelectorAll",
+      "source": "",
+      "line": 0,
+      "selfMs": 12.336999999999998
+    },
+    {
+      "function": "parseProjectManifestJson",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 199,
+      "selfMs": 11.736999999999998
+    },
+    {
+      "function": "elementText",
+      "source": "",
+      "line": 5100,
+      "selfMs": 11.049999999999999
+    },
+    {
+      "function": "getAriaRole",
+      "source": "",
+      "line": 3343,
+      "selfMs": 10.916
+    },
+    {
+      "function": "reconcileChildrenArray",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 3622,
+      "selfMs": 10.902
+    },
+    {
+      "function": "date",
+      "source": "../../src/gantt-calendar.ts",
+      "line": 23,
+      "selfMs": 10.886000000000001
+    },
+    {
+      "function": "elementSafeTagName",
+      "source": "",
+      "line": 3015,
+      "selfMs": 10.805
+    },
+    {
+      "function": "getExplicitAriaRole",
+      "source": "",
+      "line": 3336,
+      "selfMs": 10.625
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/use-single-file-project.ts",
+      "line": 83,
+      "selfMs": 10.543999999999999
+    },
+    {
+      "function": "commitBeforeMutationEffects",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 8842,
+      "selfMs": 10.003999999999998
+    },
+    {
+      "function": "querySelector",
+      "source": "",
+      "line": 0,
+      "selfMs": 9.782
+    },
+    {
+      "function": "",
+      "source": "../../src/App.tsx",
+      "line": 2289,
+      "selfMs": 9.519
+    },
+    {
+      "function": "getOrCreateTask",
+      "source": "../../../../packages/diagram-gantt/src/parser.ts",
+      "line": 83,
+      "selfMs": 9.407999999999998
+    },
+    {
+      "function": "hash",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 80,
+      "selfMs": 9.371
+    },
+    {
+      "function": "detectDiagramKind",
+      "source": "../../src/diagram-kind.ts",
+      "line": 20,
+      "selfMs": 9.275
+    },
+    {
+      "function": "createWorkInProgress",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 2452,
+      "selfMs": 9.203
+    },
+    {
+      "function": "visit",
+      "source": "",
+      "line": 4171,
+      "selfMs": 7.906
+    },
+    {
+      "function": "ProjectLinksPanel",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 20,
+      "selfMs": 7.893
+    },
+    {
+      "function": "isElementHiddenForAria",
+      "source": "",
+      "line": 3368,
+      "selfMs": 7.8149999999999995
+    },
+    {
+      "function": "getElementComputedStyle",
+      "source": "",
+      "line": 2955,
+      "selfMs": 7.718999999999999
+    },
+    {
+      "function": "getComputedStyle",
+      "source": "",
+      "line": 0,
+      "selfMs": 7.654999999999999
+    },
+    {
+      "function": "setTextContent",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 1254,
+      "selfMs": 7.643000000000001
+    },
+    {
+      "function": "statementIssues",
+      "source": "../../src/diagram-statement-issues.ts",
+      "line": 9,
+      "selfMs": 7.550999999999999
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 56,
+      "selfMs": 7.536
+    },
+    {
+      "function": "App",
+      "source": "../../src/App.tsx",
+      "line": 230,
+      "selfMs": 7.446999999999999
+    },
+    {
+      "function": "setProp",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 12957,
+      "selfMs": 7.079000000000001
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 88,
+      "selfMs": 7.032
+    },
+    {
+      "function": "syntaxRepairs",
+      "source": "../../src/diagram-syntax-repairs.ts",
+      "line": 18,
+      "selfMs": 6.752000000000001
+    },
+    {
+      "function": "validIsoDate",
+      "source": "../../../../packages/diagram-gantt/src/limits.ts",
+      "line": 8,
+      "selfMs": 6.728000000000001
+    },
+    {
+      "function": "",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 217,
+      "selfMs": 6.4079999999999995
+    },
+    {
+      "function": "removeChild",
+      "source": "",
+      "line": 0,
+      "selfMs": 6.315999999999999
+    },
+    {
+      "function": "identifier",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 74,
+      "selfMs": 6.2589999999999995
+    },
+    {
+      "function": "o",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 141,
+      "selfMs": 6.210000000000001
+    },
+    {
+      "function": "toAriaNode",
+      "source": "",
+      "line": 4284,
+      "selfMs": 6.21
+    },
+    {
+      "function": "Mo",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2120,
+      "selfMs": 6.202
+    },
+    {
+      "function": "processElement",
+      "source": "",
+      "line": 4224,
+      "selfMs": 6.192
+    },
+    {
+      "function": "computeElementStyleVisibilityVisible",
+      "source": "",
+      "line": 2971,
+      "selfMs": 6.145999999999999
+    },
+    {
+      "function": "portablePathKey",
+      "source": "../../../../packages/project-model/src/paths.ts",
+      "line": 45,
+      "selfMs": 6.124
+    },
+    {
+      "function": "_t",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 1898,
+      "selfMs": 4.836
+    },
+    {
+      "function": "resolveElement",
+      "source": "../../../../packages/project-model/src/identity.ts",
+      "line": 7,
+      "selfMs": 4.828
+    },
+    {
+      "function": "gantt",
+      "source": "../../src/App.tsx",
+      "line": 2103,
+      "selfMs": 4.804
+    },
+    {
+      "function": "",
+      "source": "",
+      "line": 0,
+      "selfMs": 4.77
+    },
+    {
+      "function": "DiagramPreview",
+      "source": "../../src/DiagramPreview.tsx",
+      "line": 126,
+      "selfMs": 4.72
+    },
+    {
+      "function": "get attributes",
+      "source": "",
+      "line": 0,
+      "selfMs": 4.648
+    },
+    {
+      "function": "dependencyOrderRepair",
+      "source": "../../src/gantt-language.ts",
+      "line": 29,
+      "selfMs": 4.6080000000000005
+    },
+    {
+      "function": "dependencyCycleDiagnostics",
+      "source": "../../../../packages/diagram-gantt/src/dependency-cycles.ts",
+      "line": 4,
+      "selfMs": 4.595
+    },
+    {
+      "function": "get nodeName",
+      "source": "",
+      "line": 0,
+      "selfMs": 4.585999999999999
+    },
+    {
+      "function": "",
+      "source": "",
+      "line": 25,
+      "selfMs": 4.572
+    },
+    {
+      "function": "forecastToday",
+      "source": "../../src/forecast-date.ts",
+      "line": 11,
+      "selfMs": 4.505
+    },
+    {
+      "function": "u",
+      "source": "../../src/gantt-schedule.ts",
+      "line": 92,
+      "selfMs": 4.38
+    },
+    {
+      "function": "item",
+      "source": "../../../../packages/diagram-gantt/src/symbols.ts",
+      "line": 20,
+      "selfMs": 4.296
+    },
+    {
+      "function": "numberAttribute",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 8,
+      "selfMs": 4.281000000000001
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/project-index.ts",
+      "line": 164,
+      "selfMs": 4.257999999999999
+    },
+    {
+      "function": "normalizeTaskId",
+      "source": "../../../../packages/diagram-gantt/src/parser.ts",
+      "line": 59,
+      "selfMs": 4.159
+    },
+    {
+      "function": "createTextNode",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.999
+    },
+    {
+      "function": "buildResourceWorkloads",
+      "source": "../../src/ResourceWorkloadPanel.tsx",
+      "line": 44,
+      "selfMs": 3.423
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 213,
+      "selfMs": 3.341
+    },
+    {
+      "function": "",
+      "source": "",
+      "line": 1,
+      "selfMs": 3.34
+    },
+    {
+      "function": "getImplicitAriaRole",
+      "source": "",
+      "line": 3233,
+      "selfMs": 3.282
+    },
+    {
+      "function": "member",
+      "source": "../../src/projects/embedded-project.ts",
+      "line": 90,
+      "selfMs": 3.262
+    },
+    {
+      "function": "visiblePixelRange",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 6109,
+      "selfMs": 3.259
+    },
+    {
+      "function": "updateInput",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 1103,
+      "selfMs": 3.255
+    },
+    {
+      "function": "st",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 1475,
+      "selfMs": 3.216
+    },
+    {
+      "function": "",
+      "source": "",
+      "line": 3429,
+      "selfMs": 3.1799999999999997
+    },
+    {
+      "function": "renderWithHooks",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 4333,
+      "selfMs": 3.1639999999999997
+    },
+    {
+      "function": "get nodeType",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.15
+    },
+    {
+      "function": "get parentNode",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.146
+    },
+    {
+      "function": "id",
+      "source": "../../../../packages/diagram-gantt/src/dependency-cycles.ts",
+      "line": 20,
+      "selfMs": 3.143
+    },
+    {
+      "function": "exactKeys",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 57,
+      "selfMs": 3.1340000000000003
+    },
+    {
+      "function": "analyzeCriticalPath",
+      "source": "../../src/schedule-analysis.ts",
+      "line": 142,
+      "selfMs": 3.132
+    },
+    {
+      "function": "taskOccurrences",
+      "source": "../../../../packages/diagram-gantt/src/symbols.ts",
+      "line": 29,
+      "selfMs": 3.124
+    },
+    {
+      "function": "getBoundingClientRect",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.11
+    },
+    {
+      "function": "previewNode",
+      "source": "",
+      "line": 7703,
+      "selfMs": 3.109
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 100,
+      "selfMs": 3.105
+    },
+    {
+      "function": "receivesPointerEvents",
+      "source": "",
+      "line": 4027,
+      "selfMs": 3.099
+    },
+    {
+      "function": "member",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 218,
+      "selfMs": 3.098
+    },
+    {
+      "function": "insertBefore",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.097
+    },
+    {
+      "function": "completeUnitOfWork",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 11405,
+      "selfMs": 3.088
+    },
+    {
+      "function": "item",
+      "source": "../../src/schedule-baseline-comparison.ts",
+      "line": 15,
+      "selfMs": 3.083
+    },
+    {
+      "function": "completeWork",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 7955,
+      "selfMs": 3.082
+    },
+    {
+      "function": "",
+      "source": "../../src/App.tsx",
+      "line": 2269,
+      "selfMs": 3.078
+    },
+    {
+      "function": "ProjectItemSelect",
+      "source": "../../src/projects/ProjectItemSelect.tsx",
+      "line": 6,
+      "selfMs": 3.072
+    },
+    {
+      "function": "nextNode",
+      "source": "",
+      "line": 0,
+      "selfMs": 3.07
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/embedded-project.ts",
+      "line": 181,
+      "selfMs": 3.066
+    },
+    {
+      "function": "yamlStringNeedsQuotes",
+      "source": "",
+      "line": 2717,
+      "selfMs": 3.0519999999999996
+    },
+    {
+      "function": "declarationsFor",
+      "source": "../../src/projects/project-index.ts",
+      "line": 71,
+      "selfMs": 3.0389999999999997
+    },
+    {
+      "function": "Y",
+      "source": "../../src/schedule-analysis.ts",
+      "line": 260,
+      "selfMs": 3.0199999999999996
+    },
+    {
+      "function": "shape",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 256,
+      "selfMs": 3.012
+    },
+    {
+      "function": "writeRecoveryItem",
+      "source": "../../src/workspace-storage.ts",
+      "line": 725,
+      "selfMs": 2.998
+    },
+    {
+      "function": "alignClosedDayHatching",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 76,
+      "selfMs": 2.87
+    },
+    {
+      "function": "sameDeclaration",
+      "source": "../../../../packages/project-model/src/identity.ts",
+      "line": 3,
+      "selfMs": 2.848
+    },
+    {
+      "function": "gantt",
+      "source": "../../src/App.tsx",
+      "line": 2064,
+      "selfMs": 2.7809999999999997
+    },
+    {
+      "function": "get ready",
+      "source": "",
+      "line": 0,
+      "selfMs": 2.7030000000000003
+    },
+    {
+      "function": "asFlatString",
+      "source": "",
+      "line": 3428,
+      "selfMs": 2.574
+    },
+    {
+      "function": "next",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3742,
+      "selfMs": 2.342
+    },
+    {
+      "function": "normalizeWhiteSpace",
+      "source": "",
+      "line": 1924,
+      "selfMs": 1.848
+    },
+    {
+      "function": "apply",
+      "source": "../../../../node_modules/@codemirror/language/dist/index.js",
+      "line": 527,
+      "selfMs": 1.837
+    },
+    {
+      "function": "task",
+      "source": "../../src/gantt-schedule.ts",
+      "line": 112,
+      "selfMs": 1.814
+    },
+    {
+      "function": "hasChild",
+      "source": "../../../../node_modules/@lezer/common/dist/index.js",
+      "line": 1281,
+      "selfMs": 1.797
+    },
+    {
+      "function": "task",
+      "source": "../../src/gantt-language.ts",
+      "line": 364,
+      "selfMs": 1.758
+    },
+    {
+      "function": "contains",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.755
+    },
+    {
+      "function": "In",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2073,
+      "selfMs": 1.745
+    },
+    {
+      "function": "",
+      "source": "../../src/App.tsx",
+      "line": 1117,
+      "selfMs": 1.742
+    },
+    {
+      "function": "hasAttribute",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.723
+    },
+    {
+      "function": "",
+      "source": "../../src/DiagramPreview.tsx",
+      "line": 2011,
+      "selfMs": 1.715
+    },
+    {
+      "function": "option",
+      "source": "../../src/projects/ProjectItemSelect.tsx",
+      "line": 31,
+      "selfMs": 1.708
+    },
+    {
+      "function": "task",
+      "source": "../../../../packages/diagram-gantt/src/symbols.ts",
+      "line": 19,
+      "selfMs": 1.693
+    },
+    {
+      "function": "_executeHooks",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 1882,
+      "selfMs": 1.685
+    },
+    {
+      "function": "compareBaselineDependencies",
+      "source": "../../src/schedule-baseline-comparison.ts",
+      "line": 14,
+      "selfMs": 1.679
+    },
+    {
+      "function": "get tree",
+      "source": "../../../../node_modules/@lezer/common/dist/index.js",
+      "line": 813,
+      "selfMs": 1.678
+    },
+    {
+      "function": "link",
+      "source": "../../src/projects/use-single-file-project.ts",
+      "line": 92,
+      "selfMs": 1.674
+    },
+    {
+      "function": "update",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 7947,
+      "selfMs": 1.663
+    },
+    {
+      "function": "item",
+      "source": "../../src/App.tsx",
+      "line": 2066,
+      "selfMs": 1.646
+    },
+    {
+      "function": "",
+      "source": "../../src/App.tsx",
+      "line": 3336,
+      "selfMs": 1.636
+    },
+    {
+      "function": "ea",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2021,
+      "selfMs": 1.633
+    },
+    {
+      "function": "",
+      "source": "../../src/use-document-files.ts",
+      "line": 274,
+      "selfMs": 1.619
+    },
+    {
+      "function": "member",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 80,
+      "selfMs": 1.611
+    },
+    {
+      "function": "parentElementOrShadowHost",
+      "source": "",
+      "line": 2925,
+      "selfMs": 1.61
+    },
+    {
+      "function": "appendText",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 360,
+      "selfMs": 1.608
+    },
+    {
+      "function": "commitDeletionEffectsOnFiber",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 9159,
+      "selfMs": 1.606
+    },
+    {
+      "function": "record",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 23,
+      "selfMs": 1.603
+    },
+    {
+      "function": "RegExp: ^(\\s*(?:then\\s+)?\\[[^\\]]+]\\s+(?:starts|ends)\\s+)(\\w+)(\\s+\\[[^\\]]+]'s\\s+(?:start|end)\\s*)$",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.601
+    },
+    {
+      "function": "id",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 72,
+      "selfMs": 1.599
+    },
+    {
+      "function": "RegExp: ^is\\s+colou?red\\s+in\\s+(\\S+)\\s*$",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.599
+    },
+    {
+      "function": "embeddedMemberHistoryId",
+      "source": "../../src/projects/embedded-project.ts",
+      "line": 14,
+      "selfMs": 1.598
+    },
+    {
+      "function": "processDispatchQueue",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 12272,
+      "selfMs": 1.594
+    },
+    {
+      "function": "match",
+      "source": "../../../../node_modules/@codemirror/language/dist/index.js",
+      "line": 2175,
+      "selfMs": 1.594
+    },
+    {
+      "function": "matches",
+      "source": "",
+      "line": 8220,
+      "selfMs": 1.594
+    },
+    {
+      "function": "beginWork",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 7392,
+      "selfMs": 1.592
+    },
+    {
+      "function": "update",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 1471,
+      "selfMs": 1.592
+    },
+    {
+      "function": "event",
+      "source": "../../src/App.tsx",
+      "line": 3191,
+      "selfMs": 1.59
+    },
+    {
+      "function": "commitPassiveMountOnFiber",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 10109,
+      "selfMs": 1.59
+    },
+    {
+      "function": "terminatorIssues",
+      "source": "../../src/diagram-terminator-repairs.ts",
+      "line": 34,
+      "selfMs": 1.586
+    },
+    {
+      "function": "measure",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 6319,
+      "selfMs": 1.586
+    },
+    {
+      "function": "computeAccessibleNameComposite",
+      "source": "",
+      "line": 3505,
+      "selfMs": 1.586
+    },
+    {
+      "function": "declarationLines",
+      "source": "../../../../packages/diagram-gantt/src/symbols.ts",
+      "line": 18,
+      "selfMs": 1.585
+    },
+    {
+      "function": "anchor",
+      "source": "../../src/gantt-schedule.ts",
+      "line": 174,
+      "selfMs": 1.584
+    },
+    {
+      "function": "buildDiagramOutlineEntries",
+      "source": "../../src/diagram-outline.ts",
+      "line": 43,
+      "selfMs": 1.583
+    },
+    {
+      "function": "value",
+      "source": "../../src/schedule-analysis.ts",
+      "line": 12,
+      "selfMs": 1.583
+    },
+    {
+      "function": "item",
+      "source": "../../../../packages/project-model/src/identity.ts",
+      "line": 12,
+      "selfMs": 1.582
+    },
+    {
+      "function": "text",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 334,
+      "selfMs": 1.581
+    },
+    {
+      "function": "item",
+      "source": "../../src/App.tsx",
+      "line": 2105,
+      "selfMs": 1.58
+    },
+    {
+      "function": "terminatorRepairs",
+      "source": "../../src/diagram-terminator-repairs.ts",
+      "line": 314,
+      "selfMs": 1.579
+    },
+    {
+      "function": "updateSlot",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 3503,
+      "selfMs": 1.578
+    },
+    {
+      "function": "RegExp: \\s+'.*$",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.578
+    },
+    {
+      "function": "RegExp: ^\\s*--\\s*(.*?)\\s*--\\s*$",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.578
+    },
+    {
+      "function": "item",
+      "source": "../../src/projects/embedded-project.ts",
+      "line": 37,
+      "selfMs": 1.576
+    },
+    {
+      "function": "facet",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 2704,
+      "selfMs": 1.574
+    },
+    {
+      "function": "blockTiles",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 1882,
+      "selfMs": 1.573
+    },
+    {
+      "function": "appendChild",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.569
+    },
+    {
+      "function": "C.useCallback",
+      "source": "../../../../node_modules/react/cjs/react.production.js",
+      "line": 485,
+      "selfMs": 1.568
+    },
+    {
+      "function": "item",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 449,
+      "selfMs": 1.567
+    },
+    {
+      "function": "parseProjectManifest",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 92,
+      "selfMs": 1.566
+    },
+    {
+      "function": "timelineColumnWidth",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 63,
+      "selfMs": 1.566
+    },
+    {
+      "function": "",
+      "source": "../../src/diagram-outline.ts",
+      "line": 68,
+      "selfMs": 1.565
+    },
+    {
+      "function": "text",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 78,
+      "selfMs": 1.564
+    },
+    {
+      "function": "bubbleProperties",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 7931,
+      "selfMs": 1.563
+    },
+    {
+      "function": "transaction",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.563
+    },
+    {
+      "function": "getScrollOffset",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 6642,
+      "selfMs": 1.563
+    },
+    {
+      "function": "steps",
+      "source": "../../src/features/documents/use-source-commands.ts",
+      "line": 153,
+      "selfMs": 1.562
+    },
+    {
+      "function": "advance",
+      "source": "../../../../node_modules/@codemirror/language/dist/index.js",
+      "line": 2360,
+      "selfMs": 1.56
+    },
+    {
+      "function": "h.onsuccess",
+      "source": "../../src/workspace-storage.ts",
+      "line": 766,
+      "selfMs": 1.56
+    },
+    {
+      "function": "item",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 73,
+      "selfMs": 1.559
+    },
+    {
+      "function": "sharedRepairs",
+      "source": "../../src/diagram-diagnostics.ts",
+      "line": 145,
+      "selfMs": 1.559
+    },
+    {
+      "function": "encodeContentHistory",
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "line": 54,
+      "selfMs": 1.558
+    },
+    {
+      "function": "match",
+      "source": "",
+      "line": 5261,
+      "selfMs": 1.558
+    },
+    {
+      "function": "i.onsuccess",
+      "source": "../../src/workspace-storage.ts",
+      "line": 493,
+      "selfMs": 1.557
+    },
+    {
+      "function": "shiftDate",
+      "source": "../../src/gantt-calendar.ts",
+      "line": 89,
+      "selfMs": 1.556
+    },
+    {
+      "function": "next",
+      "source": "../../../../node_modules/@codemirror/search/dist/index.js",
+      "line": 67,
+      "selfMs": 1.555
+    },
+    {
+      "function": "Ti",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 1202,
+      "selfMs": 1.555
+    },
+    {
+      "function": "sanitizeSvgFragment",
+      "source": "../../src/render/sanitize-svg.ts",
+      "line": 3,
+      "selfMs": 1.553
+    },
+    {
+      "function": "event",
+      "source": "../../src/render/use-renderer.ts",
+      "line": 204,
+      "selfMs": 1.552
+    },
+    {
+      "function": "Nr",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 1838,
+      "selfMs": 1.551
+    },
+    {
+      "function": "postMessage",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.55
+    },
+    {
+      "function": "scan",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 1979,
+      "selfMs": 1.549
+    },
+    {
+      "function": "StorageStatus",
+      "source": "../../src/StorageStatus.tsx",
+      "line": 15,
+      "selfMs": 1.549
+    },
+    {
+      "function": "get type",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 5480,
+      "selfMs": 1.549
+    },
+    {
+      "function": "immediateIndex",
+      "source": "../../src/projects/use-single-file-project.ts",
+      "line": 78,
+      "selfMs": 1.549
+    },
+    {
+      "function": "getClientRects",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.549
+    },
+    {
+      "function": "ProjectNavigator",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 13,
+      "selfMs": 1.549
+    },
+    {
+      "function": "",
+      "source": "",
+      "line": 3337,
+      "selfMs": 1.548
+    },
+    {
+      "function": "resolveTransactionInner",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 2403,
+      "selfMs": 1.547
+    },
+    {
+      "function": "performWorkOnRootViaSchedulerTask",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 12065,
+      "selfMs": 1.544
+    },
+    {
+      "function": "throwIfCancelled",
+      "source": "../../src/projects/project-index.ts",
+      "line": 41,
+      "selfMs": 1.538
+    },
+    {
+      "function": "commitHookEffectListUnmount",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 8593,
+      "selfMs": 1.532
+    },
+    {
+      "function": "eq",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3330,
+      "selfMs": 1.531
+    },
+    {
+      "function": "",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 3711,
+      "selfMs": 1.527
+    },
+    {
+      "function": "get hasFocus",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 8605,
+      "selfMs": 1.526
+    },
+    {
+      "function": "path",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 482,
+      "selfMs": 1.526
+    },
+    {
+      "function": "runHandlers",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 4562,
+      "selfMs": 1.525
+    },
+    {
+      "function": "isInstalledDisplayMode",
+      "source": "../../src/pwa.ts",
+      "line": 45,
+      "selfMs": 1.525
+    },
+    {
+      "function": "_queryEngineAll",
+      "source": "",
+      "line": 6968,
+      "selfMs": 1.525
+    },
+    {
+      "function": "validateProjectElement",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 319,
+      "selfMs": 1.524
+    },
+    {
+      "function": "NR",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 14,
+      "selfMs": 1.522
+    },
+    {
+      "function": "r.onsuccess",
+      "source": "../../src/workspace-storage.ts",
+      "line": 433,
+      "selfMs": 1.521
+    },
+    {
+      "function": "spliceRecord",
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "line": 30,
+      "selfMs": 1.521
+    },
+    {
+      "function": "get length",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3081,
+      "selfMs": 1.52
+    },
+    {
+      "function": "createElement",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.52
+    },
+    {
+      "function": "En",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 1709,
+      "selfMs": 1.519
+    },
+    {
+      "function": "diagram",
+      "source": "../../src/collaboration-document.ts",
+      "line": 28,
+      "selfMs": 1.516
+    },
+    {
+      "function": "effectiveBaselineDates",
+      "source": "../../src/schedule-baseline-comparison.ts",
+      "line": 78,
+      "selfMs": 1.515
+    },
+    {
+      "function": "performUnitOfWork",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 11304,
+      "selfMs": 1.515
+    },
+    {
+      "function": "sync",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 1823,
+      "selfMs": 1.514
+    },
+    {
+      "function": "splitGanttClauses",
+      "source": "../../../../packages/diagram-gantt/src/inline-clauses.ts",
+      "line": 2,
+      "selfMs": 1.514
+    },
+    {
+      "function": "item",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 84,
+      "selfMs": 1.513
+    },
+    {
+      "function": "RegExp: ^\\s*(\\d{4}[-/]\\d{2}[-/]\\d{2})(?:\\s+to\\s+(\\d{4}[-/]\\d{2}[-/]\\d{2}))?\\s+(?:is|are)\\s+(?:closed|opened|colou?red\\s+in\\s+\\S+)\\s*$",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.513
+    },
+    {
+      "function": "computeBox",
+      "source": "",
+      "line": 2987,
+      "selfMs": 1.513
+    },
+    {
+      "function": "element",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 223,
+      "selfMs": 1.512
+    },
+    {
+      "function": "parseClassSettings",
+      "source": "../../src/class-settings.ts",
+      "line": 18,
+      "selfMs": 1.512
+    },
+    {
+      "function": "member",
+      "source": "../../src/projects/ProjectLinksPanel.tsx",
+      "line": 94,
+      "selfMs": 1.512
+    },
+    {
+      "function": "recursivelyTraverseLayoutEffects",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 9901,
+      "selfMs": 1.511
+    },
+    {
+      "function": "member",
+      "source": "../../src/projects/ProjectNavigator.tsx",
+      "line": 326,
+      "selfMs": 1.511
+    },
+    {
+      "function": "validateProjectPath",
+      "source": "../../../../packages/project-model/src/paths.ts",
+      "line": 28,
+      "selfMs": 1.51
+    },
+    {
+      "function": "jsxProd",
+      "source": "../../../../node_modules/react/cjs/react-jsx-runtime.production.js",
+      "line": 14,
+      "selfMs": 1.509
+    },
+    {
+      "function": "linkCountsFor",
+      "source": "../../src/projects/project-index.ts",
+      "line": 45,
+      "selfMs": 1.507
+    },
+    {
+      "function": "date",
+      "source": "../../src/schedule-analysis.ts",
+      "line": 249,
+      "selfMs": 1.505
+    },
+    {
+      "function": "timestamp",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 86,
+      "selfMs": 1.505
+    },
+    {
+      "function": "removeAttribute",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.504
+    },
+    {
+      "function": "observe",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.503
+    },
+    {
+      "function": "text",
+      "source": "../../src/render/canonical-gantt-overlay.ts",
+      "line": 89,
+      "selfMs": 1.503
+    },
+    {
+      "function": "update",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 1786,
+      "selfMs": 1.5
+    },
+    {
+      "function": "projectWithOpenTabSources",
+      "source": "../../src/projects/embedded-project.ts",
+      "line": 83,
+      "selfMs": 1.499
+    },
+    {
+      "function": "item",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 162,
+      "selfMs": 1.495
+    },
+    {
+      "function": "validDate",
+      "source": "../../src/schedule-baseline-comparison.ts",
+      "line": 54,
+      "selfMs": 1.492
+    },
+    {
+      "function": "removeEventListener",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.48
+    },
+    {
+      "function": "item",
+      "source": "../../src/App.tsx",
+      "line": 1748,
+      "selfMs": 1.473
+    },
+    {
+      "function": "isUserEvent",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 2313,
+      "selfMs": 1.436
+    },
+    {
+      "function": "base64",
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "line": 99,
+      "selfMs": 1.435
+    },
+    {
+      "function": "btoa",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.435
+    },
+    {
+      "function": "CodeEditor",
+      "source": "../../src/CodeEditor.tsx",
+      "line": 234,
+      "selfMs": 1.36
+    },
+    {
+      "function": "getMarks",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 2864,
+      "selfMs": 1.3
+    },
+    {
+      "function": "extend",
+      "source": "",
+      "line": 0,
+      "selfMs": 1.254
+    },
+    {
+      "function": "forRange",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 9291,
+      "selfMs": 1.208
+    },
+    {
+      "function": "taskElapsedDays",
+      "source": "../../src/gantt-schedule.ts",
+      "line": 29,
+      "selfMs": 1.112
+    },
+    {
+      "function": "",
+      "source": "../../src/projects/use-embedded-project.ts",
+      "line": 147,
+      "selfMs": 0.918
+    },
+    {
+      "function": "getTextAlternativeInternal",
+      "source": "",
+      "line": 3623,
+      "selfMs": 0.807
+    },
+    {
+      "function": "nextOverlapping",
+      "source": "../../../../node_modules/@codemirror/search/dist/index.js",
+      "line": 77,
+      "selfMs": 0.74
+    },
+    {
+      "function": "touchesRange",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 766,
+      "selfMs": 0.601
+    },
+    {
+      "function": "findChild",
+      "source": "../../../../node_modules/@lezer/common/dist/index.js",
+      "line": 633,
+      "selfMs": 0.53
+    },
+    {
+      "function": "dispatchSetState",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 5369,
+      "selfMs": 0.47
+    },
+    {
+      "function": "boundaryIssues",
+      "source": "../../src/diagram-boundary-issues.ts",
+      "line": 22,
+      "selfMs": 0.432
+    },
+    {
+      "function": "rm$1",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 1854,
+      "selfMs": 0.405
+    },
+    {
+      "function": "match",
+      "source": "../../../../node_modules/@codemirror/search/dist/index.js",
+      "line": 104,
+      "selfMs": 0.359
+    },
+    {
+      "function": "trs",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 7910,
+      "selfMs": 0.351
+    },
+    {
+      "function": "goto",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3707,
+      "selfMs": 0.317
+    },
+    {
+      "function": "checkSide",
+      "source": "../../../../node_modules/@lezer/common/dist/index.js",
+      "line": 660,
+      "selfMs": 0.146
+    },
+    {
+      "function": "goto",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3555,
+      "selfMs": 0.128
+    },
+    {
+      "function": "getAriaPressed",
+      "source": "",
+      "line": 3941,
+      "selfMs": 0.095
+    },
+    {
+      "function": "get startSide",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3637,
+      "selfMs": 0.078
+    },
+    {
+      "function": "emit",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 2744,
+      "selfMs": 0.066
+    },
+    {
+      "function": "addLineStartIfNotCovered",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 2390,
+      "selfMs": 0.061
+    },
+    {
+      "function": "get startSide",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3553,
+      "selfMs": 0.059
+    },
+    {
+      "function": "findIndex",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3084,
+      "selfMs": 0.025
+    },
+    {
+      "function": "preserve",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 2663,
+      "selfMs": 0.024
+    },
+    {
+      "function": "goto",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3638,
+      "selfMs": 0.024
+    },
+    {
+      "function": "advance",
+      "source": "../../../../node_modules/@codemirror/view/dist/index.js",
+      "line": 2193,
+      "selfMs": 0.021
+    },
+    {
+      "function": "next",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3654,
+      "selfMs": 0.021
+    },
+    {
+      "function": "compare",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3814,
+      "selfMs": 0.015
+    },
+    {
+      "function": "gotoInner",
+      "source": "../../../../node_modules/@codemirror/state/dist/index.js",
+      "line": 3560,
+      "selfMs": 0.012
+    }
+  ]
+}
