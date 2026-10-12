@@ -358,9 +358,28 @@ async function saveAndReopen(page, expected, allowFailedPreview = false, expecte
   if (allowFailedPreview && !project.diagrams.some((d) => d.document.current.source === expected))
     throw new Error("Oversized fixture source changed during save");
   if (expectedProject) {
-    for (const member of expectedProject.diagrams)
-      if (project.diagrams.find((d) => d.id === member.id)?.document.current.source !== member.document.current.source)
+    for (const member of expectedProject.diagrams) {
+      const savedMember = project.diagrams.find((d) => d.id === member.id);
+      if (savedMember?.document.current.source !== member.document.current.source)
         throw new Error(`Saved member source differs: ${member.name}`);
+      const originalContents = await codec.reconstructContents(member.document.contents);
+      const savedContents = await codec.reconstructContents(savedMember.document.contents);
+      for (const version of member.document.versions) {
+        const savedVersion = savedMember.document.versions.find((saved) => saved.id === version.id);
+        const originalSource = originalContents.get(version.contentId);
+        const savedSource = savedVersion && savedContents.get(savedVersion.contentId);
+        if (
+          !savedVersion ||
+          typeof originalSource !== "string" ||
+          typeof savedSource !== "string" ||
+          ["createdAt", "sequence", "reason", "pinned", "diagramKind"].some(
+            (key) => savedVersion[key] !== version[key],
+          ) ||
+          originalSource !== savedSource
+        )
+          throw new Error(`Saved revision differs: ${member.name} / ${version.id}`);
+      }
+    }
     for (const link of expectedProject.links)
       if (
         !project.links.some(
@@ -395,6 +414,10 @@ async function saveAndReopen(page, expected, allowFailedPreview = false, expecte
     diagrams: project.diagrams.length,
     links: project.links?.length ?? 0,
     allFixtureMembersAndLinksPreserved: expectedProject ? true : undefined,
+    originalHistoryVersionsVerified: expectedProject?.diagrams.reduce(
+      (n, member) => n + member.document.versions.length,
+      0,
+    ),
     historyVersions: project.diagrams.reduce((n, d) => n + d.document.versions.length, 0),
     renderResultsAfterReopen: await page.evaluate((after) => window.audit.renders.length - after, after),
   };
@@ -619,6 +642,44 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
               () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
             );
             record.memberSwitches.push({ name: member.name, wallMs: performance.now() - began });
+          }
+          stage("project-edit-undo");
+          const firstMember = item.project.diagrams[0];
+          await navigator.getByRole("button", { name: `Inspect diagram ${firstMember.name}`, exact: true }).click();
+          await expect(page.locator(".document-tabs > button.active")).toContainText(firstMember.name);
+          await expect(page.locator(".diagram svg")).toContainText("Delivery task 30", { timeout: 65_000 });
+          const editor = page.locator(".cm-content");
+          const originalTitle = firstMember.document.current.source.split("\n")[1];
+          record.projectEdits = [];
+          for (let edit = 0; edit < 2; edit++) {
+            const title = `title Portfolio edit audit ${edit}`;
+            await editor.focus();
+            await page.keyboard.press("ControlOrMeta+Home");
+            await page.keyboard.press("ArrowDown");
+            await page.keyboard.press("Home");
+            await page.keyboard.press("Shift+End");
+            const beforeRender = await page.evaluate(() => window.audit.renders.length);
+            const editClock = await page.evaluate(() => performance.now());
+            const editStarted = performance.now();
+            await page.keyboard.insertText(title);
+            const render = await settle(page, beforeRender, `Portfolio edit audit ${edit}`);
+            const editMs = performance.now() - editStarted;
+            await expect(navigator.locator(".project-index-status")).toHaveText("Links current", { timeout: 30_000 });
+            const previewAndIndexReadyMs = performance.now() - editStarted;
+            const editSample = await sample(page, editClock);
+            const undoStarted = performance.now();
+            await editor.press("ControlOrMeta+z");
+            await expect(editor).toContainText(originalTitle);
+            await expect(page.locator(".diagram svg")).not.toContainText(`Portfolio edit audit ${edit}`);
+            await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
+            await expect(navigator.locator(".project-index-status")).toHaveText("Links current", { timeout: 30_000 });
+            record.projectEdits.push({
+              editMs,
+              previewAndIndexReadyMs,
+              engineMs: render.engineMs,
+              undoMs: performance.now() - undoStarted,
+              ...editSample,
+            });
           }
         }
         stage("save-reopen");
