@@ -2017,6 +2017,7 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const sanitizedSvg = useMemo(() => sanitizeSvg(svg), [svg]);
+  const svgMarkup = useMemo(() => ({ __html: sanitizedSvg }), [sanitizedSvg]);
   useLayoutEffect(() => {
     const root = host.current;
     if (!root) return;
@@ -2028,7 +2029,7 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
       if (label) appendDiagramLinkIcon(label);
     }
   }, [sanitizedSvg, linkedTaskIds]);
-  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={{ __html: sanitizedSvg }} />;
+  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={svgMarkup} />;
 });
 
 export function taskHoverDetails(

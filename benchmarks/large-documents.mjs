@@ -187,7 +187,15 @@ for (const item of selected)
 
 async function instruments(page) {
   await page.addInitScript(() => {
-    window.audit = { renders: [], longTasks: [], gaps: [], errors: [] };
+    window.audit = { renders: [], longTasks: [], gaps: [], errors: [], svgInsertions: [] };
+    const innerHtml = Object.getOwnPropertyDescriptor(window.Element.prototype, "innerHTML");
+    Object.defineProperty(window.Element.prototype, "innerHTML", {
+      ...innerHtml,
+      set(value) {
+        if (this.classList.contains("diagram-svg-host")) window.audit.svgInsertions.push(performance.now());
+        innerHtml.set.call(this, value);
+      },
+    });
     let last = performance.now();
     setInterval(() => {
       const now = performance.now();
@@ -315,6 +323,7 @@ async function sample(page, start) {
       mainThreadBlockedMs: tasks.reduce((s, x) => s + x.ms, 0),
       longestMainThreadTaskMs: Math.max(0, ...tasks.map((x) => x.ms)),
       maxTimerDelayMs: Math.max(0, ...window.audit.gaps.filter((x) => x.at >= start).map((x) => x.ms)),
+      svgDomInsertions: window.audit.svgInsertions.filter((at) => at >= start).length,
       domNodes: document.querySelectorAll("*").length,
       svgNodes: svg?.querySelectorAll("*").length,
       svgWidth: svg?.getAttribute("width"),
@@ -676,6 +685,7 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
             const previewAndIndexReadyMs = performance.now() - editStarted;
             const editSample = await sample(page, editClock);
             const undoStarted = performance.now();
+            const undoClock = await page.evaluate(() => performance.now());
             await editor.press("ControlOrMeta+z");
             await expect(editor).toContainText(originalTitle);
             await expect(page.locator(".diagram svg")).not.toContainText(`Portfolio edit audit ${edit}`);
@@ -686,6 +696,10 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
               previewAndIndexReadyMs,
               engineMs: render.engineMs,
               undoMs: performance.now() - undoStarted,
+              undoSvgDomInsertions: await page.evaluate(
+                (start) => window.audit.svgInsertions.filter((at) => at >= start).length,
+                undoClock,
+              ),
               ...editSample,
             });
           }

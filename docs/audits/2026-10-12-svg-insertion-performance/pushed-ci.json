@@ -1,0 +1,116 @@
+{
+  "conclusion": "success",
+  "headSha": "94fb1d769ce3f8706e4c92ad0527ee60022ef421",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "name": "pwa",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114700492491"
+    },
+    {
+      "conclusion": "success",
+      "name": "validate",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114700492703"
+    },
+    {
+      "conclusion": "success",
+      "name": "collaboration-e2e",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114700492850"
+    },
+    {
+      "conclusion": "success",
+      "name": "firefox · shard 2/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371371"
+    },
+    {
+      "conclusion": "success",
+      "name": "chromium · shard 3/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371375"
+    },
+    {
+      "conclusion": "success",
+      "name": "firefox · shard 3/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371387"
+    },
+    {
+      "conclusion": "success",
+      "name": "webkit · shard 4/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371392"
+    },
+    {
+      "conclusion": "success",
+      "name": "chromium · shard 2/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371400"
+    },
+    {
+      "conclusion": "success",
+      "name": "chromium · shard 4/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371403"
+    },
+    {
+      "conclusion": "success",
+      "name": "firefox · shard 4/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371418"
+    },
+    {
+      "conclusion": "success",
+      "name": "webkit · shard 2/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371426"
+    },
+    {
+      "conclusion": "success",
+      "name": "firefox · shard 1/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371431"
+    },
+    {
+      "conclusion": "success",
+      "name": "webkit · shard 1/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371437"
+    },
+    {
+      "conclusion": "success",
+      "name": "webkit · shard 3/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371482"
+    },
+    {
+      "conclusion": "success",
+      "name": "chromium · shard 1/4",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371509"
+    },
+    {
+      "conclusion": "success",
+      "name": "pages / build",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701371738"
+    },
+    {
+      "conclusion": "success",
+      "name": "pages / deploy",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701560494"
+    },
+    {
+      "conclusion": "success",
+      "name": "pages / smoke",
+      "status": "completed",
+      "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330/job/114701618191"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38215917330"
+}

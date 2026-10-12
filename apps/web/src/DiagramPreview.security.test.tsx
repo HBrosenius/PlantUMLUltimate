@@ -1,17 +1,18 @@
 // @vitest-environment jsdom
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it, vi } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import { DiagramPreview } from "./DiagramPreview";
 
-it("sanitizes SVG at the final preview boundary and preserves task interaction metadata", () => {
+afterEach(cleanup);
+
+function preview(svg: string, linkedTaskIds?: ReadonlySet<string>) {
   const callback = vi.fn();
-  const markup = renderToStaticMarkup(
+  return (
     <DiagramPreview
-      svg={`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">
-        <script>alert(2)</script><foreignObject><div>Unsafe</div></foreignObject>
-        <g data-task-id="build" role="button" tabindex="0" aria-label="Select Build"><text class="label">Safe &amp; sound</text></g>
-      </svg>`}
+      svg={svg}
+      projectLinkedTaskIds={linkedTaskIds}
       tasks={[]}
       dependencies={[]}
       dividers={[]}
@@ -47,7 +48,16 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
       onLegendEditRequest={callback}
       onChangeBaseline={callback}
       onClearBaseline={callback}
-    />,
+    />
+  );
+}
+
+it("sanitizes SVG at the final preview boundary and preserves task interaction metadata", () => {
+  const markup = renderToStaticMarkup(
+    preview(`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">
+    <script>alert(2)</script><foreignObject><div>Unsafe</div></foreignObject>
+    <g data-task-id="build" role="button" tabindex="0" aria-label="Select Build"><text class="label">Safe &amp; sound</text></g>
+  </svg>`),
   );
   const document = new DOMParser().parseFromString(markup, "text/html");
   const svg = document.querySelector(".diagram-svg-host svg");
@@ -58,4 +68,24 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("role")).toBe("button");
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("tabindex")).toBe("0");
   expect(svg?.querySelector("text")?.textContent).toBe("Safe & sound");
+});
+
+it("retains unchanged SVG nodes when link metadata rerenders and updates changed SVG safely", () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Original</text></svg>';
+  const view = render(preview(svg, new Set()));
+  const original = view.container.querySelector(".diagram-svg-host svg");
+  expect(original).not.toBeNull();
+  view.rerender(preview(svg, new Set()));
+  expect(view.container.querySelector(".diagram-svg-host svg")).toBe(original);
+  view.rerender(
+    preview(
+      '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(2)</script><text>Changed</text></svg>',
+      new Set(),
+    ),
+  );
+  const changed = view.container.querySelector(".diagram-svg-host svg");
+  expect(changed).not.toBe(original);
+  expect(changed?.textContent).toBe("Changed");
+  expect(changed?.querySelector("script")).toBeNull();
+  expect(changed?.hasAttribute("onload")).toBe(false);
 });

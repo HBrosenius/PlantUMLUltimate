@@ -1,0 +1,234 @@
+{
+  "startedAtUtc": "2026-10-12T07:10:03.518Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61779,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 555.0108,
+        "memberClickMs": 55.94459999999981,
+        "memberReadyMs": 777.3244
+      },
+      "initial": {
+        "wallMs": 2479.8034,
+        "engineMs": 719.2000000476837,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 328,
+        "longestMainThreadTaskMs": 107,
+        "maxTimerDelayMs": 117.69999992847443,
+        "svgDomInsertions": 2,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 103000000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 719 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 110.08690000000024,
+        "searchMs": 28.441799999999603,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1689.241
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 1833.8291000000008
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 526.1660999999986
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1324.5711000000001,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 1357.0337,
+          "previewAndIndexReadyMs": 1364.2916999999998,
+          "engineMs": 725.2999999523163,
+          "undoMs": 734.0981000000011,
+          "undoSvgDomInsertions": 4,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 478,
+          "longestMainThreadTaskMs": 282,
+          "maxTimerDelayMs": 404.90000009536743,
+          "svgDomInsertions": 4,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 103000000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 725 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        },
+        {
+          "editMs": 888.817500000001,
+          "previewAndIndexReadyMs": 896.1714000000011,
+          "engineMs": 359,
+          "undoMs": 691.4849000000013,
+          "undoSvgDomInsertions": 4,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 382,
+          "longestMainThreadTaskMs": 182,
+          "maxTimerDelayMs": 242.5,
+          "svgDomInsertions": 4,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 103000000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 359 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        }
+      ],
+      "persistence": {
+        "saveMs": 229.94320000000153,
+        "reopenMs": 1250.4112999999998,
+        "bytes": 186809,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61779,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1110.759900000001,
+        "memberClickMs": 807.5373,
+        "memberReadyMs": 3147.778400000003
+      },
+      "initial": {
+        "wallMs": 5302.043900000001,
+        "engineMs": 1075,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 374,
+        "svgDomInsertions": 5,
+        "domNodes": 5523,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1075 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 331.46489999999903,
+        "searchMs": 62.20980000000054,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2758.4749999999985
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2656.822699999997
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 743.5779000000039
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2086.1285999999964,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 2614.0026999999973,
+          "previewAndIndexReadyMs": 2624.3896999999997,
+          "engineMs": 1086,
+          "undoMs": 1314.9389999999985,
+          "undoSvgDomInsertions": 4,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 350,
+          "svgDomInsertions": 4,
+          "domNodes": 5576,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1086 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery currentUpdate available"
+        },
+        {
+          "editMs": 1908.2455000000045,
+          "previewAndIndexReadyMs": 1916.0967999999993,
+          "engineMs": 531,
+          "undoMs": 1271.7520999999979,
+          "undoSvgDomInsertions": 4,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 364,
+          "svgDomInsertions": 4,
+          "domNodes": 5576,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 531 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery currentUpdate available"
+        }
+      ],
+      "persistence": {
+        "saveMs": 897.1863999999987,
+        "reopenMs": 2306.2136000000028,
+        "bytes": 202954,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}
