@@ -1,0 +1,26 @@
+{
+  "conclusion": "",
+  "headSha": "07131749040503e58d97f815bd9868d82b9716f8",
+  "jobs": [
+    { "conclusion": "success", "name": "pwa", "status": "completed" },
+    { "conclusion": "success", "name": "collaboration-e2e", "status": "completed" },
+    { "conclusion": "success", "name": "validate", "status": "completed" },
+    { "conclusion": "", "name": "firefox · shard 2/4", "status": "in_progress" },
+    { "conclusion": "", "name": "chromium · shard 3/4", "status": "in_progress" },
+    { "conclusion": "", "name": "webkit · shard 2/4", "status": "in_progress" },
+    { "conclusion": "", "name": "webkit · shard 3/4", "status": "in_progress" },
+    { "conclusion": "", "name": "webkit · shard 4/4", "status": "in_progress" },
+    { "conclusion": "", "name": "chromium · shard 4/4", "status": "in_progress" },
+    { "conclusion": "", "name": "webkit · shard 1/4", "status": "in_progress" },
+    { "conclusion": "", "name": "firefox · shard 3/4", "status": "in_progress" },
+    { "conclusion": "", "name": "chromium · shard 1/4", "status": "in_progress" },
+    { "conclusion": "", "name": "firefox · shard 4/4", "status": "in_progress" },
+    { "conclusion": "", "name": "firefox · shard 1/4", "status": "in_progress" },
+    { "conclusion": "success", "name": "pages / build", "status": "completed" },
+    { "conclusion": "", "name": "chromium · shard 2/4", "status": "in_progress" },
+    { "conclusion": "success", "name": "pages / deploy", "status": "completed" },
+    { "conclusion": "success", "name": "pages / smoke", "status": "completed" }
+  ],
+  "status": "in_progress",
+  "url": "https://github.com/HBrosenius/PlantUMLUltimate/actions/runs/38233199617"
+}
