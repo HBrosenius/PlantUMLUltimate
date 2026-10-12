@@ -1,9 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createServer as createHttpServer } from "node:http";
+import { fileURLToPath } from "node:url";
+import { createServer as createViteServer } from "vite";
 
 const integrationRoute = /(?:https:\/\/jira\.plantuml\.brosenius\.se|http:\/\/[^/]+\/__jira)\//;
 
-async function openGantt(page: Page) {
-  await page.goto("/");
+async function openGantt(page: Page, url = "/") {
+  await page.goto(url);
   const onboarding = page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" });
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await Promise.race([onboarding.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
@@ -315,43 +318,57 @@ test("requires an explicit choice when a Jira refresh conflicts with a local edi
 });
 
 test("keeps the token session on localhost through the Jira development proxy", async ({ page }) => {
-  await page.route("**/__jira/api/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    if (path.endsWith("/connect-token")) {
-      await route.fulfill({
-        json: { connected: true },
-        headers: { "Set-Cookie": "jira_session=local-test-session; Path=/__jira/; HttpOnly; SameSite=Lax" },
-      });
-      return;
-    }
-    if (path.endsWith("/connection")) {
-      const cookie = await request.headerValue("cookie");
-      const connected = cookie?.includes("jira_session=local-test-session") ?? false;
-      await route.fulfill({
-        json: {
+  // Real HTTP responses exercise browser cookie handling and Vite's Secure/Path rewrite.
+  // WebKit does not retain Set-Cookie from Playwright's intercepted responses here.
+  const upstream = createHttpServer((request, response) => {
+    response.setHeader("Content-Type", "application/json");
+    if (request.url === "/api/connect-token") {
+      response.setHeader("Set-Cookie", "jira_session=local-test-session; Path=/; HttpOnly; Secure; SameSite=Lax");
+      response.end(JSON.stringify({ connected: true }));
+    } else if (request.url === "/api/connection") {
+      const connected = request.headers.cookie?.includes("jira_session=local-test-session") ?? false;
+      response.end(
+        JSON.stringify({
           connected,
           sites: connected ? [{ id: "cloud-1", name: "Acme Jira", url: "https://acme.atlassian.net" }] : [],
-        },
-      });
-      return;
+        }),
+      );
+    } else if (request.url?.startsWith("/api/fields")) {
+      response.end(JSON.stringify({ fields: [] }));
+    } else {
+      response.writeHead(404).end();
     }
-    if (path.endsWith("/fields")) {
-      await route.fulfill({ json: { fields: [] } });
-      return;
-    }
-    await route.abort();
   });
-  await openGantt(page);
-  await openJira(page);
-  const dialog = page.getByRole("dialog", { name: "Jira integration" });
-  await dialog.getByLabel("Jira site URL").fill("https://acme.atlassian.net");
-  await dialog.getByLabel("Email address").fill("user@example.com");
-  await dialog.getByLabel("API token", { exact: true }).fill("test-token");
-  await dialog.getByRole("button", { name: "Connect with API token" }).click();
-  await expect(dialog.getByRole("combobox", { name: "Jira site" })).toHaveValue("cloud-1");
-  await expect(dialog.getByRole("alert")).toHaveCount(0);
-  const session = (await page.context().cookies()).find((cookie) => cookie.name === "jira_session");
-  expect(session?.httpOnly).toBe(true);
-  expect(session?.path).toBe("/__jira/");
+  await new Promise<void>((resolve) => upstream.listen(0, "127.0.0.1", resolve));
+  const upstreamAddress = upstream.address();
+  if (!upstreamAddress || typeof upstreamAddress === "string") throw new Error("Missing upstream address");
+  const vite = await createViteServer({
+    root: fileURLToPath(new URL("../../apps/web", import.meta.url)),
+    server: {
+      host: "127.0.0.1",
+      port: 0,
+      proxy: { "/__jira/api/": { target: `http://127.0.0.1:${upstreamAddress.port}` } },
+    },
+  });
+  try {
+    await vite.listen();
+    const address = vite.httpServer?.address();
+    if (!address || typeof address === "string") throw new Error("Missing development server address");
+    await openGantt(page, `http://127.0.0.1:${address.port}`);
+    await openJira(page);
+    const dialog = page.getByRole("dialog", { name: "Jira integration" });
+    await dialog.getByLabel("Jira site URL").fill("https://acme.atlassian.net");
+    await dialog.getByLabel("Email address").fill("user@example.com");
+    await dialog.getByLabel("API token", { exact: true }).fill("test-token");
+    await dialog.getByRole("button", { name: "Connect with API token" }).click();
+    await expect(dialog.getByRole("combobox", { name: "Jira site" })).toHaveValue("cloud-1");
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+    const session = (await page.context().cookies()).find((cookie) => cookie.name === "jira_session");
+    expect(session?.httpOnly).toBe(true);
+    expect(session?.path).toBe("/__jira/");
+    expect(session?.secure).toBe(false);
+  } finally {
+    await vite.close();
+    await new Promise<void>((resolve, reject) => upstream.close((error) => (error ? reject(error) : resolve())));
+  }
 });
