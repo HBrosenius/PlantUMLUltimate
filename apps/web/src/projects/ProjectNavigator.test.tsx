@@ -23,6 +23,86 @@ const project: VirtualProject = {
 afterEach(cleanup);
 
 describe("ProjectNavigator", () => {
+  it("updates per-diagram connection, review and pending counts after link checks change", () => {
+    const elements = ["a", "b", "c"].map((id, index) => ({
+      id,
+      documentId: index < 2 ? "one" : "two",
+      kind: "wbs-node" as const,
+      locator: {
+        symbolKey: id,
+        keyType: "semantic-key" as const,
+        declarationHash: "a".repeat(64),
+        sourceHash: "b".repeat(64),
+        from: index,
+        to: index + 1,
+      },
+    }));
+    const linked: VirtualProject = {
+      ...project,
+      manifest: {
+        ...project.manifest,
+        elements,
+        links: [
+          { id: "first", kind: "relates", from: "a", to: "c" },
+          { id: "second", kind: "relates", from: "b", to: "c" },
+        ],
+      },
+      members: ["one", "two", "empty"].map((id) => ({
+        documentId: id,
+        path: id,
+        state: "available",
+        declarations: [],
+        linkCount: 0,
+      })),
+      resolutions: new Map([["a", { state: "missing", elementId: "a" }]]),
+    };
+    const props = {
+      onOpen: vi.fn(),
+      onAdd: vi.fn(),
+      onClose: vi.fn(),
+      onLinksChange: vi.fn(),
+      onElementsChange: vi.fn(),
+    };
+    const view = render(<ProjectNavigator project={linked} {...props} />);
+    const row = (id: string) => screen.getByRole("button", { name: `Inspect diagram ${id}` }).closest("li")!;
+    expect(row("one").textContent).toContain("2 object connections");
+    expect(row("two").textContent).toContain("2 object connections");
+    expect(row("one").textContent).toContain("1 need review");
+    expect(row("two").textContent).toContain("2 awaiting link check");
+    expect(row("empty").textContent).toContain("0 object connections");
+    view.rerender(
+      <ProjectNavigator
+        project={{
+          ...linked,
+          resolutions: new Map(
+            elements.map((element) => [
+              element.id,
+              {
+                state: "resolved" as const,
+                elementId: element.id,
+                declaration: { kind: element.kind, ...element.locator },
+                locator: element.locator,
+              },
+            ]),
+          ),
+        }}
+        {...props}
+      />,
+    );
+    expect(row("one").textContent).toContain("2 object connections");
+    expect(row("one").textContent).not.toContain("need review");
+    expect(row("two").textContent).not.toContain("awaiting link check");
+    view.rerender(
+      <ProjectNavigator
+        project={{ ...linked, manifest: { ...linked.manifest, links: [] }, resolutions: new Map() }}
+        {...props}
+      />,
+    );
+    expect(row("one").textContent).toContain("0 object connections");
+    expect(row("one").textContent).not.toContain("need review");
+    expect(row("one").textContent).not.toContain("awaiting link check");
+  });
+
   it("finds late members by name or type and opens the correct diagram without changing stored order", () => {
     const members = Array.from({ length: 200 }, (_, index) => ({
       documentId: `member-${200 - index}`,

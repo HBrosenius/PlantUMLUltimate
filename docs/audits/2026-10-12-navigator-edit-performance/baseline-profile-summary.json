@@ -1,0 +1,347 @@
+{
+  "elapsedMs": 4531.524,
+  "topFunctions": [
+    {
+      "function": "(program)",
+      "source": "",
+      "line": 0,
+      "selfMs": 774.4739999999991
+    },
+    {
+      "function": "(idle)",
+      "source": "",
+      "line": 0,
+      "selfMs": 582.4589999999996
+    },
+    {
+      "function": "parseFromString",
+      "source": "",
+      "line": 0,
+      "selfMs": 215.96499999999997
+    },
+    {
+      "function": "setProp",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 12957,
+      "selfMs": 209.71999999999994
+    },
+    {
+      "function": "",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 149,
+      "selfMs": 183.35400000000013
+    },
+    {
+      "function": "validIsoDate",
+      "source": "../../../../packages/diagram-gantt/src/limits.ts",
+      "line": 8,
+      "selfMs": 158.09000000000003
+    },
+    {
+      "function": "member",
+      "source": "../../../../apps/web/src/projects/ProjectNavigator.tsx",
+      "line": 185,
+      "selfMs": 139.835
+    },
+    {
+      "function": "(garbage collector)",
+      "source": "",
+      "line": 0,
+      "selfMs": 103.66000000000001
+    },
+    {
+      "function": "getAttributeType",
+      "source": "",
+      "line": 0,
+      "selfMs": 91.44
+    },
+    {
+      "function": "sha256",
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "line": 6,
+      "selfMs": 84.24699999999999
+    },
+    {
+      "function": "element",
+      "source": "../../../../apps/web/src/projects/ProjectNavigator.tsx",
+      "line": 188,
+      "selfMs": 64.50900000000001
+    },
+    {
+      "function": "rs",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2175,
+      "selfMs": 60.67999999999999
+    },
+    {
+      "function": "parseGantt",
+      "source": "../../../../packages/diagram-gantt/src/parser.ts",
+      "line": 125,
+      "selfMs": 55.974
+    },
+    {
+      "function": "ganttKeywordRepair",
+      "source": "../../../../packages/diagram-gantt/src/keyword-repairs.ts",
+      "line": 13,
+      "selfMs": 52.495999999999995
+    },
+    {
+      "function": "digest",
+      "source": "",
+      "line": 0,
+      "selfMs": 51.481000000000016
+    },
+    {
+      "function": "setItem",
+      "source": "",
+      "line": 0,
+      "selfMs": 51.291999999999994
+    },
+    {
+      "function": "encode",
+      "source": "",
+      "line": 0,
+      "selfMs": 46.921
+    },
+    {
+      "function": "serializeToString",
+      "source": "",
+      "line": 0,
+      "selfMs": 42.574
+    },
+    {
+      "function": "",
+      "source": "../../../../apps/web/src/workspace-storage.ts",
+      "line": 810,
+      "selfMs": 40.89599999999999
+    },
+    {
+      "function": "collapse",
+      "source": "",
+      "line": 0,
+      "selfMs": 38.768
+    },
+    {
+      "function": "shiftIsoDateSafely",
+      "source": "../../../../packages/diagram-gantt/src/limits.ts",
+      "line": 14,
+      "selfMs": 34.644000000000005
+    },
+    {
+      "function": "",
+      "source": "../../../../apps/web/src/projects/ProjectNavigator.tsx",
+      "line": 83,
+      "selfMs": 33.00900000000001
+    },
+    {
+      "function": "query",
+      "source": "",
+      "line": 5607,
+      "selfMs": 32.995
+    },
+    {
+      "function": "saveActiveProject",
+      "source": "../../../../apps/web/src/workspace-storage.ts",
+      "line": 802,
+      "selfMs": 32.50299999999999
+    },
+    {
+      "function": "getBBox",
+      "source": "",
+      "line": 0,
+      "selfMs": 31.196
+    },
+    {
+      "function": "isWorkingDate",
+      "source": "../../../../apps/web/src/gantt-calendar.ts",
+      "line": 93,
+      "selfMs": 29.804000000000002
+    },
+    {
+      "function": "element",
+      "source": "../../../../apps/web/src/projects/ProjectLinksPanel.tsx",
+      "line": 107,
+      "selfMs": 29.282999999999994
+    },
+    {
+      "function": "",
+      "source": "../../../../apps/web/src/projects/ProjectLinksPanel.tsx",
+      "line": 110,
+      "selfMs": 28.962000000000003
+    },
+    {
+      "function": "cloneNode",
+      "source": "",
+      "line": 0,
+      "selfMs": 27.719
+    },
+    {
+      "function": "isElementHiddenForAria",
+      "source": "",
+      "line": 3368,
+      "selfMs": 27.682000000000002
+    },
+    {
+      "function": "serializeProjectManifest",
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "line": 210,
+      "selfMs": 26.688
+    },
+    {
+      "function": "addCanonicalGanttOverlay",
+      "source": "../../../../apps/web/src/render/canonical-gantt-overlay.ts",
+      "line": 206,
+      "selfMs": 25.245
+    },
+    {
+      "function": "query",
+      "source": "",
+      "line": 5301,
+      "selfMs": 24.678
+    },
+    {
+      "function": "e.sanitize",
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "line": 2321,
+      "selfMs": 23.527
+    },
+    {
+      "function": "put",
+      "source": "",
+      "line": 0,
+      "selfMs": 22.627000000000002
+    },
+    {
+      "function": "commitMutationEffectsOnFiber",
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "line": 9427,
+      "selfMs": 20.826999999999998
+    },
+    {
+      "function": "getCSSContent",
+      "source": "",
+      "line": 3440,
+      "selfMs": 20.247
+    },
+    {
+      "function": "",
+      "source": "../../../../apps/web/src/projects/ProjectLinksPanel.tsx",
+      "line": 105,
+      "selfMs": 19.807
+    },
+    {
+      "function": "link",
+      "source": "../../../../apps/web/src/projects/ProjectNavigator.tsx",
+      "line": 191,
+      "selfMs": 18.34
+    },
+    {
+      "function": "setAttribute",
+      "source": "",
+      "line": 0,
+      "selfMs": 18.137
+    }
+  ],
+  "topSources": [
+    {
+      "source": "(program)",
+      "selfMs": 774.4739999999991
+    },
+    {
+      "source": "(idle)",
+      "selfMs": 582.4589999999996
+    },
+    {
+      "source": "../../../../node_modules/react-dom/cjs/react-dom-client.production.js",
+      "selfMs": 338.18300000000005
+    },
+    {
+      "source": "../../../../node_modules/dompurify/dist/purify.es.mjs",
+      "selfMs": 302.14499999999975
+    },
+    {
+      "source": "../../../../apps/web/src/projects/ProjectNavigator.tsx",
+      "selfMs": 263.59999999999997
+    },
+    {
+      "source": "parseFromString",
+      "selfMs": 215.96499999999997
+    },
+    {
+      "source": "../../../../packages/diagram-gantt/src/limits.ts",
+      "selfMs": 192.73399999999995
+    },
+    {
+      "source": "../../../../apps/web/src/projects/ProjectLinksPanel.tsx",
+      "selfMs": 111.54599999999999
+    },
+    {
+      "source": "(garbage collector)",
+      "selfMs": 103.66000000000001
+    },
+    {
+      "source": "../../../../packages/document-format/src/content-codec.ts",
+      "selfMs": 103.204
+    },
+    {
+      "source": "getAttributeType",
+      "selfMs": 91.44
+    },
+    {
+      "source": "../../../../packages/project-model/src/validate.ts",
+      "selfMs": 89.77600000000002
+    },
+    {
+      "source": "../../../../apps/web/src/workspace-storage.ts",
+      "selfMs": 81.07400000000001
+    },
+    {
+      "source": "../../../../packages/diagram-gantt/src/parser.ts",
+      "selfMs": 70.033
+    },
+    {
+      "source": "../../../../apps/web/src/render/canonical-gantt-overlay.ts",
+      "selfMs": 59.41700000000001
+    },
+    {
+      "source": "query",
+      "selfMs": 57.673
+    },
+    {
+      "source": "../../../../packages/diagram-gantt/src/keyword-repairs.ts",
+      "selfMs": 52.495999999999995
+    },
+    {
+      "source": "digest",
+      "selfMs": 51.481000000000016
+    },
+    {
+      "source": "setItem",
+      "selfMs": 51.291999999999994
+    },
+    {
+      "source": "../../../../apps/web/src/App.tsx",
+      "selfMs": 48.15
+    },
+    {
+      "source": "encode",
+      "selfMs": 46.921
+    },
+    {
+      "source": "serializeToString",
+      "selfMs": 42.574
+    },
+    {
+      "source": "collapse",
+      "selfMs": 38.768
+    },
+    {
+      "source": "../../../../apps/web/src/gantt-calendar.ts",
+      "selfMs": 38.696999999999996
+    },
+    {
+      "source": "../../../../packages/document-format/src/validate.ts",
+      "selfMs": 33.098
+    }
+  ]
+}

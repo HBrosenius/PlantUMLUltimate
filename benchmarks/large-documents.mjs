@@ -651,6 +651,14 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
           const editor = page.locator(".cm-content");
           const originalTitle = firstMember.document.current.source.split("\n")[1];
           record.projectEdits = [];
+          const editProfiler =
+            process.env.LARGE_DOCUMENT_PROFILE && activeBrowser === "chromium"
+              ? await page.context().newCDPSession(page)
+              : undefined;
+          if (editProfiler) {
+            await editProfiler.send("Profiler.enable");
+            await editProfiler.send("Profiler.start");
+          }
           for (let edit = 0; edit < 2; edit++) {
             const title = `title Portfolio edit audit ${edit}`;
             await editor.focus();
@@ -680,6 +688,11 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
               undoMs: performance.now() - undoStarted,
               ...editSample,
             });
+          }
+          if (editProfiler) {
+            const { profile } = await editProfiler.send("Profiler.stop");
+            await writeFile(resolve(output, `${activeBrowser}-${item.name}-edits.cpuprofile`), JSON.stringify(profile));
+            await editProfiler.detach();
           }
         }
         stage("save-reopen");

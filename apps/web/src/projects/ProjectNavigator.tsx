@@ -85,6 +85,39 @@ export function ProjectNavigator({
           a.documentId.localeCompare(b.documentId),
       );
   }, [project.members, diagramQuery]);
+  const connectionSummary = useMemo(() => {
+    const documents = new Map(project.manifest.elements.map((element) => [element.id, element.documentId]));
+    const counts = new Map<string, { connections: number; needsReview: number; pending: number; scheduled: number }>();
+    const forDocument = (id: string) => {
+      let summary = counts.get(id);
+      if (!summary) {
+        summary = { connections: 0, needsReview: 0, pending: 0, scheduled: 0 };
+        counts.set(id, summary);
+      }
+      return summary;
+    };
+    for (const link of project.manifest.links) {
+      const endpoints = [link.from, link.to];
+      const needsReview = endpoints.some((id) => {
+        const state = project.resolutions.get(id)?.state;
+        return state !== "resolved" && state !== undefined;
+      });
+      const pending = endpoints.some((id) => !project.resolutions.has(id));
+      for (const documentId of new Set(endpoints.map((id) => documents.get(id)))) {
+        if (!documentId) continue;
+        const summary = forDocument(documentId);
+        summary.connections++;
+        if (needsReview) summary.needsReview++;
+        if (pending) summary.pending++;
+      }
+    }
+    for (const link of wbsGanttLinks ?? []) {
+      for (const documentId of new Set([link.wbsDocumentId, link.ganttDocumentId])) {
+        forDocument(documentId).scheduled++;
+      }
+    }
+    return counts;
+  }, [project.manifest.elements, project.manifest.links, project.resolutions, wbsGanttLinks]);
   const unlinkedWbsCount = wbsGanttMissing?.filter((item) => item.kind === "wbs").length ?? 0;
   const unlinkedGanttCount = wbsGanttMissing?.filter((item) => item.kind === "gantt").length ?? 0;
   return (
@@ -183,24 +216,12 @@ export function ProjectNavigator({
         )}
         <ul>
           {visibleMembers.map((member) => {
-            const ids = new Set(
-              project.manifest.elements
-                .filter((element) => element.documentId === member.documentId)
-                .map((element) => element.id),
-            );
-            const connections = project.manifest.links.filter((link) => ids.has(link.from) || ids.has(link.to));
-            const needsReview = connections.filter((link) =>
-              [link.from, link.to].some((id) => {
-                const state = project.resolutions.get(id)?.state;
-                return state !== "resolved" && state !== undefined;
-              }),
-            ).length;
-            const pending = connections.filter((link) =>
-              [link.from, link.to].some((id) => !project.resolutions.has(id)),
-            ).length;
-            const scheduled = (wbsGanttLinks ?? []).filter(
-              (link) => link.wbsDocumentId === member.documentId || link.ganttDocumentId === member.documentId,
-            ).length;
+            const { connections, needsReview, pending, scheduled } = connectionSummary.get(member.documentId) ?? {
+              connections: 0,
+              needsReview: 0,
+              pending: 0,
+              scheduled: 0,
+            };
             return (
               <li key={member.documentId}>
                 <button
@@ -213,7 +234,7 @@ export function ProjectNavigator({
                 </button>
                 <span>
                   {" "}
-                  · {connections.length} object connections · {scheduled} WBS–Gantt connections
+                  · {connections} object connections · {scheduled} WBS–Gantt connections
                 </span>
                 {needsReview > 0 && <span> · {needsReview} need review</span>}
                 {pending > 0 && <span> · {pending} awaiting link check</span>}
