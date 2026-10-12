@@ -10,6 +10,8 @@ import { applyScenarioVisualOperation, updateScenarioTask, type ScenarioTaskInpu
 import { DiagramPreview } from "./DiagramPreview";
 import { parseGanttCalendar } from "./gantt-calendar";
 import { resolveTaskDates } from "./gantt-schedule";
+import { useDiagramNavigation } from "./useDiagramNavigation";
+import { MIN_DIAGRAM_ZOOM, MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { ScenarioSourceEditor } from "./ScenarioSourceEditor";
 
 import {
@@ -638,11 +640,7 @@ export function DeliveryScenarioDialog({
               <h3>
                 Base plan <small>read only</small>
               </h3>
-              <div className="version-render-canvas scenario-render-canvas">
-                {currentRender.status === "rendering" && !currentSvg && <p>Rendering…</p>}
-                {currentRender.result?.error && <p className="scenario-render-error">{currentRender.result.error}</p>}
-                {currentSvg && <div dangerouslySetInnerHTML={{ __html: currentSvg }} />}
-              </div>
+              <BasePlanPreview svg={currentSvg} status={currentRender.status} error={currentRender.result?.error} />
             </section>
             <section aria-label="Scenario preview">
               <h3>
@@ -919,5 +917,61 @@ export function DeliveryScenarioDialog({
         </div>
       </section>
     </div>
+  );
+}
+
+function BasePlanPreview({
+  svg,
+  status,
+  error,
+}: {
+  svg: string | undefined;
+  status: "idle" | "rendering" | "error";
+  error: string | undefined;
+}) {
+  const [zoom, setZoom] = useState(1);
+  const navigation = useDiagramNavigation(zoom, setZoom, { svg });
+  return (
+    <>
+      <div className="scenario-base-navigation" role="group" aria-label="Base plan navigation">
+        <button
+          type="button"
+          aria-label="Zoom out base plan"
+          onClick={() => setZoom((value) => Math.max(MIN_DIAGRAM_ZOOM, value / 1.2))}
+        >
+          −
+        </button>
+        <button type="button" aria-label="Reset base plan zoom" onClick={() => setZoom(1)}>
+          {Math.round(zoom * 100)}%
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom in base plan"
+          onClick={() => setZoom((value) => Math.min(MAX_DIAGRAM_ZOOM, value * 1.2))}
+        >
+          +
+        </button>
+        <button type="button" onClick={navigation.fit}>
+          Fit base plan
+        </button>
+      </div>
+      <div
+        className="version-render-canvas scenario-render-canvas"
+        aria-label="Base plan rendered diagram"
+        ref={navigation.viewportRef}
+        onPointerDown={navigation.onPointerDown}
+        onAuxClick={navigation.onAuxClick}
+      >
+        {status === "rendering" && !svg && <p>Rendering…</p>}
+        {error && <p className="scenario-render-error">{error}</p>}
+        {svg && (
+          <div
+            className="diagram"
+            style={{ width: "100%", transform: `scale(${zoom})` }}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+        )}
+      </div>
+    </>
   );
 }

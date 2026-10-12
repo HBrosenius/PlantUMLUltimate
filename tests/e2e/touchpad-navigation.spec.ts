@@ -69,3 +69,39 @@ test("touchpad scrolling pans and pinch zooms without changing source or page zo
   }
   expect(await readEditorSource(page)).toBe(text);
 });
+
+test("navigates both what-if diagrams independently without editing either plan", async ({ page }) => {
+  await prepareEditor(page);
+  const text = source(Array.from({ length: 40 }, (_, i) => `[Task ${i + 1}] lasts 60 days`).join("\n"));
+  await setSource(page, text);
+  await page.getByRole("button", { name: "Plan", exact: true }).click();
+  await page.getByRole("menuitem", { name: "What-if scenario…", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "What-if scenario", exact: true });
+  await dialog.getByRole("button", { name: "Rendered preview" }).click();
+  const base = dialog.getByLabel("Base plan rendered diagram", { exact: true });
+  const scenario = dialog.getByLabel("Scenario preview", { exact: true });
+  await expect(base.locator("svg")).toBeVisible();
+  await expect(scenario.locator("svg")).toBeVisible();
+  for (const viewport of [base, scenario.locator(".preview-viewport")]) {
+    await viewport.evaluate((element) => {
+      element.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, ctrlKey: true, deltaY: -100 }));
+    });
+    await expect(viewport).not.toHaveClass(/diagram-wheel-zooming/);
+    await expect
+      .poll(() => viewport.evaluate((element) => element.scrollWidth - element.clientWidth))
+      .toBeGreaterThan(50);
+    await viewport.evaluate((element) => {
+      element.scrollLeft = 0;
+      element.scrollTop = 0;
+      element.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaX: 35, deltaY: 35 }));
+    });
+    await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  }
+  await dialog.getByRole("button", { name: "Reset base plan zoom", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Reset base plan zoom", exact: true })).toHaveText("100%");
+  await expect(scenario.getByRole("button", { name: /Reset zoom/ })).not.toHaveText("100%");
+  await dialog.getByRole("button", { name: "Close what-if scenario", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  expect(await readEditorSource(page)).toBe(text);
+});

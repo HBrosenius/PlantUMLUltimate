@@ -8707,3 +8707,9 @@ polygon.diagram-bulk-selected {
   height: auto;
   padding-top: 24px;
 }
+
+.scenario-base-navigation {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+}
