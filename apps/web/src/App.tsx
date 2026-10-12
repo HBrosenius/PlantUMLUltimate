@@ -6219,6 +6219,7 @@ export function App() {
           documentId={activeDocument.historyId}
           currentSource={workspace.source}
           capacities={resourceCapacities}
+          showResourceOverAllocationWarnings={resourceWarningsEnabled}
           onApply={(source, expectedBase) => {
             if (workspace.source !== expectedBase) return false;
             if (!commitSource(source, "Apply delivery scenario")) return false;

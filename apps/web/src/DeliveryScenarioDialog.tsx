@@ -166,12 +166,14 @@ function ScenarioTaskEditor({
 export function DeliveryScenarioDialog({
   currentSource,
   capacities,
+  showResourceOverAllocationWarnings = true,
   documentId,
   onApply,
   onClose,
 }: {
   currentSource: string;
   capacities: ResourceCapacity;
+  showResourceOverAllocationWarnings?: boolean;
   documentId?: string;
   onApply(source: string, expectedBase: string): boolean;
   onClose(): void;
@@ -710,6 +712,7 @@ export function DeliveryScenarioDialog({
                   parseDurationMs={0}
                   openDocumentCount={1}
                   openSourceBytes={scenarioSource.length}
+                  showResourceOverAllocationWarnings={showResourceOverAllocationWarnings}
                   resourceOverAllocations={scenarioResourceConflicts}
                   resourceCapacities={baseCapacities}
                   onOpenResourceWorkload={() =>

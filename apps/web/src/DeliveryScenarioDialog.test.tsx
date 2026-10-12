@@ -252,3 +252,20 @@ it("requires reconciliation when resource-capacity assumptions change", () => {
   fireEvent.click(screen.getByRole("button", { name: "Use reconciled scenario" }));
   expect((screen.getByRole("button", { name: "Apply scenario" }) as HTMLButtonElement).disabled).toBe(false);
 });
+
+it("honors the resource warning preference in the rendered scenario preview", () => {
+  const props = {
+    currentSource:
+      "@startgantt\nProject starts 2026-09-01\n[Build] on {Alice} lasts 3 days\n[Test] on {Alice} lasts 3 days\n@endgantt",
+    capacities: {},
+    onApply: vi.fn(),
+    onClose: vi.fn(),
+  };
+  const view = render(<DeliveryScenarioDialog {...props} showResourceOverAllocationWarnings={true} />);
+  fireEvent.click(screen.getByRole("button", { name: "Rendered preview" }));
+  expect(screen.getByRole("alert", { name: "Resource over-allocation" })).toBeTruthy();
+  view.rerender(<DeliveryScenarioDialog {...props} showResourceOverAllocationWarnings={false} />);
+  expect(screen.queryByRole("alert", { name: "Resource over-allocation" })).toBeNull();
+  view.rerender(<DeliveryScenarioDialog {...props} showResourceOverAllocationWarnings={true} />);
+  expect(screen.getByRole("alert", { name: "Resource over-allocation" })).toBeTruthy();
+});
