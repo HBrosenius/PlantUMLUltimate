@@ -547,6 +547,15 @@ export function App() {
   const linkedGantt = tabs.documents.find(
     (item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId,
   );
+  const linkedWbsNodeIds = useMemo(
+    () =>
+      new Set(
+        wbsDocument.nodes
+          .filter((node) => linkedGantt?.wbsGanttLinks?.some((link) => link.wbsAlias === node.alias))
+          .map((node) => node.id),
+      ),
+    [wbsDocument.nodes, linkedGantt?.wbsGanttLinks],
+  );
   const wbsNodeCompletion = useMemo(() => {
     const completion = new Map<string, number>();
     if (!linkedGantt) return completion;
@@ -1875,11 +1884,14 @@ export function App() {
 
   const activeZoomDocumentId = tabs.activeId;
   const updateZoomMetadata = tabs.updateDocumentFormat;
+  const getNavigationDocument = tabs.getDocument;
   const saveDiagramScroll = useCallback(
     (scroll: { left: number; top: number }, flushRecovery = false) => {
+      const previous = getNavigationDocument(activeZoomDocumentId)?.diagramScroll;
+      if (!flushRecovery && (previous?.left ?? 0) === scroll.left && (previous?.top ?? 0) === scroll.top) return;
       updateZoomMetadata(activeZoomDocumentId, { diagramScroll: scroll }, flushRecovery);
     },
-    [activeZoomDocumentId, updateZoomMetadata],
+    [activeZoomDocumentId, updateZoomMetadata, getNavigationDocument],
   );
   const update = useCallback(
     <K extends keyof typeof workspace>(key: K, value: (typeof workspace)[K]) => {
@@ -4915,13 +4927,7 @@ export function App() {
               dependencyWarnings={wbsDependencyWarnings}
               nodeCompletion={wbsNodeCompletion}
               nodeSchedule={wbsNodeSchedule}
-              linkedNodeIds={
-                new Set(
-                  wbsDocument.nodes
-                    .filter((node) => linkedGantt?.wbsGanttLinks?.some((link) => link.wbsAlias === node.alias))
-                    .map((node) => node.id),
-                )
-              }
+              linkedNodeIds={linkedWbsNodeIds}
               selectedId={
                 diagramMulti.multiple
                   ? undefined

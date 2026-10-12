@@ -49,6 +49,8 @@ export function UseCaseDiagramPreview({
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
   const drag = useRef<
     | {
         kind: "connect" | "move" | "reconnect";
@@ -178,7 +180,7 @@ export function UseCaseDiagramPreview({
         hit.setAttribute("aria-label", `Select ${relationship.kind} relationship`);
         hit.addEventListener("click", (event) => {
           event.stopPropagation();
-          onSelect(relationship.id);
+          onSelectRef.current(relationship.id);
         });
         group.append(hit);
       }
@@ -192,7 +194,7 @@ export function UseCaseDiagramPreview({
         addRelationshipEndpoint(rendered, end, relationship.id, firstIsFrom ? "to" : "from");
       }
     }
-  }, [document, keyboardConnectFrom, onSelect, selectedId, svg]);
+  }, [document, keyboardConnectFrom, selectedId, svg]);
 
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {

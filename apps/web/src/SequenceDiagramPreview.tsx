@@ -237,7 +237,7 @@ export function SequenceDiagramPreview({
         } else delete drag.movePreview;
       }
     }
-  });
+  }, [svg, participants, messages, structures, selectedParticipantId, selectedMessageId, selectedStructureId]);
 
   const selectRenderedObject = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
