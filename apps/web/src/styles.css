@@ -7694,6 +7694,9 @@ polygon.diagram-bulk-selected {
   font-size: 11px;
   border-bottom: 1px solid var(--line);
 }
+.inspector-commit-status > strong {
+  display: block;
+}
 .participant-combobox {
   display: flex;
   position: relative;

@@ -292,7 +292,7 @@ export function InspectorPanel({
       />
       {content[0]}
       <p className="inspector-commit-status" role="status" aria-label="Property commit status">
-        <strong>{commitState}</strong> ·{" "}
+        <strong>{commitState}</strong>
         {staged
           ? "Choose Apply to commit edits."
           : "Valid changes apply automatically; text fields apply when you leave them."}
