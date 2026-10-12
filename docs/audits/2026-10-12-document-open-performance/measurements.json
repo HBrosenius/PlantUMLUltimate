@@ -1,0 +1,6 @@
+{
+  "baselineWebkit200Ms": 34325.93,
+  "optimizedWebkit200Ms": [17881.8574, 17789.942299999995, 17463.3837],
+  "optimizedMedianMs": 17789.942299999995,
+  "observedReductionPercent": 48.17345866521316
+}

@@ -1,0 +1,9 @@
+{
+  "provenance": "Transcribed from diagnostic tool output. The original diagnostic report and earlier baseline reports were cleared by the subsequent Playwright run; they are not retained raw evidence.",
+  "variant": "Intermediate links lookup plus batched eager history import with temporary performance.measure calls",
+  "historyRestorationMs": 21675,
+  "memberIndexPassesMs": [356, 359, 346],
+  "registrationHashPassesMs": [19, 39],
+  "initialPreviewMs": 25422.9797,
+  "editorReadyMs": 23410.317000000003
+}

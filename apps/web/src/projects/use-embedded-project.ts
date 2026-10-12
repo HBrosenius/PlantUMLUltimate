@@ -66,6 +66,7 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const persistentStateByMember = useRef(new Map<string, string>());
   const recoveryRevision = useRef(0);
   const historyReady = useRef(Promise.resolve());
+  const restoreMemberHistory = useRef<(memberId: string) => Promise<void>>(async () => undefined);
   const baselineByMember = useRef(new Map<string, string>());
   const projectGeneration = useRef(0);
 
@@ -102,9 +103,14 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       setRecoveryStatus(nextEncrypted ? "disabled" : "saving");
       setEncrypted(nextEncrypted);
       baselineByMember.current.clear();
-      const nextBaselines = new Map<string, string>();
-      historyReady.current = Promise.all(
-        next.diagrams.map(async (member) => {
+      historyReady.current = Promise.resolve();
+      const histories = new Map<string, Promise<void>>();
+      restoreMemberHistory.current = (memberId) => {
+        const existing = histories.get(memberId);
+        if (existing) return existing;
+        const member = next.diagrams.find((diagram) => diagram.id === memberId);
+        if (!member) return Promise.resolve();
+        const ready = (async () => {
           const historyId = embeddedMemberHistoryId(next.projectId, member.id);
           if (nextEncrypted) await enableMemoryOnlyHistory(historyId);
           const mapped = mapPortableHistoryToLocal(
@@ -118,14 +124,21 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
               versionId: (portableId) => embeddedMemberVersionId(next.projectId, member.id, portableId),
             },
           );
-          if (mapped.baselineVersionId) nextBaselines.set(member.id, mapped.baselineVersionId);
           await importDocumentVersions(mapped.versions);
-        }),
-      )
-        .then(() => {
-          if (projectGeneration.current === generation) baselineByMember.current = nextBaselines;
-        })
-        .catch(() => undefined);
+          if (projectGeneration.current === generation && mapped.baselineVersionId)
+            baselineByMember.current.set(member.id, mapped.baselineVersionId);
+        })().catch(() => undefined);
+        histories.set(memberId, ready);
+        historyReady.current = Promise.all([historyReady.current, ready]).then(() => undefined);
+        return ready;
+      };
+      // Unopened members retain their complete portable history in the project snapshot.
+      // Import only histories needed by existing/opened tabs. Encrypted projects still
+      // eagerly clear persisted history and establish memory-only storage for every member.
+      const initialMembers = nextEncrypted ? next.diagrams.map((member) => member.id) : [...memberTabs.current.keys()];
+      initialMembers.forEach((memberId) => {
+        void restoreMemberHistory.current(memberId);
+      });
       setProject(next);
     },
     [tabs.documents],
@@ -216,8 +229,15 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
   const openMember = useCallback(
     async (memberId: string) => {
       if (!project) return undefined;
-      await historyReady.current;
-      const current = projectWithOpenTabSources(project, memberTabs.current, [
+      const generation = projectGeneration.current;
+      const linkedWbsId = project.diagrams.find((member) => member.id === memberId)?.wbsGantt?.wbsDiagramId;
+      await Promise.all(
+        [memberId, ...(linkedWbsId ? [linkedWbsId] : [])].map((id) => restoreMemberHistory.current(id)),
+      );
+      const latest = projectRef.current;
+      if (projectGeneration.current !== generation || !latest?.diagrams.some((member) => member.id === memberId))
+        return undefined;
+      const current = projectWithOpenTabSources(latest, memberTabs.current, [
         ...retainedMemberTabs.current.values(),
         ...tabs.documents,
       ]);
@@ -346,10 +366,11 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       if (!current || current.projectId !== next.projectId) {
         openProject(next);
         const first = next.diagrams[0];
+        const generation = projectGeneration.current;
         if (first)
-          void historyReady.current.then(() => {
-            if (projectRef.current?.projectId !== next.projectId) return;
-            openEmbeddedMember(next, first.id, tabs, memberTabs.current);
+          void restoreMemberHistory.current(first.id).then(() => {
+            if (projectGeneration.current !== generation || projectRef.current?.projectId !== next.projectId) return;
+            openEmbeddedMember(next, first.id, tabs, memberTabs.current, false, baselineByMember.current.get(first.id));
           });
         return false;
       }
@@ -444,6 +465,8 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
     recoveryRevision.current += 1;
     memberTabs.current.clear();
     retainedMemberTabs.current.clear();
+    restoreMemberHistory.current = async () => undefined;
+    historyReady.current = Promise.resolve();
     setEncrypted(false);
     setRecoveryStatus("idle");
     setProject(undefined);

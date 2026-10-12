@@ -1,0 +1,79 @@
+{
+  "startedAtUtc": "2026-10-12T05:56:36.736Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61711,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": ["Failed to execute 'abort' on 'IDBTransaction': The transaction is inactive or finished."],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1193.9141,
+        "memberClickMs": 6287.765200000001,
+        "memberReadyMs": 15129.3301
+      },
+      "initial": {
+        "wallMs": 17463.3837,
+        "engineMs": 1231,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 6208,
+        "domNodes": 8724,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1231 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 496.8974999999991,
+        "searchMs": 106.46319999999832,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 3745.606100000001
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 4180.3573
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1757.663999999997
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2282.8508,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 745.2856000000029,
+        "reopenMs": 15542.3629,
+        "bytes": 205492,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 996,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

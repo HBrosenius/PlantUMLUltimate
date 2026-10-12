@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
@@ -71,9 +71,15 @@ it("bounds initial row rendering and reveals a chart-selected row beyond the fir
     onApply: vi.fn(() => undefined),
   };
   const view = render(<GanttTaskTable {...props} selectedTaskId={undefined} />);
-  expect(screen.getAllByRole("row")).toHaveLength(101);
+  // Count mounted rows directly; global role queries compute visibility for every control.
+  expect(view.container.querySelectorAll("tr[data-task-row]")).toHaveLength(100);
   view.rerender(<GanttTaskTable {...props} selectedTaskId="task-249" />);
-  expect(screen.getAllByRole("textbox", { name: "Task name" })).toHaveLength(250);
+  expect(view.container.querySelectorAll("tr[data-task-row]")).toHaveLength(250);
+  const selected = view.container.querySelector('tr[data-task-row="task-249"]')!;
+  expect(selected.getAttribute("aria-selected")).toBe("true");
+  expect((within(selected as HTMLElement).getByRole("textbox", { name: "Task name" }) as HTMLInputElement).value).toBe(
+    "Task 249",
+  );
 });
 
 it("keeps multiple row drafts, marks errors and applies the full batch once", () => {

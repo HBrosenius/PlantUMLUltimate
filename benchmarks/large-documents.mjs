@@ -279,6 +279,8 @@ async function replace(page, source) {
 }
 async function openFile(page, bytes, name) {
   const version = codec.decodeEnvelope(bytes).version;
+  const first = version === 2 ? (await codec.decodeProject(bytes)).project.diagrams[0] : undefined;
+  const started = performance.now();
   await page.evaluate(
     ({ bytes, name }) => {
       window.auditFile.input = bytes;
@@ -293,11 +295,15 @@ async function openFile(page, bytes, name) {
     .getByRole("menuitem", { name: version === 2 ? "Document…" : "Diagram…", exact: true })
     .click();
   if (version === 2) {
-    const first = (await codec.decodeProject(bytes)).project.diagrams[0];
-    await page
+    const member = page
       .getByRole("complementary", { name: "Document navigator", exact: true })
-      .getByRole("button", { name: `Inspect diagram ${first.name}`, exact: true })
-      .click();
+      .getByRole("button", { name: `Inspect diagram ${first.name}`, exact: true });
+    await expect(member).toBeVisible({ timeout: 65_000 });
+    const navigatorReadyMs = performance.now() - started;
+    await member.click();
+    const memberClickMs = performance.now() - started - navigatorReadyMs;
+    await expect(page.locator(".cm-content")).toContainText("Delivery task 1", { timeout: 65_000 });
+    return { navigatorReadyMs, memberClickMs, memberReadyMs: performance.now() - started };
   }
 }
 async function sample(page, start) {
@@ -462,7 +468,7 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
         const clock = await page.evaluate(() => performance.now());
         let after = await page.evaluate(() => window.audit.renders.length);
         let began = performance.now();
-        if (item.bytes) await openFile(page, item.bytes, `${item.name}.pumlu`);
+        if (item.bytes) record.fileOpen = await openFile(page, item.bytes, `${item.name}.pumlu`);
         else await replace(page, item.source);
         const marker = item.kind === "project" ? "Delivery task 30" : item.search;
         const result = await settle(page, after, marker);
@@ -546,8 +552,16 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
           await expect(
             navigator.getByRole("button", { name: `Inspect diagram ${lateMember.name}`, exact: true }),
           ).toBeVisible();
+          const beforeMemberRender = await page.evaluate(() => window.audit.renders.length);
           await navigator.getByRole("button", { name: `Inspect diagram ${lateMember.name}`, exact: true }).click();
-          await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
+          const memberMarker = {
+            gantt: "Delivery task 20",
+            sequence: "Service 8",
+            class: "Entity12",
+            wbs: "Deliverable 25",
+          }[lateMember.document.current.diagramKind];
+          await settle(page, beforeMemberRender, memberMarker);
+          await expect(page.locator(".document-tabs > button.active")).toContainText(lateMember.name);
           record.documentSearch = { name: lateMember.name, searchAndOpenMs: performance.now() - searchStarted };
           await search.fill("no matching diagram audit");
           await expect(navigator.getByText("No diagrams match this search.", { exact: true })).toBeVisible();
@@ -560,7 +574,18 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
           for (const member of item.project.diagrams.slice(-3)) {
             began = performance.now();
             await navigator.getByRole("button", { name: `Inspect diagram ${member.name}`, exact: true }).click();
+            const switchMarker = {
+              gantt: "Delivery task 20",
+              sequence: "Service 8",
+              class: "Entity12",
+              wbs: "Deliverable 25",
+            }[member.document.current.diagramKind];
+            await expect(page.locator(".document-tabs > button.active")).toContainText(member.name);
+            await expect(page.locator(".diagram svg")).toContainText(switchMarker, { timeout: 65_000 });
             await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
+            await page.evaluate(
+              () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+            );
             record.memberSwitches.push({ name: member.name, wallMs: performance.now() - began });
           }
         }

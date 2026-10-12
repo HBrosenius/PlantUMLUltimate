@@ -4,25 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { VirtualProject } from "./project-index";
 import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
 
-function elementState(project: VirtualProject, elementId: string): string {
-  const element = project.manifest.elements.find((item) => item.id === elementId);
-  if (!element) return "missing";
-  const member = project.members.find((item) => item.documentId === element.documentId);
-  return (
-    project.resolutions.get(elementId)?.state ??
-    (member?.state !== "available" ? (member?.state ?? "missing") : "pending")
-  );
-}
-
-function elementLabel(project: VirtualProject, elementId: string): string {
-  const element = project.manifest.elements.find((item) => item.id === elementId);
-  if (!element) return "Unknown element";
-  const member = project.members.find((item) => item.documentId === element.documentId);
-  const path = member?.path ?? element.documentId;
-  const state = elementState(project, elementId);
-  return `${path}: ${element.locator.symbolKey}${state && state !== "resolved" ? ` (${state})` : ""}`;
-}
-
 function attentionMessage(project: VirtualProject, element: ProjectElement): string {
   const resolution = project.resolutions.get(element.id);
   if (resolution?.state === "invalid-evidence") return "The saved location no longer matches the diagram source.";
@@ -68,6 +49,26 @@ export function ProjectLinksPanel({
   }>();
   const [repairError, setRepairError] = useState("");
   const elements = project.manifest.elements;
+  const presentation = useMemo(() => {
+    const members = new Map(project.members.map((member) => [member.documentId, member]));
+    return new Map(
+      elements.map((element) => {
+        const member = members.get(element.documentId);
+        const state =
+          project.resolutions.get(element.id)?.state ??
+          (member?.state !== "available" ? (member?.state ?? "missing") : "pending");
+        return [
+          element.id,
+          {
+            state,
+            label: `${member?.path ?? element.documentId}: ${element.locator.symbolKey}${state !== "resolved" ? ` (${state})` : ""}`,
+          },
+        ];
+      }),
+    );
+  }, [elements, project.members, project.resolutions]);
+  const elementState = (id: string) => presentation.get(id)?.state ?? "missing";
+  const elementLabel = (id: string) => presentation.get(id)?.label ?? "Unknown element";
   const from = elements.find((item) => item.id === fromId);
   const compatible = useMemo(
     () =>
@@ -87,27 +88,38 @@ export function ProjectLinksPanel({
       : canCreateLink("implements", from, to)
         ? "implements"
         : undefined;
-  const registrations = project.members.flatMap((member) =>
-    member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
+  const registrations = useMemo(
+    () =>
+      project.members.flatMap((member) =>
+        member.source ? member.declarations.map((declaration) => ({ member, declaration })) : [],
+      ),
+    [project.members],
   );
   const linkedElementIds = new Set(project.manifest.links.flatMap((link) => [link.from, link.to]));
   const attentionElements = elements.filter((element) => {
     if (!linkedElementIds.has(element.id)) return false;
-    const state = elementState(project, element.id);
+    const state = elementState(element.id);
     return state !== "resolved" && state !== "pending";
   });
   useEffect(() => {
+    const registeredKeys = new Set(
+      elements.map((element) => JSON.stringify([element.documentId, element.kind, element.locator.declarationHash])),
+    );
     const missing = registrations.filter(
       ({ member, declaration }) =>
-        !elements.some(
-          (element) =>
-            element.documentId === member.documentId &&
-            element.kind === declaration.kind &&
-            element.locator.declarationHash === declaration.declarationHash,
-        ),
+        !registeredKeys.has(JSON.stringify([member.documentId, declaration.kind, declaration.declarationHash])),
     );
     if (!missing.length) return;
     let cancelled = false;
+    const sourceHashes = new Map<string, Promise<string>>();
+    const sourceHashFor = (member: (typeof registrations)[number]["member"]) => {
+      let hash = sourceHashes.get(member.documentId);
+      if (!hash) {
+        hash = hashSource(member.source!);
+        sourceHashes.set(member.documentId, hash);
+      }
+      return hash;
+    };
     void Promise.all(
       missing.map(async ({ member, declaration }) => ({
         id: crypto.randomUUID(),
@@ -117,7 +129,7 @@ export function ProjectLinksPanel({
           symbolKey: declaration.symbolKey,
           keyType: "semantic-key" as const,
           declarationHash: declaration.declarationHash,
-          sourceHash: await hashSource(member.source!),
+          sourceHash: await sourceHashFor(member),
           from: declaration.from,
           to: declaration.to,
         },
@@ -206,7 +218,7 @@ export function ProjectLinksPanel({
                 <option value="">Choose the item that starts the link…</option>
                 {elements.map((element) => (
                   <option key={element.id} value={element.id}>
-                    {elementLabel(project, element.id)}
+                    {elementLabel(element.id)}
                   </option>
                 ))}
               </select>
@@ -217,7 +229,7 @@ export function ProjectLinksPanel({
                 <option value="">Choose what it relates to…</option>
                 {compatible.map((element) => (
                   <option key={element.id} value={element.id}>
-                    {elementLabel(project, element.id)}
+                    {elementLabel(element.id)}
                   </option>
                 ))}
               </select>
@@ -263,17 +275,17 @@ export function ProjectLinksPanel({
             {project.manifest.links.map((link) => (
               <li key={link.id}>
                 <span className="project-link-route">
-                  <span className="project-link-endpoint">{elementLabel(project, link.from)}</span>
+                  <span className="project-link-endpoint">{elementLabel(link.from)}</span>
                   <span className="project-link-kind">{link.kind} →</span>
-                  <span className="project-link-endpoint">{elementLabel(project, link.to)}</span>
+                  <span className="project-link-endpoint">{elementLabel(link.to)}</span>
                   <span
                     className={`project-link-health ${
-                      elementState(project, link.from) === "resolved" && elementState(project, link.to) === "resolved"
+                      elementState(link.from) === "resolved" && elementState(link.to) === "resolved"
                         ? "is-confirmed"
                         : "needs-attention"
                     }`}
                   >
-                    {elementState(project, link.from) === "resolved" && elementState(project, link.to) === "resolved"
+                    {elementState(link.from) === "resolved" && elementState(link.to) === "resolved"
                       ? "Confirmed"
                       : "Unresolved path"}
                   </span>
@@ -328,15 +340,13 @@ export function ProjectLinksPanel({
               resolution?.state === "needs-review" || resolution?.state === "ambiguous" ? resolution.candidates : [];
             return (
               <div className="project-link-repair" key={element.id}>
-                <strong>{elementLabel(project, element.id)}</strong>
+                <strong>{elementLabel(element.id)}</strong>
                 <span>Current target: {element.locator.symbolKey}</span>
                 <span>{attentionMessage(project, element)}</span>
                 {impacts.length > 0 && (
                   <span className="project-link-impact">
                     Affects {impacts.length} linked path{impacts.length === 1 ? "" : "s"}:{" "}
-                    {impacts
-                      .map((path) => path.elementIds.map((id) => elementLabel(project, id)).join(" → "))
-                      .join("; ")}
+                    {impacts.map((path) => path.elementIds.map((id) => elementLabel(id)).join(" → ")).join("; ")}
                   </span>
                 )}
                 {candidates.map((candidate) => (

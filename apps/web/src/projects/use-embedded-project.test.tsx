@@ -2,8 +2,19 @@
 
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { decodeProject, encodeProject, hashSource, type PortableProject } from "@plantuml-studio/document-format";
-import { loadDocumentVersions, type DocumentSnapshot } from "../workspace-storage";
+import {
+  decodeProject,
+  encodeProject,
+  encodeContentHistory,
+  hashSource,
+  type PortableProject,
+} from "@plantuml-studio/document-format";
+import {
+  enableMemoryOnlyHistory,
+  importDocumentVersions,
+  loadDocumentVersions,
+  type DocumentSnapshot,
+} from "../workspace-storage";
 import { useEmbeddedProject } from "./use-embedded-project";
 import { EmbeddedProjectSaveCoordinator } from "./embedded-project-save";
 import { projectContentEqual } from "./embedded-project";
@@ -146,6 +157,163 @@ describe("useEmbeddedProject lifecycle", () => {
     },
   );
   beforeEach(() => vi.resetAllMocks());
+
+  it.each([false, true])("restores all member histories and baseline identities (encrypted=%s)", async (encrypted) => {
+    const value = projectWithDiagram();
+    const template = value.diagrams[0]!;
+    value.diagrams = await Promise.all(
+      ["one", "two", "three"].map(async (id) => {
+        const source = `@startgantt\n[${id}] lasts 2 days\n@endgantt`;
+        const history = await encodeContentHistory([source]);
+        return {
+          ...structuredClone(template),
+          id,
+          name: id,
+          document: {
+            ...structuredClone(template.document),
+            current: {
+              source,
+              sourceHash: await hashSource(source),
+              diagramKind: "gantt" as const,
+              baselineVersionId: `baseline-${id}`,
+            },
+            contents: history.contents,
+            versions: [
+              {
+                id: `baseline-${id}`,
+                contentId: history.contentIds[0]!,
+                createdAt: value.savedAt,
+                sequence: 0,
+                reason: "saved" as const,
+                pinned: true,
+                diagramKind: "gantt" as const,
+              },
+            ],
+          },
+        };
+      }),
+    );
+    const addDocument = vi.fn(() => "opened-tab");
+    const { result } = renderHook(() =>
+      useEmbeddedProject({ documents: emptyDocuments, addDocument, activateDocument: vi.fn() }),
+    );
+    act(() => result.current.openProject(value, { encrypted }));
+    await act(async () => {
+      await result.current.openMember("three");
+    });
+    if (!encrypted) {
+      expect(
+        vi
+          .mocked(importDocumentVersions)
+          .mock.calls.flatMap(([versions]) => versions)
+          .map((version) => version.source),
+      ).toEqual([value.diagrams[2]!.document.current.source]);
+      const snapshot = await result.current.captureSaveSnapshot();
+      expect(snapshot!.project.diagrams.map((member) => member.document.versions)).toEqual(
+        value.diagrams.map((member) => member.document.versions),
+      );
+      expect(snapshot!.project.diagrams.map((member) => member.document.contents)).toEqual(
+        value.diagrams.map((member) => member.document.contents),
+      );
+      await act(async () => {
+        await result.current.openMember("one");
+        await result.current.openMember("two");
+        await result.current.openMember("three");
+      });
+    }
+    const imports = vi.mocked(importDocumentVersions).mock.calls.map(([versions]) => versions);
+    const versions = imports.flat();
+    expect(versions.map((version) => version.source).sort()).toEqual(
+      value.diagrams.map((member) => member.document.current.source).sort(),
+    );
+    expect(new Set(versions.map((version) => version.historyId)).size).toBe(3);
+    expect(addDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: value.diagrams[2]!.document.current.source,
+        baselineVersionId: versions.find((version) => version.fileName === "three")!.id,
+      }),
+    );
+    if (encrypted) {
+      expect(imports.every((group) => new Set(group.map((version) => version.historyId)).size === 1)).toBe(true);
+      expect(
+        vi
+          .mocked(enableMemoryOnlyHistory)
+          .mock.calls.map(([id]) => id)
+          .sort(),
+      ).toEqual(versions.map((version) => version.historyId).sort());
+    } else {
+      expect(imports).toHaveLength(3);
+      expect(enableMemoryOnlyHistory).not.toHaveBeenCalled();
+    }
+  });
+
+  it("does not activate a stale member after its history finishes importing into a replaced project", async () => {
+    let finishImport!: () => void;
+    vi.mocked(importDocumentVersions).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishImport = resolve;
+        }),
+    );
+    const addDocument = vi.fn(() => "opened-tab");
+    const { result } = renderHook(() =>
+      useEmbeddedProject({ documents: emptyDocuments, addDocument, activateDocument: vi.fn() }),
+    );
+    const original = projectWithDiagram();
+    act(() => result.current.openProject(original));
+    const opening = result.current.openMember(original.diagrams[0]!.id);
+    await waitFor(() => expect(importDocumentVersions).toHaveBeenCalledTimes(1));
+    const replacement = { ...projectWithDiagram(), projectId: "replacement-project" };
+    act(() => result.current.openProject(replacement));
+    await act(async () => {
+      finishImport();
+      await opening;
+    });
+    expect(addDocument).not.toHaveBeenCalled();
+    expect(result.current.project?.projectId).toBe(replacement.projectId);
+  });
+
+  it("waits for both member histories before opening a linked WBS and Gantt pair", async () => {
+    const value = projectWithDiagram();
+    const gantt = value.diagrams[0]!;
+    const wbs = structuredClone(gantt);
+    wbs.id = "linked-wbs";
+    wbs.name = "Scope";
+    wbs.document.current.source = "@startwbs\n* Scope\n@endwbs";
+    wbs.document.current.diagramKind = "wbs";
+    wbs.document.current.sourceHash = await hashSource(wbs.document.current.source);
+    gantt.wbsGantt = { wbsDiagramId: wbs.id, links: [], dependencies: [] };
+    value.diagrams.push(wbs);
+    const finishes: Array<() => void> = [];
+    vi.mocked(importDocumentVersions).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishes.push(resolve);
+        }),
+    );
+    const addDocument = vi.fn(() => `tab-${crypto.randomUUID()}`);
+    const { result } = renderHook(() =>
+      useEmbeddedProject({ documents: emptyDocuments, addDocument, activateDocument: vi.fn() }),
+    );
+    act(() => result.current.openProject(value));
+    const opening = result.current.openMember(gantt.id);
+    await waitFor(() => expect(finishes).toHaveLength(2));
+    await act(async () => {
+      finishes[0]!();
+    });
+    expect(addDocument).not.toHaveBeenCalled();
+    await act(async () => {
+      finishes[1]!();
+      await opening;
+    });
+    expect(addDocument).toHaveBeenCalledTimes(2);
+    expect(addDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ source: wbs.document.current.source, diagramKind: "wbs" }),
+    );
+    expect(addDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ source: gantt.document.current.source, diagramKind: "gantt" }),
+    );
+  });
 
   it("restores local recovery as unsaved until a file save is confirmed", async () => {
     const recovered = projectWithDiagram();
