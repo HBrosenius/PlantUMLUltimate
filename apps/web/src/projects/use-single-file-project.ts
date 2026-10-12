@@ -204,11 +204,13 @@ class ProjectFileChangedError extends Error {
 export function useSingleFileProject({
   tabs,
   resetSelection,
+  onOpened,
   setInteractionMessage,
   reportError,
 }: {
   tabs: Tabs;
   resetSelection(): void;
+  onOpened?(): void;
   setInteractionMessage: Dispatch<SetStateAction<string | undefined>>;
   reportError(error: unknown): void;
 }) {
@@ -506,8 +508,9 @@ export function useSingleFileProject({
         embedded.openProject(project, { encrypted, unsaved: Boolean(opened.importedSource) });
         setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
+        onOpened?.();
         setInteractionMessage(
-          `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}`,
+          `Opened ${project.name} with ${project.diagrams.length} diagram${project.diagrams.length === 1 ? "" : "s"}. Choose a diagram in the document navigator to open it.`,
         );
         if (!opened.importedSource)
           await rememberRecentFile(opened.fileName, opened.handle, "document").catch(() => undefined);
@@ -517,7 +520,7 @@ export function useSingleFileProject({
         return false;
       }
     },
-    [confirmLeave, embedded, reportError, requestPassword, resetSelection, setInteractionMessage],
+    [confirmLeave, embedded, reportError, requestPassword, resetSelection, onOpened, setInteractionMessage],
   );
   const openProject = useCallback(async () => openOpenedProject(await openDocumentFile()), [openOpenedProject]);
   const openPortableProject = useCallback(

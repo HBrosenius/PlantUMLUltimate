@@ -1,0 +1,108 @@
+@startgantt
+title Release programme
+Project starts 2026-10-01
+saturday are closed
+sunday are closed
+-- Workstream 1 --
+[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days
+[T0] is 0% completed
+[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days
+[T1] is 20% completed
+[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days
+[T2] is 40% completed
+[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days
+[T3] is 60% completed
+[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days
+[T4] is 80% completed
+[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days
+[T5] is 0% completed
+[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days
+[T6] is 20% completed
+[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days
+[T7] is 40% completed
+[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days
+[T8] is 60% completed
+[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days
+[T9] is 80% completed
+[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days
+[T10] is 0% completed
+[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days
+[T11] is 20% completed
+[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days
+[T12] is 40% completed
+[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days
+[T13] is 60% completed
+[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days
+[T14] is 80% completed
+[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days
+[T15] is 0% completed
+[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days
+[T16] is 20% completed
+[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days
+[T17] is 40% completed
+[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days
+[T18] is 60% completed
+[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days
+[T19] is 80% completed
+[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days
+[T20] is 0% completed
+[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days
+[T21] is 20% completed
+[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days
+[T22] is 40% completed
+[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days
+[T23] is 60% completed
+[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days
+[T24] is 80% completed
+-- Workstream 2 --
+[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days
+[T25] is 0% completed
+[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days
+[T26] is 20% completed
+[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days
+[T27] is 40% completed
+[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days
+[T28] is 60% completed
+[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days
+[T29] is 80% completed
+[Delivery task 31] as [T30] on {Team6:50%} starts 2026-10-22 and lasts 2 days
+[T30] is 0% completed
+[Delivery task 32] as [T31] on {Team7:50%} starts at [T30]'s end and lasts 3 days
+[T31] is 20% completed
+[Delivery task 33] as [T32] on {Team8:50%} starts at [T31]'s end and lasts 4 days
+[T32] is 40% completed
+[Delivery task 34] as [T33] on {Team9:50%} starts at [T32]'s end and lasts 5 days
+[T33] is 60% completed
+[Delivery task 35] as [T34] on {Team10:50%} starts at [T33]'s end and lasts 6 days
+[T34] is 80% completed
+[Delivery task 36] as [T35] on {Team11:50%} starts at [T34]'s end and lasts 2 days
+[T35] is 0% completed
+[Delivery task 37] as [T36] on {Team0:50%} starts at [T35]'s end and lasts 3 days
+[T36] is 20% completed
+[Delivery task 38] as [T37] on {Team1:50%} starts at [T36]'s end and lasts 4 days
+[T37] is 40% completed
+[Delivery task 39] as [T38] on {Team2:50%} starts at [T37]'s end and lasts 5 days
+[T38] is 60% completed
+[Delivery task 40] as [T39] on {Team3:50%} starts at [T38]'s end and lasts 6 days
+[T39] is 80% completed
+[Delivery task 41] as [T40] on {Team4:50%} starts 2026-10-29 and lasts 2 days
+[T40] is 0% completed
+[Delivery task 42] as [T41] on {Team5:50%} starts at [T40]'s end and lasts 3 days
+[T41] is 20% completed
+[Delivery task 43] as [T42] on {Team6:50%} starts at [T41]'s end and lasts 4 days
+[T42] is 40% completed
+[Delivery task 44] as [T43] on {Team7:50%} starts at [T42]'s end and lasts 5 days
+[T43] is 60% completed
+[Delivery task 45] as [T44] on {Team8:50%} starts at [T43]'s end and lasts 6 days
+[T44] is 80% completed
+[Delivery task 46] as [T45] on {Team9:50%} starts at [T44]'s end and lasts 2 days
+[T45] is 0% completed
+[Delivery task 47] as [T46] on {Team10:50%} starts at [T45]'s end and lasts 3 days
+[T46] is 20% completed
+[Delivery task 48] as [T47] on {Team11:50%} starts at [T46]'s end and lasts 4 days
+[T47] is 40% completed
+[Delivery task 49] as [T48] on {Team0:50%} starts at [T47]'s end and lasts 5 days
+[T48] is 60% completed
+[Delivery task 50] as [T49] on {Team1:50%} starts at [T48]'s end and lasts 6 days
+[T49] is 80% completed
+@endgantt

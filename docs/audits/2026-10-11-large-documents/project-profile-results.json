@@ -1,0 +1,306 @@
+{
+  "date": "2026-10-11",
+  "origin": "http://127.0.0.1:4176",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 3962.3530999999994,
+          "engineMs": 1071.8999999761581,
+          "mainThreadLongTasks": 9,
+          "mainThreadBlockedMs": 2606,
+          "longestMainThreadTaskMs": 1271,
+          "maxTimerDelayMs": 1406.5,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 53500000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 1072 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3674.303900000001,
+          "engineMs": 960.8999999761581,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2493,
+          "longestMainThreadTaskMs": 1192,
+          "maxTimerDelayMs": 1303,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 53500000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 961 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3509.2803000000004,
+          "engineMs": 791.7000000476837,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2518,
+          "longestMainThreadTaskMs": 1166,
+          "maxTimerDelayMs": 1261.3999999761581,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 53500000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 792 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3497.3542000000016,
+          "engineMs": 811.1000000238419,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2476,
+          "longestMainThreadTaskMs": 1206,
+          "maxTimerDelayMs": 1322.2000000476837,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 53500000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 811 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3421.8064000000013,
+          "engineMs": 836.7999999523163,
+          "mainThreadLongTasks": 9,
+          "mainThreadBlockedMs": 2343,
+          "longestMainThreadTaskMs": 1180,
+          "maxTimerDelayMs": 1452.3999999761581,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 53500000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 837 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 4106.6237,
+        "engineMs": 1442.8999999761581,
+        "mainThreadLongTasks": 5,
+        "mainThreadBlockedMs": 2501,
+        "longestMainThreadTaskMs": 1432,
+        "maxTimerDelayMs": 1463.7999999523163,
+        "domNodes": 8059,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "jsHeapBytes": 53500000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 1443 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "mainThreadProfile": [
+        {
+          "function": "(idle)",
+          "url": "",
+          "line": 0,
+          "selfMs": 1429.3139999999999
+        },
+        {
+          "function": "(program)",
+          "url": "",
+          "line": 0,
+          "selfMs": 1028.5820000000008
+        },
+        {
+          "function": "ch",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 17580,
+          "selfMs": 164.71399999999997
+        },
+        {
+          "function": "lt",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 4,
+          "selfMs": 55.29400000000001
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 75,
+          "selfMs": 49.465999999999994
+        },
+        {
+          "function": "Pt",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 17580,
+          "selfMs": 39.00899999999999
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 37.947
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 75,
+          "selfMs": 36.41199999999999
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 32.601
+        },
+        {
+          "function": "getAttribute",
+          "url": "",
+          "line": 0,
+          "selfMs": 31.510999999999996
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 30.969000000000005
+        },
+        {
+          "function": "(garbage collector)",
+          "url": "",
+          "line": 0,
+          "selfMs": 30.010000000000005
+        },
+        {
+          "function": "ll",
+          "url": "http://127.0.0.1:4176/assets/react-vendor-BuQOX7bh.js",
+          "line": 9,
+          "selfMs": 28.631000000000004
+        },
+        {
+          "function": "rs",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 75,
+          "selfMs": 28.212
+        },
+        {
+          "function": "getAttributeType",
+          "url": "",
+          "line": 0,
+          "selfMs": 26.659999999999997
+        },
+        {
+          "function": "At",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 25.308
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 25.255999999999997
+        },
+        {
+          "function": "rs",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 75,
+          "selfMs": 23.810000000000002
+        },
+        {
+          "function": "At",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 21.616
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 17580,
+          "selfMs": 20.685999999999996
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 20.651
+        },
+        {
+          "function": "Ws",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 20.339
+        },
+        {
+          "function": "qd",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 17580,
+          "selfMs": 20.102999999999998
+        },
+        {
+          "function": "",
+          "url": "http://127.0.0.1:4176/assets/index-CWXaCMts.js",
+          "line": 17580,
+          "selfMs": 18.553
+        },
+        {
+          "function": "getAttribute",
+          "url": "",
+          "line": 0,
+          "selfMs": 17.953
+        },
+        {
+          "function": "getAttributeType",
+          "url": "",
+          "line": 0,
+          "selfMs": 17.566000000000003
+        },
+        {
+          "function": "parseFromString",
+          "url": "",
+          "line": 0,
+          "selfMs": 17.363
+        },
+        {
+          "function": "ll",
+          "url": "http://127.0.0.1:4176/assets/editor-vendor-Cy1l7YT6.js",
+          "line": 9,
+          "selfMs": 17.093999999999998
+        },
+        {
+          "function": "z",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 1,
+          "selfMs": 16.746
+        },
+        {
+          "function": "zt",
+          "url": "http://127.0.0.1:4176/assets/diagram-engines-ApuY3tft.js",
+          "line": 2,
+          "selfMs": 12.670000000000002
+        }
+      ],
+      "outline": {
+        "openMs": 197.15539999999964,
+        "searchMs": 47.38060000000041,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 234.82930000000124,
+        "reopenMs": 3704.8475,
+        "bytes": 3781,
+        "diagrams": 1,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    }
+  ]
+}

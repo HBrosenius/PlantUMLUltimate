@@ -250,6 +250,27 @@ export function addCanonicalGanttOverlay(
       fill !== "transparent",
     );
   });
+  // Original shape geometry is immutable while overlays are added. Cache even
+  // missing bounds, and keep the cache local so later renders cannot reuse it.
+  const shapeBounds = new Map<Element, Geometry | undefined>();
+  const boundsFor = (shape: Element): Geometry | undefined => {
+    if (shapeBounds.has(shape)) return shapeBounds.get(shape);
+    let bounds: Geometry | undefined;
+    if (shape.tagName === "rect") {
+      const x = numberAttribute(shape, "x");
+      const y = numberAttribute(shape, "y");
+      const width = numberAttribute(shape, "width");
+      const height = numberAttribute(shape, "height");
+      if (x !== undefined && y !== undefined && width !== undefined && height !== undefined)
+        bounds = { x, y, width, height };
+    } else if (shape.tagName === "polygon") {
+      bounds = polygonBounds(shape as SVGPolygonElement);
+    } else if (shape.tagName === "path") {
+      bounds = pathBounds(shape as SVGPathElement);
+    }
+    shapeBounds.set(shape, bounds);
+    return bounds;
+  };
   const geometry = new Map<string, Geometry>();
   const gridDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
@@ -435,25 +456,19 @@ export function addCanonicalGanttOverlay(
       return center >= startColumn.x - canonicalDayWidth / 2 && center <= endColumn.x + canonicalDayWidth / 2;
     };
     const rowBars = rects.filter((rect) => {
-      const y = numberAttribute(rect, "y");
-      const height = numberAttribute(rect, "height");
-      const x = numberAttribute(rect, "x");
-      const width = numberAttribute(rect, "width");
+      const bounds = boundsFor(rect);
       return (
-        y !== undefined &&
-        height !== undefined &&
-        x !== undefined &&
-        width !== undefined &&
-        height <= maxRowHeight &&
-        textY >= y &&
-        textY <= y + height &&
-        withinTaskDates({ x, y, width, height })
+        bounds &&
+        bounds.height <= maxRowHeight &&
+        textY >= bounds.y &&
+        textY <= bounds.y + bounds.height &&
+        withinTaskDates(bounds)
       );
     });
     const rowPolygons = task.milestone
       ? []
       : paintedPolygons.filter((polygon) => {
-          const bounds = polygonBounds(polygon);
+          const bounds = boundsFor(polygon);
           return (
             bounds &&
             bounds.height <= maxRowHeight &&
@@ -465,7 +480,7 @@ export function addCanonicalGanttOverlay(
     const rowPaths = task.milestone
       ? []
       : paintedPaths.filter((path) => {
-          const bounds = pathBounds(path);
+          const bounds = boundsFor(path);
           return (
             bounds &&
             bounds.height <= maxRowHeight &&
@@ -476,7 +491,7 @@ export function addCanonicalGanttOverlay(
         });
     const milestoneShapes = task.milestone
       ? polygons.filter((polygon) => {
-          const bounds = polygonBounds(polygon);
+          const bounds = boundsFor(polygon);
           return (
             bounds &&
             bounds.height <= maxRowHeight &&
@@ -499,22 +514,9 @@ export function addCanonicalGanttOverlay(
         : [];
     if (!rowBars.length && !rowPolygons.length && !rowPaths.length && !milestoneShapes.length && !labelBounds.length)
       continue;
-    const bounds = rowBars
-      .flatMap((bar) => {
-        const x = numberAttribute(bar, "x");
-        const y = numberAttribute(bar, "y");
-        const width = numberAttribute(bar, "width");
-        const height = numberAttribute(bar, "height");
-        return x === undefined || y === undefined || width === undefined || height === undefined
-          ? []
-          : [{ x, y, width, height }];
-      })
-      .concat(
-        rowPolygons.flatMap((polygon) => polygonBounds(polygon) ?? []),
-        rowPaths.flatMap((path) => pathBounds(path) ?? []),
-        milestoneShapes.flatMap((polygon) => polygonBounds(polygon) ?? []),
-        labelBounds,
-      );
+    const bounds = [...rowBars, ...rowPolygons, ...rowPaths, ...milestoneShapes]
+      .flatMap((shape) => boundsFor(shape) ?? [])
+      .concat(labelBounds);
     if (!bounds.length) continue;
     const x = Math.min(...bounds.map((item) => item.x));
     const y = Math.min(...bounds.map((item) => item.y));
@@ -553,20 +555,7 @@ export function addCanonicalGanttOverlay(
     const completion = task.completion?.value;
     if (completion !== undefined && completion > 0 && completion < 100 && !task.milestone) {
       const progressShapes: Element[] = rowBars.length ? rowBars : rowPaths.length ? rowPaths : rowPolygons;
-      const progressBounds = progressShapes.flatMap((shape) => {
-        if (shape.tagName === "rect") {
-          const shapeX = numberAttribute(shape, "x");
-          const shapeY = numberAttribute(shape, "y");
-          const shapeWidth = numberAttribute(shape, "width");
-          const shapeHeight = numberAttribute(shape, "height");
-          return shapeX === undefined || shapeY === undefined || shapeWidth === undefined || shapeHeight === undefined
-            ? []
-            : [{ x: shapeX, y: shapeY, width: shapeWidth, height: shapeHeight }];
-        }
-        const shapeBounds =
-          shape.tagName === "path" ? pathBounds(shape as SVGPathElement) : polygonBounds(shape as SVGPolygonElement);
-        return shapeBounds ? [shapeBounds] : [];
-      });
+      const progressBounds = progressShapes.flatMap((shape) => boundsFor(shape) ?? []);
       if (progressBounds.length) {
         const progressX = Math.min(...progressBounds.map((part) => part.x));
         const progressY = Math.min(...progressBounds.map((part) => part.y));

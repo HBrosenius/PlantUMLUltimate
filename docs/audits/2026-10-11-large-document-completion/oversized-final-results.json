@@ -1,0 +1,126 @@
+{
+  "startedAtUtc": "2026-10-11T20:04:05.336Z",
+  "origin": "http://127.0.0.1:4183",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\n\nRender 0 ms\n\nDiagram exceeds the preview size limit\n\nThis diagram is 2 260 × 9 140 pixels. The renderer allows up to 4 096 pixels in either dimension.\n\nThe visible preview is from an earlier successful render.\n\nYour source remains available to edit and save. Use the source editor or Outline, or the task table, to find and edit items. Reduce the diagram’s width or height, or split it into smaller diagrams, then render again.\n\nContinue editing\n\njava.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\n\nChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.\n\nLn 1026, Col 10\nBrowser recovery",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 122.05400000000009,
+        "searchMs": 19.391999999999825,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true,
+        "expandAllMs": 1401.4986000000008,
+        "expandedRows": 500,
+        "lastTaskEditUndo": true
+      },
+      "persistence": {
+        "saveMs": 323.5557000000008,
+        "reopenMs": 4034.619999999999,
+        "bytes": 12775,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\n\nRender 0 ms\n\nDiagram exceeds the preview size limit\n\nThis diagram is 2,260 × 9,140 pixels. The renderer allows up to 4,096 pixels in either dimension.\n\nThe visible preview is from an earlier successful render.\n\nYour source remains available to edit and save. Use the source editor or Outline, or the task table, to find and edit items. Reduce the diagram’s width or height, or split it into smaller diagrams, then render again.\n\nContinue editing\n\njava.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\n\nChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.\n\nLn 1026, Col 10\nBrowser recovery",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 162.1765000000014,
+        "searchMs": 152.57250000000204,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true,
+        "expandAllMs": 2989.388899999998,
+        "expandedRows": 500,
+        "lastTaskEditUndo": true
+      },
+      "persistence": {
+        "saveMs": 406.1681000000026,
+        "reopenMs": 5784.732600000003,
+        "bytes": 13356,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "✓ Valid\nIssues\nGantt\nShowing last valid preview\nLn 1026, Col 10\nBrowser recovery",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 283.2646999999997,
+        "searchMs": 37.390299999999115,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true,
+        "expandAllMs": 1973.533899999995,
+        "expandedRows": 500,
+        "lastTaskEditUndo": true
+      },
+      "persistence": {
+        "saveMs": 1231.9344999999885,
+        "reopenMs": 25405.868799999997,
+        "bytes": 13260,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    }
+  ]
+}

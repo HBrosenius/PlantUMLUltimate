@@ -1,0 +1,125 @@
+{
+  "startedAtUtc": "2026-10-11T19:45:10.735Z",
+  "origin": "http://127.0.0.1:4182",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 2699.0055,
+          "engineMs": 936.1000000238419,
+          "mainThreadLongTasks": 5,
+          "mainThreadBlockedMs": 1457,
+          "longestMainThreadTaskMs": 817,
+          "maxTimerDelayMs": 875.1999999284744,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 936 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 2512.7633000000005,
+          "engineMs": 835.5,
+          "mainThreadLongTasks": 5,
+          "mainThreadBlockedMs": 1435,
+          "longestMainThreadTaskMs": 811,
+          "maxTimerDelayMs": 921.3999999761581,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 836 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 2446.9902,
+          "engineMs": 769.8000000715256,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 1350,
+          "longestMainThreadTaskMs": 799,
+          "maxTimerDelayMs": 822.9000000953674,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 770 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 2313.5468999999994,
+          "engineMs": 747.1999999284744,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 1288,
+          "longestMainThreadTaskMs": 787,
+          "maxTimerDelayMs": 901.4000000953674,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 747 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 2381.006300000001,
+          "engineMs": 757.1000000238419,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 1306,
+          "longestMainThreadTaskMs": 781,
+          "maxTimerDelayMs": 904.8999999761581,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 757 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 3157.6728,
+        "engineMs": 1287.3999999761581,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 1680,
+        "longestMainThreadTaskMs": 1132,
+        "maxTimerDelayMs": 1149,
+        "domNodes": 8059,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "jsHeapBytes": 72200000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 1287 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 106.40500000000247,
+        "searchMs": 43.91509999999835,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 192.10260000000198,
+        "reopenMs": 3105.582699999999,
+        "bytes": 3776,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    }
+  ]
+}

@@ -1,16 +1,12 @@
 # Connected project diagrams
 
-A PlantUML Ultimate project keeps related diagrams and their semantic links in one project manifest. Projects can be stored as a writable folder or as a portable ZIP snapshot.
+A PlantUML Ultimate document keeps related diagrams and their semantic links in one `.pumlu` file. See [single-file documents](single-file-projects.md) for the current create, open and save workflow, and [plan implementation status](plan-status-2026-10-11.md) for the delivered scope.
 
 ## Create and open
 
-Use **File → New project…** to create a folder project. The browser asks you to select the destination folder and creates `project.pumlproject` plus a starter diagram in `diagrams/`.
+Use **File → New → Document** to create a document. Use its navigator to add, import, rename or delete diagrams. Save, Save As and Cmd/Ctrl-S save the complete document.
 
-Projects now use one `.pumlu` file. See [single-file projects](./single-file-projects.md). Existing ZIP projects remain available through **File → Open → Import ZIP project…** and are converted on import.
-
-Use **File → Open project…** to select an existing folder project. The browser must grant read/write permission for reliable saves.
-
-With a project open, use **Add diagram…** in the Project navigator. Choose `gantt`, `class`, or `sequence`, then provide a unique project-relative `.puml` path. The new diagram opens immediately; use **Save project** (or download a ZIP snapshot) to persist it.
+Legacy folder and ZIP projects are compatibility imports under **File → Open**. Their contents are staged and validated before conversion; save the imported result as a normal single-file document.
 
 ## Connections and repairs
 
@@ -19,6 +15,8 @@ Open **Diagram connections** from the project panel. Register diagram items, the
 After a rename or external edit, an unresolved item is shown conservatively. Use the suggested repair candidates only after confirming the item is the same semantic object; the app never silently connects a similarly named item.
 
 ## Saving and recovery
+
+The following describes the legacy folder save implementation retained in the code. Current single-file save and recovery behavior is documented in [single-file documents](single-file-projects.md) and [persistence and files](persistence-and-files.md); these legacy actions are not the everyday document workflow.
 
 **Save project** writes changed project members first and the manifest last. A short-lived recovery journal records the complete intended save. If the browser or device interrupts a write, reopening the folder replays that journal before the project is read.
 

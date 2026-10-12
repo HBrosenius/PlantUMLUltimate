@@ -355,8 +355,8 @@ export function DiagramPreview({
     [baselineOverlaySvg, baselineDates],
   );
   const renderedCurrentGeometry = useMemo(
-    () => extractRenderedTaskGeometry(interactiveSvg, resolvedDates),
-    [interactiveSvg, resolvedDates],
+    () => extractRenderedTaskGeometry(baselineDates.size ? interactiveSvg : undefined, resolvedDates),
+    [interactiveSvg, resolvedDates, baselineDates],
   );
   const baselineLabels = useMemo(() => new Map(baselineTasks.map((task) => [task.id, task.label])), [baselineTasks]);
   const variance = useMemo(

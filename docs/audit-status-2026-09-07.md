@@ -1,5 +1,7 @@
 # Audit status — 2026-09-07
 
+Historical baseline record: later implementation supersedes some statuses, including renderer isolation and lifecycle extraction. See [the 2026-10-11 source reconciliation](plan-status-2026-10-11.md) before treating these rows as current. Historical deployment evidence below has not been reverified by that reconciliation.
+
 This document reconciles the historical 2026-09-02 audit with repository baseline
 `795e39c`. The original audit files remain unchanged. A finding is marked **verified in
 deployment** only when the relevant deployment completed successfully; a merged source

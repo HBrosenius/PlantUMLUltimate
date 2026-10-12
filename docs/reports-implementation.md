@@ -22,7 +22,7 @@ Reporting metadata is optional in document schema 1; old documents open without 
 
 The roadmap's optional portfolio, automated delivery, cost, response tracking, scenario, WBS, saved-pack, and other advanced reports remain gated on their additional data/workflows. No sending or scheduling is added.
 
-Open **More → Reports…**, search for **Reports…** in Commands, or choose **Create task check-in…** in Resources. Options are session-local except remembered message wording, and do not edit the diagram. The builder previews the dedicated email HTML that is copied or downloaded.
+Open **Plan → Reports…**, search for **Reports…** in Commands, or choose **Create task check-in…** in Resources. Options are session-local except remembered message wording, and do not edit the diagram. The builder previews the dedicated email HTML that is copied or downloaded.
 
 Choose a task preset and recipients, optionally exclude tasks, and review each recipient. The options use collapsible sections like the Task inspector. Introduction and sign-off edits are automatically remembered in this browser across documents and sessions; Restore default wording also updates the remembered values. Other report options remain session-local. Dates follow the browser's language/region (for example, Swedish `2026-10-08`) throughout the subject, body, and charts; date-only schedule values do not shift with the browser time zone.
 

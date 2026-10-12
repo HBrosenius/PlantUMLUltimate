@@ -105,6 +105,10 @@ test("protects closed-diagram metadata when creating, opening, and closing proje
   await open();
   await guard.getByRole("button", { name: "Discard changes" }).click();
   await expect(navigator.getByText("Original plan", { exact: true })).toBeVisible();
+  await navigator.getByRole("button", { name: "Close document navigator" }).click();
+  await open();
+  await expect(navigator).toBeVisible();
+  await expect(navigator.getByText("Choose a diagram in Original plan to open it in the editor.")).toBeVisible();
   await expect(
     navigator.getByRole("button", { name: "Inspect diagram Architecture revised", exact: true }),
   ).toBeVisible();

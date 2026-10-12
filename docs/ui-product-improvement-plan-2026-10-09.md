@@ -2,7 +2,7 @@
 
 Date: 2026-10-09  
 Reviewed checkout: `6174901`, including the existing working-tree state.  
-Status: proposed work; no application changes made.
+Status: source review consolidated into the [canonical implementation plan](ui-consolidated-implementation-plan-2026-10-09.md); A1–A33 implementations delivered with recorded scope/validation limits. See [current plan status](plan-status-2026-10-11.md). The proposal below preserves the original review.
 
 ## Recommendation
 

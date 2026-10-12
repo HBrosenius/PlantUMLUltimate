@@ -1,4 +1,6 @@
 import { InlineLabelEditor } from "./InlineLabelEditor";
+import { RenderSizeNotice } from "./render/RenderSizeNotice";
+import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
 import { LinkedWorkPreviewDialog, type LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
 import { MobileWorkList } from "./MobileWorkList";
@@ -2005,6 +2007,7 @@ export function App() {
   const singleFileProject = useSingleFileProject({
     tabs,
     resetSelection: resetFileSelection,
+    onOpened: showDocumentNavigator,
     setInteractionMessage,
     reportError: reportFileError,
   });
@@ -4974,7 +4977,7 @@ export function App() {
                     ? "WBS"
                     : "Gantt"}
         </span>
-        <details className="render-details">
+        <details className="render-details" open={renderSizeLimit(result?.error) ? true : undefined}>
           <summary>
             {mobileListActive
               ? "List view"
@@ -4982,6 +4985,11 @@ export function App() {
           </summary>
           <div>
             <p>Render {Math.round(result?.durationMs ?? 0)} ms</p>
+            <RenderSizeNotice
+              error={result?.error}
+              hasPreviousPreview={Boolean(result?.svg)}
+              gantt={workspace.diagramKind === "gantt"}
+            />
             {result?.error && <p role="alert">{result.error}</p>}
             <p>
               Changes are rendered locally. An older preview can remain visible while the current source is rendering or

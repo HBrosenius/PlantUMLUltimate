@@ -1,5 +1,7 @@
 # UI cleanup plan
 
+Status: implemented; see [delivery results](ui-cleanup-results.md) and [current plan status](plan-status-2026-10-11.md). This proposal preserves the original review; later A1–A33 deliveries extend it.
+
 Date: 2026-10-08
 
 ## Goal and review scope

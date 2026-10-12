@@ -1,5 +1,7 @@
 # Apply forecast to plan — design draft
 
+Status review, 2026-10-11: implemented in `apps/web/src/gantt-apply-forecast.ts`, with browser regressions in `tests/e2e/gantt-apply-forecast.spec.ts`. The draft below remains the design/acceptance record; see [current plan status](plan-status-2026-10-11.md).
+
 ## Goal
 
 Let an editor deliberately promote the current Progress forecast into the PlantUML plan. The action must show the exact source changes and the resulting schedule before it writes anything. It must remain separate from the read-only forecast toggle.

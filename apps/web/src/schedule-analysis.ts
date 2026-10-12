@@ -397,6 +397,8 @@ export function decorateScheduleAnalysis(
   renderedBaselineGeometry: ReadonlyMap<string, RenderedBaselineGeometry> = new Map(),
   baselineLabels: ReadonlyMap<string, string> = new Map(),
 ): string {
+  // No critical markers or changed/removed baseline bars means no SVG edits.
+  if (!criticalIds.size && variance.every((item) => item.kind === "added" || item.kind === "unchanged")) return svg;
   if (typeof DOMParser === "undefined") return svg;
   const document = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (document.querySelector("parsererror")) return svg;

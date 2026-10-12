@@ -1,5 +1,7 @@
 # UI cleanup implementation plan
 
+Status: implemented; see [delivery results](ui-cleanup-results.md) and [current plan status](plan-status-2026-10-11.md). The sequence below is retained as the implementation specification.
+
 Date: 2026-10-08
 
 Based on [UI cleanup plan](ui-cleanup-plan.md) and the current web application. This document proposes implementation work; it does not change application behavior. Browser observations and usability measurements remain to be collected.

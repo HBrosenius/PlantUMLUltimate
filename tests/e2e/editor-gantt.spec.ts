@@ -320,7 +320,17 @@ test("clears baseline variance when a moved task returns to its original dates",
       .poll(async () => {
         dayWidth = await headers.evaluateAll((elements) => {
           if (elements.length < 2) return 0;
-          return elements[1].getBoundingClientRect().x - elements[0].getBoundingClientRect().x;
+          // Text glyph rounding at fitted zoom makes the first gap unreliable.
+          const centers = elements.map((element) => {
+            const box = element.getBoundingClientRect();
+            return box.x + box.width / 2;
+          });
+          const gaps = centers
+            .slice(1)
+            .map((center, index) => center - centers[index]!)
+            .filter((gap) => gap > 0.5)
+            .sort((a, b) => a - b);
+          return gaps[Math.floor(gaps.length / 2)] ?? 0;
         });
         return dayWidth;
       })
@@ -339,6 +349,7 @@ test("clears baseline variance when a moved task returns to its original dates",
   await expect(page.locator(".schedule-analysis-report summary")).toContainText("1 changed task");
   await expect(page.locator('[data-baseline-task-id="frontend"]')).toBeVisible();
   await dragByDays(-3);
+  await expect(page.locator(".cm-content")).toContainText("[Frontend] starts 2026-10-02");
   await expect(page.locator(".schedule-analysis-report summary")).toContainText("0 changed tasks");
   await expect(page.locator('[data-baseline-task-id="frontend"]')).toHaveCount(0);
 });
@@ -888,6 +899,23 @@ test("makes a failed update explicit instead of silently showing the old preview
   await expect(error).toContainText("Preview could not be updated", { timeout: 20_000 });
   await expect(page.locator(".preview-viewport")).toHaveClass(/stale-preview/);
   await expect(page.getByRole("button", { name: "Retry rendering" })).toBeVisible();
+});
+
+test("explains oversized previews and recovers after reducing the diagram", async ({ page }) => {
+  test.setTimeout(60_000);
+  await setSource(page, source("[Previous diagram] lasts 2 days"));
+  const oversized = `@startgantt\nProject starts 2026-10-01\n${Array.from({ length: 300 }, (_, index) => `[Task ${index + 1}] lasts 2 days`).join("\n")}\n@endgantt`;
+  await fillSource(page, oversized);
+  const notice = page.getByRole("alert", { name: "Preview size limit" });
+  await expect(notice).toBeVisible({ timeout: 30_000 });
+  await expect(notice).toContainText("source remains available to edit and save");
+  await expect(notice).toContainText("earlier successful render");
+  await notice.getByRole("button", { name: "Continue editing" }).click();
+  await expect(notice).toBeHidden();
+  await expect(page.locator(".cm-content")).toContainText("[Task 300] lasts 2 days");
+  await fillSource(page, source("[Recovered diagram] lasts 2 days"));
+  await expect(page.locator('[data-task-id="recovered diagram"]')).toBeVisible({ timeout: 20_000 });
+  await expect(notice).toHaveCount(0);
 });
 
 test("shows a persistent live preview while moving a task horizontally", async ({ page }) => {

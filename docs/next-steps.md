@@ -1,5 +1,9 @@
 # PlantUML Ultimate: next steps
 
+Current follow-up, 2026-10-11: see [large-document next steps](large-document-next-steps-2026-10-11.md) for the measured Gantt performance, oversized-preview and document-navigation work. The September plan below remains historical context.
+
+Status review, 2026-10-11: this September reliability plan is substantially addressed and is not the current feature backlog. Renderer isolation, lifecycle extraction and release documentation now exist; application-level service limits and several external validation gates remain. See [current implementation inventory](plan-status-2026-10-11.md) before acting on the historical recommendations below.
+
 Prepared: 2026-09-07. Repository baseline: `795e39c`, version `0.2.0`.
 
 ## Recommendation

@@ -1,15 +1,15 @@
 # Consolidated UI and product implementation plan
 
 Date: 2026-10-09  
-Status: implementation started; A1–A28 first slices implemented; validation recorded below.
+Status: A1–A32 deliveries implemented; A33 implementation delivered, with physical-device validation pending. Reconciled 2026-10-11; see [current plan status](plan-status-2026-10-11.md) for scope limits and remaining evidence gates.
 
 This is the canonical combined implementation order for the [Claude review](ui-improvement-plan-2026-10-09.md) and the [Codex review](ui-product-improvement-plan-2026-10-09.md). The original documents remain as evidence records. Overlapping findings are combined into one work item below; competing proposals are resolved within that item rather than retained as parallel tasks.
 
 ## How to use this plan
 
-Work through the numbered items in order. The phases put potential editing errors and broken interactions first, then clarify existing workflows, then add capabilities. Within a phase, independent items can ship separately. A verification-only issue that cannot be reproduced should be recorded and parked rather than block the rest of the phase. Dependencies identify the work that must precede a particular implementation.
+The numbered items preserve the original implementation order and acceptance criteria. Consult the delivery records before treating an item as open. The phases put potential editing errors and broken interactions first, then clarify existing workflows, then add capabilities. A verification-only issue that cannot be reproduced should be recorded and parked rather than block the rest of the phase.
 
-The first delivery should cover items **1–8**, in small PRs. Item 1 starts with reproduction because a wrong inspector selection could modify the wrong object; it is not a confirmed defect. Avoid a broad navigation or component rewrite before resolving the concrete problems.
+The original first delivery covered items **1–8**. Historical reproduction instructions and proposal labels below describe the baseline review; current delivery status is recorded above each phase and in the delivery records.
 
 Evidence is inherited from the two reviews, not newly reproduced during this consolidation:
 
@@ -849,4 +849,4 @@ Pilot representative journeys with new and returning users: create a blank diagr
 - Each source recommendation is assigned once to a numbered item or the refactoring rule. When a source section bundled several independent ideas, its parts are assigned explicitly (for example, report empty states versus button styling).
 - Existing Save, Issues, resizable inspectors, draft protection, examples, Fit, linked diagrams, history, and scenario analysis are retained and extended. Their presence is not reclassified as a missing feature.
 - Unverified or conflicting observations remain verification work, notably Sequence selection, first-click menus, chooser restoration, submenu accessible names, palette coverage, and direct-manipulation coverage.
-- No application implementation or new live UI verification was performed as part of merging these plans. The next action is to reproduce item 1 and implement the independently confirmed Phase 1 fixes.
+- No application implementation or new live UI verification was performed as part of the original plan consolidation. Subsequent implementation and validation are recorded in A1–A33 above; item 1 is no longer the next action.

@@ -1,5 +1,7 @@
 # Connected project diagrams: first implementation slice
 
+Status review, 2026-10-11: core connected-diagram capabilities are implemented. Everyday storage now uses single-file `.pumlu` documents; folder/ZIP projects are compatibility imports. This original stage plan is retained as design history, not an unstarted backlog. See [single-file documents](single-file-projects.md) and [implementation inventory](plan-status-2026-10-11.md).
+
 Prepared: 2026-09-10. Baseline: remote `main` at `8cd3b5e` (portable documents, PR #41). Planning branch: `codex/connected-project-plan`, in an isolated worktree. This document specifies future implementation; it does not authorize deployment or change the existing checkout.
 
 ## Outcome and scope

@@ -1,5 +1,7 @@
 # Connected project diagrams: C00 implementation inventory
 
+Historical initial-stage inventory. Subsequent implementations supersede statements below about missing ZIP support, rename mappings and deferred tests. See [current plan status](plan-status-2026-10-11.md).
+
 Verified against `origin/main` at `8cd3b5e` on 2026-09-10.
 
 ## Boundaries confirmed

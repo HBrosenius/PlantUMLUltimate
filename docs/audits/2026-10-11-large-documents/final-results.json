@@ -1,0 +1,1696 @@
+{
+  "date": "2026-10-11",
+  "origin": "http://127.0.0.1:4176",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "existing-project",
+      "sourceBytes": 3955,
+      "lines": 62,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 759.7055,
+        "engineMs": 252.20000004768372,
+        "mainThreadLongTasks": 2,
+        "mainThreadBlockedMs": 246,
+        "longestMainThreadTaskMs": 172,
+        "maxTimerDelayMs": 187.80000007152557,
+        "domNodes": 1616,
+        "svgNodes": 988,
+        "svgWidth": "1478",
+        "svgHeight": "884",
+        "jsHeapBytes": 50400000,
+        "status": "Source has problemsIssues (4)GanttPreview currentRender 252 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 62, Col 1Browser recovery"
+      },
+      "outline": {
+        "openMs": 60.92100000000028,
+        "searchMs": 21.221799999999803,
+        "entriesBefore": 42
+      },
+      "persistence": {
+        "saveMs": 121.89399999999978,
+        "reopenMs": 1648.8456999999999,
+        "bytes": 1623,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-50",
+      "sourceBytes": 5337,
+      "lines": 108,
+      "timings": [
+        {
+          "wallMs": 1459.5342999999993,
+          "engineMs": 433.39999997615814,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 598,
+          "longestMainThreadTaskMs": 346,
+          "maxTimerDelayMs": 389.10000002384186,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "jsHeapBytes": 50400000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 433 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1312.7630000000008,
+          "engineMs": 382.8000000715256,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 563,
+          "longestMainThreadTaskMs": 333,
+          "maxTimerDelayMs": 326.2000000476837,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "jsHeapBytes": 50400000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 383 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1263.9843,
+          "engineMs": 349.3000000715256,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 552,
+          "longestMainThreadTaskMs": 311,
+          "maxTimerDelayMs": 333.2999999523163,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "jsHeapBytes": 50400000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 349 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1297.6527000000006,
+          "engineMs": 347.60000002384186,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 567,
+          "longestMainThreadTaskMs": 344,
+          "maxTimerDelayMs": 397.60000002384186,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "jsHeapBytes": 50400000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 348 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1314.2831000000006,
+          "engineMs": 309.89999997615814,
+          "mainThreadLongTasks": 3,
+          "mainThreadBlockedMs": 626,
+          "longestMainThreadTaskMs": 388,
+          "maxTimerDelayMs": 433.7000000476837,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "jsHeapBytes": 50400000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 310 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 1785.5469000000003,
+        "engineMs": 782.8999999761581,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 745,
+        "longestMainThreadTaskMs": 352,
+        "maxTimerDelayMs": 389.7000000476837,
+        "domNodes": 3856,
+        "svgNodes": 2628,
+        "svgWidth": "2260",
+        "svgHeight": "1364",
+        "jsHeapBytes": 50400000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 783 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 108, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 118.82909999999902,
+        "searchMs": 26.53770000000077,
+        "entriesBefore": 111
+      },
+      "persistence": {
+        "saveMs": 182.15890000000218,
+        "reopenMs": 2152.574199999999,
+        "bytes": 1563,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 4005.4658000000018,
+          "engineMs": 1054.3999999761581,
+          "mainThreadLongTasks": 9,
+          "mainThreadBlockedMs": 2679,
+          "longestMainThreadTaskMs": 1363,
+          "maxTimerDelayMs": 1485.6000000238419,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 60300000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 1054 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3714.9543000000012,
+          "engineMs": 919.8999999761581,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2607,
+          "longestMainThreadTaskMs": 1229,
+          "maxTimerDelayMs": 1405.3999999761581,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 60300000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 920 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3598.592400000005,
+          "engineMs": 951.6999999284744,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2481,
+          "longestMainThreadTaskMs": 1214,
+          "maxTimerDelayMs": 1257,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 60300000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 952 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3559.9154000000053,
+          "engineMs": 844.0999999046326,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2530,
+          "longestMainThreadTaskMs": 1197,
+          "maxTimerDelayMs": 1242,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 60300000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 844 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 3532.6667000000016,
+          "engineMs": 814.4000000953674,
+          "mainThreadLongTasks": 10,
+          "mainThreadBlockedMs": 2534,
+          "longestMainThreadTaskMs": 1223,
+          "maxTimerDelayMs": 1330.6000000238419,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 60300000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 814 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 3875.0420999999988,
+        "engineMs": 1434.3999999761581,
+        "mainThreadLongTasks": 5,
+        "mainThreadBlockedMs": 2268,
+        "longestMainThreadTaskMs": 1173,
+        "maxTimerDelayMs": 1186.6000000238419,
+        "domNodes": 8059,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "jsHeapBytes": 60300000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 1434 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 183.71959999999672,
+        "searchMs": 42.17240000000311,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 373.22090000000026,
+        "reopenMs": 3788.0478999999978,
+        "bytes": 3779,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\nLn 1026, Col 10\nBrowser recovery",
+      "outline": {
+        "openMs": 126.65179999999964,
+        "searchMs": 29.392400000004272,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true,
+        "expandAllMs": 1498.2518999999957,
+        "expandedRows": 500,
+        "lastTaskEditUndo": true
+      },
+      "persistence": {
+        "saveMs": 349.95659999999043,
+        "reopenMs": 4485.332000000009,
+        "bytes": 12780,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "sequence-30-300",
+      "sourceBytes": 11173,
+      "lines": 333,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 4680x8819 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 4680x8819 (max 4096)\nIssues\nSequence\nShowing last valid preview\nLn 333, Col 8\nBrowser recovery",
+      "outline": {
+        "openMs": 87.24560000000929,
+        "searchMs": 24.60809999999765,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 125.78040000000328,
+        "reopenMs": 1660.244200000001,
+        "bytes": 2092,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "sequence-12-100",
+      "sourceBytes": 3629,
+      "lines": 115,
+      "timings": [
+        {
+          "wallMs": 513.0558000000019,
+          "engineMs": 157,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 45.5,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1757",
+          "svgHeight": "3019",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesSequencePreview currentRender 157 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 527.6353999999992,
+          "engineMs": 157.39999997615814,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 47.699999928474426,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1757",
+          "svgHeight": "3019",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesSequencePreview currentRender 157 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 515.786500000002,
+          "engineMs": 158.10000002384186,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 102.70000004768372,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1757",
+          "svgHeight": "3019",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesSequencePreview currentRender 158 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 480.13959999999497,
+          "engineMs": 125,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 56.60000002384186,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1757",
+          "svgHeight": "3019",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesSequencePreview currentRender 125 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 446.9676999999938,
+          "engineMs": 117.39999997615814,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 98.29999995231628,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1757",
+          "svgHeight": "3019",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesSequencePreview currentRender 117 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 643.3043000000034,
+        "engineMs": 239.5,
+        "mainThreadLongTasks": 1,
+        "mainThreadBlockedMs": 177,
+        "longestMainThreadTaskMs": 177,
+        "maxTimerDelayMs": 158.30000007152557,
+        "domNodes": 1873,
+        "svgNodes": 760,
+        "svgWidth": "1757",
+        "svgHeight": "3019",
+        "jsHeapBytes": 139000000,
+        "status": "✓ ValidIssuesSequencePreview currentRender 240 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 115, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 92.59930000000168,
+        "searchMs": 17.97520000000077,
+        "entriesBefore": 114
+      },
+      "persistence": {
+        "saveMs": 118.32150000000547,
+        "reopenMs": 1566.852199999994,
+        "bytes": 1196,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "class-100",
+      "sourceBytes": 11188,
+      "lines": 636,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 23125x2973 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 23125x2973 (max 4096)\nIssues\nClass\nShowing last valid preview\nLn 636, Col 8\nBrowser recovery",
+      "outline": {
+        "openMs": 157.6469999999972,
+        "searchMs": 20.329100000002654,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 94.09870000000228,
+        "reopenMs": 202.0746000000072,
+        "bytes": 2010,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 0,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "class-15",
+      "sourceBytes": 1680,
+      "lines": 98,
+      "timings": [
+        {
+          "wallMs": 466.74039999999513,
+          "engineMs": 189.89999997615814,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 66.60000002384186,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3404",
+          "svgHeight": "597",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesClassPreview currentRender 190 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 480.1391000000003,
+          "engineMs": 204.39999997615814,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 26.600000023841858,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3404",
+          "svgHeight": "597",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesClassPreview currentRender 204 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 446.53869999999006,
+          "engineMs": 180.5,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 64.70000004768372,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3404",
+          "svgHeight": "597",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesClassPreview currentRender 181 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 431.6631000000052,
+          "engineMs": 168.80000007152557,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 44.60000002384186,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3404",
+          "svgHeight": "597",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesClassPreview currentRender 169 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 428.2902000000031,
+          "engineMs": 148.5,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 75.20000004768372,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3404",
+          "svgHeight": "597",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesClassPreview currentRender 149 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 658.7401999999856,
+        "engineMs": 258.3000000715256,
+        "mainThreadLongTasks": 1,
+        "mainThreadBlockedMs": 161,
+        "longestMainThreadTaskMs": 161,
+        "maxTimerDelayMs": 149,
+        "domNodes": 964,
+        "svgNodes": 429,
+        "svgWidth": "3404",
+        "svgHeight": "597",
+        "jsHeapBytes": 139000000,
+        "status": "✓ ValidIssuesClassPreview currentRender 258 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 98, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 55.09569999999076,
+        "searchMs": 17.60009999999602,
+        "entriesBefore": 36
+      },
+      "persistence": {
+        "saveMs": 110.01369999999588,
+        "reopenMs": 1573.7167000000045,
+        "bytes": 1041,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "wbs-300",
+      "sourceBytes": 5925,
+      "lines": 304,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 5453x606 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 5453x606 (max 4096)\nIssues\nWBS\nShowing last valid preview\nLn 304, Col 8\nBrowser recovery",
+      "outline": {
+        "openMs": 98.14489999999932,
+        "searchMs": 25.585500000001048,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 130.53750000000582,
+        "reopenMs": 2225.673900000009,
+        "bytes": 1538,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "wbs-150",
+      "sourceBytes": 2940,
+      "lines": 154,
+      "timings": [
+        {
+          "wallMs": 571.7839999999997,
+          "engineMs": 223.10000002384186,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 113.10000002384186,
+          "domNodes": 1079,
+          "svgNodes": 625,
+          "svgWidth": "2679",
+          "svgHeight": "606",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesWBSPreview currentRender 223 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 513.1345000000001,
+          "engineMs": 202,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 67.60000002384186,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2679",
+          "svgHeight": "606",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesWBSPreview currentRender 202 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 663.0170999999973,
+          "engineMs": 269.1999999284744,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 47,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2679",
+          "svgHeight": "606",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesWBSPreview currentRender 269 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 559.1622999999963,
+          "engineMs": 195.39999997615814,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 93.10000002384186,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2679",
+          "svgHeight": "606",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesWBSPreview currentRender 195 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 496.77799999999115,
+          "engineMs": 159.19999992847443,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 78.39999997615814,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2679",
+          "svgHeight": "606",
+          "jsHeapBytes": 139000000,
+          "status": "✓ ValidIssuesWBSPreview currentRender 159 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 797.3972999999969,
+        "engineMs": 316.40000009536743,
+        "mainThreadLongTasks": 1,
+        "mainThreadBlockedMs": 214,
+        "longestMainThreadTaskMs": 214,
+        "maxTimerDelayMs": 203,
+        "domNodes": 1065,
+        "svgNodes": 624,
+        "svgWidth": "2679",
+        "svgHeight": "606",
+        "jsHeapBytes": 139000000,
+        "status": "✓ ValidIssuesWBSPreview currentRender 316 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 154, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 82.24139999999898,
+        "searchMs": 17.32050000000163,
+        "entriesBefore": 153
+      },
+      "persistence": {
+        "saveMs": 121.60989999999583,
+        "reopenMs": 1610.7449000000051,
+        "bytes": 1100,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-50",
+      "fileBytes": 18016,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 2242.405300000013,
+        "engineMs": 776.7000000476837,
+        "mainThreadLongTasks": 2,
+        "mainThreadBlockedMs": 202,
+        "longestMainThreadTaskMs": 142,
+        "maxTimerDelayMs": 148.59999990463257,
+        "domNodes": 4206,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 53500000,
+        "status": "Opened Portfolio 50 with 50 diagramsIssuesGanttPreview currentRender 777 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 116.40530000001309,
+        "searchMs": 33.951700000005076,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1121.4058000000077
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 1622.3438000000024
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 1715.6835000000137
+        }
+      ],
+      "persistence": {
+        "saveMs": 145.7548999999999,
+        "reopenMs": 489.7923999999766,
+        "bytes": 51670,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61785,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 4847.184599999979,
+        "engineMs": 766,
+        "mainThreadLongTasks": 24,
+        "mainThreadBlockedMs": 2442,
+        "longestMainThreadTaskMs": 275,
+        "maxTimerDelayMs": 379.89999997615814,
+        "domNodes": 8718,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 86400000,
+        "status": "Opened Portfolio 200 with 200 diagramsIssuesGanttPreview currentRender 766 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 255.23040000000037,
+        "searchMs": 47.62609999999404,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2016.1319000000076
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2154.126099999994
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1573.8263999999908
+        }
+      ],
+      "persistence": {
+        "saveMs": 709.1884999999893,
+        "reopenMs": 2243.508700000006,
+        "bytes": 188208,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "existing-project",
+      "sourceBytes": 3955,
+      "lines": 62,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 1026.0553000000073,
+        "engineMs": 494,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 86,
+        "domNodes": 1616,
+        "svgNodes": 988,
+        "svgWidth": "1478",
+        "svgHeight": "884",
+        "status": "Source has problemsIssues (4)GanttPreview currentRender 494 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 62, Col 1Browser recovery"
+      },
+      "outline": {
+        "openMs": 133.74110000001383,
+        "searchMs": 43.177800000004936,
+        "entriesBefore": 42
+      },
+      "persistence": {
+        "saveMs": 274.707000000024,
+        "reopenMs": 3032.9726000000082,
+        "bytes": 1611,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "gantt-50",
+      "sourceBytes": 5337,
+      "lines": 108,
+      "timings": [
+        {
+          "wallMs": 3115.900500000018,
+          "engineMs": 1264,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 696,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1264 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 3208.931100000016,
+          "engineMs": 1204,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 782,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1204 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 2347.445000000007,
+          "engineMs": 1017,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 387,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1017 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1913.8843999999808,
+          "engineMs": 757,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 301,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "status": "✓ ValidIssuesGanttPreview currentRender 757 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 1747.3096999999834,
+          "engineMs": 648,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 306,
+          "domNodes": 3857,
+          "svgNodes": 2628,
+          "svgWidth": "2260",
+          "svgHeight": "1364",
+          "status": "✓ ValidIssuesGanttPreview currentRender 648 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 2288.7962999999872,
+        "engineMs": 1132,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 431,
+        "domNodes": 3856,
+        "svgNodes": 2628,
+        "svgWidth": "2260",
+        "svgHeight": "1364",
+        "status": "✓ ValidIssuesGanttPreview currentRender 1132 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 108, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 145.60639999998966,
+        "searchMs": 63.15700000000652,
+        "entriesBefore": 111
+      },
+      "persistence": {
+        "saveMs": 281.05550000001676,
+        "reopenMs": 3991.5873999999894,
+        "bytes": 1599,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 6163.224100000021,
+          "engineMs": 2891,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 1401,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 2891 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 5212.076099999977,
+          "engineMs": 2154,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 1215,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 2154 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 5400.838300000003,
+          "engineMs": 2354,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 1219,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 2354 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 4779.582399999985,
+          "engineMs": 1884,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 1096,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1884 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        },
+        {
+          "wallMs": 5123.038300000015,
+          "engineMs": 2167,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 1191,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 2167 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 4208.108099999983,
+        "engineMs": 2409,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 1059,
+        "domNodes": 8020,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "status": "✓ ValidIssuesGanttPreview currentRender 2409 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 255.4384999999893,
+        "searchMs": 145.7709999999788,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 542.2769000000262,
+        "reopenMs": 5935.991399999999,
+        "bytes": 3870,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\nLn 1026, Col 10\nBrowser recovery",
+      "outline": {
+        "openMs": 186.2369999999937,
+        "searchMs": 47.930400000012014,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true,
+        "expandAllMs": 3117.346099999995,
+        "expandedRows": 500,
+        "lastTaskEditUndo": true
+      },
+      "persistence": {
+        "saveMs": 419.559500000003,
+        "reopenMs": 6924.396999999997,
+        "bytes": 13355,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "sequence-30-300",
+      "sourceBytes": 11173,
+      "lines": 333,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 4681x8819 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 4681x8819 (max 4096)\nIssues\nSequence\nShowing last valid preview\nLn 333, Col 8\nBrowser recovery",
+      "outline": {
+        "openMs": 109.1763000000501,
+        "searchMs": 40.977299999969546,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 232.4257000000216,
+        "reopenMs": 2131.8589999999967,
+        "bytes": 2091,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "sequence-12-100",
+      "sourceBytes": 3629,
+      "lines": 115,
+      "timings": [
+        {
+          "wallMs": 657.6983999999939,
+          "engineMs": 229,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 24,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1758",
+          "svgHeight": "3019",
+          "status": "✓ ValidIssuesSequencePreview currentRender 229 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 725.4604999999865,
+          "engineMs": 335,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 31,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1758",
+          "svgHeight": "3019",
+          "status": "✓ ValidIssuesSequencePreview currentRender 335 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 779.4073999999673,
+          "engineMs": 355,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 44,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1758",
+          "svgHeight": "3019",
+          "status": "✓ ValidIssuesSequencePreview currentRender 355 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 898.1662999999826,
+          "engineMs": 385,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 36,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1758",
+          "svgHeight": "3019",
+          "status": "✓ ValidIssuesSequencePreview currentRender 385 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        },
+        {
+          "wallMs": 1116.8439999999828,
+          "engineMs": 516,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 54,
+          "domNodes": 1875,
+          "svgNodes": 760,
+          "svgWidth": "1758",
+          "svgHeight": "3019",
+          "status": "✓ ValidIssuesSequencePreview currentRender 516 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 40Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 828.9756000000052,
+        "engineMs": 342,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 162,
+        "domNodes": 1873,
+        "svgNodes": 760,
+        "svgWidth": "1758",
+        "svgHeight": "3019",
+        "status": "✓ ValidIssuesSequencePreview currentRender 342 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 115, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 183.5178999999771,
+        "searchMs": 86.49300000001676,
+        "entriesBefore": 114
+      },
+      "persistence": {
+        "saveMs": 259.5485000000335,
+        "reopenMs": 1832.6935999999987,
+        "bytes": 1196,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "class-100",
+      "sourceBytes": 11188,
+      "lines": 636,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 23123x2973 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 23123x2973 (max 4096)\nIssues\nClass\nShowing last valid preview\nLn 636, Col 8\nBrowser recovery",
+      "outline": {
+        "openMs": 112.43339999997988,
+        "searchMs": 37.37989999999991,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 233.45780000003288,
+        "reopenMs": 12865.42220000003,
+        "bytes": 2029,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "class-15",
+      "sourceBytes": 1680,
+      "lines": 98,
+      "timings": [
+        {
+          "wallMs": 584.3843000000343,
+          "engineMs": 289,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 20,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3403",
+          "svgHeight": "597",
+          "status": "✓ ValidIssuesClassPreview currentRender 289 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 605.1579999999958,
+          "engineMs": 285,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 32,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3403",
+          "svgHeight": "597",
+          "status": "✓ ValidIssuesClassPreview currentRender 285 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 576.8263000000152,
+          "engineMs": 277,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 24,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3403",
+          "svgHeight": "597",
+          "status": "✓ ValidIssuesClassPreview currentRender 277 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 944.5065000000177,
+          "engineMs": 594,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 41,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3403",
+          "svgHeight": "597",
+          "status": "✓ ValidIssuesClassPreview currentRender 594 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        },
+        {
+          "wallMs": 920.3080000000191,
+          "engineMs": 562,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 29,
+          "domNodes": 966,
+          "svgNodes": 429,
+          "svgWidth": "3403",
+          "svgHeight": "597",
+          "status": "✓ ValidIssuesClassPreview currentRender 562 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 33Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 702.5828999999794,
+        "engineMs": 390,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 26,
+        "domNodes": 964,
+        "svgNodes": 429,
+        "svgWidth": "3403",
+        "svgHeight": "597",
+        "status": "✓ ValidIssuesClassPreview currentRender 390 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 98, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 106.79940000001807,
+        "searchMs": 43.97509999998147,
+        "entriesBefore": 36
+      },
+      "persistence": {
+        "saveMs": 308.61019999999553,
+        "reopenMs": 2334.1356999999844,
+        "bytes": 1042,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "wbs-300",
+      "sourceBytes": 5925,
+      "lines": 304,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 5451x606 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 5451x606 (max 4096)\nIssues\nWBS\nShowing last valid preview\nLn 304, Col 8\nBrowser recovery\nUpdate available",
+      "outline": {
+        "openMs": 193.22769999998854,
+        "searchMs": 56.81040000001667,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 187.8287999999593,
+        "reopenMs": 2864.301299999992,
+        "bytes": 1526,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1,
+        "exactFixtureSourcePreserved": true
+      },
+      "smallerDocumentRecovered": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "wbs-150",
+      "sourceBytes": 2940,
+      "lines": 154,
+      "timings": [
+        {
+          "wallMs": 783.0028000000166,
+          "engineMs": 345,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 28,
+          "domNodes": 1079,
+          "svgNodes": 625,
+          "svgWidth": "2678",
+          "svgHeight": "606",
+          "status": "✓ ValidIssuesWBSPreview currentRender 345 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 728.0339000000386,
+          "engineMs": 305,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 36,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2678",
+          "svgHeight": "606",
+          "status": "✓ ValidIssuesWBSPreview currentRender 305 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 847.7342000000062,
+          "engineMs": 416,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 48,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2678",
+          "svgHeight": "606",
+          "status": "✓ ValidIssuesWBSPreview currentRender 416 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 1001.087600000028,
+          "engineMs": 498,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 37,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2678",
+          "svgHeight": "606",
+          "status": "✓ ValidIssuesWBSPreview currentRender 498 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        },
+        {
+          "wallMs": 1120.2698999999557,
+          "engineMs": 622,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 37,
+          "domNodes": 1077,
+          "svgNodes": 624,
+          "svgWidth": "2678",
+          "svgHeight": "606",
+          "status": "✓ ValidIssuesWBSPreview currentRender 622 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 32Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 778.5630000000237,
+        "engineMs": 468,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 35,
+        "domNodes": 1065,
+        "svgNodes": 624,
+        "svgWidth": "2678",
+        "svgHeight": "606",
+        "status": "✓ ValidIssuesWBSPreview currentRender 468 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 154, Col 8Browser recovery"
+      },
+      "outline": {
+        "openMs": 101.1596000000136,
+        "searchMs": 42.38930000003893,
+        "entriesBefore": 153
+      },
+      "persistence": {
+        "saveMs": 272.55830000003334,
+        "reopenMs": 1656.228999999992,
+        "bytes": 1091,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-50",
+      "fileBytes": 18016,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 2825.600299999991,
+        "engineMs": 986,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 228,
+        "domNodes": 4206,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 50 with 50 diagramsIssuesGanttPreview currentRender 986 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 192.32110000000102,
+        "searchMs": 76.78800000000047,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1586.1802000000025
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 2445.5499999999884
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 1900.2314999999944
+        }
+      ],
+      "persistence": {
+        "saveMs": 258.43859999999404,
+        "reopenMs": 677.0811999999569,
+        "bytes": 55288,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-200",
+      "fileBytes": 61785,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 7246.419600000023,
+        "engineMs": 1037,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 621,
+        "domNodes": 8718,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagramsIssuesGanttPreview currentRender 1037 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 921.532600000035,
+        "searchMs": 183.4764000000432,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 4265.747700000007
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3865.8534999999683
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 2869.294500000018
+        }
+      ],
+      "persistence": {
+        "saveMs": 1776.4495999999926,
+        "reopenMs": 3744.909500000009,
+        "bytes": 208316,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "existing-project",
+      "sourceBytes": 3955,
+      "lines": 62,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 1978.172900000005,
+        "engineMs": 520,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 630,
+        "domNodes": 1466,
+        "svgNodes": 990,
+        "svgWidth": "1478",
+        "svgHeight": "884",
+        "status": "Source has problemsIssues (4)GanttPreview currentRender 520 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 123, Col 1Browser recoveryUpdate available"
+      },
+      "outline": {
+        "openMs": 218.40379999997094,
+        "searchMs": 30.274799999955576,
+        "entriesBefore": 42
+      },
+      "ok": false,
+      "failure": "expect(locator).toContainText(expected) failed\n\nLocator: locator('.statusbar')\nExpected substring: \"Preview current\"\nReceived string:    \"Source has problemsIssues (4)GanttRendering…Render 0 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Browser recoveryUpdate available\"\nTimeout: 65000ms\n\nCall log:\n  - Expect \"to.have.text\" with timeout 65000ms\n  - waiting for locator('.statusbar')\n    3 × locator resolved to <footer class=\"statusbar\">…</footer>\n      - unexpected value \"Source has problemsIssues (4)GanttRendering…Render 0 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Browser recoveryUpdate available\"\n",
+      "statusAtFailure": "unavailable"
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-50",
+      "sourceBytes": 5337,
+      "lines": 108,
+      "timings": [],
+      "errors": [],
+      "stage": "initial-load",
+      "ok": false,
+      "failure": "page.waitForFunction: Target page, context or browser has been closed",
+      "statusAtFailure": "unavailable"
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [],
+      "errors": [],
+      "stage": "startup",
+      "ok": false,
+      "failure": "locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Choose a diagram type' }).getByRole('button', { name: 'Gantt diagram', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-label=\"Gantt diagram\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n",
+      "statusAtFailure": "unavailable"
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "startup",
+      "ok": false,
+      "failure": "expect(locator).toContainText(expected) failed\n\nLocator: locator('.statusbar')\nExpected substring: \"Preview current\"\nReceived string:    \"Created a new Gantt diagramIssuesGanttRendering…Render 0 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Browser recoveryUpdate available\"\n\nCall log:\n  - Expect \"to.have.text\" with timeout 65000ms\n  - waiting for locator('.statusbar')\n    - locator resolved to <footer class=\"statusbar\">…</footer>\n    - unexpected value \"Created a new Gantt diagramIssuesGanttRendering…Render 0 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Browser recoveryUpdate available\"\n  - \n",
+      "statusAtFailure": "unavailable"
+    }
+  ]
+}

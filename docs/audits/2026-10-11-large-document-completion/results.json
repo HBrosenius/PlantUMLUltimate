@@ -1,0 +1,443 @@
+{
+  "startedAtUtc": "2026-10-11T19:58:30.211Z",
+  "origin": "http://127.0.0.1:4183",
+  "runs": 5,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\n\nRender 0 ms\n\nDiagram exceeds the preview size limit\n\nThis diagram is 2 260 × 9 140 pixels. The renderer allows up to 4 096 pixels in either dimension.\n\nThe visible preview is from an earlier successful render.\n\nYour source remains available to edit and save. Use the source editor or Outline, or the task table, to find and edit items. Reduce the diagram’s width or height, or split it into smaller diagrams, then render again.\n\njava.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\n\nChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.\n\nLn 1026, Col 10\nBrowser recovery",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 133.4429,
+        "searchMs": 23.30869999999959,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true
+      },
+      "survivalFailure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: 'Gantt task table', exact: true }).getByRole('button', { name: /^Show more tasks/ })\u001b[22m\n\u001b[2m    - locator resolved to <button>Show more tasks (100 of 500)</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    38 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-50",
+      "fileBytes": 18053,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 1828.6005000000005,
+        "engineMs": 638.3999999761581,
+        "mainThreadLongTasks": 2,
+        "mainThreadBlockedMs": 189,
+        "longestMainThreadTaskMs": 106,
+        "maxTimerDelayMs": 129.89999997615814,
+        "domNodes": 4211,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 81400000,
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 638 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 86.97230000000127,
+        "searchMs": 22.872999999999593,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1043.7891999999993
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 1576.045100000003
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 248.94190000000526
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 1125.9680999999982,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 196.9331999999995,
+        "reopenMs": 498.94480000000476,
+        "bytes": 54138,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61789,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 4309.6702000000005,
+        "engineMs": 682.2999999523163,
+        "mainThreadLongTasks": 19,
+        "mainThreadBlockedMs": 1926,
+        "longestMainThreadTaskMs": 225,
+        "maxTimerDelayMs": 370.59999990463257,
+        "domNodes": 8723,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 148000000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 682 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 247.81860000000597,
+        "searchMs": 38.533299999995506,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1326.3701
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 2083.6479000000036
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 476.3368999999948
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1631.1146999999983,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 465.0445000000036,
+        "reopenMs": 1733.586199999998,
+        "bytes": 186806,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "⚠ java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\nIssues\nGantt\nShowing last valid preview\n\nRender 0 ms\n\nDiagram exceeds the preview size limit\n\nThis diagram is 2,260 × 9,140 pixels. The renderer allows up to 4,096 pixels in either dimension.\n\nThe visible preview is from an earlier successful render.\n\nYour source remains available to edit and save. Use the source editor or Outline, or the task table, to find and edit items. Reduce the diagram’s width or height, or split it into smaller diagrams, then render again.\n\njava.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)\n\nChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.\n\nLn 1026, Col 10\nBrowser recovery",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 160.8680000000022,
+        "searchMs": 43.66049999999814,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true
+      },
+      "survivalFailure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: 'Gantt task table', exact: true }).getByRole('button', { name: /^Show more tasks/ })\u001b[22m\n\u001b[2m    - locator resolved to <button>Show more tasks (100 of 500)</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    39 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-50",
+      "fileBytes": 18053,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 2685.38440000001,
+        "engineMs": 964,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 136,
+        "domNodes": 4211,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 964 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 159.84799999999814,
+        "searchMs": 79.92609999999695,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1616.8188000000082
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 2235.7092999999877
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 405.1383999999962
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 1712.792100000006,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 377.3328000000038,
+        "reopenMs": 798.427199999991,
+        "bytes": 58042,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "firefox",
+      "browserVersion": "153.0",
+      "name": "document-200",
+      "fileBytes": 61789,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 6565.137399999992,
+        "engineMs": 910,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 514,
+        "domNodes": 8723,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 910 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 686.1722000000009,
+        "searchMs": 119.56080000000657,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2310.1147999999957
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3893.6323999999877
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1651.8302000000112
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2491.9824999999983,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 1225.3898000000045,
+        "reopenMs": 3387.026600000012,
+        "bytes": 207978,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-500",
+      "sourceBytes": 54305,
+      "lines": 1026,
+      "timings": [],
+      "errors": [],
+      "stage": "oversized-source-survival",
+      "ok": false,
+      "failure": "Renderer: java.lang.RuntimeException: Diagram too large for browser rendering: 2260x9140 (max 4096)",
+      "statusAtFailure": "✓ Valid\nIssues\nGantt\nShowing last valid preview\nLn 1026, Col 10\nBrowser recovery\nUpdate available",
+      "sizeLimitGuidance": true,
+      "outline": {
+        "openMs": 282.42399999999907,
+        "searchMs": 53.3637999999919,
+        "entriesBefore": 203
+      },
+      "table": {
+        "initiallyMountedRows": 100,
+        "undoRestoredProgress": true
+      },
+      "survivalFailure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('region', { name: 'Gantt task table', exact: true }).getByRole('button', { name: /^Show more tasks/ })\u001b[22m\n\u001b[2m    - locator resolved to <button>Show more tasks (100 of 500)</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    27 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div>…</div> from <footer class=\"statusbar\">…</footer> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n"
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-50",
+      "fileBytes": 18053,
+      "registeredEndpoints": 50,
+      "links": 24,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 8248.000100000005,
+        "engineMs": 1006,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 357,
+        "domNodes": 4212,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 50 with 50 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1006 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 308.59170000001905,
+        "searchMs": 59.65840000001481,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 48",
+          "wallMs": 1691.4092000000237
+        },
+        {
+          "name": "Diagram 49",
+          "wallMs": 2248.893400000001
+        },
+        {
+          "name": "Diagram 50",
+          "wallMs": 429.22649999998976
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 50",
+        "searchAndOpenMs": 1799.3244000000122,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 844.3937999999907,
+        "reopenMs": 1808.3495000000112,
+        "bytes": 57545,
+        "diagrams": 50,
+        "links": 24,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 250,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61789,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 32412.528099999967,
+        "engineMs": 997,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 5841,
+        "domNodes": 8724,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 997 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery currentUpdate available"
+      },
+      "outline": {
+        "openMs": 823.8574999999837,
+        "searchMs": 109.2780999999959,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 2521.0252999999793
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3271.1743000000133
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1235.4636999999639
+        }
+      ],
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2997.547599999991,
+        "clearRestoredAllMembers": true
+      },
+      "persistence": {
+        "saveMs": 1503.7229000000516,
+        "reopenMs": 13837.55780000001,
+        "bytes": 202805,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

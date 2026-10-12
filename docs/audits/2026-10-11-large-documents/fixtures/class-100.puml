@@ -1,0 +1,636 @@
+@startuml
+title Domain model
+left to right direction
+class Entity1 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity2 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity3 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity4 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity5 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity6 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity7 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity8 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity9 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity10 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity11 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity12 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity13 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity14 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity15 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity16 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity17 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity18 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity19 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity20 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity21 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity22 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity23 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity24 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity25 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity26 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity27 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity28 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity29 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity30 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity31 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity32 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity33 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity34 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity35 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity36 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity37 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity38 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity39 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity40 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity41 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity42 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity43 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity44 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity45 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity46 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity47 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity48 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity49 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity50 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity51 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity52 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity53 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity54 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity55 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity56 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity57 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity58 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity59 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity60 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity61 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity62 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity63 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity64 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity65 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity66 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity67 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity68 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity69 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity70 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity71 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity72 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity73 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity74 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity75 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity76 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity77 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity78 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity79 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity80 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity81 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity82 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity83 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity84 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity85 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity86 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity87 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity88 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity89 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity90 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity91 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity92 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity93 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity94 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity95 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity96 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity97 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity98 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity99 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity100 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+Entity1 --> Entity2 : uses
+Entity2 --> Entity3 : uses
+Entity3 --> Entity4 : uses
+Entity4 --> Entity5 : uses
+Entity5 --> Entity6 : uses
+Entity6 --> Entity7 : uses
+Entity7 --> Entity8 : uses
+Entity8 --> Entity9 : uses
+Entity9 --> Entity10 : uses
+Entity10 --> Entity11 : uses
+Entity11 --> Entity12 : uses
+Entity12 --> Entity13 : uses
+Entity13 --> Entity14 : uses
+Entity14 --> Entity15 : uses
+Entity15 --> Entity16 : uses
+Entity16 --> Entity17 : uses
+Entity17 --> Entity18 : uses
+Entity18 --> Entity19 : uses
+Entity19 --> Entity20 : uses
+Entity20 --> Entity21 : uses
+Entity21 --> Entity22 : uses
+Entity22 --> Entity23 : uses
+Entity23 --> Entity24 : uses
+Entity24 --> Entity25 : uses
+Entity25 --> Entity26 : uses
+Entity26 --> Entity27 : uses
+Entity27 --> Entity28 : uses
+Entity28 --> Entity29 : uses
+Entity29 --> Entity30 : uses
+Entity30 --> Entity31 : uses
+Entity31 --> Entity32 : uses
+Entity32 --> Entity33 : uses
+Entity33 --> Entity34 : uses
+Entity34 --> Entity35 : uses
+Entity35 --> Entity36 : uses
+Entity36 --> Entity37 : uses
+Entity37 --> Entity38 : uses
+Entity38 --> Entity39 : uses
+Entity39 --> Entity40 : uses
+Entity40 --> Entity41 : uses
+Entity41 --> Entity42 : uses
+Entity42 --> Entity43 : uses
+Entity43 --> Entity44 : uses
+Entity44 --> Entity45 : uses
+Entity45 --> Entity46 : uses
+Entity46 --> Entity47 : uses
+Entity47 --> Entity48 : uses
+Entity48 --> Entity49 : uses
+Entity49 --> Entity50 : uses
+Entity50 --> Entity51 : uses
+Entity51 --> Entity52 : uses
+Entity52 --> Entity53 : uses
+Entity53 --> Entity54 : uses
+Entity54 --> Entity55 : uses
+Entity55 --> Entity56 : uses
+Entity56 --> Entity57 : uses
+Entity57 --> Entity58 : uses
+Entity58 --> Entity59 : uses
+Entity59 --> Entity60 : uses
+Entity60 --> Entity61 : uses
+Entity61 --> Entity62 : uses
+Entity62 --> Entity63 : uses
+Entity63 --> Entity64 : uses
+Entity64 --> Entity65 : uses
+Entity65 --> Entity66 : uses
+Entity66 --> Entity67 : uses
+Entity67 --> Entity68 : uses
+Entity68 --> Entity69 : uses
+Entity69 --> Entity70 : uses
+Entity70 --> Entity71 : uses
+Entity71 --> Entity72 : uses
+Entity72 --> Entity73 : uses
+Entity73 --> Entity74 : uses
+Entity74 --> Entity75 : uses
+Entity75 --> Entity76 : uses
+Entity76 --> Entity77 : uses
+Entity77 --> Entity78 : uses
+Entity78 --> Entity79 : uses
+Entity79 --> Entity80 : uses
+Entity80 --> Entity81 : uses
+Entity81 --> Entity82 : uses
+Entity82 --> Entity83 : uses
+Entity83 --> Entity84 : uses
+Entity84 --> Entity85 : uses
+Entity85 --> Entity86 : uses
+Entity86 --> Entity87 : uses
+Entity87 --> Entity88 : uses
+Entity88 --> Entity89 : uses
+Entity89 --> Entity90 : uses
+Entity90 --> Entity91 : uses
+Entity91 --> Entity92 : uses
+Entity92 --> Entity93 : uses
+Entity93 --> Entity94 : uses
+Entity94 --> Entity95 : uses
+Entity95 --> Entity96 : uses
+Entity96 --> Entity97 : uses
+Entity97 --> Entity98 : uses
+Entity98 --> Entity99 : uses
+Entity99 --> Entity100 : uses
+Entity1 ..> Entity100 : observes
+Entity2 ..> Entity99 : observes
+Entity3 ..> Entity98 : observes
+Entity4 ..> Entity97 : observes
+Entity5 ..> Entity96 : observes
+Entity6 ..> Entity95 : observes
+Entity7 ..> Entity94 : observes
+Entity8 ..> Entity93 : observes
+Entity9 ..> Entity92 : observes
+Entity10 ..> Entity91 : observes
+Entity11 ..> Entity90 : observes
+Entity12 ..> Entity89 : observes
+Entity13 ..> Entity88 : observes
+Entity14 ..> Entity87 : observes
+Entity15 ..> Entity86 : observes
+Entity16 ..> Entity85 : observes
+Entity17 ..> Entity84 : observes
+Entity18 ..> Entity83 : observes
+Entity19 ..> Entity82 : observes
+Entity20 ..> Entity81 : observes
+Entity21 ..> Entity80 : observes
+Entity22 ..> Entity79 : observes
+Entity23 ..> Entity78 : observes
+Entity24 ..> Entity77 : observes
+Entity25 ..> Entity76 : observes
+Entity26 ..> Entity75 : observes
+Entity27 ..> Entity74 : observes
+Entity28 ..> Entity73 : observes
+Entity29 ..> Entity72 : observes
+Entity30 ..> Entity71 : observes
+Entity31 ..> Entity70 : observes
+Entity32 ..> Entity69 : observes
+Entity33 ..> Entity68 : observes
+@enduml

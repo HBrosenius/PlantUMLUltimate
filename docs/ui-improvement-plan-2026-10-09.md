@@ -1,5 +1,7 @@
 # UI improvement plan — low-hanging fruit and next features
 
+Status: source review consolidated into the [canonical implementation plan](ui-consolidated-implementation-plan-2026-10-09.md); A1–A33 implementations delivered with recorded scope/validation limits. See [current plan status](plan-status-2026-10-11.md). The original observations below are retained as evidence.
+
 Date: 2026-10-09
 Method: hands-on walkthrough of the dev build (`web-alt`, port 5185) at 1440×900 and 375×812 (phone width), dark theme. I covered the welcome dialog, the menus, the command palette, Help, Settings, Reports, the new-diagram chooser, the Gantt and Sequence editors (Code, Split and Diagram views), the Issues panel, Workload and Calendar. I then checked selected findings in the source.
 

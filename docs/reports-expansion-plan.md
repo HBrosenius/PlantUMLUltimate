@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: proposal for future implementation
+Status: recommended core implemented, plus Progress forecast; optional catalogue extensions remain deferred. Reconciled 2026-10-11; see [implementation notes](reports-implementation.md) and [current plan status](plan-status-2026-10-11.md). The original proposal below remains the design record.
 
 ## Direction
 

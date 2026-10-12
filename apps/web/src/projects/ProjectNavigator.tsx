@@ -1,5 +1,5 @@
 import type { ProjectElement, ProjectLink } from "@plantuml-studio/project-model";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DiagramKind } from "../model";
 import type { WbsGanttIssue } from "../wbs-gantt-health";
 import type { WbsGanttProjectLink } from "./wbs-gantt-project-links";
@@ -73,6 +73,18 @@ export function ProjectNavigator({
   const [renaming, setRenaming] = useState<{ id: string; name: string }>();
   const [review, setReview] = useState<ProjectChangeReview>();
   const [reviewing, setReviewing] = useState(false);
+  const [diagramQuery, setDiagramQuery] = useState("");
+  const visibleMembers = useMemo(() => {
+    const query = diagramQuery.trim().toLocaleLowerCase();
+    return project.members
+      .filter((member) => `${member.path} ${member.diagramKind ?? ""}`.toLocaleLowerCase().includes(query))
+      .slice()
+      .sort(
+        (a, b) =>
+          a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: "base" }) ||
+          a.documentId.localeCompare(b.documentId),
+      );
+  }, [project.members, diagramQuery]);
   const unlinkedWbsCount = wbsGanttMissing?.filter((item) => item.kind === "wbs").length ?? 0;
   const unlinkedGanttCount = wbsGanttMissing?.filter((item) => item.kind === "gantt").length ?? 0;
   return (
@@ -129,6 +141,22 @@ export function ProjectNavigator({
           </button>
         )}
       </header>
+      <section className="project-navigator-section" aria-label="Find a diagram">
+        <p>Choose a diagram in {project.manifest.name} to open it in the editor.</p>
+        <label>
+          Find diagrams by name or type
+          <input type="search" value={diagramQuery} onChange={(event) => setDiagramQuery(event.target.value)} />
+        </label>
+        <p aria-live="polite">
+          {visibleMembers.length} of {project.members.length} diagrams shown
+        </p>
+        {diagramQuery && (
+          <button type="button" onClick={() => setDiagramQuery("")}>
+            Clear diagram search
+          </button>
+        )}
+        {!visibleMembers.length && <p>No diagrams match this search.</p>}
+      </section>
       <section className="project-navigator-section" aria-label="Connected document overview">
         <h2>Connected document overview</h2>
         <button
@@ -154,7 +182,7 @@ export function ProjectNavigator({
           </p>
         )}
         <ul>
-          {project.members.map((member) => {
+          {visibleMembers.map((member) => {
             const ids = new Set(
               project.manifest.elements
                 .filter((element) => element.documentId === member.documentId)
@@ -274,7 +302,7 @@ export function ProjectNavigator({
           </form>
         )}
         <ul>
-          {project.members.map((member) => (
+          {visibleMembers.map((member) => (
             <li key={member.documentId}>
               <div>
                 <button type="button" disabled={member.state !== "available"} onClick={() => onOpen(member.documentId)}>

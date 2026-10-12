@@ -1,5 +1,7 @@
 # Delivery Scenario Lab: first slice
 
+Status review, 2026-10-11: first slice implemented, extended by A28 browser-local scenario persistence and reconciliation below. Portable/shared alternatives and branch ancestry remain deferred; see [current plan status](plan-status-2026-10-11.md).
+
 ## User promise
 
 Try a delivery-plan change without mutating the current plan, understand why the result changed, and promote the chosen scenario through a reviewable PlantUML patch.

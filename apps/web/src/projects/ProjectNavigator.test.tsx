@@ -23,6 +23,46 @@ const project: VirtualProject = {
 afterEach(cleanup);
 
 describe("ProjectNavigator", () => {
+  it("finds late members by name or type and opens the correct diagram without changing stored order", () => {
+    const members = Array.from({ length: 200 }, (_, index) => ({
+      documentId: `member-${200 - index}`,
+      path: `Diagram ${200 - index}`,
+      diagramKind: index === 0 ? ("class" as const) : ("gantt" as const),
+      state: "available" as const,
+      declarations: [],
+      linkCount: 0,
+    }));
+    const onOpen = vi.fn();
+    render(
+      <ProjectNavigator
+        project={{ ...project, members }}
+        onOpen={onOpen}
+        onAdd={vi.fn()}
+        onClose={vi.fn()}
+        onLinksChange={vi.fn()}
+        onElementsChange={vi.fn()}
+      />,
+    );
+    const overview = screen.getByRole("region", { name: "Connected document overview" });
+    expect(
+      within(overview)
+        .getAllByRole("button", { name: /^Inspect diagram/ })
+        .slice(0, 3)
+        .map((button) => button.textContent),
+    ).toEqual(["Diagram 1", "Diagram 2", "Diagram 3"]);
+    const search = screen.getByRole("searchbox", { name: "Find diagrams by name or type" });
+    fireEvent.change(search, { target: { value: "diagram 200" } });
+    expect(within(overview).getAllByRole("button", { name: /^Inspect diagram/ })).toHaveLength(1);
+    fireEvent.click(within(overview).getByRole("button", { name: "Inspect diagram Diagram 200" }));
+    expect(onOpen).toHaveBeenCalledWith("member-200");
+    fireEvent.change(search, { target: { value: "class" } });
+    expect(within(overview).getAllByRole("button", { name: /^Inspect diagram/ })).toHaveLength(1);
+    fireEvent.change(search, { target: { value: "no such diagram" } });
+    expect(screen.getByText("No diagrams match this search.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear diagram search" }));
+    expect(within(overview).getAllByRole("button", { name: /^Inspect diagram/ })).toHaveLength(200);
+    expect(members[0]?.path).toBe("Diagram 200");
+  });
   it("distinguishes local recovery from a saved file and explains storage failure", () => {
     const props = {
       project,

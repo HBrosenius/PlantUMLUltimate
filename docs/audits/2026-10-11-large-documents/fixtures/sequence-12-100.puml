@@ -1,0 +1,115 @@
+@startuml
+title Order fulfilment
+participant "Service 1" as S0
+participant "Service 2" as S1
+participant "Service 3" as S2
+participant "Service 4" as S3
+participant "Service 5" as S4
+participant "Service 6" as S5
+participant "Service 7" as S6
+participant "Service 8" as S7
+participant "Service 9" as S8
+participant "Service 10" as S9
+participant "Service 11" as S10
+participant "Service 12" as S11
+S0 -> S1: Process order step 1
+S1 -> S2: Process order step 2
+S2 -> S3: Process order step 3
+S3 -> S4: Process order step 4
+S4 -> S5: Process order step 5
+S5 -> S6: Process order step 6
+S6 -> S7: Process order step 7
+S7 -> S8: Process order step 8
+S8 -> S9: Process order step 9
+S9 -> S10: Process order step 10
+S10 -> S11: Process order step 11
+S11 -> S0: Process order step 12
+S0 -> S1: Process order step 13
+S1 -> S2: Process order step 14
+S2 -> S3: Process order step 15
+S3 -> S4: Process order step 16
+S4 -> S5: Process order step 17
+S5 -> S6: Process order step 18
+S6 -> S7: Process order step 19
+S7 -> S8: Process order step 20
+S8 -> S9: Process order step 21
+S9 -> S10: Process order step 22
+S10 -> S11: Process order step 23
+S11 -> S0: Process order step 24
+S0 -> S1: Process order step 25
+S1 -> S2: Process order step 26
+S2 -> S3: Process order step 27
+S3 -> S4: Process order step 28
+S4 -> S5: Process order step 29
+S5 -> S6: Process order step 30
+S6 -> S7: Process order step 31
+S7 -> S8: Process order step 32
+S8 -> S9: Process order step 33
+S9 -> S10: Process order step 34
+S10 -> S11: Process order step 35
+S11 -> S0: Process order step 36
+S0 -> S1: Process order step 37
+S1 -> S2: Process order step 38
+S2 -> S3: Process order step 39
+S3 -> S4: Process order step 40
+S4 -> S5: Process order step 41
+S5 -> S6: Process order step 42
+S6 -> S7: Process order step 43
+S7 -> S8: Process order step 44
+S8 -> S9: Process order step 45
+S9 -> S10: Process order step 46
+S10 -> S11: Process order step 47
+S11 -> S0: Process order step 48
+S0 -> S1: Process order step 49
+S1 -> S2: Process order step 50
+S2 -> S3: Process order step 51
+S3 -> S4: Process order step 52
+S4 -> S5: Process order step 53
+S5 -> S6: Process order step 54
+S6 -> S7: Process order step 55
+S7 -> S8: Process order step 56
+S8 -> S9: Process order step 57
+S9 -> S10: Process order step 58
+S10 -> S11: Process order step 59
+S11 -> S0: Process order step 60
+S0 -> S1: Process order step 61
+S1 -> S2: Process order step 62
+S2 -> S3: Process order step 63
+S3 -> S4: Process order step 64
+S4 -> S5: Process order step 65
+S5 -> S6: Process order step 66
+S6 -> S7: Process order step 67
+S7 -> S8: Process order step 68
+S8 -> S9: Process order step 69
+S9 -> S10: Process order step 70
+S10 -> S11: Process order step 71
+S11 -> S0: Process order step 72
+S0 -> S1: Process order step 73
+S1 -> S2: Process order step 74
+S2 -> S3: Process order step 75
+S3 -> S4: Process order step 76
+S4 -> S5: Process order step 77
+S5 -> S6: Process order step 78
+S6 -> S7: Process order step 79
+S7 -> S8: Process order step 80
+S8 -> S9: Process order step 81
+S9 -> S10: Process order step 82
+S10 -> S11: Process order step 83
+S11 -> S0: Process order step 84
+S0 -> S1: Process order step 85
+S1 -> S2: Process order step 86
+S2 -> S3: Process order step 87
+S3 -> S4: Process order step 88
+S4 -> S5: Process order step 89
+S5 -> S6: Process order step 90
+S6 -> S7: Process order step 91
+S7 -> S8: Process order step 92
+S8 -> S9: Process order step 93
+S9 -> S10: Process order step 94
+S10 -> S11: Process order step 95
+S11 -> S0: Process order step 96
+S0 -> S1: Process order step 97
+S1 -> S2: Process order step 98
+S2 -> S3: Process order step 99
+S3 -> S4: Process order step 100
+@enduml

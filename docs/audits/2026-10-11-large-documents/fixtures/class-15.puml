@@ -1,0 +1,98 @@
+@startuml
+title Domain model
+left to right direction
+class Entity1 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity2 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity3 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity4 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity5 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity6 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity7 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity8 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity9 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity10 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity11 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity12 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity13 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity14 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+class Entity15 {
+  +id: UUID
+  +status: String
+  +validate(): Boolean
+}
+Entity1 --> Entity2 : uses
+Entity2 --> Entity3 : uses
+Entity3 --> Entity4 : uses
+Entity4 --> Entity5 : uses
+Entity5 --> Entity6 : uses
+Entity6 --> Entity7 : uses
+Entity7 --> Entity8 : uses
+Entity8 --> Entity9 : uses
+Entity9 --> Entity10 : uses
+Entity10 --> Entity11 : uses
+Entity11 --> Entity12 : uses
+Entity12 --> Entity13 : uses
+Entity13 --> Entity14 : uses
+Entity14 --> Entity15 : uses
+Entity1 ..> Entity15 : observes
+Entity2 ..> Entity14 : observes
+Entity3 ..> Entity13 : observes
+Entity4 ..> Entity12 : observes
+Entity5 ..> Entity11 : observes
+@enduml
