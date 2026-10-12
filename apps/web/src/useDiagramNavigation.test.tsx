@@ -86,3 +86,14 @@ it("stops a zoom animation when a horizontal touchpad pan starts", async () => {
   expect(viewport.scrollTop).toBe(top);
   expect(viewport.classList.contains("diagram-wheel-zooming")).toBe(false);
 });
+
+it("pans horizontal line and page gestures instead of discarding them", () => {
+  const viewport = render(<Canvas />).getByTestId("viewport");
+  Object.defineProperty(viewport, "clientHeight", { value: 200 });
+  Object.defineProperty(viewport, "clientWidth", { value: 300 });
+  wheel(viewport, { deltaX: 3, deltaMode: 1 });
+  expect(viewport.scrollLeft).toBe(48);
+  wheel(viewport, { deltaX: 1, deltaMode: 2 });
+  expect(viewport.scrollLeft).toBe(348);
+  expect(viewport.querySelector("output")?.textContent).toBe("1");
+});

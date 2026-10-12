@@ -106,16 +106,16 @@ export function useDiagramNavigation(
     event.preventDefault();
     const now = performance.now();
     const previousGesture = gestureRef.current;
-    // Wheel events have no device identity. Fine pixel deltas and horizontal
-    // movement indicate scrolling; retain that choice through momentum bursts.
+    // Wheel events have no device identity. Horizontal movement in any unit
+    // and fine pixel deltas indicate scrolling; retain that choice through momentum bursts.
     const pan =
       !event.ctrlKey &&
       (event.shiftKey ||
+        event.deltaX !== 0 ||
         (event.deltaMode === 0 &&
-          (event.deltaX !== 0 ||
-            (previousGesture && now - previousGesture.at < 200
-              ? previousGesture.pan
-              : Math.abs(event.deltaY) < 80 || !Number.isInteger(event.deltaY)))));
+          (previousGesture && now - previousGesture.at < 200
+            ? previousGesture.pan
+            : Math.abs(event.deltaY) < 80 || !Number.isInteger(event.deltaY))));
     // Pinch is a separate gesture, not a mouse-wheel burst.
     gestureRef.current = event.ctrlKey ? undefined : { at: now, pan };
     if (pan) {
@@ -128,7 +128,8 @@ export function useDiagramNavigation(
         zoomChangeRef.current(wheel.current);
       }
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1;
-      viewport.scrollLeft += (event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX) * unit;
+      const horizontalUnit = event.deltaMode === 2 ? viewport.clientWidth : unit;
+      viewport.scrollLeft += (event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX) * horizontalUnit;
       viewport.scrollTop += (event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY) * unit;
       return;
     }

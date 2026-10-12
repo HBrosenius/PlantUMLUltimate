@@ -48,5 +48,24 @@ test("touchpad scrolling pans and pinch zooms without changing source or page zo
   await expect(zoom).not.toHaveText(beforeZoom!);
   await expect(viewport).not.toHaveClass(/diagram-wheel-zooming/);
   expect(await page.evaluate(() => window.visualViewport?.scale)).toBe(pageScale);
+  // Ensure horizontal overflow exists: a fitted diagram cannot scroll sideways.
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await expect
+    .poll(() => viewport.evaluate((element) => element.scrollWidth - element.clientWidth))
+    .toBeGreaterThan(50);
+  for (const deltaMode of [0, 1]) {
+    await viewport.evaluate((element) => {
+      element.scrollLeft = 0;
+    });
+    await viewport.evaluate((element, mode) => {
+      element.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaX: 30, deltaMode: mode }));
+    }, deltaMode);
+    await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await viewport.evaluate((element, mode) => {
+      element.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaX: -30, deltaMode: mode }));
+    }, deltaMode);
+    await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBe(0);
+  }
   expect(await readEditorSource(page)).toBe(text);
 });
