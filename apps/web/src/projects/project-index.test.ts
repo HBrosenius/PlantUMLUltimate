@@ -32,6 +32,22 @@ const manifest = JSON.stringify({
 });
 
 describe("virtual project index", () => {
+  it("counts all connections per diagram even when multiple endpoints belong to one member", async () => {
+    const expanded = JSON.parse(manifest);
+    expanded.elements.push({ ...expanded.elements[0], id: id(8) });
+    expanded.links.push({ id: id(9), kind: "represents", from: id(8), to: id(6) });
+    expanded.documents.push({ id: id(10), path: "unused.puml", format: "plantuml" });
+    const project = await indexVirtualProject(
+      JSON.stringify(expanded),
+      new Map([["sequence.puml", { state: "available" as const, source: "@startuml\nparticipant Checkout\n@enduml" }]]),
+    );
+    expect(project.members.map((member) => [member.path, member.linkCount])).toEqual([
+      ["sequence.puml", 2],
+      ["domain.puml", 2],
+      ["unused.puml", 0],
+    ]);
+  });
+
   it("indexes available sources without rendering and leaves absent members degraded", async () => {
     const project = await indexVirtualProject(
       manifest,

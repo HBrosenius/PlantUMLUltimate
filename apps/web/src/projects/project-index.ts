@@ -42,11 +42,15 @@ function throwIfCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Document indexing cancelled", "AbortError");
 }
 
-function linkCountFor(manifest: ProjectManifest, documentId: string): number {
-  const elementIds = new Set(
-    manifest.elements.filter((element) => element.documentId === documentId).map((element) => element.id),
-  );
-  return manifest.links.filter((link) => elementIds.has(link.from) || elementIds.has(link.to)).length;
+function linkCountsFor(manifest: ProjectManifest): ReadonlyMap<string, number> {
+  const documents = new Map(manifest.elements.map((element) => [element.id, element.documentId]));
+  const counts = new Map<string, number>();
+  for (const link of manifest.links) {
+    for (const documentId of new Set([documents.get(link.from), documents.get(link.to)])) {
+      if (documentId) counts.set(documentId, (counts.get(documentId) ?? 0) + 1);
+    }
+  }
+  return counts;
 }
 
 async function declaration(
@@ -101,6 +105,7 @@ export async function indexVirtualProject(
 ): Promise<VirtualProject> {
   throwIfCancelled(signal);
   const manifest = parseProjectManifestJson(manifestJson);
+  const linkCounts = linkCountsFor(manifest);
   const members = await Promise.all(
     manifest.documents.map(async (document): Promise<IndexedProjectMember> => {
       throwIfCancelled(signal);
@@ -112,7 +117,7 @@ export async function indexVirtualProject(
           state: input.state,
           ...(input.state === "unsupported" ? { reason: input.reason } : {}),
           declarations: [],
-          linkCount: linkCountFor(manifest, document.id),
+          linkCount: linkCounts.get(document.id) ?? 0,
         };
       const diagramKind = detectDiagramKind(input.source);
       if (!diagramKind)
@@ -123,7 +128,7 @@ export async function indexVirtualProject(
           reason: "Diagram type could not be identified",
           source: input.source,
           declarations: [],
-          linkCount: linkCountFor(manifest, document.id),
+          linkCount: linkCounts.get(document.id) ?? 0,
         };
       try {
         const declarations = await declarationsFor(input.source, diagramKind);
@@ -135,7 +140,7 @@ export async function indexVirtualProject(
           diagramKind,
           source: input.source,
           declarations,
-          linkCount: linkCountFor(manifest, document.id),
+          linkCount: linkCounts.get(document.id) ?? 0,
         };
       } catch (error) {
         return {
@@ -146,7 +151,7 @@ export async function indexVirtualProject(
           source: input.source,
           reason: error instanceof Error ? error.message : "Could not parse source",
           declarations: [],
-          linkCount: linkCountFor(manifest, document.id),
+          linkCount: linkCounts.get(document.id) ?? 0,
         };
       }
     }),
@@ -154,12 +159,18 @@ export async function indexVirtualProject(
   throwIfCancelled(signal);
   const byId = new Map(members.map((member) => [member.documentId, member]));
   const resolutions = new Map<string, ElementResolution>();
+  const sourceHashes = new Map<string, Promise<string>>();
   await Promise.all(
     manifest.elements.map(async (element) => {
       throwIfCancelled(signal);
       const member = byId.get(element.documentId);
       if (!member?.source || member.state !== "available") return;
-      const sourceHash = await sha256(encode.encode(member.source));
+      let pendingHash = sourceHashes.get(member.documentId);
+      if (!pendingHash) {
+        pendingHash = sha256(encode.encode(member.source));
+        sourceHashes.set(member.documentId, pendingHash);
+      }
+      const sourceHash = await pendingHash;
       throwIfCancelled(signal);
       resolutions.set(element.id, resolveElement(element, sourceHash, member.declarations));
     }),
