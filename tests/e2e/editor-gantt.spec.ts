@@ -943,6 +943,9 @@ test("edits, reviews, and applies a delivery scenario from the rendered preview"
   const scenario = dialog.getByLabel("Scenario preview");
   await expect(scenario.locator("svg")).toBeVisible({ timeout: 20_000 });
 
+  // The comparison toolbar can put the first task below the dialog's visible area.
+  // Scroll before measuring coordinates for real pointer dragging.
+  await scenario.locator('[data-task-id="a"] .bar').scrollIntoViewIfNeeded();
   const firstDate = await scenario.locator('[data-timeline-header="top"]').nth(0).boundingBox();
   const secondDate = await scenario.locator('[data-timeline-header="top"]').nth(1).boundingBox();
   const bar = await scenario.locator('[data-task-id="a"] .bar').boundingBox();
