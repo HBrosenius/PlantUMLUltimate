@@ -247,6 +247,7 @@ export function useDocumentFiles({
         resourceCapacities: decoded.document.settings.resourceCapacities,
         reportingHistory: decoded.document.settings.reportingHistory,
         progressForecast: decoded.document.settings.progressForecast,
+        deliveryScenarios: decoded.document.settings.deliveryScenarios ?? [],
         ...(mapped.baselineVersionId ? { baselineVersionId: mapped.baselineVersionId } : {}),
       });
       if (decoded.unlockedKey) rememberDocumentKey(id, decoded.unlockedKey);
@@ -593,6 +594,7 @@ export function useDocumentFiles({
             resourceCapacities: decoded.document.settings.resourceCapacities,
             reportingHistory: decoded.document.settings.reportingHistory,
             progressForecast: decoded.document.settings.progressForecast,
+            deliveryScenarios: decoded.document.settings.deliveryScenarios ?? [],
             dirty: false,
           });
           if (decoded.unlockedKey) rememberDocumentKey(documentId, decoded.unlockedKey);
@@ -697,6 +699,7 @@ export function useDocumentFiles({
           resourceCapacities: decoded.document.settings.resourceCapacities,
           reportingHistory: decoded.document.settings.reportingHistory,
           progressForecast: decoded.document.settings.progressForecast,
+          deliveryScenarios: decoded.document.settings.deliveryScenarios ?? [],
           dirty: false,
         });
         if (decoded.unlockedKey) rememberDocumentKey(documentSnapshot.id, decoded.unlockedKey);

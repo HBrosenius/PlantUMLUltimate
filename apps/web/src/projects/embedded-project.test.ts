@@ -42,6 +42,53 @@ const project = (): PortableProject => ({
 });
 
 describe("embedded project tabs", () => {
+  it("preserves saved scenarios without version history and detects scenario-only changes", async () => {
+    const input = project();
+    const member = input.diagrams[0]!;
+    const scenario = {
+      id: "scenario-1",
+      name: "Buffer",
+      assumptions: "Integration time",
+      baseSource: "@startgantt\n[Build] lasts 3 days\n@endgantt",
+      source: "@startgantt\n[Build] lasts 5 days\n@endgantt",
+      capacities: { Alice: 80 },
+      updatedAt: "2026-10-12T12:00:00.000Z",
+    };
+    const tab: DocumentSnapshot = {
+      id: "tab-1",
+      historyId: "history-1",
+      fileName: "Plan",
+      diagramKind: "gantt",
+      source: member.document.current.source,
+      zoom: 1,
+      dirty: true,
+      cursor: { line: 1, column: 1 },
+      deliveryScenarios: [scenario],
+    };
+    const mapping = new Map([[member.id, tab.id]]);
+    const snapshot = await snapshotEmbeddedProject(input, mapping, [tab], undefined, async () => []);
+    expect(projectContentEqual(input, snapshot)).toBe(false);
+    const decoded = await decodeProject((await encodeProject(snapshot)).bytes);
+    expect(decoded.project.diagrams[0]!.document.settings.deliveryScenarios).toEqual([scenario]);
+    const created: Array<Partial<DocumentSnapshot>> = [];
+    openEmbeddedMember(
+      decoded.project,
+      member.id,
+      {
+        documents: [],
+        addDocument(value) {
+          created.push(value!);
+          return "new-tab";
+        },
+        activateDocument() {},
+      },
+      new Map(),
+    );
+    expect(created[0]!.deliveryScenarios).toEqual([scenario]);
+    const removed = projectWithOpenTabSources(snapshot, mapping, [{ ...tab, deliveryScenarios: [] }]);
+    expect(removed.diagrams[0]!.document.settings.deliveryScenarios).toEqual([]);
+    expect(projectContentEqual(snapshot, removed)).toBe(false);
+  });
   it("snapshots edited Gantt source and WBS links into the same project", async () => {
     const input = project();
     const wbsId = "55555555-5555-4555-8555-555555555555";

@@ -8,6 +8,25 @@ import {
 } from "./workspace-backup";
 
 describe("workspace backups", () => {
+  it("includes saved scenarios and rejects malformed scenario data on restore", () => {
+    const deliveryScenarios = [
+      {
+        id: "scenario-1",
+        name: "Buffer",
+        assumptions: "Integration time",
+        baseSource: "@startgantt\n[Build] lasts 3 days\n@endgantt",
+        source: "@startgantt\n[Build] lasts 5 days\n@endgantt",
+        capacities: { Alice: 80 },
+        updatedAt: "2026-10-12T12:00:00.000Z",
+      },
+    ];
+    const session = { ...DEFAULT_SESSION, documents: [{ ...DEFAULT_SESSION.documents[0]!, deliveryScenarios }] };
+    const text = serializeWorkspaceBackup(session);
+    expect(parseWorkspaceBackup(text).documents[0]!.deliveryScenarios).toEqual(deliveryScenarios);
+    const invalid = JSON.parse(text);
+    invalid.session.documents[0].deliveryScenarios[0].capacities.Alice = -1;
+    expect(() => parseWorkspaceBackup(JSON.stringify(invalid))).toThrow("scenario resource capacity");
+  });
   it("round-trips every open document and shared setting", () => {
     const session = {
       ...DEFAULT_SESSION,

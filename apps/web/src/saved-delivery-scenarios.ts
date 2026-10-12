@@ -1,5 +1,7 @@
 import type { ResourceCapacity } from "./ResourceWorkloadPanel";
 import { diagnosticsForDiagram } from "./diagram-diagnostics";
+import { validateDeliveryScenarios, type PortableDeliveryScenario } from "@plantuml-studio/document-format";
+import type { WorkspaceSession } from "./workspace-storage";
 
 export const SAVED_SCENARIOS_KEY = "plantuml-studio.delivery-scenarios.v1";
 export interface SavedDeliveryScenario {
@@ -98,4 +100,47 @@ export function saveDeliveryScenario(
 export function deleteDeliveryScenario(id: string, documentId: string): void {
   const entries = loadSavedScenarios();
   write(entries.filter((item) => item.id !== id || item.documentId !== documentId));
+}
+
+export function portableScenario({
+  documentId: _documentId,
+  ...scenario
+}: SavedDeliveryScenario): PortableDeliveryScenario {
+  return scenario;
+}
+
+export function saveDocumentScenario(
+  entries: SavedDeliveryScenario[],
+  value: Omit<SavedDeliveryScenario, "id" | "updatedAt">,
+  id?: string,
+): { saved: SavedDeliveryScenario; entries: SavedDeliveryScenario[] } {
+  if (id && !entries.some((entry) => entry.id === id && entry.documentId === value.documentId))
+    throw new Error("This saved scenario is no longer available. Save a new scenario instead.");
+  const saved = checked({ ...value, id: id ?? crypto.randomUUID(), updatedAt: new Date().toISOString() });
+  const next = [...entries.filter((entry) => entry.id !== saved.id), saved];
+  validateDeliveryScenarios(next.map(portableScenario));
+  return { saved, entries: next };
+}
+
+/** Keep the old library intact as a fallback; an explicit empty list prevents reimport after deletion. */
+export function migrateSavedScenarios(session: WorkspaceSession): WorkspaceSession {
+  if (session.documents.every((document) => document.deliveryScenarios !== undefined)) return session;
+  let legacy: SavedDeliveryScenario[];
+  try {
+    legacy = loadSavedScenarios();
+  } catch {
+    // Leave unreadable legacy data in place rather than blocking workspace recovery.
+    return session;
+  }
+  if (!legacy.length) return session;
+  return {
+    ...session,
+    documents: session.documents.map((document) => {
+      if (document.deliveryScenarios !== undefined) return document;
+      const deliveryScenarios = legacy.filter((entry) => entry.documentId === document.historyId).map(portableScenario);
+      return deliveryScenarios.length
+        ? { ...document, deliveryScenarios, dirty: true, revision: (document.revision ?? 0) + 1 }
+        : document;
+    }),
+  };
 }

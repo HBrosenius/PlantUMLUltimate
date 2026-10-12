@@ -143,6 +143,38 @@ it("saves and reopens a named scenario with assumptions without mutating the cur
   expect((screen.getByLabelText("Scenario duration") as HTMLInputElement).value).toBe("5");
   expect(screen.getByText(/project duration change/).textContent).toBe("+2 days project duration change");
 });
+
+it("sends portable scenario saves and deletions to the owning document", () => {
+  const onScenariosChange = vi.fn();
+  const onApply = vi.fn(() => true);
+  const props = {
+    currentSource: source,
+    capacities: { Alice: 80 },
+    documentId: "local-history",
+    onApply,
+    onClose: vi.fn(),
+    onScenariosChange,
+  };
+  const view = render(<DeliveryScenarioDialog {...props} scenarios={[]} />);
+  fireEvent.change(screen.getByLabelText("Scenario name"), { target: { value: "Portable alternative" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save scenario" }));
+  const entries = onScenariosChange.mock.calls[0]![0];
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toMatchObject({
+    name: "Portable alternative",
+    baseSource: source,
+    source,
+    capacities: { Alice: 80 },
+  });
+  expect(entries[0]).not.toHaveProperty("documentId");
+  expect(onApply).not.toHaveBeenCalled();
+  expect(screen.getByRole("status").textContent).toContain("Save the document to update its file");
+  view.rerender(<DeliveryScenarioDialog {...props} scenarios={entries} />);
+  fireEvent.click(screen.getByRole("button", { name: "Delete saved scenario" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm delete scenario" }));
+  expect(onScenariosChange).toHaveBeenLastCalledWith([]);
+  expect(localStorage.getItem("plantuml-studio.delivery-scenarios.v1")).toBeNull();
+});
 it("blocks stale apply, reconciles nonoverlapping current edits and requires a new review", () => {
   const onApply = vi.fn(() => true);
   const props = { currentSource: source, capacities: {}, documentId: "doc-a", onApply, onClose: vi.fn() };

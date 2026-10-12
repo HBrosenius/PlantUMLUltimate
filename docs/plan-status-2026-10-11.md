@@ -33,7 +33,7 @@ Reviewed against `b7f73b7`. This is a source and test reconciliation, not a new 
 ### Deliberately deferred or narrowed scope
 
 - **Reports:** weekly digest, dedicated lookahead/data-quality templates, dependency handoffs, WBS/scenario reports, portfolio, saved packs, scheduled delivery, cost and response tracking remain optional extensions. Task equivalents are implemented; duration weighting is not. Milestone outlook does not itself include forecast dates; Progress forecast is a separate report.
-- **Scenarios:** alternatives are browser-local, bounded and not embedded in `.pumlu`, backed up with documents or shared. Branch ancestry and simultaneous multi-alternative comparisons remain deferred.
+- **Scenarios (updated 2026-10-12):** bounded alternatives are now embedded in standalone and multi-diagram `.pumlu` files and workspace backups, with legacy browser-local migration. Live sharing, branch ancestry and simultaneous multi-alternative comparisons remain deferred. See the [portable scenario follow-up](delivery-scenario-lab-plan.md#portable-scenario-follow-up--2026-10-12).
 - **Review:** A31 is single-document review; multi-file acceptance/global semantic identity remain deferred. A32 provides personal browser-local anchored notes; shared comments/review links are a separate extension.
 - **UI proposals:** delivery records resolve competing proposals and intentionally narrow some requests. For example, A22 keeps dependencies/resources/notes in task-specific flows. Do not reopen rejected alternatives as missing features.
 

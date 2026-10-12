@@ -337,7 +337,9 @@ Open **Diagram outline** from the command palette to search or filter diagram el
 
 ## Delivery Scenario Lab and Jira
 
-For a Gantt diagram, **File → Delivery Scenario Lab** lets you adjust a candidate schedule and compare it with the current one. It shows task and dependency changes, milestone movement, critical-path effects, and resource conflicts. Apply a reviewed source patch when the scenario is ready.
+For a Gantt diagram, **Plan → What-if scenario…** lets you adjust a candidate schedule and compare it with the current one. It shows task and dependency changes, milestone movement, critical-path effects, and resource conflicts. Apply a reviewed source patch when the scenario is ready.
+
+Named scenarios, assumption notes, captured base plans, and resource capacities are included when you save the diagram or its containing document as a `.pumlu` file. Saving, updating, or deleting a scenario marks the document as unsaved; save the document to write those changes to its file. Reopened scenarios still detect changes to the current plan and offer reconciliation before applying. Existing browser-local scenarios for recovered diagrams are migrated into their documents automatically.
 
 Use **File → Jira** to connect a Gantt diagram to a Jira Cloud site, import issues selected by JQL, and review mapped fields and conflicts before updating the diagram. Later changes can be compared with Jira and, if you choose, published back. Jira authorization uses the integration service; ordinary local diagram editing does not require a Jira connection.
 

@@ -75,9 +75,21 @@ export interface PortableCurrentDocument {
 }
 
 export interface PortableDocumentSettings {
+  deliveryScenarios?: PortableDeliveryScenario[];
   reportingHistory?: ReportingObservation[];
   resourceCapacities: Record<string, number>;
   progressForecast?: { enabled: boolean; remainingDays: Record<string, number>; asOf?: string; timeZone?: string };
+}
+
+/** Named alternatives belong to the diagram; browser-local document IDs are not portable. */
+export interface PortableDeliveryScenario {
+  id: string;
+  name: string;
+  assumptions: string;
+  baseSource: string;
+  source: string;
+  capacities: Record<string, number>;
+  updatedAt: string;
 }
 
 /** Explicit, pinned observations. Separate from undo-history retention, inside encrypted payloads. */

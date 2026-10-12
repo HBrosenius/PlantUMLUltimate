@@ -19,6 +19,8 @@ import {
   deleteDeliveryScenario,
   loadSavedScenarios,
   saveDeliveryScenario,
+  saveDocumentScenario,
+  portableScenario,
   validateScenarioSource,
   type SavedDeliveryScenario,
 } from "./saved-delivery-scenarios";
@@ -170,6 +172,8 @@ export function DeliveryScenarioDialog({
   capacities,
   showResourceOverAllocationWarnings = true,
   documentId,
+  scenarios,
+  onScenariosChange,
   onApply,
   onClose,
 }: {
@@ -177,6 +181,8 @@ export function DeliveryScenarioDialog({
   capacities: ResourceCapacity;
   showResourceOverAllocationWarnings?: boolean;
   documentId?: string;
+  scenarios?: import("@plantuml-studio/document-format").PortableDeliveryScenario[] | undefined;
+  onScenariosChange?(scenarios: import("@plantuml-studio/document-format").PortableDeliveryScenario[]): void;
   onApply(source: string, expectedBase: string): boolean;
   onClose(): void;
 }) {
@@ -197,12 +203,16 @@ export function DeliveryScenarioDialog({
   const stale = baseSource !== currentSource || capacityRevision(baseCapacities) !== capacityRevision(capacities);
   const refreshSaved = useCallback(() => {
     try {
-      setEntries(loadSavedScenarios().filter((item) => item.documentId === documentId));
+      setEntries(
+        onScenariosChange
+          ? (scenarios ?? []).map((item) => ({ ...item, documentId: documentId ?? "" }))
+          : loadSavedScenarios().filter((item) => item.documentId === documentId),
+      );
       setStorageError("");
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : "Could not read saved scenarios.");
     }
-  }, [documentId]);
+  }, [documentId, scenarios, onScenariosChange]);
   useEffect(() => {
     refreshSaved();
   }, [refreshSaved]);
@@ -330,15 +340,22 @@ export function DeliveryScenarioDialog({
   const save = (copy = false) => {
     if (!documentId) return;
     try {
-      const entry = saveDeliveryScenario(
-        { documentId, name, assumptions, baseSource, source: scenarioSource, capacities: baseCapacities },
-        copy ? undefined : saved?.id,
-      );
+      const value = { documentId, name, assumptions, baseSource, source: scenarioSource, capacities: baseCapacities };
+      const id = copy ? undefined : saved?.id;
+      const result = onScenariosChange ? saveDocumentScenario(entries, value, id) : undefined;
+      const entry = result?.saved ?? saveDeliveryScenario(value, id);
+      if (result) {
+        onScenariosChange?.(result.entries.map(portableScenario));
+        setEntries(result.entries);
+      } else refreshSaved();
       setSaved(entry);
       setName(entry.name);
       setSelectedSavedId(entry.id);
-      refreshSaved();
-      setStorageMessage(`Saved “${entry.name}” in this browser.`);
+      setStorageMessage(
+        onScenariosChange
+          ? `Saved “${entry.name}” in this document. Save the document to update its file.`
+          : `Saved “${entry.name}” in this browser.`,
+      );
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : "Could not save scenario.");
     }
@@ -415,8 +432,9 @@ export function DeliveryScenarioDialog({
           <details className="scenario-library" open={view === "edit"}>
             <summary>Saved scenarios{saved ? ` · ${saved.name}` : ""}</summary>
             <p>
-              Saved locally in this browser for this diagram. Scenarios are not included in saved files or shared with
-              collaborators.
+              {onScenariosChange
+                ? "Saved scenarios are included when you save this diagram or its containing document as a .pumlu file."
+                : "Saved locally in this browser for this diagram."}
             </p>
             <div className="scenario-library-controls">
               <label>
@@ -488,17 +506,24 @@ export function DeliveryScenarioDialog({
             {storageMessage && <p role="status">{storageMessage}</p>}
             {deleteRequested && (
               <div role="alert">
-                <p>Delete “{saved?.name}” from this browser? The current working scenario will remain open.</p>
+                <p>
+                  Delete “{saved?.name}” from {onScenariosChange ? "this document" : "this browser"}? The current
+                  working scenario will remain open.
+                </p>
                 <button onClick={() => setDeleteRequested(false)}>Keep saved scenario</button>
                 <button
                   onClick={() => {
                     if (!saved) return;
                     try {
-                      deleteDeliveryScenario(saved.id, saved.documentId);
+                      if (onScenariosChange) {
+                        const next = entries.filter((entry) => entry.id !== saved.id);
+                        onScenariosChange(next.map(portableScenario));
+                        setEntries(next);
+                      } else deleteDeliveryScenario(saved.id, saved.documentId);
                       setSaved(undefined);
                       setSelectedSavedId("");
                       setDeleteRequested(false);
-                      refreshSaved();
+                      if (!onScenariosChange) refreshSaved();
                     } catch (error) {
                       setStorageError(error instanceof Error ? error.message : "Could not delete scenario.");
                     }

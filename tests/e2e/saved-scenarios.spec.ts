@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { decodeDocument, decodeProject } from "@plantuml-studio/document-format";
 import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 const source = `@startgantt
 Project starts 2026-10-01
@@ -29,6 +30,117 @@ async function reopen(page: Page) {
   await dialog.getByLabel("Saved scenario", { exact: true }).selectOption({ label: "Integration buffer" });
   await dialog.getByRole("button", { name: "Open saved scenario", exact: true }).click();
   return dialog;
+}
+
+async function installScenarioFile(page: Page, initial: number[] = []) {
+  await page.evaluate((initial) => {
+    let bytes = Uint8Array.from(initial);
+    const handle = {
+      name: "scenarios.pumlu",
+      getFile: async () => new File([bytes], "scenarios.pumlu"),
+      createWritable: async () => ({
+        write: async (data: Uint8Array) => {
+          bytes = Uint8Array.from(data);
+        },
+        close: async () => {
+          Object.assign(window, { scenarioFileBytes: [...bytes] });
+        },
+      }),
+    };
+    Object.assign(window, {
+      showSaveFilePicker: async () => handle,
+      showOpenFilePicker: async () => [handle],
+    });
+  }, initial);
+}
+
+for (const multiDiagram of [false, true]) {
+  test(`carries scenarios into a clean browser through a ${multiDiagram ? "multi-diagram" : "standalone"} file`, async ({
+    page,
+    browser,
+  }) => {
+    await prepareEditor(page);
+    await installScenarioFile(page);
+    if (multiDiagram) {
+      await page.getByRole("button", { name: "File", exact: true }).click();
+      await page.getByRole("menuitem", { name: "New", exact: true }).click();
+      await page.getByRole("menu", { name: "New" }).getByRole("menuitem", { name: "Document…" }).click();
+      await page.getByRole("dialog", { name: "New document" }).getByRole("button", { name: "Create document" }).click();
+      const navigator = page.getByRole("complementary", { name: "Document navigator" });
+      for (const name of ["Other schedule", "Delivery plan"]) {
+        await navigator.getByRole("button", { name: "Add diagram" }).click();
+        await navigator.getByRole("combobox", { name: "Diagram type" }).selectOption("gantt");
+        await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
+        await navigator.getByRole("button", { name: "Add to document" }).click();
+      }
+    }
+    await fillSource(page, source);
+    await saveAlternative(page);
+    // A later current plan must not replace the scenario's captured base in the file.
+    const current = source.replace("3 days", "4 days");
+    await fillSource(page, current);
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Save", exact: true }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { scenarioFileBytes?: number[] }).scenarioFileBytes?.length ?? 0),
+      )
+      .toBeGreaterThan(8);
+    const bytes = await page.evaluate(() => (window as unknown as { scenarioFileBytes: number[] }).scenarioFileBytes);
+    const context = await browser.newContext({ baseURL: new URL(page.url()).origin });
+    try {
+      const fresh = await context.newPage();
+      await prepareEditor(fresh);
+      await installScenarioFile(fresh, bytes);
+      expect(await fresh.evaluate(() => localStorage.getItem("plantuml-studio.delivery-scenarios.v1"))).toBeNull();
+      await fresh.getByRole("button", { name: "File", exact: true }).click();
+      await fresh.getByRole("menuitem", { name: "Open", exact: true }).click();
+      await fresh
+        .getByRole("menu", { name: "Open" })
+        .getByRole("menuitem", { name: multiDiagram ? "Document…" : "Diagram…", exact: true })
+        .click();
+      if (multiDiagram)
+        await fresh
+          .getByRole("complementary", { name: "Document navigator" })
+          .getByRole("button", { name: /^Delivery plan gantt/ })
+          .click();
+      await expect.poll(() => readEditorSource(fresh)).toBe(current);
+      const dialog = await reopen(fresh);
+      await expect(dialog.getByLabel("Scenario duration", { exact: true })).toHaveValue("5");
+      await expect(dialog.getByLabel("Scenario assumptions", { exact: true })).toHaveValue(
+        "Allow two extra days for integration",
+      );
+      await expect(dialog.getByLabel("Scenario impact")).toContainText("+2 days");
+      await dialog.getByRole("button", { name: "Review and apply…", exact: true }).click();
+      await expect(dialog.getByRole("button", { name: "Apply scenario", exact: true })).toBeDisabled();
+      await dialog.getByRole("button", { name: "Edit scenario", exact: true }).click();
+      await dialog.getByRole("button", { name: "Delete saved scenario", exact: true }).click();
+      await dialog.getByRole("button", { name: "Confirm delete scenario", exact: true }).click();
+      await expect(
+        dialog.getByLabel("Saved scenario", { exact: true }).getByRole("option", { name: "Integration buffer" }),
+      ).toHaveCount(0);
+      await dialog.getByRole("button", { name: "Close", exact: true }).click();
+      await dialog.getByRole("button", { name: "Discard changes", exact: true }).click();
+      if (multiDiagram) await expect(fresh.locator(".project-save-status")).toHaveText("Unsaved changes");
+      await fresh.getByRole("button", { name: "File", exact: true }).click();
+      await fresh.getByRole("menuitem", { name: "Save", exact: true }).click();
+      await expect
+        .poll(() =>
+          fresh.evaluate(() => (window as unknown as { scenarioFileBytes?: number[] }).scenarioFileBytes?.length ?? 0),
+        )
+        .toBeGreaterThan(8);
+      const removedBytes = Uint8Array.from(
+        await fresh.evaluate(() => (window as unknown as { scenarioFileBytes: number[] }).scenarioFileBytes),
+      );
+      const savedDocument = multiDiagram
+        ? (await decodeProject(removedBytes)).project.diagrams.find((diagram) => diagram.name === "Delivery plan")!
+            .document
+        : (await decodeDocument(removedBytes)).document;
+      expect(savedDocument.settings.deliveryScenarios).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
 }
 test("saves and reopens after reload, compares the base and applies with one undo", async ({ page }) => {
   await prepareEditor(page);
@@ -99,7 +211,7 @@ test("requires an explicit conflict choice and allows saved alternatives to be d
   await dialog.getByRole("button", { name: "Discard changes", exact: true }).click();
   expect(await readEditorSource(page)).toBe(current);
 });
-test("keeps phone save errors actionable and does not discard unsaved changes", async ({ page }) => {
+test("keeps phone drafts editable and saves scenarios in the document", async ({ page }) => {
   await prepareEditor(page);
   await fillSource(page, source);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -112,13 +224,13 @@ test("keeps phone save errors actionable and does not discard unsaved changes", 
       return original.call(this, key, value);
     };
   });
-  await dialog.getByRole("button", { name: "Save scenario", exact: true }).click();
-  await expect(dialog.getByRole("alert")).toContainText("could not save");
-  await dialog.getByRole("alert").scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "test-results/a28-scenario-phone.png" });
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(dialog.getByText("Discard this scenario?", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(dialog.getByLabel("Scenario name", { exact: true })).toHaveValue("Phone draft");
+  await dialog.getByRole("button", { name: "Save scenario", exact: true }).click();
+  await expect(dialog.getByRole("status")).toContainText("in this document");
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(dialog).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem("plantuml-studio.delivery-scenarios.v1"))).toBeNull();
 });

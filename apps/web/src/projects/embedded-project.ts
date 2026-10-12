@@ -73,6 +73,7 @@ export function openEmbeddedMember(
     resourceCapacities: member.document.settings.resourceCapacities,
     reportingHistory: member.document.settings.reportingHistory,
     progressForecast: member.document.settings.progressForecast,
+    deliveryScenarios: member.document.settings.deliveryScenarios ?? [],
     ...(baselineVersionId ? { baselineVersionId } : {}),
   });
   knownTabs.set(memberId, tabId);
@@ -103,6 +104,7 @@ export function projectWithOpenTabSources(
           ...member.document.settings,
           resourceCapacities: tab.resourceCapacities ?? {},
           ...(tab.progressForecast ? { progressForecast: tab.progressForecast } : {}),
+          ...(tab.deliveryScenarios ? { deliveryScenarios: tab.deliveryScenarios } : {}),
         }
       : member.document.settings;
     const historyPolicy = tab
@@ -162,7 +164,9 @@ export function projectContentEqual(a: PortableProject, b: PortableProject): boo
       JSON.stringify(diagram.document.settings.progressForecast) ===
         JSON.stringify(other.document.settings.progressForecast) &&
       JSON.stringify(diagram.document.settings.reportingHistory) ===
-        JSON.stringify(other.document.settings.reportingHistory)
+        JSON.stringify(other.document.settings.reportingHistory) &&
+      JSON.stringify(diagram.document.settings.deliveryScenarios ?? []) ===
+        JSON.stringify(other.document.settings.deliveryScenarios ?? [])
     );
   });
 }
@@ -212,6 +216,7 @@ export async function snapshotEmbeddedProject(
             settings: {
               resourceCapacities: tab.resourceCapacities ?? {},
               ...(tab.progressForecast ? { progressForecast: tab.progressForecast } : {}),
+              ...(tab.deliveryScenarios ? { deliveryScenarios: tab.deliveryScenarios } : {}),
             },
             historyPolicy: {
               maxVersions: tab.historyMaxVersions ?? member.document.historyPolicy.maxVersions,

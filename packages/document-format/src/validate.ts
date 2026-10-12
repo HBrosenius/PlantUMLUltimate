@@ -4,6 +4,7 @@ import {
   type ContentRecord,
   type PortableDiagramKind,
   type PortableDocument,
+  type PortableDeliveryScenario,
   type PortableProject,
   type PortableProjectElement,
   type PortableProjectElementKind,
@@ -40,6 +41,34 @@ const PROJECT_ELEMENT_KINDS = new Set<PortableProjectElementKind>([
   "wbs-node",
 ]);
 const PROJECT_LINK_KINDS = new Set<PortableProjectLinkKind>(["represents", "implements", "relates"]);
+
+export function validateDeliveryScenarios(value: unknown): asserts value is PortableDeliveryScenario[] {
+  if (!Array.isArray(value)) invalid("deliveryScenarios must be an array");
+  if (value.length > 20) limit("Keep at most 20 saved scenarios per diagram");
+  if (UTF8.encode(JSON.stringify(value)).byteLength > 2_000_000) limit("Saved scenarios exceed the 2 MB limit");
+  const ids = new Set<string>();
+  for (const entry of value) {
+    const item = record(entry, "saved scenario");
+    exactKeys(item, ["id", "name", "assumptions", "baseSource", "source", "capacities", "updatedAt"], "saved scenario");
+    const id = string(item.id, "scenario.id", DOCUMENT_LIMITS.maxIdentifierCharacters);
+    if (!id || ids.has(id)) invalid("Invalid or duplicate saved scenario ID");
+    ids.add(id);
+    if (!string(item.name, "scenario.name", 100).trim()) invalid("Scenario name cannot be empty");
+    string(item.assumptions, "scenario.assumptions", 2000);
+    timestamp(item.updatedAt, "scenario.updatedAt");
+    for (const key of ["baseSource", "source"] as const) {
+      const source = string(item[key], `scenario.${key}`, 500_000);
+      if (source.split("\n").length > 5000) limit("Scenario source exceeds 5,000 lines");
+      if (!/^\s*@startgantt\b/m.test(source) || !/^\s*@endgantt\b/m.test(source))
+        invalid("A scenario must contain a complete Gantt diagram");
+    }
+    const capacities = record(item.capacities, "scenario.capacities");
+    for (const [name, capacity] of Object.entries(capacities)) {
+      if (!name || name === "__proto__" || typeof capacity !== "number" || !Number.isFinite(capacity) || capacity < 0)
+        invalid("Invalid scenario resource capacity");
+    }
+  }
+}
 
 function invalid(message: string): never {
   throw new DocumentFormatError("invalid-file", message);
@@ -204,7 +233,8 @@ export function validateDocument(value: unknown): PortableDocument {
       : identifier(current.baselineVersionId, "current.baselineVersionId");
 
   const settings = record(document.settings, "settings");
-  exactKeys(settings, ["resourceCapacities", "progressForecast", "reportingHistory"], "settings");
+  exactKeys(settings, ["resourceCapacities", "progressForecast", "reportingHistory", "deliveryScenarios"], "settings");
+  if (settings.deliveryScenarios !== undefined) validateDeliveryScenarios(settings.deliveryScenarios);
   if (settings.reportingHistory !== undefined) {
     if (!Array.isArray(settings.reportingHistory)) invalid("reportingHistory must be an array");
     if (settings.reportingHistory.length > 100) limit("Reporting history is limited to 100 pinned observations");
@@ -388,6 +418,7 @@ export function validateProject(value: unknown): PortableProject {
       invalid(`diagrams[${index}].name must not be empty`);
     const document = validateDocument(item.document);
     expandedBytes += UTF8.encode(document.current.source).byteLength;
+    expandedBytes += UTF8.encode(JSON.stringify(document.settings.deliveryScenarios ?? [])).byteLength;
     expandedBytes += document.contents.reduce((total, content) => total + content.byteLength, 0);
     let wbsGantt: PortableProject["diagrams"][number]["wbsGantt"];
     if (item.wbsGantt !== undefined) {

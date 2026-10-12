@@ -5,7 +5,11 @@ import {
   loadSavedScenarios,
   saveDeliveryScenario,
   SAVED_SCENARIOS_KEY,
+  migrateSavedScenarios,
+  saveDocumentScenario,
+  portableScenario,
 } from "./saved-delivery-scenarios";
+import { DEFAULT_SESSION } from "./workspace-storage";
 const source = "@startgantt\n[Build] lasts 3 days\n@endgantt";
 const input = {
   documentId: "doc-a",
@@ -17,6 +21,30 @@ const input = {
 };
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
+it("migrates only the owning recovered diagram and keeps explicit deletion authoritative", () => {
+  const legacy = saveDeliveryScenario(input);
+  const owner = { ...DEFAULT_SESSION.documents[0]!, historyId: "doc-a" };
+  const other = { ...owner, id: "other", historyId: "doc-b" };
+  const migrated = migrateSavedScenarios({ ...DEFAULT_SESSION, documents: [owner, other] });
+  expect(migrated.documents[0]).toMatchObject({ dirty: true, deliveryScenarios: [portableScenario(legacy)] });
+  expect(migrated.documents[1]!.deliveryScenarios).toBeUndefined();
+  expect(migrateSavedScenarios(migrated).documents[0]!.deliveryScenarios).toHaveLength(1);
+  const deleted = { ...migrated, documents: [{ ...owner, deliveryScenarios: [] }] };
+  expect(migrateSavedScenarios(deleted)).toBe(deleted);
+  expect(loadSavedScenarios()).toEqual([legacy]);
+});
+
+it("saves document scenarios without depending on browser storage", () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new Error("unavailable");
+  });
+  const first = saveDocumentScenario([], input);
+  const next = saveDocumentScenario(first.entries, { ...input, name: "Updated" }, first.saved.id);
+  expect(next.entries).toHaveLength(1);
+  expect(next.saved).toMatchObject({ name: "Updated", baseSource: source });
+  expect(portableScenario(next.saved)).not.toHaveProperty("documentId");
+  expect(() => saveDocumentScenario([], input, first.saved.id)).toThrow("no longer available");
+});
 it("persists base, alternative, assumptions and capacities, updates in place and scopes deletion", () => {
   const entry = saveDeliveryScenario(input);
   expect(loadSavedScenarios()).toEqual([entry]);

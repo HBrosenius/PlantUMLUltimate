@@ -27,6 +27,39 @@ async function document(): Promise<PortableDocument> {
 }
 
 describe("composed document codec", () => {
+  const scenario = {
+    id: "scenario-1",
+    name: "Integration buffer",
+    assumptions: "Two more days",
+    baseSource: "@startgantt\n[Build] lasts 3 days\n@endgantt",
+    source: "@startgantt\n[Build] lasts 5 days\n@endgantt",
+    capacities: { Alice: 80 },
+    updatedAt: "2026-10-12T12:00:00.000Z",
+  };
+  it.each([false, true])(
+    "round-trips saved scenarios inside the document payload (encrypted=%s)",
+    async (encrypted) => {
+      const input = await document();
+      input.settings.deliveryScenarios = [scenario];
+      const options = encrypted ? { password: "scenario-password" } : {};
+      const encoded = await encodeDocument(input, options);
+      const decoded = await decodeDocument(encoded.bytes, options);
+      expect(decoded.document.settings.deliveryScenarios).toEqual([scenario]);
+    },
+  );
+  it.each(
+    [
+      [{ ...scenario, capacities: { Alice: -1 } }],
+      [{ ...scenario, source: "not a Gantt diagram" }],
+      [{ ...scenario, updatedAt: "invalid" }],
+      [scenario, scenario],
+      Array.from({ length: 21 }, (_, index) => ({ ...scenario, id: `${index}` })),
+    ].map((scenarios) => [scenarios]),
+  )("rejects malformed or excessive saved scenarios %#", async (scenarios) => {
+    const input = await document();
+    input.settings.deliveryScenarios = scenarios;
+    await expect(encodeDocument(input)).rejects.toThrow();
+  });
   it.each(["none", "gzip"] as const)("round-trips unencrypted %s", async (compression) => {
     const input = await document();
     const encoded = await encodeDocument(input, { compression });

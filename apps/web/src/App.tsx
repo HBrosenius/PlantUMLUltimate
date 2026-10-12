@@ -6225,6 +6225,16 @@ export function App() {
         <DeliveryScenarioDialog
           key={activeDocument.historyId}
           documentId={activeDocument.historyId}
+          scenarios={activeDocument.deliveryScenarios}
+          onScenariosChange={(deliveryScenarios) => {
+            const target = tabs.getDocument(activeDocument.id);
+            if (target)
+              tabs.updateDocumentFormat(target.id, {
+                deliveryScenarios,
+                dirty: true,
+                revision: (target.revision ?? 0) + 1,
+              });
+          }}
           currentSource={workspace.source}
           capacities={resourceCapacities}
           showResourceOverAllocationWarnings={resourceWarningsEnabled}

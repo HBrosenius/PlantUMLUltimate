@@ -29,6 +29,7 @@ export interface DocumentSnapshot {
   /** Last confirmed file-copy outcome; omitted for older recovery records. */
   fileCopy?: "new" | "file" | "download" | undefined;
   reportingHistory?: import("@plantuml-studio/document-format").ReportingObservation[] | undefined;
+  deliveryScenarios?: import("@plantuml-studio/document-format").PortableDeliveryScenario[] | undefined;
   id: string;
   historyId: string;
   diagramKind: DiagramKind;
@@ -228,6 +229,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             ? { historyMaxLogicalBytes: item.historyMaxLogicalBytes }
             : {}),
           ...(Array.isArray(item.reportingHistory) ? { reportingHistory: item.reportingHistory } : {}),
+          ...(Array.isArray(item.deliveryScenarios) ? { deliveryScenarios: item.deliveryScenarios } : {}),
           ...(item.resourceCapacities && typeof item.resourceCapacities === "object"
             ? { resourceCapacities: item.resourceCapacities }
             : {}),

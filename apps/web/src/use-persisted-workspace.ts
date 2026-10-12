@@ -1,4 +1,5 @@
 import { loadEditorPreferences } from "./editor-preferences";
+import { migrateSavedScenarios } from "./saved-delivery-scenarios";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   activeWorkspace,
@@ -25,7 +26,7 @@ export function usePersistedWorkspace() {
     void loadWorkspace()
       .then((saved) => {
         if (!active) return;
-        setSession(saved);
+        setSession(migrateSavedScenarios(saved));
         setHydrated(true);
       })
       .catch(() => {
@@ -110,6 +111,7 @@ export function usePersistedWorkspace() {
       ...(input?.historyMaxVersions ? { historyMaxVersions: input.historyMaxVersions } : {}),
       ...(input?.historyMaxLogicalBytes ? { historyMaxLogicalBytes: input.historyMaxLogicalBytes } : {}),
       ...(input?.resourceCapacities ? { resourceCapacities: input.resourceCapacities } : {}),
+      deliveryScenarios: input?.deliveryScenarios ?? [],
       ...(input?.progressForecast ? { progressForecast: input.progressForecast } : {}),
       ...(input?.linkedWbsDocumentId ? { linkedWbsDocumentId: input.linkedWbsDocumentId } : {}),
       ...(input?.wbsGanttLinks ? { wbsGanttLinks: input.wbsGanttLinks } : {}),

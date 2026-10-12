@@ -1,6 +1,6 @@
 # Delivery Scenario Lab: first slice
 
-Status review, 2026-10-11: first slice implemented, extended by A28 browser-local scenario persistence and reconciliation below. Portable/shared alternatives and branch ancestry remain deferred; see [current plan status](plan-status-2026-10-11.md).
+Status review, 2026-10-12: first slice and A28 persistence/reconciliation implemented. Saved alternatives now travel in standalone and multi-diagram `.pumlu` files, including captured bases, assumptions and capacities. Shared alternatives and branch ancestry remain deferred. The A28 section below records the earlier browser-local delivery.
 
 ## User promise
 
@@ -68,3 +68,9 @@ The original session-local first slice now has named browser-local saves, scoped
 Reopening a saved alternative compares against its captured base. If current source or resource capacities differ, Apply is blocked until explicit three-way reconciliation. Nonoverlapping lines are preserved from both inputs; conflicting lines require a choice. The reconciled result is validated and returned to source review against the current plan before normal one-step promotion/undo.
 
 See the A28 delivery record in [the consolidated plan](ui-consolidated-implementation-plan-2026-10-09.md) and [validation evidence](audits/2026-10-10-a28/README.md). Portable persistence, branch ancestry and simultaneous multi-alternative comparisons remain deferred.
+
+## Portable scenario follow-up — 2026-10-12
+
+Named alternatives now belong to each diagram's saved settings. Standalone and multi-diagram `.pumlu` files retain scenario names, assumptions, exact base/alternative sources, captured resource capacities and update timestamps. They also survive workspace backups and remain inside the encrypted payload when file encryption is enabled. Existing files without scenarios remain readable.
+
+Scenario saves, updates and deletions mark the document dirty and require a normal document save to update the file. Browser recovery migrates matching legacy library entries into their owning diagrams; the original library is retained as a fallback, and explicit empty scenario lists prevent deleted entries from returning. Limits are 20 alternatives and 2 MB per diagram. Stale-plan reconciliation remains required before applying an alternative whose captured base differs from the current plan. Live sharing, branch ancestry and simultaneous multi-alternative comparisons remain deferred.

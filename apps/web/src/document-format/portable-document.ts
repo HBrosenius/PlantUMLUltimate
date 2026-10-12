@@ -15,6 +15,7 @@ export async function assemblePortableDocument(
   localVersions: readonly DocumentVersion[],
   settings: PortableDocumentSettings = {
     resourceCapacities: document.resourceCapacities ?? {},
+    ...(document.deliveryScenarios ? { deliveryScenarios: document.deliveryScenarios } : {}),
     ...(document.reportingHistory ? { reportingHistory: document.reportingHistory } : {}),
     ...(document.progressForecast ? { progressForecast: document.progressForecast } : {}),
   },

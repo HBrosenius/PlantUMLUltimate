@@ -1,4 +1,5 @@
 import { normalizeSession, type DocumentVersion, type WorkspaceSession } from "./workspace-storage";
+import { validateDeliveryScenarios } from "@plantuml-studio/document-format";
 
 interface WorkspaceBackup {
   kind: "plantuml-studio-workspace";
@@ -108,6 +109,7 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
   const ids = new Set<string>();
   const owners = new Set<string>();
   for (const document of candidate.documents) {
+    if (document?.deliveryScenarios !== undefined) validateDeliveryScenarios(document.deliveryScenarios);
     if (
       !document ||
       typeof document.id !== "string" ||
