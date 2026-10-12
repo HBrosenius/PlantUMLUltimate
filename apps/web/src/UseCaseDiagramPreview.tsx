@@ -438,7 +438,6 @@ export function UseCaseDiagramPreview({
       <div
         className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}
         ref={navigation.viewportRef}
-        onWheel={navigation.onWheel}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
       >

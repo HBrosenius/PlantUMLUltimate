@@ -524,7 +524,6 @@ export function ClassDiagramPreview({
       <div
         className="preview-viewport"
         ref={navigation.viewportRef}
-        onWheel={navigation.onWheel}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
       >

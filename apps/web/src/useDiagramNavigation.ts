@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 import { initialDiagramZoom } from "./initial-diagram-zoom";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
@@ -22,6 +15,7 @@ export function useDiagramNavigation(
   const viewportRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | undefined>(undefined);
   const zoomRef = useRef(zoom);
+  const gestureRef = useRef<{ at: number; pan: boolean } | undefined>(undefined);
   const zoomChangeRef = useRef(onZoomChange);
   const wheelRef = useRef<
     | {
@@ -106,14 +100,46 @@ export function useDiagramNavigation(
     viewport.scrollTop = 0;
   }, [initialDocumentId, options?.svg]);
 
-  const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+  const onWheel = useCallback((event: WheelEvent) => {
     const viewport = viewportRef.current;
-    if (!viewport || event.deltaY === 0) return;
+    if (!viewport || (event.deltaY === 0 && event.deltaX === 0)) return;
     event.preventDefault();
+    const now = performance.now();
+    const previousGesture = gestureRef.current;
+    // Wheel events have no device identity. Fine pixel deltas and horizontal
+    // movement indicate scrolling; retain that choice through momentum bursts.
+    const pan =
+      !event.ctrlKey &&
+      (event.shiftKey ||
+        (event.deltaMode === 0 &&
+          (event.deltaX !== 0 ||
+            (previousGesture && now - previousGesture.at < 200
+              ? previousGesture.pan
+              : Math.abs(event.deltaY) < 80 || !Number.isInteger(event.deltaY)))));
+    // Pinch is a separate gesture, not a mouse-wheel burst.
+    gestureRef.current = event.ctrlKey ? undefined : { at: now, pan };
+    if (pan) {
+      const wheel = wheelRef.current;
+      if (wheel) {
+        cancelAnimationFrame(wheel.frame);
+        wheelRef.current = undefined;
+        viewport.classList.remove("diagram-wheel-zooming");
+        zoomRef.current = wheel.current;
+        zoomChangeRef.current(wheel.current);
+      }
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1;
+      viewport.scrollLeft += (event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX) * unit;
+      viewport.scrollTop += (event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY) * unit;
+      return;
+    }
+    if (event.deltaY === 0) return;
     const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1);
     const current = wheelRef.current;
     const base = current?.target ?? zoomRef.current;
-    const target = Math.min(MAX_DIAGRAM_ZOOM, Math.max(MIN_DIAGRAM_ZOOM, base * Math.exp(-delta * 0.0008)));
+    const target = Math.min(
+      MAX_DIAGRAM_ZOOM,
+      Math.max(MIN_DIAGRAM_ZOOM, base * Math.exp(-delta * (event.ctrlKey ? 0.008 : 0.0008))),
+    );
     if (target === base) return;
     const bounds = viewport.getBoundingClientRect();
     const cursorX = event.clientX - bounds.left;
@@ -166,6 +192,13 @@ export function useDiagramNavigation(
     };
     wheel.frame = requestAnimationFrame(animate);
   }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    viewport.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", onWheel);
+  }, [onWheel, options?.svg]);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 1) return;
@@ -220,5 +253,5 @@ export function useDiagramNavigation(
     return () => window.removeEventListener("fit-active-diagram", handleFit);
   }, [fit]);
 
-  return { viewportRef, onWheel, onPointerDown, onAuxClick, fit };
+  return { viewportRef, onPointerDown, onAuxClick, fit };
 }

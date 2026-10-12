@@ -819,7 +819,6 @@ function RenderedVersion({
         }}
         className="version-render-canvas"
         aria-label={`${title} rendered diagram`}
-        onWheel={navigation.onWheel}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
       >

@@ -1371,12 +1371,12 @@ export function DiagramPreview({
         )}
       </div>
       <p className="gantt-controls-help">
-        View controls leave source unchanged. Timeline scale and task edits change the diagram.
+        Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits change
+        the diagram.
       </p>
       <div
         className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}
-        onWheel={navigation.onWheel}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
         onScroll={(event) => {

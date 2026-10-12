@@ -681,7 +681,6 @@ export function SequenceDiagramPreview({
       <div
         className={`preview-viewport${renderStatus !== "idle" && svg ? " stale-preview" : ""}`}
         ref={navigation.viewportRef}
-        onWheel={navigation.onWheel}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
       >
