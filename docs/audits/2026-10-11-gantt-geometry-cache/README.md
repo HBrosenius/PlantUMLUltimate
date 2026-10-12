@@ -9,10 +9,10 @@ Implemented the first delivery from [large-document next steps](../../large-docu
 - Focused ESLint, Prettier and production TypeScript/Vite build passed.
 - Production Chromium: unchanged 50/200-task workloads each passed five title edits, Outline search and native save/reopen source checks. No page errors were recorded. [Raw results](results.json).
 
-| Workload | Earlier audit edit median | Current edit median | Current initial load |
-| --- | ---: | ---: | ---: |
-| 50 tasks | 1.313 s | 1.207 s | 1.226 s |
-| 200 tasks | 3.599 s | 3.052 s | 3.492 s |
+| Workload  | Earlier audit edit median | Current edit median | Current initial load |
+| --------- | ------------------------: | ------------------: | -------------------: |
+| 50 tasks  |                   1.313 s |             1.207 s |              1.226 s |
+| 200 tasks |                   3.599 s |             3.052 s |              3.492 s |
 
 The observed 200-task edit median is approximately 15% lower. These are separate runs on the same desktop, not an interleaved controlled A/B experiment; host load and engine variation can affect the difference. This does not establish that the cache alone accounts for that percentage. The current 200-task initial render still has a 1,128 ms main-thread task (earlier: 1,173 ms), so responsiveness is not solved.
 
