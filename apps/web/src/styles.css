@@ -7597,6 +7597,14 @@ polygon.diagram-bulk-selected {
   color: var(--text);
   background: var(--panel);
 }
+/* Linux WebKit's native select chrome can overflow a narrow grid label. */
+.diagram-creation-destination select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2364748b' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
 .diagram-creation-destination p {
   margin: 0;
   font-size: 12px;
