@@ -1,3 +1,4 @@
+import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useMemo, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
 import type { ActivityDocument } from "@plantuml-studio/diagram-activity";
 import type { RenderStatus } from "./model";
@@ -486,13 +487,7 @@ export function ActivityDiagramPreview({
             }}
             dangerouslySetInnerHTML={svgMarkup}
           />
-        ) : renderError ? (
-          <div className="render-error" role="alert">
-            <strong>Could not render this Activity diagram.</strong>
-            <p>{renderError}</p>
-            <button onClick={onRenderRetry}>Retry</button>
-          </div>
-        ) : (
+        ) : renderError ? null : (
           <div className="render-placeholder">
             {renderStatus === "rendering"
               ? "Rendering Activity diagram…"
@@ -513,6 +508,12 @@ export function ActivityDiagramPreview({
       <p className="preview-hint">
         Drag flow items to reorder · select an action and drag its blue handle to create a transition · Alt+↑/↓ reorders
       </p>
+      <PreviewRenderNotice
+        status={renderStatus}
+        error={renderError}
+        hasPreview={Boolean(svg)}
+        onRetry={onRenderRetry}
+      />
     </section>
   );
 }

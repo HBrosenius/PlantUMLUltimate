@@ -1,3 +1,4 @@
+import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import {
   useMemo,
   useEffect,
@@ -457,13 +458,7 @@ export function UseCaseDiagramPreview({
             onPointerCancel={cancelPointerDrag}
             dangerouslySetInnerHTML={svgMarkup}
           />
-        ) : renderError ? (
-          <div className="render-error" role="alert">
-            <strong>Could not render this Use Case diagram.</strong>
-            <p>{renderError}</p>
-            <button onClick={onRenderRetry}>Retry</button>
-          </div>
-        ) : (
+        ) : renderError ? null : (
           <div className="render-placeholder">
             {renderStatus === "rendering"
               ? "Rendering Use Case diagram…"
@@ -471,6 +466,12 @@ export function UseCaseDiagramPreview({
           </div>
         )}
       </div>
+      <PreviewRenderNotice
+        status={renderStatus}
+        error={renderError}
+        hasPreview={Boolean(svg)}
+        onRetry={onRenderRetry}
+      />
     </section>
   );
 }

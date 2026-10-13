@@ -1,3 +1,4 @@
+import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { BaselineDependencyReport } from "./BaselineDependencyReport";
 import {
   compareBaselineDependencies,
@@ -1852,21 +1853,12 @@ export function DiagramPreview({
           <i className="highlighted-date-swatch" aria-hidden="true" /> Highlighted date
         </span>
       </aside>
-      {renderStatus === "rendering" && (
-        <div className="render-notice rendering" role="status" aria-live="polite">
-          <strong>Rendering updated preview…</strong>
-          <span>The previous diagram is dimmed until this source finishes.</span>
-        </div>
-      )}
-      {renderStatus === "error" && (
-        <div className="render-notice error" role="alert">
-          <strong>Preview could not be updated</strong>
-          <span>{renderError ?? "The renderer returned an unknown error."}</span>
-          <button type="button" onClick={onRenderRetry}>
-            Retry rendering
-          </button>
-        </div>
-      )}
+      <PreviewRenderNotice
+        status={renderStatus}
+        error={renderError}
+        hasPreview={Boolean(svg)}
+        onRetry={onRenderRetry}
+      />
       {showResourceOverAllocationWarnings && resourceOverAllocations.length > 0 && (
         <aside className="resource-overallocation-alert" role="alert" aria-label="Resource over-allocation">
           <div>

@@ -36,6 +36,10 @@ it("keeps Activity connection feedback through unrelated renders", () => {
     onAttachNote: callback,
   };
   const view = render(<ActivityDiagramPreview {...props} />);
+  view.rerender(<ActivityDiagramPreview {...props} renderStatus="error" renderError="Render failed" />);
+  expect(view.getByRole("alert").textContent).toContain("last successful diagram");
+  expect(view.getByRole("button", { name: "Retry rendering" })).toBeTruthy();
+  view.rerender(<ActivityDiagramPreview {...props} />);
   const svg = view.container.querySelector(".diagram svg")!;
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "line");
   overlay.classList.add("activity-connection-preview");
@@ -67,6 +71,10 @@ it("keeps the Sequence SVG and active drag overlay through recovery metadata ren
     onMessageExternalize: callback,
   };
   const view = render(<SequenceDiagramPreview {...props} />);
+  view.rerender(<SequenceDiagramPreview {...props} renderStatus="error" renderError="Render failed" />);
+  expect(view.getByRole("alert").textContent).toContain("last successful diagram");
+  expect(view.getByRole("button", { name: "Retry rendering" })).toBeTruthy();
+  view.rerender(<SequenceDiagramPreview {...props} />);
   const svg = view.container.querySelector(".diagram svg")!;
   // Pointer handlers own their transient overlays outside React's rendered children.
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -93,6 +101,10 @@ it("keeps a Use Case connection preview when the selection callback changes on a
     onReorder: callback,
   };
   const view = render(<UseCaseDiagramPreview {...props} />);
+  view.rerender(<UseCaseDiagramPreview {...props} renderStatus="error" renderError="Render failed" />);
+  expect(view.getByRole("alert").textContent).toContain("last successful diagram");
+  expect(view.getByRole("button", { name: "Retry rendering" })).toBeTruthy();
+  view.rerender(<UseCaseDiagramPreview {...props} />);
   const svg = view.container.querySelector(".diagram svg")!;
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "line");
   overlay.classList.add("usecase-connection-preview");

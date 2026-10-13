@@ -1,3 +1,4 @@
+import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useMemo, useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
 import type { SequenceMessage, SequenceParticipant, SequenceStructure } from "@plantuml-studio/diagram-sequence";
@@ -698,13 +699,7 @@ export function SequenceDiagramPreview({
             onPointerCancel={endDrag}
             dangerouslySetInnerHTML={svgMarkup}
           />
-        ) : renderError ? (
-          <div className="render-error" role="alert">
-            <strong>Could not render this Sequence diagram.</strong>
-            <p>{renderError}</p>
-            <button onClick={onRenderRetry}>Retry</button>
-          </div>
-        ) : (
+        ) : renderError ? null : (
           <div className="render-placeholder">
             {renderStatus === "rendering"
               ? "Rendering Sequence diagram…"
@@ -714,6 +709,12 @@ export function SequenceDiagramPreview({
       </div>
       <output ref={dragFeedbackRef} className="interaction-feedback" hidden />
       <div ref={dragGhostRef} className="sequence-drag-ghost" aria-hidden="true" hidden />
+      <PreviewRenderNotice
+        status={renderStatus}
+        error={renderError}
+        hasPreview={Boolean(svg)}
+        onRetry={onRenderRetry}
+      />
     </section>
   );
 }

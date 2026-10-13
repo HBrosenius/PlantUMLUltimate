@@ -1,3 +1,4 @@
+import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
 import type { RenderStatus } from "./model";
@@ -606,12 +607,6 @@ export function WbsDiagramPreview({
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
       >
-        {renderError && (
-          <div className="render-error" role="alert">
-            <span>{renderError}</span>
-            <button onClick={onRenderRetry}>Retry</button>
-          </div>
-        )}
         {!svg && !renderError && (
           <div className="render-loading">{renderStatus === "rendering" ? "Rendering WBS…" : "No WBS preview"}</div>
         )}
@@ -844,6 +839,12 @@ export function WbsDiagramPreview({
           ? "Choose a target and press Enter · Esc cancels"
           : "Drop above/below to reorder · drop in the middle to nest · drop left/right of the parent to change side"}
       </p>
+      <PreviewRenderNotice
+        status={renderStatus}
+        error={renderError}
+        hasPreview={Boolean(svg)}
+        onRetry={onRenderRetry}
+      />
     </section>
   );
 }
