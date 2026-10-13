@@ -81,13 +81,23 @@ export function useDiagramNavigation(
   }, []);
 
   const restoredDocument = useRef<string | undefined>(undefined);
+  const restoredSvg = useRef<Element | null>(null);
+  const currentScroll = useRef<{ documentId: string; left: number; top: number } | undefined>(undefined);
   const initialDocumentId = options?.initialFit?.documentId;
   const savedScroll = options?.initialFit?.scroll;
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
-    if (!initialDocumentId || !options?.svg || !viewport || restoredDocument.current === initialDocumentId) return;
+    if (!initialDocumentId || !options?.svg || !viewport) return;
     if (!viewport.querySelector(".diagram svg") || !viewport.clientWidth || !viewport.clientHeight) return;
     let frame: number | undefined;
+    let renderedSvg = viewport.querySelector(".diagram svg");
+    if (restoredSvg.current !== renderedSvg) restoredDocument.current = undefined;
+    restoredSvg.current = renderedSvg;
+    const position =
+      currentScroll.current?.documentId === initialDocumentId
+        ? currentScroll.current
+        : (savedScroll ?? { left: 0, top: 0 });
+    let target = position;
     let previousBounds: string | undefined;
     const bounds = () =>
       `${viewport.scrollWidth}:${viewport.scrollHeight}:${viewport.clientWidth}:${viewport.clientHeight}`;
@@ -111,8 +121,8 @@ export function useDiagramNavigation(
         frame = requestAnimationFrame(restore);
         return;
       }
-      viewport.scrollLeft = savedScroll?.left ?? 0;
-      viewport.scrollTop = savedScroll?.top ?? 0;
+      viewport.scrollLeft = target.left;
+      viewport.scrollTop = target.top;
       frame = requestAnimationFrame(() => {
         if (bounds() !== currentBounds) {
           previousBounds = undefined;
@@ -120,10 +130,27 @@ export function useDiagramNavigation(
           return;
         }
         restoredDocument.current = initialDocumentId;
+        currentScroll.current = { documentId: initialDocumentId, left: viewport.scrollLeft, top: viewport.scrollTop };
       });
     };
-    frame = requestAnimationFrame(restore);
+    const observer = new MutationObserver(() => {
+      const nextSvg = viewport.querySelector(".diagram svg");
+      if (nextSvg === renderedSvg) return;
+      renderedSvg = nextSvg;
+      restoredSvg.current = nextSvg;
+      // Annotation refreshes can replace the SVG without changing its source or bounds.
+      // Suspend recovery writes before the resulting browser scroll-clamp event arrives.
+      target = currentScroll.current?.documentId === initialDocumentId ? currentScroll.current : position;
+      restoredDocument.current = undefined;
+      previousBounds = undefined;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      if (!nextSvg) return;
+      frame = requestAnimationFrame(restore);
+    });
+    observer.observe(viewport, { childList: true, subtree: true });
+    if (restoredDocument.current !== initialDocumentId) frame = requestAnimationFrame(restore);
     return () => {
+      observer.disconnect();
       if (frame !== undefined) cancelAnimationFrame(frame);
     };
   }, [initialDocumentId, options?.svg, savedScroll, zoom]);
@@ -145,6 +172,7 @@ export function useDiagramNavigation(
     const scroll = () => {
       if (restoredDocument.current !== initialDocumentId) return;
       pending = { left: viewport.scrollLeft, top: viewport.scrollTop };
+      currentScroll.current = { documentId: initialDocumentId, ...pending };
       if (timer !== undefined) window.clearTimeout(timer);
       timer = window.setTimeout(flush, 120);
     };

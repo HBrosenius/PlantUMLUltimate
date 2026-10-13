@@ -150,7 +150,7 @@ it("restores scroll per document and flushes pending scrolling to its original o
   vi.restoreAllMocks();
 });
 
-it("waits for delayed SVG overflow before restoring and saving scroll positions", () => {
+it("waits for delayed SVG overflow and preserves scroll through later SVG replacements", async () => {
   const frames = new Map<number, FrameRequestCallback>();
   let frameId = 0;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -215,4 +215,27 @@ it("waits for delayed SVG overflow before restoring and saving scroll positions"
     window.dispatchEvent(new Event("pagehide"));
   });
   expect(save).toHaveBeenLastCalledWith({ left: 80, top: 180 }, true);
+  // A recovery metadata render must leave replacement detection active.
+  initialFit.scroll = { left: 80, top: 180 };
+  rerender({ svg: "<svg></svg>" });
+  act(() => {
+    left = 95;
+    top = 210;
+    viewport.dispatchEvent(new Event("scroll"));
+  });
+  // Sequence annotation replaces the SVG without changing its source or final overflow.
+  // WebKit can clamp the position even though the final bounds are unchanged.
+  await act(async () => {
+    viewport.querySelector(".diagram")!.innerHTML = "<svg></svg>";
+    left = 0;
+    top = 0;
+    await Promise.resolve();
+  });
+  act(() => viewport.dispatchEvent(new Event("scroll")));
+  tick();
+  tick();
+  tick();
+  expect({ left, top }).toEqual({ left: 95, top: 210 });
+  act(() => window.dispatchEvent(new Event("pagehide")));
+  expect(save).toHaveBeenLastCalledWith({ left: 95, top: 210 }, true);
 });
