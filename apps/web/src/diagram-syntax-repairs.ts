@@ -15,12 +15,12 @@ function distance(a: string, b: string): number {
   return row[b.length]!;
 }
 
-export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+export function syntaxRepairs(kind: DiagramKind, source: string, parse = parseGantt): DiagramQuickFix[] {
   const suffix = kind === "gantt" ? "gantt" : kind === "wbs" ? "wbs" : "uml";
   const tags = [`@start${suffix}`, `@end${suffix}`];
   const canonical = new Set(["@startgantt", "@endgantt", "@startwbs", "@endwbs", "@startuml", "@enduml"]);
   const fixes: DiagramQuickFix[] = [];
-  const parsed = kind === "gantt" ? parseGantt(source) : undefined;
+  const parsed = kind === "gantt" ? parse(source) : undefined;
   const originalErrors = parsed?.diagnostics.filter((item) => item.severity === "error").length ?? 0;
   const knownTasks =
     kind === "gantt"
@@ -99,7 +99,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
         );
         if (repaired !== line) {
           const candidate = source.slice(0, offset) + repaired + source.slice(offset + line.length);
-          const errors = parseGantt(candidate).diagnostics.filter((item) => item.severity === "error").length;
+          const errors = parse(candidate).diagnostics.filter((item) => item.severity === "error").length;
           if (errors < originalErrors)
             fixes.push({
               from: offset,
@@ -147,7 +147,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
         }
         if (repaired !== line) {
           const candidate = source.slice(0, offset) + repaired + source.slice(offset + line.length);
-          const result = parseGantt(candidate);
+          const result = parse(candidate);
           const errors = result.diagnostics.filter((item) => item.severity === "error").length;
           const recognizesMore =
             result.document.tasks.length > parsed!.document.tasks.length ||
@@ -193,7 +193,7 @@ export function syntaxRepairs(kind: DiagramKind, source: string): DiagramQuickFi
         if (repaired !== line) {
           const candidate = source.slice(0, offset) + repaired + source.slice(offset + line.length);
           const before = originalErrors;
-          const after = parseGantt(candidate).diagnostics.filter((item) => item.severity === "error").length;
+          const after = parse(candidate).diagnostics.filter((item) => item.severity === "error").length;
           if (before > 0 && after <= before)
             fixes.push({
               from: offset,

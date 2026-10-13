@@ -106,3 +106,19 @@ Local medians on the same Windows machine, before and after collecting Gantt sym
 The CPU profile identified repeated whole-document scans in `ganttSymbolOccurrences`, followed by repeated construction of keyword-repair rules. Task occurrences now retain their previous ordering and alias/resource/separator semantics while scanning declaration lines once. The benchmark emits CPU samples for its first typing run, recovery serialization and storage-write timings for every stage, and post-GC main-frame heap sizes. Main-frame heap use remained around 38 MB before and after; this excludes the renderer worker/iframe's memory and does not establish long-session leak freedom.
 
 Recovery serialization plus synchronous writes accounted for about 49 ms of the original 5.14-second typing workload. Content recovery remains immediate. Typing still produces long tasks, so repeated parsing/diagnostics are the next profiling target. These timings include automation overhead, apply to the stated workloads, and are observational baselines rather than CI timing assertions. The navigation stage now places the pointer inside the viewport for actual horizontal/vertical touchpad gestures; its earlier measurements are excluded from this comparison. The render workload is 100 tasks; these results do not establish rendering performance for 300–1,000 tasks.
+
+### Sharing source analysis (2026-10-13)
+
+A second five-run comparison on the same workload measured sharing the current source analysis between the app, editor error navigation, fix refreshes, and CodeMirror's lint pass. Gantt diagnostics, syntax repairs, and quick fixes reuse parsed models, including the app's model when it is already available. The analysis is lazy, scoped to its owner, keyed by exact source and diagram kind, and retains only the latest snapshot plus one alternate repair model. It does not keep a global document cache or completed edit history.
+
+| Workload                                | Before this change |    After |       Change |
+| --------------------------------------- | -----------------: | -------: | -----------: |
+| 20 typed characters, plus comment setup |           2,846 ms | 1,070 ms |   62% faster |
+| 10 tab switches                         |           1,232 ms |   902 ms |   27% faster |
+| Typing long tasks                       |                 22 |        2 |    91% fewer |
+| Longest typing task                     |             147 ms |    73 ms |  50% shorter |
+| First 100-task preview                  |           1,885 ms | 1,801 ms |    4% faster |
+| Zoom and touchpad gestures              |             492 ms |   485 ms |    1% faster |
+| 20 cursor movements                     |             192 ms |   237 ms | 45 ms slower |
+
+Cursor navigation produced no long tasks in either run set; it did not show an improvement. Post-GC main-frame heap remained around 38 MB. Recovery performed the same 50 synchronous storage writes during the typing workload, with approximately 43 ms total serialization/write work before and after. Source recovery remains immediate; this change does not debounce source updates or retain stale diagnostics for newly edited text. The remaining typing long tasks justify further profiling, rather than treating this as a guarantee of smooth editing at every document size.

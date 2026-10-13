@@ -28,8 +28,8 @@ function wholeLineRange(source: string, range: { from: number; to: number }) {
 
 function dependencyOrderRepair(
   source: string,
+  parsed = parseGantt(source).document,
 ): { replacement: string; affected: { from: number; to: number }[] } | undefined {
-  const parsed = parseGantt(source).document;
   const seenLines = new Set<string>();
   const standalone = parsed.dependencies
     .map((dependency, index) => ({ dependency, index, range: wholeLineRange(source, dependency.sourceRange) }))
@@ -427,7 +427,7 @@ function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parse
   if (parsed.diagnostics.some((item) => item.severity === "error")) return [];
   const calendar = parseGanttCalendar(source);
   const resolve = (text: string) => {
-    const document = parseGantt(text).document;
+    const document = text === source ? parsed.document : parseGantt(text).document;
     return resolveTaskDates(
       document.tasks,
       document.dependencies,
@@ -500,8 +500,7 @@ function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parse
   return fixes;
 }
 
-export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
-  const parsed = parseGantt(source);
+export function ganttDiagnostics(source: string, parsed = parseGantt(source)): CodeMirrorDiagnostic[] {
   const diagnostics = parsed.diagnostics;
   const fixes = quickFixesForDiagnostics(source, parsed);
   const conflictFixes = dependencyConflictFixes(source, parsed);
@@ -529,7 +528,7 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
   });
   const repair = diagnostics.some((item) => item.code === "dependency-cycle")
     ? undefined
-    : dependencyOrderRepair(source);
+    : dependencyOrderRepair(source, parsed.document);
   if (repair) {
     const first = repair.affected[0]!;
     result.push({
@@ -590,8 +589,7 @@ export function ganttDiagnostics(source: string): CodeMirrorDiagnostic[] {
   return result;
 }
 
-export function ganttQuickFixes(source: string): GanttQuickFix[] {
-  const parsed = parseGantt(source);
+export function ganttQuickFixes(source: string, parsed = parseGantt(source)): GanttQuickFix[] {
   const fixes = [
     ...quickFixesForDiagnostics(source, parsed),
     ...durationConflicts(source, parsed).flatMap((item) => item.fixes),
@@ -599,7 +597,7 @@ export function ganttQuickFixes(source: string): GanttQuickFix[] {
   ];
   const repair = parsed.diagnostics.some((item) => item.code === "dependency-cycle")
     ? undefined
-    : dependencyOrderRepair(source);
+    : dependencyOrderRepair(source, parsed.document);
   return repair
     ? [
         ...fixes,

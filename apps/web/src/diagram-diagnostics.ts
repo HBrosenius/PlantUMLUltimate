@@ -24,14 +24,15 @@ export interface DiagramQuickFix {
   message: string;
 }
 
-const languageDiagnostics = (kind: DiagramKind, source: string): Diagnostic[] => {
+const languageDiagnostics = (kind: DiagramKind, source: string, parse = parseGantt): Diagnostic[] => {
   if (kind === "gantt") {
+    const parsed = parse(source);
     const preserved = new Set(
-      parseGantt(source)
-        .diagnostics.filter((item) => item.code === "unsupported-syntax")
+      parsed.diagnostics
+        .filter((item) => item.code === "unsupported-syntax")
         .map((item) => `${item.range.from}:${item.range.to}`),
     );
-    return ganttDiagnostics(source).filter((item) => !preserved.has(`${item.from}:${item.to}`));
+    return ganttDiagnostics(source, parsed).filter((item) => !preserved.has(`${item.from}:${item.to}`));
   }
   return kind === "sequence"
     ? sequenceDiagnostics(source)
@@ -44,10 +45,10 @@ const languageDiagnostics = (kind: DiagramKind, source: string): Diagnostic[] =>
           : wbsDiagnostics(source);
 };
 
-const languageQuickFixes = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
+const languageQuickFixes = (kind: DiagramKind, source: string, parse = parseGantt): DiagramQuickFix[] => {
   const fixes =
     kind === "gantt"
-      ? ganttQuickFixes(source)
+      ? ganttQuickFixes(source, parse(source))
       : kind === "sequence"
         ? sequenceQuickFixes(source)
         : kind === "usecase"
@@ -142,12 +143,12 @@ function consistentItems<T extends { from: number; to: number; message: string }
   });
 }
 
-function sharedRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
+function sharedRepairs(kind: DiagramKind, source: string, parse = parseGantt): DiagramQuickFix[] {
   const existing = [
     ...statementIssues(kind, source).flatMap((issue) =>
       issue.replacement === undefined ? [] : [{ ...issue, replacement: issue.replacement }],
     ),
-    ...syntaxRepairs(kind, source),
+    ...syntaxRepairs(kind, source, parse),
     ...braceIssues(kind, source),
     ...terminatorRepairs(kind, source),
     ...[...quoteIssues(kind, source), ...boundaryIssues(kind, source)].flatMap((issue) =>
@@ -162,11 +163,11 @@ function sharedRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
   ];
 }
 
-function coherentRepairs(kind: DiagramKind, source: string): DiagramQuickFix[] {
-  const repairs = sharedRepairs(kind, source);
+function coherentRepairs(kind: DiagramKind, source: string, read = sharedRepairs): DiagramQuickFix[] {
+  const repairs = read(kind, source);
   const corrections = repairs.filter((fix) => fix.from < fix.to);
   if (!corrections.length) return repairs;
-  const remaining = consistentItems(kind, source, corrections, sharedRepairs);
+  const remaining = consistentItems(kind, source, corrections, read);
   return repairs.filter(
     (fix) =>
       fix.from < fix.to ||
@@ -184,18 +185,26 @@ function unfixableIssues(kind: DiagramKind, source: string) {
   ].filter((issue) => issue.replacement === undefined);
 }
 
-export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] => {
-  const repairs = coherentRepairs(kind, source);
+function collectQuickFixes(
+  kind: DiagramKind,
+  source: string,
+  repairs: DiagramQuickFix[],
+  parse: typeof parseGantt,
+): DiagramQuickFix[] {
   return [
     ...repairs,
-    ...consistentItems(kind, source, repairs, languageQuickFixes).filter(
+    ...consistentItems(kind, source, repairs, (kind, source) => languageQuickFixes(kind, source, parse)).filter(
       (fix) => !repairs.some((repair) => repair.from <= fix.from && repair.to >= fix.to),
     ),
   ];
-};
+}
 
-export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagnostic[] => {
-  const repairs = coherentRepairs(kind, source);
+function collectDiagnostics(
+  kind: DiagramKind,
+  source: string,
+  repairs: DiagramQuickFix[],
+  parse: typeof parseGantt,
+): Diagnostic[] {
   const issues = consistentItems(kind, source, repairs, unfixableIssues);
   return [
     ...repairs.map((fix): Diagnostic => ({
@@ -218,10 +227,64 @@ export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagno
       severity: "error",
       message: issue.message,
     })),
-    ...consistentItems(kind, source, repairs, languageDiagnostics).filter(
+    ...consistentItems(kind, source, repairs, (kind, source) => languageDiagnostics(kind, source, parse)).filter(
       (item) =>
         !repairs.some((repair) => repair.from <= item.from && repair.to >= item.to) &&
         !issues.some((issue) => issue.from === item.from && issue.to === item.to && issue.message === item.message),
     ),
   ];
-};
+}
+
+export interface DiagramAnalysis {
+  readonly kind: DiagramKind;
+  readonly source: string;
+  readonly diagnostics: Diagnostic[];
+  readonly quickFixes: DiagramQuickFix[];
+}
+
+/** Owned by one source snapshot; no global cache of documents or encrypted source. */
+export function analyzeDiagram(
+  kind: DiagramKind,
+  source: string,
+  initialParse?: ReturnType<typeof parseGantt>,
+): DiagramAnalysis {
+  let parsed = initialParse;
+  let alternate: { source: string; parsed: ReturnType<typeof parseGantt> } | undefined;
+  const parse: typeof parseGantt = (text) => {
+    if (text === source) return (parsed ??= parseGantt(text));
+    if (alternate?.source === text) return alternate.parsed;
+    const value = parseGantt(text);
+    // Repair previews may try many candidates; retain at most one alternate model.
+    alternate = { source: text, parsed: value };
+    return value;
+  };
+  let repairs: DiagramQuickFix[] | undefined;
+  let diagnostics: Diagnostic[] | undefined;
+  let quickFixes: DiagramQuickFix[] | undefined;
+  const getRepairs = () =>
+    (repairs ??= coherentRepairs(kind, source, (kind, source) => sharedRepairs(kind, source, parse)));
+  return {
+    kind,
+    source,
+    get diagnostics() {
+      return (diagnostics ??= collectDiagnostics(kind, source, getRepairs(), parse));
+    },
+    get quickFixes() {
+      return (quickFixes ??= collectQuickFixes(kind, source, getRepairs(), parse));
+    },
+  };
+}
+
+export const diagnosticsForDiagram = (kind: DiagramKind, source: string): Diagnostic[] =>
+  analyzeDiagram(kind, source).diagnostics;
+export const quickFixesForDiagram = (kind: DiagramKind, source: string): DiagramQuickFix[] =>
+  analyzeDiagram(kind, source).quickFixes;
+
+/** Share the latest snapshot between the editor and its owner, without retaining edit history. */
+export function createDiagramAnalyzer(): typeof analyzeDiagram {
+  let latest: DiagramAnalysis | undefined;
+  return (kind, source, parsed) => {
+    if (latest?.kind !== kind || latest.source !== source) latest = analyzeDiagram(kind, source, parsed);
+    return latest;
+  };
+}

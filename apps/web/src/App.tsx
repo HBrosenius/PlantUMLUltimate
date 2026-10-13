@@ -82,7 +82,7 @@ import { DeliveryScenarioDialog } from "./DeliveryScenarioDialog";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
-import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
+import { createDiagramAnalyzer } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
@@ -228,6 +228,7 @@ const EMPTY_ACTIVITY_DOCUMENT = parseActivity("");
 const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 
 export function App() {
+  const analyzeSource = useMemo(createDiagramAnalyzer, []);
   const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const editorPreferences = useEditorPreferences();
@@ -1073,14 +1074,19 @@ export function App() {
   const sequenceMessageAnchors = sequenceDocument.messages.flatMap((message) =>
     message.anchor ? [message.anchor] : [],
   );
-  const activeDiagnostics = useMemo(
-    () => diagnosticsForDiagram(workspace.diagramKind, workspace.source),
-    [workspace.diagramKind, workspace.source],
+  const diagramAnalysis = useMemo(
+    () =>
+      analyzeSource(
+        workspace.diagramKind,
+        workspace.source,
+        workspace.diagramKind === "gantt"
+          ? { document: parseResult.document, diagnostics: [...parseResult.diagnostics] }
+          : undefined,
+      ),
+    [analyzeSource, workspace.diagramKind, workspace.source, parseResult],
   );
-  const activeQuickFixes = useMemo(
-    () => quickFixesForDiagram(workspace.diagramKind, workspace.source),
-    [workspace.diagramKind, workspace.source],
-  );
+  const activeDiagnostics = diagramAnalysis.diagnostics;
+  const activeQuickFixes = diagramAnalysis.quickFixes;
   const diagnosticCount = activeDiagnostics.length;
   const preservedSyntax =
     workspace.diagramKind === "gantt"
@@ -4487,6 +4493,7 @@ export function App() {
         )}
         {!mobileListActive && !taskViewActive && viewMode !== "diagram" && (
           <CodeEditor
+            analyzeSource={analyzeSource}
             documentId={tabs.activeId}
             diagramKind={workspace.diagramKind}
             value={workspace.source}

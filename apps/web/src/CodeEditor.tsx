@@ -18,7 +18,13 @@ import { indentWithTab, isolateHistory } from "@codemirror/commands";
 import { lintGutter, type Diagnostic } from "@codemirror/lint";
 import { codeEditorSetup } from "./code-editor-setup";
 import type { DiagramKind } from "./model";
-import { diagnosticsForDiagram, quickFixesForDiagram, type DiagramQuickFix } from "./diagram-diagnostics";
+import {
+  analyzeDiagram,
+  createDiagramAnalyzer,
+  diagnosticsForDiagram,
+  quickFixesForDiagram,
+  type DiagramQuickFix,
+} from "./diagram-diagnostics";
 import type { CollaborationParticipant } from "./collaboration";
 import { languageExtensions } from "./diagram-language-extensions";
 
@@ -32,6 +38,7 @@ export interface SourceRepairRequest {
 }
 
 interface Props {
+  analyzeSource?: typeof analyzeDiagram | undefined;
   documentId?: string | undefined;
   diagramKind: DiagramKind;
   value: string;
@@ -232,6 +239,7 @@ const symbolHighlightField = StateField.define<DecorationSet>({
 });
 
 export function CodeEditor({
+  analyzeSource,
   documentId,
   diagramKind,
   value,
@@ -282,13 +290,22 @@ export function CodeEditor({
   const initialKind = useRef(diagramKind);
   const initialReadOnly = useRef(readOnly);
   const kindRef = useRef(diagramKind);
+  const ownAnalyzer = useMemo(createDiagramAnalyzer, []);
+  const analysisRef = useRef(analyzeSource ?? ownAnalyzer);
+  analysisRef.current = analyzeSource ?? ownAnalyzer;
+  const readAnalysis = useCallback((kind: DiagramKind, source: string) => {
+    return analysisRef.current(kind, source);
+  }, []);
   const documentIdRef = useRef(documentId);
   const sourceRevision = useRef(0);
   const preferences = useEditorPreferences();
   const preferenceCompartment = useRef(new Compartment());
   const language = useRef(new Compartment());
   const editable = useRef(new Compartment());
-  const errors = useMemo(() => errorLocations(diagnosticsForDiagram(diagramKind, value)), [diagramKind, value]);
+  const errors = useMemo(
+    () => errorLocations(readAnalysis(diagramKind, value).diagnostics),
+    [diagramKind, value, readAnalysis],
+  );
   const [explanation, setExplanation] = useState<{
     message: string;
     guidance: string;
@@ -339,16 +356,19 @@ export function CodeEditor({
     kind: diagramKind,
     documentId,
     revision: 0,
-    fixes: quickFixesForDiagram(diagramKind, value),
+    fixes: readAnalysis(diagramKind, value).quickFixes,
   }));
-  const refreshFixes = (kind: DiagramKind, source: string) =>
-    setFixSnapshot({
-      source,
-      kind,
-      documentId: documentIdRef.current,
-      revision: sourceRevision.current,
-      fixes: quickFixesForDiagram(kind, source),
-    });
+  const refreshFixes = useCallback(
+    (kind: DiagramKind, source: string) =>
+      setFixSnapshot({
+        source,
+        kind,
+        documentId: documentIdRef.current,
+        revision: sourceRevision.current,
+        fixes: readAnalysis(kind, source).quickFixes,
+      }),
+    [readAnalysis],
+  );
   onChangeRef.current = onChange;
   onApplyFixRef.current = onApplyFix;
   onCursorRef.current = onCursorChange;
@@ -411,7 +431,7 @@ export function CodeEditor({
             EditorState.readOnly.of(initialReadOnly.current),
             EditorView.editable.of(!initialReadOnly.current),
           ]),
-          language.current.of(languageExtensions(initialKind.current, previewTooltipFixes)),
+          language.current.of(languageExtensions(initialKind.current, previewTooltipFixes, readAnalysis)),
           lintGutter(),
           // Escape editor scroll clipping while inheriting the app's theme variables.
           tooltips({ parent: host.current.closest<HTMLElement>(".app") ?? host.current.ownerDocument.body }),
@@ -475,7 +495,7 @@ export function CodeEditor({
     });
     view.current = editor;
     return () => editor.destroy();
-  }, [previewTooltipFixes]);
+  }, [previewTooltipFixes, readAnalysis, refreshFixes]);
 
   useEffect(() => {
     view.current?.dispatch({
@@ -486,10 +506,10 @@ export function CodeEditor({
   useEffect(() => {
     if (!view.current) return;
     view.current.dispatch({
-      effects: language.current.reconfigure(languageExtensions(diagramKind, previewTooltipFixes)),
+      effects: language.current.reconfigure(languageExtensions(diagramKind, previewTooltipFixes, readAnalysis)),
     });
     refreshFixes(diagramKind, view.current.state.doc.toString());
-  }, [diagramKind, previewTooltipFixes]);
+  }, [diagramKind, previewTooltipFixes, readAnalysis, refreshFixes]);
 
   useEffect(() => {
     const editor = view.current;
@@ -497,7 +517,7 @@ export function CodeEditor({
     if (fixPicker.current) fixPicker.current.open = false;
     editor.dispatch({ effects: setFixHighlight.of(undefined) });
     refreshFixes(kindRef.current, editor.state.doc.toString());
-  }, [documentId, diagramKind, readOnly]);
+  }, [documentId, diagramKind, readOnly, refreshFixes]);
 
   useEffect(() => {
     view.current?.dispatch({
@@ -520,7 +540,7 @@ export function CodeEditor({
     setErrorAnnouncement("");
     setCursorPosition(editor.state.selection.main.head);
     refreshFixes(kindRef.current, value);
-  }, [value]);
+  }, [value, refreshFixes]);
 
   useEffect(() => {
     const editor = view.current;

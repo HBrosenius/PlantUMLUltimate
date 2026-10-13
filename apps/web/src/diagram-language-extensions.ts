@@ -17,9 +17,13 @@ import { plantUmlWbsHighlightStyle, plantUmlWbsMode } from "./plantuml-wbs-mode"
 import { wbsCompletions } from "./wbs-language";
 import type { DiagramKind } from "./model";
 import { withManualErrorGuidance } from "./manual-error-guidance";
-import { diagnosticsForDiagram, quickFixesForDiagram } from "./diagram-diagnostics";
+import { analyzeDiagram } from "./diagram-diagnostics";
 
-export function languageExtensions(kind: DiagramKind, onPreviewFixes?: (diagnostic: Diagnostic) => void): Extension {
+export function languageExtensions(
+  kind: DiagramKind,
+  onPreviewFixes?: (diagnostic: Diagnostic) => void,
+  readAnalysis = analyzeDiagram,
+): Extension {
   const mode =
     kind === "gantt"
       ? plantUmlGanttMode
@@ -63,8 +67,9 @@ export function languageExtensions(kind: DiagramKind, onPreviewFixes?: (diagnost
     linter(
       (current) => {
         const source = current.state.doc.toString();
-        const fixes = quickFixesForDiagram(kind, source);
-        const diagnostics = withManualErrorGuidance(kind, diagnosticsForDiagram(kind, source), fixes);
+        const analysis = readAnalysis(kind, source);
+        const fixes = analysis.quickFixes;
+        const diagnostics = withManualErrorGuidance(kind, analysis.diagnostics, fixes);
         return onPreviewFixes
           ? diagnostics.map((diagnostic) => ({
               ...diagnostic,
