@@ -171,7 +171,7 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
     { initialProps: {} },
   );
   const viewport = document.createElement("div");
-  viewport.innerHTML = '<div class="diagram"><svg></svg></div>';
+  viewport.innerHTML = '<div class="diagram"></div>';
   document.body.append(viewport);
   let width = 100;
   let height = 100;
@@ -197,6 +197,11 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
   });
   result.current.viewportRef.current = viewport;
   rerender({ svg: "<svg></svg>" });
+  // WBS inserts its SVG in its own layout effect, after the navigation hook runs.
+  await act(async () => {
+    viewport.querySelector(".diagram")!.innerHTML = "<svg></svg>";
+    await Promise.resolve();
+  });
   tick();
   act(() => {
     viewport.dispatchEvent(new Event("scroll"));

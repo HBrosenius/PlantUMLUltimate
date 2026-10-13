@@ -1,23 +1,63 @@
 import { test, expect } from "@playwright/test";
-import { prepareEditor, setSource, source, readEditorSource } from "./editor-helpers";
+import { prepareEditor, setSource, source, readEditorSource, fillSource, waitForDiagramRender } from "./editor-helpers";
 
-for (const secondKind of ["Gantt", "Sequence"]) {
+const diagrams: Record<string, string> = {
+  Gantt: source(Array.from({ length: 50 }, (_, i) => `[Second ${i}] lasts 60 days`).join("\n")),
+  Sequence:
+    "@startuml\nparticipant Alice\nparticipant Bob\n" +
+    Array.from({ length: 50 }, (_, i) => `Alice -> Bob: Message ${i}`).join("\n") +
+    "\n@enduml",
+  Class:
+    "@startuml\n" +
+    Array.from({ length: 20 }, (_, i) => `class Item${i}\n${i ? `Item${i - 1} --> Item${i}` : ""}`).join("\n") +
+    "\n@enduml",
+  Component:
+    "@startuml\n" +
+    Array.from({ length: 20 }, (_, i) => `component Item${i}\n${i ? `Item${i - 1} --> Item${i}` : ""}`).join("\n") +
+    "\n@enduml",
+  Activity: "@startuml\nstart\n" + Array.from({ length: 30 }, (_, i) => `:Step ${i};`).join("\n") + "\nstop\n@enduml",
+  "Use Case":
+    "@startuml\n" +
+    Array.from({ length: 20 }, (_, i) => `usecase Item${i}\n${i ? `Item${i - 1} --> Item${i}` : ""}`).join("\n") +
+    "\n@enduml",
+  WBS:
+    "@startwbs\n* Project\n" +
+    Array.from({ length: 3 }, (_, branch) =>
+      Array.from({ length: 20 }, (_, depth) => `${"*".repeat(depth + 2)} Branch ${branch} step ${depth}`).join("\n"),
+    ).join("\n") +
+    "\n@endwbs",
+};
+
+for (const [secondKind, original] of Object.entries(diagrams)) {
   test(`restores per-document zoom and both scroll axes across tabs and reload (${secondKind})`, async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
     await prepareEditor(page);
     const a = source(Array.from({ length: 50 }, (_, i) => `[First ${i}] lasts 60 days`).join("\n"));
-    const b =
-      secondKind === "Gantt"
-        ? a.replaceAll("First", "Second")
-        : "@startuml\nparticipant Alice\nparticipant Bob\n" +
-          Array.from({ length: 50 }, (_, i) => `Alice -> Bob: Message ${i}`).join("\n") +
-          "\n@enduml";
+    let b = original;
     await setSource(page, a);
     const viewport = page.locator(".workspace .preview-viewport");
     const zoom = page.getByRole("button", { name: /Reset zoom/ });
     const choosePosition = async (left: number, top: number) => {
       await zoom.click();
       for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+      // WBS trees can be much wider than they are tall; zoom until both axes can be exercised.
+      for (let i = 0; i < 80; i++) {
+        const fits = await viewport.evaluate(
+          (element, position) =>
+            element.scrollWidth - element.clientWidth > position.left &&
+            element.scrollHeight - element.clientHeight > position.top,
+          { left, top },
+        );
+        if (fits) break;
+        await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+      }
+      await viewport.evaluate(async (element) => {
+        await Promise.all(
+          [...element.querySelectorAll(".diagram")].flatMap((diagram) =>
+            diagram.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+          ),
+        );
+      });
       await expect
         .poll(() => viewport.evaluate((element) => element.scrollWidth - element.clientWidth))
         .toBeGreaterThan(left);
@@ -56,6 +96,19 @@ for (const secondKind of ["Gantt", "Sequence"]) {
       .click();
     await setSource(page, b);
     const bZoom = await choosePosition(80, 180);
+    const edited = b.replace("\n", "\n' Navigation revision\n");
+    await fillSource(page, edited);
+    await waitForDiagramRender(page);
+    await checkPosition(80, 180, bZoom!);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect.poll(() => readEditorSource(page)).toBe(b);
+    await waitForDiagramRender(page);
+    await checkPosition(80, 180, bZoom!);
+    await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await expect.poll(() => readEditorSource(page)).toBe(edited);
+    await waitForDiagramRender(page);
+    await checkPosition(80, 180, bZoom!);
+    b = edited;
     const tabs = page.locator(".document-tabs > button:not(.new-tab)");
     await tabs.first().click();
     await checkPosition(120, 280, aZoom!);
@@ -64,6 +117,26 @@ for (const secondKind of ["Gantt", "Sequence"]) {
     await page.reload();
     await checkPosition(80, 180, bZoom!);
     expect(await readEditorSource(page)).toBe(b);
+    const objectAttribute: Record<string, string> = {
+      Gantt: "data-task-id",
+      Sequence: "data-sequence-participant-id",
+      Class: "data-class-object-id",
+      Component: "data-class-object-id",
+      Activity: "data-activity-object-id",
+      "Use Case": "data-usecase-object-id",
+      WBS: "data-wbs-node-id",
+    };
+    const selectable = page
+      .locator(`.diagram svg [${objectAttribute[secondKind]}][role="button"][tabindex="0"]`)
+      .first();
+    await selectable.dispatchEvent("click");
+    const inspector = page.locator(".task-inspector:visible").first();
+    await expect(inspector).toBeVisible();
+    await inspector
+      .getByRole("button", { name: /^Close/ })
+      .first()
+      .click();
+
     await tabs.first().click();
     await checkPosition(120, 280, aZoom!);
     expect(await readEditorSource(page)).toBe(a);

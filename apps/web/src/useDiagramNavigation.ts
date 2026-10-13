@@ -88,7 +88,8 @@ export function useDiagramNavigation(
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!initialDocumentId || !options?.svg || !viewport) return;
-    if (!viewport.querySelector(".diagram svg") || !viewport.clientWidth || !viewport.clientHeight) return;
+    // WBS inserts its SVG in a later layout effect. Observe the viewport even before that insertion.
+    if (!viewport.clientWidth || !viewport.clientHeight) return;
     let frame: number | undefined;
     let renderedSvg = viewport.querySelector(".diagram svg");
     if (restoredSvg.current !== renderedSvg) restoredDocument.current = undefined;
@@ -148,7 +149,7 @@ export function useDiagramNavigation(
       frame = requestAnimationFrame(restore);
     });
     observer.observe(viewport, { childList: true, subtree: true });
-    if (restoredDocument.current !== initialDocumentId) frame = requestAnimationFrame(restore);
+    if (renderedSvg && restoredDocument.current !== initialDocumentId) frame = requestAnimationFrame(restore);
     return () => {
       observer.disconnect();
       if (frame !== undefined) cancelAnimationFrame(frame);
