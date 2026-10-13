@@ -3,7 +3,7 @@ import { applySourceEdits, parseGantt, type SourceEdit } from "@plantuml-studio/
 import { normalizeDiagramKind } from "./diagram-kind";
 import { DEFAULT_SOURCE, type DiagramKind, type Theme, type ViewMode } from "./model";
 import { validForecastTimeZone } from "./forecast-date";
-import { reportStorageWrite, reportWorkspaceBackend } from "./storage-health";
+import { reportRecoveryRead, reportStorageWrite, reportWorkspaceBackend } from "./storage-health";
 
 export interface WorkspaceSnapshot {
   startupMode?: "restore" | "chooser" | undefined;
@@ -662,6 +662,7 @@ export async function importDocumentVersions(versions: readonly DocumentVersion[
 export async function loadWorkspace(): Promise<WorkspaceSession> {
   const own: unknown[] = [];
   const shared: unknown[] = [];
+  const damaged = new Set<unknown[]>();
   for (const key of [RECOVERY_KEY, LEGACY_KEY]) {
     for (const [name, list] of [
       [scopedKey(key), own],
@@ -671,6 +672,7 @@ export async function loadWorkspace(): Promise<WorkspaceSession> {
         const raw = globalThis.localStorage?.getItem(name);
         if (raw) list.push(JSON.parse(raw));
       } catch {
+        damaged.add(list);
         /* Try other copies. */
       }
     }
@@ -708,12 +710,33 @@ export async function loadWorkspace(): Promise<WorkspaceSession> {
   } catch {
     /* Recovery journals remain available without IndexedDB. */
   }
-  const candidates = own.length ? own : shared;
-  candidates.sort(
-    (a, b) =>
-      Number((b as WorkspaceSession).recoverySavedAt ?? 0) - Number((a as WorkspaceSession).recoverySavedAt ?? 0),
-  );
-  return candidates.length ? normalizeSession(candidates[0]) : DEFAULT_SESSION;
+  for (const copies of [own, shared]) {
+    const candidates = copies.flatMap((value) => {
+      try {
+        if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid recovery copy");
+        const candidate = value as Partial<WorkspaceSession & WorkspaceSnapshot>;
+        if (Array.isArray(candidate.documents)) {
+          if (
+            candidate.documents.length &&
+            !candidate.documents.some((item) => item && typeof item.id === "string" && typeof item.source === "string")
+          )
+            throw new Error("No recoverable documents");
+        } else if (typeof candidate.source !== "string") throw new Error("Missing recovery source");
+        const session = normalizeSession(value);
+        return [{ session, savedAt: Number.isFinite(candidate.recoverySavedAt) ? candidate.recoverySavedAt! : 0 }];
+      } catch {
+        damaged.add(copies);
+        return [];
+      }
+    });
+    candidates.sort((a, b) => b.savedAt - a.savedAt);
+    if (candidates.length) {
+      reportRecoveryRead(damaged.has(own) || damaged.has(copies) ? "fallback" : undefined);
+      return candidates[0]!.session;
+    }
+  }
+  reportRecoveryRead(damaged.size ? "unavailable" : undefined);
+  return DEFAULT_SESSION;
 }
 
 function persistableWorkspace(snapshot: WorkspaceSession): WorkspaceSession {

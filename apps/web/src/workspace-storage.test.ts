@@ -11,6 +11,7 @@ import {
   deleteDocumentVersion,
   loadDocumentVersions,
   loadWorkspace,
+  workspaceRecoveryScope,
   migrateGanttDependencyPlacement,
   migrateInvalidWbsDirection,
   normalizeSession,
@@ -22,10 +23,51 @@ import {
   type WorkspaceSession,
 } from "./workspace-storage";
 import { DEFAULT_SOURCE } from "./model";
+import { getStorageHealth, resetStorageHealth } from "./storage-health";
 
 beforeEach(() => {
+  resetStorageHealth();
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() });
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: undefined });
+});
+
+describe("damaged recovery copies", () => {
+  const key = "plantuml-studio.workspace.recovery.v6";
+  it.each([
+    "{",
+    "null",
+    '"damaged"',
+    '{"recoverySavedAt":9007199254740991}',
+    '{"recoverySavedAt":9007199254740991,"documents":[null]}',
+    '{"recoverySavedAt":9007199254740991,"documents":[{"id":"lost","source":5}]}',
+  ])("restores healthy IndexedDB work instead of a damaged journal: %s", async (damaged) => {
+    const values = new Map<string, string>();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+    const saved = {
+      ...DEFAULT_SESSION,
+      documents: [{ ...DEFAULT_SESSION.documents[0]!, source: "UNSAVED WORK", dirty: true }],
+    };
+    await saveWorkspace(saved);
+    values.set(`${key}:${workspaceRecoveryScope()}`, damaged);
+    values.set(key, damaged);
+    await expect(loadWorkspace()).resolves.toEqual(saved);
+    expect(getStorageHealth().recoveryRead).toBe("fallback");
+  });
+  it("reports when no recovery copy can be read", async () => {
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: () => "null" } });
+    await expect(loadWorkspace()).resolves.toEqual(DEFAULT_SESSION);
+    expect(getStorageHealth().recoveryRead).toBe("unavailable");
+  });
+  it("does not report damage on a first visit", async () => {
+    await expect(loadWorkspace()).resolves.toEqual(DEFAULT_SESSION);
+    expect(getStorageHealth().recoveryRead).toBeUndefined();
+  });
 });
 
 it("recovers the newest fallback after database writes return", async () => {

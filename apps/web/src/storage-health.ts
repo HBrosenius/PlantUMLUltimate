@@ -4,11 +4,16 @@ import { useSyncExternalStore } from "react";
 export type StorageWrite = "workspace" | "project";
 
 export interface StorageHealth {
+  recoveryRead?: "fallback" | "unavailable" | undefined;
   workspaceBackend?: "indexeddb" | "localstorage" | "memory";
   /** Writes whose latest attempt failed. */
   failing: readonly StorageWrite[];
   usage?: { used: number; quota: number };
   persisted?: boolean;
+}
+
+export function reportRecoveryRead(recoveryRead: StorageHealth["recoveryRead"]): void {
+  if (health.recoveryRead !== recoveryRead) update({ ...health, recoveryRead });
 }
 
 export function reportWorkspaceBackend(workspaceBackend: NonNullable<StorageHealth["workspaceBackend"]>): void {
@@ -76,6 +81,10 @@ export function describeStorageHealth(value: StorageHealth): string {
     : "Usage unavailable";
   if (value.failing.length)
     return `Browser storage could not save ${value.failing.join(", ")} data, so unsaved work may not be restored after a reload. Save your files, then free browser storage. ${usage}.`;
+  if (value.recoveryRead === "fallback")
+    return "A browser recovery copy was damaged. Another saved copy was restored; the latest edits may be missing. Check your documents and save a file copy.";
+  if (value.recoveryRead === "unavailable")
+    return "Browser recovery copies could not be read. Open your saved file or use File → Restore workspace to restore a workspace backup.";
   if (storageNearlyFull(value))
     return `Browser storage is nearly full (${usage}). Save your files and close unused documents.`;
   return `Unsaved work is kept in browser storage (${usage}${value.persisted ? ", protected from eviction" : ""}).`;

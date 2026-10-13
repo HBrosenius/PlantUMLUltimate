@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   describeStorageHealth,
   reportStorageWrite,
+  reportRecoveryRead,
   resetStorageHealth,
   storageNearlyFull,
   useStorageHealth,
@@ -13,6 +14,14 @@ import {
 afterEach(() => resetStorageHealth());
 
 describe("storage health", () => {
+  it("keeps the recovery explanation after successful writes and prioritizes a new write failure", () => {
+    const { result } = renderHook(() => useStorageHealth());
+    act(() => reportRecoveryRead("fallback"));
+    act(() => reportStorageWrite("workspace", true));
+    expect(describeStorageHealth(result.current)).toContain("Another saved copy was restored");
+    act(() => reportStorageWrite("workspace", false));
+    expect(describeStorageHealth(result.current)).toContain("could not save workspace data");
+  });
   it("tracks failing writes until they succeed again", () => {
     const { result } = renderHook(() => useStorageHealth());
     act(() => reportStorageWrite("workspace", false));

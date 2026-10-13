@@ -45,7 +45,11 @@ export function StorageStatus({
 
   const failing = health.failing.length > 0;
   const warning =
-    failing || storageNearlyFull(health) || health.workspaceBackend === "memory" || recoveryStatus === "error";
+    failing ||
+    Boolean(health.recoveryRead) ||
+    storageNearlyFull(health) ||
+    health.workspaceBackend === "memory" ||
+    recoveryStatus === "error";
   const description = describeStorageHealth(health);
   const backend =
     health.workspaceBackend === "localstorage"
@@ -60,13 +64,17 @@ export function StorageStatus({
       ? "Updating recovery…"
       : failing || recoveryStatus === "error"
         ? "Recovery failed"
-        : health.workspaceBackend === "memory"
-          ? "Recovery unavailable"
-          : warning
-            ? "Recovery nearly full"
-            : recoveryStatus === "current"
-              ? "Recovery current"
-              : "Browser recovery";
+        : health.recoveryRead
+          ? health.recoveryRead === "fallback"
+            ? "Recovered another copy"
+            : "Recovery unavailable"
+          : health.workspaceBackend === "memory"
+            ? "Recovery unavailable"
+            : warning
+              ? "Recovery nearly full"
+              : recoveryStatus === "current"
+                ? "Recovery current"
+                : "Browser recovery";
   return (
     <div
       className="storage-status-root"
