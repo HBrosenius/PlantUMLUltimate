@@ -4,6 +4,7 @@ import { downloadText, downloadSvgAsPng, svgFileName } from "./file-service";
 import { copyText, downloadDiagramPdf, pdfPageSize } from "./diagram-export";
 import { encodedDiagramUrl, exportPreferencesKey, loadExportOptions, prepareExportSvg } from "./export-preview";
 import type { RenderStatus } from "./model";
+import { rasterExportError, rasterExportSize } from "./raster-export-limits";
 
 export function ExportDialog({
   mode,
@@ -46,13 +47,23 @@ export function ExportDialog({
       return undefined;
     }
   }, [svg, options]);
+  const rasterSize = prepared && rasterExportSize(prepared.width, prepared.height, options.scale);
+  const sizeError =
+    prepared && options.format !== "svg"
+      ? rasterExportError(prepared.width, prepared.height, options.scale)
+      : undefined;
+  const smallerScale =
+    prepared &&
+    [3, 2, 1].find(
+      (scale) => scale < options.scale && rasterExportSize(prepared.width, prepared.height, scale).supported,
+    );
   const preview = prepared ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(prepared.svg)}` : undefined;
   const change = (next: typeof options) => {
     setOptions(next);
     setMessage("");
   };
   const download = async () => {
-    if (!current || !prepared) return;
+    if (!current || !prepared || sizeError || busy) return;
     setBusy(true);
     setMessage("");
     try {
@@ -163,9 +174,25 @@ export function ExportDialog({
                 {pdfPageSize(prepared.width, prepared.height).height} pt.
               </p>
             )}
+            {options.format !== "svg" && rasterSize && rasterSize.supported && (
+              <p>Estimated image memory: {rasterSize.memoryMiB} MiB. The browser may use more during export.</p>
+            )}
+            {sizeError && (
+              <div role="alert" aria-label="Image export size limit">
+                <p>{sizeError}</p>
+                {smallerScale && (
+                  <button type="button" onClick={() => change({ ...options, scale: smallerScale })}>
+                    Use {smallerScale}× scale
+                  </button>
+                )}
+                <button type="button" onClick={() => change({ ...options, format: "svg" })}>
+                  Switch to SVG
+                </button>
+              </div>
+            )}
             {preview && <img className="export-image-preview" src={preview} alt="Full diagram export preview" />}
-            <button disabled={!current || !prepared || busy} onClick={() => void download()}>
-              Download {options.format.toUpperCase()}
+            <button disabled={!current || !prepared || Boolean(sizeError) || busy} onClick={() => void download()}>
+              {busy ? "Exporting…" : `Download ${options.format.toUpperCase()}`}
             </button>
           </>
         ) : (

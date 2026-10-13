@@ -1,3 +1,5 @@
+import { rasterExportError, svgRasterDimensions } from "./raster-export-limits";
+
 export interface WritableFileHandle {
   readonly name: string;
   queryPermission?(options: { mode: "read" }): Promise<PermissionState>;
@@ -330,17 +332,20 @@ export async function rasterizeSvg(
   { scale = 2, type = "image/png", background }: { scale?: number; type?: string; background?: string } = {},
 ): Promise<RasterizedSvg> {
   if (!Number.isFinite(scale) || scale <= 0 || scale > 10) throw new Error("Invalid image export scale");
+  const dimensions = svgRasterDimensions(svg);
+  const preflightError = dimensions && rasterExportError(dimensions.width, dimensions.height, scale);
+  if (preflightError) throw new Error(preflightError);
   const blobUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  let canvas: HTMLCanvasElement | undefined;
   try {
     const image = new Image();
     image.src = blobUrl;
     await image.decode();
     const width = Math.max(1, image.naturalWidth || image.width);
     const height = Math.max(1, image.naturalHeight || image.height);
-    const pixels = Math.ceil(width * scale) * Math.ceil(height * scale);
-    if (!Number.isFinite(pixels) || width * scale > 16384 || height * scale > 16384 || pixels > 32_000_000)
-      throw new Error("Image export exceeds supported dimensions");
-    const canvas = document.createElement("canvas");
+    const sizeError = rasterExportError(width, height, scale);
+    if (sizeError) throw new Error(sizeError);
+    canvas = document.createElement("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
     const context = canvas.getContext("2d");
@@ -352,10 +357,19 @@ export async function rasterizeSvg(
     context.scale(scale, scale);
     context.drawImage(image, 0, 0, width, height);
     const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((value) => (value ? resolve(value) : reject(new Error("Could not create image"))), type, 0.92),
+      canvas!.toBlob(
+        (value) =>
+          value ? resolve(value) : reject(new Error("Could not create image. Try a lower scale or export SVG.")),
+        type,
+        0.92,
+      ),
     );
     return { blob, width, height };
   } finally {
+    if (canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
     URL.revokeObjectURL(blobUrl);
   }
 }

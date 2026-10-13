@@ -4,6 +4,32 @@ import { afterEach, expect, it, vi } from "vitest";
 import { ExportDialog } from "./ExportDialog";
 vi.mock("./use-dialog-focus", () => ({ useDialogFocus: vi.fn() }));
 afterEach(cleanup);
+it("offers a lower scale or SVG before an oversized raster export", () => {
+  localStorage.clear();
+  render(
+    <ExportDialog
+      mode="export"
+      source="large"
+      svg={'<svg xmlns="http://www.w3.org/2000/svg" width="8200" height="1000"/>'}
+      fileName="large.puml"
+      current
+      renderStatus="idle"
+      onRender={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.change(screen.getByRole("combobox", { name: "Format" }), { target: { value: "png" } });
+  expect(screen.getByRole("alert", { name: "Image export size limit" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Download PNG" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Use 1× scale" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect((screen.getByRole("button", { name: "Download PNG" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.change(screen.getByRole("combobox", { name: "Raster scale" }), { target: { value: "3" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Format" }), { target: { value: "pdf" } });
+  expect((screen.getByRole("button", { name: "Download PDF" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Switch to SVG" }));
+  expect((screen.getByRole("button", { name: "Download SVG" }) as HTMLButtonElement).disabled).toBe(false);
+});
 it("identifies stale output and prevents downloading it until its revision is current", () => {
   const props = {
     mode: "export" as const,
