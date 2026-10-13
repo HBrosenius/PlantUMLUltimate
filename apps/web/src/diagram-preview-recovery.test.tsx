@@ -3,6 +3,8 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
+import { parseActivity } from "@plantuml-studio/diagram-activity";
+import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
 import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
 
@@ -21,6 +23,30 @@ const common = {
   onZoomChange: vi.fn(),
   onRenderRetry: vi.fn(),
 };
+
+it("keeps Activity connection feedback through unrelated renders", () => {
+  const callback = vi.fn();
+  const props: ComponentProps<typeof ActivityDiagramPreview> = {
+    ...common,
+    document: parseActivity(""),
+    onSelect: callback,
+    onBackgroundSelect: callback,
+    onReorder: callback,
+    onConnect: callback,
+    onAttachNote: callback,
+  };
+  const view = render(<ActivityDiagramPreview {...props} />);
+  const svg = view.container.querySelector(".diagram svg")!;
+  const overlay = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  overlay.classList.add("activity-connection-preview");
+  svg.append(overlay);
+  view.rerender(
+    <ActivityDiagramPreview {...props} initialFit={{ documentId: "doc", fit: false, scroll: { left: 10, top: 20 } }} />,
+  );
+  expect(overlay.isConnected).toBe(true);
+  view.rerender(<ActivityDiagramPreview {...props} selectedId="different-selection" />);
+  expect(overlay.isConnected).toBe(false);
+});
 
 it("keeps the Sequence SVG and active drag overlay through recovery metadata renders", () => {
   const callback = vi.fn();

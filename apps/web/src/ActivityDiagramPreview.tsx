@@ -158,7 +158,7 @@ export function ActivityDiagramPreview({
           focusAfterRender.current = undefined;
         }, 100);
     }
-  });
+  }, [document, selectedId, svg, renderStatus]);
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
       const current = drag.current;
