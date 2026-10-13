@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
@@ -110,7 +110,7 @@ it("restores scroll per document and flushes pending scrolling to its original o
   );
   const viewport = view.getByTestId("viewport");
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(32);
+    await vi.advanceTimersByTimeAsync(64);
   });
   expect(viewport.scrollLeft).toBe(50);
   expect(viewport.scrollTop).toBe(80);
@@ -124,7 +124,7 @@ it("restores scroll per document and flushes pending scrolling to its original o
   );
   expect(saveA).toHaveBeenLastCalledWith({ left: 90, top: 120 });
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(32);
+    await vi.advanceTimersByTimeAsync(64);
   });
   expect(viewport.scrollLeft).toBe(20);
   expect(viewport.scrollTop).toBe(30);
@@ -137,7 +137,7 @@ it("restores scroll per document and flushes pending scrolling to its original o
     <Canvas initialFit={{ documentId: "a", fit: false, scroll: { left: 90, top: 120 }, onScrollChange: saveA }} />,
   );
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(32);
+    await vi.advanceTimersByTimeAsync(64);
   });
   expect(viewport.scrollLeft).toBe(90);
   expect(viewport.scrollTop).toBe(120);
@@ -148,4 +148,71 @@ it("restores scroll per document and flushes pending scrolling to its original o
   });
   expect(saveA).toHaveBeenLastCalledWith({ left: 140, top: 120 }, true);
   vi.restoreAllMocks();
+});
+
+it("waits for delayed SVG overflow before restoring and saving scroll positions", () => {
+  const frames = new Map<number, FrameRequestCallback>();
+  let frameId = 0;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    frames.set(++frameId, callback);
+    return frameId;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+  const tick = () =>
+    act(() => {
+      const pending = [...frames.values()];
+      frames.clear();
+      pending.forEach((callback) => callback(0));
+    });
+  const save = vi.fn();
+  const initialFit = { documentId: "large-diagram", fit: false, scroll: { left: 80, top: 180 }, onScrollChange: save };
+  const { result, rerender } = renderHook(
+    ({ svg }: { svg?: string }) => useDiagramNavigation(1, vi.fn(), { svg, initialFit }),
+    { initialProps: {} },
+  );
+  const viewport = document.createElement("div");
+  viewport.innerHTML = '<div class="diagram"><svg></svg></div>';
+  document.body.append(viewport);
+  let width = 100;
+  let height = 100;
+  let left = 0;
+  let top = 0;
+  Object.defineProperties(viewport, {
+    clientWidth: { get: () => 100 },
+    clientHeight: { get: () => 100 },
+    scrollWidth: { get: () => width },
+    scrollHeight: { get: () => height },
+    scrollLeft: {
+      get: () => left,
+      set: (value: number) => {
+        left = Math.min(value, width - 100);
+      },
+    },
+    scrollTop: {
+      get: () => top,
+      set: (value: number) => {
+        top = Math.min(value, height - 100);
+      },
+    },
+  });
+  result.current.viewportRef.current = viewport;
+  rerender({ svg: "<svg></svg>" });
+  tick();
+  act(() => {
+    viewport.dispatchEvent(new Event("scroll"));
+    window.dispatchEvent(new Event("pagehide"));
+  });
+  expect(save).not.toHaveBeenCalled();
+  // The SVG's overflow appears after the first frame, as observed on WebKit.
+  width = 500;
+  height = 800;
+  tick();
+  tick();
+  tick();
+  expect({ left, top }).toEqual({ left: 80, top: 180 });
+  act(() => {
+    viewport.dispatchEvent(new Event("scroll"));
+    window.dispatchEvent(new Event("pagehide"));
+  });
+  expect(save).toHaveBeenLastCalledWith({ left: 80, top: 180 }, true);
 });

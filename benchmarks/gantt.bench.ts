@@ -1,5 +1,11 @@
 import { bench, describe } from "vitest";
-import { applySourceEdits, moveTaskByDays, parseGantt, reorderTask } from "@plantuml-studio/diagram-gantt";
+import {
+  applySourceEdits,
+  ganttSymbolOccurrences,
+  moveTaskByDays,
+  parseGantt,
+  reorderTask,
+} from "@plantuml-studio/diagram-gantt";
 import { readFileSync } from "node:fs";
 import { parseGanttCalendar } from "../apps/web/src/gantt-calendar";
 import { resolveTaskDates } from "../apps/web/src/gantt-schedule";
@@ -55,6 +61,9 @@ for (const count of [50, 100, 500, 1000]) {
   describe(`${count} tasks`, () => {
     bench("parse", () => {
       parseGantt(source);
+    });
+    bench("index symbols", () => {
+      ganttSymbolOccurrences(source, document);
     });
     bench("move one task", () => {
       const task = document.tasks[Math.floor(count / 2)]!;

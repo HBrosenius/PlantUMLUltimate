@@ -88,3 +88,21 @@ A threshold breach is a prompt to reproduce and profile, not an automatic correc
 | Select task and open inspector |          51 ms |       50% slower |
 
 Browser timings include renderer and automation overhead, so their review thresholds are intentionally wider than CPU-only benchmarks. The Playwright suite separately provides deterministic coverage for startup completion, rendering replacement, large-document loading, drag feedback, keyboard movement, resizing, and reordering. Use a browser trace when a benchmark regresses to separate application work from automation and renderer startup overhead.
+
+## Editing responsiveness (2026-10-13)
+
+Run `npm run bench:responsiveness` for five production Chromium runs. It starts and stops its own preview server on port 4175, including on Windows. Each fresh browser context opens 12 unsaved Gantt documents (490,356 bytes of recovery JSON): one 300-task document, one 100-task document, and ten 1,000-task documents. It measures cursor movement and typing in the 300-task document, switches between the first two tabs ten times, renders the 100-task document, then exercises zoom and scrolling.
+
+Local medians on the same Windows machine, before and after collecting Gantt symbols in one pass and reusing keyword-repair patterns:
+
+| Workload                                           |   Before |    After |      Change |
+| -------------------------------------------------- | -------: | -------: | ----------: |
+| 20 typed characters, plus comment setup            | 5,143 ms | 2,864 ms |  44% faster |
+| 10 tab switches                                    | 1,716 ms | 1,227 ms |  28% faster |
+| 20 cursor movements                                |   219 ms |   204 ms |   7% faster |
+| First 100-task preview                             | 1,830 ms | 1,807 ms |   1% faster |
+| Longest typing task (median of each run's maximum) |   252 ms |   150 ms | 40% shorter |
+
+The CPU profile identified repeated whole-document scans in `ganttSymbolOccurrences`, followed by repeated construction of keyword-repair rules. Task occurrences now retain their previous ordering and alias/resource/separator semantics while scanning declaration lines once. The benchmark emits CPU samples for its first typing run, recovery serialization and storage-write timings for every stage, and post-GC main-frame heap sizes. Main-frame heap use remained around 38 MB before and after; this excludes the renderer worker/iframe's memory and does not establish long-session leak freedom.
+
+Recovery serialization plus synchronous writes accounted for about 49 ms of the original 5.14-second typing workload. Content recovery remains immediate. Typing still produces long tasks, so repeated parsing/diagnostics are the next profiling target. These timings include automation overhead, apply to the stated workloads, and are observational baselines rather than CI timing assertions. The navigation stage now places the pointer inside the viewport for actual horizontal/vertical touchpad gestures; its earlier measurements are excluded from this comparison. The render workload is 100 tasks; these results do not establish rendering performance for 300–1,000 tasks.

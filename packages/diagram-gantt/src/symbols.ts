@@ -26,16 +26,28 @@ function declarationLines(source: string, document: GanttDocument): TextRange[] 
   return [...new Map(ranges.map((item) => [`${item.from}:${item.to}`, item])).values()];
 }
 
-export function taskOccurrences(source: string, document: GanttDocument, task: GanttTask): GanttSymbolOccurrence[] {
-  const occurrences: GanttSymbolOccurrence[] = [];
-  for (const declaration of declarationLines(source, document)) {
+function collectTaskOccurrences(
+  source: string,
+  document: GanttDocument,
+  tasks: readonly GanttTask[],
+  declarations: readonly TextRange[],
+): GanttSymbolOccurrence[] {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const occurrences = new Map<string, GanttSymbolOccurrence[]>();
+  const add = (item: GanttSymbolOccurrence) => {
+    const entries = occurrences.get(item.key);
+    if (entries) entries.push(item);
+    else occurrences.set(item.key, [item]);
+  };
+  for (const declaration of declarations) {
     const text = source.slice(declaration.from, declaration.to);
     for (const match of text.matchAll(/\[([^\]]+)]/g)) {
       if (match.index === undefined || !match[1]) continue;
       const key = normalizeTaskId(match[1]);
-      if ((document.symbols.references.get(key) ?? key) !== task.id) continue;
+      const task = byId.get(document.symbols.references.get(key) ?? key);
+      if (!task) continue;
       const from = declaration.from + match.index + 1;
-      occurrences.push({
+      add({
         kind: "task",
         key: task.id,
         value: match[1],
@@ -46,12 +58,13 @@ export function taskOccurrences(source: string, document: GanttDocument, task: G
   }
   for (const separator of document.verticalSeparators) {
     const key = normalizeTaskId(separator.taskLabel);
-    if ((document.symbols.references.get(key) ?? key) !== task.id) continue;
+    const task = byId.get(document.symbols.references.get(key) ?? key);
+    if (!task) continue;
     const text = source.slice(separator.sourceRange.from, separator.sourceRange.to);
     const index = text.indexOf(`[${separator.taskLabel}]`);
     if (index < 0) continue;
     const from = separator.sourceRange.from + index + 1;
-    occurrences.push({
+    add({
       kind: "task",
       key: task.id,
       value: separator.taskLabel,
@@ -59,12 +72,18 @@ export function taskOccurrences(source: string, document: GanttDocument, task: G
       role: "reference",
     });
   }
-  return unique(occurrences);
+  // Keep task order and each task's source order, as callers previously received.
+  return tasks.flatMap((task) => occurrences.get(task.id) ?? []);
+}
+
+export function taskOccurrences(source: string, document: GanttDocument, task: GanttTask): GanttSymbolOccurrence[] {
+  return unique(collectTaskOccurrences(source, document, [task], declarationLines(source, document)));
 }
 
 export function ganttSymbolOccurrences(source: string, document: GanttDocument): GanttSymbolOccurrence[] {
-  const occurrences = document.tasks.flatMap((task) => taskOccurrences(source, document, task));
-  for (const declaration of declarationLines(source, document)) {
+  const declarations = declarationLines(source, document);
+  const occurrences = collectTaskOccurrences(source, document, document.tasks, declarations);
+  for (const declaration of declarations) {
     const text = source.slice(declaration.from, declaration.to);
     for (const block of text.matchAll(/\{([^}\r\n]+)}/g)) {
       if (block.index === undefined || !block[1]) continue;

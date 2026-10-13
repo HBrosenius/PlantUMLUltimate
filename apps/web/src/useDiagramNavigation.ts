@@ -88,6 +88,9 @@ export function useDiagramNavigation(
     if (!initialDocumentId || !options?.svg || !viewport || restoredDocument.current === initialDocumentId) return;
     if (!viewport.querySelector(".diagram svg") || !viewport.clientWidth || !viewport.clientHeight) return;
     let frame: number | undefined;
+    let previousBounds: string | undefined;
+    const bounds = () =>
+      `${viewport.scrollWidth}:${viewport.scrollHeight}:${viewport.clientWidth}:${viewport.clientHeight}`;
     const restore = () => {
       const diagram = viewport.querySelector<HTMLElement>(".diagram");
       // A reused preview can still be transitioning from the previous tab's zoom.
@@ -96,12 +99,28 @@ export function useDiagramNavigation(
         diagram?.offsetWidth &&
         Math.abs(diagram.getBoundingClientRect().width - diagram.offsetWidth * zoom) > Math.max(1, zoom)
       ) {
+        previousBounds = undefined;
         frame = requestAnimationFrame(restore);
         return;
       }
-      restoredDocument.current = initialDocumentId;
+      // WebKit can update SVG overflow a frame after its transform has settled.
+      // Keep recovery writes suspended until the scrollable bounds also settle.
+      const currentBounds = bounds();
+      if (previousBounds !== currentBounds) {
+        previousBounds = currentBounds;
+        frame = requestAnimationFrame(restore);
+        return;
+      }
       viewport.scrollLeft = savedScroll?.left ?? 0;
       viewport.scrollTop = savedScroll?.top ?? 0;
+      frame = requestAnimationFrame(() => {
+        if (bounds() !== currentBounds) {
+          previousBounds = undefined;
+          frame = requestAnimationFrame(restore);
+          return;
+        }
+        restoredDocument.current = initialDocumentId;
+      });
     };
     frame = requestAnimationFrame(restore);
     return () => {

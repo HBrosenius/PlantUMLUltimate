@@ -9,9 +9,29 @@ function distance(a: string, b: string): number {
   return row[b.length]!;
 }
 
+const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+const rules: Array<[RegExp, readonly string[]]> = [
+  [/^(\s*Project\s+)(\w+)(\s+\d{4}-\d{2}-\d{2}\s*)$/i, ["starts"]],
+  [/^(\s*)(\w+)(\s+(?:is|are)\s+(?:closed|opened)\s*)$/i, weekdays],
+  [new RegExp(`^(\\s*(?:${weekdays.join("|")})\\s+)(\\w+)(\\s+(?:closed|opened)\\s*)$`, "i"), ["is", "are"]],
+  [new RegExp(`^(\\s*(?:${weekdays.join("|")})\\s+(?:is|are)\\s+)(\\w+)(\\s*)$`, "i"), ["closed", "opened"]],
+  [
+    /^(\s*(?:printscale|ganttscale|projectscale)\s+)(\w+)(\s*(?:zoom\s+\d+\s*)?)$/i,
+    ["daily", "weekly", "monthly", "quarterly", "yearly"],
+  ],
+  [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+)(\w+)(\s+\[[^\]]+]'s\s+(?:start|end)\s*)$/i, ["at"]],
+  [/^(\s*(?:then\s+)?\[[^\]]+]\s+)(\w+)(\s+(?:\d{1,2}|100)%\s+completed\s*)$/i, ["is"]],
+  [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100)%\s+)(\w+)(\s*)$/i, ["completed"]],
+  [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+][’']s\s+)(\w+)(\s*)$/i, ["start", "end"]],
+  [
+    /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:lasts|requires)\s+\d+\s+)(\w+)(\s*)$/i,
+    ["day", "days", "week", "weeks", "month", "months"],
+  ],
+];
+
 /** Repair a single keyword only when the surrounding syntax identifies its role. */
 export function ganttKeywordRepair(text: string): { replacement: string; label: string } | undefined {
-  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const taskPrefix = text.match(/^\s*(?:then\s+)?\[[^\]]+]\s+/i)?.[0];
   const taskBody = taskPrefix ? text.slice(taskPrefix.length) : "";
   // Match one separator character per side; adjacent whitespace stays in its
@@ -34,24 +54,6 @@ export function ganttKeywordRepair(text: string): { replacement: string; label: 
     }
     return undefined;
   }
-  const rules: Array<[RegExp, readonly string[]]> = [
-    [/^(\s*Project\s+)(\w+)(\s+\d{4}-\d{2}-\d{2}\s*)$/i, ["starts"]],
-    [/^(\s*)(\w+)(\s+(?:is|are)\s+(?:closed|opened)\s*)$/i, weekdays],
-    [new RegExp(`^(\\s*(?:${weekdays.join("|")})\\s+)(\\w+)(\\s+(?:closed|opened)\\s*)$`, "i"), ["is", "are"]],
-    [new RegExp(`^(\\s*(?:${weekdays.join("|")})\\s+(?:is|are)\\s+)(\\w+)(\\s*)$`, "i"), ["closed", "opened"]],
-    [
-      /^(\s*(?:printscale|ganttscale|projectscale)\s+)(\w+)(\s*(?:zoom\s+\d+\s*)?)$/i,
-      ["daily", "weekly", "monthly", "quarterly", "yearly"],
-    ],
-    [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+)(\w+)(\s+\[[^\]]+]'s\s+(?:start|end)\s*)$/i, ["at"]],
-    [/^(\s*(?:then\s+)?\[[^\]]+]\s+)(\w+)(\s+(?:\d{1,2}|100)%\s+completed\s*)$/i, ["is"]],
-    [/^(\s*(?:then\s+)?\[[^\]]+]\s+is\s+(?:\d{1,2}|100)%\s+)(\w+)(\s*)$/i, ["completed"]],
-    [/^(\s*(?:then\s+)?\[[^\]]+]\s+(?:starts|ends)\s+at\s+\[[^\]]+][’']s\s+)(\w+)(\s*)$/i, ["start", "end"]],
-    [
-      /^(\s*(?:then\s+)?\[[^\]]+]\s+(?:lasts|requires)\s+\d+\s+)(\w+)(\s*)$/i,
-      ["day", "days", "week", "weeks", "month", "months"],
-    ],
-  ];
   for (const [pattern, keywords] of rules) {
     const match = text.match(pattern);
     if (!match) continue;
