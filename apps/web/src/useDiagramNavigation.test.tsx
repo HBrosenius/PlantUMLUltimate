@@ -175,11 +175,12 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
   document.body.append(viewport);
   let width = 100;
   let height = 100;
+  let clientSize = 0;
   let left = 0;
   let top = 0;
   Object.defineProperties(viewport, {
-    clientWidth: { get: () => 100 },
-    clientHeight: { get: () => 100 },
+    clientWidth: { get: () => clientSize },
+    clientHeight: { get: () => clientSize },
     scrollWidth: { get: () => width },
     scrollHeight: { get: () => height },
     scrollLeft: {
@@ -203,6 +204,15 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
     await Promise.resolve();
   });
   tick();
+  tick();
+  expect({ left, top }).toEqual({ left: 0, top: 0 });
+  // A collapsed border-box can still report its padding as client dimensions.
+  viewport.style.padding = "25px";
+  clientSize = 50;
+  tick();
+  tick();
+  expect({ left, top }).toEqual({ left: 0, top: 0 });
+  clientSize = 100;
   act(() => {
     viewport.dispatchEvent(new Event("scroll"));
     window.dispatchEvent(new Event("pagehide"));

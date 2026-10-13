@@ -22,8 +22,8 @@ const diagrams: Record<string, string> = {
     "\n@enduml",
   WBS:
     "@startwbs\n* Project\n" +
-    Array.from({ length: 3 }, (_, branch) =>
-      Array.from({ length: 20 }, (_, depth) => `${"*".repeat(depth + 2)} Branch ${branch} step ${depth}`).join("\n"),
+    Array.from({ length: 2 }, (_, branch) =>
+      Array.from({ length: 12 }, (_, depth) => `${"*".repeat(depth + 2)} B${branch} item ${depth}`).join("\n"),
     ).join("\n") +
     "\n@endwbs",
 };
@@ -114,7 +114,26 @@ for (const [secondKind, original] of Object.entries(diagrams)) {
     await checkPosition(120, 280, aZoom!);
     await tabs.nth(1).click();
     await checkPosition(80, 180, bZoom!);
+    // Make the first recovered SVG arrive before its viewport has usable dimensions.
+    // Recovery must retry when layout becomes available without another React render.
+    await page.addInitScript(() => {
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          const style = document.createElement("style");
+          style.id = "navigation-delayed-layout";
+          style.textContent = ".workspace .preview-viewport { width: 0 !important; height: 0 !important; }";
+          document.head.append(style);
+        },
+        { once: true },
+      );
+    });
     await page.reload();
+    await expect(page.locator(".preview[data-render-status]")).toHaveAttribute("data-render-status", "idle", {
+      timeout: 45_000,
+    });
+    await expect(page.locator(".diagram svg")).toHaveCount(1);
+    await page.locator("#navigation-delayed-layout").evaluate((element) => element.remove());
     await checkPosition(80, 180, bZoom!);
     expect(await readEditorSource(page)).toBe(b);
     const objectAttribute: Record<string, string> = {

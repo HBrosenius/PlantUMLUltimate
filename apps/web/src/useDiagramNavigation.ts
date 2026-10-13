@@ -89,7 +89,6 @@ export function useDiagramNavigation(
     const viewport = viewportRef.current;
     if (!initialDocumentId || !options?.svg || !viewport) return;
     // WBS inserts its SVG in a later layout effect. Observe the viewport even before that insertion.
-    if (!viewport.clientWidth || !viewport.clientHeight) return;
     let frame: number | undefined;
     let renderedSvg = viewport.querySelector(".diagram svg");
     if (restoredSvg.current !== renderedSvg) restoredDocument.current = undefined;
@@ -103,6 +102,15 @@ export function useDiagramNavigation(
     const bounds = () =>
       `${viewport.scrollWidth}:${viewport.scrollHeight}:${viewport.clientWidth}:${viewport.clientHeight}`;
     const restore = () => {
+      // WebKit may expose the SVG before its containing workspace has a layout box.
+      // Keep the recovery pending rather than abandoning it on that first frame.
+      const style = getComputedStyle(viewport);
+      const paddingX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      const paddingY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+      if (viewport.clientWidth <= paddingX || viewport.clientHeight <= paddingY) {
+        frame = requestAnimationFrame(restore);
+        return;
+      }
       const diagram = viewport.querySelector<HTMLElement>(".diagram");
       // A reused preview can still be transitioning from the previous tab's zoom.
       // Assigning scroll offsets before it settles would clamp them to the old bounds.
