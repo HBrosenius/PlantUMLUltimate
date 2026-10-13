@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as R
 
 import { initialDiagramZoom } from "./initial-diagram-zoom";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
+import { useDiagramFocusContinuity } from "./use-diagram-focus-continuity";
 
 export interface InitialDiagramFit {
   documentId: string;
@@ -16,6 +17,7 @@ export function useDiagramNavigation(
   options?: { svg?: string | undefined; initialFit?: InitialDiagramFit | undefined },
 ) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  useDiagramFocusContinuity(viewportRef, options?.initialFit?.documentId);
   const panRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | undefined>(undefined);
   const zoomRef = useRef(zoom);
   const gestureRef = useRef<{ at: number; pan: boolean } | undefined>(undefined);

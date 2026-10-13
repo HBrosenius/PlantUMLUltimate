@@ -989,7 +989,7 @@ export function App() {
     selectObject: selectActivityObject,
     selectFromSource: selectActivityFromSource,
     dismissInspector: dismissActivityInspector,
-  } = useActivityController(workspace.diagramKind, activityDocument);
+  } = useActivityController(workspace.diagramKind, activityDocument, tabs.activeId);
   const revealClassSource = useCallback((range: { from: number; to: number }) => setSelectionRequest({ ...range }), []);
   const {
     selectedObjectId: selectedClassObjectId,
