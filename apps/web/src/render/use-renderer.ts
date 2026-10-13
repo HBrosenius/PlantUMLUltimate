@@ -23,6 +23,7 @@ interface FrameMessage {
 }
 const TIMEOUT_MS = 15_000;
 const RENDER_TIMEOUT_MS = 30_000;
+const SUPERSEDED_GRACE_MS = 500;
 const CACHE_BYTES = 20_000_000;
 const cacheKey = (documentId: string, source: string) => JSON.stringify([documentId, source]);
 
@@ -41,6 +42,7 @@ export function useRenderer(
   latest.current = { source, documentId };
   const requestId = useRef(0);
   const flush = useRef<(() => void) | undefined>(undefined);
+  const supersede = useRef<(() => void) | undefined>(undefined);
   const cache = useRef(new Map<string, RenderResult>());
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
@@ -56,6 +58,7 @@ export function useRenderer(
     let booting = false;
     let inFlight: PendingRender | undefined;
     let timeout: number | undefined;
+    let obsoleteTimer: number | undefined;
     let startupTimeout: number | undefined;
     let recoveryTimer: number | undefined;
     let recoveryAttempted = false;
@@ -86,6 +89,8 @@ export function useRenderer(
       }
       frame = undefined;
       window.clearTimeout(timeout);
+      window.clearTimeout(obsoleteTimer);
+      obsoleteTimer = undefined;
       window.clearTimeout(startupTimeout);
     };
     const fail = (error: string, request = inFlight ?? pending.current) => {
@@ -118,6 +123,8 @@ export function useRenderer(
           if (!isCurrent(request)) {
             inFlight = undefined;
             window.clearTimeout(timeout);
+            window.clearTimeout(obsoleteTimer);
+            obsoleteTimer = undefined;
             sendPending();
             return;
           }
@@ -132,6 +139,8 @@ export function useRenderer(
           fail(error instanceof Error ? error.message : "Could not prepare diagram text", request);
           inFlight = undefined;
           window.clearTimeout(timeout);
+          window.clearTimeout(obsoleteTimer);
+          obsoleteTimer = undefined;
           sendPending();
         },
       );
@@ -142,6 +151,19 @@ export function useRenderer(
         removeFrame();
         if (pending.current) void boot();
       }, RENDER_TIMEOUT_MS);
+    };
+    supersede.current = () => {
+      const obsolete = inFlight;
+      if (!obsolete || isCurrent(obsolete) || obsoleteTimer !== undefined) return;
+      // Let short renders finish normally, but don't block a newer edit behind expensive work.
+      obsoleteTimer = window.setTimeout(() => {
+        obsoleteTimer = undefined;
+        if (disposed || inFlight !== obsolete || isCurrent(obsolete)) return;
+        frame?.contentWindow?.postMessage({ channel, type: "cancel", requestId: obsolete.requestId }, "*");
+        inFlight = undefined;
+        window.clearTimeout(timeout);
+        sendPending();
+      }, SUPERSEDED_GRACE_MS);
     };
     flush.current = () => {
       if (!frame && !booting) void boot();
@@ -220,6 +242,13 @@ export function useRenderer(
       const request = inFlight;
       inFlight = undefined;
       window.clearTimeout(timeout);
+      window.clearTimeout(obsoleteTimer);
+      obsoleteTimer = undefined;
+      // Stale SVGs can be very large. Drop them before parsing, sanitizing, or caching them.
+      if (!isCurrent(request)) {
+        sendPending();
+        return;
+      }
       const completed: RenderResult = {
         requestId: request.requestId,
         source: request.source,
@@ -273,12 +302,14 @@ export function useRenderer(
       window.clearTimeout(recoveryTimer);
       removeFrame();
       flush.current = undefined;
+      supersede.current = undefined;
     };
   }, [enabled, restart, layoutEngine, documentId]);
 
   useEffect(() => {
     const id = ++requestId.current;
     pending.current = undefined;
+    supersede.current?.();
     if (!enabled) {
       setStatus("idle");
       return;

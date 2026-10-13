@@ -161,6 +161,15 @@ try {
       await page.locator(".diagram svg").waitFor({ timeout: 60_000 });
       await page.getByRole("button", { name: "Reset zoom, 100%", exact: true }).waitFor();
     });
+    await editor.focus();
+    await measure("split-typing-20", async () => {
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.press("Home");
+      await page.keyboard.insertText("' ");
+      await page.keyboard.type("split-editing-check!");
+      await page.keyboard.press("Enter");
+    });
+    await page.getByText("Preview current", { exact: true }).last().waitFor({ timeout: 60_000 });
     await measure("zoom-scroll-10", async () => {
       for (let i = 0; i < 5; i++)
         await page.getByRole("button", { name: i % 2 ? "Zoom out" : "Zoom in", exact: true }).click();

@@ -2,6 +2,8 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRenderer } from "./use-renderer";
+import * as svgSanitizer from "./sanitize-svg";
+import { buildFontAtlas } from "./font-atlas";
 
 vi.mock("./renderer-assets", () => ({
   loadRendererAssets: vi.fn(async () => ({ engine: "", graphviz: "", worker: "", icons: "" })),
@@ -37,7 +39,7 @@ function rendererFrame() {
     });
   };
   const requests = () => outgoing.mock.calls.map(([message]) => message).filter((message) => message.type === "render");
-  return { receive, requests };
+  return { receive, requests, outgoing, element: frame };
 }
 
 async function setup() {
@@ -70,6 +72,106 @@ it("ignores delayed success and error replies before showing the latest source",
     unmount();
     await advance();
   }
+});
+
+it("cancels an obsolete render and sends only the latest queued edit without waiting for a reply", async () => {
+  const { result, rerender, frame } = await setup();
+  const original = frame.requests().at(-1)!;
+  rerender({ text: source("Intermediate"), documentId: "A" });
+  await advance();
+  rerender({ text: source("Latest"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(600);
+  });
+  expect(
+    frame.outgoing.mock.calls.some(
+      ([message]) => message.type === "cancel" && message.requestId === original.requestId,
+    ),
+  ).toBe(true);
+  expect(frame.requests().map((request) => request.source)).toEqual([source("Original"), source("Latest")]);
+  await frame.receive({ type: "result", requestId: original.requestId, error: "Obsolete failure" });
+  expect(result.current.status).toBe("rendering");
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Latest") });
+  expect(result.current.result?.source).toBe(source("Latest"));
+});
+
+it("discards stale SVGs before sanitizing them and keeps short renders warm", async () => {
+  const sanitize = vi.spyOn(svgSanitizer, "sanitizeSvg");
+  const { rerender, frame } = await setup();
+  const original = frame.requests().at(-1)!;
+  rerender({ text: source("Latest"), documentId: "A" });
+  await advance();
+  await frame.receive({ type: "result", requestId: original.requestId, svg: svg("Obsolete") });
+  expect(sanitize).not.toHaveBeenCalled();
+  const latest = frame.requests().at(-1)!;
+  await frame.receive({ type: "result", requestId: latest.requestId, svg: svg("Latest") });
+  expect(sanitize).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+  });
+  expect(frame.outgoing.mock.calls.some(([message]) => message.type === "cancel")).toBe(false);
+});
+
+it("cancels obsolete work when Undo restores a cached preview", async () => {
+  const { result, rerender, frame } = await setup();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Original") });
+  rerender({ text: source("Expensive edit"), documentId: "A" });
+  await advance();
+  const expensive = frame.requests().at(-1)!;
+  rerender({ text: source("Original"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(600);
+  });
+  expect(result.current.status).toBe("idle");
+  expect(result.current.result?.source).toBe(source("Original"));
+  expect(frame.requests()).toHaveLength(2);
+  expect(
+    frame.outgoing.mock.calls.some(
+      ([message]) => message.type === "cancel" && message.requestId === expensive.requestId,
+    ),
+  ).toBe(true);
+});
+
+it("disposes the active worker and clears cancellation timers when the preview closes", async () => {
+  const { rerender, unmount, frame } = await setup();
+  rerender({ text: source("Queued edit"), documentId: "A" });
+  unmount();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+  });
+  expect(frame.outgoing.mock.calls.some(([message]) => message.type === "dispose")).toBe(true);
+  expect(frame.outgoing.mock.calls.some(([message]) => message.type === "cancel")).toBe(false);
+  expect(frame.element.isConnected).toBe(false);
+});
+
+it("starts a fresh cancellation window after obsolete font preparation is abandoned", async () => {
+  const { rerender, frame } = await setup();
+  const original = frame.requests().at(-1)!;
+  let finishFonts!: () => void;
+  vi.mocked(buildFontAtlas).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishFonts = () => resolve({ texts: [], fonts: [], metrics: new Float32Array(0) });
+      }),
+  );
+  rerender({ text: source("Preparing fonts"), documentId: "A" });
+  await advance();
+  await frame.receive({ type: "result", requestId: original.requestId, svg: svg("Obsolete") });
+  rerender({ text: source("Latest"), documentId: "A" });
+  await advance();
+  await act(async () => {
+    finishFonts();
+  });
+  const latest = frame.requests().at(-1)!;
+  expect(latest.source).toBe(source("Latest"));
+  rerender({ text: source("Newest"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(600);
+  });
+  expect(
+    frame.outgoing.mock.calls.some(([message]) => message.type === "cancel" && message.requestId === latest.requestId),
+  ).toBe(true);
+  expect(frame.requests().at(-1)!.source).toBe(source("Newest"));
 });
 
 it("rejects replies from a retired document frame after switching tabs", async () => {

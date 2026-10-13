@@ -62,8 +62,10 @@ export function frameDocument(channel: string): string {
     const stop = () => { worker?.terminate(); worker = undefined; ready = false; nextRequest = undefined; };
     const start = () => {
       worker = new Worker(configuration.worker);
-      worker.onerror = (event) => { send({ type: initialized ? "result" : "bootstrap-error", requestId: nextRequest?.requestId, error: event.message || "Renderer worker failed" }); stop(); };
+      const activeWorker = worker;
+      worker.onerror = (event) => { if (worker !== activeWorker) return; send({ type: initialized ? "result" : "bootstrap-error", requestId: nextRequest?.requestId, error: event.message || "Renderer worker failed" }); stop(); };
       worker.onmessage = (event) => {
+        if (worker !== activeWorker) return;
         const message = event.data;
         if (message.type === "ready") {
           ready = true;
@@ -95,6 +97,7 @@ export function frameDocument(channel: string): string {
           return;
         }
         if (request.type === "dispose") { stop(); send({ type: "disposed" }); return; }
+        if (request.type === "cancel") { if (nextRequest?.requestId === request.requestId) { stop(); completedRenders = 0; } return; }
         if (request.type !== "render" || !configuration) return;
         nextRequest = request;
         if (!worker) start();
