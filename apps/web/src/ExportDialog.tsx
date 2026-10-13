@@ -3,6 +3,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { downloadText, downloadSvgAsPng, svgFileName } from "./file-service";
 import { copyText, downloadDiagramPdf, pdfPageSize } from "./diagram-export";
 import { encodedDiagramUrl, exportPreferencesKey, loadExportOptions, prepareExportSvg } from "./export-preview";
+import type { RenderStatus } from "./model";
 
 export function ExportDialog({
   mode,
@@ -10,6 +11,9 @@ export function ExportDialog({
   svg,
   fileName,
   current,
+  renderStatus,
+  renderError,
+  onRender,
   onClose,
 }: {
   mode: "export" | "share";
@@ -17,6 +21,9 @@ export function ExportDialog({
   svg?: string | undefined;
   fileName: string;
   current: boolean;
+  renderStatus: RenderStatus;
+  renderError?: string | undefined;
+  onRender(): void;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -76,11 +83,22 @@ export function ExportDialog({
         <h2>{mode === "export" ? "Export preview" : "Link and embed sharing"}</h2>
         {mode === "export" ? (
           <>
-            <p>
+            <p role="status">
               {current
                 ? "Preview matches the current successfully rendered source."
-                : "Preview is stale or unavailable. Render the current source before exporting."}
+                : renderStatus === "rendering"
+                  ? "Rendering the current source. Downloads will become available when its preview is ready."
+                  : renderStatus === "error"
+                    ? "The current source could not be rendered. Downloads are unavailable until rendering succeeds."
+                    : "Preview is stale or unavailable. Render the current source before exporting."}
             </p>
+            {!current && svg && <p>The image below is the last successful diagram and may differ from your source.</p>}
+            {!current && renderStatus === "error" && renderError && <p role="alert">{renderError}</p>}
+            {!current && renderStatus !== "rendering" && (
+              <button type="button" onClick={onRender}>
+                {renderStatus === "error" ? "Retry rendering" : "Render current source"}
+              </button>
+            )}
             <label>
               Format
               <select

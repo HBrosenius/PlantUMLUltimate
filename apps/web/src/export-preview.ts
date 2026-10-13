@@ -1,4 +1,16 @@
 import { sanitizeSvg } from "./render/sanitize-svg";
+import type { RenderResult, RenderStatus } from "./model";
+
+export function canExportPreview(
+  result: RenderResult | undefined,
+  source: string,
+  documentId: string,
+  status: RenderStatus,
+): boolean {
+  return Boolean(
+    status === "idle" && result?.svg && !result.error && result.source === source && result.documentId === documentId,
+  );
+}
 
 export interface ExportOptions {
   format: "svg" | "png" | "pdf";

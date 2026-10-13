@@ -11,16 +11,36 @@ it("identifies stale output and prevents downloading it until its revision is cu
     svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80"/>',
     fileName: "diagram.puml",
     onClose: vi.fn(),
+    renderStatus: "idle" as const,
+    onRender: vi.fn(),
   };
   const view = render(<ExportDialog {...props} current={false} />);
   expect(screen.getByText(/Preview is stale/)).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Download SVG" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Render current source" }));
+  expect(props.onRender).toHaveBeenCalledOnce();
+  view.rerender(<ExportDialog {...props} current={false} renderStatus="rendering" />);
+  expect(screen.getByRole("status").textContent).toContain("Rendering the current source");
+  expect(screen.queryByRole("button", { name: "Render current source" })).toBeNull();
+  view.rerender(<ExportDialog {...props} current={false} renderStatus="error" renderError="Renderer failed" />);
+  expect(screen.getByRole("alert").textContent).toContain("Renderer failed");
+  fireEvent.click(screen.getByRole("button", { name: "Retry rendering" }));
+  expect(props.onRender).toHaveBeenCalledTimes(2);
   expect((screen.getByRole("button", { name: "Download SVG" }) as HTMLButtonElement).disabled).toBe(true);
   view.rerender(<ExportDialog {...props} current />);
   expect((screen.getByRole("button", { name: "Download SVG" }) as HTMLButtonElement).disabled).toBe(false);
 });
 it("requires destination disclosure and generates text without loading an external image", () => {
   render(
-    <ExportDialog mode="share" source="@startuml\nA -> B\n@enduml" fileName="diagram.puml" current onClose={vi.fn()} />,
+    <ExportDialog
+      mode="share"
+      source="@startuml\nA -> B\n@enduml"
+      fileName="diagram.puml"
+      current
+      renderStatus="idle"
+      onRender={vi.fn()}
+      onClose={vi.fn()}
+    />,
   );
   const generate = screen.getByRole("button", { name: "Generate link locally" }) as HTMLButtonElement;
   expect(generate.disabled).toBe(true);
@@ -31,7 +51,14 @@ it("requires destination disclosure and generates text without loading an extern
   expect(screen.queryByRole("link")).toBeNull();
 });
 it("clears generated links and disclosure consent when source changes", () => {
-  const props = { mode: "share" as const, fileName: "diagram.puml", current: true, onClose: vi.fn() };
+  const props = {
+    mode: "share" as const,
+    fileName: "diagram.puml",
+    current: true,
+    onClose: vi.fn(),
+    renderStatus: "idle" as const,
+    onRender: vi.fn(),
+  };
   const view = render(<ExportDialog {...props} source="old source" />);
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "Generate link locally" }));

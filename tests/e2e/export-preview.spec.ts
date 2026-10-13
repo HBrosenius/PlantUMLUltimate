@@ -1,11 +1,53 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
+import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 async function open(page: Parameters<typeof prepareEditor>[0], name: string) {
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Export", exact: true }).click();
   await page.getByRole("menuitem", { name, exact: true }).click();
 }
+test("renders edited Code-view source before allowing an image download", async ({ page }) => {
+  test.setTimeout(90_000);
+  await prepareEditor(page);
+  await waitForDiagramRender(page);
+  await page.getByRole("button", { name: "Code", exact: true }).click();
+  await fillSource(page, "@startgantt\n[Latest export revision] lasts 3 days\n@endgantt");
+  await open(page, "Preview export…");
+  const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
+  for (const format of ["svg", "png", "pdf"]) {
+    await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption(format);
+    await expect(dialog.getByRole("button", { name: `Download ${format.toUpperCase()}` })).toBeDisabled();
+  }
+  await dialog.getByRole("button", { name: "Render current source" }).click();
+  await expect(dialog.getByText("Preview matches the current successfully rendered source.")).toBeVisible({
+    timeout: 45_000,
+  });
+  await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption("svg");
+  const download = page.waitForEvent("download");
+  await dialog.getByRole("button", { name: "Download SVG" }).click();
+  expect(readFileSync((await (await download).path())!, "utf8")).toContain("Latest export revision");
+});
+
+test("explains failed renders and disables every image format while retaining the previous preview", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await prepareEditor(page);
+  await waitForDiagramRender(page);
+  await fillSource(page, "@startgantt\n[Broken] starts nope\n@endgantt");
+  await expect(page.locator(".preview")).toHaveAttribute("data-render-status", "error", { timeout: 45_000 });
+  await open(page, "Preview export…");
+  const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
+  await expect(dialog).toContainText("The image below is the last successful diagram");
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  for (const format of ["svg", "png", "pdf"]) {
+    await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption(format);
+    await expect(dialog.getByRole("button", { name: `Download ${format.toUpperCase()}` })).toBeDisabled();
+  }
+  await dialog.getByRole("button", { name: "Retry rendering" }).click();
+  await expect(dialog.getByRole("button", { name: "Retry rendering" })).toBeVisible({ timeout: 45_000 });
+  await expect(dialog.getByRole("button", { name: "Download PDF" })).toBeDisabled();
+});
 test("previews and downloads all formats, remembers preferences and preserves source", async ({ page }) => {
   await prepareEditor(page);
   await waitForDiagramRender(page);

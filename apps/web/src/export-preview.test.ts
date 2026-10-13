@@ -6,8 +6,19 @@ import {
   exportPreferencesKey,
   loadExportOptions,
   prepareExportSvg,
+  canExportPreview,
 } from "./export-preview";
 describe("export preview", () => {
+  it("exports only the successfully rendered current document and source", () => {
+    const result = { requestId: 1, svg: "<svg/>", source: "current", documentId: "doc", durationMs: 1 };
+    expect(canExportPreview(result, "current", "doc", "idle")).toBe(true);
+    expect(canExportPreview(result, "edited", "doc", "idle")).toBe(false);
+    expect(canExportPreview(result, "current", "other", "idle")).toBe(false);
+    expect(canExportPreview(undefined, "current", "doc", "idle")).toBe(false);
+    expect(canExportPreview(result, "current", "doc", "rendering")).toBe(false);
+    expect(canExportPreview(result, "current", "doc", "error")).toBe(false);
+    expect(canExportPreview({ ...result, error: "Retry failed" }, "current", "doc", "idle")).toBe(false);
+  });
   it("retains nonzero viewBox bounds and adds margins without cropping", () => {
     const output = prepareExportSvg(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 120 80"><text x="10" y="30">Hello</text></svg>',

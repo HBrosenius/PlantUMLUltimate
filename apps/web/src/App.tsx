@@ -1,3 +1,4 @@
+import { canExportPreview } from "./export-preview";
 import { InlineLabelEditor } from "./InlineLabelEditor";
 import { RenderSizeNotice } from "./render/RenderSizeNotice";
 import { renderSizeLimit } from "./render/size-limit";
@@ -2464,15 +2465,16 @@ export function App() {
     [workspace.source, workspace.diagramKind, tabs.activeId],
   );
   const [exportDialog, setExportDialog] = useState<"export" | "share">();
+  const exportReady = canExportPreview(result, workspace.source, tabs.activeId, status);
   const exportSvg = useCallback(() => {
-    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
+    if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting SVG");
       return;
     }
     downloadText(result.svg, svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
-  }, [result, workspace.fileName, workspace.source, tabs.activeId, setInteractionMessage]);
+  }, [exportReady, result, workspace.fileName, setInteractionMessage]);
   const exportPng = useCallback(async () => {
-    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
+    if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting PNG");
       return;
     }
@@ -2481,9 +2483,9 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [reportFileError, result, workspace.fileName, workspace.source, tabs.activeId, setInteractionMessage]);
+  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage]);
   const exportPdf = useCallback(async () => {
-    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
+    if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting PDF");
       return;
     }
@@ -2493,17 +2495,9 @@ export function App() {
     } catch (error) {
       reportFileError(error);
     }
-  }, [
-    reportFileError,
-    result,
-    workspace.fileName,
-    workspace.source,
-    tabs.activeId,
-    setInteractionMessage,
-    notifySuccess,
-  ]);
+  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage, notifySuccess]);
   const copyImage = useCallback(async () => {
-    if (!result?.svg || result.source !== workspace.source || result.documentId !== tabs.activeId) {
+    if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before copying it");
       return;
     }
@@ -2513,7 +2507,7 @@ export function App() {
     } catch (error) {
       setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
     }
-  }, [result, workspace.source, tabs.activeId, setInteractionMessage, notifySuccess]);
+  }, [exportReady, result, setInteractionMessage, notifySuccess]);
   const copySourceAs = useCallback(
     async (text: string, label: string) => {
       try {
@@ -3131,28 +3125,28 @@ export function App() {
         id: "export.svg",
         label: "Export SVG",
         category: "Export",
-        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        enabled: exportReady,
         run: exportSvg,
       },
       {
         id: "export.png",
         label: "Export PNG",
         category: "Export",
-        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        enabled: exportReady,
         run: exportPng,
       },
       {
         id: "export.pdf",
         label: "Export PDF",
         category: "Export",
-        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        enabled: exportReady,
         run: exportPdf,
       },
       {
         id: "export.copy-image",
         label: "Copy diagram image",
         category: "Export",
-        enabled: Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId),
+        enabled: exportReady,
         run: copyImage,
       },
       { id: "export.copy-markdown", label: "Copy as Markdown", category: "Export", run: copyMarkdown },
@@ -3181,6 +3175,7 @@ export function App() {
     copyConfluence,
     copyImage,
     copyMarkdown,
+    exportReady,
     exportPdf,
     exportPng,
     exportSource,
@@ -3197,7 +3192,6 @@ export function App() {
     restoreWorkspace,
     result,
     tabs.activeId,
-    workspace.source,
     saveCurrentDocument,
     saveCurrentDocumentAs,
     setCollaborationDialogOpen,
@@ -3891,7 +3885,13 @@ export function App() {
           source={workspace.source}
           svg={result?.documentId === tabs.activeId ? result.svg : undefined}
           fileName={workspace.fileName}
-          current={Boolean(result?.svg && result.source === workspace.source && result.documentId === tabs.activeId)}
+          current={exportReady}
+          renderStatus={status}
+          renderError={result?.error}
+          onRender={() => {
+            if (viewMode === "code") update("viewMode", "split");
+            retryRender();
+          }}
           onClose={() => setExportDialog(undefined)}
         />
       )}
@@ -3900,9 +3900,7 @@ export function App() {
         <div className="file-tools" aria-label="File controls">
           <FileMenu
             saving={fileSaving}
-            canExport={Boolean(
-              result?.svg && result.source === workspace.source && result.documentId === tabs.activeId,
-            )}
+            canExport={exportReady}
             onNew={newDocument}
             onNewProject={() => openDialog({ kind: "new-project" })}
             onOpenRecent={() => setOpenWorkOpen(true)}
