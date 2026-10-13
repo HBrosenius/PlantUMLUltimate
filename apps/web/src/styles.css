@@ -1035,6 +1035,10 @@ textarea:focus-visible {
 }
 .render-notice.rendering {
   border-color: var(--accent);
+  pointer-events: none;
+}
+.activity-preview .render-notice {
+  top: 112px;
 }
 .render-notice.error {
   border-color: #dc2626;
