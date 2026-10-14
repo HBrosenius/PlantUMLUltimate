@@ -26,6 +26,7 @@ import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 import { WorkspaceHint } from "./WorkspaceHint";
 import { storageGet } from "./safe-storage";
+import { applyShellTheme } from "./shell-theme";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
 import type { RepairCategory } from "./remaining-repair-summary";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
@@ -445,6 +446,9 @@ export function App() {
   const externalCheckSnoozedUntil = useRef(new Map<string, number>());
   const workspaceElement = useRef<HTMLElement>(null);
   useWorkspaceLayout(workspaceElement, hydrated);
+  useEffect(() => {
+    if (hydrated) applyShellTheme(workspace.theme);
+  }, [hydrated, workspace.theme]);
   const { captureBeforeCommit } = useWorkspaceFocus(workspace.source, workspaceElement);
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const lastDiagramFocusSelector = useRef<string | undefined>(undefined);
@@ -3898,7 +3902,12 @@ export function App() {
       }
     }
   }
-  if (!hydrated) return <main role="status">Restoring workspace…</main>;
+  if (!hydrated)
+    return (
+      <main role="status" className="workspace-restoring">
+        Restoring workspace…
+      </main>
+    );
 
   return (
     <div

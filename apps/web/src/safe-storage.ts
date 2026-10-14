@@ -12,3 +12,10 @@ export function storageRemove(key: string): void {
     /* In-memory editing remains available. */
   }
 }
+export function storageSet(key: string, value: string): void {
+  try {
+    globalThis.localStorage?.setItem(key, value);
+  } catch {
+    /* Quota or privacy errors leave the in-memory state untouched. */
+  }
+}
