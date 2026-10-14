@@ -296,6 +296,10 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');
     await expect(fromEndpoint).toBeVisible();
     await expect(repositoryTarget).toBeVisible();
+    // Fit animates the diagram transform; measure the 6 px handle only once that transition has finished.
+    await expect
+      .poll(() => page.locator(".class-diagram").evaluate((element) => element.getAnimations({ subtree: true }).length))
+      .toBe(0);
     const endpointBox = await fromEndpoint.boundingBox();
     const repositoryBox = await repositoryTarget.boundingBox();
     expect(endpointBox).not.toBeNull();
