@@ -38,7 +38,7 @@ import {
   liveProjectFromSharedDocument,
   sharedDocumentFromProject,
   type SharedDocument,
-} from "../collaboration-document";
+} from "../shared-document";
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";

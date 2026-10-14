@@ -4,18 +4,15 @@ import { InlineLabelEditor } from "./InlineLabelEditor";
 import { RenderSizeNotice } from "./render/RenderSizeNotice";
 import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
-import { LinkedWorkPreviewDialog, type LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
+import type { LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
 import { MobileWorkList } from "./MobileWorkList";
 import { GanttTaskTable } from "./GanttTaskTable";
 import { editTaskRow, editTaskRows, type TaskRowDraft } from "./gantt-task-table";
-import { FormatSourceDialog } from "./FormatSourceDialog";
-import { ExportDialog } from "./ExportDialog";
 import { OpenWorkDialog } from "./OpenWorkDialog";
 import { useEditorPreferences } from "./editor-preferences";
 import { requestSidePanelChange } from "./side-panel-events";
 import { useSidePanelState } from "./use-side-panel-state";
 import { previewStatusLabel } from "./render/preview-status";
-import { ReportsDialog } from "./features/reports/ReportsDialog";
 import { useInteractionMessage } from "./use-interaction-message";
 import { startupChooserPolicy } from "./startup-chooser-policy";
 import { FileSaveStatus } from "./FileSaveStatus";
@@ -79,10 +76,8 @@ import {
   type DiagramOutlineEntry,
 } from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
-import { ProjectInspector } from "./ProjectInspector";
 
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
-import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
 import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
@@ -104,7 +99,6 @@ import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
 import { plantUmlTheme, setPlantUmlTheme } from "./plantuml-theme";
 
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
-import { CollaborationDialog } from "./CollaborationDialog";
 
 import { AddMenu } from "./AddMenu";
 import { SaveStarterDialog } from "./PersonalStarters";
@@ -258,6 +252,36 @@ const SettingsDialog = lazyFeature<ComponentProps<typeof import("./SettingsDialo
 const JiraDialog = lazyFeature<ComponentProps<typeof import("./JiraDialog").JiraDialog>>(
   () => import("./JiraDialog").then((module) => ({ default: module.JiraDialog })),
   "the Jira integration",
+);
+const ReportsDialog = lazyFeature<ComponentProps<typeof import("./features/reports/ReportsDialog").ReportsDialog>>(
+  () => import("./features/reports/ReportsDialog").then((module) => ({ default: module.ReportsDialog })),
+  "reports",
+);
+const ExportDialog = lazyFeature<ComponentProps<typeof import("./ExportDialog").ExportDialog>>(
+  () => import("./ExportDialog").then((module) => ({ default: module.ExportDialog })),
+  "export options",
+);
+const CollaborationDialog = lazyFeature<ComponentProps<typeof import("./CollaborationDialog").CollaborationDialog>>(
+  () => import("./CollaborationDialog").then((module) => ({ default: module.CollaborationDialog })),
+  "collaboration",
+);
+const HelpDialog = lazyFeature<ComponentProps<typeof import("./HelpDialog").HelpDialog>>(
+  () => import("./HelpDialog").then((module) => ({ default: module.HelpDialog })),
+  "help",
+);
+const FormatSourceDialog = lazyFeature<ComponentProps<typeof import("./FormatSourceDialog").FormatSourceDialog>>(
+  () => import("./FormatSourceDialog").then((module) => ({ default: module.FormatSourceDialog })),
+  "the formatter",
+);
+const LinkedWorkPreviewDialog = lazyFeature<
+  ComponentProps<typeof import("./projects/LinkedWorkPreviewDialog").LinkedWorkPreviewDialog>
+>(
+  () => import("./projects/LinkedWorkPreviewDialog").then((module) => ({ default: module.LinkedWorkPreviewDialog })),
+  "the linked work preview",
+);
+const ProjectInspector = lazyFeature<ComponentProps<typeof import("./ProjectInspector").ProjectInspector>>(
+  () => import("./ProjectInspector").then((module) => ({ default: module.ProjectInspector })),
+  "project settings",
 );
 
 function useInspectorSettings<T>(open: boolean, source: string, parse: (source: string) => T): T {
