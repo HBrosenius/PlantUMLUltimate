@@ -34,11 +34,7 @@ import {
   type OpenedFileBytes,
   type WritableFileHandle,
 } from "../file-service";
-import {
-  liveProjectFromSharedDocument,
-  sharedDocumentFromProject,
-  type SharedDocument,
-} from "../shared-document";
+import { liveProjectFromSharedDocument, sharedDocumentFromProject, type SharedDocument } from "../shared-document";
 import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
