@@ -3,7 +3,7 @@ import graphvizUrl from "@plantuml/core/viz-global.js?url";
 import workerUrl from "./canonical.worker.ts?worker&url";
 import { classicEngineScript } from "./engine-exceptions";
 
-let assets: Promise<{ engine: string; graphviz: string; worker: string; icons: string }> | undefined;
+const assets = new Map<string, Promise<string>>();
 
 function scriptUrl(source: string, name: string): string {
   // Parser exceptions capture stacks. A multi-megabyte data URL as the script
@@ -15,7 +15,7 @@ function scriptUrl(source: string, name: string): string {
   return `data:text/javascript;base64,${btoa(chunks.join(""))}`;
 }
 
-export function loadRendererAssets() {
+export function loadRendererAssets(layoutEngine: "native" | "graphviz" = "graphviz") {
   const urls = import.meta.env.DEV
     ? [
         "/__renderer_assets__/plantuml.js",
@@ -24,29 +24,33 @@ export function loadRendererAssets() {
         "/openiconic.js",
       ]
     : [plantUmlEngineUrl, graphvizUrl, workerUrl, "/openiconic.js"];
-  assets ??= Promise.all(
-    urls.map(async (url, index) => {
-      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-      if (!response.ok) throw new Error("Could not load the local renderer assets");
-      const source = await response.text();
-      if (source.length > 10_000_000) throw new Error("Renderer asset exceeds the expected size");
-      return scriptUrl(
-        index === 0 ? classicEngineScript(source) : source,
-        ["engine", "graphviz", "worker", "icons"][index]!,
-      );
+  return Promise.all(
+    urls.map((url, index) => {
+      if (index === 1 && layoutEngine === "native") return Promise.resolve("");
+      const existing = assets.get(url);
+      if (existing) return existing;
+      const pending = (async () => {
+        const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+        if (!response.ok) throw new Error("Could not load the local renderer assets");
+        const source = await response.text();
+        if (source.length > 10_000_000) throw new Error("Renderer asset exceeds the expected size");
+        return scriptUrl(
+          index === 0 ? classicEngineScript(source) : source,
+          ["engine", "graphviz", "worker", "icons"][index]!,
+        );
+      })().catch((error) => {
+        assets.delete(url);
+        throw error;
+      });
+      assets.set(url, pending);
+      return pending;
     }),
-  )
-    .then(([engine, graphviz, worker, icons]) => ({
-      engine: engine!,
-      graphviz: graphviz!,
-      worker: worker!,
-      icons: icons!,
-    }))
-    .catch((error) => {
-      assets = undefined;
-      throw error;
-    });
-  return assets;
+  ).then(([engine, graphviz, worker, icons]) => ({
+    engine: engine!,
+    graphviz: graphviz!,
+    worker: worker!,
+    icons: icons!,
+  }));
 }
 
 export function frameDocument(channel: string): string {

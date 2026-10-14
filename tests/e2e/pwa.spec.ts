@@ -93,4 +93,7 @@ test("starts its production renderer and cached offline shell", async ({ page, c
   await expect(page.locator(".diagram svg")).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
   await expect(page.locator(".connection-offline")).toContainText("Offline");
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Version history…", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Version history", exact: true })).toBeVisible();
 });

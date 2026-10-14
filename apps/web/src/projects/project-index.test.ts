@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROJECT_FORMAT } from "@plantuml-studio/project-model";
-import { indexVirtualProject } from "./project-index";
+import { indexVirtualProject, type ProjectIndexCache } from "./project-index";
 
 const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, "0")}`;
 const hash = "a".repeat(64);
@@ -32,6 +32,25 @@ const manifest = JSON.stringify({
 });
 
 describe("virtual project index", () => {
+  it("reuses unchanged declarations, replaces edited members and evicts locked members", async () => {
+    const cache: ProjectIndexCache = new Map();
+    const inputs = new Map([
+      ["sequence.puml", { state: "available" as const, source: "@startuml\nparticipant Checkout\n@enduml" }],
+    ]);
+    const first = await indexVirtualProject(manifest, inputs, undefined, cache);
+    const second = await indexVirtualProject(manifest, inputs, undefined, cache);
+    expect(second.members[0]!.declarations).toBe(first.members[0]!.declarations);
+    expect(second.resolutions.get(id(5))).toBe(first.resolutions.get(id(5)));
+    const changedLocator = JSON.parse(manifest);
+    changedLocator.elements[0].locator.symbolKey = "Missing";
+    const relocated = await indexVirtualProject(JSON.stringify(changedLocator), inputs, undefined, cache);
+    expect(relocated.resolutions.get(id(5))).not.toBe(first.resolutions.get(id(5)));
+    inputs.set("sequence.puml", { state: "available", source: "@startuml\nparticipant Revised\n@enduml" });
+    const edited = await indexVirtualProject(manifest, inputs, undefined, cache);
+    expect(edited.members[0]!.declarations).not.toBe(first.members[0]!.declarations);
+    await indexVirtualProject(manifest, new Map([["sequence.puml", { state: "locked" }]]), undefined, cache);
+    expect(cache.size).toBe(0);
+  });
   it("counts all connections per diagram even when multiple endpoints belong to one member", async () => {
     const expanded = JSON.parse(manifest);
     expanded.elements.push({ ...expanded.elements[0], id: id(8) });

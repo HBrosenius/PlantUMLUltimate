@@ -1,0 +1,416 @@
+{
+  "revision": "861a0508070acb4566b3f44640c7e378d0f4c015",
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "previews": [
+    {
+      "browser": "chromium",
+      "kind": "gantt",
+      "startupIncludes400msSettle": 2252.7062,
+      "medianFrameMs": 16.100000023841858,
+      "maxFrameMs": 24.200000047683716,
+      "htmlWrites": [0, 0, 0],
+      "bboxReads": [0, 0, 0],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 277.7999999523163,
+      "errors": []
+    },
+    {
+      "browser": "chromium",
+      "kind": "sequence",
+      "startupIncludes400msSettle": 2159.1177000000007,
+      "medianFrameMs": 11.800000071525574,
+      "maxFrameMs": 16.299999952316284,
+      "htmlWrites": [10, 10, 10],
+      "bboxReads": [760, 760, 760],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 84.89999997615814,
+      "errors": []
+    },
+    {
+      "browser": "chromium",
+      "kind": "class",
+      "startupIncludes400msSettle": 2193.6288999999997,
+      "medianFrameMs": 10.299999952316284,
+      "maxFrameMs": 27.399999976158142,
+      "htmlWrites": [11, 11, 11],
+      "bboxReads": [660, 660, 660],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 121.80000007152557,
+      "errors": []
+    },
+    {
+      "browser": "chromium",
+      "kind": "wbs",
+      "startupIncludes400msSettle": 2147.8223,
+      "medianFrameMs": 10.399999976158142,
+      "maxFrameMs": 23.300000071525574,
+      "htmlWrites": [0, 0, 0],
+      "bboxReads": [671, 671, 671],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 84.59999990463257,
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "kind": "gantt",
+      "startupIncludes400msSettle": 3742.0963999999985,
+      "medianFrameMs": 24,
+      "maxFrameMs": 46,
+      "htmlWrites": [0, 0, 0],
+      "bboxReads": [0, 0, 0],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 510,
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "kind": "sequence",
+      "startupIncludes400msSettle": 3078.344099999995,
+      "medianFrameMs": 35,
+      "maxFrameMs": 45,
+      "htmlWrites": [10, 10, 10],
+      "bboxReads": [760, 760, 760],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 144,
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "kind": "class",
+      "startupIncludes400msSettle": 3037.6267000000007,
+      "medianFrameMs": 30,
+      "maxFrameMs": 51,
+      "htmlWrites": [11, 11, 11],
+      "bboxReads": [660, 660, 660],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 194,
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "kind": "wbs",
+      "startupIncludes400msSettle": 3083.1757999999973,
+      "medianFrameMs": 25,
+      "maxFrameMs": 43,
+      "htmlWrites": [0, 0, 0],
+      "bboxReads": [671, 671, 671],
+      "renderResultsDuringTyping": [0, 0, 0],
+      "medianEngineMs": 121,
+      "errors": []
+    }
+  ],
+  "cases": [
+    {
+      "browser": "chromium",
+      "name": "gantt-200",
+      "ok": true,
+      "initial": {
+        "wallMs": 2759.2319,
+        "engineMs": 1255.1999999284744,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 1265,
+        "longestMainThreadTaskMs": 777,
+        "maxTimerDelayMs": 814.3000000715256,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 8059,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "jsHeapBytes": 72200000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 1255 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "edits": [
+        {
+          "wallMs": 1825.1626000000006,
+          "engineMs": 876.5,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 591,
+          "longestMainThreadTaskMs": 293,
+          "maxTimerDelayMs": 393.89999997615814,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 877 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "persistence": {
+        "saveMs": 135.17759999999998,
+        "reopenMs": 2879.508499999999,
+        "bytes": 3794,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      }
+    },
+    {
+      "browser": "chromium",
+      "name": "document-200",
+      "ok": true,
+      "initial": {
+        "wallMs": 2187.441500000001,
+        "engineMs": 677.8999999761581,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 311,
+        "longestMainThreadTaskMs": 100,
+        "maxTimerDelayMs": 111.10000002384186,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 5672,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 116000000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 678 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "edits": [],
+      "fileOpen": {
+        "navigatorReadyMs": 546.4803999999986,
+        "memberClickMs": 69.47930000000088,
+        "memberReadyMs": 702.3711999999996
+      },
+      "typing": {
+        "medianFrameMs": 42.39999997615814,
+        "maxFrameMs": 50.300000071525574,
+        "editorReadyMs": 1294.7145999999993,
+        "previewReadyMs": 1854.9837999999982,
+        "undoCount": 1
+      },
+      "persistence": {
+        "saveMs": 272.90729999999894,
+        "reopenMs": 1312.3868000000002,
+        "bytes": 185006,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      }
+    },
+    {
+      "browser": "webkit",
+      "name": "gantt-200",
+      "ok": true,
+      "initial": {
+        "wallMs": 8291.816200000001,
+        "engineMs": 2168,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 3435,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 8060,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "status": "✓ ValidIssuesGanttPreview currentRender 2168 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recoveryUpdate available"
+      },
+      "edits": [
+        {
+          "wallMs": 4783.2883,
+          "engineMs": 1689,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 461,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 8054,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1689 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recoveryUpdate available"
+        }
+      ],
+      "persistence": {
+        "saveMs": 791.1970000000001,
+        "reopenMs": 8650.669699999999,
+        "bytes": 4004,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      }
+    },
+    {
+      "browser": "webkit",
+      "name": "document-200",
+      "ok": true,
+      "initial": {
+        "wallMs": 6239.391600000003,
+        "engineMs": 1006,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 458,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1006 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery current"
+      },
+      "edits": [],
+      "fileOpen": {
+        "navigatorReadyMs": 1280.1537000000026,
+        "memberClickMs": 932.6751999999979,
+        "memberReadyMs": 3087.9730000000054
+      },
+      "typing": {
+        "medianFrameMs": 83,
+        "maxFrameMs": 169,
+        "editorReadyMs": 1222.153099999996,
+        "previewReadyMs": 2488.643599999996,
+        "undoCount": 1
+      },
+      "persistence": {
+        "saveMs": 772.4985999999917,
+        "reopenMs": 1923.9621999999945,
+        "bytes": 200630,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      }
+    }
+  ],
+  "files": [
+    {
+      "name": "canonical.worker-CUiJVh3v.js",
+      "bytes": 179180,
+      "gzipBytes": 64199
+    },
+    {
+      "name": "diagram-engines-B2chTXCq.js",
+      "bytes": 127919,
+      "gzipBytes": 36446
+    },
+    {
+      "name": "editor-vendor-Cy1l7YT6.js",
+      "bytes": 395520,
+      "gzipBytes": 128484
+    },
+    {
+      "name": "index-CuuJdMrN.css",
+      "bytes": 152708,
+      "gzipBytes": 27088
+    },
+    {
+      "name": "index-YGLLGTr4.js",
+      "bytes": 1790799,
+      "gzipBytes": 452820
+    },
+    {
+      "name": "plantuml-CFsHeI4p.js",
+      "bytes": 7152247,
+      "gzipBytes": 1413544
+    },
+    {
+      "name": "react-vendor-BuQOX7bh.js",
+      "bytes": 192363,
+      "gzipBytes": 60295
+    },
+    {
+      "name": "viz-global-C_AyN6D9.js",
+      "bytes": 1445436,
+      "gzipBytes": 600625
+    }
+  ],
+  "diagnosticsProfile": {
+    "samples": 1130,
+    "topSelfTimeSamples": [
+      {
+        "name": "shiftIsoDateSafely",
+        "samples": 391,
+        "percent": 34.60176991150443
+      },
+      {
+        "name": "isWorkingDate",
+        "samples": 130,
+        "percent": 11.504424778761061
+      },
+      {
+        "name": "validIsoDate",
+        "samples": 102,
+        "percent": 9.026548672566372
+      },
+      {
+        "name": "has",
+        "samples": 90,
+        "percent": 7.964601769911504
+      },
+      {
+        "name": "solve",
+        "samples": 67,
+        "percent": 5.929203539823009
+      },
+      {
+        "name": "terminatorIssues",
+        "samples": 60,
+        "percent": 5.3097345132743365
+      },
+      {
+        "name": "statementIssues",
+        "samples": 42,
+        "percent": 3.7168141592920354
+      },
+      {
+        "name": "syntaxRepairs",
+        "samples": 40,
+        "percent": 3.5398230088495577
+      },
+      {
+        "name": "(garbage collector)",
+        "samples": 27,
+        "percent": 2.3893805309734515
+      },
+      {
+        "name": "resolveDateExpression",
+        "samples": 22,
+        "percent": 1.9469026548672566
+      },
+      {
+        "name": "RegExp: ^\\d{4}-\\d{2}-\\d{2}$",
+        "samples": 22,
+        "percent": 1.9469026548672566
+      },
+      {
+        "name": "parseGanttCalendar",
+        "samples": 13,
+        "percent": 1.1504424778761062
+      },
+      {
+        "name": "resolveTaskDates",
+        "samples": 13,
+        "percent": 1.1504424778761062
+      },
+      {
+        "name": "keywordRepairs",
+        "samples": 11,
+        "percent": 0.9734513274336283
+      },
+      {
+        "name": "shiftDate",
+        "samples": 10,
+        "percent": 0.8849557522123894
+      }
+    ]
+  }
+}

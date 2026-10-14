@@ -1,0 +1,89 @@
+{"run":1,"stage":"cursor-20","wallMs":159,"writes":1,"storageMs":0,"serializeMs":0.10000002384185791,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"typing-20","wallMs":996,"writes":45,"storageMs":30.699999928474426,"serializeMs":15.299999952316284,"longTasks":1,"longestTaskMs":73}
+{"stage":"typing-cpu-profile","hottest":[{"functionName":"(idle)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":381},{"functionName":"(program)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":100},{"functionName":"(garbage collector)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":24},{"functionName":"st","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":6243,"samples":17},{"functionName":"setItem","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":17},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":15},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":14},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":12},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":11},{"functionName":"st","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":6243,"samples":11},{"functionName":"nt","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":3172,"samples":11},{"functionName":"W$","scriptId":"5","url":"http://127.0.0.1:4175/assets/index-gmM0w7LT.js","lineNumber":5,"columnNumber":3942,"samples":10},{"functionName":"JSON.stringify","scriptId":"25","url":"","lineNumber":15,"columnNumber":32,"samples":10},{"functionName":"GN","scriptId":"5","url":"http://127.0.0.1:4175/assets/index-gmM0w7LT.js","lineNumber":17,"columnNumber":1715,"samples":9},{"functionName":"GN","scriptId":"5","url":"http://127.0.0.1:4175/assets/index-gmM0w7LT.js","lineNumber":17,"columnNumber":1715,"samples":9},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":9},{"functionName":"$n","scriptId":"5","url":"http://127.0.0.1:4175/assets/index-gmM0w7LT.js","lineNumber":23,"columnNumber":2364,"samples":8},{"functionName":"Bs","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":408,"samples":8},{"functionName":"st","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":6243,"samples":8},{"functionName":"st","scriptId":"7","url":"http://127.0.0.1:4175/assets/diagram-engines-DJsoaEcG.js","lineNumber":0,"columnNumber":6243,"samples":8}]}
+{"run":1,"stage":"switch-tabs-10","wallMs":734,"writes":1,"storageMs":0.10000002384185791,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"render-100","wallMs":2300,"writes":1,"storageMs":0,"serializeMs":0.10000002384185791,"longTasks":1,"longestTaskMs":270}
+{"run":1,"stage":"split-typing-20","wallMs":684,"writes":45,"storageMs":25.99999976158142,"serializeMs":18.00000035762787,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"zoom-scroll-10","wallMs":477,"writes":2,"storageMs":0,"serializeMs":0.10000002384185791,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"main-frame-heap","usedSize":34920212,"totalSize":37384192,"embedderHeapUsedSize":5633912,"backingStorageSize":2879447}
+{"run":2,"stage":"cursor-20","wallMs":145,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"typing-20","wallMs":956,"writes":45,"storageMs":31.200000286102295,"serializeMs":16.199999570846558,"longTasks":1,"longestTaskMs":66}
+{"run":2,"stage":"switch-tabs-10","wallMs":765,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":1,"longestTaskMs":50}
+{"run":2,"stage":"render-100","wallMs":1821,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":1,"longestTaskMs":290}
+{"run":2,"stage":"split-typing-20","wallMs":649,"writes":45,"storageMs":21.199999690055847,"serializeMs":16.200000405311584,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"zoom-scroll-10","wallMs":453,"writes":2,"storageMs":0.09999990463256836,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"main-frame-heap","usedSize":34624920,"totalSize":37122048,"embedderHeapUsedSize":5761968,"backingStorageSize":2879448}
+{"run":3,"stage":"cursor-20","wallMs":92,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"typing-20","wallMs":891,"writes":45,"storageMs":26.50000023841858,"serializeMs":14.49999988079071,"longTasks":1,"longestTaskMs":63}
+{"run":3,"stage":"switch-tabs-10","wallMs":727,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"render-100","wallMs":1729,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":1,"longestTaskMs":260}
+{"run":3,"stage":"split-typing-20","wallMs":713,"writes":45,"storageMs":24.49999988079071,"serializeMs":16.699999928474426,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"zoom-scroll-10","wallMs":394,"writes":2,"storageMs":0.10000002384185791,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"main-frame-heap","usedSize":34657964,"totalSize":36597760,"embedderHeapUsedSize":5559096,"backingStorageSize":2879447}
+{"run":4,"stage":"cursor-20","wallMs":100,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"typing-20","wallMs":850,"writes":45,"storageMs":23.09999978542328,"serializeMs":13.400000095367432,"longTasks":1,"longestTaskMs":62}
+{"run":4,"stage":"switch-tabs-10","wallMs":657,"writes":1,"storageMs":0.10000002384185791,"serializeMs":0.10000002384185791,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"render-100","wallMs":1696,"writes":1,"storageMs":0,"serializeMs":0,"longTasks":1,"longestTaskMs":255}
+{"run":4,"stage":"split-typing-20","wallMs":650,"writes":45,"storageMs":21.299999475479126,"serializeMs":17.50000035762787,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"zoom-scroll-10","wallMs":453,"writes":2,"storageMs":0.19999992847442627,"serializeMs":0.10000002384185791,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"main-frame-heap","usedSize":34657776,"totalSize":36597760,"embedderHeapUsedSize":5789696,"backingStorageSize":2879450}
+{"run":5,"stage":"cursor-20","wallMs":102,"writes":1,"storageMs":0.10000002384185791,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"typing-20","wallMs":897,"writes":45,"storageMs":28.800000190734863,"serializeMs":13.899999976158142,"longTasks":1,"longestTaskMs":65}
+{"run":5,"stage":"switch-tabs-10","wallMs":662,"writes":1,"storageMs":0.09999990463256836,"serializeMs":0,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"render-100","wallMs":1755,"writes":1,"storageMs":0.10000002384185791,"serializeMs":0,"longTasks":1,"longestTaskMs":266}
+{"run":5,"stage":"split-typing-20","wallMs":644,"writes":45,"storageMs":21.899999856948853,"serializeMs":15.300000071525574,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"zoom-scroll-10","wallMs":429,"writes":2,"storageMs":0.09999990463256836,"serializeMs":0.10000002384185791,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"main-frame-heap","usedSize":34635516,"totalSize":36335616,"embedderHeapUsedSize":5740272,"backingStorageSize":2879448}
+{
+  "workspaceBytes": 490356,
+  "summary": {
+    "cursor-20": {
+      "wallMs": 102,
+      "writes": 1,
+      "storageMs": 0,
+      "serializeMs": 0,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "typing-20": {
+      "wallMs": 897,
+      "writes": 45,
+      "storageMs": 28.8,
+      "serializeMs": 14.5,
+      "longTasks": 1,
+      "longestTaskMs": 65
+    },
+    "switch-tabs-10": {
+      "wallMs": 727,
+      "writes": 1,
+      "storageMs": 0.1,
+      "serializeMs": 0,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "render-100": {
+      "wallMs": 1755,
+      "writes": 1,
+      "storageMs": 0,
+      "serializeMs": 0,
+      "longTasks": 1,
+      "longestTaskMs": 266
+    },
+    "split-typing-20": {
+      "wallMs": 650,
+      "writes": 45,
+      "storageMs": 21.9,
+      "serializeMs": 16.7,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "zoom-scroll-10": {
+      "wallMs": 453,
+      "writes": 2,
+      "storageMs": 0.1,
+      "serializeMs": 0.1,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    }
+  }
+}

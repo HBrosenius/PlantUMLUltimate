@@ -1,0 +1,536 @@
+{
+  "startedAtUtc": "2026-10-13T20:12:23.254Z",
+  "origin": "http://127.0.0.1:4175",
+  "runs": 1,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26300",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 34273890304,
+    "node": "v24.14.1"
+  },
+  "cases": [
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 1825.1626000000006,
+          "engineMs": 876.5,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 591,
+          "longestMainThreadTaskMs": 293,
+          "maxTimerDelayMs": 393.89999997615814,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 8053,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "jsHeapBytes": 72200000,
+          "status": "✓ ValidIssuesGanttPreview currentRender 877 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recovery"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 2759.2319,
+        "engineMs": 1255.1999999284744,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 1265,
+        "longestMainThreadTaskMs": 777,
+        "maxTimerDelayMs": 814.3000000715256,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 8059,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "jsHeapBytes": 72200000,
+        "status": "✓ ValidIssuesGanttPreview currentRender 1255 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recovery"
+      },
+      "outline": {
+        "openMs": 113.94700000000012,
+        "searchMs": 37.96720000000005,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 135.17759999999998,
+        "reopenMs": 2879.508499999999,
+        "bytes": 3794,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "chromium",
+      "browserVersion": "151.0.7922.34",
+      "name": "document-200",
+      "fileBytes": 61781,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 546.4803999999986,
+        "memberClickMs": 69.47930000000088,
+        "memberReadyMs": 702.3711999999996
+      },
+      "initial": {
+        "wallMs": 2187.441500000001,
+        "engineMs": 677.8999999761581,
+        "mainThreadLongTasks": 4,
+        "mainThreadBlockedMs": 311,
+        "longestMainThreadTaskMs": 100,
+        "maxTimerDelayMs": 111.10000002384186,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 5672,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "jsHeapBytes": 116000000,
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 678 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Updating recovery…"
+      },
+      "outline": {
+        "openMs": 191.63819999999942,
+        "searchMs": 24.66610000000037,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 1914.8836999999985
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 1872.4405000000006
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 661.333499999997
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 1202.0328999999983,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 1044.8539999999994,
+          "previewAndIndexReadyMs": 1052.0139999999992,
+          "engineMs": 676.6000000238419,
+          "undoMs": 485.347899999997,
+          "undoSvgDomInsertions": 1,
+          "mainThreadLongTasks": 4,
+          "mainThreadBlockedMs": 294,
+          "longestMainThreadTaskMs": 95,
+          "maxTimerDelayMs": 88.69999992847443,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 116000000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 677 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        },
+        {
+          "editMs": 670.928899999999,
+          "previewAndIndexReadyMs": 677.6831999999995,
+          "engineMs": 328.2999999523163,
+          "undoMs": 425.1866999999984,
+          "undoSvgDomInsertions": 1,
+          "mainThreadLongTasks": 2,
+          "mainThreadBlockedMs": 159,
+          "longestMainThreadTaskMs": 85,
+          "maxTimerDelayMs": 147.09999990463257,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "jsHeapBytes": 116000000,
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 328 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        }
+      ],
+      "rapidTyping": {
+        "editorReadyMs": 1294.7145999999993,
+        "previewReadyMs": 1854.9837999999982,
+        "undoCount": 1,
+        "samples": [
+          {
+            "key": "1",
+            "at": 14683.799999952316,
+            "domUpdateMs": 11.100000023841858,
+            "nextFrameMs": 49.200000047683716,
+            "source": "@startgantt\ntitle Rapid typing audit 1\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "2",
+            "at": 14813.100000023842,
+            "domUpdateMs": 7.199999928474426,
+            "nextFrameMs": 43,
+            "source": "@startgantt\ntitle Rapid typing audit 12\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "3",
+            "at": 14926.100000023842,
+            "domUpdateMs": 9.099999904632568,
+            "nextFrameMs": 42.39999997615814,
+            "source": "@startgantt\ntitle Rapid typing audit 123\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "4",
+            "at": 15048.199999928474,
+            "domUpdateMs": 6.300000071525574,
+            "nextFrameMs": 43.200000047683716,
+            "source": "@startgantt\ntitle Rapid typing audit 1234\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "5",
+            "at": 15128.199999928474,
+            "domUpdateMs": 6.700000047683716,
+            "nextFrameMs": 50.300000071525574,
+            "source": "@startgantt\ntitle Rapid typing audit 12345\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "6",
+            "at": 15249.100000023842,
+            "domUpdateMs": 6.399999976158142,
+            "nextFrameMs": 38.299999952316284,
+            "source": "@startgantt\ntitle Rapid typing audit 123456\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "7",
+            "at": 15350.199999928474,
+            "domUpdateMs": 8.600000023841858,
+            "nextFrameMs": 42.5,
+            "source": "@startgantt\ntitle Rapid typing audit 1234567\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "8",
+            "at": 15463.600000023842,
+            "domUpdateMs": 8.399999976158142,
+            "nextFrameMs": 40.199999928474426,
+            "source": "@startgantt\ntitle Rapid typing audit 12345678\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "9",
+            "at": 15569.5,
+            "domUpdateMs": 8.699999928474426,
+            "nextFrameMs": 40.5,
+            "source": "@startgantt\ntitle Rapid typing audit 123456789\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "0",
+            "at": 15643.899999976158,
+            "domUpdateMs": 4.799999952316284,
+            "nextFrameMs": 39.799999952316284,
+            "source": "@startgantt\ntitle Rapid typing audit 1234567890\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "1",
+            "at": 15753.699999928474,
+            "domUpdateMs": 5.400000095367432,
+            "nextFrameMs": 38.300000071525574,
+            "source": "@startgantt\ntitle Rapid typing audit 12345678901\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "2",
+            "at": 15854,
+            "domUpdateMs": 8.199999928474426,
+            "nextFrameMs": 40.199999928474426,
+            "source": "@startgantt\ntitle Rapid typing audit 123456789012\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          }
+        ]
+      },
+      "persistence": {
+        "saveMs": 272.90729999999894,
+        "reopenMs": 1312.3868000000002,
+        "bytes": 185006,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "gantt-200",
+      "sourceBytes": 21526,
+      "lines": 414,
+      "timings": [
+        {
+          "wallMs": 4783.2883,
+          "engineMs": 1689,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 461,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 8054,
+          "svgNodes": 7223,
+          "svgWidth": "2260",
+          "svgHeight": "3956",
+          "status": "✓ ValidIssuesGanttPreview currentRender 1689 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 34Browser recoveryUpdate available"
+        }
+      ],
+      "errors": [],
+      "stage": "save-reopen",
+      "initial": {
+        "wallMs": 8291.816200000001,
+        "engineMs": 2168,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 3435,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 8060,
+        "svgNodes": 7223,
+        "svgWidth": "2260",
+        "svgHeight": "3956",
+        "status": "✓ ValidIssuesGanttPreview currentRender 2168 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 414, Col 10Browser recoveryUpdate available"
+      },
+      "outline": {
+        "openMs": 246.15499999999884,
+        "searchMs": 65.3715000000011,
+        "entriesBefore": 203
+      },
+      "persistence": {
+        "saveMs": 791.1970000000001,
+        "reopenMs": 8650.669699999999,
+        "bytes": 4004,
+        "diagrams": 1,
+        "links": 0,
+        "historyVersions": 2,
+        "renderResultsAfterReopen": 1
+      },
+      "ok": true
+    },
+    {
+      "browser": "webkit",
+      "browserVersion": "26.5",
+      "name": "document-200",
+      "fileBytes": 61781,
+      "registeredEndpoints": 200,
+      "links": 100,
+      "timings": [],
+      "errors": [],
+      "stage": "save-reopen",
+      "fileOpen": {
+        "navigatorReadyMs": 1280.1537000000026,
+        "memberClickMs": 932.6751999999979,
+        "memberReadyMs": 3087.9730000000054
+      },
+      "initial": {
+        "wallMs": 6239.391600000003,
+        "engineMs": 1006,
+        "mainThreadLongTasks": 0,
+        "mainThreadBlockedMs": 0,
+        "longestMainThreadTaskMs": 0,
+        "maxTimerDelayMs": 458,
+        "svgDomInsertions": 1,
+        "svgXmlParses": 1,
+        "domNodes": 5522,
+        "svgNodes": 1828,
+        "svgWidth": "2036",
+        "svgHeight": "1044",
+        "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1006 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 1, Col 1Recovery current"
+      },
+      "outline": {
+        "openMs": 814.152900000001,
+        "searchMs": 41.79429999999411,
+        "entriesBefore": 73
+      },
+      "memberSwitches": [
+        {
+          "name": "Diagram 198",
+          "wallMs": 3561.9600000000064
+        },
+        {
+          "name": "Diagram 199",
+          "wallMs": 3285.536699999997
+        },
+        {
+          "name": "Diagram 200",
+          "wallMs": 1927.7366000000038
+        }
+      ],
+      "linkSelector": {
+        "paged": true,
+        "searchedLateMembers": true,
+        "createdAndRemovedLink": true,
+        "selectionRetained": true
+      },
+      "documentSearch": {
+        "name": "Diagram 200",
+        "searchAndOpenMs": 2624.920499999993,
+        "clearRestoredAllMembers": true
+      },
+      "projectEdits": [
+        {
+          "editMs": 2271.2217999999993,
+          "previewAndIndexReadyMs": 2283.8367,
+          "engineMs": 1056,
+          "undoMs": 1264.7428999999975,
+          "undoSvgDomInsertions": 1,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 275,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 1056 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        },
+        {
+          "editMs": 1732.6158999999898,
+          "previewAndIndexReadyMs": 1760.3767999999982,
+          "engineMs": 538,
+          "undoMs": 1093.0022999999928,
+          "undoSvgDomInsertions": 1,
+          "mainThreadLongTasks": 0,
+          "mainThreadBlockedMs": 0,
+          "longestMainThreadTaskMs": 0,
+          "maxTimerDelayMs": 374,
+          "svgDomInsertions": 1,
+          "svgXmlParses": 1,
+          "domNodes": 5575,
+          "svgNodes": 1828,
+          "svgWidth": "2036",
+          "svgHeight": "1044",
+          "status": "Opened Portfolio 200 with 200 diagrams. Choose a diagram in the document navigator to open it.IssuesGanttPreview currentRender 538 msChanges are rendered locally. An older preview can remain visible while the current source is rendering or has an error.Ln 2, Col 29Recovery current"
+        }
+      ],
+      "rapidTyping": {
+        "editorReadyMs": 1222.153099999996,
+        "previewReadyMs": 2488.643599999996,
+        "undoCount": 1,
+        "samples": [
+          {
+            "key": "1",
+            "at": 34230,
+            "domUpdateMs": 15,
+            "nextFrameMs": 103,
+            "source": "@startgantt\ntitle Rapid typing audit 1\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "2",
+            "at": 34393,
+            "domUpdateMs": 13,
+            "nextFrameMs": 61,
+            "source": "@startgantt\ntitle Rapid typing audit 12\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "3",
+            "at": 34481,
+            "domUpdateMs": 11,
+            "nextFrameMs": 169,
+            "source": "@startgantt\ntitle Rapid typing audit 1234\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "4",
+            "at": 34574,
+            "domUpdateMs": 12,
+            "nextFrameMs": 77,
+            "source": "@startgantt\ntitle Rapid typing audit 1234\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "5",
+            "at": 34678,
+            "domUpdateMs": 10,
+            "nextFrameMs": 77,
+            "source": "@startgantt\ntitle Rapid typing audit 12345\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "6",
+            "at": 34763,
+            "domUpdateMs": 11,
+            "nextFrameMs": 91,
+            "source": "@startgantt\ntitle Rapid typing audit 123456\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "7",
+            "at": 34863,
+            "domUpdateMs": 11,
+            "nextFrameMs": 83,
+            "source": "@startgantt\ntitle Rapid typing audit 1234567\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "8",
+            "at": 34956,
+            "domUpdateMs": 12,
+            "nextFrameMs": 98,
+            "source": "@startgantt\ntitle Rapid typing audit 12345678\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "9",
+            "at": 35072,
+            "domUpdateMs": 10,
+            "nextFrameMs": 79,
+            "source": "@startgantt\ntitle Rapid typing audit 123456789\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "0",
+            "at": 35160,
+            "domUpdateMs": 10,
+            "nextFrameMs": 83,
+            "source": "@startgantt\ntitle Rapid typing audit 1234567890\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "1",
+            "at": 35251,
+            "domUpdateMs": 10,
+            "nextFrameMs": 69,
+            "source": "@startgantt\ntitle Rapid typing audit 12345678901\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          },
+          {
+            "key": "2",
+            "at": 35338,
+            "domUpdateMs": 11,
+            "nextFrameMs": 81,
+            "source": "@startgantt\ntitle Rapid typing audit 123456789012\nProject starts 2026-10-01\nsaturday are closed\nsunday are closed\n-- Workstream 1 --\n[Delivery task 1] as [T0] on {Team0:50%} starts 2026-10-01 and lasts 2 days\n[T0] is 0% completed\n[Delivery task 2] as [T1] on {Team1:50%} starts at [T0]'s end and lasts 3 days\n[T1] is 20% completed\n[Delivery task 3] as [T2] on {Team2:50%} starts at [T1]'s end and lasts 4 days\n[T2] is 40% completed\n[Delivery task 4] as [T3] on {Team3:50%} starts at [T2]'s end and lasts 5 days\n[T3] is 60% completed\n[Delivery task 5] as [T4] on {Team4:50%} starts at [T3]'s end and lasts 6 days\n[T4] is 80% completed\n[Delivery task 6] as [T5] on {Team5:50%} starts at [T4]'s end and lasts 2 days\n[T5] is 0% completed\n[Delivery task 7] as [T6] on {Team6:50%} starts at [T5]'s end and lasts 3 days\n[T6] is 20% completed\n[Delivery task 8] as [T7] on {Team7:50%} starts at [T6]'s end and lasts 4 days\n[T7] is 40% completed\n[Delivery task 9] as [T8] on {Team8:50%} starts at [T7]'s end and lasts 5 days\n[T8] is 60% completed\n[Delivery task 10] as [T9] on {Team9:50%} starts at [T8]'s end and lasts 6 days\n[T9] is 80% completed\n[Delivery task 11] as [T10] on {Team10:50%} starts 2026-10-08 and lasts 2 days\n[T10] is 0% completed\n[Delivery task 12] as [T11] on {Team11:50%} starts at [T10]'s end and lasts 3 days\n[T11] is 20% completed\n[Delivery task 13] as [T12] on {Team0:50%} starts at [T11]'s end and lasts 4 days\n[T12] is 40% completed\n[Delivery task 14] as [T13] on {Team1:50%} starts at [T12]'s end and lasts 5 days\n[T13] is 60% completed\n[Delivery task 15] as [T14] on {Team2:50%} starts at [T13]'s end and lasts 6 days\n[T14] is 80% completed\n[Delivery task 16] as [T15] on {Team3:50%} starts at [T14]'s end and lasts 2 days\n[T15] is 0% completed\n[Delivery task 17] as [T16] on {Team4:50%} starts at [T15]'s end and lasts 3 days\n[T16] is 20% completed\n[Delivery task 18] as [T17] on {Team5:50%} starts at [T16]'s end and lasts 4 days\n[T17] is 40% completed\n[Delivery task 19] as [T18] on {Team6:50%} starts at [T17]'s end and lasts 5 days\n[T18] is 60% completed\n[Delivery task 20] as [T19] on {Team7:50%} starts at [T18]'s end and lasts 6 days\n[T19] is 80% completed\n[Delivery task 21] as [T20] on {Team8:50%} starts 2026-10-15 and lasts 2 days\n[T20] is 0% completed\n[Delivery task 22] as [T21] on {Team9:50%} starts at [T20]'s end and lasts 3 days\n[T21] is 20% completed\n[Delivery task 23] as [T22] on {Team10:50%} starts at [T21]'s end and lasts 4 days\n[T22] is 40% completed\n[Delivery task 24] as [T23] on {Team11:50%} starts at [T22]'s end and lasts 5 days\n[T23] is 60% completed\n[Delivery task 25] as [T24] on {Team0:50%} starts at [T23]'s end and lasts 6 days\n[T24] is 80% completed\n-- Workstream 2 --\n[Delivery task 26] as [T25] on {Team1:50%} starts at [T24]'s end and lasts 2 days\n[T25] is 0% completed\n[Delivery task 27] as [T26] on {Team2:50%} starts at [T25]'s end and lasts 3 days\n[T26] is 20% completed\n[Delivery task 28] as [T27] on {Team3:50%} starts at [T26]'s end and lasts 4 days\n[T27] is 40% completed\n[Delivery task 29] as [T28] on {Team4:50%} starts at [T27]'s end and lasts 5 days\n[T28] is 60% completed\n[Delivery task 30] as [T29] on {Team5:50%} starts at [T28]'s end and lasts 6 days\n[T29] is 80% completed\n@endgantt"
+          }
+        ]
+      },
+      "persistence": {
+        "saveMs": 772.4985999999917,
+        "reopenMs": 1923.9621999999945,
+        "bytes": 200630,
+        "diagrams": 200,
+        "links": 100,
+        "allFixtureMembersAndLinksPreserved": true,
+        "originalHistoryVersionsVerified": 1000,
+        "historyVersions": 1000,
+        "renderResultsAfterReopen": 0
+      },
+      "ok": true
+    }
+  ]
+}

@@ -116,6 +116,7 @@ const CURRENT = "current";
 const ACTIVE_PROJECT = "active-project";
 const LEGACY_KEY = "plantuml-studio.workspace.v1";
 const RECOVERY_KEY = "plantuml-studio.workspace.recovery.v6";
+const NAVIGATION_KEY = "plantuml-studio.workspace.navigation.v1";
 const ACTIVE_PROJECT_LEGACY_KEY = "plantuml-studio.active-project.v1";
 export const AUTOMATIC_VERSION_LIMIT = 30;
 /** Automatic "before-restore" pins beyond this many become ordinary, prunable versions. */
@@ -401,13 +402,13 @@ function pruneRecoveryJournals(): void {
   try {
     const storage = globalThis.localStorage;
     if (!storage) return;
-    for (const prefix of [RECOVERY_KEY, LEGACY_KEY]) {
+    for (const prefix of [RECOVERY_KEY, LEGACY_KEY, NAVIGATION_KEY]) {
       const keys = Object.keys(storage).filter((key) => key.startsWith(`${prefix}:`));
       if (keys.length <= 100) continue;
       keys.sort(
         (a, b) =>
-          Number(JSON.parse(storage.getItem(b)!).recoverySavedAt ?? 0) -
-          Number(JSON.parse(storage.getItem(a)!).recoverySavedAt ?? 0),
+          Number(JSON.parse(storage.getItem(b)!).recoverySavedAt ?? JSON.parse(storage.getItem(b)!).savedAt ?? 0) -
+          Number(JSON.parse(storage.getItem(a)!).recoverySavedAt ?? JSON.parse(storage.getItem(a)!).savedAt ?? 0),
       );
       for (const key of keys.slice(100)) if (key !== scopedKey(prefix)) storage.removeItem(key);
     }
@@ -659,7 +660,7 @@ export async function importDocumentVersions(versions: readonly DocumentVersion[
   database.close();
 }
 
-export async function loadWorkspace(): Promise<WorkspaceSession> {
+async function loadWorkspaceSnapshot(): Promise<WorkspaceSession> {
   const own: unknown[] = [];
   const shared: unknown[] = [];
   const damaged = new Set<unknown[]>();
@@ -749,6 +750,69 @@ function persistableWorkspace(snapshot: WorkspaceSession): WorkspaceSession {
   };
 }
 
+export function saveWorkspaceNavigation(snapshot: WorkspaceSession): void {
+  const { documents, activeDocumentId, viewMode, splitPercent, theme } = persistableWorkspace(snapshot);
+  lastRecoveryTime = Math.max(Date.now(), lastRecoveryTime + 1);
+  writeRecoveryItem(
+    scopedKey(NAVIGATION_KEY),
+    JSON.stringify({
+      savedAt: lastRecoveryTime,
+      activeDocumentId,
+      viewMode,
+      splitPercent,
+      theme,
+      documents: documents.map(({ id, revision, cursor, zoom, zoomInitialized, diagramScroll, viewMode }) => ({
+        id,
+        revision,
+        cursor,
+        zoom,
+        zoomInitialized,
+        diagramScroll,
+        viewMode,
+      })),
+    }),
+  );
+}
+
+export async function loadWorkspace(): Promise<WorkspaceSession> {
+  const snapshot = await loadWorkspaceSnapshot();
+  try {
+    const navigation = JSON.parse(globalThis.localStorage?.getItem(scopedKey(NAVIGATION_KEY)) ?? "null");
+    if (
+      !navigation ||
+      typeof navigation.savedAt !== "number" ||
+      navigation.savedAt < (snapshot.recoverySavedAt ?? 0) ||
+      !Array.isArray(navigation.documents)
+    )
+      return snapshot;
+    return normalizeSession({
+      ...snapshot,
+      activeDocumentId: navigation.activeDocumentId,
+      viewMode: navigation.viewMode,
+      splitPercent: navigation.splitPercent,
+      theme: navigation.theme,
+      documents: snapshot.documents.map((document) => {
+        if (document.encrypted || plaintextExcluded.has(document.id)) return document;
+        const view = navigation.documents.find(
+          (item: { id?: string; revision?: number }) => item?.id === document.id && item.revision === document.revision,
+        );
+        return view
+          ? {
+              ...document,
+              cursor: view.cursor,
+              zoom: view.zoom,
+              zoomInitialized: view.zoomInitialized,
+              diagramScroll: view.diagramScroll,
+              viewMode: view.viewMode,
+            }
+          : document;
+      }),
+    });
+  } catch {
+    return snapshot;
+  }
+}
+
 /**
  * Writes or clears a synchronous recovery copy. When the write fails (for example over quota),
  * the stale copy is removed so that loading falls through to the newer IndexedDB record.
@@ -775,11 +839,11 @@ export function saveWorkspaceRecovery(snapshot: WorkspaceSession): boolean {
   return saved;
 }
 
-export async function saveWorkspace(snapshot: WorkspaceSession): Promise<void> {
+export async function saveWorkspace(snapshot: WorkspaceSession, writeRecovery = true): Promise<void> {
   const persistable = recoverySnapshot(snapshot);
   const value = JSON.stringify(persistable);
-  const recovered = writeRecoveryItem(scopedKey(RECOVERY_KEY), value);
-  writeRecoveryItem(RECOVERY_KEY, value);
+  const recovered = writeRecovery ? writeRecoveryItem(scopedKey(RECOVERY_KEY), value) : false;
+  if (writeRecovery) writeRecoveryItem(RECOVERY_KEY, value);
   try {
     const database = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -1010,7 +1074,8 @@ export async function removePersistedDocument(documentId: string): Promise<void>
     const storage = globalThis.localStorage;
     if (!storage) return;
     for (const key of Object.keys(storage)) {
-      if (![LEGACY_KEY, RECOVERY_KEY].some((prefix) => key === prefix || key.startsWith(`${prefix}:`))) continue;
+      if (![LEGACY_KEY, RECOVERY_KEY, NAVIGATION_KEY].some((prefix) => key === prefix || key.startsWith(`${prefix}:`)))
+        continue;
       const raw = storage.getItem(key);
       if (raw) storage.setItem(key, JSON.stringify(withoutDocument(JSON.parse(raw))));
     }

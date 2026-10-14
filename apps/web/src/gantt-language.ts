@@ -8,8 +8,9 @@ import {
   isValidCalendarDate,
   parseGantt,
 } from "@plantuml-studio/diagram-gantt";
-import { taskElapsedDays, resolveTaskDates } from "./gantt-schedule";
-import { taskPauses, parseGanttCalendar, isWorkingDate, shiftDate } from "./gantt-calendar";
+import { taskElapsedDays } from "./gantt-schedule";
+import { taskPauses, isWorkingDate, shiftDate } from "./gantt-calendar";
+import { ganttAnalysisContext, type GanttAnalysisContext } from "./gantt-analysis-context";
 
 export interface GanttQuickFix {
   choiceGroup?: string;
@@ -359,7 +360,7 @@ function durationConflicts(source: string, parsed: ReturnType<typeof parseGantt>
     const repair = ganttKeywordRepair(line)?.replacement ?? line;
     if (!/^\s*(?:printscale\b|today\s+is\s+colou?red\b|project\s+starts\b)/i.test(repair)) return [];
   }
-  const calendar = parseGanttCalendar(source);
+  const calendar = ganttAnalysisContext(source, parsed).calendar;
   const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   return parsed.document.tasks.flatMap((task) => {
     const { start, end, duration } = task;
@@ -425,17 +426,8 @@ function durationConflicts(source: string, parsed: ReturnType<typeof parseGantt>
 
 function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parseGantt>): GanttQuickFix[] {
   if (parsed.diagnostics.some((item) => item.severity === "error")) return [];
-  const calendar = parseGanttCalendar(source);
-  const resolve = (text: string) => {
-    const document = text === source ? parsed.document : parseGantt(text).document;
-    return resolveTaskDates(
-      document.tasks,
-      document.dependencies,
-      document.projectStart?.resolved ? document.projectStart.value : undefined,
-      parseGanttCalendar(text),
-    );
-  };
-  const originalDates = resolve(source);
+  const calendar = ganttAnalysisContext(source, parsed).calendar;
+  const originalDates = ganttAnalysisContext(source, parsed).dates;
   const fixes: GanttQuickFix[] = [];
   for (const task of parsed.document.tasks) {
     const conflict = originalDates.get(task.id);
@@ -444,16 +436,14 @@ function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parse
     const expression = kind === "start" ? task.start : task.end;
     if (!expression?.resolved) continue;
     const add = (candidate: string, label: string) => {
-      if (candidate === source || parseGantt(candidate).diagnostics.some((item) => item.severity === "error")) return;
-      const dates = resolve(candidate);
+      if (candidate === source) return;
+      const candidateParsed = parseGantt(candidate);
+      if (candidateParsed.diagnostics.some((item) => item.severity === "error")) return;
+      const dates = ganttAnalysisContext(candidate, candidateParsed).dates;
       const repaired = dates.get(task.id);
       if (!repaired?.start || !repaired.end || repaired.issue || repaired.end < repaired.start) return;
       if ([...dates].some(([id, item]) => item.issue && !originalDates.get(id)?.issue)) return;
-      if (
-        durationConflicts(candidate, parseGantt(candidate)).some((item) =>
-          item.message.includes(`Task '${task.label}'`),
-        )
-      )
+      if (durationConflicts(candidate, candidateParsed).some((item) => item.message.includes(`Task '${task.label}'`)))
         return;
       let from = 0;
       while (from < source.length && from < candidate.length && source[from] === candidate[from]) from++;
@@ -500,10 +490,28 @@ function dependencyConflictFixes(source: string, parsed: ReturnType<typeof parse
   return fixes;
 }
 
+const conflictResults = new WeakMap<
+  GanttAnalysisContext,
+  {
+    dependencies: GanttQuickFix[];
+    durations: ReturnType<typeof durationConflicts>;
+  }
+>();
+function scheduleConflicts(source: string, parsed: ReturnType<typeof parseGantt>) {
+  const context = ganttAnalysisContext(source, parsed);
+  let result = conflictResults.get(context);
+  if (!result) {
+    result = { dependencies: dependencyConflictFixes(source, parsed), durations: durationConflicts(source, parsed) };
+    conflictResults.set(context, result);
+  }
+  return result;
+}
+
 export function ganttDiagnostics(source: string, parsed = parseGantt(source)): CodeMirrorDiagnostic[] {
   const diagnostics = parsed.diagnostics;
   const fixes = quickFixesForDiagnostics(source, parsed);
-  const conflictFixes = dependencyConflictFixes(source, parsed);
+  const conflicts = scheduleConflicts(source, parsed);
+  const conflictFixes = conflicts.dependencies;
   const result = diagnostics.map((diagnostic) => {
     const matchingFixes = fixes.filter(
       (item) => item.from === diagnostic.range.from && item.to === diagnostic.range.to,
@@ -547,7 +555,7 @@ export function ganttDiagnostics(source: string, parsed = parseGantt(source)): C
       ],
     });
   }
-  for (const conflict of durationConflicts(source, parsed))
+  for (const conflict of conflicts.durations)
     result.push({
       from: conflict.from,
       to: conflict.to,
@@ -561,12 +569,7 @@ export function ganttDiagnostics(source: string, parsed = parseGantt(source)): C
         },
       })),
     });
-  const dates = resolveTaskDates(
-    parsed.document.tasks,
-    parsed.document.dependencies,
-    parsed.document.projectStart?.resolved ? parsed.document.projectStart.value : undefined,
-    parseGanttCalendar(source),
-  );
+  const dates = ganttAnalysisContext(source, parsed).dates;
   for (const item of dates.values()) {
     for (const range of item.conflictRanges ?? []) {
       result.push({
@@ -592,8 +595,8 @@ export function ganttDiagnostics(source: string, parsed = parseGantt(source)): C
 export function ganttQuickFixes(source: string, parsed = parseGantt(source)): GanttQuickFix[] {
   const fixes = [
     ...quickFixesForDiagnostics(source, parsed),
-    ...durationConflicts(source, parsed).flatMap((item) => item.fixes),
-    ...dependencyConflictFixes(source, parsed),
+    ...scheduleConflicts(source, parsed).durations.flatMap((item) => item.fixes),
+    ...scheduleConflicts(source, parsed).dependencies,
   ];
   const repair = parsed.diagnostics.some((item) => item.code === "dependency-cycle")
     ? undefined

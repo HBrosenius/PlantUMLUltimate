@@ -18,6 +18,7 @@ import {
   normalizeWorkspace,
   saveWorkspace,
   saveWorkspaceRecovery,
+  saveWorkspaceNavigation,
   removePersistedDocument,
   updateDocumentVersion,
   type WorkspaceSession,
@@ -29,6 +30,44 @@ beforeEach(() => {
   resetStorageHealth();
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: new IDBFactory() });
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: undefined });
+});
+
+it("restores navigation without rewriting content, and rejects navigation from an older revision", async () => {
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    },
+  });
+  const saved = { ...DEFAULT_SESSION, documents: [{ ...DEFAULT_SESSION.documents[0]!, revision: 1 }] };
+  saveWorkspaceRecovery(saved);
+  const content = values.get("plantuml-studio.workspace.recovery.v6");
+  saveWorkspaceNavigation({
+    ...saved,
+    documents: [{ ...saved.documents[0]!, cursor: { line: 3, column: 2 }, diagramScroll: { left: 123, top: 456 } }],
+  });
+  expect(values.get("plantuml-studio.workspace.recovery.v6")).toBe(content);
+  saveWorkspaceNavigation({
+    ...saved,
+    documents: [
+      { ...saved.documents[0]!, cursor: { line: 3, column: 2 }, diagramScroll: { left: 123, top: 456 } },
+      { ...saved.documents[0]!, id: "private-navigation-document", encrypted: true },
+    ],
+  });
+  expect(
+    [...values]
+      .filter(([key]) => key.startsWith("plantuml-studio.workspace.navigation"))
+      .every(([, value]) => !value.includes("private-navigation-document")),
+  ).toBe(true);
+  expect((await loadWorkspace()).documents[0]).toMatchObject({
+    cursor: { line: 3, column: 2 },
+    diagramScroll: { left: 123, top: 456 },
+  });
+  saveWorkspaceRecovery({ ...saved, documents: [{ ...saved.documents[0]!, revision: 2 }] });
+  expect((await loadWorkspace()).documents[0]!.cursor).toEqual(saved.documents[0]!.cursor);
 });
 
 describe("damaged recovery copies", () => {

@@ -1,0 +1,285 @@
+{
+  "totalSamples": 1130,
+  "hottest": [
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 86
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 85
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 80
+    },
+    {
+      "functionName": "isWorkingDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3471,
+      "columnNumber": 22,
+      "samples": 53
+    },
+    {
+      "functionName": "syntaxRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3192,
+      "columnNumber": 22,
+      "samples": 40
+    },
+    {
+      "functionName": "isWorkingDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3471,
+      "columnNumber": 22,
+      "samples": 40
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 38
+    },
+    {
+      "functionName": "isWorkingDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3471,
+      "columnNumber": 22,
+      "samples": 37
+    },
+    {
+      "functionName": "has",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3408,
+      "columnNumber": 9,
+      "samples": 35
+    },
+    {
+      "functionName": "has",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3408,
+      "columnNumber": 9,
+      "samples": 33
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 30
+    },
+    {
+      "functionName": "(garbage collector)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 27
+    },
+    {
+      "functionName": "solve",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3569,
+      "columnNumber": 16,
+      "samples": 26
+    },
+    {
+      "functionName": "solve",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3569,
+      "columnNumber": 16,
+      "samples": 23
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 22
+    },
+    {
+      "functionName": "has",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3408,
+      "columnNumber": 9,
+      "samples": 22
+    },
+    {
+      "functionName": "statementIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2327,
+      "columnNumber": 24,
+      "samples": 21
+    },
+    {
+      "functionName": "statementIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2327,
+      "columnNumber": 24,
+      "samples": 21
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 20
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 19
+    },
+    {
+      "functionName": "solve",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3569,
+      "columnNumber": 16,
+      "samples": 18
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 18
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 17
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 16
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 14
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 14
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 13
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 12
+    },
+    {
+      "functionName": "keywordRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2533,
+      "columnNumber": 23,
+      "samples": 11
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 11
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 11
+    },
+    {
+      "functionName": "resolveDateExpression",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3521,
+      "columnNumber": 30,
+      "samples": 9
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 9
+    },
+    {
+      "functionName": "sharedRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 4790,
+      "columnNumber": 22,
+      "samples": 8
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 7
+    }
+  ]
+}

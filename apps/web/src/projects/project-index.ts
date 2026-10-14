@@ -37,6 +37,16 @@ export interface VirtualProject {
 }
 
 const encode = new TextEncoder();
+export type ProjectIndexCache = Map<
+  string,
+  {
+    source: string;
+    kind: DiagramKind;
+    declarations: Promise<readonly ResolvableDeclaration[]>;
+    hash?: Promise<string>;
+    resolutions?: Map<string, { key: string; value: ElementResolution }>;
+  }
+>;
 
 function throwIfCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Document indexing cancelled", "AbortError");
@@ -102,10 +112,17 @@ export async function indexVirtualProject(
   manifestJson: string,
   inputs: ReadonlyMap<string, ProjectMemberInput>,
   signal?: AbortSignal,
+  cache: ProjectIndexCache = new Map(),
 ): Promise<VirtualProject> {
   throwIfCancelled(signal);
   const manifest = parseProjectManifestJson(manifestJson);
   const linkCounts = linkCountsFor(manifest);
+  const available = new Set(
+    manifest.documents
+      .filter((document) => inputs.get(document.path)?.state === "available")
+      .map((document) => `${manifest.projectId}:${document.id}`),
+  );
+  for (const key of cache.keys()) if (!available.has(key)) cache.delete(key);
   const members = await Promise.all(
     manifest.documents.map(async (document): Promise<IndexedProjectMember> => {
       throwIfCancelled(signal);
@@ -131,7 +148,17 @@ export async function indexVirtualProject(
           linkCount: linkCounts.get(document.id) ?? 0,
         };
       try {
-        const declarations = await declarationsFor(input.source, diagramKind);
+        const key = `${manifest.projectId}:${document.id}`;
+        let cached = cache.get(key);
+        if (!cached || cached.source !== input.source || cached.kind !== diagramKind) {
+          cached = {
+            source: input.source,
+            kind: diagramKind,
+            declarations: declarationsFor(input.source, diagramKind),
+          };
+          cache.set(key, cached);
+        }
+        const declarations = await cached.declarations;
         throwIfCancelled(signal);
         return {
           documentId: document.id,
@@ -143,6 +170,8 @@ export async function indexVirtualProject(
           linkCount: linkCounts.get(document.id) ?? 0,
         };
       } catch (error) {
+        const key = `${manifest.projectId}:${document.id}`;
+        if (cache.get(key)?.source === input.source) cache.delete(key);
         return {
           documentId: document.id,
           path: document.path,
@@ -167,14 +196,30 @@ export async function indexVirtualProject(
       if (!member?.source || member.state !== "available") return;
       let pendingHash = sourceHashes.get(member.documentId);
       if (!pendingHash) {
-        pendingHash = sha256(encode.encode(member.source));
+        const cached = cache.get(`${manifest.projectId}:${member.documentId}`);
+        pendingHash =
+          cached?.source === member.source
+            ? (cached.hash ??= sha256(encode.encode(member.source)))
+            : sha256(encode.encode(member.source));
         sourceHashes.set(member.documentId, pendingHash);
       }
       const sourceHash = await pendingHash;
       throwIfCancelled(signal);
-      resolutions.set(element.id, resolveElement(element, sourceHash, member.declarations));
+      const cached = cache.get(`${manifest.projectId}:${member.documentId}`);
+      const reusable = cached?.source === member.source ? cached : undefined;
+      const key = JSON.stringify(element);
+      const previous = reusable?.resolutions?.get(element.id);
+      const value = previous?.key === key ? previous.value : resolveElement(element, sourceHash, member.declarations);
+      if (reusable) {
+        reusable.resolutions ??= new Map();
+        reusable.resolutions.set(element.id, { key, value });
+      }
+      resolutions.set(element.id, value);
     }),
   );
   throwIfCancelled(signal);
+  const elementIds = new Set(manifest.elements.map((element) => element.id));
+  for (const member of cache.values())
+    for (const id of member.resolutions?.keys() ?? []) if (!elementIds.has(id)) member.resolutions?.delete(id);
   return { manifest, members, resolutions };
 }

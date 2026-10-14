@@ -49,7 +49,11 @@ export function isInstalledDisplayMode(
   return matchesStandalone || navigatorStandalone;
 }
 
-export function usePwa() {
+export function usePwa(startupReady = true) {
+  const [ready, setReady] = useState(startupReady);
+  useEffect(() => {
+    if (startupReady) setReady(true);
+  }, [startupReady]);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent>();
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker>();
@@ -57,6 +61,7 @@ export function usePwa() {
 
   useEffect(() => {
     let stopUpdateChecks: (() => void) | undefined;
+    let registrationTimer: number | undefined;
     let disposed = false;
     const connected = () => setOnline(true);
     const disconnected = () => setOnline(false);
@@ -71,7 +76,7 @@ export function usePwa() {
     window.addEventListener("beforeinstallprompt", beforeInstall);
     window.addEventListener("appinstalled", installedApp);
 
-    if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    if (ready && import.meta.env.PROD && "serviceWorker" in navigator) {
       const register = async () => {
         const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
         if (disposed) return;
@@ -84,18 +89,22 @@ export function usePwa() {
         });
         stopUpdateChecks = watchForServiceWorkerUpdates(registration);
       };
-      void register().catch(() => undefined);
+      // Give the current editor/preview its first turn before the worker precaches optional assets.
+      registrationTimer = window.setTimeout(() => {
+        if (!disposed) void register().catch(() => undefined);
+      }, 150);
     }
 
     return () => {
       disposed = true;
+      window.clearTimeout(registrationTimer);
       stopUpdateChecks?.();
       window.removeEventListener("online", connected);
       window.removeEventListener("offline", disconnected);
       window.removeEventListener("beforeinstallprompt", beforeInstall);
       window.removeEventListener("appinstalled", installedApp);
     };
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;

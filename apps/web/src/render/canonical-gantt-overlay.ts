@@ -1,6 +1,8 @@
 import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator } from "@plantuml-studio/diagram-gantt";
 import { isWorkingDate, type GanttCalendar } from "../gantt-calendar";
 import { resolveTaskDates } from "../gantt-schedule";
+import { verticalRangeIndex } from "./vertical-range-index";
+import { measurePreviewPhase, recordPreviewPhase } from "./preview-performance";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 let progressOverlayInstance = 0;
@@ -215,8 +217,9 @@ export function addCanonicalGanttOverlay(
   verticalSeparators: readonly GanttVerticalSeparator[] = [],
 ): string {
   if (typeof DOMParser === "undefined" || !tasks?.length) return svg;
-  const document = new DOMParser().parseFromString(svg, "image/svg+xml");
+  const document = measurePreviewPhase("overlay-parse", () => new DOMParser().parseFromString(svg, "image/svg+xml"));
   if (document.querySelector("parsererror")) return svg;
+  const constructionStarted = performance.now();
   const root = document.documentElement;
   const texts = [...root.querySelectorAll("text")];
   const rects = [...root.querySelectorAll("rect")].filter(hasVisiblePaint);
@@ -274,6 +277,22 @@ export function addCanonicalGanttOverlay(
   const geometry = new Map<string, Geometry>();
   const gridDayWidth = timelineDayWidth(document);
   const claimedLabels = new Set<SVGTextElement>();
+  const labelsByText = new Map<string, SVGTextElement[]>();
+  for (const text of texts) {
+    const value = text.textContent?.trim() ?? "";
+    const keys = new Set([value]);
+    for (let index = value.indexOf(" {"); index >= 0; index = value.indexOf(" {", index + 2))
+      keys.add(value.slice(0, index));
+    for (const key of keys) {
+      const labels = labelsByText.get(key) ?? [];
+      labels.push(text);
+      labelsByText.set(key, labels);
+    }
+  }
+  const rectsAt = verticalRangeIndex(rects, boundsFor);
+  const polygonsAt = verticalRangeIndex(paintedPolygons, boundsFor);
+  const pathsAt = verticalRangeIndex(paintedPaths, boundsFor);
+  const milestonesAt = verticalRangeIndex(polygons, boundsFor);
   const sharedRowTasks = new Set(tasks.flatMap((task) => (task.sameRowTaskId ? [task.id, task.sameRowTaskId] : [])));
   const resolvedDates = calendar ? resolveTaskDates(tasks, dependencies, projectStart, calendar) : undefined;
 
@@ -434,10 +453,7 @@ export function addCanonicalGanttOverlay(
   const progressClipPrefix = `plantuml-ultimate-progress-${++progressOverlayInstance}`;
   let progressClipIndex = 0;
   for (const task of tasks) {
-    const label = texts.find((text) => {
-      const value = text.textContent?.trim();
-      return !claimedLabels.has(text) && (value === task.label || value?.startsWith(`${task.label} {`));
-    });
+    const label = labelsByText.get(task.label)?.find((text) => !claimedLabels.has(text));
     if (label) claimedLabels.add(label);
     const textY = label ? numberAttribute(label, "y") : undefined;
     if (!label || textY === undefined) continue;
@@ -455,7 +471,7 @@ export function addCanonicalGanttOverlay(
       const center = bounds.x + bounds.width / 2;
       return center >= startColumn.x - canonicalDayWidth / 2 && center <= endColumn.x + canonicalDayWidth / 2;
     };
-    const rowBars = rects.filter((rect) => {
+    const rowBars = rectsAt(textY).filter((rect) => {
       const bounds = boundsFor(rect);
       return (
         bounds &&
@@ -467,7 +483,7 @@ export function addCanonicalGanttOverlay(
     });
     const rowPolygons = task.milestone
       ? []
-      : paintedPolygons.filter((polygon) => {
+      : polygonsAt(textY).filter((polygon) => {
           const bounds = boundsFor(polygon);
           return (
             bounds &&
@@ -479,7 +495,7 @@ export function addCanonicalGanttOverlay(
         });
     const rowPaths = task.milestone
       ? []
-      : paintedPaths.filter((path) => {
+      : pathsAt(textY).filter((path) => {
           const bounds = boundsFor(path);
           return (
             bounds &&
@@ -490,7 +506,7 @@ export function addCanonicalGanttOverlay(
           );
         });
     const milestoneShapes = task.milestone
-      ? polygons.filter((polygon) => {
+      ? milestonesAt(textY).filter((polygon) => {
           const bounds = boundsFor(polygon);
           return (
             bounds &&
@@ -936,5 +952,6 @@ export function addCanonicalGanttOverlay(
       root.setAttribute("style", `${root.getAttribute("style") ?? ""};min-width:${(width / originalWidth) * 100}%`);
     }
   }
-  return new XMLSerializer().serializeToString(root);
+  recordPreviewPhase("overlay-build", constructionStarted);
+  return measurePreviewPhase("overlay-serialize", () => new XMLSerializer().serializeToString(root));
 }

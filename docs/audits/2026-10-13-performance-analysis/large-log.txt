@@ -1,0 +1,39 @@
+START chromium gantt-200
+STAGE chromium gantt-200 startup
+STAGE chromium gantt-200 initial-load
+STAGE chromium gantt-200 edit-0
+STAGE chromium gantt-200 outline
+STAGE chromium gantt-200 save-reopen
+{"browser":"chromium","name":"gantt-200","ok":true,"initialMs":2759.2319}
+START chromium document-200
+STAGE chromium document-200 startup
+STAGE chromium document-200 initial-load
+STAGE chromium document-200 outline
+STAGE chromium document-200 member-switching
+STAGE chromium document-200 link-selector
+STAGE chromium document-200 document-search
+STAGE chromium document-200 member-switching
+STAGE chromium document-200 project-edit-undo
+STAGE chromium document-200 project-rapid-typing
+STAGE chromium document-200 save-reopen
+{"browser":"chromium","name":"document-200","ok":true,"initialMs":2187.441500000001}
+START webkit gantt-200
+STAGE webkit gantt-200 startup
+STAGE webkit gantt-200 initial-load
+STAGE webkit gantt-200 edit-0
+STAGE webkit gantt-200 outline
+STAGE webkit gantt-200 save-reopen
+{"browser":"webkit","name":"gantt-200","ok":true,"initialMs":8291.816200000001}
+START webkit document-200
+STAGE webkit document-200 startup
+STAGE webkit document-200 initial-load
+STAGE webkit document-200 outline
+STAGE webkit document-200 member-switching
+STAGE webkit document-200 link-selector
+STAGE webkit document-200 document-search
+STAGE webkit document-200 member-switching
+STAGE webkit document-200 project-edit-undo
+STAGE webkit document-200 project-rapid-typing
+STAGE webkit document-200 save-reopen
+{"browser":"webkit","name":"document-200","ok":true,"initialMs":6239.391600000003}
+Results: C:\Users\henri\IdeaProjects\PlantUMLUltimate\docs\audits\2026-10-13-performance-analysis\large\results.json

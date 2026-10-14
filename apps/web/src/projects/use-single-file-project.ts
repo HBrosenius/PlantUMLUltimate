@@ -43,7 +43,12 @@ import { detectDiagramKind } from "../diagram-kind";
 import { starterSource } from "../use-workspace-documents";
 import type { DocumentSnapshot } from "../workspace-storage";
 import type { DiagramKind } from "../model";
-import { indexVirtualProject, type IndexedProjectMember, type VirtualProject } from "./project-index";
+import {
+  indexVirtualProject,
+  type IndexedProjectMember,
+  type VirtualProject,
+  type ProjectIndexCache,
+} from "./project-index";
 import { EmbeddedProjectSaveCoordinator, settleSavedRevision } from "./embedded-project-save";
 import { createProjectReviewReport, reviewProjectChanges as buildProjectChangeReview } from "./project-change-review";
 import { useEmbeddedProject } from "./use-embedded-project";
@@ -75,21 +80,30 @@ function manifestFor(project: PortableProject): ProjectManifest {
 }
 
 /** Keeps the navigator responsive while the full declaration/link resolver catches up. */
-function immediateIndex(project: PortableProject): VirtualProject {
+function immediateIndex(project: PortableProject, previous?: VirtualProject): VirtualProject {
   const manifest = manifestFor(project);
+  const oldMembers = new Map(
+    previous?.manifest.projectId === project.projectId
+      ? previous.members.map((member) => [member.documentId, member])
+      : [],
+  );
+  const documentsByElement = new Map(project.elements.map((element) => [element.id, element.documentId]));
+  const counts = new Map<string, number>();
+  for (const link of project.links)
+    for (const id of new Set([documentsByElement.get(link.from), documentsByElement.get(link.to)]))
+      if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
   const members: IndexedProjectMember[] = project.diagrams.map((diagram) => {
     const diagramKind = detectDiagramKind(diagram.document.current.source);
-    const elementIds = new Set(
-      project.elements.filter((element) => element.documentId === diagram.id).map((element) => element.id),
-    );
+    const old = oldMembers.get(diagram.id);
     return {
       documentId: diagram.id,
       path: diagram.name,
       state: diagramKind ? "available" : "unsupported",
       ...(diagramKind ? { diagramKind } : { reason: "Diagram type could not be identified" }),
       source: diagram.document.current.source,
-      declarations: [],
-      linkCount: project.links.filter((link) => elementIds.has(link.from) || elementIds.has(link.to)).length,
+      declarations:
+        old?.source === diagram.document.current.source && old.diagramKind === diagramKind ? old.declarations : [],
+      linkCount: counts.get(diagram.id) ?? 0,
     };
   });
   return { manifest, members, resolutions: new Map() };
@@ -100,7 +114,11 @@ function immediateIndex(project: PortableProject): VirtualProject {
  * the interaction that creates a diagram, then replace the lightweight index
  * once the browser is idle enough to do the richer work.
  */
-function resolveIndex(project: PortableProject, signal?: AbortSignal): Promise<VirtualProject> {
+function resolveIndex(
+  project: PortableProject,
+  signal?: AbortSignal,
+  cache?: ProjectIndexCache,
+): Promise<VirtualProject> {
   return indexVirtualProject(
     serializeProjectManifest(manifestFor(project)),
     new Map(
@@ -110,6 +128,7 @@ function resolveIndex(project: PortableProject, signal?: AbortSignal): Promise<V
       ]),
     ),
     signal,
+    cache,
   );
 }
 
@@ -245,6 +264,7 @@ export function useSingleFileProject({
   const saveAbort = useRef<AbortController | undefined>(undefined);
   const restored = useRef(false);
   const indexRevision = useRef(0);
+  const declarationCache = useRef<ProjectIndexCache>(new Map());
   const effectiveProject = embedded.effectiveProject;
   const restoreEmbeddedProject = embedded.restoreProject;
 
@@ -261,12 +281,13 @@ export function useSingleFileProject({
 
   useEffect(() => {
     if (!effectiveProject) {
+      declarationCache.current.clear();
       indexRevision.current += 1;
       setIndexed(undefined);
       setIndexStatus({ state: "idle" });
       return;
     }
-    setIndexed(immediateIndex(effectiveProject));
+    setIndexed((previous) => immediateIndex(effectiveProject, previous));
     setIndexStatus({ state: "indexing" });
   }, [effectiveProject]);
 
@@ -276,7 +297,7 @@ export function useSingleFileProject({
     const revision = ++indexRevision.current;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      void resolveIndex(project, controller.signal)
+      void resolveIndex(project, controller.signal, declarationCache.current)
         .then((next) => {
           if (indexRevision.current !== revision) return;
           setIndexed(next);

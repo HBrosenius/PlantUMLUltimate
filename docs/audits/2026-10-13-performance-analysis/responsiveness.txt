@@ -1,0 +1,89 @@
+{"run":1,"stage":"cursor-20","wallMs":199,"writes":42,"storageMs":24.200000047683716,"serializeMs":10.100000262260437,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"typing-20","wallMs":1262,"writes":50,"storageMs":35.799999952316284,"serializeMs":18.299999594688416,"longTasks":7,"longestTaskMs":96}
+{"stage":"typing-cpu-profile","hottest":[{"functionName":"(idle)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":387},{"functionName":"(program)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":105},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":29},{"functionName":"(garbage collector)","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":28},{"functionName":"setItem","scriptId":"0","url":"","lineNumber":-1,"columnNumber":-1,"samples":21},{"functionName":"a$","scriptId":"6","url":"http://127.0.0.1:4175/assets/index-YGLLGTr4.js","lineNumber":4,"columnNumber":3942,"samples":15},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":15},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":13},{"functionName":"In","scriptId":"6","url":"http://127.0.0.1:4175/assets/index-YGLLGTr4.js","lineNumber":22,"columnNumber":2364,"samples":13},{"functionName":"st","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":6243,"samples":12},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":12},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":12},{"functionName":"JSON.stringify","scriptId":"25","url":"","lineNumber":15,"columnNumber":32,"samples":12},{"functionName":"nt","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":3172,"samples":11},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":11},{"functionName":"st","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":6243,"samples":10},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":10},{"functionName":"nt","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":3172,"samples":10},{"functionName":"Bs","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":408,"samples":9},{"functionName":"st","scriptId":"5","url":"http://127.0.0.1:4175/assets/diagram-engines-B2chTXCq.js","lineNumber":0,"columnNumber":6243,"samples":9}]}
+{"run":1,"stage":"switch-tabs-10","wallMs":862,"writes":40,"storageMs":24.700000047683716,"serializeMs":13.200000286102295,"longTasks":1,"longestTaskMs":50}
+{"run":1,"stage":"render-100","wallMs":1888,"writes":4,"storageMs":2.4000000953674316,"serializeMs":1.4999998807907104,"longTasks":3,"longestTaskMs":277}
+{"run":1,"stage":"split-typing-20","wallMs":884,"writes":50,"storageMs":28.600000023841858,"serializeMs":20.59999966621399,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"zoom-scroll-10","wallMs":472,"writes":14,"storageMs":8.399999976158142,"serializeMs":5.0000001192092896,"longTasks":0,"longestTaskMs":0}
+{"run":1,"stage":"main-frame-heap","usedSize":38840456,"totalSize":42819584,"embedderHeapUsedSize":5344288,"backingStorageSize":2960010}
+{"run":2,"stage":"cursor-20","wallMs":210,"writes":42,"storageMs":24.799999833106995,"serializeMs":10.800000071525574,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"typing-20","wallMs":1060,"writes":50,"storageMs":30.399999618530273,"serializeMs":14.199999809265137,"longTasks":1,"longestTaskMs":70}
+{"run":2,"stage":"switch-tabs-10","wallMs":803,"writes":40,"storageMs":24.399999856948853,"serializeMs":12,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"render-100","wallMs":2423,"writes":4,"storageMs":2.799999952316284,"serializeMs":1.2999999523162842,"longTasks":3,"longestTaskMs":319}
+{"run":2,"stage":"split-typing-20","wallMs":847,"writes":50,"storageMs":30.50000011920929,"serializeMs":17.899999976158142,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"zoom-scroll-10","wallMs":504,"writes":14,"storageMs":9.100000023841858,"serializeMs":5.200000047683716,"longTasks":0,"longestTaskMs":0}
+{"run":2,"stage":"main-frame-heap","usedSize":38517128,"totalSize":42295296,"embedderHeapUsedSize":5416704,"backingStorageSize":2960006}
+{"run":3,"stage":"cursor-20","wallMs":214,"writes":42,"storageMs":25.50000011920929,"serializeMs":12.199999690055847,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"typing-20","wallMs":1119,"writes":50,"storageMs":30.90000009536743,"serializeMs":15.299999833106995,"longTasks":1,"longestTaskMs":77}
+{"run":3,"stage":"switch-tabs-10","wallMs":978,"writes":40,"storageMs":29.399999618530273,"serializeMs":20.100000381469727,"longTasks":5,"longestTaskMs":83}
+{"run":3,"stage":"render-100","wallMs":1928,"writes":4,"storageMs":2.8000000715255737,"serializeMs":2.0000001192092896,"longTasks":2,"longestTaskMs":332}
+{"run":3,"stage":"split-typing-20","wallMs":800,"writes":50,"storageMs":27.300000190734863,"serializeMs":19.199999928474426,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"zoom-scroll-10","wallMs":466,"writes":14,"storageMs":6.900000214576721,"serializeMs":4.600000023841858,"longTasks":0,"longestTaskMs":0}
+{"run":3,"stage":"main-frame-heap","usedSize":38561208,"totalSize":41771008,"embedderHeapUsedSize":5644984,"backingStorageSize":2960009}
+{"run":4,"stage":"cursor-20","wallMs":197,"writes":42,"storageMs":22.90000009536743,"serializeMs":11.399999976158142,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"typing-20","wallMs":1110,"writes":50,"storageMs":34.09999966621399,"serializeMs":16.100000023841858,"longTasks":3,"longestTaskMs":73}
+{"run":4,"stage":"switch-tabs-10","wallMs":835,"writes":40,"storageMs":23.199999809265137,"serializeMs":16.100000023841858,"longTasks":1,"longestTaskMs":50}
+{"run":4,"stage":"render-100","wallMs":1768,"writes":4,"storageMs":2.5000001192092896,"serializeMs":2.0999999046325684,"longTasks":2,"longestTaskMs":254}
+{"run":4,"stage":"split-typing-20","wallMs":731,"writes":50,"storageMs":22.59999990463257,"serializeMs":17.199999809265137,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"zoom-scroll-10","wallMs":444,"writes":14,"storageMs":7.200000047683716,"serializeMs":5,"longTasks":0,"longestTaskMs":0}
+{"run":4,"stage":"main-frame-heap","usedSize":38593160,"totalSize":42295296,"embedderHeapUsedSize":5597880,"backingStorageSize":2960008}
+{"run":5,"stage":"cursor-20","wallMs":212,"writes":42,"storageMs":26.299999952316284,"serializeMs":11.300000071525574,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"typing-20","wallMs":1039,"writes":50,"storageMs":28.299999952316284,"serializeMs":14.999999642372131,"longTasks":1,"longestTaskMs":70}
+{"run":5,"stage":"switch-tabs-10","wallMs":869,"writes":40,"storageMs":25.199999928474426,"serializeMs":15.99999988079071,"longTasks":2,"longestTaskMs":51}
+{"run":5,"stage":"render-100","wallMs":1752,"writes":4,"storageMs":2.5,"serializeMs":1.6000001430511475,"longTasks":3,"longestTaskMs":255}
+{"run":5,"stage":"split-typing-20","wallMs":799,"writes":50,"storageMs":27.799999475479126,"serializeMs":18.600000023841858,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"zoom-scroll-10","wallMs":591,"writes":14,"storageMs":9.399999976158142,"serializeMs":5.0000001192092896,"longTasks":0,"longestTaskMs":0}
+{"run":5,"stage":"main-frame-heap","usedSize":38541520,"totalSize":42557440,"embedderHeapUsedSize":5507488,"backingStorageSize":2960009}
+{
+  "workspaceBytes": 490356,
+  "summary": {
+    "cursor-20": {
+      "wallMs": 210,
+      "writes": 42,
+      "storageMs": 24.8,
+      "serializeMs": 11.3,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "typing-20": {
+      "wallMs": 1110,
+      "writes": 50,
+      "storageMs": 30.9,
+      "serializeMs": 15.3,
+      "longTasks": 1,
+      "longestTaskMs": 73
+    },
+    "switch-tabs-10": {
+      "wallMs": 862,
+      "writes": 40,
+      "storageMs": 24.7,
+      "serializeMs": 16,
+      "longTasks": 1,
+      "longestTaskMs": 50
+    },
+    "render-100": {
+      "wallMs": 1888,
+      "writes": 4,
+      "storageMs": 2.5,
+      "serializeMs": 1.6,
+      "longTasks": 3,
+      "longestTaskMs": 277
+    },
+    "split-typing-20": {
+      "wallMs": 800,
+      "writes": 50,
+      "storageMs": 27.8,
+      "serializeMs": 18.6,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "zoom-scroll-10": {
+      "wallMs": 472,
+      "writes": 14,
+      "storageMs": 8.4,
+      "serializeMs": 5,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    }
+  }
+}

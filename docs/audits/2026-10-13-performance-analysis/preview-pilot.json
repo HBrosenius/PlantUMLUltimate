@@ -1,0 +1,1122 @@
+[
+  {
+    "browserName": "chromium",
+    "kind": "gantt",
+    "startupMs": 2365.2233,
+    "initial": {
+      "htmlWrites": 0,
+      "bboxCalls": 18,
+      "renderMessages": 1,
+      "engineMs": [560.3999999761581],
+      "frames": [],
+      "longTasks": [58, 119, 58, 272],
+      "resources": [
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 60.39999997615814
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 14.900000095367432
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 17.200000047683716
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 28.800000071525574
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 14.299999952316284
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 168.30000007152557
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 53.200000047683716
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 8.5
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 5.900000095367432
+        }
+      ],
+      "nodes": 924
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 457.8501000000001,
+        "settledMs": 1043.8986,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            23.200000047683716, 19.5, 18.600000023841858, 20, 18.199999928474426, 20.700000047683716,
+            17.100000023841858, 16.5, 21.5, 17
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [381.59999990463257],
+          "frames": [
+            23.200000047683716, 19.5, 18.600000023841858, 20, 18.199999928474426, 20.700000047683716,
+            17.100000023841858, 16.5, 21.5, 17
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 510.8118000000004,
+        "settledMs": 1046.7361,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            26, 22.300000071525574, 19.100000023841858, 23.399999976158142, 27, 24.5, 21.299999952316284,
+            24.399999976158142, 21.399999976158142, 21.100000023841858
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [336.2999999523163],
+          "frames": [
+            26, 22.300000071525574, 19.100000023841858, 23.399999976158142, 27, 24.5, 21.299999952316284,
+            24.399999976158142, 21.399999976158142, 21.100000023841858
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 561.2711999999992,
+        "settledMs": 1110.1477999999997,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            24.200000047683716, 26.899999976158142, 24.899999976158142, 24.5, 29.700000047683716, 26.100000023841858,
+            17.5, 19.699999928474426, 18.5, 20.200000047683716
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [345.6999999284744],
+          "frames": [
+            24.200000047683716, 26.899999976158142, 24.899999976158142, 24.5, 29.700000047683716, 26.100000023841858,
+            17.5, 19.699999928474426, 18.5, 20.200000047683716
+          ],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": [
+      "Failed to read the 'serviceWorker' property from 'Navigator': Service worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag.",
+      "Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag."
+    ]
+  },
+  {
+    "browserName": "chromium",
+    "kind": "sequence",
+    "startupMs": 2221.7212,
+    "initial": {
+      "htmlWrites": 2,
+      "bboxCalls": 76,
+      "renderMessages": 1,
+      "engineMs": [358.7000000476837],
+      "frames": [],
+      "longTasks": [56, 88, 249],
+      "resources": [
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 49.39999997615814
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 15.200000047683716
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 13.100000023841858
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 13.399999976158142
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 22.600000023841858
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 157.5
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 56
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 8.600000023841858
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 6.400000095367432
+        }
+      ],
+      "nodes": 468
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 433.4987000000001,
+        "settledMs": 714.2026000000005,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            19.600000023841858, 12.5, 12.300000071525574, 16, 10.899999976158142, 10.399999976158142,
+            10.600000023841858, 14.899999976158142, 15.5, 10.300000071525574
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [117.29999995231628],
+          "frames": [
+            19.600000023841858, 12.5, 12.300000071525574, 16, 10.899999976158142, 10.399999976158142,
+            10.600000023841858, 14.899999976158142, 15.5, 10.300000071525574
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 384.6158999999989,
+        "settledMs": 621.4002999999993,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            15, 10.400000095367432, 10, 9.899999976158142, 11.100000023841858, 12.599999904632568, 16,
+            9.599999904632568, 10, 9.899999976158142
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [85.29999995231628],
+          "frames": [
+            15, 10.400000095367432, 10, 9.899999976158142, 11.100000023841858, 12.599999904632568, 16,
+            9.599999904632568, 10, 9.899999976158142
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 370.0118999999995,
+        "settledMs": 604.1651000000002,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            15.5, 10.100000023841858, 10.599999904632568, 10, 11.699999928474426, 16.299999952316284, 10.5,
+            10.099999904632568, 10.600000023841858, 9.5
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [80.19999992847443],
+          "frames": [
+            15.5, 10.100000023841858, 10.599999904632568, 10, 11.699999928474426, 16.299999952316284, 10.5,
+            10.099999904632568, 10.600000023841858, 9.5
+          ],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": [
+      "Failed to read the 'serviceWorker' property from 'Navigator': Service worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag.",
+      "Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag."
+    ]
+  },
+  {
+    "browserName": "chromium",
+    "kind": "class",
+    "startupMs": 2209.9614999999994,
+    "initial": {
+      "htmlWrites": 2,
+      "bboxCalls": 60,
+      "renderMessages": 1,
+      "engineMs": [468.6999999284744],
+      "frames": [],
+      "longTasks": [51, 83, 243],
+      "resources": [
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 47.60000002384186
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 14.200000047683716
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 16
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 13.399999976158142
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 23.899999976158142
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 154.5
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 51.200000047683716
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 4.899999976158142
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 8.100000023841858
+        }
+      ],
+      "nodes": 330
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 414.6424999999999,
+        "settledMs": 705.8210999999992,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            39, 11.300000071525574, 10.600000023841858, 12.299999952316284, 10.100000023841858, 10, 10,
+            11.299999952316284, 13.199999928474426, 16.700000047683716
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [132.30000007152557],
+          "frames": [
+            39, 11.300000071525574, 10.600000023841858, 12.299999952316284, 10.100000023841858, 10, 10,
+            11.299999952316284, 13.199999928474426, 16.700000047683716
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 365.436099999999,
+        "settledMs": 615.3712999999989,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            12.100000023841858, 12.299999952316284, 15.600000023841858, 11.600000023841858, 9.199999928474426,
+            9.100000023841858, 11, 13.400000095367432, 14.900000095367432, 11.099999904632568
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [106.60000002384186],
+          "frames": [
+            12.100000023841858, 12.299999952316284, 15.600000023841858, 11.600000023841858, 9.199999928474426,
+            9.100000023841858, 11, 13.400000095367432, 14.900000095367432, 11.099999904632568
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 380.6378999999979,
+        "settledMs": 651.2292999999991,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            12.5, 12, 9.200000047683716, 9.199999928474426, 12.5, 15.399999976158142, 9.700000047683716, 9,
+            9.300000071525574, 12.200000047683716
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [115.10000002384186],
+          "frames": [
+            12.5, 12, 9.200000047683716, 9.199999928474426, 12.5, 15.399999976158142, 9.700000047683716, 9,
+            9.300000071525574, 12.200000047683716
+          ],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": [
+      "Failed to read the 'serviceWorker' property from 'Navigator': Service worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag.",
+      "Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag."
+    ]
+  },
+  {
+    "browserName": "chromium",
+    "kind": "wbs",
+    "startupMs": 2301.2901999999995,
+    "initial": {
+      "htmlWrites": 1,
+      "bboxCalls": 61,
+      "renderMessages": 1,
+      "engineMs": [290.5],
+      "frames": [],
+      "longTasks": [55, 81, 259],
+      "resources": [
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 15.5
+        },
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 49.200000047683716
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 14.699999928474426
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 24.600000023841858
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 14
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 159.39999997615814
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 52.299999952316284
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 9.099999904632568
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 6
+        }
+      ],
+      "nodes": 255
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 337.33770000000004,
+        "settledMs": 593.4402999999984,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            25.299999952316284, 11.200000047683716, 12.699999928474426, 15, 8.5, 8.100000023841858, 7.799999952316284,
+            8.899999976158142, 11.699999928474426, 13.399999976158142
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [95.79999995231628],
+          "frames": [
+            25.299999952316284, 11.200000047683716, 12.699999928474426, 15, 8.5, 8.100000023841858, 7.799999952316284,
+            8.899999976158142, 11.699999928474426, 13.399999976158142
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 324.92559999999867,
+        "settledMs": 569.1398999999983,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            13.800000071525574, 9.200000047683716, 6.600000023841858, 7.299999952316284, 7.399999976158142, 10,
+            11.900000095367432, 14.800000071525574, 7.100000023841858, 7.200000047683716
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [79.39999997615814],
+          "frames": [
+            13.800000071525574, 9.200000047683716, 6.600000023841858, 7.299999952316284, 7.399999976158142, 10,
+            11.900000095367432, 14.800000071525574, 7.100000023841858, 7.200000047683716
+          ],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 304.5051999999996,
+        "settledMs": 544.0456999999988,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [
+            8.699999928474426, 7.800000071525574, 10.299999952316284, 13.100000023841858, 6.699999928474426,
+            6.899999976158142, 6.799999952316284, 8.300000071525574, 10.5, 13.5
+          ],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [83],
+          "frames": [
+            8.699999928474426, 7.800000071525574, 10.299999952316284, 13.100000023841858, 6.699999928474426,
+            6.899999976158142, 6.799999952316284, 8.300000071525574, 10.5, 13.5
+          ],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": [
+      "Failed to read the 'serviceWorker' property from 'Navigator': Service worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag.",
+      "Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag."
+    ]
+  },
+  {
+    "browserName": "webkit",
+    "kind": "gantt",
+    "startupMs": 5922.2507000000005,
+    "initial": {
+      "htmlWrites": 0,
+      "bboxCalls": 18,
+      "renderMessages": 1,
+      "engineMs": [1010],
+      "frames": [],
+      "longTasks": [],
+      "resources": [
+        {
+          "name": "/manifest.webmanifest",
+          "bytes": 842,
+          "duration": 6
+        },
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 44
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 8
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 10
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 17
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 8
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 6
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 9
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 53
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 157
+        }
+      ],
+      "nodes": 924
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 564.3496999999988,
+        "settledMs": 1456.1005000000005,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [35, 35, 30, 27, 25, 25, 28, 22, 21, 23],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [542],
+          "frames": [35, 35, 30, 27, 25, 25, 28, 22, 21, 23],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 487.61009999999806,
+        "settledMs": 1296.823199999999,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [25, 30, 29, 24, 23, 22, 23, 23, 23, 25],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [465],
+          "frames": [25, 30, 29, 24, 23, 22, 23, 23, 23, 25],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 518.2823999999964,
+        "settledMs": 1332.3035999999993,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 0,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [26, 44, 29, 21, 24, 24, 19, 20, 21, 20],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 0,
+          "bboxCalls": 18,
+          "renderMessages": 1,
+          "engineMs": [451],
+          "frames": [26, 44, 29, 21, 24, 24, 19, 20, 21, 20],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": ["Service Worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag"]
+  },
+  {
+    "browserName": "webkit",
+    "kind": "sequence",
+    "startupMs": 3048.011200000001,
+    "initial": {
+      "htmlWrites": 2,
+      "bboxCalls": 76,
+      "renderMessages": 1,
+      "engineMs": [464],
+      "frames": [],
+      "longTasks": [],
+      "resources": [
+        {
+          "name": "/manifest.webmanifest",
+          "bytes": 842,
+          "duration": 4
+        },
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 43
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 9
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 9
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 11
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 18
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 5
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 8
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 54
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 160
+        }
+      ],
+      "nodes": 468
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 658.0227999999988,
+        "settledMs": 1165.4307999999946,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [42, 44, 45, 36, 44, 37, 36, 39, 42, 38],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [189],
+          "frames": [42, 44, 45, 36, 44, 37, 36, 39, 42, 38],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 610.4544999999998,
+        "settledMs": 1014.2116000000024,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [32, 45, 45, 33, 36, 33, 35, 35, 33, 31],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [150],
+          "frames": [32, 45, 45, 33, 36, 33, 35, 35, 33, 31],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 609.6737999999968,
+        "settledMs": 995.0123999999996,
+        "during": {
+          "htmlWrites": 10,
+          "bboxCalls": 760,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [35, 44, 45, 44, 32, 33, 33, 32, 34, 33],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 12,
+          "bboxCalls": 836,
+          "renderMessages": 1,
+          "engineMs": [133],
+          "frames": [35, 44, 45, 44, 32, 33, 33, 32, 34, 33],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": ["Service Worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag"]
+  },
+  {
+    "browserName": "webkit",
+    "kind": "class",
+    "startupMs": 3065.1029999999955,
+    "initial": {
+      "htmlWrites": 2,
+      "bboxCalls": 60,
+      "renderMessages": 1,
+      "engineMs": [604],
+      "frames": [],
+      "longTasks": [],
+      "resources": [
+        {
+          "name": "/manifest.webmanifest",
+          "bytes": 842,
+          "duration": 5
+        },
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 43
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 8
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 9
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 10
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 17
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 9
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 53
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 158
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 5
+        }
+      ],
+      "nodes": 330
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 654.5467999999964,
+        "settledMs": 1183.1189999999988,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [57, 35, 33, 34, 33, 31, 34, 30, 35, 31],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [237],
+          "frames": [57, 35, 33, 34, 33, 31, 34, 30, 35, 31],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 657.3820000000051,
+        "settledMs": 1108.347400000006,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [42, 32, 45, 31, 66, 37, 31, 33, 32, 31],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [187],
+          "frames": [42, 32, 45, 31, 66, 37, 31, 33, 32, 31],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 626.2553999999946,
+        "settledMs": 1074.6828999999998,
+        "during": {
+          "htmlWrites": 11,
+          "bboxCalls": 660,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [37, 32, 29, 27, 30, 28, 28, 29, 30, 30],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 13,
+          "bboxCalls": 720,
+          "renderMessages": 1,
+          "engineMs": [182],
+          "frames": [37, 32, 29, 27, 30, 28, 28, 29, 30, 30],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": ["Service Worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag"]
+  },
+  {
+    "browserName": "webkit",
+    "kind": "wbs",
+    "startupMs": 3221.035600000003,
+    "initial": {
+      "htmlWrites": 1,
+      "bboxCalls": 61,
+      "renderMessages": 1,
+      "engineMs": [403],
+      "frames": [],
+      "longTasks": [],
+      "resources": [
+        {
+          "name": "/manifest.webmanifest",
+          "bytes": 842,
+          "duration": 3
+        },
+        {
+          "name": "/assets/index-YGLLGTr4.js",
+          "bytes": 1790799,
+          "duration": 43
+        },
+        {
+          "name": "/assets/diagram-engines-B2chTXCq.js",
+          "bytes": 127919,
+          "duration": 8
+        },
+        {
+          "name": "/assets/index-CuuJdMrN.css",
+          "bytes": 152708,
+          "duration": 10
+        },
+        {
+          "name": "/assets/react-vendor-BuQOX7bh.js",
+          "bytes": 192363,
+          "duration": 11
+        },
+        {
+          "name": "/assets/editor-vendor-Cy1l7YT6.js",
+          "bytes": 395520,
+          "duration": 17
+        },
+        {
+          "name": "/openiconic.js",
+          "bytes": 51251,
+          "duration": 7
+        },
+        {
+          "name": "/assets/canonical.worker-CUiJVh3v.js",
+          "bytes": 179180,
+          "duration": 8
+        },
+        {
+          "name": "/assets/viz-global-C_AyN6D9.js",
+          "bytes": 1445436,
+          "duration": 53
+        },
+        {
+          "name": "/assets/plantuml-CFsHeI4p.js",
+          "bytes": 7152247,
+          "duration": 157
+        }
+      ],
+      "nodes": 255
+    },
+    "stages": [
+      {
+        "run": 1,
+        "typingMs": 578.2499000000025,
+        "settledMs": 997.9690000000046,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [44, 27, 43, 25, 25, 29, 23, 25, 26, 25],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [155],
+          "frames": [44, 27, 43, 25, 25, 29, 23, 25, 26, 25],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 2,
+        "typingMs": 565.6428999999989,
+        "settledMs": 953.6143000000011,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [29, 23, 26, 25, 44, 24, 23, 27, 24, 29],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [128],
+          "frames": [29, 23, 26, 25, 44, 24, 23, 27, 24, 29],
+          "longTasks": []
+        }
+      },
+      {
+        "run": 3,
+        "typingMs": 549.2518999999957,
+        "settledMs": 936.9807000000001,
+        "during": {
+          "htmlWrites": 0,
+          "bboxCalls": 671,
+          "renderMessages": 0,
+          "engineMs": [],
+          "frames": [30, 24, 25, 23, 29, 22, 30, 23, 28, 21],
+          "longTasks": []
+        },
+        "settled": {
+          "htmlWrites": 1,
+          "bboxCalls": 732,
+          "renderMessages": 1,
+          "engineMs": [109],
+          "frames": [30, 24, 25, 23, 29, 22, 30, 23, 28, 21],
+          "longTasks": []
+        }
+      }
+    ],
+    "errors": ["Service Worker is disabled because the context is sandboxed and lacks the 'allow-same-origin' flag"]
+  }
+]

@@ -1,3 +1,4 @@
+import { previewInteractionGuard } from "./preview-interaction-guard";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WbsDocument } from "@plantuml-studio/diagram-wbs";
@@ -7,9 +8,26 @@ import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { wbsProgressInk } from "./wbs-progress";
 
+function useStableMap<T>(value: ReadonlyMap<string, T>) {
+  const previous = useRef(value);
+  if (
+    previous.current.size !== value.size ||
+    [...value].some(([key, item]) => !previous.current.has(key) || previous.current.get(key) !== item)
+  )
+    previous.current = value;
+  return previous.current;
+}
+function useStableSet(value: ReadonlySet<string>) {
+  const previous = useRef(value);
+  if (previous.current.size !== value.size || [...value].some((item) => !previous.current.has(item)))
+    previous.current = value;
+  return previous.current;
+}
 interface Props {
   svg: string | undefined;
   document: WbsDocument;
+  editingEnabled?: boolean | undefined;
+  geometryDocument?: WbsDocument | undefined;
   linkedNodeIds?: ReadonlySet<string>;
   nodeCompletion?: ReadonlyMap<string, number>;
   nodeSchedule?: ReadonlyMap<
@@ -49,6 +67,8 @@ export function WbsDiagramPreview({
   initialFit,
   svg,
   document,
+  geometryDocument,
+  editingEnabled = true,
   linkedNodeIds = new Set(),
   nodeCompletion = new Map(),
   nodeSchedule = new Map(),
@@ -66,6 +86,15 @@ export function WbsDiagramPreview({
   onRelationshipCreate,
   onRelationshipReconnect,
 }: Props) {
+  const stableLinked = useStableSet(linkedNodeIds);
+  const stableCompletion = useStableMap(nodeCompletion);
+  const stableWarnings = useStableMap(dependencyWarnings);
+  const selectionControls = useRef({
+    nodes: new Map<string, SVGCircleElement>(),
+    relationships: new Map<string, SVGCircleElement[]>(),
+  });
+  const suppressDragClick = useRef(false);
+  const displayed = geometryDocument ?? document;
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<
@@ -139,11 +168,11 @@ export function WbsDiagramPreview({
   }, []);
   const planMove = useCallback(
     (sourceId: string, x: number, y: number, forceBefore: boolean) => {
-      const source = document.nodes.find((item) => item.id === sourceId);
+      const source = displayed.nodes.find((item) => item.id === sourceId);
       const targetElement = nodeElementAt(x, y);
-      const target = document.nodes.find((item) => item.id === targetElement?.dataset.wbsNodeId);
-      const rootNode = document.nodes.find((item) => item.depth === 1);
-      const parentNode = document.nodes.find((item) => item.id === source?.parentId);
+      const target = displayed.nodes.find((item) => item.id === targetElement?.dataset.wbsNodeId);
+      const rootNode = displayed.nodes.find((item) => item.depth === 1);
+      const parentNode = displayed.nodes.find((item) => item.id === source?.parentId);
       const parentElement = parentNode
         ? root.current?.querySelector<SVGTextElement>(`text[data-wbs-node-id="${CSS.escape(parentNode.id)}"]`)
         : undefined;
@@ -214,7 +243,7 @@ export function WbsDiagramPreview({
           },
         } as const;
       }
-      const siblings = document.nodes.filter(
+      const siblings = displayed.nodes.filter(
         (item) => item.parentId === target.parentId && item.depth === target.depth && item.side === target.side,
       );
       const targetIndex = siblings.findIndex((item) => item.id === target.id);
@@ -234,7 +263,7 @@ export function WbsDiagramPreview({
         },
       } as const;
     },
-    [document.nodes, nodeElementAt],
+    [displayed.nodes, nodeElementAt],
   );
   useLayoutEffect(() => {
     const host = root.current;
@@ -244,6 +273,8 @@ export function WbsDiagramPreview({
         ".wbs-node-hit, .wbs-connect-handle, .wbs-relationship-hit, .wbs-relationship-endpoint, .wbs-dependency-warning, .diagram-link-icon, .wbs-node-progress",
       )
       .forEach((item) => item.remove());
+    selectionControls.current.nodes.clear();
+    selectionControls.current.relationships.clear();
     const texts = [...host.querySelectorAll<SVGTextElement>("svg text")];
     const claimed = new Set<SVGTextElement>();
     const renderedNodes = new Map<string, SVGTextElement>();
@@ -263,21 +294,21 @@ export function WbsDiagramPreview({
       }
       return undefined;
     };
-    for (const node of document.nodes) {
+    for (const node of displayed.nodes) {
       const matched = findLabelTexts(node.label);
       if (!matched || matched.length === 0) continue;
       const text = matched[0]!;
       matched.forEach((candidate) => {
         claimed.add(candidate);
         candidate.dataset.wbsNodeId = node.id;
-        candidate.classList.toggle("wbs-selected-node", node.id === selectedId);
+        candidate.classList.remove("wbs-selected-node");
       });
       renderedNodes.set(node.id, text);
       text.setAttribute("tabindex", "0");
       text.setAttribute("role", "button");
-      const completion = linkedNodeIds.has(node.id) ? nodeCompletion.get(node.id) : undefined;
+      const completion = stableLinked.has(node.id) ? stableCompletion.get(node.id) : undefined;
       text.setAttribute("aria-label", `Select WBS node ${node.label}`);
-      if (linkedNodeIds.has(node.id)) {
+      if (stableLinked.has(node.id)) {
         appendDiagramLinkIcon(matched.at(-1)!);
       }
       const boxes = matched.map((candidate) => candidate.getBBox());
@@ -351,7 +382,7 @@ export function WbsDiagramPreview({
       hit.setAttribute("aria-hidden", "true");
       hit.dataset.wbsNodeId = node.id;
       text.parentNode?.insertBefore(hit, text);
-      if (node.id === selectedId) {
+      {
         const handle = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "circle");
         handle.setAttribute("cx", String(bounds.x + bounds.width + 18));
         handle.setAttribute("cy", String(bounds.y + bounds.height / 2));
@@ -360,7 +391,7 @@ export function WbsDiagramPreview({
         handle.setAttribute("role", "button");
         handle.setAttribute("aria-label", `Drag to connect ${node.label}`);
         handle.dataset.wbsConnectFrom = node.id;
-        text.ownerSVGElement?.append(handle);
+        selectionControls.current.nodes.set(node.id, handle);
       }
     }
     const svgRoot = host.querySelector<SVGSVGElement>("svg");
@@ -381,9 +412,9 @@ export function WbsDiagramPreview({
       const length = element.getTotalLength();
       return [element.getPointAtLength(0), element.getPointAtLength(length)] as const;
     };
-    for (const relationship of document.relationships) {
-      const from = document.nodes.find((node) => node.alias === relationship.from);
-      const to = document.nodes.find((node) => node.alias === relationship.to);
+    for (const relationship of displayed.relationships) {
+      const from = displayed.nodes.find((node) => node.alias === relationship.from);
+      const to = displayed.nodes.find((node) => node.alias === relationship.to);
       const fromText = from ? renderedNodes.get(from.id) : undefined;
       const toText = to ? renderedNodes.get(to.id) : undefined;
       if (!fromText || !toText || !svgRoot) continue;
@@ -403,16 +434,13 @@ export function WbsDiagramPreview({
       if (!rendered || rendered.score > 60) continue;
       const hit = rendered.element.cloneNode(false) as SVGGeometryElement;
       hit.removeAttribute("fill");
-      hit.setAttribute(
-        "class",
-        `wbs-relationship-hit${relationship.id === selectedRelationshipId ? " wbs-selected-relationship" : ""}`,
-      );
+      hit.setAttribute("class", "wbs-relationship-hit");
       hit.dataset.wbsRelationshipId = relationship.id;
       hit.setAttribute("tabindex", "0");
       hit.setAttribute("role", "button");
       hit.setAttribute("aria-label", `Select WBS arrow from ${relationship.from} to ${relationship.to}`);
       svgRoot.append(hit);
-      const warning = dependencyWarnings.get(relationship.id);
+      const warning = stableWarnings.get(relationship.id);
       if (warning) {
         const [first, second] = endpoints(rendered.element);
         const marker = globalThis.document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -431,7 +459,7 @@ export function WbsDiagramPreview({
         marker.append(circle, symbol);
         svgRoot.append(marker);
       }
-      if (relationship.id === selectedRelationshipId) {
+      {
         const [first, second] = endpoints(rendered.element);
         const direct = distanceToBox(first, fromBox) + distanceToBox(second, toBox);
         const reverse = distanceToBox(second, fromBox) + distanceToBox(first, toBox);
@@ -449,12 +477,14 @@ export function WbsDiagramPreview({
           handle.dataset.wbsRelationshipFixedY = String(fixed.y);
           handle.setAttribute("role", "button");
           handle.setAttribute("aria-label", `Drag ${endpoint} end of WBS arrow`);
-          svgRoot.append(handle);
+          const handles = selectionControls.current.relationships.get(relationship.id) ?? [];
+          handles.push(handle);
+          selectionControls.current.relationships.set(relationship.id, handles);
         }
       }
     }
     const request = focusAfterRender.current;
-    if (request && renderStatus === "idle" && svg !== request.svg) {
+    if (request && svg !== request.svg) {
       const target = [...host.querySelectorAll<SVGElement>("[aria-label]")].find(
         (item) => item.getAttribute("aria-label") === request.label,
       );
@@ -472,16 +502,32 @@ export function WbsDiagramPreview({
       target?.focus();
       focusBeforeRender.current = undefined;
     }
-  }, [
-    dependencyWarnings,
-    document,
-    linkedNodeIds,
-    nodeCompletion,
-    renderStatus,
-    selectedId,
-    selectedRelationshipId,
-    svg,
-  ]);
+  }, [stableWarnings, displayed, stableLinked, stableCompletion, svg]);
+  useLayoutEffect(() => {
+    const host = root.current;
+    if (!host) return;
+    host
+      .querySelectorAll<SVGElement>("text[data-wbs-node-id]")
+      .forEach((element) =>
+        element.classList.toggle("wbs-selected-node", element.getAttribute("data-wbs-node-id") === selectedId),
+      );
+    host.querySelectorAll(".wbs-connect-handle,.wbs-relationship-endpoint").forEach((element) => element.remove());
+    const rendered = host.querySelector("svg");
+    const connect = selectedId ? selectionControls.current.nodes.get(selectedId) : undefined;
+    if (connect) rendered?.append(connect);
+    for (const handle of selectedRelationshipId
+      ? (selectionControls.current.relationships.get(selectedRelationshipId) ?? [])
+      : [])
+      rendered?.append(handle);
+    host
+      .querySelectorAll<SVGElement>(".wbs-relationship-hit")
+      .forEach((element) =>
+        element.classList.toggle(
+          "wbs-selected-relationship",
+          element.getAttribute("data-wbs-relationship-id") === selectedRelationshipId,
+        ),
+      );
+  }, [displayed, svg, stableLinked, stableCompletion, stableWarnings, selectedId, selectedRelationshipId]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       const current = drag.current;
@@ -541,6 +587,7 @@ export function WbsDiagramPreview({
         if (current.kind === "move") onSelect(current.id);
         return;
       }
+      suppressDragClick.current = true;
       if (current.kind === "reconnect" && current.endpoint) {
         if (!target) return;
         onRelationshipReconnect(current.id, current.endpoint, target);
@@ -612,10 +659,15 @@ export function WbsDiagramPreview({
         )}
         {svg && (
           <div
+            {...previewInteractionGuard(editingEnabled)}
             ref={root}
             className="diagram wbs-diagram"
             style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
             onClick={(event) => {
+              if (suppressDragClick.current) {
+                suppressDragClick.current = false;
+                return;
+              }
               const target = event.target as Element;
               const relationshipId =
                 target.closest<SVGElement>("[data-wbs-relationship-id]")?.dataset.wbsRelationshipId;
@@ -629,6 +681,7 @@ export function WbsDiagramPreview({
               if (id) onSelect(id);
             }}
             onPointerDown={(event) => {
+              suppressDragClick.current = false;
               if (event.button !== 0) return;
               setHoveredNode(undefined);
               const target = event.target as Element;

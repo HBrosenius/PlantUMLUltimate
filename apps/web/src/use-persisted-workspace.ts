@@ -1,5 +1,6 @@
 import { loadEditorPreferences } from "./editor-preferences";
 import { migrateSavedScenarios } from "./saved-delivery-scenarios";
+import { sameWorkspaceContent } from "./workspace-content";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   activeWorkspace,
@@ -9,6 +10,7 @@ import {
   normalizeSession,
   saveWorkspace,
   saveWorkspaceRecovery,
+  saveWorkspaceNavigation,
   type DocumentSnapshot,
   type WorkspaceSession,
   type WorkspaceSnapshot,
@@ -20,6 +22,8 @@ export function usePersistedWorkspace() {
   const sessionRef = useRef(session);
   sessionRef.current = session;
   const [hydrated, setHydrated] = useState(false);
+  const recoveredContent = useRef<WorkspaceSession | undefined>(undefined);
+  const contentPending = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -39,22 +43,50 @@ export function usePersistedWorkspace() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveWorkspaceRecovery(session);
+    if (!recoveredContent.current || !sameWorkspaceContent(recoveredContent.current, session)) {
+      saveWorkspaceRecovery(session);
+      recoveredContent.current = session;
+      contentPending.current = true;
+    }
+    const navigationTimer = window.setTimeout(() => saveWorkspaceNavigation(session), 150);
     const timer = window.setTimeout(
       () =>
-        void saveWorkspace(session).catch(() => {
-          // Browser storage is best effort; open documents stay editable and savable to files.
-        }),
+        contentPending.current &&
+        void saveWorkspace(session, false)
+          .then(() => {
+            if (sameWorkspaceContent(session, sessionRef.current)) contentPending.current = false;
+          })
+          .catch(() => {
+            // Browser storage is best effort; open documents stay editable and savable to files.
+          }),
       350,
     );
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(navigationTimer);
+    };
   }, [hydrated, session]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const flush = () => saveWorkspaceNavigation(sessionRef.current);
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [hydrated]);
 
   const workspace = useMemo(() => activeWorkspace(session), [session]);
   const setWorkspace = useCallback((action: SetStateAction<WorkspaceSnapshot>) => {
     setSession((current) => {
       const previous = activeWorkspace(current);
       const next = typeof action === "function" ? action(previous) : action;
+      if (
+        Object.keys(previous).every((key) =>
+          key === "cursor"
+            ? previous.cursor.line === next.cursor.line && previous.cursor.column === next.cursor.column
+            : previous[key as keyof WorkspaceSnapshot] === next[key as keyof WorkspaceSnapshot],
+        )
+      )
+        return current;
       return {
         ...current,
         startupMode: next.startupMode ?? "restore",
@@ -74,7 +106,7 @@ export function usePersistedWorkspace() {
                 viewMode: next.viewMode,
                 zoom: next.zoom,
                 cursor: next.cursor,
-                revision: (item.revision ?? 0) + 1,
+                revision: (item.revision ?? 0) + (item.source === next.source ? 0 : 1),
               }
             : { ...item, viewMode: item.viewMode ?? current.viewMode },
         ),
@@ -145,7 +177,9 @@ export function usePersistedWorkspace() {
   const activateDocument = useCallback(
     (id: string) =>
       setSession((current) =>
-        current.documents.some((item) => item.id === id) ? { ...current, activeDocumentId: id } : current,
+        current.activeDocumentId !== id && current.documents.some((item) => item.id === id)
+          ? { ...current, activeDocumentId: id }
+          : current,
       ),
     [],
   );
@@ -244,7 +278,8 @@ export function usePersistedWorkspace() {
         documents: current.documents.map((document) => (document.id === id ? { ...document, ...patch } : document)),
       };
       sessionRef.current = next;
-      saveWorkspaceRecovery(next);
+      if (sameWorkspaceContent(current, next)) saveWorkspaceNavigation(next);
+      else saveWorkspaceRecovery(next);
     }
     setSession((current) => ({
       ...current,

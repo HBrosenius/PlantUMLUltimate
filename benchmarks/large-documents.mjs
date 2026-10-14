@@ -201,6 +201,11 @@ async function instruments(page) {
         innerHtml.set.call(this, value);
       },
     });
+    const replaceChildren = window.Element.prototype.replaceChildren;
+    window.Element.prototype.replaceChildren = function (...nodes) {
+      if (this.classList.contains("diagram-svg-host")) window.audit.svgInsertions.push(performance.now());
+      return replaceChildren.apply(this, nodes);
+    };
     let last = performance.now();
     setInterval(() => {
       const now = performance.now();
@@ -330,6 +335,10 @@ async function sample(page, start) {
       maxTimerDelayMs: Math.max(0, ...window.audit.gaps.filter((x) => x.at >= start).map((x) => x.ms)),
       svgDomInsertions: window.audit.svgInsertions.filter((at) => at >= start).length,
       svgXmlParses: window.audit.svgParses.filter((at) => at >= start).length,
+      previewPhases: performance
+        .getEntriesByType("measure")
+        .filter((entry) => entry.name.startsWith("plantuml:preview:") && entry.startTime >= start)
+        .map((entry) => ({ phase: entry.name.slice("plantuml:preview:".length), ms: entry.duration })),
       domNodes: document.querySelectorAll("*").length,
       svgNodes: svg?.querySelectorAll("*").length,
       svgWidth: svg?.getAttribute("width"),

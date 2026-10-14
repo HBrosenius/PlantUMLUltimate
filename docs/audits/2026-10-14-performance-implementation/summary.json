@@ -1,0 +1,939 @@
+{
+  "baselineRevision": "861a050",
+  "implementation": "local working tree; 2026-10-14",
+  "method": "Benchmarks ran sequentially on the baseline desktop; large cases are single observations, not repeated medians. Next-frame timings are scheduling observations, not field INP. Gzip is locally calculated, not deployed transfer size.",
+  "gantt": {
+    "baseline": [
+      {
+        "kind": "gantt",
+        "count": 100,
+        "bytes": 4537,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 0.9705999999999904,
+            "p95Ms": 1.6595999999999833
+          },
+          "freshSourceParse": {
+            "medianMs": 0.782999999999987,
+            "p95Ms": 1.0118999999999971
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 0.7814000000000192,
+            "p95Ms": 0.9576000000000136
+          },
+          "inspectorSettings": {
+            "medianMs": 0.08289999999999509,
+            "p95Ms": 0.16480000000001382
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 4.373100000000022,
+            "p95Ms": 5.075400000000002
+          },
+          "schedule": {
+            "medianMs": 1.0768999999999664,
+            "p95Ms": 1.2737000000000194
+          }
+        }
+      },
+      {
+        "kind": "gantt",
+        "count": 500,
+        "bytes": 22937,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 4.083300000000008,
+            "p95Ms": 4.6381999999999834
+          },
+          "freshSourceParse": {
+            "medianMs": 3.9792999999999665,
+            "p95Ms": 5.49350000000004
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 3.842399999999998,
+            "p95Ms": 4.472500000000082
+          },
+          "inspectorSettings": {
+            "medianMs": 0.38819999999998345,
+            "p95Ms": 0.47879999999997835
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 20.32439999999997,
+            "p95Ms": 21.106899999999996
+          },
+          "schedule": {
+            "medianMs": 5.236699999999928,
+            "p95Ms": 5.439000000000078
+          }
+        }
+      },
+      {
+        "kind": "gantt",
+        "count": 1000,
+        "bytes": 45937,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 7.4642999999998665,
+            "p95Ms": 8.101400000000012
+          },
+          "freshSourceParse": {
+            "medianMs": 7.377500000000055,
+            "p95Ms": 8.13839999999982
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 7.4529999999999745,
+            "p95Ms": 8.168900000000122
+          },
+          "inspectorSettings": {
+            "medianMs": 0.6062999999999192,
+            "p95Ms": 0.8333000000002357
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 40.59880000000021,
+            "p95Ms": 54.916299999999865
+          },
+          "schedule": {
+            "medianMs": 10.497200000000703,
+            "p95Ms": 10.895700000000033
+          }
+        }
+      }
+    ],
+    "implementation": [
+      {
+        "kind": "gantt",
+        "count": 100,
+        "bytes": 4537,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 1.024499999999989,
+            "p95Ms": 2.5603000000000122
+          },
+          "freshSourceParse": {
+            "medianMs": 0.8566000000000145,
+            "p95Ms": 1.102499999999992
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 0.8242999999999938,
+            "p95Ms": 1.206799999999987
+          },
+          "inspectorSettings": {
+            "medianMs": 0.09919999999999618,
+            "p95Ms": 0.1641999999999939
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 1.0036000000000058,
+            "p95Ms": 1.2655000000000314
+          },
+          "freshSnapshotDiagnosticsAndQuickFixes": {
+            "medianMs": 2.2035999999999945,
+            "p95Ms": 2.8343999999999596
+          },
+          "schedule": {
+            "medianMs": 1.1421000000000276,
+            "p95Ms": 1.3489000000000146
+          }
+        }
+      },
+      {
+        "kind": "gantt",
+        "count": 500,
+        "bytes": 22937,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 4.300399999999968,
+            "p95Ms": 5.209800000000087
+          },
+          "freshSourceParse": {
+            "medianMs": 3.9355000000000473,
+            "p95Ms": 4.3753999999999
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 3.7551999999999452,
+            "p95Ms": 4.3600999999999885
+          },
+          "inspectorSettings": {
+            "medianMs": 0.41420000000005075,
+            "p95Ms": 0.5172999999999774
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 3.7830999999999904,
+            "p95Ms": 4.328600000000051
+          },
+          "freshSnapshotDiagnosticsAndQuickFixes": {
+            "medianMs": 9.993900000000167,
+            "p95Ms": 10.749099999999999
+          },
+          "schedule": {
+            "medianMs": 5.492199999999912,
+            "p95Ms": 6.3590999999998985
+          }
+        }
+      },
+      {
+        "kind": "gantt",
+        "count": 1000,
+        "bytes": 45937,
+        "costs": {
+          "sameSourceParse": {
+            "medianMs": 7.470900000000029,
+            "p95Ms": 9.369500000000016
+          },
+          "freshSourceParse": {
+            "medianMs": 7.4418000000000575,
+            "p95Ms": 8.51319999999987
+          },
+          "unconditionalGanttParse": {
+            "medianMs": 7.569299999999657,
+            "p95Ms": 9.075900000000274
+          },
+          "inspectorSettings": {
+            "medianMs": 0.6518999999998414,
+            "p95Ms": 0.6738000000000284
+          },
+          "diagnosticsAndQuickFixes": {
+            "medianMs": 7.88799999999992,
+            "p95Ms": 8.56840000000011
+          },
+          "freshSnapshotDiagnosticsAndQuickFixes": {
+            "medianMs": 20.189800000000105,
+            "p95Ms": 21.841899999999896
+          },
+          "schedule": {
+            "medianMs": 11.350300000000061,
+            "p95Ms": 12.70219999999972
+          }
+        }
+      }
+    ],
+    "freshContextMethod": "35 preconstructed models: 5 warmups and 30 observations. Parsing is excluded, matching the diagnostic cost's parsed-model input; repeated-snapshot and fresh-context costs are reported separately."
+  },
+  "previews": {
+    "baseline": [
+      {
+        "browser": "chromium",
+        "kind": "gantt",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 16.100000023841858,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "sequence",
+        "htmlWritesDuringTyping": [10, 10, 10],
+        "bboxReadsDuringTyping": [760, 760, 760],
+        "medianNextFrameMs": 11.800000071525574,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "class",
+        "htmlWritesDuringTyping": [11, 11, 11],
+        "bboxReadsDuringTyping": [660, 660, 660],
+        "medianNextFrameMs": 10.299999952316284,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "wbs",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [671, 671, 671],
+        "medianNextFrameMs": 10.399999976158142,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "gantt",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 24,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "sequence",
+        "htmlWritesDuringTyping": [10, 10, 10],
+        "bboxReadsDuringTyping": [760, 760, 760],
+        "medianNextFrameMs": 35,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "class",
+        "htmlWritesDuringTyping": [11, 11, 11],
+        "bboxReadsDuringTyping": [660, 660, 660],
+        "medianNextFrameMs": 30,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "wbs",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [671, 671, 671],
+        "medianNextFrameMs": 25,
+        "errors": []
+      }
+    ],
+    "implementation": [
+      {
+        "browser": "chromium",
+        "kind": "gantt",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 16.100000023841858,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "sequence",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 9.600000023841858,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "class",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 11.799999952316284,
+        "errors": []
+      },
+      {
+        "browser": "chromium",
+        "kind": "wbs",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 8,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "gantt",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 24,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "sequence",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 15,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "class",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 21,
+        "errors": []
+      },
+      {
+        "browser": "webkit",
+        "kind": "wbs",
+        "htmlWritesDuringTyping": [0, 0, 0],
+        "bboxReadsDuringTyping": [0, 0, 0],
+        "medianNextFrameMs": 16,
+        "errors": []
+      }
+    ]
+  },
+  "responsiveness": {
+    "baseline": {
+      "workspaceBytes": 490356,
+      "summary": {
+        "cursor-20": {
+          "wallMs": 210,
+          "writes": 42,
+          "storageMs": 24.8,
+          "serializeMs": 11.3,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        },
+        "typing-20": {
+          "wallMs": 1110,
+          "writes": 50,
+          "storageMs": 30.9,
+          "serializeMs": 15.3,
+          "longTasks": 1,
+          "longestTaskMs": 73
+        },
+        "switch-tabs-10": {
+          "wallMs": 862,
+          "writes": 40,
+          "storageMs": 24.7,
+          "serializeMs": 16,
+          "longTasks": 1,
+          "longestTaskMs": 50
+        },
+        "render-100": {
+          "wallMs": 1888,
+          "writes": 4,
+          "storageMs": 2.5,
+          "serializeMs": 1.6,
+          "longTasks": 3,
+          "longestTaskMs": 277
+        },
+        "split-typing-20": {
+          "wallMs": 800,
+          "writes": 50,
+          "storageMs": 27.8,
+          "serializeMs": 18.6,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        },
+        "zoom-scroll-10": {
+          "wallMs": 472,
+          "writes": 14,
+          "storageMs": 8.4,
+          "serializeMs": 5,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        }
+      }
+    },
+    "implementation": {
+      "workspaceBytes": 490356,
+      "summary": {
+        "cursor-20": {
+          "wallMs": 102,
+          "writes": 1,
+          "storageMs": 0,
+          "serializeMs": 0,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        },
+        "typing-20": {
+          "wallMs": 897,
+          "writes": 45,
+          "storageMs": 28.8,
+          "serializeMs": 14.5,
+          "longTasks": 1,
+          "longestTaskMs": 65
+        },
+        "switch-tabs-10": {
+          "wallMs": 727,
+          "writes": 1,
+          "storageMs": 0.1,
+          "serializeMs": 0,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        },
+        "render-100": {
+          "wallMs": 1755,
+          "writes": 1,
+          "storageMs": 0,
+          "serializeMs": 0,
+          "longTasks": 1,
+          "longestTaskMs": 266
+        },
+        "split-typing-20": {
+          "wallMs": 650,
+          "writes": 45,
+          "storageMs": 21.9,
+          "serializeMs": 16.7,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        },
+        "zoom-scroll-10": {
+          "wallMs": 453,
+          "writes": 2,
+          "storageMs": 0.1,
+          "serializeMs": 0.1,
+          "longTasks": 0,
+          "longestTaskMs": 0
+        }
+      }
+    }
+  },
+  "large": {
+    "baseline": [
+      {
+        "browser": "chromium",
+        "name": "gantt-200",
+        "initialMs": 2759.2319,
+        "editMs": 1825.1626000000006,
+        "engineMs": 876.5,
+        "persistence": {
+          "saveMs": 135.17759999999998,
+          "reopenMs": 2879.508499999999,
+          "bytes": 3794,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "chromium",
+        "name": "document-200",
+        "initialMs": 2187.441500000001,
+        "medianTypingNextFrameMs": 42.39999997615814,
+        "maxTypingNextFrameMs": 50.300000071525574,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 272.90729999999894,
+          "reopenMs": 1312.3868000000002,
+          "bytes": 185006,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "gantt-200",
+        "initialMs": 8291.816200000001,
+        "editMs": 4783.2883,
+        "engineMs": 1689,
+        "persistence": {
+          "saveMs": 791.1970000000001,
+          "reopenMs": 8650.669699999999,
+          "bytes": 4004,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "document-200",
+        "initialMs": 6239.391600000003,
+        "medianTypingNextFrameMs": 83,
+        "maxTypingNextFrameMs": 169,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 772.4985999999917,
+          "reopenMs": 1923.9621999999945,
+          "bytes": 200630,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      }
+    ],
+    "implementation": [
+      {
+        "browser": "chromium",
+        "name": "gantt-200",
+        "initialMs": 2988.1164999999996,
+        "editMs": 1972.5250000000005,
+        "engineMs": 953.9000000953674,
+        "persistence": {
+          "saveMs": 128.72329999999965,
+          "reopenMs": 3146.955,
+          "bytes": 3793,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "chromium",
+        "name": "document-200",
+        "initialMs": 2560.7837,
+        "medianTypingNextFrameMs": 38,
+        "maxTypingNextFrameMs": 42.5,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 258.0650999999998,
+          "reopenMs": 1512.188000000002,
+          "bytes": 184871,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "gantt-200",
+        "initialMs": 8877.602299999999,
+        "editMs": 5126.139000000003,
+        "engineMs": 1900,
+        "persistence": {
+          "saveMs": 842.5771999999997,
+          "reopenMs": 9339.595100000006,
+          "bytes": 4000,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "document-200",
+        "initialMs": 5590.223299999998,
+        "medianTypingNextFrameMs": 84,
+        "maxTypingNextFrameMs": 175,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 777.7468999999983,
+          "reopenMs": 2000.5801000000065,
+          "bytes": 200535,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      }
+    ],
+    "finalImplementation": [
+      {
+        "browser": "chromium",
+        "name": "gantt-200",
+        "initialMs": 3769.4311000000007,
+        "editMs": 2197.759400000001,
+        "engineMs": 1108.5999999046326,
+        "initialPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 123.10000002384186
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 24.699999928474426
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 55.89999997615814
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 9.400000095367432
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 223.30000007152557
+          },
+          {
+            "phase": "install",
+            "ms": 5.899999976158142
+          }
+        ],
+        "editPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 148.89999997615814
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 29.399999976158142
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 48.60000002384186
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 8.699999928474426
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 197.40000009536743
+          },
+          {
+            "phase": "install",
+            "ms": 11.399999976158142
+          }
+        ],
+        "persistence": {
+          "saveMs": 226.3809999999994,
+          "reopenMs": 3506.7308999999987,
+          "bytes": 3791,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "chromium",
+        "name": "document-200",
+        "initialMs": 2917.1689000000006,
+        "initialPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 37.89999997615814
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 7.100000023841858
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 10.200000047683716
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 1.7000000476837158
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 55.39999997615814
+          },
+          {
+            "phase": "install",
+            "ms": 1.100000023841858
+          }
+        ],
+        "medianTypingNextFrameMs": 36.60000002384186,
+        "maxTypingNextFrameMs": 38.89999997615814,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 228.58550000000105,
+          "reopenMs": 1443.5633000000016,
+          "bytes": 186036,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "gantt-200",
+        "initialMs": 9512.546699999999,
+        "editMs": 5089.747300000003,
+        "engineMs": 1871,
+        "initialPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 211
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 32
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 77
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 19
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 239
+          },
+          {
+            "phase": "install",
+            "ms": 10
+          }
+        ],
+        "editPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 174
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 36
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 60
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 18
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 208
+          },
+          {
+            "phase": "install",
+            "ms": 33
+          }
+        ],
+        "persistence": {
+          "saveMs": 900.5423999999985,
+          "reopenMs": 8739.4948,
+          "bytes": 4001,
+          "diagrams": 1,
+          "links": 0,
+          "historyVersions": 2,
+          "renderResultsAfterReopen": 1
+        },
+        "errors": [],
+        "ok": true
+      },
+      {
+        "browser": "webkit",
+        "name": "document-200",
+        "initialMs": 5759.3698,
+        "initialPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 71
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 10
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 20
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 5
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 66
+          },
+          {
+            "phase": "install",
+            "ms": 3
+          }
+        ],
+        "medianTypingNextFrameMs": 151,
+        "maxTypingNextFrameMs": 267,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 893.6606999999931,
+          "reopenMs": 2362.2404000000097,
+          "bytes": 202358,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      }
+    ],
+    "repeatedProjectContext": [
+      {
+        "browser": "webkit",
+        "name": "document-200",
+        "initialMs": 5647.436200000001,
+        "initialPreviewPhases": [
+          {
+            "phase": "sanitize-incoming",
+            "ms": 76
+          },
+          {
+            "phase": "overlay-parse",
+            "ms": 17
+          },
+          {
+            "phase": "overlay-build",
+            "ms": 25
+          },
+          {
+            "phase": "overlay-serialize",
+            "ms": 7
+          },
+          {
+            "phase": "sanitize-decorated",
+            "ms": 81
+          },
+          {
+            "phase": "install",
+            "ms": 2
+          }
+        ],
+        "medianTypingNextFrameMs": 77,
+        "maxTypingNextFrameMs": 167,
+        "undoCount": 1,
+        "persistence": {
+          "saveMs": 803.6563999999998,
+          "reopenMs": 1936.9618999999948,
+          "bytes": 207767,
+          "diagrams": 200,
+          "links": 100,
+          "allFixtureMembersAndLinksPreserved": true,
+          "originalHistoryVersionsVerified": 1000,
+          "historyVersions": 1000,
+          "renderResultsAfterReopen": 0
+        },
+        "errors": [],
+        "ok": true
+      }
+    ]
+  },
+  "index": {
+    "documents": 200,
+    "elements": 2200,
+    "links": 1095,
+    "warmupMs": 69.29310000000001,
+    "runsMs": [60.49580000000003, 60.43990000000002, 75.3433, 56.27180000000004, 51.14639999999997],
+    "medianMs": 60.43990000000002,
+    "node": "v24.14.1",
+    "ok": true,
+    "incremental": {
+      "changedDocuments": 1,
+      "reusedDocuments": 199,
+      "runsMs": [17.78640000000007, 17.869199999999978, 20.323600000000056, 15.99490000000003, 16.58750000000009],
+      "medianMs": 17.78640000000007
+    }
+  },
+  "initialAssets": [
+    {
+      "path": "/assets/index-C3CzCn48.js",
+      "bytes": 1710655,
+      "gzipBytes": 431128
+    },
+    {
+      "path": "/assets/react-vendor-BuQOX7bh.js",
+      "bytes": 192363,
+      "gzipBytes": 60295
+    },
+    {
+      "path": "/assets/diagram-engines-DJsoaEcG.js",
+      "bytes": 127919,
+      "gzipBytes": 36444
+    },
+    {
+      "path": "/assets/editor-vendor-Cy1l7YT6.js",
+      "bytes": 395520,
+      "gzipBytes": 128484
+    }
+  ],
+  "initialJavaScriptBytes": 2426457,
+  "initialJavaScriptGzipBytes": 656351
+}

@@ -4,6 +4,7 @@ import { sourceForPlantUmlRenderer } from "./plantuml-source";
 import { loadRendererAssets, frameDocument } from "./renderer-assets";
 import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
+import { measurePreviewPhase } from "./preview-performance";
 import { buildFontAtlas } from "./font-atlas";
 
 interface PendingRender {
@@ -191,7 +192,7 @@ export function useRenderer(
         startupFailed("Renderer startup timed out");
       }, TIMEOUT_MS);
       try {
-        const assets = await loadRendererAssets();
+        const assets = await loadRendererAssets(layoutEngine);
         if (disposed || version !== bootVersion) return;
         channel = `plantuml-${crypto.randomUUID()}`;
         frame = document.createElement("iframe");
@@ -264,8 +265,10 @@ export function useRenderer(
             typeof message.error === "string"
               ? message.error.slice(0, 10_000)
               : "The renderer returned an invalid error";
-        else if (typeof message.svg === "string") completed.svg = sanitizeSvg(message.svg);
-        else completed.error = "The renderer returned no diagram";
+        else if (typeof message.svg === "string") {
+          const svg = message.svg;
+          completed.svg = measurePreviewPhase("sanitize-incoming", () => sanitizeSvg(svg));
+        } else completed.error = "The renderer returned no diagram";
       } catch (error) {
         completed.error = error instanceof Error ? error.message : "Invalid SVG";
       }

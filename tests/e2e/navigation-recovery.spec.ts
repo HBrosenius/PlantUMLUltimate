@@ -76,7 +76,11 @@ for (const [secondKind, original] of Object.entries(diagrams)) {
       await expect
         .poll(() =>
           page.evaluate(() => {
-            const session = JSON.parse(localStorage.getItem("plantuml-studio.workspace.recovery.v6") ?? "{}");
+            // Navigation is journaled separately so scrolling does not rewrite document sources.
+            const key = Object.keys(localStorage).find((key) =>
+              key.startsWith("plantuml-studio.workspace.navigation.v1:"),
+            );
+            const session = JSON.parse(key ? (localStorage.getItem(key) ?? "{}") : "{}");
             return session.documents?.find((doc: { id: string }) => doc.id === session.activeDocumentId)?.diagramScroll;
           }),
         )

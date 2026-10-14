@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
 import { InlineLabelEditor } from "./InlineLabelEditor";
 import { RenderSizeNotice } from "./render/RenderSizeNotice";
@@ -20,7 +21,7 @@ import { startupChooserPolicy } from "./startup-chooser-policy";
 import { FileSaveStatus } from "./FileSaveStatus";
 import { useWorkspaceLayout } from "./use-workspace-layout";
 import { ActionMenu } from "./ActionMenu";
-import { PresentationDialog } from "./PresentationDialog";
+
 import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 import { WorkspaceHint } from "./WorkspaceHint";
@@ -78,8 +79,7 @@ import {
 } from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 import { ProjectInspector } from "./ProjectInspector";
-import { SchedulePreviewDialog } from "./SchedulePreviewDialog";
-import { DeliveryScenarioDialog } from "./DeliveryScenarioDialog";
+
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
@@ -99,12 +99,12 @@ import { useFolderProject } from "./projects/use-folder-project";
 import { useSingleFileProject } from "./projects/use-single-file-project";
 import { projectElementForEdit } from "./projects/project-edit-mapping";
 import { DocumentSettingsDialog } from "./DocumentSettingsDialog";
-import { SettingsDialog } from "./SettingsDialog";
+
 import { plantUmlTheme, setPlantUmlTheme } from "./plantuml-theme";
-import { VersionHistoryDialog } from "./VersionHistoryDialog";
+
 import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { CollaborationDialog } from "./CollaborationDialog";
-import { JiraDialog } from "./JiraDialog";
+
 import { AddMenu } from "./AddMenu";
 import { SaveStarterDialog } from "./PersonalStarters";
 import { NewDocumentDialog } from "./NewDocumentDialog";
@@ -115,6 +115,7 @@ import { useSequenceController } from "./features/sequence/use-sequence-controll
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
+import { ganttAnalysisContext } from "./gantt-analysis-context";
 import { analyzeCriticalPath } from "./schedule-analysis";
 import { optionShortcut } from "./platform-shortcuts";
 import { parseGanttCalendar } from "./gantt-calendar";
@@ -228,9 +229,33 @@ const EMPTY_CLASS_DOCUMENT = parseClassDiagram("");
 const EMPTY_ACTIVITY_DOCUMENT = parseActivity("");
 const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 
+import { lazyFeature } from "./lazy-feature";
+const PresentationDialog = lazyFeature<ComponentProps<typeof import("./PresentationDialog").PresentationDialog>>(() =>
+  import("./PresentationDialog").then((module) => ({ default: module.PresentationDialog })),
+);
+const SchedulePreviewDialog = lazyFeature<
+  ComponentProps<typeof import("./SchedulePreviewDialog").SchedulePreviewDialog>
+>(() => import("./SchedulePreviewDialog").then((module) => ({ default: module.SchedulePreviewDialog })));
+const DeliveryScenarioDialog = lazyFeature<
+  ComponentProps<typeof import("./DeliveryScenarioDialog").DeliveryScenarioDialog>
+>(() => import("./DeliveryScenarioDialog").then((module) => ({ default: module.DeliveryScenarioDialog })));
+const VersionHistoryDialog = lazyFeature<ComponentProps<typeof import("./VersionHistoryDialog").VersionHistoryDialog>>(
+  () => import("./VersionHistoryDialog").then((module) => ({ default: module.VersionHistoryDialog })),
+);
+const SettingsDialog = lazyFeature<ComponentProps<typeof import("./SettingsDialog").SettingsDialog>>(() =>
+  import("./SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
+);
+const JiraDialog = lazyFeature<ComponentProps<typeof import("./JiraDialog").JiraDialog>>(() =>
+  import("./JiraDialog").then((module) => ({ default: module.JiraDialog })),
+);
+
+function useInspectorSettings<T>(open: boolean, source: string, parse: (source: string) => T): T {
+  const settingsSource = open ? source : "";
+  return useMemo(() => parse(settingsSource), [settingsSource, parse]);
+}
+
 export function App() {
   const analyzeSource = useMemo(createDiagramAnalyzer, []);
-  const pwa = usePwa();
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const editorPreferences = useEditorPreferences();
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
@@ -467,6 +492,13 @@ export function App() {
     rendererLayoutEngineForDiagramKind(workspace.diagramKind),
     tabs.activeId,
   );
+  const pwa = usePwa(
+    hydrated &&
+      (dialog?.kind === "new-document" ||
+        viewMode === "code" ||
+        result?.source === workspace.source ||
+        status === "error"),
+  );
   useEffect(() => {
     const selector = pendingDiagramFocusSelector.current;
     if (!selector || !result?.svg) return;
@@ -476,11 +508,12 @@ export function App() {
     lastDiagramFocus.current = target;
     target.focus({ preventScroll: true });
   }, [result?.svg]);
+  const activeGanttSource = workspace.diagramKind === "gantt" ? workspace.source : "@startgantt\n@endgantt";
   const parsed = useMemo(() => {
     const started = performance.now();
-    const value = applicationGanttAdapter.parse(workspace.source);
+    const value = applicationGanttAdapter.parse(activeGanttSource);
     return { value, durationMs: performance.now() - started };
-  }, [workspace.source]);
+  }, [activeGanttSource]);
   const parseResult = parsed.value;
   const {
     endpoint: defaultJiraEndpoint,
@@ -496,6 +529,32 @@ export function App() {
   });
   // Only the active diagram type is parsed on each edit; the other editors receive empty documents.
   const activeKind = workspace.diagramKind;
+  const previewSequence = useMemo(() => {
+    if (activeKind !== "sequence" || !result?.source) return undefined;
+    const document = parseSequence(result.source);
+    return {
+      ...document,
+      structures: [
+        ...document.fragments,
+        ...document.activations,
+        ...document.notes,
+        ...document.timelineItems,
+        ...document.references,
+        ...document.boxes,
+      ],
+    };
+  }, [activeKind, result?.source]);
+  const previewClass = useMemo(
+    () =>
+      (activeKind === "class" || activeKind === "component") && result?.source
+        ? parseClassDiagram(result.source)
+        : undefined,
+    [activeKind, result?.source],
+  );
+  const previewWbs = useMemo(
+    () => (activeKind === "wbs" && result?.source ? parseWbs(result.source) : undefined),
+    [activeKind, result?.source],
+  );
   const sequenceDocument = useMemo(
     () => (activeKind === "sequence" ? parseSequence(workspace.source) : EMPTY_SEQUENCE_DOCUMENT),
     [activeKind, workspace.source],
@@ -1138,7 +1197,10 @@ export function App() {
     () => (selectedTask ? findResourceConflicts(selectedTask, parseResult.document.tasks) : []),
     [selectedTask, parseResult.document.tasks],
   );
-  const ganttCalendar = useMemo(() => parseGanttCalendar(workspace.source), [workspace.source]);
+  const ganttCalendar = useMemo(
+    () => ganttAnalysisContext(activeGanttSource, parseResult).calendar,
+    [activeGanttSource, parseResult],
+  );
   // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
   const [reportsOpen, setReportsOpen] = useState(false);
   const [reportsSuspended, setReportsSuspended] = useState(false);
@@ -1153,15 +1215,13 @@ export function App() {
   const planTimeZone = activeDocument.progressForecast?.enabled
     ? (activeDocument.progressForecast.timeZone ?? "UTC")
     : undefined;
+  const useCaseInspectorSettings = useInspectorSettings(useCaseSettingsOpen, workspace.source, parseUseCaseSettings);
+  const classInspectorSettings = useInspectorSettings(classSettingsOpen, workspace.source, parseClassSettings);
+  const activityInspectorSettings = useInspectorSettings(activitySettingsOpen, workspace.source, parseActivitySettings);
+  const sequenceInspectorSettings = useInspectorSettings(sequenceSettingsOpen, workspace.source, parseSequenceSettings);
   const resolvedTaskDates = useMemo(() => {
-    return resolveTaskDates(
-      parseResult.document.tasks,
-      parseResult.document.dependencies,
-      parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined,
-      ganttCalendar,
-      planTimeZone,
-    );
-  }, [ganttCalendar, parseResult.document, planTimeZone]);
+    return ganttAnalysisContext(activeGanttSource, parseResult, planTimeZone).dates;
+  }, [activeGanttSource, parseResult, planTimeZone]);
   const resourceOverAllocations = useMemo(
     () =>
       buildResourceOverAllocations(parseResult.document.tasks, resourceCapacities, resolvedTaskDates, ganttCalendar),
@@ -4648,6 +4708,7 @@ export function App() {
               initialFit={initialDiagramFit}
               svg={result?.svg}
               renderedSource={result?.source}
+              sharedDates={resolvedTaskDates}
               tasks={parseResult.document.tasks}
               dependencies={parseResult.document.dependencies}
               dividers={parseResult.document.dividers}
@@ -4811,6 +4872,8 @@ export function App() {
             />
           ) : workspace.diagramKind === "sequence" ? (
             <SequenceDiagramPreview
+              editingEnabled={result?.source === workspace.source}
+              geometryDocument={previewSequence}
               initialFit={initialDiagramFit}
               svg={result?.svg}
               zoom={workspace.zoom}
@@ -4870,6 +4933,8 @@ export function App() {
             />
           ) : workspace.diagramKind === "class" || workspace.diagramKind === "component" ? (
             <ClassDiagramPreview
+              editingEnabled={result?.source === workspace.source}
+              geometryDocument={previewClass}
               onInlineRename={commandReadOnly ? undefined : startInlineRename}
               initialFit={initialDiagramFit}
               diagramKind={workspace.diagramKind}
@@ -4926,6 +4991,8 @@ export function App() {
             />
           ) : (
             <WbsDiagramPreview
+              editingEnabled={result?.source === workspace.source}
+              geometryDocument={previewWbs}
               initialFit={initialDiagramFit}
               svg={result?.svg}
               document={wbsDocument}
@@ -5795,7 +5862,7 @@ export function App() {
       )}
       <UseCaseInspectors
         settingsOpen={useCaseSettingsOpen}
-        settings={parseUseCaseSettings(workspace.source)}
+        settings={useCaseInspectorSettings}
         selectedElement={diagramMulti.multiple ? undefined : selectedUseCaseElement}
         selectedRelationship={diagramMulti.multiple ? undefined : selectedUseCaseRelationship}
         selectedPackage={diagramMulti.multiple ? undefined : selectedUseCasePackage}
@@ -5818,7 +5885,7 @@ export function App() {
       <ClassInspectors
         componentMode={workspace.diagramKind === "component"}
         settingsOpen={classSettingsOpen}
-        settings={parseClassSettings(workspace.source)}
+        settings={classInspectorSettings}
         document={classDocument}
         selectedEntity={diagramMulti.multiple ? undefined : selectedClassEntity}
         selectedRelationship={diagramMulti.multiple ? undefined : selectedClassRelationship}
@@ -5848,7 +5915,7 @@ export function App() {
       />
       <ActivityInspectors
         settingsOpen={activitySettingsOpen}
-        settings={parseActivitySettings(workspace.source)}
+        settings={activityInspectorSettings}
         document={activityDocument}
         selectedAction={diagramMulti.multiple ? undefined : selectedActivityAction}
         selectedControl={diagramMulti.multiple ? undefined : selectedActivityControl}
@@ -5885,7 +5952,7 @@ export function App() {
       />
       <SequenceInspectors
         settingsOpen={sequenceSettingsOpen}
-        settings={parseSequenceSettings(workspace.source)}
+        settings={sequenceInspectorSettings}
         selectedParticipant={diagramMulti.multiple ? undefined : selectedSequenceParticipant}
         selectedMessage={diagramMulti.multiple ? undefined : selectedSequenceMessage}
         selectedStructure={diagramMulti.multiple ? undefined : selectedSequenceStructure}

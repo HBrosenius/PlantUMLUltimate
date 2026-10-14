@@ -1,3 +1,4 @@
+import { previewInteractionGuard } from "./preview-interaction-guard";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useMemo, useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
@@ -15,6 +16,8 @@ export function SequenceDiagramPreview({
   renderError,
   onRenderRetry,
   participants,
+  geometryDocument,
+  editingEnabled = true,
   messages,
   structures,
   selectedParticipantId,
@@ -38,6 +41,14 @@ export function SequenceDiagramPreview({
   renderStatus: RenderStatus;
   renderError?: string | undefined;
   onRenderRetry(): void;
+  editingEnabled?: boolean | undefined;
+  geometryDocument?:
+    | {
+        participants: readonly SequenceParticipant[];
+        messages: readonly SequenceMessage[];
+        structures: readonly SequenceStructure[];
+      }
+    | undefined;
   participants: readonly SequenceParticipant[];
   messages: readonly SequenceMessage[];
   structures: readonly SequenceStructure[];
@@ -55,6 +66,10 @@ export function SequenceDiagramPreview({
   onMessageCreate(fromParticipantId: string, toParticipantId: string): void;
   onMessageExternalize(messageId: string, endpoint: "from" | "to", marker: "[" | "]" | "?"): void;
 }) {
+  const geometry = useMemo(
+    () => geometryDocument ?? { participants, messages, structures },
+    [geometryDocument, participants, messages, structures],
+  );
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -109,6 +124,7 @@ export function SequenceDiagramPreview({
   const selectedStructure = structures.find((structure) => structure.id === selectedStructureId);
 
   useLayoutEffect(() => {
+    const { participants, messages, structures } = geometry;
     const root = diagramRef.current;
     if (!root) return;
     // Annotation geometry must start from the rendered SVG, without previous hit targets or anchors.
@@ -197,6 +213,28 @@ export function SequenceDiagramPreview({
         );
       });
     }
+    addStructureTimelineGrips(root, structures, undefined);
+  }, [svg, geometry]);
+  useLayoutEffect(() => {
+    const { participants, messages, structures } = geometry;
+    const root = diagramRef.current;
+    if (!root) return;
+    root
+      .querySelectorAll(".sequence-selected-participant")
+      .forEach((element) => element.classList.remove("sequence-selected-participant"));
+    root
+      .querySelectorAll(
+        ".sequence-message-endpoint,.sequence-structure-endpoint,.sequence-participant-anchor,.sequence-selected-structure,.sequence-selected-message-line,.sequence-selected-message-head",
+      )
+      .forEach((element) => element.remove());
+    root
+      .querySelectorAll(".sequence-structure-grip")
+      .forEach((element) =>
+        element.classList.toggle(
+          "selected",
+          element.getAttribute("data-sequence-structure-id") === selectedStructureId,
+        ),
+      );
     if (selectedParticipantId) {
       root
         .querySelectorAll(
@@ -204,7 +242,6 @@ export function SequenceDiagramPreview({
         )
         .forEach((element) => element.classList.add("sequence-selected-participant"));
     }
-    addStructureTimelineGrips(root, structures, selectedStructureId);
     addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
     addStructureReconnectAnchors(root, participants, structures, selectedStructureId);
     restoreActiveReconnectPreview(root);
@@ -238,7 +275,7 @@ export function SequenceDiagramPreview({
         } else delete drag.movePreview;
       }
     }
-  }, [svg, participants, messages, structures, selectedParticipantId, selectedMessageId, selectedStructureId]);
+  }, [svg, geometry, selectedParticipantId, selectedMessageId, selectedStructureId]);
 
   const selectRenderedObject = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
@@ -688,6 +725,7 @@ export function SequenceDiagramPreview({
         {svg ? (
           <div
             className="diagram sequence-diagram"
+            {...previewInteractionGuard(editingEnabled)}
             ref={diagramRef}
             data-inspector-trigger
             style={{ transform: `scale(${zoom})` }}

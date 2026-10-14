@@ -1,0 +1,286 @@
+{
+  "freshSnapshots": false,
+  "totalSamples": 259,
+  "hottest": [
+    {
+      "functionName": "syntaxRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3192,
+      "columnNumber": 22,
+      "samples": 44
+    },
+    {
+      "functionName": "statementIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2327,
+      "columnNumber": 24,
+      "samples": 26
+    },
+    {
+      "functionName": "statementIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2327,
+      "columnNumber": 24,
+      "samples": 22
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 20
+    },
+    {
+      "functionName": "(garbage collector)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 19
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 17
+    },
+    {
+      "functionName": "terminatorIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2666,
+      "columnNumber": 25,
+      "samples": 14
+    },
+    {
+      "functionName": "keywordRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2533,
+      "columnNumber": 23,
+      "samples": 9
+    },
+    {
+      "functionName": "boundaryIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2994,
+      "columnNumber": 23,
+      "samples": 9
+    },
+    {
+      "functionName": "sharedRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 4826,
+      "columnNumber": 22,
+      "samples": 7
+    },
+    {
+      "functionName": "boundaryIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2994,
+      "columnNumber": 23,
+      "samples": 5
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 4
+    },
+    {
+      "functionName": "RegExp: \\s+'.*$",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 3
+    },
+    {
+      "functionName": "unfixableIssues",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 4854,
+      "columnNumber": 24,
+      "samples": 3
+    },
+    {
+      "functionName": "RegExp: (?!)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 3
+    },
+    {
+      "functionName": "RegExp: ^(?:abstract\\s+)?(class|interface|enum|annotation|entity|object|component|actor|usecase|participant|boundary|control|database|collections|queue)\\s+([\\p{L}_$][\\p{L}\\p{N}_.$]*)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 2
+    },
+    {
+      "functionName": "RegExp: ^skinparam(?:\\s+\\w+)?$",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 2
+    },
+    {
+      "functionName": "RegExp: (\\b(?:at|after|before|as|with|in)\\s+)([^[\\]\"\\n]+)]",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 2
+    },
+    {
+      "functionName": "terminatorRepairs",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2870,
+      "columnNumber": 26,
+      "samples": 2
+    },
+    {
+      "functionName": "RegExp: \"(?:\\\\.|[^\"\\\\])*\"",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 2
+    },
+    {
+      "functionName": "ganttDiagnostics",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3886,
+      "columnNumber": 25,
+      "samples": 2
+    },
+    {
+      "functionName": "shiftIsoDateSafely",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 16,
+      "columnNumber": 27,
+      "samples": 2
+    },
+    {
+      "functionName": "validIsoDate",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 6,
+      "columnNumber": 21,
+      "samples": 2
+    },
+    {
+      "functionName": "post",
+      "scriptId": "90",
+      "url": "node:inspector",
+      "lineNumber": 114,
+      "columnNumber": 6,
+      "samples": 1
+    },
+    {
+      "functionName": "dispatch",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: <style>",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: (?<!\\\\)\"",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: (?!)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: \\s+'.*$",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "opensNoteBlock",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 2279,
+      "columnNumber": 23,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: ^Project\\s+starts\\s*$",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: ^(\\s*(?:then\\s+)?)([^[\\]\"']+)](?=\\s+(?:starts|ends|lasts|requires|happens|is|on|pauses|links|displays|as)\\b)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "",
+      "scriptId": "138",
+      "url": "file:///C:/Users/henri/IdeaProjects/PlantUMLUltimate/test-results/performance-analysis-functions.mjs",
+      "lineNumber": 3200,
+      "columnNumber": 34,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: (\\b(?:at|after|before)\\s+\\[[^\\]\\n]+])(?:\\s*([’‘']s|s|[’‘']))?\\s+(start|end)\\b",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    },
+    {
+      "functionName": "RegExp: ^(\\s*)(@+[a-z]+|(?:start|end)(?:gantt|wbs|uml))\\b",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "samples": 1
+    }
+  ]
+}

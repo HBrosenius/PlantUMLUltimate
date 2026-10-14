@@ -1,3 +1,4 @@
+import { previewInteractionGuard } from "./preview-interaction-guard";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import {
   useMemo,
@@ -33,6 +34,8 @@ export function ClassDiagramPreview({
   renderError,
   onRenderRetry,
   document,
+  geometryDocument,
+  editingEnabled = true,
   selectedId,
   highlightedMemberId,
   onSelect,
@@ -53,6 +56,8 @@ export function ClassDiagramPreview({
   renderError?: string | undefined;
   onRenderRetry(): void;
   document: ClassDocument;
+  editingEnabled?: boolean | undefined;
+  geometryDocument?: ClassDocument | undefined;
   selectedId?: string | undefined;
   highlightedMemberId?: string | undefined;
   onSelect(id: string): void;
@@ -63,9 +68,11 @@ export function ClassDiagramPreview({
   onMoveToPackage(id: string, packageId?: string): void;
   onReorder(id: string, targetId: string, placement: "before" | "after"): void;
 }) {
+  const geometry = geometryDocument ?? document;
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const svgMarkup = useMemo(() => ({ __html: svg ?? "" }), [svg]);
   const root = useRef<HTMLDivElement>(null);
+  const relationshipEndpoints = useRef(new Map<string, { start: DOMPoint; end: DOMPoint; firstIsFrom: boolean }>());
   const renderObserver = useRef<MutationObserver | undefined>(undefined);
   const [renderRevision, setRenderRevision] = useState(0);
   const [keyboardConnectFrom, setKeyboardConnectFrom] = useState<string>();
@@ -135,7 +142,7 @@ export function ClassDiagramPreview({
       const missingMemberHighlight =
         highlightedMemberId !== undefined &&
         !host.querySelector(`[data-class-member-id="${CSS.escape(highlightedMemberId)}"].class-selected-object`);
-      const selectedRelationship = document.relationships.some((item) => item.id === selectedId);
+      const selectedRelationship = geometry.relationships.some((item) => item.id === selectedId);
       if (
         !host.querySelector(".class-semantic-hit") ||
         missingMemberHighlight ||
@@ -144,7 +151,7 @@ export function ClassDiagramPreview({
         setRenderRevision((value) => value + 1);
     }, 150);
     return () => window.clearTimeout(retry);
-  }, [document, highlightedMemberId, selectedId, svg]);
+  }, [geometry, highlightedMemberId, selectedId, svg]);
   useLayoutEffect(() => {
     const host = root.current;
     if (!host) return;
@@ -153,11 +160,12 @@ export function ClassDiagramPreview({
     const rendered = host.querySelector("svg");
     if (!host || !rendered) return;
     rendered.querySelectorAll(classInteractionSelector).forEach((x) => x.remove());
+    relationshipEndpoints.current.clear();
     const entityMap = new Map<string, string>();
-    const entitiesByText = indexByText(document.entities, (item) => [item.label, item.alias]);
-    const packagesByText = indexByText(document.packages, (item) => [item.label, item.alias]);
-    const notesByText = indexByText(document.notes, (item) => [item.text, ...item.text.split("\n")]);
-    const relationshipsByPair = relationshipsByEndpoints(document);
+    const entitiesByText = indexByText(geometry.entities, (item) => [item.label, item.alias]);
+    const packagesByText = indexByText(geometry.packages, (item) => [item.label, item.alias]);
+    const notesByText = indexByText(geometry.notes, (item) => [item.text, ...item.text.split("\n")]);
+    const relationshipsByPair = relationshipsByEndpoints(geometry);
     for (const text of rendered.querySelectorAll<SVGTextElement>("text")) {
       const value = text.textContent?.trim() ?? "";
       const key = norm(value);
@@ -166,7 +174,7 @@ export function ClassDiagramPreview({
       const pkg = packagesByText.get(key);
       const renderedOwner = text.closest<SVGGElement>("g.entity[data-qualified-name]");
       const ownerName = norm(renderedOwner?.getAttribute("data-qualified-name") ?? "");
-      const memberOwner = document.entities.find(
+      const memberOwner = geometry.entities.find(
         (item) =>
           (item.id === ownerName || norm(item.label) === ownerName || norm(item.alias ?? "") === ownerName) &&
           item.members.some((member) => classMemberRenderedText(member) === value),
@@ -188,10 +196,7 @@ export function ClassDiagramPreview({
       const b = text.getBBox(),
         hit = documentNode("rect");
       const objectId = memberOwner?.id ?? object!.id;
-      hit.setAttribute(
-        "class",
-        `class-semantic-hit${member ? (highlightedMemberId === member.id ? " class-selected-object" : "") : selectedId === objectId ? " class-selected-object" : ""}`,
-      );
+      hit.setAttribute("class", "class-semantic-hit");
       attrs(hit, {
         "data-class-object-id": objectId,
         "data-class-object-type": member ? "member" : entity ? "entity" : note ? "note" : "package",
@@ -208,7 +213,6 @@ export function ClassDiagramPreview({
           : `Select ${entity ? entity.kind : note ? "note" : "package"} ${entity?.label ?? note?.text ?? pkg?.label}`,
       });
       rendered.append(hit);
-      if (entity && keyboardConnectFrom && entity.id !== keyboardConnectFrom) hit.classList.add("class-valid-drop");
       if (member) continue;
       if (!entity) continue;
       const h = documentNode("circle");
@@ -238,7 +242,7 @@ export function ClassDiagramPreview({
       });
       rendered.append(moveHandle);
     }
-    for (const pkg of document.packages) {
+    for (const pkg of geometry.packages) {
       const group = [...rendered.querySelectorAll<SVGGElement>("g.cluster[data-qualified-name]")].find((candidate) => {
         const name = norm(candidate.getAttribute("data-qualified-name") ?? "");
         return name === pkg.id || name === norm(pkg.label) || name === norm(pkg.alias ?? "");
@@ -266,10 +270,7 @@ export function ClassDiagramPreview({
       for (const path of group.querySelectorAll("path")) {
         const hit = path.cloneNode(false) as SVGPathElement;
         hit.removeAttribute("fill");
-        hit.setAttribute(
-          "class",
-          `class-relationship-hit${selectedId === relation.id ? " class-selected-object" : ""}`,
-        );
+        hit.setAttribute("class", "class-relationship-hit");
         attrs(hit, {
           "data-class-object-id": relation.id,
           tabindex: 0,
@@ -279,13 +280,12 @@ export function ClassDiagramPreview({
         group.append(hit);
       }
       const path = group.querySelector<SVGPathElement>("path");
-      if (path && selectedId === relation.id) {
+      if (path) {
         const length = path.getTotalLength(),
           start = path.getPointAtLength(0),
           end = path.getPointAtLength(length);
         const firstIsFrom = a === relation.from;
-        addEndpoint(rendered, start, relation.id, firstIsFrom ? "from" : "to");
-        addEndpoint(rendered, end, relation.id, firstIsFrom ? "to" : "from");
+        relationshipEndpoints.current.set(relation.id, { start, end, firstIsFrom });
       }
     }
     // Relationship hit paths are appended after entity controls and may cross a class edge. Keep the
@@ -295,7 +295,34 @@ export function ClassDiagramPreview({
       .forEach((control) => rendered.append(control));
     // Rebuilding overlays is our own mutation, not a fresh renderer result.
     renderObserver.current?.takeRecords();
-  }, [diagramKind, document, highlightedMemberId, keyboardConnectFrom, renderRevision, renderStatus, selectedId, svg]);
+  }, [diagramKind, geometry, renderRevision, svg]);
+  useLayoutEffect(() => {
+    const host = root.current;
+    const rendered = host?.querySelector("svg");
+    if (!host || !rendered) return;
+    host.querySelectorAll<SVGElement>(".class-semantic-hit,.class-relationship-hit").forEach((element) => {
+      const member = element.getAttribute("data-class-member-id");
+      const id = element.getAttribute("data-class-object-id");
+      const selected = member ? member === highlightedMemberId : id === selectedId;
+      element.classList.toggle("class-selected-object", selected);
+      element.setAttribute("aria-pressed", String(selected));
+      element.classList.toggle(
+        "class-valid-drop",
+        Boolean(
+          keyboardConnectFrom &&
+          id !== keyboardConnectFrom &&
+          element.getAttribute("data-class-object-type") === "entity",
+        ),
+      );
+    });
+    host.querySelectorAll(".class-relationship-endpoint").forEach((element) => element.remove());
+    const points = selectedId ? relationshipEndpoints.current.get(selectedId) : undefined;
+    if (points && selectedId) {
+      addEndpoint(rendered, points.start, selectedId, points.firstIsFrom ? "from" : "to");
+      addEndpoint(rendered, points.end, selectedId, points.firstIsFrom ? "to" : "from");
+    }
+    renderObserver.current?.takeRecords();
+  }, [geometry, svg, renderRevision, selectedId, highlightedMemberId, keyboardConnectFrom]);
   const select = (e: MouseEvent<HTMLDivElement>) => {
     const target = (e.target as Element).closest("[data-class-object-id],[data-class-hit-id]");
     const id = classObjectId(target);
@@ -530,6 +557,7 @@ export function ClassDiagramPreview({
       >
         {svg ? (
           <div
+            {...previewInteractionGuard(editingEnabled)}
             ref={root}
             className="diagram class-diagram"
             style={{ transform: `scale(${zoom})` }}

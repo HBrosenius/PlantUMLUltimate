@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 
-import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import type { ComponentProps } from "react";
+import { StrictMode, type ComponentProps } from "react";
 import { DiagramPreview } from "./DiagramPreview";
 import * as ganttOverlay from "./render/canonical-gantt-overlay";
 
@@ -86,14 +85,13 @@ function preview(
 }
 
 it("sanitizes SVG at the final preview boundary and preserves task interaction metadata", () => {
-  const markup = renderToStaticMarkup(
+  const view = render(
     preview(`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">
     <script>alert(2)</script><foreignObject><div>Unsafe</div></foreignObject>
     <g data-task-id="build" role="button" tabindex="0" aria-label="Select Build"><text class="label">Safe &amp; sound</text></g>
   </svg>`),
   );
-  const document = new DOMParser().parseFromString(markup, "text/html");
-  const svg = document.querySelector(".diagram-svg-host svg");
+  const svg = view.container.querySelector(".diagram-svg-host svg");
   expect(svg).not.toBeNull();
   expect(svg?.querySelector("script, foreignObject")).toBeNull();
   expect(svg?.hasAttribute("onload")).toBe(false);
@@ -101,6 +99,21 @@ it("sanitizes SVG at the final preview boundary and preserves task interaction m
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("role")).toBe("button");
   expect(svg?.querySelector('[data-task-id="build"]')?.getAttribute("tabindex")).toBe("0");
   expect(svg?.querySelector("text")?.textContent).toBe("Safe & sound");
+});
+
+it("installs sanitized fragments through StrictMode replay without losing SVG namespaces or retaining unsafe links", () => {
+  const view = render(
+    <StrictMode>
+      {preview(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><a href="javascript:alert(1)"><text>Link</text></a></svg>',
+      )}
+    </StrictMode>,
+  );
+  const svg = view.container.querySelector(".diagram-svg-host svg");
+  expect(svg?.namespaceURI).toBe("http://www.w3.org/2000/svg");
+  expect(svg?.getAttribute("viewBox")).toBe("0 0 120 80");
+  expect(svg?.querySelector("a")?.hasAttribute("href")).toBe(false);
+  expect(svg?.querySelector("text")?.textContent).toBe("Link");
 });
 
 it("only parses timeline visibility while the baseline comparison report is available", () => {

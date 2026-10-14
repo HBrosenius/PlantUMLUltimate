@@ -30,13 +30,15 @@ import { appendDiagramLinkIcon } from "./render/diagram-link-icon";
 import { calculateProgressForecast, hasDelayedForecastTask } from "./gantt-progress-forecast";
 import { GanttForecastView } from "./GanttForecastView";
 import { addGanttForecastOverlay } from "./render/gantt-forecast-overlay";
-import { sanitizeSvg, sanitizeSvgFragment } from "./render/sanitize-svg";
+import { sanitizeSvgFragment } from "./render/sanitize-svg";
+import { measurePreviewPhase } from "./render/preview-performance";
 import { browserForecastTimeZone, forecastToday } from "./forecast-date";
 import { prepareForecastApply, type ForecastApplyReview } from "./gantt-apply-forecast";
 import { GanttApplyForecastDialog } from "./GanttApplyForecastDialog";
 import { trackWindowPointerDrag, type WindowPointerDragHandlers } from "./pointer-drag";
 
 interface Props {
+  sharedDates?: Map<string, ResolvedTaskDates>;
   svg: string | undefined;
   renderedSource?: string | undefined;
   tasks: readonly GanttTask[];
@@ -127,6 +129,7 @@ export type ProjectDiagramLink = {
 };
 
 export function DiagramPreview({
+  sharedDates,
   initialFit,
   svg,
   renderedSource,
@@ -321,8 +324,8 @@ export function DiagramPreview({
   // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
   const planTimeZone = progressForecast?.enabled ? forecastTimeZone : undefined;
   const resolvedDates = useMemo(
-    () => resolveTaskDates(tasks, dependencies, projectStart, calendar, planTimeZone),
-    [tasks, dependencies, projectStart, calendar, planTimeZone],
+    () => sharedDates ?? resolveTaskDates(tasks, dependencies, projectStart, calendar, planTimeZone),
+    [sharedDates, tasks, dependencies, projectStart, calendar, planTimeZone],
   );
   const forecastAsOf = progressForecast?.asOf ?? forecastToday(forecastTimeZone);
   const [forecastSelectedTaskId, setForecastSelectedTaskId] = useState<string>();
@@ -2030,8 +2033,17 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
   linkedTaskIds: ReadonlySet<string>;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const sanitizedSvg = useMemo(() => sanitizeSvg(svg), [svg]);
-  const svgMarkup = useMemo(() => ({ __html: sanitizedSvg }), [sanitizedSvg]);
+  const sanitizedSvg = useMemo(() => measurePreviewPhase("sanitize-decorated", () => sanitizeSvgFragment(svg)), [svg]);
+  const installed = useRef<DocumentFragment | undefined>(undefined);
+  useLayoutEffect(() => {
+    const root = host.current;
+    if (!root || installed.current === sanitizedSvg) return;
+    // Keep the final sanitizer boundary, but consume its safe DOM directly rather
+    // than serializing and parsing it again. The guard also preserves StrictMode's
+    // effect replay after the fragment has been consumed.
+    measurePreviewPhase("install", () => root.replaceChildren(sanitizedSvg));
+    installed.current = sanitizedSvg;
+  }, [sanitizedSvg]);
   useLayoutEffect(() => {
     const root = host.current;
     if (!root) return;
@@ -2043,7 +2055,7 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
       if (label) appendDiagramLinkIcon(label);
     }
   }, [sanitizedSvg, linkedTaskIds]);
-  return <div ref={host} className="diagram-svg-host" dangerouslySetInnerHTML={svgMarkup} />;
+  return <div ref={host} className="diagram-svg-host" />;
 });
 
 export function taskHoverDetails(

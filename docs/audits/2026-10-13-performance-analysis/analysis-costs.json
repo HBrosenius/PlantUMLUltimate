@@ -1,0 +1,342 @@
+{
+  "runtime": "v24.14.1",
+  "method": "5 warmups, 30 observations per operation; valid synthetic source; Node, not browser",
+  "records": [
+    {
+      "kind": "gantt",
+      "count": 100,
+      "bytes": 4537,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.9705999999999904,
+          "p95Ms": 1.6595999999999833
+        },
+        "freshSourceParse": {
+          "medianMs": 0.782999999999987,
+          "p95Ms": 1.0118999999999971
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.7814000000000192,
+          "p95Ms": 0.9576000000000136
+        },
+        "inspectorSettings": {
+          "medianMs": 0.08289999999999509,
+          "p95Ms": 0.16480000000001382
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 4.373100000000022,
+          "p95Ms": 5.075400000000002
+        },
+        "schedule": {
+          "medianMs": 1.0768999999999664,
+          "p95Ms": 1.2737000000000194
+        }
+      }
+    },
+    {
+      "kind": "gantt",
+      "count": 500,
+      "bytes": 22937,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 4.083300000000008,
+          "p95Ms": 4.6381999999999834
+        },
+        "freshSourceParse": {
+          "medianMs": 3.9792999999999665,
+          "p95Ms": 5.49350000000004
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 3.842399999999998,
+          "p95Ms": 4.472500000000082
+        },
+        "inspectorSettings": {
+          "medianMs": 0.38819999999998345,
+          "p95Ms": 0.47879999999997835
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 20.32439999999997,
+          "p95Ms": 21.106899999999996
+        },
+        "schedule": {
+          "medianMs": 5.236699999999928,
+          "p95Ms": 5.439000000000078
+        }
+      }
+    },
+    {
+      "kind": "gantt",
+      "count": 1000,
+      "bytes": 45937,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 7.4642999999998665,
+          "p95Ms": 8.101400000000012
+        },
+        "freshSourceParse": {
+          "medianMs": 7.377500000000055,
+          "p95Ms": 8.13839999999982
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 7.4529999999999745,
+          "p95Ms": 8.168900000000122
+        },
+        "inspectorSettings": {
+          "medianMs": 0.6062999999999192,
+          "p95Ms": 0.8333000000002357
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 40.59880000000021,
+          "p95Ms": 54.916299999999865
+        },
+        "schedule": {
+          "medianMs": 10.497200000000703,
+          "p95Ms": 10.895700000000033
+        }
+      }
+    },
+    {
+      "kind": "sequence",
+      "count": 100,
+      "bytes": 1935,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00019999999949504854,
+          "p95Ms": 0.0003999999998995918
+        },
+        "freshSourceParse": {
+          "medianMs": 0.1760999999996784,
+          "p95Ms": 0.2704999999996289
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.2381999999997788,
+          "p95Ms": 0.2536000000000058
+        },
+        "inspectorSettings": {
+          "medianMs": 0.09349999999994907,
+          "p95Ms": 0.10710000000017317
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 1.878700000000208,
+          "p95Ms": 2.212800000000243
+        }
+      }
+    },
+    {
+      "kind": "sequence",
+      "count": 500,
+      "bytes": 9935,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00019999999949504854,
+          "p95Ms": 0.00020000000040454324
+        },
+        "freshSourceParse": {
+          "medianMs": 0.541599999999562,
+          "p95Ms": 0.8575000000000728
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.6638999999995576,
+          "p95Ms": 0.7590000000000146
+        },
+        "inspectorSettings": {
+          "medianMs": 0.48070000000006985,
+          "p95Ms": 0.5117000000000189
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 6.381000000000313,
+          "p95Ms": 9.093300000000454
+        }
+      }
+    },
+    {
+      "kind": "sequence",
+      "count": 1000,
+      "bytes": 19935,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00019999999949504854,
+          "p95Ms": 0.00020000000040454324
+        },
+        "freshSourceParse": {
+          "medianMs": 0.6411000000007334,
+          "p95Ms": 0.9648999999999432
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.8324000000002343,
+          "p95Ms": 1.0108000000000175
+        },
+        "inspectorSettings": {
+          "medianMs": 0.5967999999993481,
+          "p95Ms": 0.695400000000518
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 11.84270000000015,
+          "p95Ms": 16.253700000000208
+        }
+      }
+    },
+    {
+      "kind": "class",
+      "count": 100,
+      "bytes": 4207,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00020000000040454324,
+          "p95Ms": 0.0007000000005064066
+        },
+        "freshSourceParse": {
+          "medianMs": 0.7928000000001703,
+          "p95Ms": 1.176900000000387
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.31419999999980064,
+          "p95Ms": 0.33219999999982974
+        },
+        "inspectorSettings": {
+          "medianMs": 0.2511999999996988,
+          "p95Ms": 0.3209000000006199
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 1.857600000000275,
+          "p95Ms": 2.9792999999999665
+        }
+      }
+    },
+    {
+      "kind": "class",
+      "count": 500,
+      "bytes": 21407,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00010000000020227162,
+          "p95Ms": 0.00020000000040454324
+        },
+        "freshSourceParse": {
+          "medianMs": 6.04950000000008,
+          "p95Ms": 9.984600000000682
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 1.5430000000005748,
+          "p95Ms": 2.282000000000153
+        },
+        "inspectorSettings": {
+          "medianMs": 1.2065999999995256,
+          "p95Ms": 1.4395000000004075
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 8.068900000000212,
+          "p95Ms": 10.620100000000093
+        }
+      }
+    },
+    {
+      "kind": "class",
+      "count": 1000,
+      "bytes": 42907,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00010000000020227162,
+          "p95Ms": 0.00020000000040454324
+        },
+        "freshSourceParse": {
+          "medianMs": 11.738299999999981,
+          "p95Ms": 13.165400000000773
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 3.0591000000003987,
+          "p95Ms": 3.9970000000002983
+        },
+        "inspectorSettings": {
+          "medianMs": 2.359799999999268,
+          "p95Ms": 2.6920000000000073
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 16.55829999999969,
+          "p95Ms": 22.981699999999364
+        }
+      }
+    },
+    {
+      "kind": "wbs",
+      "count": 100,
+      "bytes": 1114,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00020000000040454324,
+          "p95Ms": 0.0005000000001018634
+        },
+        "freshSourceParse": {
+          "medianMs": 0.19840000000021973,
+          "p95Ms": 0.49360000000069704
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.07729999999992287,
+          "p95Ms": 0.09659999999985303
+        },
+        "inspectorSettings": {
+          "medianMs": 0.06309999999939464,
+          "p95Ms": 0.06980000000021391
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 0.20709999999962747,
+          "p95Ms": 0.22040000000015425
+        }
+      }
+    },
+    {
+      "kind": "wbs",
+      "count": 500,
+      "bytes": 5914,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00019999999949504854,
+          "p95Ms": 0.00020000000040454324
+        },
+        "freshSourceParse": {
+          "medianMs": 0.9713000000001557,
+          "p95Ms": 1.6239000000005035
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.37259999999969295,
+          "p95Ms": 0.41079999999965366
+        },
+        "inspectorSettings": {
+          "medianMs": 0.2980999999999767,
+          "p95Ms": 0.37010000000009313
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 1.1082000000005792,
+          "p95Ms": 1.4936999999999898
+        }
+      }
+    },
+    {
+      "kind": "wbs",
+      "count": 1000,
+      "bytes": 11914,
+      "costs": {
+        "sameSourceParse": {
+          "medianMs": 0.00020000000040454324,
+          "p95Ms": 0.0020000000004074536
+        },
+        "freshSourceParse": {
+          "medianMs": 1.319499999999607,
+          "p95Ms": 2.1873999999997977
+        },
+        "unconditionalGanttParse": {
+          "medianMs": 0.7457000000003973,
+          "p95Ms": 0.8649000000004889
+        },
+        "inspectorSettings": {
+          "medianMs": 0.5774000000001251,
+          "p95Ms": 0.6197000000001935
+        },
+        "diagnosticsAndQuickFixes": {
+          "medianMs": 2.5668000000005122,
+          "p95Ms": 2.960900000000038
+        }
+      }
+    }
+  ]
+}

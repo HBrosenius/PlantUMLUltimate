@@ -90,6 +90,30 @@ const result = {
   node: process.version,
   ok: true,
 };
+const cache = new Map();
+let previous = await indexVirtualProject(JSON.stringify(manifest), inputs, undefined, cache);
+const incrementalRuns = [];
+const firstPath = documents[0].path;
+const originalSource = inputs.get(firstPath).source;
+for (let revision = 0; revision < 5; revision++) {
+  inputs.set(firstPath, { state: "available", source: originalSource + `\n' edit ${revision}` });
+  const started = performance.now();
+  const next = await indexVirtualProject(JSON.stringify(manifest), inputs, undefined, cache);
+  incrementalRuns.push(performance.now() - started);
+  if (
+    next.members[1].declarations !== previous.members[1].declarations ||
+    next.resolutions.get(manifest.elements[11].id) !== previous.resolutions.get(manifest.elements[11].id) ||
+    [...next.resolutions.values()].some((resolution) => resolution.state !== "resolved")
+  )
+    throw new Error("Incremental index lost an unchanged declaration or locator resolution");
+  previous = next;
+}
+result.incremental = {
+  changedDocuments: 1,
+  reusedDocuments: 199,
+  runsMs: incrementalRuns,
+  medianMs: [...incrementalRuns].sort((a, b) => a - b)[2],
+};
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, JSON.stringify(result, null, 2) + "\n");
 console.log(JSON.stringify(result));

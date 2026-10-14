@@ -1,0 +1,13 @@
+START webkit document-200
+STAGE webkit document-200 startup
+STAGE webkit document-200 initial-load
+STAGE webkit document-200 outline
+STAGE webkit document-200 member-switching
+STAGE webkit document-200 link-selector
+STAGE webkit document-200 document-search
+STAGE webkit document-200 member-switching
+STAGE webkit document-200 project-edit-undo
+STAGE webkit document-200 project-rapid-typing
+STAGE webkit document-200 save-reopen
+{"browser":"webkit","name":"document-200","ok":true,"initialMs":5647.436200000001}
+Results: C:\Users\henri\IdeaProjects\PlantUMLUltimate\docs\audits\2026-10-14-performance-implementation\project-repeat\results.json
