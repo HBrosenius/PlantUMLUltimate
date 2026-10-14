@@ -296,63 +296,69 @@ test("reports added, removed, moved, and out-of-range baseline tasks", async ({ 
   await expect(page.locator(".removed-baseline-label")).toContainText("A");
 });
 
-test("clears baseline variance when a moved task returns to its original dates", async ({ page, browserName }) => {
-  test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
-  await setSource(
-    page,
-    "@startgantt\nProject starts 2026-10-01\n[Frontend] starts 2026-10-02\n[Frontend] lasts 10 days\n@endgantt",
-  );
-  await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: "Version history…" }).click();
-  const history = page.getByRole("dialog", { name: "Version history" });
-  await history.getByLabel("New version name").fill("Original schedule");
-  await history.getByRole("button", { name: "Create version" }).click();
-  await history.getByRole("button", { name: "Set as baseline" }).click();
-  await history.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(page.locator('[data-timeline-header="top"]').nth(1)).toBeVisible({ timeout: 20_000 });
+test.describe(() => {
+  // At natural-size zoom these small plans sit low in the pane; on Linux fonts the preview toolbar wraps further
+  // and the bottom-pinned baseline report / over-allocation alert would cover the bars being dragged.
+  test.use({ viewport: { width: 1280, height: 1000 } });
 
-  const task = page.locator('[data-task-id="frontend"]');
-  const dragByDays = async (days: number) => {
-    await waitForDiagramRender(page);
-    const headers = page.locator('[data-timeline-header="top"]');
-    await expect(headers.nth(1)).toBeVisible();
-    let dayWidth = 0;
-    await expect
-      .poll(async () => {
-        dayWidth = await headers.evaluateAll((elements) => {
-          if (elements.length < 2) return 0;
-          // Text glyph rounding at fitted zoom makes the first gap unreliable.
-          const centers = elements.map((element) => {
-            const box = element.getBoundingClientRect();
-            return box.x + box.width / 2;
+  test("clears baseline variance when a moved task returns to its original dates", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
+    await setSource(
+      page,
+      "@startgantt\nProject starts 2026-10-01\n[Frontend] starts 2026-10-02\n[Frontend] lasts 10 days\n@endgantt",
+    );
+    await page.getByRole("button", { name: "File" }).click();
+    await page.getByRole("menuitem", { name: "Version history…" }).click();
+    const history = page.getByRole("dialog", { name: "Version history" });
+    await history.getByLabel("New version name").fill("Original schedule");
+    await history.getByRole("button", { name: "Create version" }).click();
+    await history.getByRole("button", { name: "Set as baseline" }).click();
+    await history.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.locator('[data-timeline-header="top"]').nth(1)).toBeVisible({ timeout: 20_000 });
+
+    const task = page.locator('[data-task-id="frontend"]');
+    const dragByDays = async (days: number) => {
+      await waitForDiagramRender(page);
+      const headers = page.locator('[data-timeline-header="top"]');
+      await expect(headers.nth(1)).toBeVisible();
+      let dayWidth = 0;
+      await expect
+        .poll(async () => {
+          dayWidth = await headers.evaluateAll((elements) => {
+            if (elements.length < 2) return 0;
+            // Text glyph rounding at fitted zoom makes the first gap unreliable.
+            const centers = elements.map((element) => {
+              const box = element.getBoundingClientRect();
+              return box.x + box.width / 2;
+            });
+            const gaps = centers
+              .slice(1)
+              .map((center, index) => center - centers[index]!)
+              .filter((gap) => gap > 0.5)
+              .sort((a, b) => a - b);
+            return gaps[Math.floor(gaps.length / 2)] ?? 0;
           });
-          const gaps = centers
-            .slice(1)
-            .map((center, index) => center - centers[index]!)
-            .filter((gap) => gap > 0.5)
-            .sort((a, b) => a - b);
-          return gaps[Math.floor(gaps.length / 2)] ?? 0;
-        });
-        return dayWidth;
-      })
-      .toBeGreaterThan(0);
-    const pixels = dayWidth * days;
-    const box = await task.locator(".bar").boundingBox();
-    expect(box).not.toBeNull();
-    const x = box!.x + box!.width / 2;
-    const y = box!.y + box!.height / 2;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x + pixels, y, { steps: 4 });
-    await page.mouse.up();
-  };
-  await dragByDays(3);
-  await expect(page.locator(".schedule-analysis-report summary")).toContainText("1 changed task");
-  await expect(page.locator('[data-baseline-task-id="frontend"]')).toBeVisible();
-  await dragByDays(-3);
-  await expect(page.locator(".cm-content")).toContainText("[Frontend] starts 2026-10-02");
-  await expect(page.locator(".schedule-analysis-report summary")).toContainText("0 changed tasks");
-  await expect(page.locator('[data-baseline-task-id="frontend"]')).toHaveCount(0);
+          return dayWidth;
+        })
+        .toBeGreaterThan(0);
+      const pixels = dayWidth * days;
+      const box = await task.locator(".bar").boundingBox();
+      expect(box).not.toBeNull();
+      const x = box!.x + box!.width / 2;
+      const y = box!.y + box!.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + pixels, y, { steps: 4 });
+      await page.mouse.up();
+    };
+    await dragByDays(3);
+    await expect(page.locator(".schedule-analysis-report summary")).toContainText("1 changed task");
+    await expect(page.locator('[data-baseline-task-id="frontend"]')).toBeVisible();
+    await dragByDays(-3);
+    await expect(page.locator(".cm-content")).toContainText("[Frontend] starts 2026-10-02");
+    await expect(page.locator(".schedule-analysis-report summary")).toContainText("0 changed tasks");
+    await expect(page.locator('[data-baseline-task-id="frontend"]')).toHaveCount(0);
+  });
 });
 
 test("groups creation commands in an accessible Add menu", async ({ page }) => {
@@ -1674,101 +1680,107 @@ test("does not over-allocate a person when multiple people shorten a task", asyn
   await expect(tyra).toContainText("Peak 100%");
 });
 
-test("shows resource over-allocation after dragging assigned tasks into overlap", async ({ page }) => {
-  await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 3 days"));
-  for (const taskId of ["a", "b"]) {
-    await page.locator(`[data-task-id="${taskId}"] .bar`).click();
-    const inspector = page.getByRole("complementary", { name: "Task inspector" });
-    if (!(await inspector.getByRole("button", { name: "+ Add person" }).isVisible()))
-      await inspector.getByText("Resources", { exact: true }).click();
-    await inspector.getByRole("button", { name: "+ Add person" }).click();
-    await inspector.getByLabel("Person name").fill("Kalle");
-    await inspector.getByLabel("Person name").blur();
-    await expect(page.locator(".cm-content")).toContainText(
-      taskId === "a" ? "[A] on {Kalle:100%} starts 2026-09-01" : "[B] on {Kalle:100%} starts 2026-09-08",
-    );
-  }
-  const warning = page.getByRole("alert", { name: "Resource over-allocation" });
-  await expect(warning).toHaveCount(0);
-  const firstTask = page.locator('[data-task-id="a"] .bar');
-  const secondTask = page.locator('[data-task-id="b"] .bar');
-  await expect(firstTask).toBeVisible();
-  await expect(secondTask).toBeVisible();
-  const readRect = (task: typeof firstTask) =>
-    task.evaluate((element) => {
-      const { x, y, width, height } = element.getBoundingClientRect();
-      return { x, y, width, height };
+test.describe(() => {
+  // At natural-size zoom these small plans sit low in the pane; on Linux fonts the preview toolbar wraps further
+  // and the bottom-pinned baseline report / over-allocation alert would cover the bars being dragged.
+  test.use({ viewport: { width: 1280, height: 1000 } });
+
+  test("shows resource over-allocation after dragging assigned tasks into overlap", async ({ page }) => {
+    await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 3 days"));
+    for (const taskId of ["a", "b"]) {
+      await page.locator(`[data-task-id="${taskId}"] .bar`).click();
+      const inspector = page.getByRole("complementary", { name: "Task inspector" });
+      if (!(await inspector.getByRole("button", { name: "+ Add person" }).isVisible()))
+        await inspector.getByText("Resources", { exact: true }).click();
+      await inspector.getByRole("button", { name: "+ Add person" }).click();
+      await inspector.getByLabel("Person name").fill("Kalle");
+      await inspector.getByLabel("Person name").blur();
+      await expect(page.locator(".cm-content")).toContainText(
+        taskId === "a" ? "[A] on {Kalle:100%} starts 2026-09-01" : "[B] on {Kalle:100%} starts 2026-09-08",
+      );
+    }
+    const warning = page.getByRole("alert", { name: "Resource over-allocation" });
+    await expect(warning).toHaveCount(0);
+    const firstTask = page.locator('[data-task-id="a"] .bar');
+    const secondTask = page.locator('[data-task-id="b"] .bar');
+    await expect(firstTask).toBeVisible();
+    await expect(secondTask).toBeVisible();
+    const readRect = (task: typeof firstTask) =>
+      task.evaluate((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      });
+    let first = await readRect(firstTask);
+    let second = await readRect(secondTask);
+    await expect
+      .poll(async () => {
+        first = await readRect(firstTask);
+        second = await readRect(secondTask);
+        return Math.min(first.width, second.width);
+      })
+      .toBeGreaterThan(0);
+
+    const start = { x: second.x + second.width / 2, y: second.y + second.height / 2 };
+    const targetPoint = { x: first.x + first.width / 2, y: start.y };
+    await secondTask.dispatchEvent("pointerdown", {
+      pointerId: 19,
+      pointerType: "mouse",
+      button: 0,
+      buttons: 1,
+      clientX: start.x,
+      clientY: start.y,
     });
-  let first = await readRect(firstTask);
-  let second = await readRect(secondTask);
-  await expect
-    .poll(async () => {
-      first = await readRect(firstTask);
-      second = await readRect(secondTask);
-      return Math.min(first.width, second.width);
-    })
-    .toBeGreaterThan(0);
+    await page.evaluate(
+      ({ x, y }) =>
+        window.dispatchEvent(
+          new PointerEvent("pointermove", {
+            bubbles: true,
+            pointerId: 19,
+            pointerType: "mouse",
+            buttons: 1,
+            clientX: x,
+            clientY: y,
+          }),
+        ),
+      targetPoint,
+    );
+    await page.evaluate(
+      ({ x, y }) =>
+        window.dispatchEvent(
+          new PointerEvent("pointerup", {
+            bubbles: true,
+            pointerId: 19,
+            pointerType: "mouse",
+            button: 0,
+            clientX: x,
+            clientY: y,
+          }),
+        ),
+      targetPoint,
+    );
 
-  const start = { x: second.x + second.width / 2, y: second.y + second.height / 2 };
-  const targetPoint = { x: first.x + first.width / 2, y: start.y };
-  await secondTask.dispatchEvent("pointerdown", {
-    pointerId: 19,
-    pointerType: "mouse",
-    button: 0,
-    buttons: 1,
-    clientX: start.x,
-    clientY: start.y,
+    await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-01");
+    await expect(warning).toBeVisible();
+    await expect(warning).toContainText("Kalle: 200% assigned / 100% capacity");
+
+    await expect
+      .poll(async () => {
+        const a = await page.locator('[data-task-id="a"] .bar').boundingBox();
+        const b = await page.locator('[data-task-id="b"] .bar').boundingBox();
+        return a && b ? Math.abs(a.x - b.x) : Number.POSITIVE_INFINITY;
+      })
+      .toBeLessThan(10);
+
+    await page.locator('[data-task-id="a"] .bar').click();
+    await waitForDiagramRender(page);
+    await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').hover();
+    await page.mouse.down();
+    await page.locator('[data-task-id="b"] .bar').hover();
+    await page.mouse.up();
+
+    await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
+    await expect(warning).toHaveCount(0);
   });
-  await page.evaluate(
-    ({ x, y }) =>
-      window.dispatchEvent(
-        new PointerEvent("pointermove", {
-          bubbles: true,
-          pointerId: 19,
-          pointerType: "mouse",
-          buttons: 1,
-          clientX: x,
-          clientY: y,
-        }),
-      ),
-    targetPoint,
-  );
-  await page.evaluate(
-    ({ x, y }) =>
-      window.dispatchEvent(
-        new PointerEvent("pointerup", {
-          bubbles: true,
-          pointerId: 19,
-          pointerType: "mouse",
-          button: 0,
-          clientX: x,
-          clientY: y,
-        }),
-      ),
-    targetPoint,
-  );
-
-  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-01");
-  await expect(warning).toBeVisible();
-  await expect(warning).toContainText("Kalle: 200% assigned / 100% capacity");
-
-  await expect
-    .poll(async () => {
-      const a = await page.locator('[data-task-id="a"] .bar').boundingBox();
-      const b = await page.locator('[data-task-id="b"] .bar').boundingBox();
-      return a && b ? Math.abs(a.x - b.x) : Number.POSITIVE_INFINITY;
-    })
-    .toBeLessThan(10);
-
-  await page.locator('[data-task-id="a"] .bar').click();
-  await waitForDiagramRender(page);
-  await page.locator('[data-task-id="a"] [data-dependency-handle="end"]').hover();
-  await page.mouse.down();
-  await page.locator('[data-task-id="b"] .bar').hover();
-  await page.mouse.up();
-
-  await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
-  await expect(warning).toHaveCount(0);
 });
 
 test("keeps duplicate displayed task names distinct through aliases", async ({ page }) => {
