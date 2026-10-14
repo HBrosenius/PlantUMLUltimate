@@ -82,6 +82,39 @@ export function useDiagramNavigation(
     };
   }, []);
 
+  // The zoom is a CSS transform, and WebKit can leave a transformed diagram's horizontal scroll range stale
+  // (for example after a tab switch). An in-flow spacer sized to the scaled diagram gives every browser the
+  // scroll range through ordinary layout.
+  const scrollExtentRef = useRef<HTMLDivElement | undefined>(undefined);
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === "undefined") return;
+    const update = () => {
+      const diagram = viewport.querySelector<HTMLElement>(".diagram");
+      let extent = scrollExtentRef.current;
+      if (!diagram) {
+        extent?.remove();
+        return;
+      }
+      if (!extent) {
+        extent = scrollExtentRef.current = document.createElement("div");
+        extent.className = "diagram-scroll-extent";
+        extent.setAttribute("aria-hidden", "true");
+      }
+      if (diagram.nextElementSibling !== extent) diagram.after(extent);
+      const scale = wheelRef.current?.current ?? zoomRef.current;
+      extent.style.width = `${diagram.offsetWidth * scale}px`;
+      extent.style.height = `${Math.max(0, diagram.offsetHeight * (scale - 1))}px`;
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    const diagram = viewport.querySelector(".diagram");
+    if (diagram) observer.observe(diagram);
+    return () => observer.disconnect();
+  }, [zoom, options?.svg]);
+  useEffect(() => () => scrollExtentRef.current?.remove(), []);
+
   const restoredDocument = useRef<string | undefined>(undefined);
   const restoredSvg = useRef<Element | null>(null);
   const currentScroll = useRef<{ documentId: string; left: number; top: number } | undefined>(undefined);
