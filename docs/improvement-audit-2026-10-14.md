@@ -18,28 +18,32 @@ Effort: **S** < half a day, **M** one to three days, **L** a week or more. Impac
 
 ## Executive summary — the ten changes worth doing first
 
-| #   | Finding                                                                                                                                                                                        | Impact | Effort |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
-| 1   | [B1](#b1-selecting-or-hovering-a-task-re-sanitizes-and-rebuilds-the-whole-svg) Every selection, hover and keyboard move re-runs DOMPurify over the whole SVG and swaps the DOM                 | High   | M      |
-| 2   | [B2](#b2-the-engine-worker-is-rebooted-after-every-syntax-error-cancel-and-every-20-renders) The engine worker is rebooted after each syntax error, cancel and every 20 renders                | High   | S      |
-| 3   | [B3](#b3-the-7-mb-engine-is-loaded-from-a-data-url-so-it-is-recompiled-on-every-boot) The engine is loaded via a `data:` URL, so browsers cannot bytecode-cache it                             | High   | M      |
-| 4   | [A1](#a1-first-paint-at-19-s-on-a-fast-connection) First paint at ~1.9 s on a fast connection; nothing is on screen while 2.4 MB of JS parses                                                  | High   | S–M    |
-| 5   | [A2](#a2-388-kb-of-plantuml-themes-are-inlined-into-the-main-chunk) 44 PlantUML themes (388 KB raw) are inlined into the main chunk                                                            | High   | S      |
-| 6   | [C1](#c1-the-analysis-pipeline-runs-synchronously-in-the-keystroke-render) The analysis pipeline runs synchronously in the keystroke render; Gantt is parsed twice                             | High   | M      |
-| 7   | [C2](#c2-linked-wbsgantt-documents-re-parse-the-partner-gantt-on-every-keystroke) Linked WBS↔Gantt documents re-parse the partner Gantt on every keystroke and cursor move                     | High   | S      |
-| 8   | [E1](#e1-recent-files--import-is-an-unstyled-browser-default-button) "Recent files & import…" renders as an unstyled browser-default button in the startup chooser                             | Med    | S      |
-| 9   | [E2](#e2-the-initial-zoom-is-computed-against-an-unsettled-viewport-and-then-persisted) Initial zoom is computed against an unsettled viewport and then persisted (25–44 % for small diagrams) | Med    | S      |
-| 10  | [G1](#g1-notices-are-masked-by-the-validity-text-and-cannot-be-dismissed) Interaction notices are masked by the validity text and cannot be dismissed                                          | High   | M      |
+| #   | Finding                                                                                                                                                                         | Impact | Effort |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
+| 1   | [B1](#b1-selecting-or-hovering-a-task-re-sanitizes-and-rebuilds-the-whole-svg) Every selection, hover and keyboard move re-runs DOMPurify over the whole SVG and swaps the DOM  | High   | M      |
+| 2   | [B2](#b2-the-engine-worker-is-rebooted-after-every-syntax-error-cancel-and-every-20-renders) The engine worker is rebooted after each syntax error, cancel and every 20 renders | High   | S      |
+| 3   | [B3](#b3-the-7-mb-engine-is-loaded-from-a-data-url-so-it-is-recompiled-on-every-boot) The engine is loaded via a `data:` URL, so browsers cannot bytecode-cache it              | High   | M      |
+| 4   | [A1](#a1-first-paint-at-19-s-on-a-fast-connection) First paint at ~1.9 s on a fast connection; nothing is on screen while 2.4 MB of JS parses                                   | High   | S–M    |
+| 5   | [A2](#a2-388-kb-of-plantuml-themes-are-inlined-into-the-main-chunk) 44 PlantUML themes (388 KB raw) are inlined into the main chunk                                             | High   | S      |
+| 6   | [C1](#c1-the-analysis-pipeline-runs-synchronously-in-the-keystroke-render) The analysis pipeline runs synchronously in the keystroke render; Gantt is parsed twice              | High   | M      |
+| 7   | [C2](#c2-linked-wbsgantt-documents-re-parse-the-partner-gantt-on-every-keystroke) Linked WBS↔Gantt documents re-parse the partner Gantt on every keystroke and cursor move      | High   | S      |
+| 8   | [E1](#e1-recent-files--import-is-an-unstyled-browser-default-button) "Recent files & import…" renders as an unstyled browser-default button in the startup chooser              | Med    | S      |
+| 9   | [E3](#e3-zoom-percentages-are-relative-to-pane-width-not-natural-size) Zoom readout is relative to pane width, so natural size reads as 25–44 % (E2 withdrawn)                  | Med    | S      |
+| 10  | [G1](#g1-notices-are-masked-by-the-validity-text-and-cannot-be-dismissed) Interaction notices are masked by the validity text and cannot be dismissed                           | High   | M      |
 
 ## A. Startup and bundle
 
 ### A1. First paint at ~1.9 s on a fast connection
+
+**Partly delivered 2026-10-14** (`5f4121b`): themed root background, pre-paint theme mirror, styled restoring state and scheme-aware `theme-color`. The static shell skeleton and the parse-time cuts (A3, A4) remain open.
 
 Measured on the deployed site (Performance API, cold load, dark theme): TTFB 129 ms, all initial JS/CSS transferred by ~620 ms (425 + 127 + 60 + 36 KB JS, 28 KB CSS), `DOMContentLoaded` 662 ms, **first paint / FCP / LCP 1,948 ms**. Roughly 1.3 s is spent parsing and executing 2.4 MB of decoded JS, running `App`'s ~175 hooks once, and awaiting the IndexedDB workspace restore before anything is painted. `html`/`body` have no background (`styles.css` sets it on `.app`), so dark-theme users get a white flash followed by a black one.
 
 Fix (S): give `html` a `light-dark()` background matching the theme and render a static app-shell skeleton (header bar, tab row, split panes) in `index.html` that `App` replaces. Fix (M): the chunk reductions in A2–A4 shorten the parse phase itself.
 
 ### A2. 388 KB of PlantUML themes are inlined into the main chunk
+
+**Delivered 2026-10-14** (`f01e587`).
 
 `render/bundled-themes.ts:1-5` uses `import.meta.glob(..., { eager: true, query: "?raw" })`, pulling all 44 theme files into `index-*.js`. The only consumer is `expandBundledTheme` (`render/plantuml-source.ts:34`), which runs only when the source contains `!theme <name>`, and the renderer path is already async (`use-renderer.ts:339`).
 
@@ -71,11 +75,15 @@ Pipeline as read: engine (worker, linkedom DOM) → SVG string → iframe → `p
 
 ### B1. Selecting or hovering a task re-sanitizes and rebuilds the whole SVG
 
+**Delivered 2026-10-14** (`e59a34a`).
+
 `DiagramPreview.tsx:441-558`: `selectedSvg` injects `data-selected`, `data-jira-status`, `data-project-linked` and remote-edit attributes by string `.replace` over the full SVG (one O(n) scan per task for Jira/linked IDs at 474-486). `MemoizedSvgMarkup` (2036-2046) then runs DOMPurify #2 and `replaceChildren`, after which `alignClosedDayHatching` (570-581) calls `getBBox()` on every `<text>` node. Every click, arrow-key move, hover highlight and Jira status refresh pays this; on a 200-task Gantt that is on the order of 200–300 ms per selection.
 
 Fix (M): keep the installed fragment stable and toggle these attributes/classes directly on live elements in a `useLayoutEffect` (`querySelector('[data-task-id="…"]')`), reserving the string path for structural decorations. Tag weekday labels in the overlay (`data-timeline-header="weekday"`) so `alignClosedDayHatching` measures only those (S).
 
 ### B2. The engine worker is rebooted after every syntax error, cancel, and every 20 renders
+
+**Delivered 2026-10-14** (`71691e6`, also covers B4). The 20-render cap is retained pending memory measurements.
 
 `renderer-assets.ts:82-88`: any `result` carrying `error` calls `stop()`, and `canonical.worker.ts:140-142` classifies PlantUML's rendered "Syntax Error?" text as an `error` result. So the common mid-edit state — a transiently invalid line — discards the warm engine; a replacement is started immediately but must re-`importScripts` the 7 MB engine before the next preview can render. A `cancel` (`:104`, sent by `use-renderer.ts:160-167` whenever an edit supersedes a render older than 500 ms) stops the worker **without** pre-starting a replacement, so the next render waits for a cold boot. The `completedRenders >= 20` cap also reboots during ordinary editing.
 
@@ -123,6 +131,8 @@ Fix (M): `const analysisSource = useDeferredValue(workspace.source)` and key the
 
 ### C2. Linked WBS↔Gantt documents re-parse the partner Gantt on every keystroke
 
+**Delivered 2026-10-14** (`88e4396`).
+
 `use-persisted-workspace.ts:111` spreads a new object for every non-active document on each `setWorkspace`, so `linkedGantt` (`App.tsx:612-614`, an un-memoized `tabs.documents.find`) changes identity on every edit and cursor move. Downstream, `wbsNodeCompletion` (`:623`) and `wbsNodeSchedule` (`:634-657`: `parseGantt` + `resolveTaskDates` + `analyzeCriticalPath`) recompute on every keystroke in a linked WBS. Worse, when a WBS node inspector is open, `App.tsx:5265-5290` calls `parseGantt(linkedGantt.source)` twice **inside JSX** and `parseGantt(item.source)` for every open Gantt tab, on every render.
 
 Fix (S): only spread when `item.viewMode === undefined`; memoize `linkedGantt`/`linkedWbs` by `(documents, activeId)`; replace the JSX IIFEs with one `useMemo` producing `{targetKey, label, ganttTargets}`.
@@ -161,9 +171,9 @@ Fix (M): per-document recovery records keyed by `documentId` so only the edited 
 
 `NewDocumentDialog.tsx:128-130` renders the button with no `className` and outside the padded `<header>`, so it paints with the UA default grey background, 2 px outset border and 0 radius, flush against the dialog's left edge (computed: `background rgb(107,107,107)`, `border 2px outset`, `x = dialog.x + 1`). It is the first dialog every new user sees. Fix (S): `className="secondary-action"` and move it next to `Open…`.
 
-### E2. The initial zoom is computed against an unsettled viewport and then persisted
+### E2. ~~The initial zoom is computed against an unsettled viewport~~ (withdrawn)
 
-On a fresh load at 1440×900 the default Gantt starter showed at **44 %** and a new Sequence starter at **25 %**, each occupying a small corner of a ~670 px-wide pane; pressing **Fit** immediately gave 100 %. `initialDiagramZoom` (`initial-diagram-zoom.ts:4-16`) is evaluated while the startup chooser is open and before the split layout has its final size, and the per-document zoom is then persisted, so the user never sees a sensible default. (The scroll-restore work in `7aaafb2` already waits for a usable viewport; zoom needs the same guard.) Fix (S): defer the initial fit until the preview host reports a stable non-trivial size, and do not persist a zoom the user has not changed.
+**Withdrawn after implementation review.** The 44 % / 25 % readouts on fresh starters are not a layout-timing bug. `.diagram svg { width: 100% }` (`styles.css:1158`) stretches the SVG to the pane, and `initialDiagramZoom` (`initial-diagram-zoom.ts:4-16`) intentionally returns `intrinsic / pane` so a compact diagram is shown at its natural pixel size; "100 %" therefore means "fill the pane", which is why **Fit** produced 100 %. The user-facing problem is only the readout semantics, tracked as E3.
 
 ### E3. Zoom percentages are relative to pane width, not natural size
 
@@ -257,7 +267,7 @@ The chooser needs a scroll to reach "Choose a diagram" at 800 px tall, includes 
 
 ## Suggested delivery order
 
-1. **Quick wins, one slice (S each):** E1, E2, E4, F2, F3, G3, B4, B8, A5, I. All are localized and testable with the existing Playwright suites.
+1. **Quick wins, one slice (S each):** E1, E4, F2, F3, G3, B4, B8, A5, I (E2 withdrawn; E3 is a separate semantics change). All are localized and testable with the existing Playwright suites.
 2. **Render path (M):** B2 → B3 (with the CSP review) → B1 → B6. Measure with `bench:render` and the 200-task fixture before and after each.
 3. **Typing path (M):** C2 → C1 → C3, using `bench:responsiveness`.
 4. **Bundle (S–M):** A2 → A4 → A3, tracked with a chunk visualizer (A6); re-measure A1 on the deployed site after each.

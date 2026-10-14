@@ -118,17 +118,21 @@ export function NewDocumentDialog({
         <header className="new-diagram-heading">
           <h2 id="new-document-title">Create a diagram</h2>
           <p>Choose a type or try an example. PlantUML source stays editable.</p>
-          {onOpen && (
-            <button className="secondary-action" type="button" onClick={onOpen} disabled={busy}>
-              Open…
-            </button>
+          {(onOpen || onOpenRecent) && (
+            <div className="new-diagram-heading-actions">
+              {onOpen && (
+                <button className="secondary-action" type="button" onClick={onOpen} disabled={busy}>
+                  Open…
+                </button>
+              )}
+              {onOpenRecent && (
+                <button className="secondary-action" type="button" onClick={onOpenRecent} disabled={busy}>
+                  Recent files & import…
+                </button>
+              )}
+            </div>
           )}
         </header>
-        {onOpenRecent && (
-          <button type="button" onClick={onOpenRecent} disabled={busy}>
-            Recent files & import…
-          </button>
-        )}
         <nav className="start-routes" aria-label="Start options">
           <a href="#diagram-kind-title">Create</a>
           <a href="#starter-example-title">Try an example</a>

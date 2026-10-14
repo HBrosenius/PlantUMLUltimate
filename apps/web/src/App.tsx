@@ -231,23 +231,33 @@ const EMPTY_ACTIVITY_DOCUMENT = parseActivity("");
 const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 
 import { lazyFeature } from "./lazy-feature";
-const PresentationDialog = lazyFeature<ComponentProps<typeof import("./PresentationDialog").PresentationDialog>>(() =>
-  import("./PresentationDialog").then((module) => ({ default: module.PresentationDialog })),
+const PresentationDialog = lazyFeature<ComponentProps<typeof import("./PresentationDialog").PresentationDialog>>(
+  () => import("./PresentationDialog").then((module) => ({ default: module.PresentationDialog })),
+  "the presentation",
 );
 const SchedulePreviewDialog = lazyFeature<
   ComponentProps<typeof import("./SchedulePreviewDialog").SchedulePreviewDialog>
->(() => import("./SchedulePreviewDialog").then((module) => ({ default: module.SchedulePreviewDialog })));
+>(
+  () => import("./SchedulePreviewDialog").then((module) => ({ default: module.SchedulePreviewDialog })),
+  "the schedule preview",
+);
 const DeliveryScenarioDialog = lazyFeature<
   ComponentProps<typeof import("./DeliveryScenarioDialog").DeliveryScenarioDialog>
->(() => import("./DeliveryScenarioDialog").then((module) => ({ default: module.DeliveryScenarioDialog })));
+>(
+  () => import("./DeliveryScenarioDialog").then((module) => ({ default: module.DeliveryScenarioDialog })),
+  "the scenario lab",
+);
 const VersionHistoryDialog = lazyFeature<ComponentProps<typeof import("./VersionHistoryDialog").VersionHistoryDialog>>(
   () => import("./VersionHistoryDialog").then((module) => ({ default: module.VersionHistoryDialog })),
+  "version history",
 );
-const SettingsDialog = lazyFeature<ComponentProps<typeof import("./SettingsDialog").SettingsDialog>>(() =>
-  import("./SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
+const SettingsDialog = lazyFeature<ComponentProps<typeof import("./SettingsDialog").SettingsDialog>>(
+  () => import("./SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
+  "settings",
 );
-const JiraDialog = lazyFeature<ComponentProps<typeof import("./JiraDialog").JiraDialog>>(() =>
-  import("./JiraDialog").then((module) => ({ default: module.JiraDialog })),
+const JiraDialog = lazyFeature<ComponentProps<typeof import("./JiraDialog").JiraDialog>>(
+  () => import("./JiraDialog").then((module) => ({ default: module.JiraDialog })),
+  "the Jira integration",
 );
 
 function useInspectorSettings<T>(open: boolean, source: string, parse: (source: string) => T): T {
@@ -449,6 +459,17 @@ export function App() {
   useEffect(() => {
     if (hydrated) applyShellTheme(workspace.theme);
   }, [hydrated, workspace.theme]);
+  const documentTabs = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Keep the active tab visible when the strip overflows (phones, many open documents).
+    if (!hydrated) return;
+    const frame = requestAnimationFrame(() => {
+      documentTabs.current
+        ?.querySelector<HTMLButtonElement>("button.active")
+        ?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hydrated, tabs.activeId]);
   const { captureBeforeCommit } = useWorkspaceFocus(workspace.source, workspaceElement);
   const lastDiagramFocus = useRef<HTMLElement | SVGElement | undefined>(undefined);
   const lastDiagramFocusSelector = useRef<string | undefined>(undefined);
@@ -4151,7 +4172,7 @@ export function App() {
           />
         </div>
       </header>
-      <nav className="document-tabs" aria-label="Open documents">
+      <nav className="document-tabs" aria-label="Open documents" ref={documentTabs}>
         {tabs.documents.map((document) => (
           <button
             key={document.id}
@@ -4191,7 +4212,7 @@ export function App() {
                 ●
               </span>
               <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
-              {tabLabels.get(document.id)}
+              <span className="tab-name">{tabLabels.get(document.id)}</span>
               {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
             </span>
             <span

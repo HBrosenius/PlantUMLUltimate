@@ -58,6 +58,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   --accent: #2563eb;
   --warning: #9a3412;
   --danger: #b42318;
+  --success: #2f855a;
+  --surface: var(--bg);
+  --border-strong: color-mix(in srgb, var(--line) 55%, var(--text));
+  --muted-text: var(--muted);
   --syntax-directive: #9f1239;
   --syntax-task: #0369a1;
   --syntax-keyword: #6d28d9;
@@ -236,6 +240,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   --accent: #60a5fa;
   --warning: #fdba74;
   --danger: #fda29b;
+  --success: #4ade80;
   --syntax-directive: #fb7185;
   --syntax-task: #38bdf8;
   --syntax-keyword: #c4b5fd;
@@ -258,6 +263,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     --accent: #60a5fa;
     --warning: #fdba74;
     --danger: #fda29b;
+    --success: #4ade80;
     --syntax-directive: #fb7185;
     --syntax-task: #38bdf8;
     --syntax-keyword: #c4b5fd;
@@ -401,6 +407,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .new-diagram-heading p {
   color: var(--muted);
+}
+.new-diagram-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .statusbar {
   min-height: 30px;
@@ -565,15 +576,20 @@ textarea:focus-visible {
 .document-tabs > button.dragging {
   opacity: 0.4;
 }
-.document-tabs > button > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .tab-label {
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+}
+.tab-label > small {
+  flex: none;
+}
+.tab-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dirty-dot {
   width: 8px;
