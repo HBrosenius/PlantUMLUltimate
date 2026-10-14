@@ -108,7 +108,11 @@ export function usePersistedWorkspace() {
                 cursor: next.cursor,
                 revision: (item.revision ?? 0) + (item.source === next.source ? 0 : 1),
               }
-            : { ...item, viewMode: item.viewMode ?? current.viewMode },
+            : // Keep inactive documents referentially stable so derived work (linked
+              // WBS/Gantt analysis, command registries) is not recomputed per keystroke.
+              item.viewMode === undefined
+              ? { ...item, viewMode: current.viewMode }
+              : item,
         ),
       };
     });

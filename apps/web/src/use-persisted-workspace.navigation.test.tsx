@@ -42,3 +42,19 @@ it("writes the final navigation position synchronously before page close", async
     );
   });
 });
+it("keeps inactive documents referentially stable while the active document is edited", async () => {
+  const { result } = renderHook(() => usePersistedWorkspace());
+  await waitFor(() => expect(result.current[2]).toBe(true));
+  const firstId = result.current[3].activeId;
+  act(() => {
+    result.current[3].addDocument({ source: "@startgantt\n[Second] lasts 1 day\n@endgantt" });
+  });
+  expect(result.current[3].activeId).not.toBe(firstId);
+  const inactive = result.current[3].documents.find((item) => item.id === firstId)!;
+  for (const edit of ["a", "b", "c"]) {
+    act(() => result.current[1]((current) => ({ ...current, source: current.source + edit })));
+    act(() => result.current[1]((current) => ({ ...current, cursor: { line: 1, column: current.source.length } })));
+  }
+  expect(result.current[3].documents.find((item) => item.id === firstId)).toBe(inactive);
+  expect(result.current[3].documents.find((item) => item.id === result.current[3].activeId)?.source).toMatch(/abc$/);
+});

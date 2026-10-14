@@ -612,8 +612,9 @@ export function App() {
     setSelectionRequest({ ...node.sourceRange });
     setPendingProjectWbsSelection(undefined);
   }, [pendingProjectWbsSelection, selectWbsNode, tabs.activeId, wbsDocument.nodes, workspace.diagramKind]);
-  const linkedGantt = tabs.documents.find(
-    (item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId,
+  const linkedGantt = useMemo(
+    () => tabs.documents.find((item) => item.diagramKind === "gantt" && item.linkedWbsDocumentId === tabs.activeId),
+    [tabs.documents, tabs.activeId],
   );
   const linkedWbsNodeIds = useMemo(
     () =>
@@ -624,29 +625,41 @@ export function App() {
       ),
     [wbsDocument.nodes, linkedGantt?.wbsGanttLinks],
   );
+  // The linked Gantt is parsed and scheduled once per change of its own source, not per
+  // WBS keystroke; the per-node maps below only do lookups against these models.
+  const linkedGanttSource = linkedGantt?.source;
+  const linkedGanttModel = useMemo(
+    () => (linkedGanttSource === undefined ? undefined : parseGantt(linkedGanttSource).document),
+    [linkedGanttSource],
+  );
+  const linkedGanttSchedule = useMemo(() => {
+    if (!linkedGanttModel || linkedGanttSource === undefined) return undefined;
+    const calendar = parseGanttCalendar(linkedGanttSource);
+    const dates = resolveTaskDates(
+      linkedGanttModel.tasks,
+      linkedGanttModel.dependencies,
+      linkedGanttModel.projectStart?.resolved ? linkedGanttModel.projectStart.value : undefined,
+      calendar,
+    );
+    const analysis = analyzeCriticalPath(linkedGanttModel.tasks, linkedGanttModel.dependencies, dates, calendar);
+    return { dates, analysis };
+  }, [linkedGanttModel, linkedGanttSource]);
   const wbsNodeCompletion = useMemo(() => {
     const completion = new Map<string, number>();
-    if (!linkedGantt) return completion;
-    const tasks = parseGantt(linkedGantt.source).document.symbols.tasks;
+    if (!linkedGantt || !linkedGanttModel) return completion;
+    const tasks = linkedGanttModel.symbols.tasks;
     for (const link of linkedGantt.wbsGanttLinks ?? []) {
       const node = wbsDocument.nodes.find((item) => item.alias === link.wbsAlias);
       const value = tasks.get(link.ganttAlias.toLowerCase())?.completion?.value;
       if (node && value !== undefined) completion.set(node.id, value);
     }
     return completion;
-  }, [linkedGantt, wbsDocument.nodes]);
+  }, [linkedGantt, linkedGanttModel, wbsDocument.nodes]);
   const wbsNodeSchedule = useMemo(() => {
     const details = new Map<string, NonNullable<ReturnType<typeof taskHoverDetails>>>();
-    if (!linkedGantt) return details;
-    const gantt = parseGantt(linkedGantt.source).document;
-    const calendar = parseGanttCalendar(linkedGantt.source);
-    const dates = resolveTaskDates(
-      gantt.tasks,
-      gantt.dependencies,
-      gantt.projectStart?.resolved ? gantt.projectStart.value : undefined,
-      calendar,
-    );
-    const analysis = analyzeCriticalPath(gantt.tasks, gantt.dependencies, dates, calendar);
+    if (!linkedGantt || !linkedGanttModel || !linkedGanttSchedule) return details;
+    const gantt = linkedGanttModel;
+    const { dates, analysis } = linkedGanttSchedule;
     for (const link of linkedGantt.wbsGanttLinks ?? []) {
       const node = wbsDocument.nodes.find((item) => item.alias === link.wbsAlias);
       const task = gantt.symbols.tasks.get(link.ganttAlias.toLowerCase());
@@ -655,10 +668,49 @@ export function App() {
       if (summary) details.set(node.id, summary);
     }
     return details;
-  }, [linkedGantt, wbsDocument.nodes]);
-  const linkedWbs = activeDocument.linkedWbsDocumentId
-    ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
-    : undefined;
+  }, [linkedGantt, linkedGanttModel, linkedGanttSchedule, wbsDocument.nodes]);
+  // Inspector inputs for the selected WBS node: computed once per selection or document change
+  // rather than by parsing every open Gantt tab inside the render.
+  const selectedWbsNodeLink = useMemo(() => {
+    if (!selectedWbsNode) return undefined;
+    const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
+    const task = link ? linkedGanttModel?.symbols.tasks.get(link.ganttAlias.toLowerCase()) : undefined;
+    return {
+      link,
+      targetKey: link && linkedGantt && task ? `${linkedGantt.id}:${link.ganttAlias.toLowerCase()}` : undefined,
+      label: task?.label,
+    };
+  }, [selectedWbsNode, linkedGantt, linkedGanttModel]);
+  const wbsGanttTargets = useMemo(() => {
+    if (!selectedWbsNode) return [];
+    return tabs.documents
+      .filter(
+        (item) =>
+          item.diagramKind === "gantt" &&
+          (!linkedGantt || item.id === linkedGantt.id) &&
+          (!item.linkedWbsDocumentId || item.linkedWbsDocumentId === tabs.activeId),
+      )
+      .flatMap((item) =>
+        (item === linkedGantt && linkedGanttModel ? linkedGanttModel : parseGantt(item.source).document).tasks
+          .filter(
+            (task) =>
+              !item.wbsGanttLinks?.some(
+                (link) => link.ganttAlias.toLowerCase() === task.id && link.wbsAlias !== selectedWbsNode.alias,
+              ),
+          )
+          .map((task) => ({
+            key: `${item.id}:${task.id}`,
+            label: `${item.fileName} · ${task.label}`,
+          })),
+      );
+  }, [selectedWbsNode, tabs.documents, tabs.activeId, linkedGantt, linkedGanttModel]);
+  const linkedWbs = useMemo(
+    () =>
+      activeDocument.linkedWbsDocumentId
+        ? tabs.documents.find((item) => item.id === activeDocument.linkedWbsDocumentId && item.diagramKind === "wbs")
+        : undefined,
+    [activeDocument.linkedWbsDocumentId, tabs.documents],
+  );
   const missingWbsTaskCount = useMemo(() => {
     if (!linkedGantt) return 0;
     const linked = new Set(linkedGantt.wbsGanttLinks?.map((link) => link.wbsAlias));
@@ -5271,41 +5323,10 @@ export function App() {
         <WbsNodeInspector
           key={selectedWbsNode.id}
           node={selectedWbsNode}
-          linkedTask={linkedGantt?.wbsGanttLinks?.find((link) => link.wbsAlias === selectedWbsNode.alias)}
-          linkedTaskTargetKey={(() => {
-            const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
-            return link &&
-              linkedGantt &&
-              parseGantt(linkedGantt.source).document.symbols.tasks.has(link.ganttAlias.toLowerCase())
-              ? `${linkedGantt.id}:${link.ganttAlias.toLowerCase()}`
-              : undefined;
-          })()}
-          linkedTaskLabel={(() => {
-            const link = linkedGantt?.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
-            return link
-              ? parseGantt(linkedGantt!.source).document.symbols.tasks.get(link.ganttAlias.toLowerCase())?.label
-              : undefined;
-          })()}
-          ganttTargets={tabs.documents
-            .filter(
-              (item) =>
-                item.diagramKind === "gantt" &&
-                (!linkedGantt || item.id === linkedGantt.id) &&
-                (!item.linkedWbsDocumentId || item.linkedWbsDocumentId === tabs.activeId),
-            )
-            .flatMap((item) =>
-              parseGantt(item.source)
-                .document.tasks.filter(
-                  (task) =>
-                    !item.wbsGanttLinks?.some(
-                      (link) => link.ganttAlias.toLowerCase() === task.id && link.wbsAlias !== selectedWbsNode.alias,
-                    ),
-                )
-                .map((task) => ({
-                  key: `${item.id}:${task.id}`,
-                  label: `${item.fileName} · ${task.label}`,
-                })),
-            )}
+          linkedTask={selectedWbsNodeLink?.link}
+          linkedTaskTargetKey={selectedWbsNodeLink?.targetKey}
+          linkedTaskLabel={selectedWbsNodeLink?.label}
+          ganttTargets={wbsGanttTargets}
           onLinkGanttTask={(key) => {
             const split = key.indexOf(":");
             const document = tabs.documents.find((item) => item.id === key.slice(0, split));
