@@ -85,6 +85,8 @@ test("palette navigation uses existing handlers and recent commands stay applica
   await expect(page.getByRole("dialog", { name: /Rename task/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await run(page, "Reports…");
+  // Reports load on demand; dismiss the dialog only once it is open.
+  await expect(page.getByRole("button", { name: "Close reports" })).toBeVisible();
   await page.keyboard.press("Escape");
   let dialog = await palette(page);
   await expect(dialog.getByText("Recent commands", { exact: true })).toBeVisible();

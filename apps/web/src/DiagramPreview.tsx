@@ -205,6 +205,8 @@ export function DiagramPreview({
   const hoverCloseTimerRef = useRef<number | undefined>(undefined);
   const draggingRef = useRef(false);
   const suppressNextClickRef = useRef(false);
+  // A modified click toggles the multi-selection on pointerdown; its click must not then select just that task.
+  const toggledOnPointerDownRef = useRef(false);
   const activeDragDisposeRef = useRef<(() => void) | undefined>(undefined);
   const suppressClickTimerRef = useRef<number | undefined>(undefined);
   const revealTimerRef = useRef<number | undefined>(undefined);
@@ -722,6 +724,7 @@ export function DiagramPreview({
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    toggledOnPointerDownRef.current = false;
     const target = event.target as Element;
     const verticalSeparator = target.closest<SVGGElement>("[data-vertical-separator-index]");
     if (verticalSeparator) {
@@ -828,7 +831,8 @@ export function DiagramPreview({
       // A modified click edits the multi-task selection instead of starting a drag.
       event.preventDefault();
       pointerTaskIdRef.current = undefined;
-      suppressGestureClick();
+      // The click follows pointerup, not pointerdown, so suppress it from there.
+      toggledOnPointerDownRef.current = true;
       onTaskToggle(id);
       return;
     }
@@ -1405,6 +1409,10 @@ export function DiagramPreview({
             }}
             onPointerDown={startDrag}
             onPointerUp={() => {
+              if (toggledOnPointerDownRef.current) {
+                toggledOnPointerDownRef.current = false;
+                suppressGestureClick();
+              }
               const id = pointerTaskIdRef.current;
               pointerTaskIdRef.current = undefined;
               if (id) {
