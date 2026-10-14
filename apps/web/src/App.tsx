@@ -6,6 +6,7 @@ import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
 import type { LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
 import { MobileWorkList } from "./MobileWorkList";
+import { ProjectInspector } from "./ProjectInspector";
 import { GanttTaskTable } from "./GanttTaskTable";
 import { editTaskRow, editTaskRows, type TaskRowDraft } from "./gantt-task-table";
 import { OpenWorkDialog } from "./OpenWorkDialog";
@@ -371,10 +372,6 @@ const LinkedWorkPreviewDialog = lazyFeature<
 >(
   () => import("./projects/LinkedWorkPreviewDialog").then((module) => ({ default: module.LinkedWorkPreviewDialog })),
   "the linked work preview",
-);
-const ProjectInspector = lazyFeature<ComponentProps<typeof import("./ProjectInspector").ProjectInspector>>(
-  () => import("./ProjectInspector").then((module) => ({ default: module.ProjectInspector })),
-  "project settings",
 );
 
 function useInspectorSettings<T>(open: boolean, source: string, parse: (source: string) => T): T {
