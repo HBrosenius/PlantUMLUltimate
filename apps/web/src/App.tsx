@@ -30,11 +30,6 @@ import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
 import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
-import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
-import { UseCaseDiagramPreview } from "./UseCaseDiagramPreview";
-import { ClassDiagramPreview } from "./ClassDiagramPreview";
-import { ActivityDiagramPreview } from "./ActivityDiagramPreview";
-import { WbsDiagramPreview } from "./WbsDiagramPreview";
 import {
   addMissingGanttTasksToWbs,
   convertWbsToGantt,
@@ -42,19 +37,13 @@ import {
   relinkWbsGanttTask,
   setGeneratedGanttProjectStart,
 } from "./wbs-gantt";
-import { AddWbsNodeDialog } from "./features/wbs/WbsDialogs";
-import { WbsNodeInspector, WbsRelationshipInspector, WbsSettingsInspector } from "./features/wbs/WbsInspectors";
-import { WbsLinkedDeleteDialog } from "./features/wbs/WbsLinkedDeleteDialog";
-import { WbsRelinkDialog } from "./features/wbs/WbsRelinkDialog";
 import { useWbsActions } from "./features/wbs/use-wbs-actions";
 import { useWbsController } from "./features/wbs/use-wbs-controller";
 import { parseActivitySettings } from "./activity-settings";
-import { ActivityDialogs, type ActivityDialogKind } from "./features/activity/ActivityDialogs";
-import { ActivityInspectors } from "./features/activity/ActivityInspectors";
+import type { ActivityDialogKind } from "./features/activity/ActivityDialogs";
 import { useActivityActions } from "./features/activity/use-activity-actions";
 import { useActivityController } from "./features/activity/use-activity-controller";
-import { ClassDialogs, type ClassDialogKind } from "./features/class/ClassDialogs";
-import { ClassInspectors } from "./features/class/ClassInspectors";
+import type { ClassDialogKind } from "./features/class/ClassDialogs";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
@@ -103,8 +92,7 @@ import { ExternalFileConflictDialog } from "./ExternalFileConflictDialog";
 import { AddMenu } from "./AddMenu";
 import { SaveStarterDialog } from "./PersonalStarters";
 import { NewDocumentDialog } from "./NewDocumentDialog";
-import { SequenceDialogs, type SequenceDialog } from "./features/sequence/SequenceDialogs";
-import { SequenceInspectors } from "./features/sequence/SequenceInspectors";
+import type { SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { useSequenceActions } from "./features/sequence/use-sequence-actions";
 import { useSequenceController } from "./features/sequence/use-sequence-controller";
 import { parseSequenceSettings } from "./sequence-settings";
@@ -159,8 +147,6 @@ import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usec
 import { findClassObjectAt, parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { hashSource } from "@plantuml-studio/document-format";
 import { findActivityObjectAt, parseActivity } from "@plantuml-studio/diagram-activity";
-import { UseCaseDialogs } from "./features/usecase/UseCaseDialogs";
-import { UseCaseInspectors } from "./features/usecase/UseCaseInspectors";
 import { useUseCaseActions } from "./features/usecase/use-usecase-actions";
 import { useUseCaseController } from "./features/usecase/use-usecase-controller";
 import { useDocumentHistory } from "./use-document-history";
@@ -252,6 +238,113 @@ const SettingsDialog = lazyFeature<ComponentProps<typeof import("./SettingsDialo
 const JiraDialog = lazyFeature<ComponentProps<typeof import("./JiraDialog").JiraDialog>>(
   () => import("./JiraDialog").then((module) => ({ default: module.JiraDialog })),
   "the Jira integration",
+);
+// Each diagram kind loads its preview, forms and inspectors the first time a document of that kind is shown.
+const SequenceDiagramPreview = lazyFeature<
+  ComponentProps<typeof import("./SequenceDiagramPreview").SequenceDiagramPreview>
+>(
+  () => import("./SequenceDiagramPreview").then((module) => ({ default: module.SequenceDiagramPreview })),
+  "the sequence preview",
+);
+const UseCaseDiagramPreview = lazyFeature<
+  ComponentProps<typeof import("./UseCaseDiagramPreview").UseCaseDiagramPreview>
+>(
+  () => import("./UseCaseDiagramPreview").then((module) => ({ default: module.UseCaseDiagramPreview })),
+  "the use case preview",
+);
+const ClassDiagramPreview = lazyFeature<ComponentProps<typeof import("./ClassDiagramPreview").ClassDiagramPreview>>(
+  () => import("./ClassDiagramPreview").then((module) => ({ default: module.ClassDiagramPreview })),
+  "the class preview",
+);
+const ActivityDiagramPreview = lazyFeature<
+  ComponentProps<typeof import("./ActivityDiagramPreview").ActivityDiagramPreview>
+>(
+  () => import("./ActivityDiagramPreview").then((module) => ({ default: module.ActivityDiagramPreview })),
+  "the activity preview",
+);
+const WbsDiagramPreview = lazyFeature<ComponentProps<typeof import("./WbsDiagramPreview").WbsDiagramPreview>>(
+  () => import("./WbsDiagramPreview").then((module) => ({ default: module.WbsDiagramPreview })),
+  "the WBS preview",
+);
+const AddWbsNodeDialog = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsDialogs").AddWbsNodeDialog>>(
+  () => import("./features/wbs/WbsDialogs").then((module) => ({ default: module.AddWbsNodeDialog })),
+  "the WBS node form",
+);
+const WbsNodeInspector = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsNodeInspector>>(
+  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsNodeInspector })),
+  "the WBS node inspector",
+);
+const WbsRelationshipInspector = lazyFeature<
+  ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsRelationshipInspector>
+>(
+  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsRelationshipInspector })),
+  "the WBS relationship inspector",
+);
+const WbsSettingsInspector = lazyFeature<
+  ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsSettingsInspector>
+>(
+  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsSettingsInspector })),
+  "WBS settings",
+);
+const WbsLinkedDeleteDialog = lazyFeature<
+  ComponentProps<typeof import("./features/wbs/WbsLinkedDeleteDialog").WbsLinkedDeleteDialog>
+>(
+  () => import("./features/wbs/WbsLinkedDeleteDialog").then((module) => ({ default: module.WbsLinkedDeleteDialog })),
+  "the linked delete review",
+);
+const WbsRelinkDialog = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsRelinkDialog").WbsRelinkDialog>>(
+  () => import("./features/wbs/WbsRelinkDialog").then((module) => ({ default: module.WbsRelinkDialog })),
+  "the relink review",
+);
+const ActivityDialogs = lazyFeature<
+  ComponentProps<typeof import("./features/activity/ActivityDialogs").ActivityDialogs>
+>(
+  () => import("./features/activity/ActivityDialogs").then((module) => ({ default: module.ActivityDialogs })),
+  "activity forms",
+  { silent: true },
+);
+const ActivityInspectors = lazyFeature<
+  ComponentProps<typeof import("./features/activity/ActivityInspectors").ActivityInspectors>
+>(
+  () => import("./features/activity/ActivityInspectors").then((module) => ({ default: module.ActivityInspectors })),
+  "activity inspectors",
+  { silent: true },
+);
+const ClassDialogs = lazyFeature<ComponentProps<typeof import("./features/class/ClassDialogs").ClassDialogs>>(
+  () => import("./features/class/ClassDialogs").then((module) => ({ default: module.ClassDialogs })),
+  "class forms",
+  { silent: true },
+);
+const ClassInspectors = lazyFeature<ComponentProps<typeof import("./features/class/ClassInspectors").ClassInspectors>>(
+  () => import("./features/class/ClassInspectors").then((module) => ({ default: module.ClassInspectors })),
+  "class inspectors",
+  { silent: true },
+);
+const SequenceDialogs = lazyFeature<
+  ComponentProps<typeof import("./features/sequence/SequenceDialogs").SequenceDialogs>
+>(
+  () => import("./features/sequence/SequenceDialogs").then((module) => ({ default: module.SequenceDialogs })),
+  "sequence forms",
+  { silent: true },
+);
+const SequenceInspectors = lazyFeature<
+  ComponentProps<typeof import("./features/sequence/SequenceInspectors").SequenceInspectors>
+>(
+  () => import("./features/sequence/SequenceInspectors").then((module) => ({ default: module.SequenceInspectors })),
+  "sequence inspectors",
+  { silent: true },
+);
+const UseCaseDialogs = lazyFeature<ComponentProps<typeof import("./features/usecase/UseCaseDialogs").UseCaseDialogs>>(
+  () => import("./features/usecase/UseCaseDialogs").then((module) => ({ default: module.UseCaseDialogs })),
+  "use case forms",
+  { silent: true },
+);
+const UseCaseInspectors = lazyFeature<
+  ComponentProps<typeof import("./features/usecase/UseCaseInspectors").UseCaseInspectors>
+>(
+  () => import("./features/usecase/UseCaseInspectors").then((module) => ({ default: module.UseCaseInspectors })),
+  "use case inspectors",
+  { silent: true },
 );
 const ReportsDialog = lazyFeature<ComponentProps<typeof import("./features/reports/ReportsDialog").ReportsDialog>>(
   () => import("./features/reports/ReportsDialog").then((module) => ({ default: module.ReportsDialog })),
@@ -5598,45 +5691,51 @@ export function App() {
           onClose={clearSelectedWbsRelationship}
         />
       )}
-      <ActivityDialogs
-        active={activityDialogKind}
-        document={activityDocument}
-        onAddAction={addActivityAction}
-        onAddPartition={addActivityPartition}
-        onAddNote={addActivityNote}
-        onAddStructure={addActivityStructure}
-        onAddTerminal={addActivityTerminal}
-        onAddArrow={addActivityArrow}
-        onClose={() => closeDialog(dialog?.kind)}
-      />
-      <SequenceDialogs
-        active={sequenceDialog}
-        participants={sequenceParticipantNames}
-        anchors={sequenceMessageAnchors}
-        onAddParticipant={addSequenceParticipant}
-        onAddMessage={addSequenceMessage}
-        onAddStructure={addSequenceStructure}
-        onClose={() => closeDialog(dialog?.kind)}
-      />
-      <UseCaseDialogs
-        active={
-          dialog?.kind === "add-usecase-element"
-            ? { kind: "element", elementKind: dialog.elementKind }
-            : dialog?.kind === "add-usecase-relationship"
-              ? { kind: "relationship" }
-              : dialog?.kind === "add-usecase-package"
-                ? { kind: "package" }
-                : dialog?.kind === "add-usecase-note"
-                  ? { kind: "note" }
-                  : undefined
-        }
-        elements={useCaseDocument.elements}
-        onAddElement={addUseCaseElement}
-        onAddRelationship={addUseCaseRelationship}
-        onAddPackage={addUseCasePackage}
-        onAddNote={addUseCaseNote}
-        onClose={closeDialog}
-      />
+      {workspace.diagramKind === "activity" && (
+        <ActivityDialogs
+          active={activityDialogKind}
+          document={activityDocument}
+          onAddAction={addActivityAction}
+          onAddPartition={addActivityPartition}
+          onAddNote={addActivityNote}
+          onAddStructure={addActivityStructure}
+          onAddTerminal={addActivityTerminal}
+          onAddArrow={addActivityArrow}
+          onClose={() => closeDialog(dialog?.kind)}
+        />
+      )}
+      {workspace.diagramKind === "sequence" && (
+        <SequenceDialogs
+          active={sequenceDialog}
+          participants={sequenceParticipantNames}
+          anchors={sequenceMessageAnchors}
+          onAddParticipant={addSequenceParticipant}
+          onAddMessage={addSequenceMessage}
+          onAddStructure={addSequenceStructure}
+          onClose={() => closeDialog(dialog?.kind)}
+        />
+      )}
+      {workspace.diagramKind === "usecase" && (
+        <UseCaseDialogs
+          active={
+            dialog?.kind === "add-usecase-element"
+              ? { kind: "element", elementKind: dialog.elementKind }
+              : dialog?.kind === "add-usecase-relationship"
+                ? { kind: "relationship" }
+                : dialog?.kind === "add-usecase-package"
+                  ? { kind: "package" }
+                  : dialog?.kind === "add-usecase-note"
+                    ? { kind: "note" }
+                    : undefined
+          }
+          elements={useCaseDocument.elements}
+          onAddElement={addUseCaseElement}
+          onAddRelationship={addUseCaseRelationship}
+          onAddPackage={addUseCasePackage}
+          onAddNote={addUseCaseNote}
+          onClose={closeDialog}
+        />
+      )}
       <GanttDialogs
         active={ganttDialogKind}
         tasks={parseResult.document.tasks}
@@ -5958,116 +6057,126 @@ export function App() {
           onClose={() => setHighlightDate(undefined)}
         />
       )}
-      <UseCaseInspectors
-        settingsOpen={useCaseSettingsOpen}
-        settings={useCaseInspectorSettings}
-        selectedElement={diagramMulti.multiple ? undefined : selectedUseCaseElement}
-        selectedRelationship={diagramMulti.multiple ? undefined : selectedUseCaseRelationship}
-        selectedPackage={diagramMulti.multiple ? undefined : selectedUseCasePackage}
-        selectedNote={diagramMulti.multiple ? undefined : selectedUseCaseNote}
-        elements={useCaseDocument.elements}
-        packages={useCaseDocument.packages}
-        onSettingsChange={applyUseCaseSettings}
-        onElementChange={applyUseCaseElement}
-        onElementDelete={removeUseCaseElement}
-        onElementPackageChange={moveSelectedUseCaseElementToPackage}
-        onRelationshipChange={applyUseCaseRelationship}
-        onRelationshipDelete={removeUseCaseRelationship}
-        onPackageChange={applyUseCasePackage}
-        onPackageDelete={removeUseCasePackage}
-        onNoteChange={applyUseCaseNote}
-        onNoteDelete={removeUseCaseNote}
-        onCloseSettings={closeUseCaseSettings}
-        onCloseSelection={clearSelectedUseCaseObject}
-      />
-      <ClassInspectors
-        componentMode={workspace.diagramKind === "component"}
-        settingsOpen={classSettingsOpen}
-        settings={classInspectorSettings}
-        document={classDocument}
-        selectedEntity={diagramMulti.multiple ? undefined : selectedClassEntity}
-        selectedRelationship={diagramMulti.multiple ? undefined : selectedClassRelationship}
-        selectedPackage={diagramMulti.multiple ? undefined : selectedClassPackage}
-        selectedNote={diagramMulti.multiple ? undefined : selectedClassNote}
-        onSettingsChange={applyClassSettings}
-        onEntityChange={applyClassEntity}
-        onEntityPackageChange={moveSelectedClassEntity}
-        onEntityDelete={removeClassEntity}
-        onMemberAdd={addClassMember}
-        onMemberChange={applyClassMember}
-        onMemberDelete={removeClassMember}
-        onMemberMove={moveClassMember}
-        onMemberReveal={(member) => {
-          if (viewMode === "diagram") update("viewMode", "split");
-          setSelectionRequest({ ...member.sourceRange });
-        }}
-        onRelationshipChange={applyClassRelationship}
-        onRelationshipDelete={removeClassRelationship}
-        onPackageChange={applyClassPackage}
-        onPackageParentChange={moveSelectedClassPackage}
-        onPackageDelete={removeClassPackage}
-        onNoteChange={applyClassNote}
-        onNoteDelete={removeClassNote}
-        onCloseSettings={closeClassSettings}
-        onCloseSelection={clearSelectedClassObject}
-      />
-      <ActivityInspectors
-        settingsOpen={activitySettingsOpen}
-        settings={activityInspectorSettings}
-        document={activityDocument}
-        selectedAction={diagramMulti.multiple ? undefined : selectedActivityAction}
-        selectedControl={diagramMulti.multiple ? undefined : selectedActivityControl}
-        selectedTerminal={diagramMulti.multiple ? undefined : selectedActivityTerminal}
-        selectedArrow={diagramMulti.multiple ? undefined : selectedActivityArrow}
-        selectedPartition={diagramMulti.multiple ? undefined : selectedActivityPartition}
-        selectedNote={diagramMulti.multiple ? undefined : selectedActivityNote}
-        onSettingsChange={applyActivitySettings}
-        onActionChange={applyActivityAction}
-        onActionPartitionChange={moveActivityActionPartition}
-        onActionDelete={removeActivityAction}
-        onControlChange={applyActivityControl}
-        onControlDelete={removeActivityControl}
-        onTerminalDelete={removeActivityTerminal}
-        onArrowChange={applyActivityArrow}
-        onArrowDelete={removeActivityArrow}
-        onPartitionChange={applyActivityPartition}
-        onPartitionParentChange={moveSelectedActivityPartition}
-        onPartitionDelete={removeActivityPartition}
-        onNoteChange={applyActivityNote}
-        onNoteDelete={removeActivityNote}
-        onCloseSettings={closeActivitySettings}
-        onCloseSelection={clearSelectedActivityObject}
-      />
-      <ClassDialogs
-        componentMode={workspace.diagramKind === "component"}
-        active={classDialogKind}
-        document={classDocument}
-        onAddEntity={addClassEntity}
-        onAddRelationship={addClassRelationship}
-        onAddPackage={addClassPackage}
-        onAddNote={addClassNote}
-        onClose={() => classDialogKind && closeClassDialog(classDialogKind)}
-      />
-      <SequenceInspectors
-        settingsOpen={sequenceSettingsOpen}
-        settings={sequenceInspectorSettings}
-        selectedParticipant={diagramMulti.multiple ? undefined : selectedSequenceParticipant}
-        selectedMessage={diagramMulti.multiple ? undefined : selectedSequenceMessage}
-        selectedStructure={diagramMulti.multiple ? undefined : selectedSequenceStructure}
-        participants={sequenceParticipantNames}
-        anchors={sequenceMessageAnchors}
-        onSettingsApply={applySequenceSettings}
-        onParticipantApply={applySequenceParticipant}
-        onParticipantDelete={removeSequenceParticipant}
-        onMessageApply={applySequenceMessage}
-        onMessageDelete={removeSequenceMessage}
-        onStructureApply={applySequenceStructure}
-        onStructureDelete={removeSequenceStructure}
-        onCloseSettings={closeSequenceSettings}
-        onCloseParticipant={() => setSelectedSequenceParticipantId(undefined)}
-        onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
-        onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
-      />
+      {workspace.diagramKind === "usecase" && (
+        <UseCaseInspectors
+          settingsOpen={useCaseSettingsOpen}
+          settings={useCaseInspectorSettings}
+          selectedElement={diagramMulti.multiple ? undefined : selectedUseCaseElement}
+          selectedRelationship={diagramMulti.multiple ? undefined : selectedUseCaseRelationship}
+          selectedPackage={diagramMulti.multiple ? undefined : selectedUseCasePackage}
+          selectedNote={diagramMulti.multiple ? undefined : selectedUseCaseNote}
+          elements={useCaseDocument.elements}
+          packages={useCaseDocument.packages}
+          onSettingsChange={applyUseCaseSettings}
+          onElementChange={applyUseCaseElement}
+          onElementDelete={removeUseCaseElement}
+          onElementPackageChange={moveSelectedUseCaseElementToPackage}
+          onRelationshipChange={applyUseCaseRelationship}
+          onRelationshipDelete={removeUseCaseRelationship}
+          onPackageChange={applyUseCasePackage}
+          onPackageDelete={removeUseCasePackage}
+          onNoteChange={applyUseCaseNote}
+          onNoteDelete={removeUseCaseNote}
+          onCloseSettings={closeUseCaseSettings}
+          onCloseSelection={clearSelectedUseCaseObject}
+        />
+      )}
+      {(workspace.diagramKind === "class" || workspace.diagramKind === "component") && (
+        <ClassInspectors
+          componentMode={workspace.diagramKind === "component"}
+          settingsOpen={classSettingsOpen}
+          settings={classInspectorSettings}
+          document={classDocument}
+          selectedEntity={diagramMulti.multiple ? undefined : selectedClassEntity}
+          selectedRelationship={diagramMulti.multiple ? undefined : selectedClassRelationship}
+          selectedPackage={diagramMulti.multiple ? undefined : selectedClassPackage}
+          selectedNote={diagramMulti.multiple ? undefined : selectedClassNote}
+          onSettingsChange={applyClassSettings}
+          onEntityChange={applyClassEntity}
+          onEntityPackageChange={moveSelectedClassEntity}
+          onEntityDelete={removeClassEntity}
+          onMemberAdd={addClassMember}
+          onMemberChange={applyClassMember}
+          onMemberDelete={removeClassMember}
+          onMemberMove={moveClassMember}
+          onMemberReveal={(member) => {
+            if (viewMode === "diagram") update("viewMode", "split");
+            setSelectionRequest({ ...member.sourceRange });
+          }}
+          onRelationshipChange={applyClassRelationship}
+          onRelationshipDelete={removeClassRelationship}
+          onPackageChange={applyClassPackage}
+          onPackageParentChange={moveSelectedClassPackage}
+          onPackageDelete={removeClassPackage}
+          onNoteChange={applyClassNote}
+          onNoteDelete={removeClassNote}
+          onCloseSettings={closeClassSettings}
+          onCloseSelection={clearSelectedClassObject}
+        />
+      )}
+      {workspace.diagramKind === "activity" && (
+        <ActivityInspectors
+          settingsOpen={activitySettingsOpen}
+          settings={activityInspectorSettings}
+          document={activityDocument}
+          selectedAction={diagramMulti.multiple ? undefined : selectedActivityAction}
+          selectedControl={diagramMulti.multiple ? undefined : selectedActivityControl}
+          selectedTerminal={diagramMulti.multiple ? undefined : selectedActivityTerminal}
+          selectedArrow={diagramMulti.multiple ? undefined : selectedActivityArrow}
+          selectedPartition={diagramMulti.multiple ? undefined : selectedActivityPartition}
+          selectedNote={diagramMulti.multiple ? undefined : selectedActivityNote}
+          onSettingsChange={applyActivitySettings}
+          onActionChange={applyActivityAction}
+          onActionPartitionChange={moveActivityActionPartition}
+          onActionDelete={removeActivityAction}
+          onControlChange={applyActivityControl}
+          onControlDelete={removeActivityControl}
+          onTerminalDelete={removeActivityTerminal}
+          onArrowChange={applyActivityArrow}
+          onArrowDelete={removeActivityArrow}
+          onPartitionChange={applyActivityPartition}
+          onPartitionParentChange={moveSelectedActivityPartition}
+          onPartitionDelete={removeActivityPartition}
+          onNoteChange={applyActivityNote}
+          onNoteDelete={removeActivityNote}
+          onCloseSettings={closeActivitySettings}
+          onCloseSelection={clearSelectedActivityObject}
+        />
+      )}
+      {(workspace.diagramKind === "class" || workspace.diagramKind === "component") && (
+        <ClassDialogs
+          componentMode={workspace.diagramKind === "component"}
+          active={classDialogKind}
+          document={classDocument}
+          onAddEntity={addClassEntity}
+          onAddRelationship={addClassRelationship}
+          onAddPackage={addClassPackage}
+          onAddNote={addClassNote}
+          onClose={() => classDialogKind && closeClassDialog(classDialogKind)}
+        />
+      )}
+      {workspace.diagramKind === "sequence" && (
+        <SequenceInspectors
+          settingsOpen={sequenceSettingsOpen}
+          settings={sequenceInspectorSettings}
+          selectedParticipant={diagramMulti.multiple ? undefined : selectedSequenceParticipant}
+          selectedMessage={diagramMulti.multiple ? undefined : selectedSequenceMessage}
+          selectedStructure={diagramMulti.multiple ? undefined : selectedSequenceStructure}
+          participants={sequenceParticipantNames}
+          anchors={sequenceMessageAnchors}
+          onSettingsApply={applySequenceSettings}
+          onParticipantApply={applySequenceParticipant}
+          onParticipantDelete={removeSequenceParticipant}
+          onMessageApply={applySequenceMessage}
+          onMessageDelete={removeSequenceMessage}
+          onStructureApply={applySequenceStructure}
+          onStructureDelete={removeSequenceStructure}
+          onCloseSettings={closeSequenceSettings}
+          onCloseParticipant={() => setSelectedSequenceParticipantId(undefined)}
+          onCloseMessage={() => setSelectedSequenceMessageId(undefined)}
+          onCloseStructure={() => setSelectedSequenceStructureId(undefined)}
+        />
+      )}
       {diagramMulti.multiple && (
         <BulkDiagramInspector
           key={`${tabs.activeId}:${workspace.diagramKind}`}

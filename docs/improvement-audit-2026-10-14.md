@@ -51,6 +51,8 @@ Fix (S): `eager: false`, keep a static list of theme names for completion, and `
 
 ### A3. All six diagram kinds load eagerly
 
+**Delivered 2026-10-14.** The Sequence, Use Case, Class/Component, Activity and WBS previews, forms and inspectors (with `ClassEditors`, `ActivityEditors` and the Open Iconic list) load through `lazyFeature` the first time a document of that kind is shown. The always-mounted `*Dialogs`/`*Inspectors` wrappers are now mounted only while their kind is active and use a new `silent` fallback, since they usually render nothing. Gantt stays eager as the default kind. Initial `index` chunk: 1,206 KB / 348 KB gzip → 950 KB / 288 KB gzip (1,381 KB / 403 KB before A4).
+
 `App.tsx:33-38` statically imports every `*DiagramPreview` (Sequence 62 KB, WBS 39 KB, Class 29 KB, Activity 25 KB, Use Case 24 KB of source), and `App.tsx:46-66, 107-110, 157-160` import every `features/<kind>/{Dialogs,Inspectors}` plus `ClassEditors` (50 KB), `ActivityEditors` (30 KB) and `wbs-openiconic-icons.ts` (47 KB). A Gantt-only session pays for all of it.
 
 Fix (M): one `lazyFeature` per kind wrapping preview + dialogs + inspectors (the controller/action hooks are small and can stay eager). This pairs naturally with the `<Kind>Workspace` seam in J1.
