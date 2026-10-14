@@ -127,6 +127,24 @@ export function useDiagramNavigation(
       // WebKit can update SVG overflow a frame after its transform has settled.
       // Keep recovery writes suspended until the scrollable bounds also settle.
       const currentBounds = bounds();
+      // WebKit can report stable, stale overflow for several frames after inserting
+      // a scaled SVG. Do not accept a clamped offset while its geometry still
+      // requires a larger scroll range than the viewport currently exposes.
+      const svgBounds = renderedSvg?.getBoundingClientRect();
+      const viewportBounds = viewport.getBoundingClientRect();
+      if (
+        svgBounds &&
+        ((svgBounds.width > 0 &&
+          target.left > viewport.scrollWidth - viewport.clientWidth &&
+          svgBounds.right - viewportBounds.left + viewport.scrollLeft > viewport.scrollWidth + 1) ||
+          (svgBounds.height > 0 &&
+            target.top > viewport.scrollHeight - viewport.clientHeight &&
+            svgBounds.bottom - viewportBounds.top + viewport.scrollTop > viewport.scrollHeight + 1))
+      ) {
+        previousBounds = undefined;
+        frame = requestAnimationFrame(restore);
+        return;
+      }
       if (previousBounds !== currentBounds) {
         previousBounds = currentBounds;
         frame = requestAnimationFrame(restore);
@@ -135,7 +153,13 @@ export function useDiagramNavigation(
       viewport.scrollLeft = target.left;
       viewport.scrollTop = target.top;
       frame = requestAnimationFrame(() => {
-        if (bounds() !== currentBounds) {
+        const expectedLeft = Math.max(0, Math.min(target.left, viewport.scrollWidth - viewport.clientWidth));
+        const expectedTop = Math.max(0, Math.min(target.top, viewport.scrollHeight - viewport.clientHeight));
+        if (
+          bounds() !== currentBounds ||
+          Math.abs(viewport.scrollLeft - expectedLeft) > 1 ||
+          Math.abs(viewport.scrollTop - expectedTop) > 1
+        ) {
           previousBounds = undefined;
           frame = requestAnimationFrame(restore);
           return;

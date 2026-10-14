@@ -101,6 +101,8 @@ it("pans horizontal line and page gestures instead of discarding them", () => {
 });
 
 it("restores scroll per document and flushes pending scrolling to its original owner", async () => {
+  vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(1000);
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(1000);
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(200);
   const saveA = vi.fn();
@@ -213,6 +215,23 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
   tick();
   expect({ left, top }).toEqual({ left: 0, top: 0 });
   clientSize = 100;
+  const svg = viewport.querySelector("svg")!;
+  vi.spyOn(svg, "getBoundingClientRect").mockReturnValue({
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    right: 500,
+    bottom: 800,
+    width: 500,
+    height: 800,
+    toJSON: () => ({}),
+  });
+  // Overflow can remain unchanged for multiple frames even after SVG layout is ready.
+  tick();
+  tick();
+  tick();
+  tick();
   act(() => {
     viewport.dispatchEvent(new Event("scroll"));
     window.dispatchEvent(new Event("pagehide"));
@@ -247,6 +266,17 @@ it("waits for delayed SVG overflow and preserves scroll through later SVG replac
     await Promise.resolve();
   });
   act(() => viewport.dispatchEvent(new Event("scroll")));
+  tick();
+  tick();
+  // WebKit may clamp after assignment without changing the final overflow bounds.
+  left = 0;
+  top = 0;
+  tick();
+  act(() => {
+    viewport.dispatchEvent(new Event("scroll"));
+    window.dispatchEvent(new Event("pagehide"));
+  });
+  expect(save).toHaveBeenLastCalledWith({ left: 95, top: 210 }, true);
   tick();
   tick();
   tick();
