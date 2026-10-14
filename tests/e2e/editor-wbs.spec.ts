@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
+import { fitDiagram, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -85,6 +85,8 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
     .toMatch(/\*\*\[#LightBlue\] <color:#DarkBlue>Experience design<\/color>[\s\S]*\*\* Discovery/);
   const wbsPreview = page.getByRole("region", { name: "WBS diagram preview" });
   await expect(wbsPreview).toHaveAttribute("data-render-status", "idle");
+  // At natural size the tree is wider than the pane beside the inspector; fit so Delivery is in view.
+  await fitDiagram(page);
   const delivery = page.locator("text[data-wbs-node-id]", { hasText: "Delivery" }).first();
   const newParent = page.locator("text[data-wbs-node-id]", { hasText: "Discovery" }).first();
   const deliveryBox = await delivery.boundingBox();

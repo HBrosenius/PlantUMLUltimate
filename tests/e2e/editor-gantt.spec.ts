@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 import {
   fillSource,
+  fitDiagram,
   openAddDialog,
   pointInText,
   prepareEditor,
@@ -1473,7 +1474,9 @@ test("connects task anchors after switching to diagram-only view", async ({ page
 });
 
 test("connects a later default task to an earlier task without breaking PlantUML rendering", async ({ page }) => {
+  await fitDiagram(page);
   await page.locator("[data-task-id=testing] .bar").click();
+  await waitForDiagramRender(page);
   const handle = await page.locator('[data-task-id=testing] [data-dependency-handle="end"]').boundingBox();
   const target = await page.locator("[data-task-id=frontend] .bar").boundingBox();
   expect(handle).not.toBeNull();
@@ -1823,6 +1826,7 @@ test("applies a color picked from the palette immediately, without a separate bl
 
 test("applies a dependency's line color as soon as it's picked from the palette", async ({ page }) => {
   await setSource(page, source("[A] lasts 2 days\n[B] starts at [A]'s end"));
+  await fitDiagram(page);
   await page.getByRole("button", { name: "Select dependency from A to B" }).click();
   const inspector = page.getByRole("complementary", { name: "Dependency inspector" });
   await expect(inspector).toBeVisible();

@@ -40,7 +40,7 @@ for (const [kind, source] of Object.entries(diagrams)) {
         localStorage.setItem(
           "plantuml-studio.workspace.recovery.v6",
           JSON.stringify({
-            version: 7,
+            version: 8,
             documents: [
               { id: "A", diagramKind: kind, source: original, fileName: "Recovery.pumlu" },
               { id: "B", diagramKind: "gantt", source: other, fileName: "Other.pumlu" },

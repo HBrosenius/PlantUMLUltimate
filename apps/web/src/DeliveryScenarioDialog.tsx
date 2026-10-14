@@ -1098,11 +1098,7 @@ function BasePlanPreview({
         {status === "rendering" && !svg && <p>Rendering…</p>}
         {error && <p className="scenario-render-error">{error}</p>}
         {svg && (
-          <div
-            className="diagram"
-            style={{ width: "100%", transform: `scale(${zoom})` }}
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          <div className="diagram" style={{ transform: `scale(${zoom})` }} dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </div>
     </>

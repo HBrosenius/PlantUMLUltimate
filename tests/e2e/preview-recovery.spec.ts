@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
       localStorage.setItem(
         "plantuml-studio.workspace.recovery.v6",
         JSON.stringify({
-          version: 7,
+          version: 8,
           documents: [a, b].map((text, i) => ({
             id: i ? "B" : "A",
             historyId: `preview-recovery-${i}`,

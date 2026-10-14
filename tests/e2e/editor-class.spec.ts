@@ -296,6 +296,9 @@ test("creates and edits Class diagram objects, members, relationships, packages,
     const repositoryTarget = page.locator('[data-class-object-type="entity"][data-class-object-id="orderrepository"]');
     await expect(fromEndpoint).toBeVisible();
     await expect(repositoryTarget).toBeVisible();
+    // The relationship inspector narrows the pane without rescaling the diagram. Fit through the app's Fit command
+    // event, which keeps keyboard focus (and so the selection) on the relationship.
+    await page.evaluate(() => window.dispatchEvent(new Event("fit-active-diagram")));
     // Fit animates the diagram transform; measure the 6 px handle only once that transition has finished.
     await expect
       .poll(() => page.locator(".class-diagram").evaluate((element) => element.getAnimations({ subtree: true }).length))

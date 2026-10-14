@@ -13,7 +13,7 @@ import {
 import type { ClassDocument } from "@plantuml-studio/diagram-class";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
-import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
+import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 const classInteractionSelector =
   ".class-semantic-hit,.class-connect-handle,.class-move-handle,.class-relationship-hit,.class-relationship-endpoint,.class-connection-preview,.class-package-drop-hit";
@@ -507,10 +507,14 @@ export function ClassDiagramPreview({
         >
           Fit
         </button>
-        <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
+        <button onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>
-        <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
+        <button
+          onClick={() => onZoomChange(1)}
+          aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
+          title="Show the diagram at its natural size"
+        >
           {Math.round(zoom * 100)}%
         </button>
         <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">

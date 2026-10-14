@@ -499,6 +499,9 @@ function appendRemovedBaselineLane(
   const laneTop = viewBox[1]! + viewBox[3]! + 7;
   const extraHeight = 22 + removed.length * 19;
   root.setAttribute("viewBox", `${viewBox[0]} ${viewBox[1]} ${viewBox[2]} ${viewBox[3]! + extraHeight}`);
+  // The preview shows the SVG at its intrinsic size, so the height attribute must grow with the viewBox.
+  const height = Number.parseFloat(root.getAttribute("height") ?? "");
+  if (Number.isFinite(height)) root.setAttribute("height", String(height + extraHeight));
   const lane = document.createElementNS("http://www.w3.org/2000/svg", "g");
   lane.setAttribute("class", "removed-baseline-lane");
   const heading = document.createElementNS("http://www.w3.org/2000/svg", "text");

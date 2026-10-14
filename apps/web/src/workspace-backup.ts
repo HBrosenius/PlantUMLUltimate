@@ -95,7 +95,7 @@ export function parseWorkspaceBackupBundle(source: string): { session: Workspace
   const candidate = backup.session as Partial<WorkspaceSession>;
   if (
     (candidate.version !== undefined &&
-      (!Number.isInteger(candidate.version) || candidate.version < 1 || candidate.version > 7)) ||
+      (!Number.isInteger(candidate.version) || candidate.version < 1 || candidate.version > 8)) ||
     (candidate.viewMode !== undefined && !["code", "split", "diagram"].includes(candidate.viewMode)) ||
     (candidate.theme !== undefined && !["system", "light", "dark"].includes(candidate.theme)) ||
     [candidate.advancedMode, candidate.onboarded].some((value) => value !== undefined && typeof value !== "boolean") ||

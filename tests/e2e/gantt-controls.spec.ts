@@ -28,7 +28,12 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
   await expect(page.getByRole("combobox", { name: "Timeline zoom preset" })).toHaveCount(0);
   const zoom = page.getByRole("group", { name: "Preview zoom", exact: true });
   await zoom.getByRole("button", { name: /Reset zoom/ }).click();
-  for (let i = 0; i < 5; i++) await zoom.getByRole("button", { name: "Zoom in", exact: true }).click();
+  // 100 % is the natural size, which fits this small plan; zoom in until the timeline overflows horizontally.
+  const viewport = page.locator(".gantt-preview .preview-viewport");
+  for (let i = 0; i < 40; i++) {
+    if (await viewport.evaluate((node) => node.scrollWidth > node.clientWidth + 40)) break;
+    await zoom.getByRole("button", { name: "Zoom in", exact: true }).click();
+  }
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   await expect(page.getByRole("button", { name: "Critical path", exact: true })).toHaveAttribute(
     "aria-pressed",

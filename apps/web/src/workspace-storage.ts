@@ -56,7 +56,7 @@ export interface DocumentSnapshot {
 
 export interface WorkspaceSession {
   startupMode?: "restore" | "chooser" | undefined;
-  version: 7;
+  version: 8;
   recoverySavedAt?: number;
   documents: DocumentSnapshot[];
   activeDocumentId: string;
@@ -85,7 +85,7 @@ export const DEFAULT_WORKSPACE: WorkspaceSnapshot = {
 
 export const DEFAULT_SESSION: WorkspaceSession = {
   startupMode: "restore",
-  version: 7,
+  version: 8,
   documents: [
     {
       id: "welcome",
@@ -186,6 +186,8 @@ export function normalizeSession(value: unknown): WorkspaceSession {
     const candidate = value as Partial<WorkspaceSession>;
     const migrateDependencies = Number(candidate.version ?? 0) < 5;
     const migrateWbsDirection = Number(candidate.version ?? 0) < 6;
+    // Before version 8 zoom was relative to the pane width; fit each document once in natural-size units.
+    const migrateZoomUnits = Number(candidate.version ?? 0) < 8;
     const documents = candidate
       .documents!.filter((item): item is DocumentSnapshot =>
         Boolean(item && typeof item.id === "string" && typeof item.source === "string"),
@@ -209,7 +211,11 @@ export function normalizeSession(value: unknown): WorkspaceSession {
           ...(["code", "split", "diagram"].includes(item.viewMode as string)
             ? { viewMode: item.viewMode as ViewMode }
             : {}),
-          ...(typeof item.zoomInitialized === "boolean" ? { zoomInitialized: item.zoomInitialized } : {}),
+          ...(migrateZoomUnits
+            ? { zoomInitialized: false }
+            : typeof item.zoomInitialized === "boolean"
+              ? { zoomInitialized: item.zoomInitialized }
+              : {}),
           ...(item.diagramScroll && Number.isFinite(item.diagramScroll.left) && Number.isFinite(item.diagramScroll.top)
             ? {
                 diagramScroll: { left: Math.max(0, item.diagramScroll.left), top: Math.max(0, item.diagramScroll.top) },
@@ -284,7 +290,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       ? candidate.activeDocumentId!
       : documents[0]!.id;
     return {
-      version: 7,
+      version: 8,
       documents,
       activeDocumentId,
       viewMode: candidate.viewMode === "code" || candidate.viewMode === "diagram" ? candidate.viewMode : "split",
@@ -308,7 +314,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
         ? migrateInvalidWbsDirection(legacy.source)
         : legacy.source;
   return {
-    version: 7,
+    version: 8,
     documents: [
       {
         id: "migrated",
@@ -318,6 +324,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
         fileName: legacy.fileName,
         dirty: legacy.dirty || source !== legacy.source,
         zoom: legacy.zoom,
+        zoomInitialized: false,
         cursor: legacy.cursor,
       },
     ],
@@ -761,6 +768,7 @@ export function saveWorkspaceNavigation(snapshot: WorkspaceSession): void {
       viewMode,
       splitPercent,
       theme,
+      zoomUnits: "natural",
       documents: documents.map(({ id, revision, cursor, zoom, zoomInitialized, diagramScroll, viewMode }) => ({
         id,
         revision,
@@ -796,12 +804,14 @@ export async function loadWorkspace(): Promise<WorkspaceSession> {
         const view = navigation.documents.find(
           (item: { id?: string; revision?: number }) => item?.id === document.id && item.revision === document.revision,
         );
+        // A sidecar written before natural-size zoom must not restore a pane-relative zoom.
+        const zoomView = navigation.zoomUnits === "natural" ? view : undefined;
         return view
           ? {
               ...document,
               cursor: view.cursor,
-              zoom: view.zoom,
-              zoomInitialized: view.zoomInitialized,
+              zoom: zoomView ? zoomView.zoom : document.zoom,
+              zoomInitialized: zoomView ? zoomView.zoomInitialized : document.zoomInitialized,
               diagramScroll: view.diagramScroll,
               viewMode: view.viewMode,
             }

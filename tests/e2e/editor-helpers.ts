@@ -68,6 +68,10 @@ export async function waitForDiagramRender(page: Page) {
     timeout: 45_000,
   });
   // Initial fitting commits after the SVG render; measure drag targets after that layout update.
+  await settleDiagramZoom(page);
+}
+
+async function settleDiagramZoom(page: Page) {
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     await Promise.all(
@@ -76,6 +80,15 @@ export async function waitForDiagramRender(page: Page) {
       ),
     );
   });
+}
+
+/**
+ * Zoom is in natural-size units, so small diagrams render small and open inspectors do not shrink the diagram.
+ * Fit before pointer interactions that need targets large enough and inside the visible pane.
+ */
+export async function fitDiagram(page: Page) {
+  await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
+  await settleDiagramZoom(page);
 }
 
 export async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Divider…") {

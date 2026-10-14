@@ -27,7 +27,7 @@ import { storageGet } from "./safe-storage";
 import { applyShellTheme } from "./shell-theme";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
 import type { RepairCategory } from "./remaining-repair-summary";
-import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
+import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
 import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
@@ -3392,7 +3392,7 @@ export function App() {
         id: "view.zoom-out",
         label: "Zoom out",
         category: "View",
-        run: () => update("zoom", Math.max(0.5, workspace.zoom - 0.1)),
+        run: () => update("zoom", Math.max(MIN_DIAGRAM_ZOOM, workspace.zoom - 0.1)),
       },
       { id: "export.source", label: "Export source", category: "Export", run: exportSource },
       {

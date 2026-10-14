@@ -14,7 +14,7 @@ const document = (id: string) => ({
   revision: 0,
 });
 const session = {
-  version: 7,
+  version: 8,
   documents: [document("A"), document("B")],
   activeDocumentId: "A",
   viewMode: "code",

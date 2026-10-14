@@ -949,7 +949,6 @@ export function addCanonicalGanttOverlay(
       root.setAttribute("width", String(width));
       root.setAttribute("height", String(height));
       root.setAttribute("data-timeline-width", String(originalWidth));
-      root.setAttribute("style", `${root.getAttribute("style") ?? ""};min-width:${(width / originalWidth) * 100}%`);
     }
   }
   recordPreviewPhase("overlay-build", constructionStarted);

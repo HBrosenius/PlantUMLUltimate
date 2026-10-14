@@ -390,10 +390,11 @@ export function useDiagramNavigation(
     if (wheelRef.current) cancelAnimationFrame(wheelRef.current.frame);
     wheelRef.current = undefined;
     viewport.classList.remove("diagram-wheel-zooming");
+    // Fit fills the pane (enlarging compact diagrams too); 100 % stays the natural size.
     const next = Math.max(
       MIN_DIAGRAM_ZOOM,
       Math.min(
-        1,
+        MAX_DIAGRAM_ZOOM,
         (viewport.clientWidth - 32) / (bounds.width / displayedZoom),
         (viewport.clientHeight - 32) / (bounds.height / displayedZoom),
       ),

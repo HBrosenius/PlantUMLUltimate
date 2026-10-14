@@ -12,7 +12,7 @@ import {
 import type { UseCaseDocument } from "@plantuml-studio/diagram-usecase";
 import type { RenderStatus } from "./model";
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
-import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
+import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 
 export function UseCaseDiagramPreview({
   onInlineRename,
@@ -423,10 +423,14 @@ export function UseCaseDiagramPreview({
         >
           Fit
         </button>
-        <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} aria-label="Zoom out">
+        <button onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))} aria-label="Zoom out">
           −
         </button>
-        <button onClick={() => onZoomChange(1)} aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}>
+        <button
+          onClick={() => onZoomChange(1)}
+          aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
+          title="Show the diagram at its natural size"
+        >
           {Math.round(zoom * 100)}%
         </button>
         <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">

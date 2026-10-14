@@ -27,7 +27,7 @@ const key = "plantuml-studio.workspace.recovery.v6";
 const source = (count) =>
   `@startgantt\nProject starts 2026-09-01\n${Array.from({ length: count }, (_, i) => `[Task ${i}] starts 2026-09-01 and lasts ${(i % 5) + 1} days`).join("\n")}\n@endgantt`;
 const session = {
-  version: 7,
+  version: 8,
   onboarded: true,
   activeDocumentId: "large-0",
   viewMode: "code",

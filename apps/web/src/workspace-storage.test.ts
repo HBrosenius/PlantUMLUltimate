@@ -66,6 +66,17 @@ it("restores navigation without rewriting content, and rejects navigation from a
     cursor: { line: 3, column: 2 },
     diagramScroll: { left: 123, top: 456 },
   });
+  // A sidecar from before natural-size zoom keeps the cursor but not its pane-relative zoom.
+  const navigationKey = [...values.keys()].find((key) => key.startsWith("plantuml-studio.workspace.navigation"))!;
+  const legacyNavigation = JSON.parse(values.get(navigationKey)!);
+  delete legacyNavigation.zoomUnits;
+  legacyNavigation.documents[0] = { ...legacyNavigation.documents[0], zoom: 2.5, zoomInitialized: true };
+  values.set(navigationKey, JSON.stringify(legacyNavigation));
+  expect((await loadWorkspace()).documents[0]).toMatchObject({
+    cursor: { line: 3, column: 2 },
+    zoom: saved.documents[0]!.zoom,
+    zoomInitialized: false,
+  });
   saveWorkspaceRecovery({ ...saved, documents: [{ ...saved.documents[0]!, revision: 2 }] });
   expect((await loadWorkspace()).documents[0]!.cursor).toEqual(saved.documents[0]!.cursor);
 });
@@ -243,6 +254,15 @@ describe("normalizeSession", () => {
     expect(invalid.documents[0]?.progressForecast).toEqual({ enabled: true, remainingDays: {} });
   });
 
+  it("refits pane-relative zoom from sessions before version 8 once", () => {
+    const document = { id: "a", source: "@startgantt\n@endgantt", zoom: 1.4, zoomInitialized: true };
+    expect(normalizeSession({ version: 7, documents: [document] }).documents[0]?.zoomInitialized).toBe(false);
+    expect(normalizeSession({ version: 8, documents: [document] }).documents[0]).toMatchObject({
+      zoom: 1.4,
+      zoomInitialized: true,
+    });
+  });
+
   it("restores WBS documents as a first-class diagram kind", () => {
     const session = normalizeSession({
       version: 5,
@@ -266,7 +286,7 @@ describe("normalizeSession", () => {
       activeDocumentId: "first",
     });
 
-    expect(session.version).toBe(7);
+    expect(session.version).toBe(8);
     expect(session.documents[0]?.source.indexOf("[Frontend] starts at [Testing]'s end")).toBeGreaterThan(
       session.documents[0]?.source.indexOf("[Testing] lasts 2 days") ?? -1,
     );
@@ -331,7 +351,7 @@ describe("documentDisplayNames", () => {
 describe("workspace persistence", () => {
   it("round-trips multiple tabs and their document-local state through IndexedDB", async () => {
     const session: WorkspaceSession = {
-      version: 7,
+      version: 8,
       startupMode: "restore",
       activeDocumentId: "second",
       viewMode: "diagram",

@@ -189,6 +189,8 @@ Fix (M): per-document recovery records keyed by `documentId` so only the edited 
 
 ### E3. Zoom percentages are relative to pane width, not natural size
 
+**Delivered 2026-10-14.** Zoom is now stored in natural-size units: `.diagram` sizes to its content and the SVG keeps its intrinsic `width`/`height`, so 100 % is the diagram's natural size and opening an inspector or resizing the pane no longer rescales it. The existing readout and reset buttons became correct as a result; **Fit** is no longer capped at 100 %, so it enlarges compact diagrams to the pane as before; `MIN_DIAGRAM_ZOOM` drops from 0.25 to 0.05 so wide plans can still fit. Sessions move to version 8, which refits each document once; navigation sidecars written before the change keep their cursor and scroll but not their pane-relative zoom (`zoomUnits: "natural"` marks new ones). Supporting fixes: the Gantt overlay no longer adds a percentage `min-width`, and the removed-baseline lane grows the SVG `height` with its `viewBox`. Version History keeps its own width-percentage zoom.
+
 The `.diagram` host is stretched to the pane width and then transformed, so "100 %" means "fill the pane" and a diagram at its natural pixel size reads as 25–44 % (`DiagramPreview.tsx:1256-1257`). Every comparable tool (browsers, Figma, VS Code) uses 100 % = natural size. Fix (S): compute the readout from the applied scale × natural width and make **Fit** a separate state from **100 %**.
 
 ### E4. The active tab is not scrolled into view
