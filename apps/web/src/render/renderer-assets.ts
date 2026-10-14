@@ -78,8 +78,10 @@ export function frameDocument(channel: string): string {
         } else {
           send(message);
           nextRequest = undefined;
-          // Keep the engine warm within one document; cap its lifetime and discard failures.
-          if (message.type !== "result" || message.error || ++completedRenders >= 20) {
+          // Keep the engine warm within one document; cap its lifetime and discard engine
+          // failures. A diagram the engine rendered as a syntax error is an ordinary result
+          // for the worker, so the common mid-edit invalid line keeps the warm engine.
+          if (message.type !== "result" || (message.error && !message.recoverable) || ++completedRenders >= 20) {
             stop();
             completedRenders = 0;
           }
@@ -101,7 +103,15 @@ export function frameDocument(channel: string): string {
           return;
         }
         if (request.type === "dispose") { stop(); send({ type: "disposed" }); return; }
-        if (request.type === "cancel") { if (nextRequest?.requestId === request.requestId) { stop(); completedRenders = 0; } return; }
+        if (request.type === "cancel") {
+          if (nextRequest?.requestId === request.requestId) {
+            stop();
+            completedRenders = 0;
+            // Boot the replacement now so it loads the engine while the user keeps typing.
+            try { start(); } catch { /* The next render can retry worker creation. */ }
+          }
+          return;
+        }
         if (request.type !== "render" || !configuration) return;
         nextRequest = request;
         if (!worker) start();

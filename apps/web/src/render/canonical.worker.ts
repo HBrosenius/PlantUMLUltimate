@@ -126,7 +126,7 @@ self.onmessage = async (event: MessageEvent) => {
   boundsContext = fonts ? atlasContext(fonts) : nativeTextContext()!;
   delete (globalThis as typeof globalThis & { _measureCtx?: unknown })._measureCtx;
   const started = performance.now();
-  const send = (value: { svg?: string; error?: string }) =>
+  const send = (value: { svg?: string; error?: string; recoverable?: boolean }) =>
     self.postMessage({
       type: "result",
       requestId: request.requestId,
@@ -137,9 +137,15 @@ self.onmessage = async (event: MessageEvent) => {
     renderToString(
       request.renderSource.split(/\r\n|\r|\n/),
       (svg) => {
-        const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
-        const syntaxError = (parsed.documentElement.textContent ?? "").match(/Syntax Error[?][^\n]*/i)?.[0];
-        send(syntaxError ? { error: syntaxError.trim() } : { svg });
+        // Only parse the (possibly multi-megabyte) result when it can contain the engine's
+        // rendered syntax-error text; valid diagrams skip the DOM round trip entirely.
+        const syntaxError = /Syntax/i.test(svg)
+          ? (new DOMParser().parseFromString(svg, "image/svg+xml").documentElement.textContent ?? "").match(
+              /Syntax Error[?][^\n]*/i,
+            )?.[0]
+          : undefined;
+        // A syntax error is rendered by a healthy engine, so the frame may keep this worker.
+        send(syntaxError ? { error: syntaxError.trim(), recoverable: true } : { svg });
       },
       (error) => send({ error: String(error) }),
     );
