@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { StrictMode, type ComponentProps } from "react";
 import { DiagramPreview } from "./DiagramPreview";
 import * as ganttOverlay from "./render/canonical-gantt-overlay";
+import * as sanitizeSvg from "./render/sanitize-svg";
 
 afterEach(cleanup);
 
@@ -135,6 +136,43 @@ it("only parses timeline visibility while the baseline comparison report is avai
     expect(timelineParses()).toHaveLength(2);
   } finally {
     parser.mockRestore();
+  }
+});
+
+it("moves selection markers on the installed SVG without re-sanitizing or reinstalling it", () => {
+  const sanitize = vi.spyOn(sanitizeSvg, "sanitizeSvgFragment");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+    <g data-task-id="build"><text class="label">Build</text></g>
+    <g data-task-id="test"><text class="label">Test</text></g>
+    <g data-dependency-index="0"><path d="M0 0" /></g>
+  </svg>`;
+  try {
+    const view = render(preview(svg, new Set(), { selectedTaskId: "build" }));
+    const installed = view.container.querySelector(".diagram-svg-host svg");
+    const sanitizeCalls = sanitize.mock.calls.length;
+    expect(installed?.querySelector('[data-task-id="build"]')?.getAttribute("data-selected")).toBe("true");
+    expect(installed?.querySelector('[data-task-id="test"]')?.hasAttribute("data-selected")).toBe(false);
+
+    view.rerender(preview(svg, new Set(), { selectedTaskId: "test", selectedDependencyIndex: 0 }));
+    expect(view.container.querySelector(".diagram-svg-host svg")).toBe(installed);
+    expect(sanitize.mock.calls.length).toBe(sanitizeCalls);
+    expect(installed?.querySelector('[data-task-id="build"]')?.hasAttribute("data-selected")).toBe(false);
+    expect(installed?.querySelector('[data-task-id="test"]')?.getAttribute("data-selected")).toBe("true");
+    expect(installed?.querySelector('[data-dependency-index="0"]')?.getAttribute("data-selected")).toBe("true");
+
+    view.rerender(
+      preview(svg, new Set(), {
+        selectedTaskId: "build",
+        selectedTaskIds: ["build", "test"],
+        highlightedTaskId: "test",
+      }),
+    );
+    expect(view.container.querySelector(".diagram-svg-host svg")).toBe(installed);
+    expect(sanitize.mock.calls.length).toBe(sanitizeCalls);
+    expect(installed?.querySelectorAll('[data-task-id][data-selected="true"]')).toHaveLength(2);
+    expect(installed?.querySelector('[data-dependency-index="0"]')?.hasAttribute("data-selected")).toBe(false);
+  } finally {
+    sanitize.mockRestore();
   }
 });
 

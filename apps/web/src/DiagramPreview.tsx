@@ -438,27 +438,17 @@ export function DiagramPreview({
     feedbackRef.current.textContent = message ?? "";
     feedbackRef.current.hidden = !message;
   };
-  const selectedSvg = useMemo(() => {
-    if (!interactiveSvg) return interactiveSvg;
-    let marked = interactiveSvg;
+  // Selection and source-highlight markers are applied to the installed SVG DOM (see
+  // MemoizedSvgMarkup) rather than to this string, so selecting, hovering or moving the
+  // cursor does not re-decorate, re-sanitize and reinstall the whole diagram.
+  const markedTaskIds = useMemo(() => {
     // A source-highlighted task is marked as before; a multi-task selection stays marked alongside it.
     const multiSelection = selectedTaskIds && selectedTaskIds.length > 1 ? selectedTaskIds : [];
-    const markedTaskIds = new Set(
-      [highlightedTaskId ?? selectedTaskId, ...multiSelection].filter((id): id is string => Boolean(id)),
-    );
-    for (const markedTaskId of markedTaskIds) {
-      const escapedId = markedTaskId
-        .replaceAll("&", "&amp;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
-      const marker = `data-task-id="${escapedId}"`;
-      marked = marked.replace(marker, `${marker} data-selected="true"`);
-    }
-    if (selectedDependencyIndex !== undefined) {
-      const marker = `data-dependency-index="${selectedDependencyIndex}"`;
-      marked = marked.replace(marker, `${marker} data-selected="true"`);
-    }
+    return new Set([highlightedTaskId ?? selectedTaskId, ...multiSelection].filter((id): id is string => Boolean(id)));
+  }, [highlightedTaskId, selectedTaskId, selectedTaskIds]);
+  const decoratedSvg = useMemo(() => {
+    if (!interactiveSvg) return interactiveSvg;
+    let marked = interactiveSvg;
     if (remoteEditTaskId && remoteEditColor) {
       const escapedId = remoteEditTaskId
         .replaceAll("&", "&amp;")
@@ -536,13 +526,9 @@ export function DiagramPreview({
     criticalPath,
     dependencies,
     interactiveSvg,
-    selectedTaskId,
-    selectedTaskIds,
-    highlightedTaskId,
     remoteEditTaskId,
     remoteEditColor,
     remoteEditName,
-    selectedDependencyIndex,
     criticalIds,
     variance,
     resolvedDates,
@@ -558,15 +544,15 @@ export function DiagramPreview({
   ]);
   const visibleTimelineDates = useMemo(() => {
     // Timeline visibility is only displayed in the baseline comparison report.
-    if (!baselineSource || progressForecast?.enabled || !selectedSvg || typeof DOMParser === "undefined")
+    if (!baselineSource || progressForecast?.enabled || !decoratedSvg || typeof DOMParser === "undefined")
       return new Set<string>();
-    const document = new DOMParser().parseFromString(selectedSvg, "image/svg+xml");
+    const document = new DOMParser().parseFromString(decoratedSvg, "image/svg+xml");
     return new Set(
       [...document.querySelectorAll<SVGElement>("[data-timeline-date]")]
         .map((element) => element.getAttribute("data-timeline-date"))
         .filter((date): date is string => Boolean(date)),
     );
-  }, [baselineSource, progressForecast?.enabled, selectedSvg]);
+  }, [baselineSource, progressForecast?.enabled, decoratedSvg]);
   useEffect(() => {
     const svg = previewRef.current?.querySelector<SVGSVGElement>(".diagram svg");
     if (!svg) return;
@@ -578,7 +564,7 @@ export function DiagramPreview({
     return () => {
       cancelled = true;
     };
-  }, [selectedSvg, zoom]);
+  }, [decoratedSvg, zoom]);
   const hoverDetails = hoveredTask
     ? taskHoverDetails(
         tasks.find((item) => item.id === hoveredTask.id),
@@ -1379,7 +1365,7 @@ export function DiagramPreview({
         the diagram.
       </p>
       <div
-        className={`preview-viewport${renderStatus !== "idle" && selectedSvg ? " stale-preview" : ""}`}
+        className={`preview-viewport${renderStatus !== "idle" && decoratedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}
         onPointerDown={navigation.onPointerDown}
         onAuxClick={navigation.onAuxClick}
@@ -1392,7 +1378,7 @@ export function DiagramPreview({
           );
         }}
       >
-        {selectedSvg ? (
+        {decoratedSvg ? (
           <div
             className="diagram"
             data-selected-task={selectedTaskId}
@@ -1497,7 +1483,12 @@ export function DiagramPreview({
               }
             }}
           >
-            <MemoizedSvgMarkup svg={selectedSvg} linkedTaskIds={projectLinkedTaskIds} />
+            <MemoizedSvgMarkup
+              svg={decoratedSvg}
+              linkedTaskIds={projectLinkedTaskIds}
+              selectedTaskIds={markedTaskIds}
+              selectedDependencyIndex={selectedDependencyIndex}
+            />
           </div>
         ) : (
           <div className="diagram" style={{ transform: `scale(${zoom})` }}>
@@ -2028,9 +2019,13 @@ export function DiagramPreview({
 const MemoizedSvgMarkup = memo(function SvgMarkup({
   svg,
   linkedTaskIds,
+  selectedTaskIds,
+  selectedDependencyIndex,
 }: {
   svg: string;
   linkedTaskIds: ReadonlySet<string>;
+  selectedTaskIds: ReadonlySet<string>;
+  selectedDependencyIndex: number | undefined;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const sanitizedSvg = useMemo(() => measurePreviewPhase("sanitize-decorated", () => sanitizeSvgFragment(svg)), [svg]);
@@ -2055,6 +2050,21 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
       if (label) appendDiagramLinkIcon(label);
     }
   }, [sanitizedSvg, linkedTaskIds]);
+  useLayoutEffect(() => {
+    const root = host.current;
+    if (!root) return;
+    // Toggle selection markers on the live elements. Forecast marks carry their own
+    // data-selected state from the overlay and are deliberately left alone here.
+    root
+      .querySelectorAll("[data-task-id][data-selected], [data-dependency-index][data-selected]")
+      .forEach((element) => element.removeAttribute("data-selected"));
+    for (const taskId of selectedTaskIds)
+      root.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`)?.setAttribute("data-selected", "true");
+    if (selectedDependencyIndex !== undefined)
+      root
+        .querySelector(`[data-dependency-index="${CSS.escape(String(selectedDependencyIndex))}"]`)
+        ?.setAttribute("data-selected", "true");
+  }, [sanitizedSvg, selectedTaskIds, selectedDependencyIndex]);
   return <div ref={host} className="diagram-svg-host" />;
 });
 
