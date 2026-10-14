@@ -10,7 +10,7 @@ import { errorLocations, nextErrorIndex } from "./error-navigation";
 import { sourceFixPreview } from "./source-fix-preview";
 import { sourceFixOutcome } from "./source-fix-outcome";
 import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, keymap, tooltips, WidgetType, type DecorationSet } from "@codemirror/view";
 import { gotoLine } from "@codemirror/search";
@@ -302,9 +302,11 @@ export function CodeEditor({
   const preferenceCompartment = useRef(new Compartment());
   const language = useRef(new Compartment());
   const editable = useRef(new Compartment());
+  // Error navigation follows the analysis a frame behind typing instead of blocking the keystroke.
+  const analysisTarget = useDeferredValue(useMemo(() => ({ kind: diagramKind, value }), [diagramKind, value]));
   const errors = useMemo(
-    () => errorLocations(readAnalysis(diagramKind, value).diagnostics),
-    [diagramKind, value, readAnalysis],
+    () => errorLocations(readAnalysis(analysisTarget.kind, analysisTarget.value).diagnostics),
+    [analysisTarget, readAnalysis],
   );
   const [explanation, setExplanation] = useState<{
     message: string;
@@ -351,23 +353,32 @@ export function CodeEditor({
   const [errorAnnouncement, setErrorAnnouncement] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const [fixSnapshot, setFixSnapshot] = useState<FixSnapshot>(() => ({
-    source: value,
-    kind: diagramKind,
-    documentId,
-    revision: 0,
-    fixes: readAnalysis(diagramKind, value).quickFixes,
-  }));
-  const refreshFixes = useCallback(
-    (kind: DiagramKind, source: string) =>
-      setFixSnapshot({
+  // Quick fixes are analyzed when first read, so recording a snapshot on a keystroke costs nothing.
+  const fixSnapshotFor = useCallback(
+    (
+      kind: DiagramKind,
+      source: string,
+      snapshotDocumentId: FixSnapshot["documentId"],
+      revision: number,
+    ): FixSnapshot => {
+      let fixes: DiagramQuickFix[] | undefined;
+      return {
         source,
         kind,
-        documentId: documentIdRef.current,
-        revision: sourceRevision.current,
-        fixes: readAnalysis(kind, source).quickFixes,
-      }),
+        documentId: snapshotDocumentId,
+        revision,
+        get fixes() {
+          return (fixes ??= readAnalysis(kind, source).quickFixes);
+        },
+      };
+    },
     [readAnalysis],
+  );
+  const [fixSnapshot, setFixSnapshot] = useState<FixSnapshot>(() => fixSnapshotFor(diagramKind, value, documentId, 0));
+  const refreshFixes = useCallback(
+    (kind: DiagramKind, source: string) =>
+      setFixSnapshot(fixSnapshotFor(kind, source, documentIdRef.current, sourceRevision.current)),
+    [fixSnapshotFor],
   );
   onChangeRef.current = onChange;
   onApplyFixRef.current = onApplyFix;
@@ -471,9 +482,16 @@ export function CodeEditor({
             if (update.docChanged) {
               setErrorAnnouncement("");
               const source = update.state.doc.toString();
-              if (applyingFix.current && onApplyFixRef.current) onApplyFixRef.current(source, applyingFix.current);
-              else onChangeRef.current(source);
-              refreshFixes(kindRef.current, source);
+              const kind = kindRef.current;
+              if (applyingFix.current && onApplyFixRef.current) {
+                onApplyFixRef.current(source, applyingFix.current);
+                // Applying a fix moves focus to the next one, so its list must be current in the same render.
+                refreshFixes(kind, source);
+              } else {
+                onChangeRef.current(source);
+                // Render the keystroke first; the quick-fix analysis runs in the transition that follows.
+                startTransition(() => refreshFixes(kind, source));
+              }
             }
             if (update.selectionSet || update.docChanged) {
               const position = update.state.selection.main.head;

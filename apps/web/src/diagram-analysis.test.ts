@@ -62,3 +62,14 @@ it("does not reuse results across diagram kinds even when their source matches",
   expect(components).not.toBe(classes);
   expect(components.kind).toBe("component");
 });
+
+it("reuses the owner's Gantt parse when the editor analyzes the same source without one", () => {
+  const source = "@startgantt\n[A] lasts 2 days\n@endgantt";
+  const known = parseGantt(source);
+  vi.mocked(parseGantt).mockClear();
+  const analyze = createDiagramAnalyzer((candidate) => (candidate === source ? known : undefined));
+  expect(analyze("gantt", source).diagnostics).toEqual([]);
+  expect(parseGantt).not.toHaveBeenCalled();
+  void analyze("gantt", source.replace("2 days", "3 days")).diagnostics;
+  expect(parseGantt).toHaveBeenCalledTimes(1);
+});

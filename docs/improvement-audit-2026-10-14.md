@@ -125,6 +125,14 @@ Path per keystroke: CodeMirror `updateListener` (`CodeEditor.tsx:457-497`) → `
 
 ### C1. The analysis pipeline runs synchronously in the keystroke render
 
+**Delivered 2026-10-14.** The App analysis is keyed on `useDeferredValue`, the editor records quick-fix snapshots lazily and refreshes them in a transition while typing (synchronously after an explicit Apply, so focus can advance), the editor's analysis reuses the App's Gantt parse, and the outline is only built while an outline surface is open. `bench:responsiveness` now also records Event Timing (`slowInputs`, `slowestInputMs`) and accepts `BENCH_CPU_THROTTLE`. Medians of five runs, before → after:
+
+| Stage           | 1× wall      | 4× wall        | 4× long tasks (longest) | 4× slowest input |
+| --------------- | ------------ | -------------- | ----------------------- | ---------------- |
+| typing-20       | 312 → 152 ms | 1,224 → 583 ms | 8 (91 ms) → 0           | 112 → 80 ms      |
+| split-typing-20 | 203 → 152 ms | 788 → 590 ms   | 0 → 0                   | 80 → 64 ms       |
+| switch-tabs-10  | 330 → 292 ms | 720 → 625 ms   | 4 (58 ms) → 0           | 64 → 48 ms       |
+
 Per source change, `App` synchronously computes the adapter parse (`App.tsx:512-516`), `diagramAnalysis` (`:1140-1149`, diagnostics + repairs), `resolvedTaskDates` (`:1226`), `resourceOverAllocations`, `legendEntries`, `symbolProvider` (`:836`, whole-document occurrence scan) and `diagramOutlineEntries` (`:1593`); `CodeEditor`'s own `refreshFixes` additionally triggers `parseGantt` inside the analyzer, so a Gantt is parsed twice per keystroke. There is no `useDeferredValue`/`startTransition` anywhere in `apps/web/src`. This is where the remaining ~73–150 ms typing long tasks in the baselines live.
 
 Fix (M): `const analysisSource = useDeferredValue(workspace.source)` and key the derived memos and preview props on it while CodeEditor keeps the live value, so React 19 can paint the keystroke before the analysis. Pass the app's `parsed.value` into the analyzer (or make the editor's `lint` delay the only synchronous analysis) to remove the double parse.

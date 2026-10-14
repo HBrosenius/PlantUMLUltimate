@@ -30,7 +30,7 @@ import { applyShellTheme } from "./shell-theme";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
 import type { RepairCategory } from "./remaining-repair-summary";
 import { MAX_DIAGRAM_ZOOM } from "./diagram-zoom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
 import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
 import { SequenceDiagramPreview } from "./SequenceDiagramPreview";
@@ -84,7 +84,7 @@ import { ProjectInspector } from "./ProjectInspector";
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
 import { HelpDialog } from "./HelpDialog";
 import { ProblemsPanel } from "./ProblemsPanel";
-import { createDiagramAnalyzer } from "./diagram-diagnostics";
+import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
@@ -266,7 +266,15 @@ function useInspectorSettings<T>(open: boolean, source: string, parse: (source: 
 }
 
 export function App() {
-  const analyzeSource = useMemo(createDiagramAnalyzer, []);
+  // The editor's quick fixes analyze the same source without a parse; let them reuse the Gantt parse below.
+  const latestGanttParse = useRef<{ source: string; parsed: GanttParse }>(undefined);
+  const analyzeSource = useMemo(
+    () =>
+      createDiagramAnalyzer((source) =>
+        latestGanttParse.current?.source === source ? latestGanttParse.current.parsed : undefined,
+      ),
+    [],
+  );
   const [workspace, setWorkspace, hydrated, tabs] = usePersistedWorkspace();
   const editorPreferences = useEditorPreferences();
   const [openWorkOpen, setOpenWorkOpen] = useState(false);
@@ -540,6 +548,11 @@ export function App() {
     return { value, durationMs: performance.now() - started };
   }, [activeGanttSource]);
   const parseResult = parsed.value;
+  const ganttParse = useMemo<GanttParse>(
+    () => ({ document: parseResult.document, diagnostics: [...parseResult.diagnostics] }),
+    [parseResult],
+  );
+  latestGanttParse.current = { source: activeGanttSource, parsed: ganttParse };
   const {
     endpoint: defaultJiraEndpoint,
     binding: jiraBinding,
@@ -1214,16 +1227,20 @@ export function App() {
   const sequenceMessageAnchors = sequenceDocument.messages.flatMap((message) =>
     message.anchor ? [message.anchor] : [],
   );
+  // Diagnostics and repairs only describe the source, so a keystroke paints before they are recomputed.
+  const liveAnalysisInput = useMemo(
+    () => ({ kind: workspace.diagramKind, source: workspace.source, gantt: ganttParse }),
+    [workspace.diagramKind, workspace.source, ganttParse],
+  );
+  const analysisInput = useDeferredValue(liveAnalysisInput);
   const diagramAnalysis = useMemo(
     () =>
       analyzeSource(
-        workspace.diagramKind,
-        workspace.source,
-        workspace.diagramKind === "gantt"
-          ? { document: parseResult.document, diagnostics: [...parseResult.diagnostics] }
-          : undefined,
+        analysisInput.kind,
+        analysisInput.source,
+        analysisInput.kind === "gantt" ? analysisInput.gantt : undefined,
       ),
-    [analyzeSource, workspace.diagramKind, workspace.source, parseResult],
+    [analyzeSource, analysisInput],
   );
   const activeDiagnostics = diagramAnalysis.diagnostics;
   const activeQuickFixes = diagramAnalysis.quickFixes;
@@ -1667,7 +1684,9 @@ export function App() {
   const taskShortcuts = useRef({ selectedTaskIds, copySelectedTasks, pasteCopiedTasks, duplicateSelectedTasks });
   taskShortcuts.current = { selectedTaskIds, copySelectedTasks, pasteCopiedTasks, duplicateSelectedTasks };
 
-  const diagramOutlineEntries = useMemo(() => {
+  const outlineVisible = dialog?.kind === "diagram-outline" || outlineMode !== undefined;
+  const diagramOutlineEntries = useMemo((): DiagramOutlineEntry[] => {
+    if (!outlineVisible) return [];
     const source = workspace.source;
     const semantic = buildDiagramOutlineEntries(source, symbolOccurrences, workspace.diagramKind);
     const entry = (
@@ -1926,6 +1945,7 @@ export function App() {
   }, [
     activityDocument,
     classDocument,
+    outlineVisible,
     parseResult.document,
     sequenceDocument,
     sequenceStructures,
@@ -6299,7 +6319,7 @@ export function App() {
         }}
         onRepairHost={setRepairHost}
         diagramKind={workspace.diagramKind}
-        source={problemPreview?.source ?? workspace.source}
+        source={problemPreview?.source ?? diagramAnalysis.source}
         diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
         quickFixes={problemPreview ? [] : activeQuickFixes}
         readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
@@ -6312,8 +6332,8 @@ export function App() {
           }
           setRepairRequest({
             documentId: tabs.activeId,
-            kind: workspace.diagramKind,
-            source: workspace.source,
+            kind: diagramAnalysis.kind,
+            source: diagramAnalysis.source,
             diagnostic,
           });
         }}
@@ -6321,15 +6341,20 @@ export function App() {
           if (viewMode === "diagram") update("viewMode", "split");
           setRepairRequest({
             documentId: tabs.activeId,
-            kind: workspace.diagramKind,
-            source: workspace.source,
+            kind: diagramAnalysis.kind,
+            source: diagramAnalysis.source,
             diagnostic,
             previewFixes: true,
           });
         }}
         onPreviewFix={(fix) => {
           if (viewMode === "diagram") update("viewMode", "split");
-          setRepairRequest({ documentId: tabs.activeId, kind: workspace.diagramKind, source: workspace.source, fix });
+          setRepairRequest({
+            documentId: tabs.activeId,
+            kind: diagramAnalysis.kind,
+            source: diagramAnalysis.source,
+            fix,
+          });
         }}
         onClose={() => {
           setProblemsOpen(false);

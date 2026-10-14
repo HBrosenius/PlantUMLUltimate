@@ -74,7 +74,15 @@ try {
     await page.locator(".cm-content").waitFor();
     await page.waitForTimeout(600);
     await page.evaluate(() => {
-      globalThis.benchStats = { writes: 0, storageMs: 0, serializeMs: 0, longTasks: 0, longestTaskMs: 0 };
+      globalThis.benchStats = {
+        writes: 0,
+        storageMs: 0,
+        serializeMs: 0,
+        longTasks: 0,
+        longestTaskMs: 0,
+        slowInputs: 0,
+        slowestInputMs: 0,
+      };
       const write = globalThis.Storage.prototype.setItem;
       globalThis.Storage.prototype.setItem = function (key, value) {
         const start = performance.now();
@@ -102,10 +110,25 @@ try {
           globalThis.benchStats.longestTaskMs = Math.max(globalThis.benchStats.longestTaskMs, task.duration);
         }
       }).observe({ type: "longtask", buffered: false });
+      // Event Timing: input to next paint (the INP signal) for keyboard and pointer input slower than 16 ms.
+      new globalThis.PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          globalThis.benchStats.slowInputs++;
+          globalThis.benchStats.slowestInputMs = Math.max(globalThis.benchStats.slowestInputMs, entry.duration);
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: false });
     });
     const measure = async (stage, action) => {
       await page.evaluate(() => {
-        globalThis.benchStats = { writes: 0, storageMs: 0, serializeMs: 0, longTasks: 0, longestTaskMs: 0 };
+        globalThis.benchStats = {
+          writes: 0,
+          storageMs: 0,
+          serializeMs: 0,
+          longTasks: 0,
+          longestTaskMs: 0,
+          slowInputs: 0,
+          slowestInputMs: 0,
+        };
       });
       const start = performance.now();
       await action();
@@ -123,6 +146,9 @@ try {
     };
     const editor = page.locator(".cm-content");
     const cdp = await context.newCDPSession(page);
+    // BENCH_CPU_THROTTLE=4 approximates a mid-range laptop; the default measures this machine unthrottled.
+    const throttle = Number(process.env.BENCH_CPU_THROTTLE ?? 1);
+    if (throttle > 1) await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
     await editor.focus();
     await measure("cursor-20", async () => {
       for (let i = 0; i < 20; i++) await page.keyboard.press("ArrowRight");
@@ -196,10 +222,16 @@ try {
       return [
         stage,
         Object.fromEntries(
-          ["wallMs", "writes", "storageMs", "serializeMs", "longTasks", "longestTaskMs"].map((name) => [
-            name,
-            Number(median(samples.map((r) => r[name])).toFixed(1)),
-          ]),
+          [
+            "wallMs",
+            "writes",
+            "storageMs",
+            "serializeMs",
+            "longTasks",
+            "longestTaskMs",
+            "slowInputs",
+            "slowestInputMs",
+          ].map((name) => [name, Number(median(samples.map((r) => r[name])).toFixed(1))]),
         ),
       ];
     }),

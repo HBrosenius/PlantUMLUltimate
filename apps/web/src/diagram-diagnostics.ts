@@ -235,6 +235,8 @@ function collectDiagnostics(
   ];
 }
 
+export type GanttParse = ReturnType<typeof parseGantt>;
+
 export interface DiagramAnalysis {
   readonly kind: DiagramKind;
   readonly source: string;
@@ -281,10 +283,15 @@ export const quickFixesForDiagram = (kind: DiagramKind, source: string): Diagram
   analyzeDiagram(kind, source).quickFixes;
 
 /** Share the latest snapshot between the editor and its owner, without retaining edit history. */
-export function createDiagramAnalyzer(): typeof analyzeDiagram {
+/**
+ * Cache the latest analysis. `knownParse` lets callers that analyze without a parse (the editor's quick fixes)
+ * reuse a Gantt model the application already holds for the same source instead of parsing it again.
+ */
+export function createDiagramAnalyzer(knownParse?: (source: string) => GanttParse | undefined): typeof analyzeDiagram {
   let latest: DiagramAnalysis | undefined;
   return (kind, source, parsed) => {
-    if (latest?.kind !== kind || latest.source !== source) latest = analyzeDiagram(kind, source, parsed);
+    if (latest?.kind !== kind || latest.source !== source)
+      latest = analyzeDiagram(kind, source, parsed ?? (kind === "gantt" ? knownParse?.(source) : undefined));
     return latest;
   };
 }
