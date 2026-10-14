@@ -18,18 +18,18 @@ Effort: **S** < half a day, **M** one to three days, **L** a week or more. Impac
 
 ## Executive summary — the ten changes worth doing first
 
-| #   | Finding                                                                                                                                                                  | Impact | Effort |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------ |
-| 1   | [B1](#b1-selecting-or-hovering-a-task-re-sanitizes-and-rebuilds-the-whole-svg) Every selection, hover and keyboard move re-runs DOMPurify over the whole SVG and swaps the DOM | High   | M      |
-| 2   | [B2](#b2-the-engine-worker-is-rebooted-after-every-syntax-error-cancel-and-every-20-renders) The engine worker is rebooted after each syntax error, cancel and every 20 renders | High   | S      |
-| 3   | [B3](#b3-the-7-mb-engine-is-loaded-from-a-data-url-so-it-is-recompiled-on-every-boot) The engine is loaded via a `data:` URL, so browsers cannot bytecode-cache it      | High   | M      |
-| 4   | [A1](#a1-first-paint-at-19-s-on-a-fast-connection) First paint at ~1.9 s on a fast connection; nothing is on screen while 2.4 MB of JS parses                           | High   | S–M    |
-| 5   | [A2](#a2-388-kb-of-plantuml-themes-are-inlined-into-the-main-chunk) 44 PlantUML themes (388 KB raw) are inlined into the main chunk                                      | High   | S      |
-| 6   | [C1](#c1-the-analysis-pipeline-runs-synchronously-in-the-keystroke-render) The analysis pipeline runs synchronously in the keystroke render; Gantt is parsed twice       | High   | M      |
-| 7   | [C2](#c2-linked-wbsgantt-documents-re-parse-the-partner-gantt-on-every-keystroke) Linked WBS↔Gantt documents re-parse the partner Gantt on every keystroke and cursor move | High   | S      |
-| 8   | [E1](#e1-recent-files--import-is-an-unstyled-browser-default-button) "Recent files & import…" renders as an unstyled browser-default button in the startup chooser       | Med    | S      |
-| 9   | [E2](#e2-the-initial-zoom-is-computed-against-an-unsettled-viewport-and-then-persisted) Initial zoom is computed against an unsettled viewport and then persisted (25–44 % for small diagrams) | Med | S |
-| 10  | [G1](#g1-notices-are-masked-by-the-validity-text-and-cannot-be-dismissed) Interaction notices are masked by the validity text and cannot be dismissed                    | High   | M      |
+| #   | Finding                                                                                                                                                                                        | Impact | Effort |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
+| 1   | [B1](#b1-selecting-or-hovering-a-task-re-sanitizes-and-rebuilds-the-whole-svg) Every selection, hover and keyboard move re-runs DOMPurify over the whole SVG and swaps the DOM                 | High   | M      |
+| 2   | [B2](#b2-the-engine-worker-is-rebooted-after-every-syntax-error-cancel-and-every-20-renders) The engine worker is rebooted after each syntax error, cancel and every 20 renders                | High   | S      |
+| 3   | [B3](#b3-the-7-mb-engine-is-loaded-from-a-data-url-so-it-is-recompiled-on-every-boot) The engine is loaded via a `data:` URL, so browsers cannot bytecode-cache it                             | High   | M      |
+| 4   | [A1](#a1-first-paint-at-19-s-on-a-fast-connection) First paint at ~1.9 s on a fast connection; nothing is on screen while 2.4 MB of JS parses                                                  | High   | S–M    |
+| 5   | [A2](#a2-388-kb-of-plantuml-themes-are-inlined-into-the-main-chunk) 44 PlantUML themes (388 KB raw) are inlined into the main chunk                                                            | High   | S      |
+| 6   | [C1](#c1-the-analysis-pipeline-runs-synchronously-in-the-keystroke-render) The analysis pipeline runs synchronously in the keystroke render; Gantt is parsed twice                             | High   | M      |
+| 7   | [C2](#c2-linked-wbsgantt-documents-re-parse-the-partner-gantt-on-every-keystroke) Linked WBS↔Gantt documents re-parse the partner Gantt on every keystroke and cursor move                     | High   | S      |
+| 8   | [E1](#e1-recent-files--import-is-an-unstyled-browser-default-button) "Recent files & import…" renders as an unstyled browser-default button in the startup chooser                             | Med    | S      |
+| 9   | [E2](#e2-the-initial-zoom-is-computed-against-an-unsettled-viewport-and-then-persisted) Initial zoom is computed against an unsettled viewport and then persisted (25–44 % for small diagrams) | Med    | S      |
+| 10  | [G1](#g1-notices-are-masked-by-the-validity-text-and-cannot-be-dismissed) Interaction notices are masked by the validity text and cannot be dismissed                                          | High   | M      |
 
 ## A. Startup and bundle
 
@@ -85,7 +85,7 @@ Fix (S): treat engine-reported syntax errors as normal results and keep the work
 
 `renderer-assets.ts:8-16, 111` base64-encode the engine on the main thread and the worker runs `importScripts(data:…)` (`canonical.worker.ts:113-114`). Browsers do not keep a bytecode cache for `data:` or `blob:` scripts, so every boot (per document switch, per cancel/error per B2, per dialog preview instance) re-parses and compiles 7 MB. This is likely a large share of the 3.8 s / 9.5 s first-preview timings in the October 14 record, and it keeps ~12 MB of base64 strings resident for the page lifetime.
 
-Fix (M): allow the sandbox frame's `script-src` to include the app origin for the hashed engine asset only and `importScripts("https://…/assets/plantuml-<hash>.js")`; keep `connect-src 'none'`. V8/JSC then reuse compiled code on warm starts and the main-thread base64 step disappears. Needs a short security review because it widens the sandbox CSP.
+**Status (2026-10-14, after implementation review): not feasible as proposed.** The renderer frame is sandboxed with `allow-scripts` only (`use-renderer.ts:212`), so it and its worker run in an opaque origin: `'self'` matches nothing in its CSP, opaque origins have no Cache Storage, blob URLs do not cross origins, and — decisively — the frame is not a service-worker client, so an `importScripts` of the hashed engine URL would bypass the offline precache and break offline startup. Offline rendering works today only because the main thread fetches the engine through the service worker and hands the bytes across as a `data:` URL. A bytecode cache would therefore require dropping the sandbox or adding `allow-same-origin`, which undoes the renderer isolation. The remaining bounded option is to transfer the engine as an `ArrayBuffer` (transferable) and build a `blob:` URL inside the worker, which removes the main-thread base64 step and the 9.5 MB string clone per boot but not the compile; measure before doing it. B2 already removes most unnecessary boots.
 
 ### B4. The worker parses the full SVG just to detect "Syntax Error"
 

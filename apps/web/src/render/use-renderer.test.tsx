@@ -233,3 +233,17 @@ it("keeps Undo and Redo current while an earlier edit is still rendering", async
   expect(result.current.status).toBe("idle");
   expect(result.current.result).toMatchObject({ source: source("Edited"), svg: svg("Edited") });
 });
+
+it("loads a bundled theme on demand before sending the expanded source to the renderer", async () => {
+  const { rerender, frame } = await setup();
+  const original = frame.requests().at(-1)!;
+  await frame.receive({ type: "result", requestId: original.requestId, svg: svg("Original") });
+  const themed = "@startgantt\n!theme blueprint\n[Themed] lasts 2 days\n@endgantt";
+  rerender({ text: themed, documentId: "A" });
+  await advance();
+  // The theme module resolves asynchronously; the request follows once it is loaded.
+  await vi.waitFor(() => expect(frame.requests().at(-1)?.source).toBe(themed));
+  const latest = frame.requests().at(-1)!;
+  expect(latest.renderSource).toContain("' !theme blueprint expanded locally by PlantUML Ultimate");
+  expect(latest.renderSource).toContain('!$BGCOLOR = "#003153"');
+});

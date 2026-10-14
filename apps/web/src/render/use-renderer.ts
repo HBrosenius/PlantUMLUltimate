@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RenderResult, RenderStatus } from "../model";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
+import { bundledThemeToLoad, loadBundledTheme } from "./bundled-themes";
 import { loadRendererAssets, frameDocument } from "./renderer-assets";
 import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
@@ -340,10 +341,21 @@ export function useRenderer(
         setStatus("idle");
         return;
       }
-      pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
-      flush.current?.();
+      const queue = () => {
+        if (cancelled || requestId.current !== id) return;
+        pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
+        flush.current?.();
+      };
+      // Bundled themes load on demand; sources without one keep the synchronous path.
+      const theme = bundledThemeToLoad(source);
+      if (theme) void loadBundledTheme(theme).then(queue, queue);
+      else queue();
     }, 150);
-    return () => window.clearTimeout(timer);
+    let cancelled = false;
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [enabled, source, documentId, restart]);
 
   const retry = () => {
