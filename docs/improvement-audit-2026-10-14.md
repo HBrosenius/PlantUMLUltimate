@@ -31,6 +31,24 @@ Effort: **S** < half a day, **M** one to three days, **L** a week or more. Impac
 | 9   | [E3](#e3-zoom-percentages-are-relative-to-pane-width-not-natural-size) Zoom readout is relative to pane width, so natural size reads as 25–44 % (E2 withdrawn)                  | Med    | S      |
 | 10  | [G1](#g1-notices-are-masked-by-the-validity-text-and-cannot-be-dismissed) Interaction notices are masked by the validity text and cannot be dismissed                           | High   | M      |
 
+## Measured outcome (2026-10-14)
+
+`bb1bf00` (audit baseline) against `cbaf06d` (all delivered items), production builds on the same machine, the same benchmark scripts for both, medians of five runs; "4×" is Chrome CPU throttling.
+
+| Measure                                                       | Baseline       | After          | Change        |
+| ------------------------------------------------------------- | -------------- | -------------- | ------------- |
+| Initial JS (raw / gzip)                                       | 2,351 / 643 KB | 1,633 / 502 KB | −31 % / −22 % |
+| Entry chunk (raw / gzip)                                      | 1,652 / 423 KB | 934 / 282 KB   | −43 % / −33 % |
+| First contentful paint, 1× / 4×                               | 100 / 288 ms   | 76 / 216 ms    | −24 % / −25 % |
+| Startup dialog visible, 1× / 4×                               | 159 / 599 ms   | 136 / 503 ms   | −15 % / −16 % |
+| Typing 20 characters, 1× / 4×                                 | 338 / 1,413 ms | 164 / 654 ms   | −51 % / −54 % |
+| Typing at 4×: long tasks / slowest input                      | 21 / 112 ms    | 0 / 88 ms      | no long tasks |
+| Switching tabs ×10 at 4×: long tasks                          | 4              | 0              |               |
+| Selecting a task (200 tasks): slowest input-to-paint, 1× / 4× | 80 / 264 ms    | 40 / 144 ms    | −50 % / −45 % |
+| `bench:browser` click task → inspector                        | 52 ms          | 37 ms          | −28 %         |
+
+Unchanged within noise: first preview after choosing Gantt (engine boot), 200-task edit-to-preview (~920 ms), `render-100`, main-frame heap (~33 MB), and repairing a syntax error. B2 keeps the warm worker, but the old replacement worker also finished booting within the 1.5 s the benchmark waits before repairing; the gain applies only when a fix follows the error faster than an engine boot.
+
 ## A. Startup and bundle
 
 ### A1. First paint at ~1.9 s on a fast connection
