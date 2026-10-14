@@ -18,7 +18,7 @@ export function applyShellTheme(theme: Theme): void {
   }
   // index.html declares one theme-color per colour scheme; an explicit theme overrides both.
   for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
-    const scheme = meta.media.includes("dark") ? "dark" : "light";
+    const scheme = meta.getAttribute("media")?.includes("dark") ? "dark" : "light";
     meta.content = SHELL_BACKGROUND[theme === "system" ? scheme : theme];
   }
 }
