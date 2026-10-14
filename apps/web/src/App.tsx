@@ -541,6 +541,9 @@ export function App() {
         ...document.timelineItems,
         ...document.references,
         ...document.boxes,
+        ...document.autonumbers,
+        ...document.creations,
+        ...document.durations,
       ],
     };
   }, [activeKind, result?.source]);

@@ -322,6 +322,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.getByRole("region", { name: "Sequence diagram preview" })).toBeVisible();
 
   const renderedOrders = page.locator('[data-sequence-drag-hit][aria-label="Drag participant Orders"]').first();
+  await waitForDiagramRender(page);
   await renderedOrders.focus();
   await renderedOrders.press("Enter");
   await expect(page.locator(".cm-selectionBackground")).toBeVisible();
@@ -355,6 +356,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("User -[#red]>]: Boundary event");
 
   const renderedRequest = page.locator('[data-sequence-drag-hit][aria-label="Drag message Request"]');
+  await waitForDiagramRender(page);
   await renderedRequest.focus();
   await renderedRequest.press("Enter");
   await expect(page.locator(".cm-selectionBackground")).toBeVisible();
@@ -489,6 +491,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     .not.toBe(sequenceSvgBeforeParticipantReorder);
 
   const responseMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-1"]');
+  await waitForDiagramRender(page);
   const firstMessage = page.locator('[data-sequence-drag-hit][data-sequence-message-id="message-0"]');
   const responseBox = await responseMessage.boundingBox();
   const firstMessageBox = await firstMessage.boundingBox();

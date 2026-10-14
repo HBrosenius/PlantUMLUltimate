@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openAddDialog, prepareEditor } from "./editor-helpers";
+import { openAddDialog, prepareEditor, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -60,6 +60,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
     .poll(() => page.locator(".cm-content").innerText())
     .toMatch(/package "Ordering system" \{[\s\S]*component "Payment service" as Payments[\s\S]*\}/);
 
+  await waitForDiagramRender(page);
   await page.locator('[data-class-object-type="entity"][data-class-object-id="payments"]').click({ force: true });
   const componentInspector = page.getByRole("complementary", { name: "Component object inspector" });
   await expect(componentInspector).toBeVisible();
@@ -93,6 +94,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("Inventory --> Payments");
 
+  await waitForDiagramRender(page);
   await page.locator('[data-class-object-id="relationship-3"]').click({ force: true });
   const connectionInspector = page.getByRole("complementary", { name: "Component connection inspector" });
   await expect(connectionInspector.getByLabel("Connection type")).toHaveValue("directed");

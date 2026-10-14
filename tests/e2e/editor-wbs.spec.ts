@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { pointInText, prepareEditor, setSource } from "./editor-helpers";
+import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -394,6 +394,7 @@ test("reorders and connects WBS nodes with the keyboard", async ({ page }) => {
     .toBe(true);
 
   const reorderedBuild = page.getByRole("button", { name: "Select WBS node Build" });
+  await waitForDiagramRender(page);
   await expect(reorderedBuild).toBeFocused();
   await reorderedBuild.press("c");
   await expect(page.getByText("Choose a target and press Enter · Esc cancels")).toBeVisible();

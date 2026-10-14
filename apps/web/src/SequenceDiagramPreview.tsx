@@ -242,8 +242,21 @@ export function SequenceDiagramPreview({
         )
         .forEach((element) => element.classList.add("sequence-selected-participant"));
     }
-    addMessageReconnectAnchors(root, participants, messages, selectedMessageId);
-    addStructureReconnectAnchors(root, participants, structures, selectedStructureId);
+    // Clearing the editor's text selection during a drag can clear inspector selection.
+    // Keep the active drag's handles and targets available until pointer release.
+    const activeDrag = dragRef.current;
+    addMessageReconnectAnchors(
+      root,
+      participants,
+      messages,
+      selectedMessageId ?? (activeDrag?.kind === "message-endpoint" ? activeDrag.id : undefined),
+    );
+    addStructureReconnectAnchors(
+      root,
+      participants,
+      structures,
+      selectedStructureId ?? (activeDrag?.kind === "structure-endpoint" ? activeDrag.id : undefined),
+    );
     restoreActiveReconnectPreview(root);
     const frame = window.requestAnimationFrame(() => restoreActiveReconnectPreview(root));
     return () => window.cancelAnimationFrame(frame);

@@ -63,7 +63,8 @@ async function recoverDuringDrag(page: Page, overlay: Locator, before: string) {
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const session = JSON.parse(localStorage.getItem("plantuml-studio.workspace.recovery.v6") ?? "{}");
+        const key = Object.keys(localStorage).find((key) => key.startsWith("plantuml-studio.workspace.navigation.v1:"));
+        const session = JSON.parse(key ? (localStorage.getItem(key) ?? "{}") : "{}");
         return session.documents?.find((item: { id: string }) => item.id === session.activeDocumentId)?.diagramScroll;
       }),
     )

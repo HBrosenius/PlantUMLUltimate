@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { pointInText, prepareEditor, setSource } from "./editor-helpers";
+import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -247,11 +247,25 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(page.getByRole("group", { name: "Class containers" }).getByRole("button")).toHaveCount(2);
 
   if (browserName !== "webkit") {
+    await waitForDiagramRender(page);
+    await noteInspector.getByRole("button", { name: /Close/ }).click();
+    await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
     const moveStatus = page.locator('[data-class-move-id="status"]');
     const reportingTarget = page.getByRole("group", { name: "Class containers" }).getByRole("button", {
       name: "Ordering / Reporting",
     });
-    const moveBox = await moveStatus.boundingBox();
+    await moveStatus.scrollIntoViewIfNeeded();
+    let moveBox = await moveStatus.boundingBox();
+    await expect
+      .poll(async () => {
+        moveBox = await moveStatus.boundingBox();
+        if (!moveBox) return false;
+        return moveStatus.evaluate((element) => {
+          const box = element.getBoundingClientRect();
+          return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === element;
+        });
+      })
+      .toBe(true);
     const targetBox = await reportingTarget.boundingBox();
     expect(moveBox).not.toBeNull();
     expect(targetBox).not.toBeNull();
@@ -264,6 +278,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
       'package "Reporting" as Reports #Lavender {enum "OrderStatus" as Status',
     );
     // The package move changes SVG geometry; reconnect only once that render replaces the old preview.
+    await waitForDiagramRender(page);
     await expect(page.getByRole("region", { name: "Class diagram preview" })).toHaveAttribute(
       "data-render-status",
       "idle",
@@ -295,8 +310,10 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   }
 
   const orderLineHit = page.locator('[data-class-object-type="entity"][data-class-object-id="orderline"]');
+  await waitForDiagramRender(page);
   await orderLineHit.press("Alt+ArrowUp");
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/class OrderLine[\s\S]*class Order/);
+  await waitForDiagramRender(page);
   await orderLineHit.press("c");
   await expect(page.getByText("Choose another class and press Enter · Esc cancels")).toBeVisible();
   const statusHit = page.locator('[data-class-object-type="entity"][data-class-object-id="status"]');
@@ -304,6 +321,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(page.locator(".cm-content")).toContainText("OrderLine --> Status");
 
   const renderedReportingPackage = page.getByRole("button", { name: "Select package Reporting", exact: true });
+  await waitForDiagramRender(page);
   await expect(renderedReportingPackage).toHaveAttribute("data-class-object-id", "reports");
   await renderedReportingPackage.focus();
   await renderedReportingPackage.press("Enter");

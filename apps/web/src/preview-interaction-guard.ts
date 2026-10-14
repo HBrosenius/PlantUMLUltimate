@@ -9,6 +9,7 @@ export function previewInteractionGuard(enabled: boolean) {
     event.stopPropagation();
   };
   return {
+    "aria-disabled": !enabled,
     onClickCapture: blockObject,
     onDoubleClickCapture: blockObject,
     onPointerDownCapture: blockObject,
