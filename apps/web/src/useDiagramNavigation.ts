@@ -88,6 +88,15 @@ export function useDiagramNavigation(
   const initialDocumentId = options?.initialFit?.documentId;
   const savedScroll = options?.initialFit?.scroll;
   useLayoutEffect(() => {
+    // Invalidate the old viewport before passive scroll listeners are cleaned up.
+    // A tab switch can clamp its DOM scroll position while those listeners still
+    // belong to the previous document.
+    restoredDocument.current = undefined;
+    return () => {
+      restoredDocument.current = undefined;
+    };
+  }, [initialDocumentId, options?.svg]);
+  useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!initialDocumentId || !options?.svg || !viewport) return;
     // WBS inserts its SVG in a later layout effect. Observe the viewport even before that insertion.

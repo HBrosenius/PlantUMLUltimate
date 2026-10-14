@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, renderHook } from "@testing-library/react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useDiagramNavigation, type InitialDiagramFit } from "./useDiagramNavigation";
 
@@ -150,6 +150,56 @@ it("restores scroll per document and flushes pending scrolling to its original o
   });
   expect(saveA).toHaveBeenLastCalledWith({ left: 140, top: 120 }, true);
   vi.restoreAllMocks();
+});
+
+it("does not save a tab-switch clamp before passive scroll listeners are removed", async () => {
+  const save = vi.fn();
+  const initialFit = { documentId: "previous", fit: false, scroll: { left: 80, top: 180 }, onScrollChange: save };
+  const { result, rerender } = renderHook(
+    ({ ready }) => {
+      const navigation = useDiagramNavigation(1, vi.fn(), {
+        svg: "<svg />",
+        initialFit: ready ? initialFit : undefined,
+      });
+      useLayoutEffect(() => {
+        if (ready || !navigation.viewportRef.current) return;
+        const viewport = navigation.viewportRef.current;
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = 0;
+        viewport.dispatchEvent(new Event("scroll"));
+      }, [ready, navigation.viewportRef]);
+      return navigation;
+    },
+    { initialProps: { ready: false } },
+  );
+  const viewport = document.createElement("div");
+  viewport.innerHTML = '<div class="diagram"><svg /></div>';
+  Object.defineProperties(viewport, {
+    clientWidth: { value: 200 },
+    clientHeight: { value: 200 },
+    scrollWidth: { value: 1000 },
+    scrollHeight: { value: 1000 },
+  });
+  document.body.append(viewport);
+  result.current.viewportRef.current = viewport;
+  rerender({ ready: true });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(64);
+  });
+  expect(viewport.scrollLeft).toBe(80);
+  act(() => viewport.dispatchEvent(new Event("scroll")));
+  rerender({ ready: false });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(save).toHaveBeenLastCalledWith({ left: 80, top: 180 });
+  rerender({ ready: true });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(64);
+  });
+  expect(viewport.scrollLeft).toBe(80);
+  expect(viewport.scrollTop).toBe(180);
+  viewport.remove();
 });
 
 it("waits for delayed SVG overflow and preserves scroll through later SVG replacements", async () => {
