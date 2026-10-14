@@ -1700,8 +1700,9 @@ export function App() {
       const target = event.target;
       if (target instanceof Element && target.closest(".task-inspector")) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(".task-inspector"))) return;
+      // View-only controls (fit, zoom) adjust the view around the selection and must not dismiss its inspector.
       const inspectorTrigger =
-        "[data-inspector-trigger], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
+        "[data-inspector-trigger], [data-view-control], [data-task-id], [data-dependency-index], [data-divider-index], [data-vertical-separator-index], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-message-endpoint], [data-sequence-structure-id], [data-sequence-structure-endpoint], [data-usecase-object-id], [data-usecase-connect-from], [data-usecase-move-id], [data-usecase-relationship-endpoint], [data-class-object-id], [data-class-connect-from], [data-activity-object-id], [data-wbs-node-id], [data-wbs-connect-from], [data-wbs-relationship-id], [data-wbs-relationship-endpoint]";
       if (target instanceof Element && target.closest(inspectorTrigger)) return;
       if (event.composedPath().some((item) => item instanceof Element && item.matches(inspectorTrigger))) return;
       dismissAllInspectors();

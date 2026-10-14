@@ -1230,23 +1230,33 @@ export function DiagramPreview({
                 <span className="gantt-control-label">Preview zoom</span>
                 <button
                   type="button"
+                  data-view-control
                   onClick={navigation.fit}
                   aria-label="Fit diagram"
                   title="Fit the diagram in the visible canvas"
                 >
                   Fit
                 </button>
-                <button onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))} aria-label="Zoom out">
+                <button
+                  onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))}
+                  data-view-control
+                  aria-label="Zoom out"
+                >
                   −
                 </button>
                 <button
                   onClick={() => onZoomChange(1)}
+                  data-view-control
                   aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
                   title="Show the diagram at its natural size"
                 >
                   {Math.round(zoom * 100)}%
                 </button>
-                <button onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))} aria-label="Zoom in">
+                <button
+                  onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))}
+                  data-view-control
+                  aria-label="Zoom in"
+                >
                   +
                 </button>
               </div>
@@ -1885,6 +1895,7 @@ export function DiagramPreview({
       <div className="timeline-minimap">
         <span>Timeline</span>
         <input
+          data-view-control
           aria-label="Timeline position"
           title="Scroll horizontally without editing source. Use arrow keys, Home or End."
           type="range"
