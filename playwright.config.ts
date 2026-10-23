@@ -9,7 +9,7 @@ export default defineConfig({
   // Stop a shard with widespread failures rather than spending its full timeout retrying them.
   maxFailures: process.env.CI ? 10 : 0,
   fullyParallel: Boolean(process.env.CI),
-  // Chromium and WebKit can share the runner; Firefox is limited per project below.
+  // Two workers per runner for every browser; Firefox was limited to one, which made it the slowest shards.
   workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [["list"], ["./tests/playwright-failure-reporter.ts"]] : "list",
   use: {
@@ -20,7 +20,7 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", workers: 1, use: { ...devices["Desktop Firefox"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {

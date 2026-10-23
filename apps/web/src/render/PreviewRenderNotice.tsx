@@ -13,6 +13,7 @@ export function PreviewRenderNotice({
   onRetry(): void;
 }) {
   const [slow, setSlow] = useState(false);
+  const [dismissedError, setDismissedError] = useState<string | undefined>();
   useEffect(() => {
     if (status !== "rendering") return;
     const timer = window.setTimeout(() => setSlow(true), 5_000);
@@ -23,6 +24,7 @@ export function PreviewRenderNotice({
   }, [status]);
   if (status === "idle") return null;
   const failed = status === "error";
+  if (failed && dismissedError === (error ?? "")) return null;
   return (
     <div className={`render-notice ${failed ? "error" : "rendering"}`} role={failed ? "alert" : "status"}>
       <strong>
@@ -34,6 +36,9 @@ export function PreviewRenderNotice({
           <span>{error ?? "The renderer returned an unknown error."}</span>
           <button type="button" onClick={onRetry}>
             Retry rendering
+          </button>
+          <button type="button" onClick={() => setDismissedError(error ?? "")}>
+            Dismiss
           </button>
         </>
       ) : (

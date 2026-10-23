@@ -155,9 +155,8 @@ test("creates a private collaboration link without exposing its credential in th
     .getByRole("button", { name: "Revoke and create new link", exact: true })
     .click();
   const newRoomDialog = page.getByRole("dialog", { name: "Collaboration" });
+  await expect(newRoomDialog.getByLabel("Editor link")).not.toHaveValue(oldLink);
   await expect(newRoomDialog).toContainText("Connected");
-  const newLink = await newRoomDialog.getByLabel("Editor link").inputValue();
-  expect(newLink).not.toBe(oldLink);
   const rotation = await page.evaluate(() => ({
     urls: (window as Window & { __collaborationSocketUrls?: string[] }).__collaborationSocketUrls,
     messages: (window as Window & { __collaborationMessages?: string[] }).__collaborationMessages,

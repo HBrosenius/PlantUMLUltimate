@@ -1089,6 +1089,13 @@ textarea:focus-visible {
 .render-notice.error strong {
   color: #dc2626;
 }
+.render-notice.error {
+  flex-flow: row wrap;
+}
+.render-notice.error > strong,
+.render-notice.error > span {
+  flex: 1 1 100%;
+}
 .render-notice button {
   align-self: flex-start;
   margin-top: 3px;
@@ -1161,6 +1168,8 @@ textarea:focus-visible {
   height: auto;
   max-width: none;
   display: block;
+  /* Transparent renderer output needs a readable paper surface in either app theme. */
+  background-color: #fff;
   box-shadow: 0 1px 4px rgb(0 0 0 / 12%);
 }
 .diagram-scroll-extent {
@@ -7159,6 +7168,31 @@ polygon.diagram-bulk-selected {
   color: var(--text);
   font: inherit;
 }
+.source-fix-title,
+.problem-repair-workspace .source-fix-detail {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.problem-repair-workspace .source-fix-title {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  margin: 0 0 0.4rem;
+}
+.problem-repair-workspace .source-fixes button[data-fix-key] {
+  text-align: center;
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+  border-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
 .problem-repair-workspace .source-fixes button:hover,
 .problem-repair-workspace .source-fixes button:focus-visible,
 .source-safe-fixes button:hover,
@@ -7824,6 +7858,9 @@ polygon.diagram-bulk-selected {
 }
 .start-routes a {
   color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
 }
 .start-preferences,
 .start-learning {

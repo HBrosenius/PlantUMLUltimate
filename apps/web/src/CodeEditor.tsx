@@ -1073,13 +1073,20 @@ export function CodeEditor({
                 {group.length > 1 && index === 0 && (
                   <p role="note">Choose one of {group.length} alternatives. Compare the changes before applying.</p>
                 )}
+                <p className="source-fix-title">
+                  Line {preview.line}: {fix.label ?? fix.message}
+                  {onCursorLine(fix) ? " (current line)" : ""}
+                </p>
                 <button
                   type="button"
                   data-fix-key={`${fix.from}:${fix.to}:${fix.replacement}`}
+                  aria-label={`Apply fix · Line ${preview.line}: ${fix.label ?? fix.message}${onCursorLine(fix) ? " (current line)" : ""}`}
                   onClick={() => applyQuickFix(fix)}
                 >
-                  <span>
-                    Apply fix · Line {preview.line}: {fix.label ?? fix.message}
+                  <span className="source-fix-apply">Apply</span>
+                  <span className="source-fix-detail">
+                    {" "}
+                    fix · Line {preview.line}: {fix.label ?? fix.message}
                     {onCursorLine(fix) ? " (current line)" : ""}
                   </span>
                 </button>
