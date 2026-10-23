@@ -178,6 +178,7 @@ export function useCollaborationLifecycle({
       requestedRoomId?: string,
       requestedAccessToken?: string,
       requestedRole: CollaborationRole = "editor",
+      createdMessage = "Created private collaboration room",
     ) => {
       const normalizedEndpoint = normalizeCollaborationEndpoint(endpoint, import.meta.env.DEV);
       if (!normalizedEndpoint) {
@@ -322,7 +323,7 @@ export function useCollaborationLifecycle({
           setPendingCollaboration(undefined);
           setDialogOpen(true);
           window.history.replaceState(window.history.state, "", new URL(shareUrl));
-          setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : "Created private collaboration room");
+          setInteractionMessage(requestedRoomId ? "Joining collaboration room…" : createdMessage);
         })
         .catch((error: unknown) => {
           reportError(error);
@@ -352,8 +353,15 @@ export function useCollaborationLifecycle({
     }
     sessionRef.current.stop();
     sessionRef.current = undefined;
-    startCollaboration(collaboration.participantName, collaboration.endpoint);
-    setInteractionMessage("Old collaboration link revoked; created a new private room");
+    // The new room reports its own status asynchronously, so hand it the message rather than racing it.
+    startCollaboration(
+      collaboration.participantName,
+      collaboration.endpoint,
+      undefined,
+      undefined,
+      "editor",
+      "Old collaboration link revoked; created a new private room",
+    );
   }, [collaboration, setInteractionMessage, startCollaboration]);
 
   useEffect(() => {
