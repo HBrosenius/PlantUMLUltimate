@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import { parseHTML, DOMParser, SVGElement, Event as DOMEvent } from "linkedom";
 import { atlasContext, type FontAtlas } from "./font-atlas";
+import { describeSyntaxError } from "./syntax-error";
 function nativeTextContext(): ReturnType<typeof atlasContext> | undefined {
   try {
     const context = typeof OffscreenCanvas === "function" ? new OffscreenCanvas(300, 150).getContext("2d") : null;
@@ -139,13 +140,9 @@ self.onmessage = async (event: MessageEvent) => {
       (svg) => {
         // Only parse the (possibly multi-megabyte) result when it can contain the engine's
         // rendered syntax-error text; valid diagrams skip the DOM round trip entirely.
-        const syntaxError = /Syntax/i.test(svg)
-          ? (new DOMParser().parseFromString(svg, "image/svg+xml").documentElement.textContent ?? "").match(
-              /Syntax Error[?][^\n]*/i,
-            )?.[0]
-          : undefined;
+        const syntaxError = /Syntax/i.test(svg) ? describeSyntaxError(svg, new DOMParser()) : undefined;
         // A syntax error is rendered by a healthy engine, so the frame may keep this worker.
-        send(syntaxError ? { error: syntaxError.trim(), recoverable: true } : { svg });
+        send(syntaxError ? { error: syntaxError, recoverable: true } : { svg });
       },
       (error) => send({ error: String(error) }),
     );
