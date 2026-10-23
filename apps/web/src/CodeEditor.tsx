@@ -1085,7 +1085,8 @@ export function CodeEditor({
                 >
                   <span className="source-fix-apply">Apply</span>
                   <span className="source-fix-detail">
-                    {" "}fix · Line {preview.line}: {fix.label ?? fix.message}
+                    {" "}
+                    fix · Line {preview.line}: {fix.label ?? fix.message}
                     {onCursorLine(fix) ? " (current line)" : ""}
                   </span>
                 </button>
