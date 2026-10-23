@@ -1168,6 +1168,8 @@ textarea:focus-visible {
   height: auto;
   max-width: none;
   display: block;
+  /* Transparent renderer output needs a readable paper surface in either app theme. */
+  background-color: #fff;
   box-shadow: 0 1px 4px rgb(0 0 0 / 12%);
 }
 .diagram-scroll-extent {
