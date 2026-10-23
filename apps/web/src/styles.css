@@ -7168,6 +7168,31 @@ polygon.diagram-bulk-selected {
   color: var(--text);
   font: inherit;
 }
+.source-fix-title,
+.problem-repair-workspace .source-fix-detail {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.problem-repair-workspace .source-fix-title {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  margin: 0 0 0.4rem;
+}
+.problem-repair-workspace .source-fixes button[data-fix-key] {
+  text-align: center;
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+  border-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
 .problem-repair-workspace .source-fixes button:hover,
 .problem-repair-workspace .source-fixes button:focus-visible,
 .source-safe-fixes button:hover,
