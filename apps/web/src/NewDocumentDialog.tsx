@@ -1,5 +1,5 @@
 import { PersonalStarterLibrary } from "./PersonalStarters";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { DiagramKind } from "./model";
 import { STARTER_EXAMPLES, type StarterExample } from "./starter-examples";
 import { starterSource } from "./use-workspace-documents";
@@ -288,6 +288,7 @@ export function PlantUmlUltimateLogo() {
 }
 
 function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
+  const uid = useId();
   if (kind === "wbs")
     return (
       <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
@@ -317,11 +318,11 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
     return (
       <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
         <defs>
-          <linearGradient id="gantt-blue" x1="0" x2="1">
+          <linearGradient id={`gantt-blue-${uid}`} x1="0" x2="1">
             <stop stopColor="#60a5fa" />
             <stop offset="1" stopColor="#2563eb" />
           </linearGradient>
-          <linearGradient id="gantt-violet" x1="0" x2="1">
+          <linearGradient id={`gantt-violet-${uid}`} x1="0" x2="1">
             <stop stopColor="#c084fc" />
             <stop offset="1" stopColor="#7c3aed" />
           </linearGradient>
@@ -337,9 +338,9 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
         <text x="18" y="83">
           Build
         </text>
-        <rect x="78" y="21" width="55" height="13" rx="6.5" fill="url(#gantt-blue)" />
-        <rect x="112" y="47" width="65" height="13" rx="6.5" fill="url(#gantt-violet)" />
-        <rect x="154" y="73" width="57" height="13" rx="6.5" fill="url(#gantt-blue)" />
+        <rect x="78" y="21" width="55" height="13" rx="6.5" fill={`url(#gantt-blue-${uid})`} />
+        <rect x="112" y="47" width="65" height="13" rx="6.5" fill={`url(#gantt-violet-${uid})`} />
+        <rect x="154" y="73" width="57" height="13" rx="6.5" fill={`url(#gantt-blue-${uid})`} />
         <path className="preview-link" d="M133 28C144 28 101 53 112 53M177 54C188 54 143 79 154 79" />
         <circle cx="218" cy="79.5" r="5" fill="#f59e0b" />
       </svg>
@@ -348,7 +349,7 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
     return (
       <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
         <defs>
-          <linearGradient id="sequence-card" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={`sequence-card-${uid}`} x1="0" y1="0" x2="1" y2="1">
             <stop stopColor="#38bdf8" />
             <stop offset="1" stopColor="#6366f1" />
           </linearGradient>
@@ -358,7 +359,7 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
           <circle cx="42" cy="21" r="6" />
           <path d="M42 27v13m-10-7h20M42 40l-8 10m8-10 8 10" />
         </g>
-        <rect x="92" y="13" width="56" height="18" rx="5" fill="url(#sequence-card)" />
+        <rect x="92" y="13" width="56" height="18" rx="5" fill={`url(#sequence-card-${uid})`} />
         <text className="preview-light-text" x="120" y="25" textAnchor="middle">
           API
         </text>
@@ -448,7 +449,7 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
   return (
     <svg className="diagram-kind-preview" viewBox="0 0 240 112" aria-hidden="true">
       <defs>
-        <linearGradient id="usecase-card" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`usecase-card-${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop stopColor="#14b8a6" />
           <stop offset="1" stopColor="#2563eb" />
         </linearGradient>
@@ -465,8 +466,8 @@ function DiagramKindPreview({ kind }: { kind: DiagramKind }) {
       <text x="22" y="84">
         Customer
       </text>
-      <ellipse cx="130" cy="49" rx="42" ry="14" fill="url(#usecase-card)" opacity=".9" />
-      <ellipse cx="166" cy="80" rx="42" ry="14" fill="url(#usecase-card)" opacity=".72" />
+      <ellipse cx="130" cy="49" rx="42" ry="14" fill={`url(#usecase-card-${uid})`} opacity=".9" />
+      <ellipse cx="166" cy="80" rx="42" ry="14" fill={`url(#usecase-card-${uid})`} opacity=".72" />
       <text className="preview-light-text" x="130" y="52" textAnchor="middle">
         Place order
       </text>

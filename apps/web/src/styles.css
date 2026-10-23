@@ -1089,6 +1089,13 @@ textarea:focus-visible {
 .render-notice.error strong {
   color: #dc2626;
 }
+.render-notice.error {
+  flex-flow: row wrap;
+}
+.render-notice.error > strong,
+.render-notice.error > span {
+  flex: 1 1 100%;
+}
 .render-notice button {
   align-self: flex-start;
   margin-top: 3px;
@@ -7824,6 +7831,9 @@ polygon.diagram-bulk-selected {
 }
 .start-routes a {
   color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
 }
 .start-preferences,
 .start-learning {
