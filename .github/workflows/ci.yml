@@ -55,13 +55,12 @@ jobs:
       - run: npm ci
       # Install only this shard's browser; avoid pulling the all-browser container.
       - name: Install browser and system dependencies
-        # The apt/CDN download occasionally stalls for tens of minutes; bound each attempt and retry.
+        # The Azure Ubuntu mirror occasionally stalls on a package for minutes. Let apt give up on a stalled
+        # download after 20s and retry, instead of waiting out its default timeout.
+        timeout-minutes: 15
         run: |
-          for attempt in 1 2 3; do
-            timeout 300 npx playwright install --with-deps ${{ matrix.browser }} && exit 0
-            echo "Browser install attempt $attempt failed or timed out"
-          done
-          exit 1
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network >/dev/null
+          npx playwright install --with-deps ${{ matrix.browser }}
       - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
       - name: Upload Playwright failure artifacts
         if: failure()
