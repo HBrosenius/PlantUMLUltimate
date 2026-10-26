@@ -373,6 +373,24 @@ describe("task inspector operations", () => {
     expect(changed).toContain("[Test] lasts 1 day");
   });
 
+  it("keeps a task whose compound line also depends on the deleted task", () => {
+    const source = "@startgantt\n[Build] lasts 2 days\n[Test] lasts 3 days and starts at [Build]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const build = document.tasks.find((task) => task.id === "build")!;
+    const changed = applySourceEdits(source, deleteTask(source, document, build).edits);
+    expect(changed).toBe("@startgantt\n[Test] lasts 3 days\n@endgantt");
+  });
+
+  it("removes arrows into the deleted task and separators anchored to it", () => {
+    const source =
+      "@startgantt\n[Build] lasts 2 days\n[Ship] lasts 1 day\n[Build] -> [Ship]\nSeparator just at [Ship]'s end\n@endgantt";
+    const document = parseGantt(source).document;
+    const ship = document.tasks.find((task) => task.id === "ship")!;
+    const changed = applySourceEdits(source, deleteTask(source, document, ship).edits);
+    expect(changed).toBe("@startgantt\n[Build] lasts 2 days\n@endgantt");
+    expect(parseGantt(changed).document.tasks.map((task) => task.id)).toEqual(["build"]);
+  });
+
   it("updates one clause of a compound declaration without rewriting the others", () => {
     const source = "@startgantt\n[Build] starts 2026-09-01 and requires 2 days and is colored in Blue\n@endgantt";
     const task = parseGantt(source).document.tasks[0]!;
@@ -594,6 +612,13 @@ describe("dependency operations", () => {
     const changed = applySourceEdits(source, removeDependency(source, dependency.sourceRange).edits);
     expect(changed).toContain("[Build] lasts 4 days");
     expect(changed).not.toContain("starts at [Design]'s end");
+  });
+
+  it("removes a trailing inline dependency together with its joining 'and'", () => {
+    const source = "@startgantt\n[Design] lasts 2 days\n[Build] lasts 4 days and starts at [Design]'s end\n@endgantt";
+    const dependency = parseGantt(source).document.dependencies[0]!;
+    const changed = applySourceEdits(source, removeDependency(source, dependency.sourceRange).edits);
+    expect(changed).toBe("@startgantt\n[Design] lasts 2 days\n[Build] lasts 4 days\n@endgantt");
   });
 
   it("rewrites dependency type, offset, direction, color, and style", () => {

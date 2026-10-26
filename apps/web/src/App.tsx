@@ -1108,6 +1108,19 @@ export function App() {
     },
     [occurrencesFor, selectViewMode, viewMode],
   );
+  // Preview notices ask for a source line (e.g. a syntax error) without knowing which view is open.
+  useEffect(() => {
+    const reveal = (event: Event) => {
+      const line = (event as CustomEvent<{ line?: number }>).detail?.line;
+      const lines = workspace.source.split("\n");
+      if (!line || line < 1 || line > lines.length) return;
+      const from = lines.slice(0, line - 1).reduce((offset, text) => offset + text.length + 1, 0);
+      if (viewMode === "diagram") selectViewMode("split");
+      setSelectionRequest({ from, to: from + lines[line - 1]!.length });
+    };
+    window.addEventListener("reveal-source-line", reveal);
+    return () => window.removeEventListener("reveal-source-line", reveal);
+  }, [selectViewMode, viewMode, workspace.source]);
   const diagramOccurrenceForTarget = useCallback(
     (target: Element): SemanticSymbolOccurrence | undefined => {
       const closestValue = (attribute: string) => target.closest(`[${attribute}]`)?.getAttribute(attribute);
@@ -4220,23 +4233,26 @@ export function App() {
           >
             Save
           </button>
-          {(workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs") && (
-            <ActionMenu
-              label="Plan"
-              actions={[
-                ...(workspace.diagramKind === "gantt"
-                  ? [
-                      { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
-                      { label: "Workload…", run: openResourcePanel, opensInspector: true },
-                      { label: "Reports…", run: openReports },
-                      { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
-                      { label: "Jira…", run: () => setJiraDialogOpen(true) },
-                    ]
-                  : []),
-                ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
-              ]}
-            />
-          )}
+          {/* Plan stays in the menu bar for every diagram kind so the menus after it never shift. */}
+          <ActionMenu
+            label="Plan"
+            actions={
+              workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs"
+                ? [
+                    ...(workspace.diagramKind === "gantt"
+                      ? [
+                          { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
+                          { label: "Workload…", run: openResourcePanel, opensInspector: true },
+                          { label: "Reports…", run: openReports },
+                          { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
+                          { label: "Jira…", run: () => setJiraDialogOpen(true) },
+                        ]
+                      : []),
+                    ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
+                  ]
+                : [{ label: "Planning tools are for Gantt and WBS diagrams", run: () => undefined, disabled: true }]
+            }
+          />
           <button
             className="desktop-command-trigger"
             onClick={() => openDialog({ kind: "command-palette" })}

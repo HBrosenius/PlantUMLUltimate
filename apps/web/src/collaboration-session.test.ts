@@ -112,3 +112,49 @@ it("does not seed recovered owner text before the remote snapshot arrives", () =
   session.stop();
   remote.destroy();
 });
+
+function sentSource(socket: Socket): string {
+  const document = new Y.Doc();
+  for (const [value] of socket.send.mock.calls)
+    if (value instanceof Uint8Array || value instanceof ArrayBuffer) Y.applyUpdate(document, new Uint8Array(value));
+  return document.getText("source").toString();
+}
+
+function joinEmptyRoom(credentials: ConstructorParameters<typeof CollaborationSession>[9]) {
+  vi.stubGlobal("WebSocket", Socket);
+  const session = new CollaborationSession(
+    "https://example.test",
+    "r".repeat(43),
+    "@startgantt\n[Secret] lasts 1 day\n@endgantt",
+    { id: "audit", name: "Audit", color: "#123456" },
+    () => {},
+    () => {},
+    () => {},
+    () => {},
+    "editor",
+    credentials,
+  );
+  const socket = Socket.instances.at(-1)!;
+  socket.onmessage?.({ data: Y.encodeStateAsUpdate(new Y.Doc()).buffer as ArrayBuffer });
+  return { session, socket };
+}
+
+it("seeds an empty room with the local document when this tab owns it", () => {
+  const { session, socket } = joinEmptyRoom({
+    ownerToken: "o".repeat(43),
+    editorToken: "e".repeat(43),
+    viewerToken: "v".repeat(43),
+    accessToken: "e".repeat(43),
+  });
+  expect(sentSource(socket)).toContain("[Secret]");
+  session.stop();
+});
+
+it.each([[{ accessToken: "a".repeat(43) }], [{}]])(
+  "never uploads the local document when joining someone else's room (%j)",
+  (credentials) => {
+    const { session, socket } = joinEmptyRoom(credentials);
+    expect(sentSource(socket)).not.toContain("[Secret]");
+    session.stop();
+  },
+);

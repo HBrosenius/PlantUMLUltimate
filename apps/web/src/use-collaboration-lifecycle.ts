@@ -196,6 +196,12 @@ export function useCollaborationLifecycle({
         setInteractionMessage("The collaboration link contains an invalid room credential");
         return;
       }
+      // Joining needs the link's access credential (or this tab's recovered owner credentials); without
+      // it a link could make this tab seed an empty room on an untrusted server with the active document.
+      if (requestedRoomId && !requestedAccessToken && !ownerToken) {
+        setInteractionMessage("The collaboration link is missing its access credential. Ask for a new link.");
+        return;
+      }
       if (requestedAccessToken && !/^[A-Za-z0-9_-]{43}$/.test(requestedAccessToken)) {
         setInteractionMessage("The collaboration link contains an invalid access credential");
         return;

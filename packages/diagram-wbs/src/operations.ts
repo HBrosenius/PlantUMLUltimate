@@ -1,6 +1,8 @@
 import type { WbsDocument, WbsNode, WbsNodeInput, WbsSide } from "./model";
 
 const lineEnd = (source: string, to: number) => (source[to] === "\n" ? to + 1 : to);
+// New lines follow the document's own line endings so a CRLF file stays CRLF.
+const eol = (source: string) => (source.includes("\r\n") ? "\r\n" : "\n");
 const markerFor = (depth: number, side: WbsSide) =>
   (side === "left" ? "-" : side === "right" ? "+" : "*").repeat(depth);
 const plantUmlColor = (value: string) => (value.startsWith("#") ? value : `#${value}`);
@@ -43,15 +45,16 @@ export function insertWbsNode(
     : parent
       ? lineEnd(source, parent.subtreeRange.to)
       : insertionPoint(source);
-  const prefix = at > 0 && source[at - 1] !== "\n" ? "\n" : "";
-  return `${source.slice(0, at)}${prefix}${statement(marker, value)}\n${source.slice(at)}`;
+  const newline = eol(source);
+  const prefix = at > 0 && source[at - 1] !== "\n" ? newline : "";
+  return `${source.slice(0, at)}${prefix}${statement(marker, value)}${newline}${source.slice(at)}`;
 }
 
 export function updateWbsNode(source: string, node: WbsNode, value: WbsNodeInput): string {
   // A node's side only steers its position relative to its own parent, so changing it only ever
   // rewrites this node's own marker — descendants keep whichever side they were each given.
   const side = node.depth === 1 ? "root" : (value.side ?? node.side);
-  const marker = side === node.side ? node.marker : markerFor(node.depth, side);
+  const marker = (side === node.side ? node.marker : markerFor(node.depth, side)) + (node.boxless ? "_" : "");
   return `${source.slice(0, node.sourceRange.from)}${statement(marker, value, node.alias)}${source.slice(node.sourceRange.to)}`;
 }
 
@@ -216,12 +219,24 @@ export function moveWbsSubtree(
           ? "+"
           : (parent?.marker[0] ?? before?.marker[0] ?? node.marker[0] ?? "*");
   const depthDelta = newDepth - node.depth;
+  // Only node lines are re-marked: a multi-line `:` ... `;` label can hold lines that start with - or +.
+  const nodeStarts = new Set(
+    document.nodes
+      .filter(
+        (item) => item.sourceRange.from >= node.subtreeRange.from && item.sourceRange.from <= node.subtreeRange.to,
+      )
+      .map((item) => source.lastIndexOf("\n", item.sourceRange.from - 1) + 1),
+  );
   // Only the moved node's own line adopts its new parent's family — each descendant keeps its
   // own side (relative to its own parent, which didn't change) and just gets re-sized for depth.
+  let lineStart = node.subtreeRange.from;
   const transformed = block
     .split("\n")
     .map((line, index) => {
-      const match = line.match(/^(\s*)([*+-]+)(\s*.*)$/);
+      const start = lineStart;
+      lineStart += line.length + 1;
+      if (!nodeStarts.has(start)) return line;
+      const match = line.match(/^(\s*)([*+-]+)([^\n]*)$/);
       if (!match?.[2]) return line;
       const depth = Math.max(1, match[2].length + depthDelta);
       const family = index === 0 ? inheritedFamily : match[2][0]!;
@@ -234,7 +249,8 @@ export function moveWbsSubtree(
     before?.sourceRange.from ?? (parent ? lineEnd(source, parent.subtreeRange.to) : insertionPoint(source));
   const removedLength = removedTo - node.subtreeRange.from;
   const at = originalAt > node.subtreeRange.from ? originalAt - removedLength : originalAt;
-  return `${without.slice(0, at)}${transformed}\n${without.slice(at)}`;
+  const newline = block.endsWith("\r") ? "\n" : eol(source);
+  return `${without.slice(0, at)}${transformed}${newline}${without.slice(at)}`;
 }
 
 export function reorderWbsNode(source: string, document: WbsDocument, node: WbsNode, before?: WbsNode): string {

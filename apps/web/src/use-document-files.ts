@@ -542,10 +542,12 @@ export function useDocumentFiles({
       for (const [documentId, handle] of fileHandles.current) {
         const previous = fileSnapshots.current.get(documentId);
         if (!previous) continue;
-        const documentSnapshot = tabs.documents.find((item) => item.id === documentId);
-        if (!documentSnapshot) continue;
+        if (!latestTabs.current.getDocument(documentId)) continue;
         const externalResult = await readExternalFileSnapshot(handle, previous, documentKey(documentId));
         const external = externalResult.snapshot;
+        // Read after the await: edits made while the file was being read must count as dirty.
+        const documentSnapshot = latestTabs.current.getDocument(documentId);
+        if (!documentSnapshot) continue;
         if (!externalFileChanged(previous, external)) {
           fileSnapshots.current.set(documentId, external);
           continue;

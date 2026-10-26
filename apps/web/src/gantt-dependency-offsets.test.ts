@@ -6,10 +6,12 @@ import { calculateProgressForecast } from "./gantt-progress-forecast";
 import { analyzeCriticalPath } from "./schedule-analysis";
 
 it.each([
+  // A ends Friday 09-25 with weekends closed. PlantUML counts from the instant after that day and
+  // moves a start that lands on a closed day forward: 2 days after is Sunday, drawn on Monday.
   ["after", 0, "2026-09-28"],
   ["before", 0, "2026-09-24"],
-  ["after", 2, "2026-09-27"],
-  ["before", 2, "2026-09-23"],
+  ["after", 2, "2026-09-28"],
+  ["before", 2, "2026-09-24"],
   ["after", -2, "2026-09-23"],
   ["before", -2, "2026-09-27"],
 ] as const)("resolves %s offset %s consistently", (direction, offset, expected) => {

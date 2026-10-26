@@ -11,7 +11,7 @@ import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator }
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
-import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
+import { resolveTaskDates, taskAllocationPercent, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
 import type { ResourceCapacity, ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
@@ -951,7 +951,9 @@ export function DiagramPreview({
         const step = moveEvent.shiftKey ? 7 : durationUnit === "month" ? 30 : durationUnit === "week" ? 7 : 1;
         snappedDays = Math.round(rawDays / step) * step;
         const modelTask = tasks.find((item) => item.id === id);
-        const calendarTarget = modelTask ? calendarResizeTarget(modelTask, snappedDays, calendar) : undefined;
+        const calendarTarget = modelTask
+          ? calendarResizeTarget(modelTask, snappedDays, calendar, taskAllocationPercent(modelTask))
+          : undefined;
         if (calendarTarget) {
           snappedDays = calendarTarget.calendarDays;
           durationDelta = calendarTarget.durationDelta;

@@ -1,5 +1,5 @@
 import { InspectorPanel } from "./InspectorPanel";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { GanttTask } from "@plantuml-studio/diagram-gantt";
 
 export interface MilestoneInspectorValue {
@@ -54,6 +54,7 @@ export function MilestoneInspector({
     };
   };
   const [value, setValue] = useState(initial);
+  const noteId = useId();
   const labelMissing = !value.label.trim();
   const scheduleMissing = value.mode === "fixed" ? !value.date : !value.referenceLabel;
   const update = <K extends keyof MilestoneInspectorValue>(key: K, next: MilestoneInspectorValue[K]) =>
@@ -161,14 +162,16 @@ export function MilestoneInspector({
             onChange={(event) => update("color", event.target.value)}
           />
         </label>
-        <label className="inspector-note-field">
+        <label className="inspector-note-field" htmlFor={noteId}>
           <span className="inspector-field-heading">
-            Note
+            <span id={`${noteId}-label`}>Note</span>
             <button type="button" disabled={!value.note} onClick={() => update("note", "")}>
               Remove note
             </button>
           </span>
           <textarea
+            id={noteId}
+            aria-labelledby={`${noteId}-label`}
             rows={4}
             placeholder="Add context for this milestone"
             value={value.note}

@@ -123,25 +123,26 @@ test("shows dates and slack for every task and highlights critical tasks", async
       "[Frontend] lasts 10 days",
       "[Testing] lasts 5 days",
       "[Backend] starts at [Architecture]'s end",
-      "[Frontend] starts 5 days after [Backend]'s end",
-      "[Testing] starts 3 days after [Frontend]'s end",
+      // Backend's 4-day lag lands on a Sunday, so Backend gets one working day of slack.
+      "[Frontend] starts 4 days after [Backend]'s end",
+      "[Testing] starts 2 days after [Frontend]'s end",
       "@endgantt",
     ].join("\n"),
   );
   await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
-  for (const [name, duration, slack, critical] of [
-    ["Architecture", 6, 1, false],
-    ["Backend", 8, 1, false],
-    ["Frontend", 10, 0, true],
-    ["Testing", 5, 0, true],
+  for (const [name, duration, slack, freeSlack, critical] of [
+    ["Architecture", 6, 1, 0, false],
+    ["Backend", 8, 1, 1, false],
+    ["Frontend", 10, 0, 0, true],
+    ["Testing", 5, 0, 0, true],
   ] as const) {
     const row = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name, exact: true }) });
     await expect(row).toHaveAttribute("data-critical", String(critical));
     await expect(row.getByRole("cell").nth(3)).toHaveText(`${duration} working days`);
     await expect(row.getByRole("cell").nth(4)).toHaveText(`${slack} working days`);
-    await expect(row.getByRole("cell").nth(5)).toHaveText("0 working days");
+    await expect(row.getByRole("cell").nth(5)).toHaveText(`${freeSlack} working days`);
   }
   const testing = report
     .getByRole("row")
@@ -155,8 +156,12 @@ test("shows dates and slack for every task and highlights critical tasks", async
   await expect(backend.getByRole("cell").nth(6)).toHaveText("2026-10-05");
   await expect(backend.getByRole("cell").nth(7)).toHaveText("2026-10-14");
   await backend.getByText("Slack limits", { exact: true }).click();
-  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-14");
-  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-13");
+  await expect(backend).toContainText(
+    "Total slack: Dependency with 'Frontend' limits this task’s end to 2026-10-14, using the dependent task’s latest allowable dates.",
+  );
+  await expect(backend).toContainText(
+    "Free slack: Dependency with 'Frontend' limits this task’s end to 2026-10-14, using the dependent task’s planned dates.",
+  );
   await report.locator(":scope > summary").click();
   await page.locator('.diagram [data-task-id="backend"] .bar').hover();
   const hover = page.getByLabel("Task details for Backend");
@@ -165,7 +170,7 @@ test("shows dates and slack for every task and highlights critical tasks", async
   ).toContainText("1 working days");
   await expect(
     hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
-  ).toContainText("0 working days");
+  ).toContainText("1 working days");
 });
 
 test("sorts the schedule by slack and dates with stable ties and restores source order", async ({ page }) => {

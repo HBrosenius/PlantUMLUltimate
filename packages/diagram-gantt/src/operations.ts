@@ -290,7 +290,7 @@ export function removeDependency(
 ): MoveTaskResult {
   const lineFrom = source.lastIndexOf("\n", dependencyRange.from - 1) + 1;
   const prefix = source.slice(lineFrom, dependencyRange.from);
-  if (/\[[^\]]+]\s+(?:as\s+\[[^\]]+]\s+)?(?:on\s+(?:\{[^}]+}\s*)+)?$/i.test(prefix)) {
+  if (/\[[^\]]+]\s+(?:as\s+\[[^\]]+]\s+)?(?:on\s+(?:\{[^}]+}\s*)+)?$/i.test(prefix) || /\s+and\s+$/i.test(prefix)) {
     let from = dependencyRange.from;
     let to = dependencyRange.to;
     const after = source.slice(to).match(/^\s+and\s+/i)?.[0];
@@ -818,17 +818,23 @@ export function deleteTask(source: string, document: GanttDocument, task: GanttT
     const line = wholeLineRange(source, note.sourceRange);
     ranges.set(`${line.from}:${line.to}`, line);
   }
-  for (const dependency of document.dependencies) {
-    if (dependency.predecessorTaskId === task.id && dependency.successorTaskId !== task.id) {
-      const line = wholeLineRange(source, dependency.sourceRange);
-      ranges.set(`${line.from}:${line.to}`, line);
-      for (const note of dependency.notes ?? []) {
-        const noteRange = wholeLineRange(source, note.sourceRange);
-        ranges.set(`${noteRange.from}:${noteRange.to}`, noteRange);
-      }
-    }
+  for (const separator of document.verticalSeparators) {
+    const key = normalizeTaskId(separator.taskLabel);
+    if ((document.symbols.references.get(key) ?? key) !== task.id) continue;
+    const line = wholeLineRange(source, separator.sourceRange);
+    ranges.set(`${line.from}:${line.to}`, line);
   }
-  return { edits: [...ranges.values()].map((range) => ({ range, text: "" })) };
+  const removedLines = [...ranges.values()];
+  const edits: SourceEdit[] = removedLines.map((range) => ({ range, text: "" }));
+  for (const dependency of document.dependencies) {
+    const touchesTask = dependency.predecessorTaskId === task.id || dependency.successorTaskId === task.id;
+    if (!touchesTask || dependency.predecessorTaskId === dependency.successorTaskId) continue;
+    const { from, to } = dependency.sourceRange;
+    if (removedLines.some((line) => from >= line.from && to <= line.to)) continue;
+    // Another task's line can hold this constraint as one clause; remove only that clause so the task survives.
+    edits.push(...removeDependency(source, dependency.sourceRange, dependency.notes ?? []).edits);
+  }
+  return { edits };
 }
 
 export interface DuplicateTaskResult extends MoveTaskResult {

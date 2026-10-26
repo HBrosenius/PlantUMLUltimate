@@ -52,8 +52,9 @@ describe("fixed-date dependency conflicts", () => {
     ["starts at [A]'s start", "2026-09-20", "2026-09-22", "2026-09-21"],
     ["ends at [A]'s end", "2026-09-21", "2026-09-22", "2026-09-23"],
     ["ends at [A]'s start", "2026-09-19", "2026-09-20", "2026-09-21"],
-    ["starts 2 days after [A]'s end", "2026-09-24", "2026-09-26", "2026-09-25"],
-    ["starts 2 days before [A]'s end", "2026-09-22", "2026-09-24", "2026-09-21"],
+    // PlantUML anchors "[A]'s end" after A's last day (09-23): 2 days after is 09-26, 2 days before is 09-22.
+    ["starts 2 days after [A]'s end", "2026-09-24", "2026-09-26", "2026-09-26"],
+    ["starts 2 days before [A]'s end", "2026-09-23", "2026-09-25", "2026-09-22"],
   ])("flags %s against conflicting fixed dates", (relationship, start, end, boundary) => {
     const source = `@startgantt\n[A] starts 2026-09-21 and lasts 3 days\n[B] on {Alice} starts ${start} and ends ${end}\n[B] ${relationship}\n[C] starts at [B]'s end and lasts 1 day\n@endgantt`;
     const document = parseGantt(source).document;

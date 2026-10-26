@@ -55,7 +55,7 @@ test("Plan opens existing Gantt tools, restores focus and retains alternate rout
   await expect(page.getByRole("dialog", { name: "What-if scenario", exact: true })).toBeVisible();
 });
 
-test("Plan offers WBS linking and hides planning tools on other diagram types", async ({ page }) => {
+test("Plan offers WBS linking and stays in place, disabled, on other diagram types", async ({ page }) => {
   await prepareEditor(page);
   for (const kind of ["WBS", "Sequence"]) {
     await page.getByRole("button", { name: "New diagram tab" }).click();
@@ -65,7 +65,14 @@ test("Plan offers WBS linking and hides planning tools on other diagram types", 
       .click();
     const plan = page.getByRole("button", { name: "Plan", exact: true });
     if (kind === "Sequence") {
-      await expect(plan).toHaveCount(0);
+      // Plan keeps its place so the menus after it do not shift; it only explains where it applies.
+      await plan.click();
+      await expect(page.getByRole("menu", { name: "Plan", exact: true }).getByRole("menuitem")).toHaveText([
+        "Planning tools are for Gantt and WBS diagrams",
+      ]);
+      await expect(
+        page.getByRole("menuitem", { name: "Planning tools are for Gantt and WBS diagrams" }),
+      ).toBeDisabled();
       break;
     }
     await plan.click();

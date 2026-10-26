@@ -201,7 +201,8 @@ export class CollaborationSession {
       if (!this.synchronized) {
         this.hasSynchronized = true;
         if (this.role === "editor") {
-          const maySeedRoom = Boolean(this.credentials.ownerToken || !this.credentials.accessToken);
+          // Only the room's creator seeds it; a joining tab must never upload its own document.
+          const maySeedRoom = Boolean(this.credentials.ownerToken);
           if (maySeedRoom && !this.sharedDocument.snapshot && this.sharedOptions?.initial) {
             this.sharedDocument.apply(this.sharedOptions.initial);
             this.sharedSnapshot = this.sharedDocument.snapshot;

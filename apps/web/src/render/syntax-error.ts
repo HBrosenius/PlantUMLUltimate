@@ -24,3 +24,10 @@ export function describeSyntaxError(
   if (!lineNumber) return marker;
   return `${marker} — line ${lineNumber}${failing ? `: ${failing}` : ""}`;
 }
+
+/** Reads the line number and offending text out of the engine's "Syntax Error? … — line N: text" message. */
+export function syntaxErrorLocation(error: string | undefined): { line: number; text?: string } | undefined {
+  const match = error?.match(/^Syntax Error\?.*? — line (\d+)(?:: (.*))?$/s);
+  if (!match) return undefined;
+  return { line: Number(match[1]), ...(match[2]?.trim() ? { text: match[2].trim() } : {}) };
+}

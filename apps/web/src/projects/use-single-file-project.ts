@@ -255,6 +255,9 @@ export function useSingleFileProject({
   const handle = useRef<WritableFileHandle | undefined>(undefined);
   // Digest of the bytes last read from or written to `handle`, used to detect changes made elsewhere.
   const handleDigest = useRef<string | undefined>(undefined);
+  // Digest of bytes handed to the save queue; a queued save may observe them on disk before the
+  // earlier save has recorded them in handleDigest.
+  const queuedDigest = useRef<string | undefined>(undefined);
   const unlockedKey = useRef<UnlockedDocumentKey | undefined>(undefined);
   const saveCoordinator = useRef(new EmbeddedProjectSaveCoordinator());
   const saveAbort = useRef<AbortController | undefined>(undefined);
@@ -327,6 +330,7 @@ export function useSingleFileProject({
       setIndexed(immediateIndex(project));
       handle.current = undefined;
       handleDigest.current = undefined;
+      queuedDigest.current = undefined;
       unlockedKey.current = undefined;
       setSavedBaseline(undefined);
       resetSelection();
@@ -359,6 +363,7 @@ export function useSingleFileProject({
       embedded.updateProject((current) => ({ ...current, revisionId: crypto.randomUUID() }));
       handle.current = undefined;
       handleDigest.current = undefined;
+      queuedDigest.current = undefined;
       unlockedKey.current = undefined;
       setSavedBaseline(undefined);
       const wbsTabId = tabs.addDocument({
@@ -522,6 +527,7 @@ export function useSingleFileProject({
         unlockedKey.current = key;
         handle.current = opened.handle;
         handleDigest.current = opened.handle ? await sha256(opened.bytes) : undefined;
+        queuedDigest.current = undefined;
         embedded.openProject(project, { encrypted, unsaved: Boolean(opened.importedSource) });
         setSavedBaseline(opened.kind === "legacy" ? undefined : structuredClone(project));
         resetSelection();
@@ -546,6 +552,7 @@ export function useSingleFileProject({
       unlockedKey.current = undefined;
       handle.current = undefined;
       handleDigest.current = undefined;
+      queuedDigest.current = undefined;
       projectGeneration.current += 1;
       setFileSaveState(undefined);
       saveAbort.current?.abort();
@@ -646,13 +653,18 @@ export function useSingleFileProject({
           // Checked inside the save queue so an earlier write from this tab is already reflected.
           // An unreadable file (deleted or permission revoked) is rewritten as before.
           const observed = handleDigest.current ? await readDocumentBytes(target).catch(() => undefined) : undefined;
-          if (observed && (await sha256(observed.bytes)) !== handleDigest.current) throw new ProjectFileChangedError();
+          if (observed) {
+            const observedDigest = await sha256(observed.bytes);
+            if (observedDigest !== handleDigest.current && observedDigest !== queuedDigest.current)
+              throw new ProjectFileChangedError();
+          }
           writtenBytes = (
             await encodeProject(value, {
               ...(unlockedKey.current ? { unlockedKey: unlockedKey.current } : {}),
               ...(signal ? { signal } : {}),
             })
           ).bytes;
+          if (handle.current === target) queuedDigest.current = await sha256(writtenBytes);
           return writtenBytes;
         },
         target,
@@ -674,6 +686,10 @@ export function useSingleFileProject({
       return result;
     } catch (error) {
       if (!isCurrent()) return { clean: false, message: "Previous document save cancelled" };
+      const superseded = saveAbort.current !== controller;
+      // A newer save aborted this one; leave the status to the save that is still running.
+      if (superseded && error instanceof DOMException && error.name === "AbortError")
+        return { clean: false, message: "Document save replaced by a newer save" };
       if (error instanceof ProjectFileChangedError) {
         setFileSaveState({ documentId, status: "error", message: error.message });
         setInteractionMessage(error.message);
@@ -731,6 +747,7 @@ export function useSingleFileProject({
       if (!isCurrent()) return;
       handle.current = saved.handle;
       handleDigest.current = digest;
+      queuedDigest.current = undefined;
       unlockedKey.current = encoded.unlockedKey;
       const clean = await settleSavedRevision(snapshot, embedded, isCurrent);
       if (!isCurrent()) return;
@@ -747,6 +764,7 @@ export function useSingleFileProject({
     } catch (error) {
       if (!isCurrent()) return;
       if (error instanceof DOMException && error.name === "AbortError") {
+        if (saveAbort.current !== controller) return;
         setFileSaveState({ documentId, status: "cancelled" });
         setInteractionMessage("Document save cancelled. Your changes remain in the workspace.");
       } else {
@@ -802,6 +820,7 @@ export function useSingleFileProject({
     embedded.closeProject();
     handle.current = undefined;
     handleDigest.current = undefined;
+    queuedDigest.current = undefined;
     unlockedKey.current = undefined;
   }, [confirmLeave, embedded]);
 
@@ -818,6 +837,7 @@ export function useSingleFileProject({
       if (!sameDocument) {
         handle.current = undefined;
         handleDigest.current = undefined;
+        queuedDigest.current = undefined;
         unlockedKey.current = undefined;
         setSavedBaseline(undefined);
         // Joining a shared document leaves unrelated local tabs alone.
