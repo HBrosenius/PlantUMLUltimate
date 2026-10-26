@@ -1,0 +1,23 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { jiraUpdateIssues } from "../../../apps/web/src/jira-client";
+afterEach(() => vi.unstubAllGlobals());
+it("demonstrates loss of successful batch results when a later batch fails", async () => {
+  const updates = Array.from({ length: 26 }, (_, i) => ({
+    issueId: String(i + 1),
+    issueKey: `AUDIT-${i + 1}`,
+    fields: { summary: "Reviewed change" },
+  }));
+  const request = vi
+    .fn()
+    .mockResolvedValueOnce(
+      Response.json({
+        results: updates.slice(0, 25).map((item) => ({ issueId: item.issueId, issueKey: item.issueKey, ok: true })),
+      }),
+    )
+    .mockResolvedValueOnce(Response.json({ error: "Service temporarily unavailable" }, { status: 503 }));
+  vi.stubGlobal("fetch", request);
+  const error = await jiraUpdateIssues("https://example.test", { cloudId: "audit", updates }).catch((error) => error);
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(error.message).toBe("Service temporarily unavailable");
+  expect(error.results).toBeUndefined();
+});

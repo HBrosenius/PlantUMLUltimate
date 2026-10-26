@@ -4405,6 +4405,11 @@ export function App() {
             onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
             onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
           />
+          {(sideInspectorOpen || projectInspectorOpen) && (
+            <button type="button" onClick={() => selectViewMode(viewMode === "diagram" ? "split" : "diagram")}>
+              {viewMode === "diagram" ? "Restore split view" : "Focus on diagram"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -4663,7 +4668,7 @@ export function App() {
             viewMode === "split"
               ? taskViewActive
                 ? `minmax(0, ${taskTablePercent}fr) 5px minmax(0, ${100 - taskTablePercent}fr)`
-                : `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
+                : `min(${sideInspectorOpen || projectInspectorOpen ? Math.min(workspace.splitPercent, 35) : workspace.splitPercent}%, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
@@ -5327,7 +5332,9 @@ export function App() {
                 : "Live collaboration"
               : collaboration.connection === "connecting"
                 ? "Collaboration connecting…"
-                : "Collaboration offline"}
+                : collaboration.connection === "offline"
+                  ? "Collaboration offline"
+                  : "Collaboration stopped"}
           </span>
         )}
         {pwa.canInstall && (
@@ -6024,6 +6031,13 @@ export function App() {
           onStart={startCollaboration}
           onRotate={rotateCollaborationRoom}
           onLeave={leaveCollaboration}
+          onSaveLocal={
+            collaborationAppliesToActiveDiagram && !fileSaving
+              ? () => {
+                  void saveCurrentDocumentAs().catch(reportError);
+                }
+              : undefined
+          }
           onClose={() => setCollaborationDialogOpen(false)}
         />
       )}

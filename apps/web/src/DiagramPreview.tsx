@@ -1267,16 +1267,6 @@ export function DiagramPreview({
                   +
                 </button>
               </div>
-              <div className="gantt-control-group" role="group" aria-label="Overlays">
-                <span className="gantt-control-label">Overlays</span>
-                <button
-                  type="button"
-                  aria-pressed={showCriticalPath}
-                  onClick={() => setShowCriticalPath((value) => !value)}
-                >
-                  Critical path
-                </button>
-              </div>
             </>
           )}
           {selectedDependencyIndex !== undefined && (
@@ -1285,6 +1275,9 @@ export function DiagramPreview({
             </button>
           )}
         </div>
+      </div>
+      <details className="gantt-options">
+        <summary>Diagram options · filters &amp; move policy</summary>
         <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
           <span className="gantt-control-label">Forecast</span>
           {progressForecastResult &&
@@ -1339,48 +1332,55 @@ export function DiagramPreview({
             </button>
           )}
         </div>
-      </div>
-      <div className="gantt-context-controls">
-        <div className="gantt-control-group" role="group" aria-label="Schedule controls">
-          {onOpenCalendar && (
-            <button
-              data-inspector-trigger
-              onClick={onOpenCalendar}
-              title="Change the time axis in Calendar & schedule; Apply edits diagram source"
-            >
-              Timeline scale…
-            </button>
-          )}
-          {onOpenGanttPreferences && (
-            <button
-              onClick={onOpenGanttPreferences}
-              title="Change the default for task moves and rescheduling in Gantt preferences"
-            >
-              Move policy:{" "}
-              {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
-            </button>
-          )}
+
+        <div className="gantt-control-group" role="group" aria-label="Overlays">
+          <span className="gantt-control-label">Overlays</span>
+          <button type="button" aria-pressed={showCriticalPath} onClick={() => setShowCriticalPath((value) => !value)}>
+            Critical path
+          </button>
         </div>
-        {onResourceFilterChange && (
-          <div className="gantt-control-group" role="group" aria-label="Resource filter">
-            <label className="resource-filter">
-              Filter by resource{" "}
-              <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
-                <option value="">All</option>
-                {resourceNames.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </select>
-            </label>
-            {resourceFilter && (
-              <>
-                <strong>Showing: {resourceFilter}</strong>
-                <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
-              </>
+        <div className="gantt-context-controls">
+          <div className="gantt-control-group" role="group" aria-label="Schedule controls">
+            {onOpenCalendar && (
+              <button
+                data-inspector-trigger
+                onClick={onOpenCalendar}
+                title="Change the time axis in Calendar & schedule; Apply edits diagram source"
+              >
+                Timeline scale…
+              </button>
+            )}
+            {onOpenGanttPreferences && (
+              <button
+                onClick={onOpenGanttPreferences}
+                title="Change the default for task moves and rescheduling in Gantt preferences"
+              >
+                Move policy:{" "}
+                {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
+              </button>
             )}
           </div>
-        )}
-      </div>
+          {onResourceFilterChange && (
+            <div className="gantt-control-group" role="group" aria-label="Resource filter">
+              <label className="resource-filter">
+                Filter by resource{" "}
+                <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
+                  <option value="">All</option>
+                  {resourceNames.map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              {resourceFilter && (
+                <>
+                  <strong>Showing: {resourceFilter}</strong>
+                  <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
       <p className="gantt-controls-help">
         Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits change
         the diagram.

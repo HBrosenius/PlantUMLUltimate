@@ -441,3 +441,39 @@ it("uses the gateway for scoped tokens and remembers it for later requests", asy
     expect.anything(),
   );
 });
+
+it("returns confirmed successes and uncertain outcomes after an upstream transport failure", async () => {
+  const connected = await connect();
+  const outbound = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    .mockRejectedValueOnce(new Error("timeout"));
+  vi.stubGlobal("fetch", outbound);
+  const response = await exports.default.fetch(
+    new Request(`${WORKER_ORIGIN}/api/issues/update`, {
+      method: "POST",
+      headers: {
+        Origin: APP_ORIGIN,
+        Cookie: `jira_session=${connected.sessionCookie}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cloudId: "cloud-1",
+        updates: [1, 2, 3].map((id) => ({
+          issueId: String(id),
+          issueKey: `APP-${id}`,
+          fields: { summary: "Updated" },
+        })),
+      }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    results: [
+      { issueId: "1", issueKey: "APP-1", ok: true },
+      { issueId: "2", issueKey: "APP-2", ok: false, outcome: "uncertain" },
+      { issueId: "3", issueKey: "APP-3", ok: false, outcome: "not-attempted" },
+    ],
+  });
+  expect(outbound).toHaveBeenCalledTimes(2);
+});

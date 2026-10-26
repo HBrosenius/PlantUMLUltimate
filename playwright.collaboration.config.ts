@@ -24,8 +24,8 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command:
-        "VITE_COLLABORATION_URL=http://127.0.0.1:8787 npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
+      command: "npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
+      env: { VITE_COLLABORATION_URL: "http://127.0.0.1:8787" },
       url: "http://127.0.0.1:5173",
       reuseExistingServer: false,
       timeout: 30_000,

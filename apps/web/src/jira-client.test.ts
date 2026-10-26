@@ -123,6 +123,7 @@ it("sends API credentials in the POST body with the session cookie", async () =>
   expect(outbound).toHaveBeenCalledWith("https://integrations.example/api/connect-token", {
     method: "POST",
     credentials: "include",
+    signal: expect.any(AbortSignal),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });

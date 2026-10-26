@@ -173,6 +173,7 @@ async function oauthStart(request: Request, env: Env): Promise<Response> {
 
 async function exchangeCode(code: string, callbackUrl: string, env: Env): Promise<SessionPayload> {
   const tokenResponse = await fetch("https://auth.atlassian.com/oauth/token", {
+    signal: AbortSignal.timeout(15_000),
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -187,6 +188,7 @@ async function exchangeCode(code: string, callbackUrl: string, env: Env): Promis
   const token = await limitedJson<TokenResponse>(tokenResponse);
   if (!token.access_token || !Number.isFinite(token.expires_in)) throw new Error("OAuth token response is invalid");
   const resourcesResponse = await fetch("https://api.atlassian.com/oauth/token/accessible-resources", {
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Bearer ${token.access_token}`, Accept: "application/json" },
   });
   if (!resourcesResponse.ok) throw new Error(`Could not load Jira sites (${resourcesResponse.status})`);
@@ -262,6 +264,7 @@ async function refreshTokens(payload: SessionPayload, env: Env): Promise<Session
   let response: Response;
   try {
     response = await fetch("https://auth.atlassian.com/oauth/token", {
+      signal: AbortSignal.timeout(15_000),
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
@@ -342,6 +345,7 @@ async function jiraFetch(
       ? `Basic ${btoa(String.fromCharCode(...new TextEncoder().encode(`${payload.email}:${payload.accessToken}`)))}`
       : `Bearer ${payload.accessToken}`;
   return fetch(`${base}${path}`, {
+    signal: AbortSignal.timeout(15_000),
     ...init,
     redirect: "manual",
     headers: { Authorization: authorization, Accept: "application/json", ...init?.headers },
@@ -385,7 +389,10 @@ async function connectApiToken(request: Request, env: Env): Promise<Response> {
     accessExpiresAt: 0,
     resources: [{ id: site.hostname, url: site.origin, name: site.hostname, scopes: [] }],
   };
-  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, { redirect: "manual" });
+  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!tenantResponse.ok) return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
   const tenant = await limitedJson<{ cloudId?: unknown }>(tenantResponse);
   if (typeof tenant.cloudId !== "string" || !tenant.cloudId)
@@ -590,23 +597,34 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
         return Response.json({ error: "Start date field must be a Jira custom date field" }, { status: 400 });
     }
     const results = [];
-    for (const update of updates) {
-      const upstream = await jiraFetch(
-        session.payload,
-        cloudId,
-        `/rest/api/3/issue/${encodeURIComponent(update.issueId)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fields: update.fields }),
-        },
-      );
-      results.push({
-        issueId: update.issueId,
-        issueKey: update.issueKey,
-        ok: upstream.ok,
-        ...(upstream.ok ? {} : { status: upstream.status }),
-      });
+    for (const [index, update] of updates.entries()) {
+      try {
+        const upstream = await jiraFetch(
+          session.payload,
+          cloudId,
+          `/rest/api/3/issue/${encodeURIComponent(update.issueId)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: update.fields }),
+          },
+        );
+        results.push({
+          issueId: update.issueId,
+          issueKey: update.issueKey,
+          ok: upstream.ok,
+          ...(upstream.ok ? {} : { status: upstream.status }),
+          ...(upstream.status >= 500 || upstream.status === 408 ? { outcome: "uncertain" } : {}),
+        });
+      } catch {
+        results.push({ issueId: update.issueId, issueKey: update.issueKey, ok: false, outcome: "uncertain" });
+        results.push(
+          ...updates
+            .slice(index + 1)
+            .map(({ issueId, issueKey }) => ({ issueId, issueKey, ok: false, outcome: "not-attempted" })),
+        );
+        break;
+      }
     }
     return Response.json({ results });
   }

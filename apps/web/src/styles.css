@@ -8834,3 +8834,26 @@ polygon.diagram-bulk-selected {
 .scenario-rendered[data-linked-navigation="true"] .diagram {
   transition: none;
 }
+
+/* Preserve canvas room while editing properties on laptop-sized displays. */
+@media (min-width: 900px) and (max-width: 1440px) {
+  .app:is(.has-side-inspector, .has-project-inspector) .gantt-controls-help {
+    display: none;
+  }
+}
+.gantt-options {
+  padding: 4px 8px;
+}
+.gantt-options > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.new-document-dialog section[hidden] {
+  display: none;
+}
+
+.inspector-commit-status > span {
+  display: block;
+  margin-block: 3px;
+  font-weight: 600;
+}

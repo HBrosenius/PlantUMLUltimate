@@ -16,6 +16,7 @@ export function CollaborationDialog({
   onStart,
   onRotate,
   onLeave,
+  onSaveLocal,
   onClose,
 }: {
   documentName?: string | undefined;
@@ -39,6 +40,7 @@ export function CollaborationDialog({
   onStart(name: string, endpoint: string, roomId?: string, accessToken?: string, role?: CollaborationRole): void;
   onRotate(): void;
   onLeave(): void;
+  onSaveLocal?: (() => void) | undefined;
   onClose(): void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -122,8 +124,26 @@ export function CollaborationDialog({
                 ? "Connected"
                 : active.connection === "connecting"
                   ? "Connecting…"
-                  : "Offline · edits will synchronize after reconnecting"}
+                  : {
+                      offline: "Offline · trying to reconnect; keep a local copy of your edits",
+                      revoked: "Room revoked or expired · automatic reconnect stopped",
+                      "access-denied": "Access denied · automatic reconnect stopped",
+                      oversized: "Document too large · automatic reconnect stopped",
+                      "invalid-state": "Invalid document state · automatic reconnect stopped",
+                      unavailable: "Could not connect · the service may be offline or the link may be invalid",
+                    }[active.connection]}
             </div>
+            <p className="collaboration-privacy">
+              Rooms expire after 24 hours. Leaving does not revoke shared links.
+              {active.owner &&
+                " Owner access survives refresh in this tab. Closing the tab clears owner recovery; revoke the link first if access should end."}
+            </p>
+            {!["connected", "connecting", "offline"].includes(active.connection) && (
+              <p role="alert">
+                Your local edits are preserved. Close this panel and use File → Save as to save a local copy, or leave
+                this room and start or join a new room.
+              </p>
+            )}
             {active.role === "viewer" && <strong className="collaboration-viewer-badge">Viewing only</strong>}
             <CollaborationLink
               label={active.role === "viewer" ? "Viewer link" : "Editor link"}
@@ -174,6 +194,24 @@ export function CollaborationDialog({
               ))}
             </section>
             <div className="dialog-actions">
+              {!["connected", "connecting", "offline"].includes(active.connection) && (
+                <>
+                  {onSaveLocal && (
+                    <button type="button" onClick={onSaveLocal}>
+                      Save a local copy
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLeave();
+                      onStart(name.trim() || "Anonymous", endpoint);
+                    }}
+                  >
+                    Start a new room
+                  </button>
+                </>
+              )}
               {active.owner && (
                 <button type="button" onClick={() => setConfirmRotation(true)}>
                   Revoke link and create new

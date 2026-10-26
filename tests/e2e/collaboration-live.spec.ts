@@ -194,7 +194,11 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
   const reconnectedEditor = await join(browser, editorLink, "Editor Bob reconnected", "editor");
   await expect.poll(() => editorSource(reconnectedEditor.page)).toBe(sharedSource);
 
-  await page.getByRole("button", { name: /online/ }).click();
+  await page.reload();
+  const recoveredOwner = page.getByRole("dialog", { name: "Collaboration" });
+  await recoveredOwner.getByRole("button", { name: "Join as editor" }).click();
+  await expect(recoveredOwner).toContainText("Connected");
+  await expect.poll(() => editorSource(page)).toBe(sharedSource);
   await page
     .getByRole("dialog", { name: "Collaboration" })
     .getByRole("button", { name: "Revoke link and create new" })
@@ -203,7 +207,6 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
     .getByRole("alertdialog", { name: "Revoke collaboration link" })
     .getByRole("button", { name: "Revoke and create new link" })
     .click();
-  await expect(page.locator(".statusbar")).toContainText("Old collaboration link revoked");
   const rotatedDialog = page.getByRole("dialog", { name: "Collaboration" });
   await expect(rotatedDialog.getByLabel("Editor link")).not.toHaveValue(editorLink);
   await expect(rotatedDialog).toContainText("Connected");
@@ -212,8 +215,8 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
   await expect(attemptSocket(viewer.page, revokedSocket.toString(), editorCredentials.access)).resolves.toEqual({
     opened: false,
   });
-  await expect(reconnectedEditor.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
-  await expect(viewer.page.locator(".collaboration-status")).toHaveText("Collaboration offline");
+  await expect(reconnectedEditor.page.locator(".collaboration-status")).toHaveText("Collaboration stopped");
+  await expect(viewer.page.locator(".collaboration-status")).toHaveText("Collaboration stopped");
 
   await reconnectedEditor.context.close();
   await viewer.context.close();

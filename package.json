@@ -48,12 +48,21 @@
     "prettier": "^3.9.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.67.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
   },
   "overrides": {
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "undici": "7.30.1",
+    "zod": "4.6.7",
+    "miniflare": {
+      "undici": "7.30.1"
+    },
+    "@cloudflare/vitest-plugin": {
+      "zod": "4.6.7"
+    },
+    "vite": "7.3.7"
   }
 }

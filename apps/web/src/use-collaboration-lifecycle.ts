@@ -1,3 +1,4 @@
+import { recoverOwner, rememberOwner, forgetOwner } from "./collaboration-owner";
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction, type RefObject } from "react";
 import { findTaskAt, parseGantt } from "@plantuml-studio/diagram-gantt";
 import { storageGet } from "./safe-storage";
@@ -186,10 +187,11 @@ export function useCollaborationLifecycle({
         return;
       }
       const roomId = requestedRoomId ?? createCollaborationRoomId();
-      const ownerToken = requestedRoomId ? undefined : createCollaborationOwnerToken();
-      const editorToken = requestedRoomId ? undefined : createCollaborationRoomId();
-      const viewerToken = requestedRoomId ? undefined : createCollaborationRoomId();
-      const role = requestedRoomId ? requestedRole : "editor";
+      const recovered = requestedRoomId ? recoverOwner(normalizedEndpoint, roomId) : undefined;
+      const ownerToken = requestedRoomId ? recovered?.ownerToken : createCollaborationOwnerToken();
+      const editorToken = requestedRoomId ? recovered?.editorToken : createCollaborationRoomId();
+      const viewerToken = requestedRoomId ? recovered?.viewerToken : createCollaborationRoomId();
+      const role = ownerToken ? "editor" : requestedRole;
       if (!/^[A-Za-z0-9_-]{43}$/.test(roomId)) {
         setInteractionMessage("The collaboration link contains an invalid room credential");
         return;
@@ -197,6 +199,14 @@ export function useCollaborationLifecycle({
       if (requestedAccessToken && !/^[A-Za-z0-9_-]{43}$/.test(requestedAccessToken)) {
         setInteractionMessage("The collaboration link contains an invalid access credential");
         return;
+      }
+      if (ownerToken) {
+        try {
+          rememberOwner(normalizedEndpoint, roomId, { ownerToken, editorToken, viewerToken });
+        } catch {
+          setInteractionMessage("Allow session storage before creating a room so ownership survives refresh.");
+          return;
+        }
       }
       const attempt = ++startAttempt.current;
       void import("./collaboration-session")
@@ -351,6 +361,7 @@ export function useCollaborationLifecycle({
       setInteractionMessage(error instanceof Error ? error.message : "Could not revoke collaboration link");
       return;
     }
+    forgetOwner(collaboration.endpoint, collaboration.roomId);
     sessionRef.current.stop();
     sessionRef.current = undefined;
     // The new room reports its own status asynchronously, so hand it the message rather than racing it.
