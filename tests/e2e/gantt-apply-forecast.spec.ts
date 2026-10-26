@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource } from "./editor-helpers";
 
@@ -17,6 +18,7 @@ sunday are closed
 [Short track] is 50% completed
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
   await expect(page.locator(".gantt-forecast-summary")).toContainText("+0 working days from plan");
@@ -58,6 +60,7 @@ saturday are closed
 [Frontend] starts at [Backend]'s end
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
   await page.getByRole("button", { name: "Apply to plan…" }).click();
@@ -95,6 +98,7 @@ saturday are closed
 [Testing] starts at [Frontend]'s end
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
   await page
@@ -127,6 +131,7 @@ sunday are closed
 [Build] is 50% completed
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
   await page.getByRole("button", { name: "Apply to plan…" }).click();

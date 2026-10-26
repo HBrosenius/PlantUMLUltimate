@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 
@@ -23,6 +24,8 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
   page,
 }, testInfo) => {
   await setup(page);
+  await expect(page.getByRole("group", { name: "Overlays", exact: true })).toBeHidden();
+  await openDiagramOptions(page);
   for (const group of ["Task navigation", "Preview zoom", "Overlays", "Schedule controls", "Resource filter"])
     await expect(page.getByRole("group", { name: group, exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Timeline zoom preset" })).toHaveCount(0);
@@ -34,14 +37,18 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
     if (await viewport.evaluate((node) => node.scrollWidth > node.clientWidth + 40)) break;
     await zoom.getByRole("button", { name: "Zoom in", exact: true }).click();
   }
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
+  await openDiagramOptions(page);
   await expect(page.getByRole("button", { name: "Critical path", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
+  await openDiagramOptions(page);
   await page.getByRole("combobox", { name: "Filter by resource", exact: true }).selectOption("Alice");
   await expect(page.getByText("Showing: Alice", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Clear filter", exact: true }).click();
+  await openDiagramOptions(page);
   await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toHaveValue("");
   const slider = page.getByRole("slider", { name: "Timeline position", exact: true });
   await slider.focus();
@@ -52,6 +59,7 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
   await slider.press("Home");
   await expect.poll(() => page.locator(".gantt-preview .preview-viewport").evaluate((node) => node.scrollLeft)).toBe(0);
   expect(await readEditorSource(page)).toBe(source);
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   if (testInfo.project.name === "chromium") {
     await page.screenshot({ path: testInfo.outputPath("gantt-controls-desktop.png") });
@@ -60,7 +68,9 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
       .getByRole("navigation", { name: "View mode" })
       .getByRole("button", { name: "Diagram", exact: true })
       .click();
+    await openDiagramOptions(page);
     await expect(page.getByRole("button", { name: /^Move policy:/ })).toBeInViewport();
+    await openDiagramOptions(page);
     await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toBeInViewport();
     await page.screenshot({ path: testInfo.outputPath("gantt-controls-phone.png") });
   }
@@ -70,6 +80,7 @@ test("move preference is visible and recoverable; timeline scale and task fields
   page,
 }) => {
   await setup(page);
+  await openDiagramOptions(page);
   const policy = page.getByRole("button", { name: /^Move policy:/ });
   await expect(policy).toHaveText("Move policy: Always ask");
   await policy.click();
@@ -83,7 +94,9 @@ test("move preference is visible and recoverable; timeline scale and task fields
   await expect(policy).toHaveText("Move policy: Include dependents");
   expect(await readEditorSource(page)).toBe(source);
   await page.reload();
+  await openDiagramOptions(page);
   await expect(policy).toHaveText("Move policy: Include dependents");
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Timeline scale…", exact: true }).click();
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await expect(calendar).toContainText("Preview zoom only changes the canvas view");

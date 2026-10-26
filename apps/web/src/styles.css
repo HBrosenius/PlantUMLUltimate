@@ -942,6 +942,7 @@ textarea:focus-visible {
 }
 .gantt-preview-tools-forecast {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   white-space: nowrap;
 }

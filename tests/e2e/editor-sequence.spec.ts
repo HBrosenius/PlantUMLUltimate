@@ -68,6 +68,9 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
   const participant = page.locator('[data-sequence-drag-hit][aria-label="Drag participant API"]').first();
   await participant.click();
   const inspector = page.getByRole("complementary", { name: "Participant inspector" });
+  await expect(inspector).toBeVisible();
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeLessThan(initialDividerX);
+  const inspectorDividerX = (await divider.boundingBox())!.x;
   await inspector.getByLabel("Name").fill("");
   await expect(inspector.getByRole("alert")).toHaveText("Enter a participant name.");
   await expect(inspector.getByRole("button", { name: "Apply" })).toBeDisabled();
@@ -79,6 +82,8 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
   await expect(page.locator(".cm-content")).toContainText("participant API LightBlue");
   if (browserName !== "webkit") await expect(inspector.getByRole("button", { name: "Apply" })).toBeFocused();
   await expect(resetZoom).toHaveText(zoomLabel!);
+  await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(inspectorDividerX, 0);
+  await inspector.getByRole("button", { name: "Close participant inspector" }).click();
   await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(initialDividerX, 0);
 });
 
@@ -325,7 +330,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await waitForDiagramRender(page);
   await renderedOrders.focus();
   await renderedOrders.press("Enter");
-  await expect(page.locator(".cm-selectionBackground")).toBeVisible();
+  await expect(page.locator(".cm-selectionBackground").first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? "")).toContain("database Orders");
   const participantInspector = page.getByRole("complementary", { name: "Participant inspector" });
   await expect(participantInspector).toBeVisible();
@@ -359,7 +364,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await waitForDiagramRender(page);
   await renderedRequest.focus();
   await renderedRequest.press("Enter");
-  await expect(page.locator(".cm-selectionBackground")).toBeVisible();
+  await expect(page.locator(".cm-selectionBackground").first()).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ""))
     .toContain("User -> System: Request");
@@ -577,7 +582,10 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("return Completed");
   await expect(page.locator(".sequence-diagram svg")).not.toContainText("Syntax Error");
 
-  await page.locator(".cm-line").filter({ hasText: "alt#Gold #LightBlue Successful request" }).click();
+  await page
+    .locator(".cm-line")
+    .filter({ hasText: "alt#Gold #LightBlue Successful request" })
+    .click({ position: { x: 10, y: 8 } });
   const structureInspector = page.getByRole("complementary", { name: "Sequence structure inspector" });
   await expect(structureInspector).toBeVisible();
   await structureInspector.getByLabel("Branch 2 label").fill("Rejected");
@@ -588,20 +596,29 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("else #Red Rejected");
   await expect(page.locator(".cm-content")).toContainText("else Timed out");
 
-  await page.locator(".cm-line").filter({ hasText: "alt#Gold" }).click();
+  await page
+    .locator(".cm-line")
+    .filter({ hasText: "alt#Gold" })
+    .click({ position: { x: 10, y: 8 } });
   await expect(structureInspector).toBeVisible();
   await structureInspector.getByLabel("Fragment type").selectOption("loop");
   await structureInspector.getByLabel("Label", { exact: true }).fill("Retry request");
   await structureInspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("loop#Gold #LightBlue Retry request");
 
-  await page.locator(".cm-line").filter({ hasText: "activate System" }).click();
+  await page
+    .locator(".cm-line")
+    .filter({ hasText: "activate System" })
+    .click({ position: { x: 10, y: 8 } });
   await expect(structureInspector).toBeVisible();
   await structureInspector.getByLabel("Action").selectOption("deactivate");
   await structureInspector.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".cm-content")).toContainText("deactivate System");
 
-  await page.locator(".cm-line").filter({ hasText: "== Persistence ==" }).click();
+  await page
+    .locator(".cm-line")
+    .filter({ hasText: "== Persistence ==" })
+    .click({ position: { x: 10, y: 8 } });
   await expect(structureInspector).toBeVisible();
   page.once("dialog", (dialog) => void dialog.accept());
   await structureInspector.getByRole("button", { name: "Delete" }).click();

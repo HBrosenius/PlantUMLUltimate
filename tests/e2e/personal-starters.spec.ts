@@ -17,7 +17,12 @@ async function saveDialog(page: Parameters<typeof prepareEditor>[0]) {
 }
 async function chooser(page: Parameters<typeof prepareEditor>[0]) {
   await page.getByRole("button", { name: "New diagram tab", exact: true }).click();
-  return page.getByRole("dialog", { name: "Choose a diagram type", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Choose a diagram type", exact: true });
+  await dialog
+    .locator("summary")
+    .filter({ hasText: /^Personal starters$/ })
+    .click();
+  return dialog;
 }
 async function saveStarter(page: Parameters<typeof prepareEditor>[0]) {
   const dialog = await saveDialog(page);

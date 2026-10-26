@@ -1280,6 +1280,22 @@ export function DiagramPreview({
         <summary>Diagram options · filters &amp; move policy</summary>
         <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
           <span className="gantt-control-label">Forecast</span>
+          {onProgressForecastChange && (
+            <button
+              type="button"
+              aria-pressed={Boolean(progressForecast?.enabled)}
+              onClick={() =>
+                onProgressForecastChange({
+                  enabled: !progressForecast?.enabled,
+                  remainingDays: progressForecast?.remainingDays ?? {},
+                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
+                })
+              }
+            >
+              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
+            </button>
+          )}
           {progressForecastResult &&
             !progressForecastResult.unavailable &&
             hasDelayedForecastTask(progressForecastResult) &&
@@ -1314,22 +1330,6 @@ export function DiagramPreview({
                 }}
               />
             </label>
-          )}
-          {onProgressForecastChange && (
-            <button
-              type="button"
-              aria-pressed={Boolean(progressForecast?.enabled)}
-              onClick={() =>
-                onProgressForecastChange({
-                  enabled: !progressForecast?.enabled,
-                  remainingDays: progressForecast?.remainingDays ?? {},
-                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
-                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
-                })
-              }
-            >
-              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
-            </button>
           )}
         </div>
 

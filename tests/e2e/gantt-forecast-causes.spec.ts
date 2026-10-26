@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource } from "./editor-helpers";
 
@@ -18,6 +19,7 @@ sunday are closed
 [Release] happens at [Build]'s end
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-28");
 
@@ -35,6 +37,7 @@ sunday are closed
 test("warns before exporting source without forecast settings", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, "@startgantt\nProject starts 2026-09-21\n[Design] lasts 4 days\n@endgantt");
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-29");
   await page.getByRole("button", { name: "File", exact: true }).click();
@@ -60,6 +63,7 @@ test("copies a forecast summary with dates and the finish driver", async ({ page
     page,
     "@startgantt\nProject starts 2026-09-21\n[Design] starts 2026-09-21\n[Design] lasts 4 days\n[Design] is 50% completed\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-29");
   await page.getByRole("button", { name: "Copy summary" }).click();
@@ -89,6 +93,7 @@ sunday are closed
 [Short track] is 50% completed
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-30");
   await page.getByRole("button", { name: "Copy summary" }).click();
@@ -100,6 +105,7 @@ sunday are closed
 test("changes and restores the document forecast time zone", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, "@startgantt\nProject starts 2026-09-21\n[Design] lasts 4 days\n@endgantt");
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Document settings…" }).click();

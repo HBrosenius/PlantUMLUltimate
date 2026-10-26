@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -1313,6 +1314,7 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
 test("shortens a weekend-starting task through every working endpoint", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-05\n[A] lasts 6 days"));
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: /^Move policy:/ }).click();
   await page.getByLabel("When moving tasks").selectOption("single");
   await page

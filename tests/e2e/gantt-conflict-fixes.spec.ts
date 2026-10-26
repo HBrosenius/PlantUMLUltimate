@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { fillSource, prepareEditor, setSource } from "./editor-helpers";
 
@@ -47,6 +48,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
       await expect(page.getByLabel("Task details for Frontend")).toContainText(
         `2026-09-28 → 2026-09-${paused ? "30" : "29"}`,
       );
+      await openDiagramOptions(page);
       await page.getByRole("button", { name: "Critical path", exact: true }).click();
       const report = page.locator(".critical-path-report");
       await expect(report).toContainText(`Critical path · ${paused ? 6 : 5} days`);
@@ -71,6 +73,7 @@ test("distinguishes task and milestone slack units on a closed weekend", async (
     page,
     "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-25 and lasts 1 day\n[Release] happens 2026-09-26\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const milestone = report
@@ -96,6 +99,7 @@ test("shows a selectable critical chain through a linked milestone", async ({ pa
     page,
     "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-21 and lasts 5 days\n[Build] pauses on tuesday\n[Release] happens at [Build]'s end\n[Deploy] starts at [Release]'s end and lasts 2 days\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const row = page
     .locator(".critical-path-report")
@@ -124,6 +128,7 @@ test("shows dates and slack for every task and highlights critical tasks", async
       "@endgantt",
     ].join("\n"),
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   for (const [name, duration, slack, critical] of [
@@ -167,6 +172,7 @@ test("sorts the schedule by slack and dates with stable ties and restores source
   const source =
     "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day and is 50% completed\n[B] lasts 1 day and starts at [A]'s end and is 100% completed\n[C] lasts 10 days\n@endgantt";
   await fillSource(page, source);
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const sort = async (value: string) => {
@@ -224,6 +230,7 @@ test("selects and reveals an offscreen task from the sorted schedule table", asy
     page,
     "@startgantt\nProject starts 2026-09-21\nprintscale daily\n[Early] starts 2026-09-21 and lasts 2 days\n[Late] starts 2026-12-21 and lasts 2 days\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   await report.getByRole("columnheader", { name: "Total slack", exact: true }).getByRole("button").click();
@@ -255,6 +262,7 @@ test("filters near-critical tasks in the table and diagram with an adjustable sl
   );
   // Wait for this source's canonical preview before testing synchronous filters.
   await expect(page.locator('.diagram [data-task-id="c"]')).toBeVisible({ timeout: 45_000 });
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const names = report.getByRole("rowheader");
