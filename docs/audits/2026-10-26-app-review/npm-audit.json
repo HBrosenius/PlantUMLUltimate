@@ -5,16 +5,10 @@
       "name": "@cloudflare/vitest-plugin",
       "severity": "high",
       "isDirect": true,
-      "via": [
-        "miniflare",
-        "wrangler",
-        "zod"
-      ],
+      "via": ["miniflare", "wrangler", "zod"],
       "effects": [],
       "range": ">=1.0.0",
-      "nodes": [
-        "node_modules/@cloudflare/vitest-plugin"
-      ],
+      "nodes": ["node_modules/@cloudflare/vitest-plugin"],
       "fixAvailable": {
         "name": "@cloudflare/vitest-plugin",
         "version": "0.0.0",
@@ -33,11 +27,7 @@
           "title": "Vitest: Code injection via unauthenticated manual mock registration",
           "url": "https://github.com/advisories/GHSA-qxg6-89mg-rqv8",
           "severity": "moderate",
-          "cwe": [
-            "CWE-94",
-            "CWE-116",
-            "CWE-306"
-          ],
+          "cwe": ["CWE-94", "CWE-116", "CWE-306"],
           "cvss": {
             "score": 4.7,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:N"
@@ -51,9 +41,7 @@
           "title": "Vitest: Windows backslash traversal bypasses the @vitest/mocker redirect allowlist fix",
           "url": "https://github.com/advisories/GHSA-xp26-3454-mjgp",
           "severity": "moderate",
-          "cwe": [
-            "CWE-22"
-          ],
+          "cwe": ["CWE-22"],
           "cvss": {
             "score": 5.9,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
@@ -61,13 +49,9 @@
           "range": ">=4.1.11 <4.1.12"
         }
       ],
-      "effects": [
-        "vitest"
-      ],
+      "effects": ["vitest"],
       "range": "<=4.1.11",
-      "nodes": [
-        "node_modules/@vitest/mocker"
-      ],
+      "nodes": ["node_modules/@vitest/mocker"],
       "fixAvailable": true
     },
     "dompurify": {
@@ -82,9 +66,7 @@
           "title": "DOMPurify SAFE_FOR_TEMPLATES bypass: split template expressions survive in attached shadow root content on DOM output modes",
           "url": "https://github.com/advisories/GHSA-cg2g-xh64-v4q7",
           "severity": "critical",
-          "cwe": [
-            "CWE-79"
-          ],
+          "cwe": ["CWE-79"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -98,10 +80,7 @@
           "title": "DOMPurify IN_PLACE: hook that removes a parent or sibling leaves the detached subtree's event handlers armed (incomplete fix for GHSA-p98j-92pf-mc4p)",
           "url": "https://github.com/advisories/GHSA-mrv2-3pqr-j5jr",
           "severity": "high",
-          "cwe": [
-            "CWE-79",
-            "CWE-693"
-          ],
+          "cwe": ["CWE-79", "CWE-693"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -115,9 +94,7 @@
           "title": "DOMPurify: SMIL attributeName=href guard is skipped when PARSER_MEDIA_TYPE is application/xhtml+xml",
           "url": "https://github.com/advisories/GHSA-c6gr-qvv4-5v3f",
           "severity": "low",
-          "cwe": [
-            "CWE-79"
-          ],
+          "cwe": ["CWE-79"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -127,25 +104,17 @@
       ],
       "effects": [],
       "range": "<=3.4.16",
-      "nodes": [
-        "node_modules/dompurify"
-      ],
+      "nodes": ["node_modules/dompurify"],
       "fixAvailable": true
     },
     "miniflare": {
       "name": "miniflare",
       "severity": "moderate",
       "isDirect": false,
-      "via": [
-        "undici"
-      ],
-      "effects": [
-        "wrangler"
-      ],
+      "via": ["undici"],
+      "effects": ["wrangler"],
       "range": ">=4.20250906.1",
-      "nodes": [
-        "node_modules/miniflare"
-      ],
+      "nodes": ["node_modules/miniflare"],
       "fixAvailable": {
         "name": "wrangler",
         "version": "4.35.0",
@@ -164,9 +133,7 @@
           "title": "undici vulnerable to Denial of Service via unbounded memory in the EventSource parser",
           "url": "https://github.com/advisories/GHSA-4qv8-2p9j-2685",
           "severity": "moderate",
-          "cwe": [
-            "CWE-770"
-          ],
+          "cwe": ["CWE-770"],
           "cvss": {
             "score": 5.9,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -180,9 +147,7 @@
           "title": "undici vulnerable to Denial of Service via unbounded memory in the EventSource parser",
           "url": "https://github.com/advisories/GHSA-4qv8-2p9j-2685",
           "severity": "moderate",
-          "cwe": [
-            "CWE-770"
-          ],
+          "cwe": ["CWE-770"],
           "cvss": {
             "score": 5.9,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -196,9 +161,7 @@
           "title": "undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens",
           "url": "https://github.com/advisories/GHSA-f72v-6w45-q472",
           "severity": "moderate",
-          "cwe": [
-            "CWE-178"
-          ],
+          "cwe": ["CWE-178"],
           "cvss": {
             "score": 5.9,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N"
@@ -212,9 +175,7 @@
           "title": "undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens",
           "url": "https://github.com/advisories/GHSA-f72v-6w45-q472",
           "severity": "moderate",
-          "cwe": [
-            "CWE-178"
-          ],
+          "cwe": ["CWE-178"],
           "cvss": {
             "score": 5.9,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N"
@@ -228,10 +189,7 @@
           "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
           "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c",
           "severity": "high",
-          "cwe": [
-            "CWE-248",
-            "CWE-459"
-          ],
+          "cwe": ["CWE-248", "CWE-459"],
           "cvss": {
             "score": 7.5,
             "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -245,10 +203,7 @@
           "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
           "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c",
           "severity": "high",
-          "cwe": [
-            "CWE-248",
-            "CWE-459"
-          ],
+          "cwe": ["CWE-248", "CWE-459"],
           "cvss": {
             "score": 7.5,
             "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -256,14 +211,9 @@
           "range": ">=7.18.0 <7.30.1"
         }
       ],
-      "effects": [
-        "miniflare"
-      ],
+      "effects": ["miniflare"],
       "range": "7.0.0 - 7.30.0 || 8.0.0 - 8.12.1",
-      "nodes": [
-        "node_modules/jsdom/node_modules/undici",
-        "node_modules/undici"
-      ],
+      "nodes": ["node_modules/jsdom/node_modules/undici", "node_modules/undici"],
       "fixAvailable": {
         "name": "wrangler",
         "version": "4.35.0",
@@ -282,9 +232,7 @@
           "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
           "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv",
           "severity": "moderate",
-          "cwe": [
-            "CWE-78"
-          ],
+          "cwe": ["CWE-78"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -298,9 +246,7 @@
           "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
           "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw",
           "severity": "moderate",
-          "cwe": [
-            "CWE-88"
-          ],
+          "cwe": ["CWE-88"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -314,9 +260,7 @@
           "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
           "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
           "severity": "high",
-          "cwe": [
-            "CWE-77"
-          ],
+          "cwe": ["CWE-77"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -330,9 +274,7 @@
           "title": "Vite: Cross origin script execution through Vite custom middleware",
           "url": "https://github.com/advisories/GHSA-9jrq-w75r-8gcw",
           "severity": "low",
-          "cwe": [
-            "CWE-80"
-          ],
+          "cwe": ["CWE-80"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -346,10 +288,7 @@
           "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
           "url": "https://github.com/advisories/GHSA-rq7h-c2jc-7f22",
           "severity": "moderate",
-          "cwe": [
-            "CWE-22",
-            "CWE-284"
-          ],
+          "cwe": ["CWE-22", "CWE-284"],
           "cvss": {
             "score": 0,
             "vectorString": null
@@ -359,37 +298,27 @@
       ],
       "effects": [],
       "range": "7.0.0 - 7.3.6",
-      "nodes": [
-        "node_modules/vite"
-      ],
+      "nodes": ["node_modules/vite"],
       "fixAvailable": true
     },
     "vitest": {
       "name": "vitest",
       "severity": "moderate",
       "isDirect": true,
-      "via": [
-        "@vitest/mocker"
-      ],
+      "via": ["@vitest/mocker"],
       "effects": [],
       "range": "2.1.0-beta.1 - 4.1.11",
-      "nodes": [
-        "node_modules/vitest"
-      ],
+      "nodes": ["node_modules/vitest"],
       "fixAvailable": true
     },
     "wrangler": {
       "name": "wrangler",
       "severity": "moderate",
       "isDirect": true,
-      "via": [
-        "miniflare"
-      ],
+      "via": ["miniflare"],
       "effects": [],
       "range": "<=0.0.0-31bfd374c || >=4.36.0",
-      "nodes": [
-        "node_modules/wrangler"
-      ],
+      "nodes": ["node_modules/wrangler"],
       "fixAvailable": {
         "name": "wrangler",
         "version": "4.35.0",
@@ -408,9 +337,7 @@
           "title": "Zod can exhaust memory while validating oversized constrained collections",
           "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
           "severity": "high",
-          "cwe": [
-            "CWE-770"
-          ],
+          "cwe": ["CWE-770"],
           "cvss": {
             "score": 7.5,
             "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -418,13 +345,9 @@
           "range": "<4.6.6"
         }
       ],
-      "effects": [
-        "@cloudflare/vitest-plugin"
-      ],
+      "effects": ["@cloudflare/vitest-plugin"],
       "range": "<4.6.6",
-      "nodes": [
-        "node_modules/zod"
-      ],
+      "nodes": ["node_modules/zod"],
       "fixAvailable": {
         "name": "@cloudflare/vitest-plugin",
         "version": "0.0.0",
