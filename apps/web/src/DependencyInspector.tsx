@@ -1,5 +1,5 @@
 import { InspectorPanel } from "./InspectorPanel";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { ColorField } from "./ColorField";
 
@@ -40,6 +40,7 @@ export function DependencyInspector({
     notePosition: "bottom",
   });
   const [value, setValue] = useState(initial);
+  const noteId = useId();
   const lastAppliedValue = useRef(JSON.stringify(value));
   const apply = (next = value) => {
     const serialized = JSON.stringify(next);
@@ -137,14 +138,16 @@ export function DependencyInspector({
           onChange={(color) => update("color", color)}
           onBlur={() => apply()}
         />
-        <label className="inspector-note-field">
+        <label className="inspector-note-field" htmlFor={noteId}>
           <span className="inspector-field-heading">
-            Note
+            <span id={`${noteId}-label`}>Note</span>
             <button type="button" disabled={!value.note} onClick={() => update("note", "", true)}>
               Remove note
             </button>
           </span>
           <textarea
+            id={noteId}
+            aria-labelledby={`${noteId}-label`}
             rows={4}
             placeholder="Explain this dependency"
             value={value.note}

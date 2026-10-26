@@ -220,8 +220,9 @@ export function ClassDiagramPreview({
       h.setAttribute("class", "class-connect-handle");
       attrs(h, {
         "data-class-connect-from": entity.id,
-        cx: entityBox ? entityBox.x + entityBox.width - 10 : b.x + b.width + 6,
-        cy: b.y + b.height / 2,
+        // On the box's top-right corner: clear of the centred name and of a neighbouring class's move handle.
+        cx: entityBox ? entityBox.x + entityBox.width : b.x + b.width + 6,
+        cy: entityBox ? entityBox.y : b.y + b.height / 2,
         r: diagramKind === "component" ? 10 : 8,
         role: "button",
         tabindex: 0,

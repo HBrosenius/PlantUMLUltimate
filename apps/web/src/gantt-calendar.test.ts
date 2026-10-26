@@ -53,4 +53,30 @@ describe("Gantt calendar resize", () => {
       endDate: "2026-09-11",
     });
   });
+  it("converts a drag through the task's allocation", () => {
+    // At 50%, 4 duration days span 8 working days (10-05 to 10-14 with weekends closed).
+    const source =
+      "@startgantt\nsaturday are closed\nsunday are closed\n[A] on {Alice:50%} starts 2026-10-05 and lasts 4 days\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    const calendar = parseGanttCalendar(source);
+    expect(calendarResizeTarget(task, 2, calendar, 50)).toEqual({
+      calendarDays: 2,
+      durationDelta: 1,
+      endDate: "2026-10-16",
+    });
+    expect(calendarResizeTarget(task, -1, calendar, 50)).toEqual({
+      calendarDays: -2,
+      durationDelta: -1,
+      endDate: "2026-10-12",
+    });
+  });
+  it("skips paused days when finding the current and new end", () => {
+    const source = "@startgantt\n[A] starts 2026-10-05 and lasts 3 days\n[A] pauses on 2026-10-06\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    expect(calendarResizeTarget(task, 1, parseGanttCalendar(source))).toEqual({
+      calendarDays: 1,
+      durationDelta: 1,
+      endDate: "2026-10-09",
+    });
+  });
 });

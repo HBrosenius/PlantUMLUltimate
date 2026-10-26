@@ -356,6 +356,28 @@ describe("Jira API token connection", () => {
       }),
     );
   }
+  it("rejects a JSON body that is not an object", async () => {
+    for (const body of [null, ["https://acme.atlassian.net"]]) {
+      const response = await request(body);
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("limits connection attempts per client address", async () => {
+    const attempt = () =>
+      exports.default.fetch(
+        new Request(`${WORKER_ORIGIN}/api/connect-token`, {
+          method: "POST",
+          headers: { Origin: APP_ORIGIN, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.9" },
+          body: "null",
+        }),
+      );
+    const statuses: number[] = [];
+    for (let index = 0; index < 11; index += 1) statuses.push((await attempt()).status);
+    expect(statuses.slice(0, 10).every((status) => status === 400)).toBe(true);
+    expect(statuses[10]).toBe(429);
+  });
+
   it("verifies credentials, keeps them private, reuses the cloud ID, and disconnects", async () => {
     const outbound = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       // Workerd rejects redirect: "error"; never follow redirects carrying credentials.

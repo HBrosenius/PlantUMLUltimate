@@ -13,6 +13,9 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Bounds credential probing through /api/connect-token: 10 attempts per client IP per minute.
+  // Namespace IDs are account-wide; 1001 and 1002 belong to the collaboration worker.
+  "ratelimits": [{ "name": "CONNECT_TOKEN_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }],
   "secrets": {
     "required": ["ATLASSIAN_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"],
   },

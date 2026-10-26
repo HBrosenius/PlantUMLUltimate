@@ -83,6 +83,7 @@ export function TaskInspector({
   focusNote?: boolean;
 }) {
   const resourceListId = useId();
+  const noteId = useId();
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const initial = (): TaskInspectorValue => ({
     label: task.label,
@@ -259,6 +260,7 @@ export function TaskInspector({
             <span className="compound">
               <input
                 type="number"
+                aria-label="Duration"
                 min="1"
                 step="1"
                 readOnly={value.scheduleMode === "end"}
@@ -268,6 +270,7 @@ export function TaskInspector({
                 onBlur={() => apply()}
               />
               <select
+                aria-label="Duration unit"
                 disabled={value.scheduleMode === "end"}
                 value={value.scheduleMode === "end" ? "day" : value.durationUnit}
                 onChange={(event) => update("durationUnit", event.target.value as "day" | "week" | "month", true)}
@@ -447,14 +450,16 @@ export function TaskInspector({
                 ))}
             </select>
           </label>
-          <label className="inspector-note-field">
+          <label className="inspector-note-field" htmlFor={noteId}>
             <span className="inspector-field-heading">
-              Note
+              <span id={`${noteId}-label`}>Note</span>
               <button type="button" disabled={!value.note} onClick={() => update("note", "", true)}>
                 Remove note
               </button>
             </span>
             <textarea
+              id={noteId}
+              aria-labelledby={`${noteId}-label`}
               ref={noteRef}
               rows={4}
               placeholder="Add context for this task"

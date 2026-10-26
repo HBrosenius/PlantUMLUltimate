@@ -353,7 +353,12 @@ async function jiraFetch(
 }
 
 async function connectApiToken(request: Request, env: Env): Promise<Response> {
-  const body = await limitedJson<{ siteUrl?: unknown; email?: unknown; apiToken?: unknown }>(request);
+  const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (!(await env.CONNECT_TOKEN_LIMITER.limit({ key: client })).success)
+    return Response.json({ error: "Too many connection attempts. Wait a minute and try again." }, { status: 429 });
+  const body = await limitedJson<{ siteUrl?: unknown; email?: unknown; apiToken?: unknown } | null>(request);
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return Response.json({ error: "Expected a JSON object" }, { status: 400 });
   let site: URL;
   try {
     site = new URL(typeof body.siteUrl === "string" ? body.siteUrl.trim() : "");

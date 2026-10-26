@@ -58,22 +58,33 @@ export function resolveDateExpression(
   return shiftDate(anchor, amount);
 }
 
-/** Offsets are calendar days; zero start/end links advance to the next eligible weekday. */
+/**
+ * Offsets are calendar days. PlantUML anchors "[A]'s end" at the instant after A's last day, so
+ * "N days after [A]'s end" is the last day + 1 + N and "N days before" is the last day + 1 − N.
+ * A start pushed forward onto a closed day moves on to the next working day, as PlantUML draws it.
+ */
 export function dependencyDate(
   anchor: string,
   dependency: GanttDependency,
   calendar: GanttCalendar,
 ): string | undefined {
   const direction = dependency.direction === "before" ? -1 : 1;
-  let date = shiftDate(anchor, (dependency.offset?.value ?? 0) * direction);
-  if (dependency.relation === "start-after-end" && (dependency.offset?.value ?? 0) === 0) {
-    for (let step = 0; date && step < 10_000; step++) {
-      date = shiftDate(date, direction);
-      if (date && isWorkingDate(date, calendar)) return date;
-    }
-    return undefined;
+  const offset = dependency.offset?.value ?? 0;
+  const fromEnd = dependency.relation === "start-after-end";
+  if (fromEnd && offset === 0) return nextWorkingDate(anchor, direction, calendar);
+  if (offset < 0 || (dependency.relation !== "start-after-start" && !fromEnd))
+    return shiftDate(anchor, offset * direction);
+  const date = shiftDate(anchor, (fromEnd ? 1 : 0) + offset * direction);
+  if (!date || direction < 0 || isWorkingDate(date, calendar)) return date;
+  return nextWorkingDate(date, 1, calendar);
+}
+
+function nextWorkingDate(date: string | undefined, direction: 1 | -1, calendar: GanttCalendar): string | undefined {
+  for (let step = 0; date && step < 10_000; step++) {
+    date = shiftDate(date, direction);
+    if (date && isWorkingDate(date, calendar)) return date;
   }
-  return date;
+  return undefined;
 }
 
 export function resolveTaskDates(

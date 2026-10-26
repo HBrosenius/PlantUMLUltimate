@@ -347,13 +347,29 @@ export function useEmbeddedProject(tabs: EmbeddedProjectTabs) {
       memberTabs.current.delete(memberId);
       retainedMemberTabs.current.delete(memberId);
       persistentStateByMember.current.delete(memberId);
+      // A Gantt linked to the deleted WBS keeps working as a plain Gantt; a dangling link fails validation on save.
+      const diagrams = current.diagrams
+        .filter((diagram) => diagram.id !== memberId)
+        .map((diagram) => {
+          if (diagram.wbsGantt?.wbsDiagramId !== memberId) return diagram;
+          const unlinked = { ...diagram };
+          delete unlinked.wbsGantt;
+          const ganttTabId = memberTabs.current.get(diagram.id);
+          if (ganttTabId)
+            tabs.updateDocumentFormat?.(ganttTabId, {
+              linkedWbsDocumentId: undefined,
+              wbsGanttLinks: undefined,
+              wbsGanttDependencies: undefined,
+            });
+          return unlinked;
+        });
       revisionRef.current += 1;
       setRevision(revisionRef.current);
       setProject({
         ...current,
         revisionId: crypto.randomUUID(),
         savedAt: new Date().toISOString(),
-        diagrams: current.diagrams.filter((diagram) => diagram.id !== memberId),
+        diagrams,
         elements: current.elements.filter((element) => !removedElementIds.has(element.id)),
         links: current.links.filter((link) => !removedElementIds.has(link.from) && !removedElementIds.has(link.to)),
       });

@@ -129,7 +129,9 @@ function parseWbsUncached(source: string): WbsDocument {
     }
     const depth = marker.length;
     const side: WbsSide = marker[0] === "+" ? "right" : marker[0] === "-" ? "left" : depth === 1 ? "root" : "right";
-    let content = match[3] ?? "";
+    // `**_ Label` draws the node without a box; the `_` belongs to the marker, not the label.
+    const boxless = /^\s*[*+-]+_/.test(text);
+    let content = boxless ? (match[3] ?? "").replace(/^_\s*/, "") : (match[3] ?? "");
     if (opensMultilineLabel(content)) {
       while (lineIndex + 1 < lines.length && !MULTILINE_CLOSE.test(content.trim())) {
         lineIndex += 1;
@@ -141,7 +143,7 @@ function parseWbsUncached(source: string): WbsDocument {
     }
     // `**(plan) Plan` always declares an alias; a spaced `** (draft) Plan` only does when an arrow
     // refers to it, and otherwise `(draft)` is part of the label.
-    const spaced = /^\s*[*+-]+\s/.test(text);
+    const spaced = /^\s*[*+-]+_?\s/.test(text);
     const details = nodeDetails(content, (name) => !spaced || arrowNames.has(name));
     if (!details.label)
       diagnostics.push({ severity: "error", message: "WBS node needs a label", range, code: "empty-node" });
@@ -162,6 +164,7 @@ function parseWbsUncached(source: string): WbsDocument {
       depth,
       side,
       marker,
+      ...(boxless ? { boxless } : {}),
       ...(parent ? { parentId: parent.id } : {}),
       sourceRange: range,
       subtreeRange: { ...range },

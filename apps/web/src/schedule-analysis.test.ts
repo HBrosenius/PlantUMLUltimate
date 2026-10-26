@@ -213,18 +213,20 @@ sunday are closed
 
   it("distinguishes required dependency lags from usable slack in the user's chain", () => {
     const source =
-      "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Architecture] starts 2026-09-24 and lasts 6 days\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n[Backend] starts at [Architecture]'s end\n[Frontend] starts 5 days after [Backend]'s end\n[Testing] starts 3 days after [Frontend]'s end\n@endgantt";
+      "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Architecture] starts 2026-09-24 and lasts 6 days\n[Backend] lasts 8 days\n[Frontend] lasts 10 days\n[Testing] lasts 5 days\n[Backend] starts at [Architecture]'s end\n[Frontend] starts 4 days after [Backend]'s end\n[Testing] starts 2 days after [Frontend]'s end\n@endgantt";
     const document = parseGantt(source).document;
     const calendar = parseGanttCalendar(source);
     const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
     const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
+    // "4 days after [Backend]'s end" (Tue 10-13) is Sunday 10-18, drawn on Monday, so Backend can
+    // slip one day without moving Frontend; that day is slack, while Testing's lag is required.
     expect(dates.get("testing")?.end).toBe("2026-11-06");
     expect(analysis.slackByTask.get("frontend")).toBe(0);
     expect(analysis.slackByTask.get("testing")).toBe(0);
     expect(analysis.slackByTask.get("backend")).toBe(1);
     expect(analysis.slackByTask.get("architecture")).toBe(1);
     expect(analysis.freeSlackByTask.get("architecture")).toBe(0);
-    expect(analysis.freeSlackByTask.get("backend")).toBe(0);
+    expect(analysis.freeSlackByTask.get("backend")).toBe(1);
     expect(analysis.latestDatesByTask.get("architecture")).toEqual({ start: "2026-09-25", end: "2026-10-02" });
     expect(analysis.latestDatesByTask.get("backend")).toEqual({ start: "2026-10-05", end: "2026-10-14" });
     expect(analysis.latestDatesByTask.get("testing")).toEqual({ start: "2026-11-02", end: "2026-11-06" });
@@ -277,7 +279,9 @@ sunday are closed
     const calendar = parseGanttCalendar(source);
     const dates = resolveTaskDates(document.tasks, document.dependencies, document.projectStart?.value, calendar);
     const analysis = analyzeCriticalPath(document.tasks, document.dependencies, dates, calendar);
-    expect(analysis.freeSlackByTask.get("release")).toBe(2);
+    // "1 day after [Release]'s end" is Sunday 09-27, which PlantUML draws on Monday 09-28; Release can
+    // slip one calendar day before it pushes Deploy.
+    expect(analysis.freeSlackByTask.get("release")).toBe(1);
   });
 
   it("reports the specific resolver issue as a selectable task blocker", () => {
