@@ -396,7 +396,9 @@ describe("Gantt CodeMirror language service", () => {
 @endgantt`;
     const fixes = ganttQuickFixes(source);
     expect(fixes).toHaveLength(1);
-    expect(fixes[0]?.message).toContain("Repair 2 order-sensitive relationship statements");
+    expect(fixes[0]?.message).toBe(
+      "Repair 2 order-sensitive relationship statements: move all relationship statements to the end, after task scheduling",
+    );
     const repaired = fixes[0]!.replacement;
     expect(repaired.indexOf("[Front End] starts at [Prototype delivered]'s end")).toBeLessThan(
       repaired.indexOf("[Front End Testing] starts at [Front End]'s end"),
