@@ -58,6 +58,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+        env:
+          # Firefox requires a home directory owned by the container's root user.
+          HOME: /root
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
