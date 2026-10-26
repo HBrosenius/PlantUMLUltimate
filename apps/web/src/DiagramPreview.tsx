@@ -939,11 +939,14 @@ export function DiagramPreview({
       const previewBar = createTaskGhost(task, visualBar ?? bar);
       const startX = event.clientX;
       const initialScrollLeft = viewportRef.current?.scrollLeft ?? 0;
+      // The cursor is measured in screen pixels but the bar lives in scrolled content: scrolling mid-drag
+      // (wheel, trackpad inertia) moves the timeline under a stationary cursor, so count it as drag distance.
+      const scrollShift = () => (viewportRef.current?.scrollLeft ?? 0) - initialScrollLeft;
       let snappedDays = 0;
       let durationDelta = 0;
       let lastDisplayedDays: number | undefined;
       const moveResize = (moveEvent: PointerEvent) => {
-        const rawDays = (moveEvent.clientX - startX) / (dayWidth * pixelsPerSvgUnit);
+        const rawDays = (moveEvent.clientX - startX + scrollShift()) / (dayWidth * pixelsPerSvgUnit);
         const durationUnit = task.getAttribute("data-duration-unit");
         const step = moveEvent.shiftKey ? 7 : durationUnit === "month" ? 30 : durationUnit === "week" ? 7 : 1;
         snappedDays = Math.round(rawDays / step) * step;
@@ -959,8 +962,6 @@ export function DiagramPreview({
         bar?.setAttribute("width", String(width));
         visualBar?.setAttribute("width", String(width));
         previewBar?.setAttribute("width", String(width));
-        if (viewportRef.current)
-          viewportRef.current.scrollLeft = Math.max(0, initialScrollLeft + Math.max(0, moveEvent.clientX - startX));
         resizeHandle.setAttribute("x", String(Number(bar?.getAttribute("x") ?? 0) + width - 5));
         previewDependencyPaths(task.ownerSVGElement, id, 0, snappedDays * dayWidth);
         showFeedback(
@@ -1030,8 +1031,10 @@ export function DiagramPreview({
     let reorderTargetId: string | undefined;
     let ended = false;
     let lastClientX = startX;
+    const initialScrollLeft = viewportRef.current?.scrollLeft ?? 0;
+    // Column centres were measured at pointer-down; later scrolling moves the timeline under the cursor.
     const snapHorizontal = (clientX: number, step = 1): { visualDays: number; sourceDays: number } => {
-      const deltaX = clientX - startX;
+      const deltaX = clientX - startX + ((viewportRef.current?.scrollLeft ?? 0) - initialScrollLeft);
       if (Math.abs(deltaX) < screenDayWidth / 2) return { visualDays: 0, sourceDays: 0 };
       const startColumn = timelineColumns[startColumnIndex];
       if (startColumn && sourceStart) {
