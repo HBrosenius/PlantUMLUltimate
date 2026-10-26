@@ -391,6 +391,71 @@ describe("task inspector operations", () => {
     expect(parseGantt(changed).document.tasks.map((task) => task.id)).toEqual(["build"]);
   });
 
+  describe("deleting a predecessor", () => {
+    const remove = (source: string, id: string, pinnedDates?: Map<string, { start?: string; end?: string }>) => {
+      const document = parseGantt(source).document;
+      const task = document.tasks.find((item) => item.id === id)!;
+      return applySourceEdits(source, deleteTask(source, document, task, pinnedDates ? { pinnedDates } : {}).edits);
+    };
+    const pins = new Map([
+      ["g", { start: "2026-10-09" }],
+      ["b", { start: "2026-10-07" }],
+      ["c", { start: "2026-10-07" }],
+      ["e", { start: "2026-10-07" }],
+    ]);
+
+    it("pins a task whose only line was a dependency on the deleted task", () => {
+      const source = "@startgantt\n[A] lasts 2 days\n[G] starts 2 days after [A]'s end\n@endgantt";
+      expect(remove(source, "a", pins)).toBe("@startgantt\n[G] starts 2026-10-09\n@endgantt");
+      // Without dates the dependency is removed as before.
+      expect(remove(source, "a")).toBe("@startgantt\n@endgantt");
+    });
+
+    it("pins a compound clause and an arrow successor to their current start", () => {
+      const source =
+        "@startgantt\n[A] lasts 2 days\n[B] lasts 3 days and starts at [A]'s end\n[A] -> [C]\n[C] lasts 1 day\n@endgantt";
+      expect(remove(source, "a", pins)).toBe(
+        "@startgantt\n[B] lasts 3 days and starts 2026-10-07\n[C] starts 2026-10-07\n[C] lasts 1 day\n@endgantt",
+      );
+    });
+
+    it("anchors a milestone tied to the deleted task to its date", () => {
+      const source = "@startgantt\n[A] lasts 2 days\n[M] happens at [A]'s end\n@endgantt";
+      expect(remove(source, "a", new Map([["m", { start: "2026-10-06" }]]))).toBe(
+        "@startgantt\n[M] happens 2026-10-06\n@endgantt",
+      );
+    });
+
+    it("does not pin a task that keeps another start constraint", () => {
+      const source =
+        "@startgantt\n[A] lasts 2 days\n[X] lasts 1 day\n[B] starts at [A]'s end\n[B] starts at [X]'s end\n@endgantt";
+      expect(remove(source, "a", pins)).toBe("@startgantt\n[X] lasts 1 day\n[B] starts at [X]'s end\n@endgantt");
+    });
+  });
+
+  describe("arrow chains", () => {
+    const chain = "@startgantt\n[D] lasts 1 day\n[E] lasts 1 day\n[F] lasts 1 day\n  [D] -> [E] -> [F]\n@endgantt";
+    const remove = (id: string, pinnedDates?: Map<string, { start?: string; end?: string }>) => {
+      const document = parseGantt(chain).document;
+      const task = document.tasks.find((item) => item.id === id)!;
+      return applySourceEdits(chain, deleteTask(chain, document, task, pinnedDates ? { pinnedDates } : {}).edits);
+    };
+
+    it("parses each link of a chain as a dependency", () => {
+      expect(
+        parseGantt(chain).document.dependencies.map((item) => `${item.predecessorTaskId}>${item.successorTaskId}`),
+      ).toEqual(["d>e", "e>f"]);
+    });
+
+    it("rewrites a chain without the deleted task", () => {
+      expect(remove("e")).toBe("@startgantt\n[D] lasts 1 day\n[F] lasts 1 day\n  [D] -> [F]\n@endgantt");
+      expect(remove("f")).toBe("@startgantt\n[D] lasts 1 day\n[E] lasts 1 day\n  [D] -> [E]\n@endgantt");
+      expect(remove("d", new Map([["e", { start: "2026-10-07" }]]))).toBe(
+        "@startgantt\n[E] lasts 1 day\n[F] lasts 1 day\n  [E] -> [F]\n  [E] starts 2026-10-07\n@endgantt",
+      );
+    });
+  });
+
   it("updates one clause of a compound declaration without rewriting the others", () => {
     const source = "@startgantt\n[Build] starts 2026-09-01 and requires 2 days and is colored in Blue\n@endgantt";
     const task = parseGantt(source).document.tasks[0]!;

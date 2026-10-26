@@ -808,31 +808,136 @@ export function setTaskResources(
   };
 }
 
-export function deleteTask(source: string, document: GanttDocument, task: GanttTask): MoveTaskResult {
+export interface DeleteTaskOptions {
+  /**
+   * The other tasks' current dates. A task whose only start (or end) constraint pointed at the
+   * deleted task is pinned to that date, so it stays where it was drawn instead of jumping to the
+   * project start.
+   */
+  pinnedDates?: ReadonlyMap<string, { start?: string; end?: string }>;
+}
+
+export function deleteTask(
+  source: string,
+  document: GanttDocument,
+  task: GanttTask,
+  options: DeleteTaskOptions = {},
+): MoveTaskResult {
+  const key = (range: { from: number; to: number }) => `${range.from}:${range.to}`;
+  const lineOf = (range: { from: number; to: number }) => wholeLineRange(source, range);
+  const lineEnding = (line: { from: number; to: number }) =>
+    source.slice(line.from, line.to).match(/\r?\n$/)?.[0] ?? "";
+  const indentOf = (line: { from: number; to: number }) => source.slice(line.from).match(/^[ \t]*/)![0];
+  const taskById = new Map(document.tasks.map((item) => [item.id, item]));
+
+  // The date to pin a surviving task to when it loses its last constraint on one anchor.
+  const pinFor = (dependency: GanttDependency): { verb: "starts" | "ends"; date: string } | undefined => {
+    if (dependency.relation === "other") return undefined;
+    const anchor = dependency.relation.startsWith("start-") ? "start" : "end";
+    const successor = taskById.get(dependency.successorTaskId);
+    if (!successor || (anchor === "start" ? successor.start : successor.end)) return undefined;
+    const otherConstraint = document.dependencies.some(
+      (other) =>
+        other !== dependency &&
+        other.successorTaskId === successor.id &&
+        other.predecessorTaskId !== task.id &&
+        other.relation.startsWith(`${anchor}-`),
+    );
+    const date = options.pinnedDates?.get(successor.id)?.[anchor];
+    return date && !otherConstraint ? { verb: anchor === "start" ? "starts" : "ends", date } : undefined;
+  };
+  const pinStatement = (dependency: GanttDependency, pin: { verb: string; date: string }, indent: string) =>
+    `${indent}[${dependency.successor.value}] ${pin.verb} ${pin.date}`;
+
+  // A chain `[A] -> [B] -> [C]` is rewritten without the task rather than removed as a whole.
+  const chains = new Map<string, GanttDependency[]>();
+  for (const dependency of document.dependencies) {
+    const links = chains.get(key(dependency.sourceRange)) ?? [];
+    links.push(dependency);
+    chains.set(key(dependency.sourceRange), links);
+  }
+  const replacements = new Map<string, SourceEdit>();
+  for (const links of chains.values()) {
+    if (links.length < 2) continue;
+    const ids = [links[0]!.predecessorTaskId, ...links.map((link) => link.successorTaskId)];
+    if (!ids.includes(task.id)) continue;
+    const labels = [links[0]!.predecessor.value, ...links.map((link) => link.successor.value)];
+    const kept = labels.filter((_, index) => ids[index] !== task.id);
+    const line = lineOf(links[0]!.sourceRange);
+    const indent = indentOf(line);
+    const statements = kept.length >= 2 ? [`${indent}${kept.map((label) => `[${label}]`).join(" -> ")}`] : [];
+    // Deleting the head of a chain leaves the next task without a predecessor.
+    const orphaned = links.find((link) => link.predecessorTaskId === task.id && link === links[0]);
+    const pin = orphaned && pinFor(orphaned);
+    if (orphaned && pin) statements.push(pinStatement(orphaned, pin, indent));
+    replacements.set(key(line), {
+      range: line,
+      text: statements.length ? `${statements.join(lineEnding(line) || "\n")}${lineEnding(line)}` : "",
+    });
+  }
+
   const ranges = new Map<string, { from: number; to: number }>();
   for (const item of task.declarations) {
-    const line = wholeLineRange(source, item.range);
-    ranges.set(`${line.from}:${line.to}`, line);
+    const line = lineOf(item.range);
+    ranges.set(key(line), line);
   }
   for (const note of task.notes ?? []) {
-    const line = wholeLineRange(source, note.sourceRange);
-    ranges.set(`${line.from}:${line.to}`, line);
+    const line = lineOf(note.sourceRange);
+    ranges.set(key(line), line);
   }
   for (const separator of document.verticalSeparators) {
-    const key = normalizeTaskId(separator.taskLabel);
-    if ((document.symbols.references.get(key) ?? key) !== task.id) continue;
-    const line = wholeLineRange(source, separator.sourceRange);
-    ranges.set(`${line.from}:${line.to}`, line);
+    const reference = normalizeTaskId(separator.taskLabel);
+    if ((document.symbols.references.get(reference) ?? reference) !== task.id) continue;
+    const line = lineOf(separator.sourceRange);
+    ranges.set(key(line), line);
   }
+  for (const [lineKey, replacement] of replacements) ranges.set(lineKey, replacement.range);
   const removedLines = [...ranges.values()];
-  const edits: SourceEdit[] = removedLines.map((range) => ({ range, text: "" }));
+  for (const dependency of document.dependencies) {
+    if (dependency.predecessorTaskId !== task.id || dependency.successorTaskId === task.id) continue;
+    const line = lineOf(dependency.sourceRange);
+    // An arrow line owned by the deleted task goes with it; pin the task it pointed at.
+    if (replacements.has(key(line)) || !ranges.has(key(line))) continue;
+    const pin = pinFor(dependency);
+    if (pin)
+      replacements.set(key(line), {
+        range: line,
+        text: `${pinStatement(dependency, pin, indentOf(line))}${lineEnding(line)}`,
+      });
+  }
+  const edits: SourceEdit[] = removedLines.map((range) => replacements.get(key(range)) ?? { range, text: "" });
   for (const dependency of document.dependencies) {
     const touchesTask = dependency.predecessorTaskId === task.id || dependency.successorTaskId === task.id;
     if (!touchesTask || dependency.predecessorTaskId === dependency.successorTaskId) continue;
     const { from, to } = dependency.sourceRange;
     if (removedLines.some((line) => from >= line.from && to <= line.to)) continue;
+    const pin = dependency.predecessorTaskId === task.id ? pinFor(dependency) : undefined;
+    const text = source.slice(from, to);
+    const verb = text.match(/\b(starts|ends)\b[\s\S]*$/i);
+    if (pin && verb?.index !== undefined) {
+      // Keep the statement or clause, but anchor it to the date it resolved to.
+      edits.push({ range: { from: from + verb.index, to }, text: `${verb[1]} ${pin.date}` });
+      continue;
+    }
     // Another task's line can hold this constraint as one clause; remove only that clause so the task survives.
     edits.push(...removeDependency(source, dependency.sourceRange, dependency.notes ?? []).edits);
+  }
+  // `[M] happens at [A]'s end` would make PlantUML recreate the deleted task; anchor it to its date.
+  for (const milestone of document.tasks) {
+    const reference = milestone.milestone;
+    if (!reference || "resolved" in reference || milestone.id === task.id) continue;
+    const target = normalizeTaskId(reference.value);
+    if ((document.symbols.references.get(target) ?? target) !== task.id) continue;
+    const date = options.pinnedDates?.get(milestone.id)?.start;
+    const declaration = milestone.declarations.find((item) => item.kind === "milestone");
+    if (!date || !declaration) continue;
+    const text = source.slice(declaration.range.from, declaration.range.to);
+    const happens = text.match(/\bhappens\b[\s\S]*$/i);
+    if (happens?.index === undefined) continue;
+    edits.push({
+      range: { from: declaration.range.from + happens.index, to: declaration.range.to },
+      text: `happens ${date}`,
+    });
   }
   return { edits };
 }

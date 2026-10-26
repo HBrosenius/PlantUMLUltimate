@@ -13,6 +13,15 @@ const MAX_REVOCATION_BODY_BYTES = 4_096;
 
 class BodyTooLargeError extends Error {}
 
+/** Compares room credentials without leaking through timing how many leading characters matched. */
+function sameCredential(given: string | null | undefined, expected: string | undefined): boolean {
+  if (!given || !expected || given.length !== expected.length) return false;
+  let difference = 0;
+  for (let index = 0; index < expected.length; index += 1)
+    difference |= given.charCodeAt(index) ^ expected.charCodeAt(index);
+  return difference === 0;
+}
+
 /** Reads a request body as text, refusing it once it exceeds `limit` bytes without buffering the rest. */
 async function limitedRequestText(request: Request, limit: number): Promise<string> {
   const statedLength = Number(request.headers.get("Content-Length") ?? 0);
@@ -243,7 +252,7 @@ export class CollaborationRoom extends DurableObject<Env> {
           return Response.json({ error: "Request body is too large" }, { status: 413 });
         throw error;
       }
-      if (!this.ownerToken || requestedOwnerToken !== this.ownerToken)
+      if (!sameCredential(requestedOwnerToken, this.ownerToken))
         return Response.json({ error: "Invalid owner credential" }, { status: 403 });
       this.revoked = true;
       this.ctx.storage.sql.exec("UPDATE room_access SET revoked = 1 WHERE singleton = 1");
@@ -296,12 +305,12 @@ export class CollaborationRoom extends DurableObject<Env> {
       this.persist();
     }
     const accessToken = credential("access");
-    const owner = Boolean(this.ownerToken && requestedOwnerToken === this.ownerToken);
+    const owner = sameCredential(requestedOwnerToken, this.ownerToken);
     const role: CollaborationRole | undefined = owner
       ? "editor"
-      : this.editorToken && accessToken === this.editorToken
+      : sameCredential(accessToken, this.editorToken)
         ? "editor"
-        : this.viewerToken && accessToken === this.viewerToken
+        : sameCredential(accessToken, this.viewerToken)
           ? "viewer"
           : undefined;
     if (!role) return Response.json({ error: "Invalid room credential" }, { status: 403 });

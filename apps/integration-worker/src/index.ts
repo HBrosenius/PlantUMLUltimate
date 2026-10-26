@@ -98,8 +98,18 @@ function cookies(request: Request): Map<string, string> {
   return result;
 }
 
+// Over HTTPS the `__Host-` prefix makes browsers refuse a cookie set by a sibling subdomain or with a
+// Domain/Path attribute, so another *.brosenius.se host cannot plant or shadow a Jira session.
+function cookieName(name: string, requestUrl: URL): string {
+  return requestUrl.protocol === "https:" ? `__Host-${name}` : name;
+}
+
+function readCookie(request: Request, name: string): string | undefined {
+  return cookies(request).get(cookieName(name, new URL(request.url)));
+}
+
 function cookie(name: string, value: string, requestUrl: URL, maxAge: number): string {
-  return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUrl.protocol === "https:" ? "; Secure" : ""}`;
+  return `${cookieName(name, requestUrl)}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUrl.protocol === "https:" ? "; Secure" : ""}`;
 }
 
 function withCors(response: Response, request: Request, env: Env): Response {
@@ -213,7 +223,7 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
   const requestUrl = new URL(request.url);
   const state = requestUrl.searchParams.get("state");
   const code = requestUrl.searchParams.get("code");
-  const browserSession = cookies(request).get(TEMP_COOKIE);
+  const browserSession = readCookie(request, TEMP_COOKIE);
   if (!state || !browserSession) return Response.json({ error: "Invalid OAuth callback" }, { status: 400 });
   const consumed = await env.JIRA_DB.prepare(
     "DELETE FROM oauth_states WHERE state_hash = ? AND session_hash = ? AND expires_at >= ? RETURNING return_url",
@@ -299,7 +309,7 @@ async function refreshTokens(payload: SessionPayload, env: Env): Promise<Session
 }
 
 async function sessionFor(request: Request, env: Env): Promise<{ hash: string; payload: SessionPayload } | undefined> {
-  const raw = cookies(request).get(SESSION_COOKIE);
+  const raw = readCookie(request, SESSION_COOKIE);
   if (!raw) return undefined;
   const hash = await tokenHash(raw);
   const stored = await env.JIRA_DB.prepare(
@@ -432,7 +442,7 @@ async function connectApiToken(request: Request, env: Env): Promise<Response> {
       timestamp,
     )
     .run();
-  const previous = cookies(request).get(SESSION_COOKIE);
+  const previous = readCookie(request, SESSION_COOKIE);
   if (previous)
     await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
       .bind(await tokenHash(previous))
@@ -452,7 +462,7 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
   if (!requestOriginAllowed(request, env)) return Response.json({ error: "Origin not allowed" }, { status: 403 });
   const url = new URL(request.url);
   if (url.pathname === "/api/connect-token" && request.method === "POST") return connectApiToken(request, env);
-  const rawSession = cookies(request).get(SESSION_COOKIE);
+  const rawSession = readCookie(request, SESSION_COOKIE);
   if (url.pathname === "/api/disconnect" && request.method === "POST") {
     if (rawSession)
       await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")

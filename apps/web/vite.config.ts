@@ -27,6 +27,20 @@ function openIconicAsset(): Plugin {
   };
 }
 
+// The dev server needs Vite's inline React refresh preamble and its HMR socket; the built page
+// keeps the strict policy from index.html.
+export function devContentSecurityPolicy(): Plugin {
+  return {
+    name: "plantuml-ultimate-dev-csp",
+    apply: "serve",
+    transformIndexHtml(html) {
+      return html
+        .replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
+        .replace("connect-src 'self'", "connect-src 'self' ws: http://localhost:* http://127.0.0.1:*");
+    },
+  };
+}
+
 function isolatedRendererAssets(): Plugin {
   return {
     name: "isolated-renderer-assets",
@@ -81,6 +95,7 @@ export function serviceWorkerSource(files: readonly string[]): string {
       "/icon-192.png",
       "/icon-512.png",
       "/icon-maskable-512.png",
+      "/theme-init.js",
       ...files,
     ]),
   ].sort();
@@ -123,14 +138,30 @@ export function jiraDevelopmentOrigin(
   host: string | undefined,
   method: string | undefined,
 ): string | undefined {
+  // The deployed Worker accepts only the production app, so the dev proxy presents that origin
+  // for requests that really come from this dev server.
   if ((!origin && method === "GET") || (host && (origin === `http://${host}` || origin === `https://${host}`)))
-    return "http://localhost:5173";
+    return "https://plantuml.brosenius.se";
   return origin;
+}
+
+// Over HTTPS the Worker's session cookies carry the `__Host-` prefix, which a browser accepts only
+// with Secure and Path=/. The dev proxy serves them over http under /__jira/, so it strips the
+// prefix on the way to the browser and restores it on the way back.
+export function jiraDevelopmentCookieToBrowser(value: string): string {
+  return value
+    .replace(/^__Host-/, "")
+    .replace(/;\s*Secure\b/gi, "")
+    .replace(/Path=\//gi, "Path=/__jira/");
+}
+
+export function jiraDevelopmentCookieToWorker(header: string): string {
+  return header.replace(/(^|;\s*)(jira_session|jira_oauth_session)=/g, "$1__Host-$2=");
 }
 
 export default defineConfig({
   base: "/",
-  plugins: [react(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
+  plugins: [react(), devContentSecurityPolicy(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
   server: {
     proxy: {
       "/__jira/api/": {
@@ -141,13 +172,12 @@ export default defineConfig({
           proxy.on("proxyReq", (upstream, request) => {
             const origin = jiraDevelopmentOrigin(request.headers.origin, request.headers.host, request.method);
             if (origin) upstream.setHeader("Origin", origin);
+            const cookie = request.headers.cookie;
+            if (cookie) upstream.setHeader("Cookie", jiraDevelopmentCookieToWorker(cookie));
           });
           proxy.on("proxyRes", (response) => {
             const cookies = response.headers["set-cookie"];
-            if (cookies)
-              response.headers["set-cookie"] = cookies.map((value) =>
-                value.replace(/;\s*Secure\b/gi, "").replace(/Path=\//gi, "Path=/__jira/"),
-              );
+            if (cookies) response.headers["set-cookie"] = cookies.map(jiraDevelopmentCookieToBrowser);
           });
         },
       },
