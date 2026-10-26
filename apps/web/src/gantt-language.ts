@@ -608,7 +608,7 @@ export function ganttQuickFixes(source: string, parsed = parseGantt(source)): Ga
           from: 0,
           to: source.length,
           replacement: repair.replacement,
-          message: `Repair ${repair.affected.length} order-sensitive relationship statement${repair.affected.length === 1 ? "" : "s"}`,
+          message: `Repair ${repair.affected.length} order-sensitive relationship statement${repair.affected.length === 1 ? "" : "s"}: move ${repair.affected.length === 1 ? "it" : "them"} after the statement that schedules ${repair.affected.length === 1 ? "its" : "their"} predecessor`,
         },
       ]
     : fixes;
