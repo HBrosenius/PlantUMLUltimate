@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PlantUML Editor Guide: UML, Gantt &amp; WBS Examples | PlantUML Ultimate</title>
-    <meta name="description" content="Learn to create and edit PlantUML diagrams online. Start with sequence, Gantt and WBS examples, use visual editing, and export your diagrams as SVG or PNG." />
+    <meta
+      name="description"
+      content="Learn to create and edit PlantUML diagrams online. Start with sequence, Gantt and WBS examples, use visual editing, and export your diagrams as SVG or PNG."
+    />
     <link rel="canonical" href="https://plantuml.brosenius.se/guide/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/guide/guide.css" />
@@ -25,7 +28,10 @@
       <section class="intro">
         <p class="eyebrow">GETTING STARTED</p>
         <h1>Create PlantUML diagrams in your browser</h1>
-        <p class="lead">Write diagram source, see a live preview, and edit supported elements visually. PlantUML Ultimate brings UML diagrams, Gantt schedules and work breakdown structures into one online editor.</p>
+        <p class="lead">
+          Write diagram source, see a live preview, and edit supported elements visually. PlantUML Ultimate brings UML
+          diagrams, Gantt schedules and work breakdown structures into one online editor.
+        </p>
         <a class="button" href="/">Start editing diagrams</a>
       </section>
       <nav aria-label="On this page">
@@ -37,19 +43,35 @@
       <section id="start">
         <h2>How to use the online PlantUML editor</h2>
         <ol>
-          <li><a href="/">Open the editor</a> and choose a diagram type. If you already have a workspace open, use the new diagram tab button.</li>
+          <li>
+            <a href="/">Open the editor</a> and choose a diagram type. If you already have a workspace open, use the new
+            diagram tab button.
+          </li>
           <li>Choose Code or Split view to edit the PlantUML source. You can start with one of the examples below.</li>
-          <li>Use Add to insert elements, or select supported elements in the preview to edit their properties. The source and diagram stay in sync.</li>
+          <li>
+            Use Add to insert elements, or select supported elements in the preview to edit their properties. The source
+            and diagram stay in sync.
+          </li>
           <li>Use Save for a portable document, or File → Export for a diagram image.</li>
         </ol>
-        <p>The editor supports Sequence, Class, Component, Use Case, Activity, Gantt and WBS diagrams. Use sequence diagrams for interactions, class and component diagrams for structure, and activity diagrams for workflows. Gantt charts describe schedules; WBS diagrams break a project into deliverables.</p>
+        <p>
+          The editor supports Sequence, Class, Component, Use Case, Activity, Gantt and WBS diagrams. Use sequence
+          diagrams for interactions, class and component diagrams for structure, and activity diagrams for workflows.
+          Gantt charts describe schedules; WBS diagrams break a project into deliverables.
+        </p>
       </section>
       <section id="examples">
         <h2>PlantUML examples to try</h2>
-        <p>Create a diagram of the matching type, then replace its source with the example. Edit a label and watch the preview update.</p>
+        <p>
+          Create a diagram of the matching type, then replace its source with the example. Edit a label and watch the
+          preview update.
+        </p>
         <article>
           <h3>Sequence diagram: a request and response</h3>
-          <p>Sequence diagrams show messages between participants over time. This example describes a user requesting a page from a system.</p>
+          <p>
+            Sequence diagrams show messages between participants over time. This example describes a user requesting a
+            page from a system.
+          </p>
           <pre><code>@startuml
 actor User
 participant System
@@ -69,7 +91,10 @@ Project starts 2026-11-02
         </article>
         <article>
           <h3>WBS diagram: break down a release</h3>
-          <p>A work breakdown structure organizes deliverables into a hierarchy. Add another asterisk to place an item one level deeper.</p>
+          <p>
+            A work breakdown structure organizes deliverables into a hierarchy. Add another asterisk to place an item
+            one level deeper.
+          </p>
           <pre><code>@startwbs
 * Release
 ** Design
@@ -79,23 +104,44 @@ Project starts 2026-11-02
 ** Testing
 @endwbs</code></pre>
         </article>
-        <p>For additional syntax, see the <a href="https://plantuml.com/">official PlantUML documentation</a>. For tool-specific actions, open More → Help in the editor.</p>
+        <p>
+          For additional syntax, see the <a href="https://plantuml.com/">official PlantUML documentation</a>. For
+          tool-specific actions, open More → Help in the editor.
+        </p>
       </section>
       <section id="save">
         <h2>Save editable documents and export images</h2>
-        <p>Save your work as a <code>.pumlu</code> document to retain diagrams, history and settings. Export SVG for scalable diagrams or PNG for a raster image you can place in a document or presentation.</p>
-        <p>Browser recovery helps restore your workspace on the same browser. It is separate from saving a file: keep a saved document or workspace backup for work you need to retain.</p>
+        <p>
+          Save your work as a <code>.pumlu</code> document to retain diagrams, history and settings. Export SVG for
+          scalable diagrams or PNG for a raster image you can place in a document or presentation.
+        </p>
+        <p>
+          Browser recovery helps restore your workspace on the same browser. It is separate from saving a file: keep a
+          saved document or workspace backup for work you need to retain.
+        </p>
       </section>
       <section id="questions">
         <h2>Common questions</h2>
         <h3>Do I need a PlantUML server?</h3>
-        <p>No. Diagram rendering runs locally in your browser. Core editing and image export do not require a PlantUML server.</p>
+        <p>
+          No. Diagram rendering runs locally in your browser. Core editing and image export do not require a PlantUML
+          server.
+        </p>
         <h3>Can I use the editor offline?</h3>
-        <p>The app supports offline startup after its resources have downloaded. Online features such as live collaboration and Jira integration still need a connection.</p>
+        <p>
+          The app supports offline startup after its resources have downloaded. Online features such as live
+          collaboration and Jira integration still need a connection.
+        </p>
         <h3>Can I edit both the source and the diagram?</h3>
-        <p>Yes. Code, Split and Diagram views let you choose how to work. Visual controls vary by diagram type; source editing remains available for PlantUML syntax beyond those controls.</p>
+        <p>
+          Yes. Code, Split and Diagram views let you choose how to work. Visual controls vary by diagram type; source
+          editing remains available for PlantUML syntax beyond those controls.
+        </p>
         <h3>Does my diagram leave my device?</h3>
-        <p>Rendering happens in the browser. If you choose live collaboration or an external integration, those features communicate with their services. Browser recovery and saved files are separate from collaboration.</p>
+        <p>
+          Rendering happens in the browser. If you choose live collaboration or an external integration, those features
+          communicate with their services. Browser recovery and saved files are separate from collaboration.
+        </p>
       </section>
       <section class="closing">
         <h2>Try your first diagram</h2>
@@ -103,6 +149,8 @@ Project starts 2026-11-02
         <a class="button" href="/">Open PlantUML Ultimate</a>
       </section>
     </main>
-    <footer><a href="/">Editor</a> · <a href="https://github.com/HBrosenius/PlantUMLUltimate">Source code on GitHub</a></footer>
+    <footer>
+      <a href="/">Editor</a> · <a href="https://github.com/HBrosenius/PlantUMLUltimate">Source code on GitHub</a>
+    </footer>
   </body>
 </html>
