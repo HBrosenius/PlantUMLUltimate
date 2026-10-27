@@ -1,8 +1,10 @@
 import { build as bundleWorker } from "esbuild";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { rendererFrameBootstrap } from "./src/render/renderer-frame";
 
 // @plantuml/core's engine lazily loads its OpenIconic sprite set (for a WBS/mindmap node's
 // "<&name>" icon) by requesting "/openiconic.js" relative to the page's own origin — not
@@ -37,6 +39,20 @@ export function devContentSecurityPolicy(): Plugin {
       return html
         .replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
         .replace("connect-src 'self'", "connect-src 'self' ws: http://localhost:* http://127.0.0.1:*");
+    },
+  };
+}
+
+// The renderer frame is a sandboxed srcdoc document, which inherits this page's CSP; its inline
+// bootstrap is allowed by hash. Builds only: a hash source makes browsers ignore 'unsafe-inline',
+// which the dev server's React refresh preamble needs.
+export function rendererBootstrapHash(): Plugin {
+  const hash = createHash("sha256").update(rendererFrameBootstrap).digest("base64");
+  return {
+    name: "plantuml-ultimate-renderer-bootstrap-hash",
+    apply: "build",
+    transformIndexHtml(html) {
+      return html.replace("script-src 'self'", `script-src 'self' 'sha256-${hash}'`);
     },
   };
 }
@@ -161,7 +177,14 @@ export function jiraDevelopmentCookieToWorker(header: string): string {
 
 export default defineConfig({
   base: "/",
-  plugins: [react(), devContentSecurityPolicy(), openIconicAsset(), isolatedRendererAssets(), pwaServiceWorker()],
+  plugins: [
+    react(),
+    devContentSecurityPolicy(),
+    rendererBootstrapHash(),
+    openIconicAsset(),
+    isolatedRendererAssets(),
+    pwaServiceWorker(),
+  ],
   server: {
     proxy: {
       "/__jira/api/": {
