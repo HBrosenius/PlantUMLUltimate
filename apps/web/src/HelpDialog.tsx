@@ -219,6 +219,11 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
           <div>
             <h2 id="help-title">PlantUML Ultimate Help</h2>
             <p>Keyboard, diagram interaction, and PlantUML editing reference</p>
+            <p>
+              <a href="/guide/" target="_blank" rel="noopener noreferrer">
+                Getting started and diagram examples (opens in a new tab)
+              </a>
+            </p>
           </div>
           <button onClick={onClose} aria-label="Close Help">
             ×

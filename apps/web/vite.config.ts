@@ -130,7 +130,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).then((response) => { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put("/index.html", copy)); return response; }).catch(() => caches.match("/index.html")));
+    // Static pages must never replace the cached editor used for offline startup.
+    if (url.pathname !== "/" && url.pathname !== "/index.html") return;
+    event.respondWith(fetch(request).then((response) => { if (response.ok) { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put("/index.html", copy)); } return response; }).catch(() => caches.match("/index.html")));
     return;
   }
   event.respondWith(caches.match(url.pathname).then((cached) => cached || fetch(request).then((response) => { if (response.ok) { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put(url.pathname, copy)); } return response; })));

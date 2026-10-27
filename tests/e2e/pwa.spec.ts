@@ -86,6 +86,12 @@ test("starts its production renderer and cached offline shell", async ({ page, c
   await expect(page.locator(".diagram svg")).toBeVisible();
   if (browserName === "webkit") return;
 
+  // A static guide visit must not overwrite the editor's offline HTML cache.
+  const guide = await context.newPage();
+  await guide.goto("/guide/");
+  await expect(guide.getByRole("heading", { name: "Create PlantUML diagrams in your browser" })).toBeVisible();
+  await guide.close();
+
   await context.setOffline(true);
   await page.reload();
   await dismissOnboarding();

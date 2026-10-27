@@ -11,16 +11,38 @@
     <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)" />
     <script src="/theme-init.js"></script>
-    <meta name="description" content="Create and edit PlantUML diagrams visually while keeping the source in sync." />
+    <meta
+      name="description"
+      content="Edit PlantUML diagrams online with live previews and visual editing. Create UML, Gantt and WBS diagrams in your browser, then export SVG or PNG."
+    />
+    <link rel="canonical" href="https://plantuml.brosenius.se/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PlantUML Ultimate" />
+    <meta property="og:title" content="PlantUML Ultimate — Online PlantUML Editor" />
+    <meta
+      property="og:description"
+      content="Create UML, Gantt and WBS diagrams with live previews, visual editing and browser-local rendering. Export SVG or PNG."
+    />
+    <meta property="og:url" content="https://plantuml.brosenius.se/" />
+    <meta property="og:image" content="https://plantuml.brosenius.se/icon-512.png" />
+    <meta property="og:image:alt" content="PlantUML Ultimate app icon" />
+    <meta name="twitter:card" content="summary" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>PlantUML Ultimate</title>
+    <title>PlantUML Ultimate — Online PlantUML Editor</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>PlantUML Ultimate — Online PlantUML Editor</h1>
+      <p>
+        Enable JavaScript to edit diagrams with live previews, or read the getting-started guide without JavaScript.
+      </p>
+      <p><a href="/guide/">PlantUML editor guide and diagram examples</a></p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
