@@ -98,8 +98,18 @@ function cookies(request: Request): Map<string, string> {
   return result;
 }
 
+// Over HTTPS the `__Host-` prefix makes browsers refuse a cookie set by a sibling subdomain or with a
+// Domain/Path attribute, so another *.brosenius.se host cannot plant or shadow a Jira session.
+function cookieName(name: string, requestUrl: URL): string {
+  return requestUrl.protocol === "https:" ? `__Host-${name}` : name;
+}
+
+function readCookie(request: Request, name: string): string | undefined {
+  return cookies(request).get(cookieName(name, new URL(request.url)));
+}
+
 function cookie(name: string, value: string, requestUrl: URL, maxAge: number): string {
-  return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUrl.protocol === "https:" ? "; Secure" : ""}`;
+  return `${cookieName(name, requestUrl)}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUrl.protocol === "https:" ? "; Secure" : ""}`;
 }
 
 function withCors(response: Response, request: Request, env: Env): Response {
@@ -173,6 +183,7 @@ async function oauthStart(request: Request, env: Env): Promise<Response> {
 
 async function exchangeCode(code: string, callbackUrl: string, env: Env): Promise<SessionPayload> {
   const tokenResponse = await fetch("https://auth.atlassian.com/oauth/token", {
+    signal: AbortSignal.timeout(15_000),
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -187,6 +198,7 @@ async function exchangeCode(code: string, callbackUrl: string, env: Env): Promis
   const token = await limitedJson<TokenResponse>(tokenResponse);
   if (!token.access_token || !Number.isFinite(token.expires_in)) throw new Error("OAuth token response is invalid");
   const resourcesResponse = await fetch("https://api.atlassian.com/oauth/token/accessible-resources", {
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Bearer ${token.access_token}`, Accept: "application/json" },
   });
   if (!resourcesResponse.ok) throw new Error(`Could not load Jira sites (${resourcesResponse.status})`);
@@ -211,7 +223,7 @@ async function oauthCallback(request: Request, env: Env): Promise<Response> {
   const requestUrl = new URL(request.url);
   const state = requestUrl.searchParams.get("state");
   const code = requestUrl.searchParams.get("code");
-  const browserSession = cookies(request).get(TEMP_COOKIE);
+  const browserSession = readCookie(request, TEMP_COOKIE);
   if (!state || !browserSession) return Response.json({ error: "Invalid OAuth callback" }, { status: 400 });
   const consumed = await env.JIRA_DB.prepare(
     "DELETE FROM oauth_states WHERE state_hash = ? AND session_hash = ? AND expires_at >= ? RETURNING return_url",
@@ -262,6 +274,7 @@ async function refreshTokens(payload: SessionPayload, env: Env): Promise<Session
   let response: Response;
   try {
     response = await fetch("https://auth.atlassian.com/oauth/token", {
+      signal: AbortSignal.timeout(15_000),
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
@@ -296,7 +309,7 @@ async function refreshTokens(payload: SessionPayload, env: Env): Promise<Session
 }
 
 async function sessionFor(request: Request, env: Env): Promise<{ hash: string; payload: SessionPayload } | undefined> {
-  const raw = cookies(request).get(SESSION_COOKIE);
+  const raw = readCookie(request, SESSION_COOKIE);
   if (!raw) return undefined;
   const hash = await tokenHash(raw);
   const stored = await env.JIRA_DB.prepare(
@@ -342,6 +355,7 @@ async function jiraFetch(
       ? `Basic ${btoa(String.fromCharCode(...new TextEncoder().encode(`${payload.email}:${payload.accessToken}`)))}`
       : `Bearer ${payload.accessToken}`;
   return fetch(`${base}${path}`, {
+    signal: AbortSignal.timeout(15_000),
     ...init,
     redirect: "manual",
     headers: { Authorization: authorization, Accept: "application/json", ...init?.headers },
@@ -349,7 +363,12 @@ async function jiraFetch(
 }
 
 async function connectApiToken(request: Request, env: Env): Promise<Response> {
-  const body = await limitedJson<{ siteUrl?: unknown; email?: unknown; apiToken?: unknown }>(request);
+  const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (!(await env.CONNECT_TOKEN_LIMITER.limit({ key: client })).success)
+    return Response.json({ error: "Too many connection attempts. Wait a minute and try again." }, { status: 429 });
+  const body = await limitedJson<{ siteUrl?: unknown; email?: unknown; apiToken?: unknown } | null>(request);
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return Response.json({ error: "Expected a JSON object" }, { status: 400 });
   let site: URL;
   try {
     site = new URL(typeof body.siteUrl === "string" ? body.siteUrl.trim() : "");
@@ -385,7 +404,10 @@ async function connectApiToken(request: Request, env: Env): Promise<Response> {
     accessExpiresAt: 0,
     resources: [{ id: site.hostname, url: site.origin, name: site.hostname, scopes: [] }],
   };
-  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, { redirect: "manual" });
+  const tenantResponse = await fetch(`${site.origin}/_edge/tenant_info`, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!tenantResponse.ok) return Response.json({ error: "Could not identify the Jira Cloud site" }, { status: 503 });
   const tenant = await limitedJson<{ cloudId?: unknown }>(tenantResponse);
   if (typeof tenant.cloudId !== "string" || !tenant.cloudId)
@@ -420,7 +442,7 @@ async function connectApiToken(request: Request, env: Env): Promise<Response> {
       timestamp,
     )
     .run();
-  const previous = cookies(request).get(SESSION_COOKIE);
+  const previous = readCookie(request, SESSION_COOKIE);
   if (previous)
     await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
       .bind(await tokenHash(previous))
@@ -440,7 +462,7 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
   if (!requestOriginAllowed(request, env)) return Response.json({ error: "Origin not allowed" }, { status: 403 });
   const url = new URL(request.url);
   if (url.pathname === "/api/connect-token" && request.method === "POST") return connectApiToken(request, env);
-  const rawSession = cookies(request).get(SESSION_COOKIE);
+  const rawSession = readCookie(request, SESSION_COOKIE);
   if (url.pathname === "/api/disconnect" && request.method === "POST") {
     if (rawSession)
       await env.JIRA_DB.prepare("DELETE FROM jira_sessions WHERE session_hash = ?")
@@ -590,23 +612,34 @@ async function apiRequest(request: Request, env: Env): Promise<Response> {
         return Response.json({ error: "Start date field must be a Jira custom date field" }, { status: 400 });
     }
     const results = [];
-    for (const update of updates) {
-      const upstream = await jiraFetch(
-        session.payload,
-        cloudId,
-        `/rest/api/3/issue/${encodeURIComponent(update.issueId)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fields: update.fields }),
-        },
-      );
-      results.push({
-        issueId: update.issueId,
-        issueKey: update.issueKey,
-        ok: upstream.ok,
-        ...(upstream.ok ? {} : { status: upstream.status }),
-      });
+    for (const [index, update] of updates.entries()) {
+      try {
+        const upstream = await jiraFetch(
+          session.payload,
+          cloudId,
+          `/rest/api/3/issue/${encodeURIComponent(update.issueId)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: update.fields }),
+          },
+        );
+        results.push({
+          issueId: update.issueId,
+          issueKey: update.issueKey,
+          ok: upstream.ok,
+          ...(upstream.ok ? {} : { status: upstream.status }),
+          ...(upstream.status >= 500 || upstream.status === 408 ? { outcome: "uncertain" } : {}),
+        });
+      } catch {
+        results.push({ issueId: update.issueId, issueKey: update.issueKey, ok: false, outcome: "uncertain" });
+        results.push(
+          ...updates
+            .slice(index + 1)
+            .map(({ issueId, issueKey }) => ({ issueId, issueKey, ok: false, outcome: "not-attempted" })),
+        );
+        break;
+      }
     }
     return Response.json({ results });
   }

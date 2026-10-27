@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import {
   applySourceEdits,
-  deleteTask,
   duplicateTask,
   insertMilestone,
   insertTask,
   type GanttDocument,
   type GanttTask,
 } from "@plantuml-studio/diagram-gantt";
+import { deleteGanttTaskKeepingDates } from "../../gantt-delete";
 import type { SemanticSymbolOccurrence } from "../../semantic-symbol-provider";
 import type { AddTaskValue } from "../../AddTaskDialog";
 import type { AddMilestoneValue } from "../../AddMilestoneDialog";
@@ -76,7 +76,7 @@ export function useGanttTaskActions(options: UseGanttTaskActionsOptions) {
     if (!selectedTask) return;
     const kind = selectedTask.milestone ? "milestone" : "task";
     if (!confirmDelete(`Delete ${kind} “${selectedTask.label}” and its dependency links?`)) return;
-    const operation = deleteTask(source, document, selectedTask);
+    const operation = deleteGanttTaskKeepingDates(source, document, selectedTask);
     if (!commitGeneratedSource(applySourceEdits(source, operation.edits), `Delete ${selectedTask.label}`)) return;
     selectTask(undefined);
     selectDependency(undefined);

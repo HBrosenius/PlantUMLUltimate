@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { validateCollaborationState } from "../../../packages/shared/src/collaboration-schema";
 
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-const MAX_UPDATE_BYTES = 1_000_000;
+const MAX_UPDATE_BYTES = 1_900_000; // Accept any valid complete room snapshot, including offline merges.
 // Durable Object SQLite rows are limited to 2 MB, and the state is persisted as a single row.
 const MAX_DOCUMENT_BYTES = 1_900_000;
 const MAX_NAME_LENGTH = 60;
@@ -12,6 +12,15 @@ const COLLABORATION_PROTOCOL = "plantuml-collaboration";
 const MAX_REVOCATION_BODY_BYTES = 4_096;
 
 class BodyTooLargeError extends Error {}
+
+/** Compares room credentials without leaking through timing how many leading characters matched. */
+function sameCredential(given: string | null | undefined, expected: string | undefined): boolean {
+  if (!given || !expected || given.length !== expected.length) return false;
+  let difference = 0;
+  for (let index = 0; index < expected.length; index += 1)
+    difference |= given.charCodeAt(index) ^ expected.charCodeAt(index);
+  return difference === 0;
+}
 
 /** Reads a request body as text, refusing it once it exceeds `limit` bytes without buffering the rest. */
 async function limitedRequestText(request: Request, limit: number): Promise<string> {
@@ -56,6 +65,7 @@ interface ConnectionAttachment {
   participant: Participant;
   role: CollaborationRole;
   owner: boolean;
+  budget?: { window: number; messages: number; bytes: number };
 }
 
 function participantFrom(value: unknown, fallbackId: string): Participant | undefined {
@@ -106,6 +116,7 @@ function connectionFrom(value: unknown, fallbackId: string): ConnectionAttachmen
       participant: participantFrom(candidate.participant, fallbackId)!,
       role: candidate.role === "viewer" ? "viewer" : "editor",
       owner: candidate.owner === true,
+      ...(candidate.budget ? { budget: candidate.budget } : {}),
     };
   }
   return { participant: participantFrom(value, fallbackId)!, role: "editor", owner: false };
@@ -117,6 +128,8 @@ export class CollaborationRoom extends DurableObject<Env> {
   private editorToken: string | undefined;
   private viewerToken: string | undefined;
   private revoked = false;
+  private expiresAt = 0;
+  private presenceTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -146,6 +159,13 @@ export class CollaborationRoom extends DurableObject<Env> {
         this.ctx.storage.sql.exec("ALTER TABLE room_access ADD COLUMN editor_token TEXT");
       if (!accessColumns.includes("viewer_token"))
         this.ctx.storage.sql.exec("ALTER TABLE room_access ADD COLUMN viewer_token TEXT");
+      if (!accessColumns.includes("expires_at"))
+        this.ctx.storage.sql.exec("ALTER TABLE room_access ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0");
+      this.ctx.storage.sql.exec("UPDATE room_access SET expires_at = ? WHERE expires_at = 0", Date.now() + 86_400_000);
+      const expiry = this.ctx.storage.sql
+        .exec<{ expires_at: number }>("SELECT expires_at FROM room_access WHERE singleton = 1")
+        .toArray()[0];
+      this.expiresAt = expiry?.expires_at ?? 0;
       const access = this.ctx.storage.sql
         .exec<{ owner_token: string; editor_token: string | null; viewer_token: string | null; revoked: number }>(
           "SELECT owner_token, editor_token, viewer_token, revoked FROM room_access WHERE singleton = 1",
@@ -155,6 +175,8 @@ export class CollaborationRoom extends DurableObject<Env> {
       this.editorToken = access?.editor_token ?? undefined;
       this.viewerToken = access?.viewer_token ?? undefined;
       this.revoked = access?.revoked === 1;
+      if (!this.revoked && this.expiresAt && (await this.ctx.storage.getAlarm()) === null)
+        await this.ctx.storage.setAlarm(this.expiresAt);
       const stored = this.ctx.storage.sql
         .exec<{ state: ArrayBuffer }>("SELECT state FROM room_state WHERE singleton = 1")
         .toArray()[0];
@@ -182,6 +204,30 @@ export class CollaborationRoom extends DurableObject<Env> {
     });
   }
 
+  private queuePresence(): void {
+    if (this.presenceTimer) return;
+    this.presenceTimer = setTimeout(() => {
+      this.presenceTimer = undefined;
+      this.broadcastPresence();
+    }, 100);
+  }
+
+  async alarm(): Promise<void> {
+    if (!this.expiresAt || Date.now() < this.expiresAt) {
+      if (this.expiresAt) await this.ctx.storage.setAlarm(this.expiresAt);
+      return;
+    }
+    this.ctx.storage.sql.exec("DELETE FROM room_state");
+    // Keep a small tombstone so old room IDs cannot be recreated with stale links.
+    this.ctx.storage.sql.exec(
+      "UPDATE room_access SET revoked = 1, owner_token = '', editor_token = NULL, viewer_token = NULL",
+    );
+    this.revoked = true;
+    this.document.destroy();
+    this.document = new Y.Doc();
+    for (const socket of this.ctx.getWebSockets()) socket.close(4001, "Room expired");
+  }
+
   private broadcastPresence(): void {
     if (this.revoked) return;
     const message = JSON.stringify({ type: "presence", participants: this.participants() });
@@ -195,6 +241,7 @@ export class CollaborationRoom extends DurableObject<Env> {
   }
 
   async fetch(request: Request): Promise<Response> {
+    if (this.expiresAt && Date.now() >= this.expiresAt) await this.alarm();
     if (this.revoked) return Response.json({ error: "Room revoked" }, { status: 410 });
     if (request.method === "POST") {
       let requestedOwnerToken: string;
@@ -205,7 +252,7 @@ export class CollaborationRoom extends DurableObject<Env> {
           return Response.json({ error: "Request body is too large" }, { status: 413 });
         throw error;
       }
-      if (!this.ownerToken || requestedOwnerToken !== this.ownerToken)
+      if (!sameCredential(requestedOwnerToken, this.ownerToken))
         return Response.json({ error: "Invalid owner credential" }, { status: 403 });
       this.revoked = true;
       this.ctx.storage.sql.exec("UPDATE room_access SET revoked = 1 WHERE singleton = 1");
@@ -223,6 +270,8 @@ export class CollaborationRoom extends DurableObject<Env> {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return Response.json({ error: "WebSocket upgrade required" }, { status: 426 });
     }
+    if (this.ctx.getWebSockets().length >= 32)
+      return Response.json({ error: "Room connection limit reached" }, { status: 429 });
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
@@ -250,15 +299,18 @@ export class CollaborationRoom extends DurableObject<Env> {
         requestedEditorToken,
         requestedViewerToken,
       );
+      this.expiresAt = Date.now() + 86_400_000;
+      this.ctx.storage.sql.exec("UPDATE room_access SET expires_at = ? WHERE singleton = 1", this.expiresAt);
+      await this.ctx.storage.setAlarm(this.expiresAt);
       this.persist();
     }
     const accessToken = credential("access");
-    const owner = Boolean(this.ownerToken && requestedOwnerToken === this.ownerToken);
+    const owner = sameCredential(requestedOwnerToken, this.ownerToken);
     const role: CollaborationRole | undefined = owner
       ? "editor"
-      : this.editorToken && accessToken === this.editorToken
+      : sameCredential(accessToken, this.editorToken)
         ? "editor"
-        : this.viewerToken && accessToken === this.viewerToken
+        : sameCredential(accessToken, this.viewerToken)
           ? "viewer"
           : undefined;
     if (!role) return Response.json({ error: "Invalid room credential" }, { status: 403 });
@@ -282,6 +334,20 @@ export class CollaborationRoom extends DurableObject<Env> {
   }
 
   webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): void {
+    if (this.revoked || (this.expiresAt && Date.now() >= this.expiresAt))
+      return socket.close(4001, "Room expired or revoked");
+    const currentBudget = connectionFrom(socket.deserializeAttachment(), crypto.randomUUID());
+    const window = Math.floor(Date.now() / 10_000);
+    const budget = currentBudget.budget?.window === window ? currentBudget.budget : { window, messages: 0, bytes: 0 };
+    budget.messages++;
+    budget.bytes += typeof message === "string" ? message.length * 2 : message.byteLength;
+    socket.serializeAttachment({ ...currentBudget, budget });
+    const roomMessages = this.ctx.getWebSockets().reduce((sum, peer) => {
+      const b = connectionFrom(peer.deserializeAttachment(), "").budget;
+      return sum + (b?.window === window ? b.messages : 0);
+    }, 0);
+    if (budget.messages > 600 || budget.bytes > 10_000_000 || roomMessages > 3_000)
+      return socket.close(1008, "Collaboration traffic budget exceeded");
     if (typeof message === "string") {
       if (message.length > 4_096) return socket.close(1009, "Presence message too large");
       try {
@@ -295,7 +361,7 @@ export class CollaborationRoom extends DurableObject<Env> {
           ...current,
           participant: { ...participant, id: current.participant.id },
         } satisfies ConnectionAttachment);
-        this.broadcastPresence();
+        this.queuePresence();
       } catch {
         socket.close(1007, "Invalid JSON");
       }
@@ -372,6 +438,12 @@ export default {
           Vary: "Origin",
         },
       });
+    const key = request.headers.get("CF-Connecting-IP") ?? "local";
+    const limiter = (request.headers.get("Sec-WebSocket-Protocol") ?? "").includes("owner.")
+      ? env.ROOM_CREATION_LIMITER
+      : env.ROOM_REQUEST_LIMITER;
+    if (!(await limiter.limit({ key })).success)
+      return Response.json({ error: "Too many room requests" }, { status: 429 });
     try {
       const response = await env.COLLABORATION_ROOM.getByName(match[1]!).fetch(request);
       if (request.method !== "POST") return response;

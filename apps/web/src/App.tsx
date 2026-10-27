@@ -99,6 +99,7 @@ import { useSequenceController } from "./features/sequence/use-sequence-controll
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
+import { deleteGanttTaskKeepingDates } from "./gantt-delete";
 import { ganttAnalysisContext } from "./gantt-analysis-context";
 import { analyzeCriticalPath } from "./schedule-analysis";
 import { optionShortcut } from "./platform-shortcuts";
@@ -114,7 +115,6 @@ import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
-  deleteTask,
   findTaskAt,
   moveVerticalSeparatorByDays,
   parseGantt,
@@ -1108,6 +1108,19 @@ export function App() {
     },
     [occurrencesFor, selectViewMode, viewMode],
   );
+  // Preview notices ask for a source line (e.g. a syntax error) without knowing which view is open.
+  useEffect(() => {
+    const reveal = (event: Event) => {
+      const line = (event as CustomEvent<{ line?: number }>).detail?.line;
+      const lines = workspace.source.split("\n");
+      if (!line || line < 1 || line > lines.length) return;
+      const from = lines.slice(0, line - 1).reduce((offset, text) => offset + text.length + 1, 0);
+      if (viewMode === "diagram") selectViewMode("split");
+      setSelectionRequest({ from, to: from + lines[line - 1]!.length });
+    };
+    window.addEventListener("reveal-source-line", reveal);
+    return () => window.removeEventListener("reveal-source-line", reveal);
+  }, [selectViewMode, viewMode, workspace.source]);
   const diagramOccurrenceForTarget = useCallback(
     (target: Element): SemanticSymbolOccurrence | undefined => {
       const closestValue = (attribute: string) => target.closest(`[${attribute}]`)?.getAttribute(attribute);
@@ -4220,23 +4233,26 @@ export function App() {
           >
             Save
           </button>
-          {(workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs") && (
-            <ActionMenu
-              label="Plan"
-              actions={[
-                ...(workspace.diagramKind === "gantt"
-                  ? [
-                      { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
-                      { label: "Workload…", run: openResourcePanel, opensInspector: true },
-                      { label: "Reports…", run: openReports },
-                      { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
-                      { label: "Jira…", run: () => setJiraDialogOpen(true) },
-                    ]
-                  : []),
-                ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
-              ]}
-            />
-          )}
+          {/* Plan stays in the menu bar for every diagram kind so the menus after it never shift. */}
+          <ActionMenu
+            label="Plan"
+            actions={
+              workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs"
+                ? [
+                    ...(workspace.diagramKind === "gantt"
+                      ? [
+                          { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
+                          { label: "Workload…", run: openResourcePanel, opensInspector: true },
+                          { label: "Reports…", run: openReports },
+                          { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
+                          { label: "Jira…", run: () => setJiraDialogOpen(true) },
+                        ]
+                      : []),
+                    ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
+                  ]
+                : [{ label: "Planning tools are for Gantt and WBS diagrams", run: () => undefined, disabled: true }]
+            }
+          />
           <button
             className="desktop-command-trigger"
             onClick={() => openDialog({ kind: "command-palette" })}
@@ -4405,6 +4421,11 @@ export function App() {
             onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
             onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
           />
+          {(sideInspectorOpen || projectInspectorOpen) && (
+            <button type="button" onClick={() => selectViewMode(viewMode === "diagram" ? "split" : "diagram")}>
+              {viewMode === "diagram" ? "Restore split view" : "Focus on diagram"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -4663,7 +4684,7 @@ export function App() {
             viewMode === "split"
               ? taskViewActive
                 ? `minmax(0, ${taskTablePercent}fr) 5px minmax(0, ${100 - taskTablePercent}fr)`
-                : `min(${workspace.splitPercent}vw, calc(100% - 205px)) 5px minmax(0, 1fr)`
+                : `min(${sideInspectorOpen || projectInspectorOpen ? Math.min(workspace.splitPercent, 35) : workspace.splitPercent}%, calc(100% - 205px)) 5px minmax(0, 1fr)`
               : undefined,
         }}
       >
@@ -5327,7 +5348,9 @@ export function App() {
                 : "Live collaboration"
               : collaboration.connection === "connecting"
                 ? "Collaboration connecting…"
-                : "Collaboration offline"}
+                : collaboration.connection === "offline"
+                  ? "Collaboration offline"
+                  : "Collaboration stopped"}
           </span>
         )}
         {pwa.canInstall && (
@@ -5627,7 +5650,7 @@ export function App() {
               onClose={() => setPendingGanttDeleteTaskId(undefined)}
               onChoose={(policy) => {
                 if (policy === "keep") {
-                  const operation = deleteTask(workspace.source, parseResult.document, task);
+                  const operation = deleteGanttTaskKeepingDates(workspace.source, parseResult.document, task);
                   if (operation.unavailableReason) return setInteractionMessage(operation.unavailableReason);
                   const nextLinks = (activeDocument.wbsGanttLinks ?? []).filter((item) => item !== link);
                   const converted = convertWbsToGantt(
@@ -6024,6 +6047,13 @@ export function App() {
           onStart={startCollaboration}
           onRotate={rotateCollaborationRoom}
           onLeave={leaveCollaboration}
+          onSaveLocal={
+            collaborationAppliesToActiveDiagram && !fileSaving
+              ? () => {
+                  void saveCurrentDocumentAs().catch(reportError);
+                }
+              : undefined
+          }
           onClose={() => setCollaborationDialogOpen(false)}
         />
       )}

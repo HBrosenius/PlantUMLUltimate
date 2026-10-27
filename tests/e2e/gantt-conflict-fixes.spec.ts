@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { fillSource, prepareEditor, setSource } from "./editor-helpers";
 
@@ -47,6 +48,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
       await expect(page.getByLabel("Task details for Frontend")).toContainText(
         `2026-09-28 → 2026-09-${paused ? "30" : "29"}`,
       );
+      await openDiagramOptions(page);
       await page.getByRole("button", { name: "Critical path", exact: true }).click();
       const report = page.locator(".critical-path-report");
       await expect(report).toContainText(`Critical path · ${paused ? 6 : 5} days`);
@@ -71,6 +73,7 @@ test("distinguishes task and milestone slack units on a closed weekend", async (
     page,
     "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-25 and lasts 1 day\n[Release] happens 2026-09-26\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const milestone = report
@@ -96,6 +99,7 @@ test("shows a selectable critical chain through a linked milestone", async ({ pa
     page,
     "@startgantt\nProject starts 2026-09-21\nsaturday are closed\nsunday are closed\n[Build] starts 2026-09-21 and lasts 5 days\n[Build] pauses on tuesday\n[Release] happens at [Build]'s end\n[Deploy] starts at [Release]'s end and lasts 2 days\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const row = page
     .locator(".critical-path-report")
@@ -119,24 +123,26 @@ test("shows dates and slack for every task and highlights critical tasks", async
       "[Frontend] lasts 10 days",
       "[Testing] lasts 5 days",
       "[Backend] starts at [Architecture]'s end",
-      "[Frontend] starts 5 days after [Backend]'s end",
-      "[Testing] starts 3 days after [Frontend]'s end",
+      // Backend's 4-day lag lands on a Sunday, so Backend gets one working day of slack.
+      "[Frontend] starts 4 days after [Backend]'s end",
+      "[Testing] starts 2 days after [Frontend]'s end",
       "@endgantt",
     ].join("\n"),
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
-  for (const [name, duration, slack, critical] of [
-    ["Architecture", 6, 1, false],
-    ["Backend", 8, 1, false],
-    ["Frontend", 10, 0, true],
-    ["Testing", 5, 0, true],
+  for (const [name, duration, slack, freeSlack, critical] of [
+    ["Architecture", 6, 1, 0, false],
+    ["Backend", 8, 1, 1, false],
+    ["Frontend", 10, 0, 0, true],
+    ["Testing", 5, 0, 0, true],
   ] as const) {
     const row = report.getByRole("row").filter({ has: page.getByRole("rowheader", { name, exact: true }) });
     await expect(row).toHaveAttribute("data-critical", String(critical));
     await expect(row.getByRole("cell").nth(3)).toHaveText(`${duration} working days`);
     await expect(row.getByRole("cell").nth(4)).toHaveText(`${slack} working days`);
-    await expect(row.getByRole("cell").nth(5)).toHaveText("0 working days");
+    await expect(row.getByRole("cell").nth(5)).toHaveText(`${freeSlack} working days`);
   }
   const testing = report
     .getByRole("row")
@@ -150,8 +156,12 @@ test("shows dates and slack for every task and highlights critical tasks", async
   await expect(backend.getByRole("cell").nth(6)).toHaveText("2026-10-05");
   await expect(backend.getByRole("cell").nth(7)).toHaveText("2026-10-14");
   await backend.getByText("Slack limits", { exact: true }).click();
-  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-14");
-  await expect(backend).toContainText("Dependency with 'Frontend' limits this task’s end to 2026-10-13");
+  await expect(backend).toContainText(
+    "Total slack: Dependency with 'Frontend' limits this task’s end to 2026-10-14, using the dependent task’s latest allowable dates.",
+  );
+  await expect(backend).toContainText(
+    "Free slack: Dependency with 'Frontend' limits this task’s end to 2026-10-14, using the dependent task’s planned dates.",
+  );
   await report.locator(":scope > summary").click();
   await page.locator('.diagram [data-task-id="backend"] .bar').hover();
   const hover = page.getByLabel("Task details for Backend");
@@ -160,13 +170,14 @@ test("shows dates and slack for every task and highlights critical tasks", async
   ).toContainText("1 working days");
   await expect(
     hover.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Free slack$/ }) }),
-  ).toContainText("0 working days");
+  ).toContainText("1 working days");
 });
 
 test("sorts the schedule by slack and dates with stable ties and restores source order", async ({ page }) => {
   const source =
     "@startgantt\nProject starts 2026-09-21\n[A] lasts 1 day and is 50% completed\n[B] lasts 1 day and starts at [A]'s end and is 100% completed\n[C] lasts 10 days\n@endgantt";
   await fillSource(page, source);
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const sort = async (value: string) => {
@@ -224,6 +235,7 @@ test("selects and reveals an offscreen task from the sorted schedule table", asy
     page,
     "@startgantt\nProject starts 2026-09-21\nprintscale daily\n[Early] starts 2026-09-21 and lasts 2 days\n[Late] starts 2026-12-21 and lasts 2 days\n@endgantt",
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   await report.getByRole("columnheader", { name: "Total slack", exact: true }).getByRole("button").click();
@@ -255,6 +267,7 @@ test("filters near-critical tasks in the table and diagram with an adjustable sl
   );
   // Wait for this source's canonical preview before testing synchronous filters.
   await expect(page.locator('.diagram [data-task-id="c"]')).toBeVisible({ timeout: 45_000 });
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Critical path", exact: true }).click();
   const report = page.locator(".critical-path-report");
   const names = report.getByRole("rowheader");

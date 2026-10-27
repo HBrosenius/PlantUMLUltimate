@@ -123,6 +123,34 @@ describe("WBS operations", () => {
     const moved = moveWbsSubtree(source, document, document.nodes[1]!, document.nodes[3]);
     expect(moved).toContain("** Deliver\n*** Plan\n**** Scope");
   });
+  it("moves a subtree in a CRLF document and keeps CRLF line endings", () => {
+    const crlf = "@startwbs\r\n* Root\r\n** A\r\n** B\r\n@endwbs";
+    const document = parseWbs(crlf);
+    const a = document.nodes.find((node) => node.label === "A")!;
+    const b = document.nodes.find((node) => node.label === "B")!;
+    expect(moveWbsSubtree(crlf, document, a, b)).toBe("@startwbs\r\n* Root\r\n** B\r\n*** A\r\n@endwbs");
+  });
+  it("inserts with the document's CRLF line endings", () => {
+    const crlf = "@startwbs\r\n* Root\r\n@endwbs";
+    const document = parseWbs(crlf);
+    expect(insertWbsNode(crlf, document, { label: "Child" }, document.nodes[0])).toBe(
+      "@startwbs\r\n* Root\r\n** Child\r\n@endwbs",
+    );
+  });
+  it("re-marks only node lines when moving a node with a multi-line label", () => {
+    const multi = "@startwbs\n* Root\n** Plan\n** Shop\n***:Tasks\n- buy milk\n+ eggs;\n@endwbs";
+    const document = parseWbs(multi);
+    const tasks = document.nodes.find((node) => node.label.startsWith("Tasks"))!;
+    const plan = document.nodes.find((node) => node.label === "Plan")!;
+    const moved = moveWbsSubtree(multi, document, tasks, plan);
+    expect(moved).toBe("@startwbs\n* Root\n** Plan\n***:Tasks\n- buy milk\n+ eggs;\n** Shop\n@endwbs");
+  });
+  it("keeps a boxless node boxless when its label is edited", () => {
+    const boxless = "@startwbs\n* Root\n**_ Loose end\n@endwbs";
+    const node = parseWbs(boxless).nodes[1]!;
+    expect(node).toMatchObject({ label: "Loose end", boxless: true });
+    expect(updateWbsNode(boxless, node, { label: "Tied" })).toBe("@startwbs\n* Root\n**_ Tied\n@endwbs");
+  });
   it("preserves each descendant's own side when moving a subtree, only resizing depth", () => {
     const mixed = "@startwbs\n* Project\n** Plan\n+++ Task A\n--- Task B\n** Deliver\n@endwbs";
     const document = parseWbs(mixed);

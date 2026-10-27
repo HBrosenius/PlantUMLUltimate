@@ -136,41 +136,70 @@ export function workingEndDate(start: string, durationDays: number, calendar: Ga
   return workingDates(start, durationDays, calendar)?.at(-1);
 }
 
-function taskEnd(task: GanttTask, calendar: GanttCalendar): string | undefined {
-  if (!task.start?.resolved || !task.duration || task.duration.unit !== "day") return undefined;
-  return workingEndDate(task.start.value, task.duration.value, calendar);
-}
-
 export interface CalendarResizeTarget {
   calendarDays: number;
   durationDelta: number;
   endDate: string;
 }
+/**
+ * Snaps a resize drag to the duration whose drawn end is nearest the requested end. A task at a
+ * partial allocation takes more calendar days per duration day, and pauses are skipped like closed days.
+ */
 export function calendarResizeTarget(
   task: GanttTask,
   requestedCalendarDays: number,
   calendar: GanttCalendar,
+  allocationPercent = 100,
 ): CalendarResizeTarget | undefined {
-  const currentEnd = taskEnd(task, calendar);
-  if (!currentEnd || !task.duration) return undefined;
+  if (!task.start?.resolved || !task.duration || task.duration.unit !== "day" || calendar.error) return undefined;
+  const start = task.start.value;
+  const pauses = taskPauses(task);
+  const available = (date: string) => isWorkingDate(date, calendar) && !pauses.has(date);
+  const endFor = (durationDays: number) => {
+    let remaining = Math.ceil((durationDays * 100) / Math.max(1, allocationPercent));
+    let value: string | undefined = start;
+    for (let scanned = 0; value && scanned < MAX_CALENDAR_DAYS; scanned += 1) {
+      if (available(value) && --remaining === 0) return value;
+      value = shiftDate(value, 1);
+    }
+    return undefined;
+  };
+  const duration = task.duration.value;
+  const currentEnd = endFor(duration);
+  if (!currentEnd) return undefined;
+  // Snap the requested end in the drag direction, then take the first duration that reaches it.
   const direction = requestedCalendarDays < 0 ? -1 : 1;
-  let endDate = shiftDate(currentEnd, requestedCalendarDays);
-  for (let scanned = 0; endDate && !isWorkingDate(endDate, calendar); scanned += 1) {
-    if (scanned >= MAX_CALENDAR_DAYS || calendar.error) return undefined;
-    endDate = shiftDate(endDate, direction);
+  let target = shiftDate(currentEnd, requestedCalendarDays);
+  for (let scanned = 0; target && !available(target); scanned += 1) {
+    if (scanned >= MAX_CALENDAR_DAYS) return undefined;
+    target = shiftDate(target, direction);
   }
-  if (!endDate) return undefined;
-  const calendarDays = Math.round(
-    (new Date(`${endDate}T00:00:00Z`).valueOf() - new Date(`${currentEnd}T00:00:00Z`).valueOf()) / DAY_MS,
-  );
-  let durationDelta = 0;
-  if (calendarDays > 0)
-    for (let day = 1; day <= calendarDays; day += 1) {
-      if (isWorkingDate(shiftDate(currentEnd, day)!, calendar)) durationDelta += 1;
+  if (!target) return undefined;
+  let best = { duration, end: currentEnd };
+  if (direction > 0)
+    // Each extra duration day adds at least one calendar day, so the target is reached within this range.
+    for (
+      let candidate = duration + 1;
+      target > best.end && candidate <= duration + requestedCalendarDays;
+      candidate += 1
+    ) {
+      const end = endFor(candidate);
+      if (!end) return undefined;
+      best = { duration: candidate, end };
     }
   else
-    for (let day = -1; day >= calendarDays; day -= 1) {
-      if (isWorkingDate(shiftDate(currentEnd, day)!, calendar)) durationDelta -= 1;
+    for (let candidate = duration - 1; candidate >= 1 && best.end > target; candidate -= 1) {
+      const end = endFor(candidate);
+      if (!end) return undefined;
+      best = { duration: candidate, end };
     }
-  return { calendarDays, durationDelta, endDate };
+  return {
+    calendarDays: daysBetween(currentEnd, best.end),
+    durationDelta: best.duration - duration,
+    endDate: best.end,
+  };
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round((new Date(`${to}T00:00:00Z`).valueOf() - new Date(`${from}T00:00:00Z`).valueOf()) / DAY_MS);
 }

@@ -7,6 +7,7 @@ import {
   encodeProject,
   encodeContentHistory,
   hashSource,
+  validateProject,
   type PortableProject,
 } from "@plantuml-studio/document-format";
 import {
@@ -318,6 +319,55 @@ describe("useEmbeddedProject lifecycle", () => {
     expect(addDocument).toHaveBeenCalledWith(
       expect.objectContaining({ source: gantt.document.current.source, diagramKind: "gantt" }),
     );
+  });
+
+  it("unlinks the Gantt when its WBS diagram is deleted so the project still saves", async () => {
+    const value = projectWithDiagram();
+    const gantt = value.diagrams[0]!;
+    const wbs = structuredClone(gantt);
+    wbs.id = "linked-wbs";
+    wbs.name = "Scope";
+    wbs.document.current.source = "@startwbs\n* Scope\n@endwbs";
+    wbs.document.current.diagramKind = "wbs";
+    wbs.document.current.sourceHash = await hashSource(wbs.document.current.source);
+    gantt.document.current.sourceHash = await hashSource(gantt.document.current.source);
+    gantt.wbsGantt = { wbsDiagramId: wbs.id, links: [], dependencies: [] };
+    value.diagrams.push(wbs);
+    const tabIds = new Map<string, string>();
+    const addDocument = vi.fn((snapshot?: { diagramKind?: string }) => {
+      const id = `tab-${snapshot?.diagramKind}`;
+      tabIds.set(snapshot?.diagramKind ?? "", id);
+      return id;
+    });
+    const updateDocumentFormat = vi.fn();
+    const { result } = renderHook(() =>
+      useEmbeddedProject({
+        documents: emptyDocuments,
+        addDocument,
+        activateDocument: vi.fn(),
+        closeDocument: vi.fn(),
+        updateDocumentFormat,
+      }),
+    );
+    act(() => result.current.openProject(value));
+    await act(async () => {
+      await result.current.openMember(gantt.id);
+    });
+    updateDocumentFormat.mockClear();
+
+    act(() => {
+      expect(result.current.deleteDiagram(wbs.id)).toBe(true);
+    });
+
+    const remaining = result.current.project!;
+    expect(remaining.diagrams.map((diagram) => diagram.id)).toEqual([gantt.id]);
+    expect(remaining.diagrams[0]!.wbsGantt).toBeUndefined();
+    expect(updateDocumentFormat).toHaveBeenCalledWith(tabIds.get("gantt"), {
+      linkedWbsDocumentId: undefined,
+      wbsGanttLinks: undefined,
+      wbsGanttDependencies: undefined,
+    });
+    expect(() => validateProject(remaining)).not.toThrow();
   });
 
   it("restores local recovery as unsaved until a file save is confirmed", async () => {

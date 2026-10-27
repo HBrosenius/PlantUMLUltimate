@@ -128,3 +128,9 @@ export async function pointInText(page: Page, lineIndex: number, needle: string)
       throw new Error(`Could not locate ${searched}`);
     }, needle);
 }
+
+export async function openDiagramOptions(page: Page) {
+  const options = page.locator(".gantt-options");
+  await expect(options).toBeVisible();
+  if (!(await options.evaluate((element) => element.hasAttribute("open")))) await options.locator("summary").click();
+}

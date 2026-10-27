@@ -48,6 +48,7 @@ export interface JiraIssueUpdateResult {
   issueKey: string;
   ok: boolean;
   status?: number;
+  outcome?: "uncertain" | "not-attempted";
 }
 
 class JiraRequestError extends Error {
@@ -63,7 +64,11 @@ class JiraRequestError extends Error {
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
   const base = endpoint.replace(/\/$/, "");
   const apiBase = import.meta.env.DEV && base === "https://jira.plantuml.brosenius.se" ? "/__jira" : base;
-  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: "include" });
+  const response = await fetch(`${apiBase}${path}`, {
+    ...init,
+    credentials: "include",
+    signal: init?.signal ?? AbortSignal.timeout(60_000),
+  });
   if (!response.ok) {
     let message = `Jira request failed (${response.status})`;
     try {
@@ -106,8 +111,10 @@ export async function jiraFields(endpoint: string, cloudId: string): Promise<Jir
 export async function jiraSearch(
   endpoint: string,
   request: { cloudId: string; jql: string; fields: string[]; nextPageToken?: string },
+  signal?: AbortSignal,
 ): Promise<JiraSearchResponse> {
   return apiJson<JiraSearchResponse>(endpoint, "/api/issues/search", {
+    ...(signal ? { signal: AbortSignal.any([signal, AbortSignal.timeout(60_000)]) } : {}),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
@@ -117,6 +124,7 @@ export async function jiraSearch(
 export async function jiraUpdateIssues(
   endpoint: string,
   request: { cloudId: string; updates: JiraIssueUpdate[]; startFieldId?: string },
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<JiraIssueUpdateResult[]> {
   // The Worker only writes a custom field when the request names it as the start-date field.
   const customFields = new Set(
@@ -125,16 +133,49 @@ export async function jiraUpdateIssues(
   const startFieldId = request.startFieldId ?? (customFields.size === 1 ? [...customFields][0] : undefined);
   const results: JiraIssueUpdateResult[] = [];
   for (let offset = 0; offset < request.updates.length; offset += 25) {
-    const response = await apiJson<{ results: JiraIssueUpdateResult[] }>(endpoint, "/api/issues/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cloudId: request.cloudId,
-        ...(startFieldId ? { startFieldId } : {}),
-        updates: request.updates.slice(offset, offset + 25),
-      }),
-    });
-    results.push(...response.results);
+    try {
+      const response = await apiJson<{ results: JiraIssueUpdateResult[] }>(endpoint, "/api/issues/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cloudId: request.cloudId,
+          ...(startFieldId ? { startFieldId } : {}),
+          updates: request.updates.slice(offset, offset + 25),
+        }),
+      });
+      const batch = request.updates.slice(offset, offset + 25);
+      results.push(
+        ...batch.map(
+          (update) =>
+            response.results.find((result) => result.issueId === update.issueId) ?? {
+              issueId: update.issueId,
+              issueKey: update.issueKey,
+              ok: false,
+              outcome: "uncertain" as const,
+            },
+        ),
+      );
+      if (results.some((result) => !result.ok)) {
+        results.push(
+          ...request.updates
+            .slice(offset + 25)
+            .map(({ issueId, issueKey }) => ({ issueId, issueKey, ok: false, outcome: "not-attempted" as const })),
+        );
+        return results;
+      }
+      onProgress?.(Math.min(offset + 25, request.updates.length), request.updates.length);
+    } catch {
+      // A lost response cannot prove whether any write in this batch reached Jira.
+      results.push(
+        ...request.updates.slice(offset).map(({ issueId, issueKey }, index) => ({
+          issueId,
+          issueKey,
+          ok: false,
+          outcome: index < 25 ? ("uncertain" as const) : ("not-attempted" as const),
+        })),
+      );
+      return results;
+    }
   }
   return results;
 }

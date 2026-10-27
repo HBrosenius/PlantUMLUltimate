@@ -13,6 +13,8 @@ export default defineConfig({
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(__dirname, "migrations")),
           ATLASSIAN_CLIENT_ID: "test-client",
+          // Production allows only the deployed app; tests call from the local dev origin.
+          ALLOWED_ORIGINS: "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
           ATLASSIAN_CLIENT_SECRET: "test-secret",
           TOKEN_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         },

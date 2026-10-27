@@ -11,7 +11,7 @@ import type { GanttDependency, GanttDivider, GanttTask, GanttVerticalSeparator }
 import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { addCanonicalGanttOverlay, alignClosedDayHatching } from "./render/canonical-gantt-overlay";
 import { calendarResizeTarget, isWorkingDate, parseGanttCalendar, shiftDate } from "./gantt-calendar";
-import { resolveTaskDates, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
+import { resolveTaskDates, taskAllocationPercent, taskElapsedDays, type ResolvedTaskDates } from "./gantt-schedule";
 import type { RenderStatus } from "./model";
 import type { ResourceCapacity, ResourceOverAllocation } from "./ResourceWorkloadPanel";
 import { makeLegendLabelsInteractive, parseLegendEntries } from "./legend";
@@ -951,7 +951,9 @@ export function DiagramPreview({
         const step = moveEvent.shiftKey ? 7 : durationUnit === "month" ? 30 : durationUnit === "week" ? 7 : 1;
         snappedDays = Math.round(rawDays / step) * step;
         const modelTask = tasks.find((item) => item.id === id);
-        const calendarTarget = modelTask ? calendarResizeTarget(modelTask, snappedDays, calendar) : undefined;
+        const calendarTarget = modelTask
+          ? calendarResizeTarget(modelTask, snappedDays, calendar, taskAllocationPercent(modelTask))
+          : undefined;
         if (calendarTarget) {
           snappedDays = calendarTarget.calendarDays;
           durationDelta = calendarTarget.durationDelta;
@@ -1267,16 +1269,6 @@ export function DiagramPreview({
                   +
                 </button>
               </div>
-              <div className="gantt-control-group" role="group" aria-label="Overlays">
-                <span className="gantt-control-label">Overlays</span>
-                <button
-                  type="button"
-                  aria-pressed={showCriticalPath}
-                  onClick={() => setShowCriticalPath((value) => !value)}
-                >
-                  Critical path
-                </button>
-              </div>
             </>
           )}
           {selectedDependencyIndex !== undefined && (
@@ -1285,8 +1277,27 @@ export function DiagramPreview({
             </button>
           )}
         </div>
+      </div>
+      <details className="gantt-options">
+        <summary>Diagram options · filters &amp; move policy</summary>
         <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
           <span className="gantt-control-label">Forecast</span>
+          {onProgressForecastChange && (
+            <button
+              type="button"
+              aria-pressed={Boolean(progressForecast?.enabled)}
+              onClick={() =>
+                onProgressForecastChange({
+                  enabled: !progressForecast?.enabled,
+                  remainingDays: progressForecast?.remainingDays ?? {},
+                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
+                })
+              }
+            >
+              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
+            </button>
+          )}
           {progressForecastResult &&
             !progressForecastResult.unavailable &&
             hasDelayedForecastTask(progressForecastResult) &&
@@ -1322,65 +1333,56 @@ export function DiagramPreview({
               />
             </label>
           )}
-          {onProgressForecastChange && (
-            <button
-              type="button"
-              aria-pressed={Boolean(progressForecast?.enabled)}
-              onClick={() =>
-                onProgressForecastChange({
-                  enabled: !progressForecast?.enabled,
-                  remainingDays: progressForecast?.remainingDays ?? {},
-                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
-                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
-                })
-              }
-            >
-              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
-            </button>
-          )}
         </div>
-      </div>
-      <div className="gantt-context-controls">
-        <div className="gantt-control-group" role="group" aria-label="Schedule controls">
-          {onOpenCalendar && (
-            <button
-              data-inspector-trigger
-              onClick={onOpenCalendar}
-              title="Change the time axis in Calendar & schedule; Apply edits diagram source"
-            >
-              Timeline scale…
-            </button>
-          )}
-          {onOpenGanttPreferences && (
-            <button
-              onClick={onOpenGanttPreferences}
-              title="Change the default for task moves and rescheduling in Gantt preferences"
-            >
-              Move policy:{" "}
-              {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
-            </button>
-          )}
+
+        <div className="gantt-control-group" role="group" aria-label="Overlays">
+          <span className="gantt-control-label">Overlays</span>
+          <button type="button" aria-pressed={showCriticalPath} onClick={() => setShowCriticalPath((value) => !value)}>
+            Critical path
+          </button>
         </div>
-        {onResourceFilterChange && (
-          <div className="gantt-control-group" role="group" aria-label="Resource filter">
-            <label className="resource-filter">
-              Filter by resource{" "}
-              <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
-                <option value="">All</option>
-                {resourceNames.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </select>
-            </label>
-            {resourceFilter && (
-              <>
-                <strong>Showing: {resourceFilter}</strong>
-                <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
-              </>
+        <div className="gantt-context-controls">
+          <div className="gantt-control-group" role="group" aria-label="Schedule controls">
+            {onOpenCalendar && (
+              <button
+                data-inspector-trigger
+                onClick={onOpenCalendar}
+                title="Change the time axis in Calendar & schedule; Apply edits diagram source"
+              >
+                Timeline scale…
+              </button>
+            )}
+            {onOpenGanttPreferences && (
+              <button
+                onClick={onOpenGanttPreferences}
+                title="Change the default for task moves and rescheduling in Gantt preferences"
+              >
+                Move policy:{" "}
+                {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
+              </button>
             )}
           </div>
-        )}
-      </div>
+          {onResourceFilterChange && (
+            <div className="gantt-control-group" role="group" aria-label="Resource filter">
+              <label className="resource-filter">
+                Filter by resource{" "}
+                <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
+                  <option value="">All</option>
+                  {resourceNames.map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              {resourceFilter && (
+                <>
+                  <strong>Showing: {resourceFilter}</strong>
+                  <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
       <p className="gantt-controls-help">
         Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits change
         the diagram.

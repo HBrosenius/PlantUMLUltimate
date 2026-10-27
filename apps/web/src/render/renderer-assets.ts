@@ -5,14 +5,10 @@ import { classicEngineScript } from "./engine-exceptions";
 
 const assets = new Map<string, Promise<string>>();
 
-function scriptUrl(source: string, name: string): string {
-  // Parser exceptions capture stacks. A multi-megabyte data URL as the script
-  // name makes that routine work expensive, even when the exception is caught.
-  const bytes = new TextEncoder().encode(`${source}\n//# sourceURL=plantuml-renderer-${name}.js`);
-  const chunks: string[] = [];
-  for (let index = 0; index < bytes.length; index += 32_768)
-    chunks.push(String.fromCharCode(...bytes.subarray(index, index + 32_768)));
-  return `data:text/javascript;base64,${btoa(chunks.join(""))}`;
+function scriptSource(source: string, name: string): string {
+  // Parser exceptions capture stacks; naming the script keeps that cheap and readable. The frame
+  // turns this text into a blob: URL of its own.
+  return `${source}\n//# sourceURL=plantuml-renderer-${name}.js`;
 }
 
 export function loadRendererAssets(layoutEngine: "native" | "graphviz" = "graphviz") {
@@ -34,7 +30,7 @@ export function loadRendererAssets(layoutEngine: "native" | "graphviz" = "graphv
         if (!response.ok) throw new Error("Could not load the local renderer assets");
         const source = await response.text();
         if (source.length > 10_000_000) throw new Error("Renderer asset exceeds the expected size");
-        return scriptUrl(
+        return scriptSource(
           index === 0 ? classicEngineScript(source) : source,
           ["engine", "graphviz", "worker", "icons"][index]!,
         );
@@ -53,70 +49,4 @@ export function loadRendererAssets(layoutEngine: "native" | "graphviz" = "graphv
   }));
 }
 
-export function frameDocument(channel: string): string {
-  const bootstrap = `
-    const channel = ${JSON.stringify(channel)};
-    const send = (message) => parent.postMessage({ channel, ...message }, "*");
-    let worker;
-    let nextRequest;
-    let ready = false;
-    let initialized = false;
-    let completedRenders = 0;
-    let configuration;
-    const stop = () => { worker?.terminate(); worker = undefined; ready = false; nextRequest = undefined; };
-    const start = () => {
-      worker = new Worker(configuration.worker);
-      const activeWorker = worker;
-      worker.onerror = (event) => { if (worker !== activeWorker) return; send({ type: initialized ? "result" : "bootstrap-error", requestId: nextRequest?.requestId, error: event.message || "Renderer worker failed" }); stop(); };
-      worker.onmessage = (event) => {
-        if (worker !== activeWorker) return;
-        const message = event.data;
-        if (message.type === "ready") {
-          ready = true;
-          if (!initialized) { initialized = true; send({ type: "ready", nativeTextMetrics: message.nativeTextMetrics }); }
-          if (nextRequest) worker.postMessage(nextRequest, nextRequest.fonts ? [nextRequest.fonts.metrics.buffer] : []);
-        } else {
-          send(message);
-          nextRequest = undefined;
-          // Keep the engine warm within one document; cap its lifetime and discard engine
-          // failures. A diagram the engine rendered as a syntax error is an ordinary result
-          // for the worker, so the common mid-edit invalid line keeps the warm engine.
-          if (message.type !== "result" || (message.error && !message.recoverable) || ++completedRenders >= 20) {
-            stop();
-            completedRenders = 0;
-          }
-          if (!worker && message.type === "result") {
-            try { start(); } catch { /* The next render can retry worker creation. */ }
-          }
-        }
-      };
-      worker.postMessage({ type: "initialize", ...configuration });
-    };
-    addEventListener("message", (event) => {
-        const request = event.data;
-        if (event.source !== parent || !request || request.channel !== channel) return;
-        if (request.type === "initialize" && !configuration) {
-          try {
-            configuration = request.assets;
-            start();
-          } catch (error) { send({ type: "bootstrap-error", error: String(error) }); }
-          return;
-        }
-        if (request.type === "dispose") { stop(); send({ type: "disposed" }); return; }
-        if (request.type === "cancel") {
-          if (nextRequest?.requestId === request.requestId) {
-            stop();
-            completedRenders = 0;
-            // Boot the replacement now so it loads the engine while the user keeps typing.
-            try { start(); } catch { /* The next render can retry worker creation. */ }
-          }
-          return;
-        }
-        if (request.type !== "render" || !configuration) return;
-        nextRequest = request;
-        if (!worker) start();
-        else if (ready) worker.postMessage(request, request.fonts ? [request.fonts.metrics.buffer] : []);
-    });
-  `;
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'wasm-unsafe-eval' data:; worker-src data:; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"></head><body><script type="module" src="${scriptUrl(bootstrap, "bootstrap")}"></script></body></html>`;
-}
+export { rendererFrameDocument as frameDocument } from "./renderer-frame";

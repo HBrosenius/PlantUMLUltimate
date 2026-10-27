@@ -40,6 +40,10 @@ jobs:
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    # Preinstalled browsers and libraries avoid repeated Ubuntu mirror timeouts.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --ipc=host
     name: ${{ matrix.browser }} · shard ${{ matrix.shard }}/4
     strategy:
       fail-fast: false
@@ -53,15 +57,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Install only this shard's browser; avoid pulling the all-browser container.
-      - name: Install browser and system dependencies
-        # The Azure Ubuntu mirror occasionally stalls on a package for minutes. Let apt give up on a stalled
-        # download after 20s and retry, instead of waiting out its default timeout.
-        timeout-minutes: 15
-        run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network >/dev/null
-          npx playwright install --with-deps ${{ matrix.browser }}
       - run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+        env:
+          # Firefox requires a home directory owned by the container's root user.
+          HOME: /root
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

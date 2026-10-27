@@ -94,8 +94,10 @@ If the connection drops, edits continue in the browser and synchronize through Y
 The hosted collaboration service runs as the Cloudflare Worker in `apps/collaboration-worker`. Each room is a Durable Object with SQLite-backed Yjs state and hibernating WebSockets. To run it locally:
 
 ```sh
-npx wrangler dev --config apps/collaboration-worker/wrangler.jsonc
+npx wrangler dev --config apps/collaboration-worker/wrangler.jsonc --var ALLOWED_ORIGINS:http://localhost:5173
 ```
+
+Production allows only `https://plantuml.brosenius.se`, so local runs pass the dev server's origin with `--var`.
 
 Set `VITE_COLLABORATION_URL` when the web app should use an endpoint other than `https://collaboration.plantuml.brosenius.se`. The production Worker deploy workflow requires the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. Its allowed browser origins are configured through `ALLOWED_ORIGINS` in `apps/collaboration-worker/wrangler.jsonc`.
 

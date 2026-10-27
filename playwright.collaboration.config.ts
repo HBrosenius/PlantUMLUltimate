@@ -18,14 +18,14 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "npx wrangler dev --config apps/collaboration-worker/wrangler.jsonc --ip 127.0.0.1 --port 8787 --persist-to .wrangler/e2e-state --log-level warn",
+        "npx wrangler dev --config apps/collaboration-worker/wrangler.jsonc --ip 127.0.0.1 --port 8787 --persist-to .wrangler/e2e-state --log-level warn --var ALLOWED_ORIGINS:http://127.0.0.1:5173",
       url: "http://127.0.0.1:8787/health",
       reuseExistingServer: false,
       timeout: 60_000,
     },
     {
-      command:
-        "VITE_COLLABORATION_URL=http://127.0.0.1:8787 npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
+      command: "npm --workspace @plantuml-studio/web run dev -- --host 127.0.0.1",
+      env: { VITE_COLLABORATION_URL: "http://127.0.0.1:8787" },
       url: "http://127.0.0.1:5173",
       reuseExistingServer: false,
       timeout: 30_000,

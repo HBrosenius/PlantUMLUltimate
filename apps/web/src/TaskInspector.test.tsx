@@ -53,4 +53,32 @@ describe("TaskInspector", () => {
     expect(onApply).toHaveBeenCalledOnce();
     expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ label: "Compile" }));
   });
+
+  it("gives the note, duration and duration unit fields their own names", async () => {
+    const user = userEvent.setup();
+    const source = "@startgantt\n[Build] starts 2026-09-01\n[Build] lasts 2 days\n@endgantt";
+    const task = parseGantt(source).document.tasks[0]!;
+    render(
+      <TaskInspector
+        task={task}
+        tasks={[task]}
+        predecessorId=""
+        dependencyRelation="start-after-end"
+        effectiveStart="2026-09-01"
+        effectiveEnd="2026-09-02"
+        calendar={parseGanttCalendar(source)}
+        resourceNames={[]}
+        conflicts={[]}
+        onApply={vi.fn()}
+        onDelete={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("spinbutton", { name: "Duration" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Duration unit" })).toBeInTheDocument();
+    const note = screen.getByRole("textbox", { name: "Note" });
+    await user.click(screen.getByText("Note", { selector: "span" }));
+    expect(note).toHaveFocus();
+  });
 });

@@ -5,10 +5,15 @@ test.use({ timezoneId: "Europe/Stockholm" });
 
 // The renderer worker reads the real clock, so the fixed browser time must be real "now" for today's highlight to
 // land inside the starter's chart range; only the expected dates are derived from it.
-const stockholmDate = (base: Date, offsetDays: number) =>
-  new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm" }).format(
-    new Date(base.getTime() + offsetDays * 86_400_000),
-  );
+// Shift by calendar days from Stockholm's date, as the app does. Shifting by 24-hour steps first would
+// cross a DST change and, within an hour of midnight, land on the wrong Stockholm date.
+const stockholmDate = (base: Date, offsetDays: number) => {
+  const [year, month, day] = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm" })
+    .format(base)
+    .split("-")
+    .map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + offsetDays)).toISOString().slice(0, 10);
+};
 
 test("new Gantt diagrams use today's calendar and highlight today", async ({ page }) => {
   const now = new Date();

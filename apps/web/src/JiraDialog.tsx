@@ -33,9 +33,14 @@ import {
   normalizeJiraIssue,
   type JiraField,
   type JiraIssueUpdate,
+  type JiraIssueUpdateResult,
   type JiraSite,
 } from "./jira-client";
 import { useDialogFocus } from "./use-dialog-focus";
+
+const activePublishes = new Set<string>();
+const completedPublishes = new Map<string, JiraIssueUpdateResult[]>();
+const PUBLISH_EVENT = "plantuml-studio:jira-publish-complete";
 
 interface JiraReview {
   baseSource: string;
@@ -81,7 +86,7 @@ export function JiraDialog({
   // The latest chart source, read after awaits so a review never overwrites concurrent edits.
   const currentSource = useRef(source);
   currentSource.current = source;
-  useDialogFocus(dialog, onClose);
+
   const [tokenSite, setTokenSite] = useState("");
   const [tokenEmail, setTokenEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
@@ -94,7 +99,54 @@ export function JiraDialog({
   const [includeAssignee, setIncludeAssignee] = useState(binding?.includeAssignee ?? false);
   const [includeDependencies, setIncludeDependencies] = useState(binding?.includeDependencies ?? true);
   const [publishChanges, setPublishChanges] = useState(binding?.mode === "review-publish");
-  const [busy, setBusy] = useState(false);
+  const resultKey = `plantuml-studio.jira-results:${endpoint}:${binding?.bindingId ?? "unbound"}`;
+  const [busy, setBusy] = useState(activePublishes.has(resultKey));
+  const [progress, setProgress] = useState(
+    activePublishes.has(resultKey) ? "Publishing Jira… Closing this panel does not undo requests." : "",
+  );
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [publishResults, setPublishResults] = useState<JiraIssueUpdateResult[]>(() => {
+    try {
+      const saved: unknown = completedPublishes.get(resultKey) ?? JSON.parse(sessionStorage.getItem(resultKey) ?? "[]");
+      return Array.isArray(saved)
+        ? saved.filter((item): item is JiraIssueUpdateResult =>
+            Boolean(
+              item &&
+              typeof item.issueId === "string" &&
+              typeof item.issueKey === "string" &&
+              typeof item.ok === "boolean",
+            ),
+          )
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const searchController = useRef<AbortController | undefined>(undefined);
+  const publishing = useRef(activePublishes.has(resultKey));
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    const finished = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== resultKey) return;
+      setPublishResults(completedPublishes.get(resultKey) ?? []);
+      setNeedsRefresh(true);
+      publishing.current = false;
+      setBusy(false);
+      setProgress("");
+    };
+    window.addEventListener(PUBLISH_EVENT, finished);
+    return () => {
+      mounted.current = false;
+      window.removeEventListener(PUBLISH_EVENT, finished);
+    };
+  }, [resultKey]);
+  const close = () => {
+    searchController.current?.abort();
+    onClose();
+  };
+  useDialogFocus(dialog, close);
+  useEffect(() => () => searchController.current?.abort(), []);
   const [error, setError] = useState<string>();
   const [review, setReview] = useState<JiraReview>();
   const [resolutions, setResolutions] = useState<Record<string, JiraFieldResolution["choice"]>>({});
@@ -194,23 +246,32 @@ export function JiraDialog({
     if (!selectedSite || !jql.trim() || busy) return;
     setBusy(true);
     setError(undefined);
+    const controller = new AbortController();
+    searchController.current = controller;
+    setProgress("Reading Jira…");
     try {
       const issues: JiraIssueSnapshot[] = [];
       const seenTokens = new Set<string>();
       let nextPageToken: string | undefined;
       for (let page = 0; page < 50; page += 1) {
-        const result = await jiraSearch(endpoint, {
-          cloudId,
-          jql: jql.trim(),
-          fields: [...(startFieldId ? [startFieldId] : []), ...(includeDependencies ? ["issuelinks"] : [])],
-          ...(nextPageToken ? { nextPageToken } : {}),
-        });
+        const result = await jiraSearch(
+          endpoint,
+          {
+            cloudId,
+            jql: jql.trim(),
+            fields: [...(startFieldId ? [startFieldId] : []), ...(includeDependencies ? ["issuelinks"] : [])],
+            ...(nextPageToken ? { nextPageToken } : {}),
+          },
+          controller.signal,
+        );
+        controller.signal.throwIfAborted();
         issues.push(
           ...result.issues.flatMap((issue) => {
             const normalized = normalizeJiraIssue(issue, startFieldId || undefined);
             return normalized ? [normalized] : [];
           }),
         );
+        setProgress(`Read ${page + 1} pages · ${issues.length} issues`);
         if (!result.nextPageToken) break;
         if (seenTokens.has(result.nextPageToken)) throw new Error("Jira returned a repeated page token");
         seenTokens.add(result.nextPageToken);
@@ -252,17 +313,20 @@ export function JiraDialog({
         divergences,
         missingTasks,
       });
+      setNeedsRefresh(false);
       setResolutions({});
       setRemovalChoices({});
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not import Jira issues");
     } finally {
+      searchController.current = undefined;
       setBusy(false);
+      setProgress("");
     }
   };
 
   const applyReview = async () => {
-    if (!review || readOnly || busy) return;
+    if (!review || readOnly || busy || needsRefresh) return;
     if (unresolvedCount > 0 || unresolvedRemovalCount > 0) return;
     if (currentSource.current !== review.baseSource) {
       setError(STALE_REVIEW_MESSAGE);
@@ -301,16 +365,32 @@ export function JiraDialog({
     if (updatesByIssue.size > 0) {
       setBusy(true);
       setError(undefined);
+      publishing.current = true;
+      activePublishes.add(resultKey);
+      setProgress(`Publishing 0 of ${updatesByIssue.size} issues. Closing this panel does not undo requests.`);
       try {
-        const results = await jiraUpdateIssues(endpoint, {
-          cloudId: review.binding.cloudId,
-          updates: [...updatesByIssue.values()],
-        });
+        const results = await jiraUpdateIssues(
+          endpoint,
+          {
+            cloudId: review.binding.cloudId,
+            updates: [...updatesByIssue.values()],
+          },
+          (completed, total) =>
+            setProgress(`Published ${completed} of ${total} issues. Closing this panel does not undo requests.`),
+        );
+        completedPublishes.set(resultKey, results);
+        setPublishResults(results);
+        try {
+          sessionStorage.setItem(resultKey, JSON.stringify(results));
+        } catch {
+          /* Results remain visible in this panel. */
+        }
+        setNeedsRefresh(true);
         const failures = results.filter((result) => !result.ok);
         published = results.length - failures.length;
         if (failures.length > 0) {
           setError(
-            `Published ${published} issue${published === 1 ? "" : "s"}; ${failures.map((result) => `${result.issueKey} failed${result.status ? ` (${result.status})` : ""}`).join(", ")}. Refresh Jira before retrying.`,
+            `Published ${published} issue${published === 1 ? "" : "s"}; ${failures.map((result) => `${result.issueKey}: ${result.outcome === "uncertain" ? "outcome uncertain" : result.outcome === "not-attempted" ? "not attempted" : "rejected"}${result.status ? ` (${result.status})` : ""}`).join(", ")}. Refresh Jira before retrying.`,
           );
           return;
         }
@@ -318,6 +398,10 @@ export function JiraDialog({
         setError(reason instanceof Error ? reason.message : "Could not publish Jira changes");
         return;
       } finally {
+        activePublishes.delete(resultKey);
+        window.dispatchEvent(new CustomEvent(PUBLISH_EVENT, { detail: resultKey }));
+        publishing.current = false;
+        setProgress("");
         setBusy(false);
       }
     }
@@ -327,6 +411,7 @@ export function JiraDialog({
       );
       return;
     }
+    if (!mounted.current) return;
     const plan = buildJiraPullPlan(review.baseSource, review.siteUrl, resolvedIssues, review.options);
     const removedIssueIds = review.missingTasks
       .filter((task) => removalChoices[task.issueId] === "remove")
@@ -376,7 +461,7 @@ export function JiraDialog({
     );
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <div className="modal-backdrop" onMouseDown={close}>
       <div
         ref={dialog}
         className="task-dialog jira-dialog"
@@ -394,7 +479,7 @@ export function JiraDialog({
                 : "Import a Jira Cloud query into this Gantt chart."}
             </p>
           </div>
-          <button type="button" aria-label="Close Jira integration" onClick={onClose}>
+          <button type="button" aria-label="Close Jira integration" onClick={close}>
             ×
           </button>
         </header>
@@ -470,7 +555,7 @@ export function JiraDialog({
               </button>
             </form>
             <div className="dialog-actions">
-              <button type="button" onClick={onClose}>
+              <button type="button" onClick={close}>
                 Cancel
               </button>
               <button type="button" disabled={busy} onClick={connect}>
@@ -660,17 +745,17 @@ export function JiraDialog({
               </div>
             )}
             <div className="dialog-actions">
-              <button type="button" onClick={() => setReview(undefined)}>
+              <button type="button" disabled={busy} onClick={() => setReview(undefined)}>
                 Back
               </button>
               <span />
-              <button type="button" onClick={onClose}>
+              <button type="button" onClick={close}>
                 Cancel
               </button>
               <button
                 type="button"
                 className="primary"
-                disabled={readOnly || busy || unresolvedCount > 0 || unresolvedRemovalCount > 0}
+                disabled={readOnly || busy || needsRefresh || unresolvedCount > 0 || unresolvedRemovalCount > 0}
                 onClick={() => void applyReview()}
               >
                 {busy
@@ -762,7 +847,7 @@ export function JiraDialog({
                 Disconnect
               </button>
               <span />
-              <button type="button" onClick={onClose}>
+              <button type="button" onClick={close}>
                 Cancel
               </button>
               <button
@@ -775,6 +860,32 @@ export function JiraDialog({
               </button>
             </div>
           </>
+        )}
+        {busy && <p role="status">{progress || "Working…"}</p>}
+        {busy && searchController.current && !publishing.current && (
+          <button type="button" onClick={() => searchController.current?.abort()}>
+            Cancel reading
+          </button>
+        )}
+        {publishResults.length > 0 && (
+          <section aria-label="Jira publish results">
+            <h3>Last publish results</h3>
+            <p>Refresh Jira before retrying uncertain writes. Closing the panel does not undo requests.</p>
+            <ul>
+              {publishResults.map((result) => (
+                <li key={result.issueId}>
+                  {result.issueKey}:{" "}
+                  {result.ok
+                    ? "Published"
+                    : result.outcome === "uncertain"
+                      ? "Outcome uncertain — read Jira before retrying"
+                      : result.outcome === "not-attempted"
+                        ? "Not attempted"
+                        : `Rejected (${result.status ?? "unknown"})`}
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
         {error && (
           <p className="field-error jira-error" role="alert">

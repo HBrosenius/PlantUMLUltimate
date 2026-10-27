@@ -52,6 +52,8 @@ export function NewDocumentDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const [destination, setDestination] = useState(onAddToDocument ? "document" : "separate");
+  const [route, setRoute] = useState<"create" | "examples">("create");
+  const [exampleKind, setExampleKind] = useState<DiagramKind>("gantt");
   const [name, setName] = useState("");
   const [content, setContent] = useState("starter");
   const [busy, setBusy] = useState(false);
@@ -134,10 +136,22 @@ export function NewDocumentDialog({
           )}
         </header>
         <nav className="start-routes" aria-label="Start options">
-          <a href="#diagram-kind-title">Create</a>
-          <a href="#starter-example-title">Try an example</a>
-          <a href="#personal-starters">Personal starters</a>
-          <a href="#start-learning">Quick tour & what’s new</a>
+          <button
+            type="button"
+            data-dialog-autofocus
+            aria-pressed={route === "create"}
+            onClick={() => setRoute("create")}
+          >
+            Create
+          </button>
+          {onOpen && (
+            <button type="button" onClick={onOpen}>
+              Open
+            </button>
+          )}
+          <button type="button" aria-pressed={route === "examples"} onClick={() => setRoute("examples")}>
+            Try an example
+          </button>
         </nav>
         <p className="start-preferences">Preferences are available later in More → Settings.</p>
         <section className="diagram-creation-destination">
@@ -148,18 +162,15 @@ export function NewDocumentDialog({
               <option value="starter">Simple starter · editable sample content</option>
             </select>
           </label>
-          <label>
-            Create in
-            <select
-              data-dialog-autofocus
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
-              disabled={busy}
-            >
-              {onAddToDocument && <option value="document">Add to {documentName}</option>}
-              <option value="separate">New separate file</option>
-            </select>
-          </label>
+          {onAddToDocument && (
+            <label>
+              Create in
+              <select value={destination} onChange={(event) => setDestination(event.target.value)} disabled={busy}>
+                <option value="document">Add to {documentName}</option>
+                <option value="separate">New separate file</option>
+              </select>
+            </label>
+          )}
           <label>
             Diagram name{" "}
             <input
@@ -176,7 +187,7 @@ export function NewDocumentDialog({
           </p>
           {error && <p role="alert">{error}</p>}
         </section>
-        <section className="diagram-kind-section" aria-labelledby="diagram-kind-title">
+        <section hidden={route !== "create"} className="diagram-kind-section" aria-labelledby="diagram-kind-title">
           <div className="diagram-kind-heading">
             <div>
               <h3 id="diagram-kind-title">Choose a diagram</h3>
@@ -201,15 +212,25 @@ export function NewDocumentDialog({
             ))}
           </div>
         </section>
-        <section className="diagram-kind-section" aria-labelledby="starter-example-title">
+        <section hidden={route !== "examples"} className="diagram-kind-section" aria-labelledby="starter-example-title">
           <div className="diagram-kind-heading">
             <div>
               <h3 id="starter-example-title">Try an example</h3>
               <p>Open a realistic diagram and adapt it to your own project.</p>
             </div>
           </div>
+          <label>
+            Example diagram type{" "}
+            <select value={exampleKind} onChange={(event) => setExampleKind(event.target.value as DiagramKind)}>
+              {OPTIONS.map((option) => (
+                <option key={option.kind} value={option.kind}>
+                  {option.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="starter-example-options">
-            {STARTER_EXAMPLES.map((example) => (
+            {STARTER_EXAMPLES.filter((example) => example.kind === exampleKind).map((example) => (
               <button key={example.id} type="button" disabled={busy} onClick={() => void choose(example.kind, example)}>
                 <DiagramKindPreview kind={example.kind} />
                 <span className="starter-example-kind">{kindLabel(example.kind)}</span>
@@ -219,7 +240,10 @@ export function NewDocumentDialog({
             ))}
           </div>
         </section>
-        <PersonalStarterLibrary busy={busy} onChoose={(example) => void choose(example.kind, example)} />
+        <details>
+          <summary>Personal starters</summary>
+          <PersonalStarterLibrary busy={busy} onChoose={(example) => void choose(example.kind, example)} />
+        </details>
         <details id="start-learning" className="start-learning">
           <summary>Quick tour & what’s new</summary>
           <p>

@@ -70,17 +70,24 @@ export class CollaborationSession {
   private reconnectTimer?: number;
   private reconnectAttempt = 0;
   private stopped = false;
+  private failed = false;
   private synchronized = false;
   private hasSynchronized = false;
   private pendingRemoteAuthor: CollaborationParticipant | undefined;
   private participant: CollaborationParticipant;
   private presenceTimer: number | undefined;
   private readonly handleOffline = () => {
+    if (this.failed) return;
     this.onConnection("offline");
     this.socket?.close();
   };
   private readonly handleOnline = () => {
-    if (this.stopped || this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING)
+    if (
+      this.stopped ||
+      this.failed ||
+      this.socket?.readyState === WebSocket.OPEN ||
+      this.socket?.readyState === WebSocket.CONNECTING
+    )
       return;
     if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
     this.connect(this.sourceText.toString());
@@ -110,7 +117,14 @@ export class CollaborationSession {
       if (!this.sharedDocument.snapshot) this.onSource(this.sourceText.toString());
     });
     this.document.on("update", (update: Uint8Array, origin: unknown) => {
-      if (this.role === "viewer" || origin === REMOTE_ORIGIN || this.socket?.readyState !== WebSocket.OPEN) return;
+      if (
+        this.failed ||
+        !this.synchronized ||
+        this.role === "viewer" ||
+        origin === REMOTE_ORIGIN ||
+        this.socket?.readyState !== WebSocket.OPEN
+      )
+        return;
       this.socket.send(update);
     });
     this.document.on("afterTransaction", (transaction: Y.Transaction) => {
@@ -127,7 +141,7 @@ export class CollaborationSession {
   }
 
   private connect(initialSource: string): void {
-    if (this.stopped) return;
+    if (this.stopped || this.failed) return;
     if (!navigator.onLine) {
       this.scheduleReconnect(initialSource);
       return;
@@ -139,6 +153,7 @@ export class CollaborationSession {
     this.socket = socket;
     socket.onopen = () => this.sendPresence();
     socket.onmessage = (event) => {
+      if (this.stopped || this.failed || socket !== this.socket) return;
       if (typeof event.data === "string") {
         try {
           const message: unknown = JSON.parse(event.data);
@@ -164,7 +179,16 @@ export class CollaborationSession {
         return;
       }
       const sourceBeforeUpdate = this.sourceText.toString();
-      Y.applyUpdate(this.document, new Uint8Array(event.data as ArrayBuffer), REMOTE_ORIGIN);
+      const remoteUpdate = new Uint8Array(event.data as ArrayBuffer);
+      let remoteVector: Uint8Array;
+      try {
+        remoteVector = Y.encodeStateVectorFromUpdate(remoteUpdate);
+        Y.applyUpdate(this.document, remoteUpdate, REMOTE_ORIGIN);
+      } catch {
+        this.fail("invalid-state");
+        socket.close(1007, "Invalid remote state");
+        return;
+      }
       const sourceAfterUpdate = this.sourceText.toString();
       if (
         !this.sharedDocument.snapshot &&
@@ -175,32 +199,56 @@ export class CollaborationSession {
         this.onEdit(this.pendingRemoteAuthor, sourceAfterUpdate, changedRange(sourceBeforeUpdate, sourceAfterUpdate));
       this.pendingRemoteAuthor = undefined;
       if (!this.synchronized) {
-        this.synchronized = true;
         this.hasSynchronized = true;
         if (this.role === "editor") {
-          const maySeedRoom = Boolean(this.credentials.ownerToken || !this.credentials.accessToken);
+          // Only the room's creator seeds it; a joining tab must never upload its own document.
+          const maySeedRoom = Boolean(this.credentials.ownerToken);
           if (maySeedRoom && !this.sharedDocument.snapshot && this.sharedOptions?.initial) {
             this.sharedDocument.apply(this.sharedOptions.initial);
             this.sharedSnapshot = this.sharedDocument.snapshot;
           } else if (maySeedRoom && !this.sharedDocument.snapshot && !this.sourceText.length && initialSource)
             this.sourceText.insert(0, initialSource);
-          socket.send(Y.encodeStateAsUpdate(this.document));
+          socket.send(Y.encodeStateAsUpdate(this.document, remoteVector));
         }
+        this.synchronized = true;
         this.reconnectAttempt = 0;
         this.onConnection("connected");
         this.sendPresence();
       }
     };
-    socket.onclose = () => this.scheduleReconnect(initialSource);
+    socket.onclose = (event) => {
+      const permanent: Record<number, CollaborationConnection> = {
+        4001: "revoked",
+        1008: "access-denied",
+        1009: "oversized",
+        1007: "invalid-state",
+      };
+      const failure = permanent[event.code];
+      if (failure) this.fail(failure);
+      else this.scheduleReconnect(initialSource);
+    };
     socket.onerror = () => socket.close();
   }
 
   private scheduleReconnect(initialSource: string): void {
-    if (this.stopped) return;
+    if (this.stopped || this.failed) return;
+    if (this.reconnectAttempt >= 6) {
+      this.fail("unavailable");
+      return;
+    }
     this.onConnection("offline");
     this.reconnectAttempt += 1;
     const delay = Math.min(30_000, 500 * 2 ** Math.min(6, this.reconnectAttempt));
     this.reconnectTimer = window.setTimeout(() => this.connect(initialSource), delay);
+  }
+
+  private fail(state: CollaborationConnection): void {
+    if (this.stopped) return;
+    this.failed = true;
+    this.synchronized = false;
+    if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
+    this.onParticipants([]);
+    this.onConnection(state);
   }
 
   private sendPresence(): void {
@@ -210,7 +258,8 @@ export class CollaborationSession {
 
   applySource(source: string): void {
     if (this.role === "viewer" || this.sharedDocument.snapshot) return;
-    if (!this.hasSynchronized && this.credentials.accessToken && !this.credentials.ownerToken) return;
+    // Wait for remote state even for recovered owners; pre-seeding a refreshed tab duplicates CRDT text.
+    if (!this.hasSynchronized) return;
     const current = this.sourceText.toString();
     if (current === source) return;
     const range = changedRange(current, source);

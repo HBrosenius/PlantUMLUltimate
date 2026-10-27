@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource } from "./editor-helpers";
 
@@ -17,6 +18,7 @@ sunday are closed
 [Build] lasts 3 days
 @endgantt`,
   );
+  await openDiagramOptions(page);
   const forecastToggle = page.getByRole("button", { name: /Progress forecast: (Off|On)/ });
   const positionBefore = await forecastToggle.boundingBox();
   await forecastToggle.click();

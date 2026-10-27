@@ -14,11 +14,16 @@ test("production headers allow native and Graphviz rendering", async ({ page }) 
   await prepareEditor(page);
   const response = await documentResponse;
   expect(response.ok()).toBe(true);
-  const policy = response.headers()["content-security-policy"];
-  expect(policy).toBeTruthy();
-  for (const directive of ["script-src", "worker-src"]) {
-    expect(policy?.split(";").find((part) => part.trim().startsWith(`${directive} `))).toContain("data:");
+  // Cloudflare's header only stops other sites from framing the app; the page's own meta policy
+  // governs scripts. The renderer runs its engine from blob: URLs, so no data: or inline scripts.
+  expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
+  const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  const directive = (name: string) => policy?.split(";").find((part) => part.trim().startsWith(`${name} `)) ?? "";
+  for (const name of ["script-src", "worker-src"]) {
+    expect(directive(name)).toContain("blob:");
+    expect(directive(name)).not.toContain("data:");
   }
+  expect(directive("script-src")).not.toContain("'unsafe-inline'");
   await expect(page.locator(".diagram svg")).toContainText("Architecture");
   await page.getByRole("button", { name: "New diagram tab" }).click();
   await page

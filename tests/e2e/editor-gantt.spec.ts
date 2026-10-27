@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -902,10 +903,13 @@ test("replaces the preview after pasting the large weekend-aware project", async
 test("makes a failed update explicit instead of silently showing the old preview", async ({ page }) => {
   await setSource(page, source("[Previous diagram] lasts 2 days"));
   await page.locator(".cm-content").fill("@startgantt\n[Broken] starts nope\n@endgantt");
-  const error = page.getByRole("alert");
-  await expect(error).toContainText("Preview could not be updated", { timeout: 20_000 });
+  const error = page.locator(".render-notice.error");
+  // A syntax error names the failing line and offers to reveal it; retrying the same source cannot help.
+  await expect(error).toContainText("Line 2 can't be drawn", { timeout: 20_000 });
+  await expect(error).toContainText("[Broken] starts nope");
   await expect(page.locator(".preview-viewport")).toHaveClass(/stale-preview/);
-  await expect(page.getByRole("button", { name: "Retry rendering" })).toBeVisible();
+  await error.getByRole("button", { name: "Go to line 2" }).click();
+  await expect(page.locator(".statusbar")).toContainText("Ln 2");
 });
 
 test("explains oversized previews and recovers after reducing the diagram", async ({ page }) => {
@@ -1313,6 +1317,7 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
 test("shortens a weekend-starting task through every working endpoint", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("saturday are closed\nsunday are closed\n[A] starts 2026-09-05\n[A] lasts 6 days"));
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: /^Move policy:/ }).click();
   await page.getByLabel("When moving tasks").selectOption("single");
   await page
@@ -2086,16 +2091,17 @@ test("compares baseline dependencies even when dates match and reports project f
   await history.getByRole("button", { name: "Select version Dependency baseline", exact: true }).click();
   await history.getByRole("button", { name: "Set as baseline" }).click();
   await history.getByRole("button", { name: "Close", exact: true }).click();
-  await setSource(page, baseline.replace("3 days after [A]'s end", "4 days after [A]'s start"));
+  // PlantUML starts "3 days after [A]'s end" on A's last day + 4, the same date as "5 days after [A]'s start".
+  await setSource(page, baseline.replace("3 days after [A]'s end", "5 days after [A]'s start"));
   const report = page.locator(".schedule-analysis-report");
   await report.locator("summary").click();
   await expect(report.locator("summary")).toContainText("0 changed tasks · 1 dependency change");
   const dependencies = report.getByRole("region", { name: "Baseline dependency changes" });
   await expect(dependencies).toContainText("Changed");
   await expect(dependencies).toContainText("End → start · 3 days after");
-  await expect(dependencies).toContainText("Start → start · 4 days after");
+  await expect(dependencies).toContainText("Start → start · 5 days after");
   const finish = report.getByRole("region", { name: "Baseline project finish comparison" });
-  await expect(finish).toContainText("Baseline: 2026-10-06 · Current: 2026-10-06 · Unchanged");
+  await expect(finish).toContainText("Baseline: 2026-10-07 · Current: 2026-10-07 · Unchanged");
   if (browserName === "chromium") {
     await dependencies.getByRole("button", { name: "Reveal dependency" }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: test.info().outputPath("baseline-dependencies.png") });
@@ -2109,9 +2115,9 @@ test("compares baseline dependencies even when dates match and reports project f
     await dependencies.getByRole("button", { name: "Reveal dependency" }).click();
   }
   await expect(page.locator(".statusbar")).toContainText("Ln 5");
-  await setSource(page, baseline.replace("3 days after [A]'s end", "5 days after [A]'s start"));
-  await expect(finish).toContainText("Current: 2026-10-07 · 1 calendar day later");
+  await setSource(page, baseline.replace("3 days after [A]'s end", "6 days after [A]'s start"));
+  await expect(finish).toContainText("Current: 2026-10-08 · 1 calendar day later");
   await expect(page.locator(".cm-content .cm-line")).toHaveText(
-    baseline.replace("3 days after [A]'s end", "5 days after [A]'s start").split("\n"),
+    baseline.replace("3 days after [A]'s end", "6 days after [A]'s start").split("\n"),
   );
 });

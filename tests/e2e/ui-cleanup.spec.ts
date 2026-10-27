@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
@@ -14,6 +15,7 @@ test("keeps both toolbars usable across desktop and phone layouts", async ({ pag
     }
     await expect(page.getByRole("button", { name: "Save", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Workload", exact: true })).toBeVisible();
+    await openDiagramOptions(page);
     await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toBeVisible();
     await expect(
       page

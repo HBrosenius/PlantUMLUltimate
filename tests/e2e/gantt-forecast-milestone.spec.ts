@@ -1,3 +1,4 @@
+import { openDiagramOptions } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { prepareEditor, setSource } from "./editor-helpers";
 
@@ -15,6 +16,7 @@ sunday are closed
 [Work] lasts 2 days
 @endgantt`,
   );
+  await openDiagramOptions(page);
   await page.getByRole("button", { name: "Progress forecast: Off" }).click();
   await page.getByLabel("Forecast as of date").fill("2026-09-29");
   await expect(page.locator("[data-forecast-task-id='gate'] .gantt-forecast-missed-marker")).toHaveCount(1);

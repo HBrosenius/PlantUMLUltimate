@@ -8,6 +8,8 @@ export interface WbsNode {
   depth: number;
   side: WbsSide;
   marker: string;
+  /** Written as `**_ Label`: the node is drawn without a box. */
+  boxless?: boolean;
   alias?: string;
   parentId?: string;
   color?: string;

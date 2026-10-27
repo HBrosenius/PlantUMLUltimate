@@ -1,7 +1,9 @@
+import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 
+let testIp = 0;
 const room = "a".repeat(43);
 
 async function connect(
@@ -16,6 +18,7 @@ async function connect(
   const response = await exports.default.fetch(
     new Request(url, {
       headers: {
+        "CF-Connecting-IP": `192.0.2.${++testIp}`,
         Origin: "http://localhost:5173",
         Upgrade: "websocket",
         "Sec-WebSocket-Protocol": protocols.join(", "),
@@ -34,6 +37,7 @@ async function roomResponse(roomId: string, access?: string): Promise<Response> 
   return exports.default.fetch(
     new Request(url, {
       headers: {
+        "CF-Connecting-IP": `192.0.2.${++testIp}`,
         Origin: "http://localhost:5173",
         Upgrade: "websocket",
         "Sec-WebSocket-Protocol": ["plantuml-collaboration", ...(access ? [`access.${access}`] : [])].join(", "),
@@ -206,6 +210,7 @@ describe("collaboration Worker", () => {
     const response = await exports.default.fetch(
       new Request(url, {
         headers: {
+          "CF-Connecting-IP": `192.0.2.${++testIp}`,
           Origin: "http://localhost:5173",
           Upgrade: "websocket",
           "Sec-WebSocket-Protocol": "plantuml-collaboration",
@@ -261,4 +266,89 @@ describe("collaboration Worker", () => {
     owner.close(1000, "test complete");
     editor.close(1000, "test complete");
   });
+});
+
+it("accepts a large valid snapshot and merges an offline delta on reconnect", async () => {
+  const roomId = "L".repeat(43);
+  const credentials = { owner: "o".repeat(43), editor: "e".repeat(43), viewer: "v".repeat(43) };
+  const owner = await connect(roomId, credentials);
+  await nextBinary(owner);
+  const observer = await connect(roomId, { access: credentials.viewer });
+  await nextBinary(observer);
+  const doc = new Y.Doc();
+  doc.getText("source").insert(0, "界".repeat(400_000));
+  const snapshot = Y.encodeStateAsUpdate(doc);
+  expect(snapshot.byteLength).toBeGreaterThan(1_000_000);
+  const delivered = nextBinary(observer);
+  owner.send(snapshot);
+  Y.applyUpdate(new Y.Doc(), await delivered);
+  owner.close(1000);
+  doc.getText("source").insert(0, "offline ");
+  const reconnected = await connect(roomId, { access: credentials.editor });
+  const remote = await nextBinary(reconnected);
+  const delta = Y.encodeStateAsUpdate(doc, Y.encodeStateVectorFromUpdate(remote));
+  expect(delta.byteLength).toBeLessThan(100);
+  const merged = nextBinary(observer);
+  reconnected.send(delta);
+  await merged;
+  const later = await connect(roomId, { access: credentials.viewer });
+  const persisted = new Y.Doc();
+  Y.applyUpdate(persisted, await nextBinary(later));
+  expect(persisted.getText("source").toString()).toBe("offline " + "界".repeat(400_000));
+  reconnected.close(1000);
+  observer.close(1000);
+  later.close(1000);
+  doc.destroy();
+  persisted.destroy();
+});
+
+it("closes a socket that exceeds its message budget", async () => {
+  const socket = await connect("B".repeat(43), {
+    owner: "o".repeat(43),
+    editor: "e".repeat(43),
+    viewer: "v".repeat(43),
+  });
+  await nextBinary(socket);
+  const closed = new Promise<CloseEvent>((resolve) => socket.addEventListener("close", resolve));
+  for (let i = 0; i < 601; i++) socket.send("{}");
+  expect((await closed).code).toBe(1008);
+});
+
+it("throttles creation attempts before allocating more rooms", async () => {
+  const statuses = [];
+  for (let i = 0; i < 11; i++) {
+    const response = await exports.default.fetch(
+      new Request(`https://collaboration.example/rooms/${String(i).padStart(43, "R")}`, {
+        headers: {
+          Origin: "http://localhost:5173",
+          Upgrade: "websocket",
+          "CF-Connecting-IP": "198.51.100.250",
+          "Sec-WebSocket-Protocol": "plantuml-collaboration, owner." + "o".repeat(43),
+        },
+      }),
+    );
+    statuses.push(response.status);
+  }
+  expect(statuses.at(-1)).toBe(429);
+});
+
+it("expires room contents and rejects old credentials", async () => {
+  const roomId = "X".repeat(43);
+  const socket = await connect(roomId, { owner: "o".repeat(43), editor: "e".repeat(43), viewer: "v".repeat(43) });
+  await nextBinary(socket);
+  const closed = new Promise<CloseEvent>((resolve) => socket.addEventListener("close", resolve));
+  const stub = env.COLLABORATION_ROOM.getByName(roomId);
+  await runInDurableObject(stub, async (instance, state) => {
+    const expiry = await state.storage.getAlarm();
+    expect(expiry).toBeGreaterThan(Date.now());
+    const now = vi.spyOn(Date, "now").mockReturnValue(expiry! + 1);
+    try {
+      await instance.alarm();
+    } finally {
+      now.mockRestore();
+    }
+    expect(state.storage.sql.exec("SELECT * FROM room_state").toArray()).toHaveLength(0);
+  });
+  expect((await closed).code).toBe(4001);
+  expect((await roomResponse(roomId, "e".repeat(43))).status).toBe(410);
 });

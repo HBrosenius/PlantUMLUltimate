@@ -10,7 +10,8 @@ export interface CollaborationParticipant {
   diagramName?: string | undefined;
 }
 
-export type CollaborationConnection = "connecting" | "connected" | "offline";
+export type CollaborationConnection =
+  "connecting" | "connected" | "offline" | "revoked" | "access-denied" | "oversized" | "invalid-state" | "unavailable";
 export type CollaborationRole = "editor" | "viewer";
 
 export interface CollaborationCredentials {

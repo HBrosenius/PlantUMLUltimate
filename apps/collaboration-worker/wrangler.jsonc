@@ -8,9 +8,13 @@
   "durable_objects": {
     "bindings": [{ "name": "COLLABORATION_ROOM", "class_name": "CollaborationRoom" }],
   },
+  "ratelimits": [
+    { "name": "ROOM_CREATION_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "ROOM_REQUEST_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+  ],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CollaborationRoom"] }],
   "vars": {
-    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
+    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se",
   },
   "observability": {
     "enabled": true,

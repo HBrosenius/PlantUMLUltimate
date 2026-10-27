@@ -372,3 +372,60 @@ test("keeps the token session on localhost through the Jira development proxy", 
     await new Promise<void>((resolve, reject) => upstream.close((error) => (error ? reject(error) : resolve())));
   }
 });
+
+test("retains uncertain publish results across panel closes and requires a fresh review", async ({ page }) => {
+  await mockJira(page);
+  await openGantt(page);
+
+  await openJira(page);
+  let dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await dialog.getByLabel("JQL").fill("project = APP");
+  await expect(dialog.getByLabel("PlantUML start date")).toHaveValue("customfield_10042");
+  await dialog.getByLabel("Allow reviewed summary and date changes to be published to Jira").check();
+  await dialog.getByRole("button", { name: "Review import" }).click();
+  await dialog.getByRole("button", { name: "Apply changes" }).click();
+
+  const editor = page.locator(".cm-content");
+  const imported = await editor.innerText();
+  await editor.fill(
+    imported
+      .replace(
+        "[Ship Jira integration] as [jira_10001] starts 2026-09-01",
+        "[Ship Jira integration] as [jira_10001] starts 2026-09-02",
+      )
+      .replace("[jira_10001] ends 2026-09-05", "[jira_10001] ends 2026-09-06"),
+  );
+
+  await openJira(page);
+  dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await dialog.getByRole("button", { name: "Review refresh" }).click();
+  await dialog
+    .getByRole("region", { name: "APP-123 startDate" })
+    .getByRole("button", { name: "Publish local" })
+    .click();
+  await dialog.getByRole("region", { name: "APP-123 dueDate" }).getByRole("button", { name: "Publish local" }).click();
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let writes = 0;
+  await page.route(/\/api\/issues\/update$/, async (route) => {
+    writes++;
+    await pending;
+    await route.fulfill({ status: 503, json: { error: "Response lost" } });
+  });
+  await dialog.getByRole("button", { name: "Apply changes" }).click();
+  await expect(dialog.getByRole("status")).toContainText("Closing this panel does not undo requests");
+  await dialog.getByRole("button", { name: "Close Jira integration" }).click();
+  await openJira(page);
+  dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog.getByRole("button", { name: "Checking Jira…" })).toBeDisabled();
+  release();
+  await expect(dialog.getByRole("region", { name: "Jira publish results" })).toContainText("Outcome uncertain");
+  await expect(dialog.getByRole("button", { name: "Apply changes" })).toHaveCount(0);
+  expect(writes).toBe(1);
+  await dialog.getByRole("button", { name: "Close Jira integration" }).click();
+  await openJira(page);
+  await expect(dialog.getByRole("region", { name: "Jira publish results" })).toContainText("APP-123");
+  await expect(dialog.getByRole("button", { name: "Review refresh" })).toBeEnabled();
+});

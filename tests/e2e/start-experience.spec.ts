@@ -7,12 +7,12 @@ test("starts with actions, exposes examples and keeps learning optional", async 
   await expect(chooser).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Welcome to PlantUML Ultimate" })).toHaveCount(0);
   await expect(chooser.getByRole("button", { name: "Open…", exact: true })).toBeVisible();
-  await chooser.getByRole("link", { name: "Try an example", exact: true }).click();
+  await chooser.getByRole("button", { name: "Try an example", exact: true }).click();
+  await chooser.getByLabel("Example diagram type").selectOption("sequence");
   await expect(chooser.getByRole("button", { name: /Login with OAuth/ })).toBeInViewport();
-  await chooser.getByRole("link", { name: "Quick tour & what’s new" }).click();
-  await chooser.locator("summary").click();
+  await chooser.locator("#start-learning > summary").click();
   await expect(chooser.getByText(/For planning, Plan contains Reports/)).toBeVisible();
-  await chooser.getByRole("link", { name: "Create", exact: true }).click();
+  await chooser.getByRole("button", { name: "Create", exact: true }).click();
   await chooser.evaluate((element) => {
     element.scrollTop = 0;
   });

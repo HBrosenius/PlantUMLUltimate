@@ -560,7 +560,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 220px;
+  /* Room for the kind badge, close button and a typical "Sequence diagram" name without truncating. */
+  max-width: 280px;
   padding: 5px 8px 4px 11px;
   border: 0;
   border-right: 1px solid var(--line);
@@ -942,6 +943,7 @@ textarea:focus-visible {
 }
 .gantt-preview-tools-forecast {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   white-space: nowrap;
 }
@@ -961,6 +963,16 @@ textarea:focus-visible {
   .gantt-preview-tools-forecast {
     flex: 1 1 100%;
     flex-wrap: wrap;
+  }
+  /* Beside an open inspector the preview can be ~350px wide: drop the visible group labels (each
+     group keeps its aria-label) and the usage hint so the chart keeps most of the height. */
+  .gantt-preview .gantt-control-label,
+  .gantt-preview .gantt-controls-help {
+    display: none;
+  }
+  .gantt-preview-tools-main > .gantt-control-group + .gantt-control-group {
+    border-left: 0;
+    padding-left: 0;
   }
 }
 .gantt-preview .preview-viewport {
@@ -1091,6 +1103,20 @@ textarea:focus-visible {
 }
 .render-notice.error {
   flex-flow: row wrap;
+}
+/* Errors wait for the user, so they sit near the bottom instead of covering the preview toolbar. */
+.render-notice.error {
+  top: auto;
+  bottom: 44px;
+}
+.render-notice.syntax code {
+  flex: 1 1 100%;
+  overflow-wrap: anywhere;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .render-notice.error > strong,
 .render-notice.error > span {
@@ -8833,4 +8859,27 @@ polygon.diagram-bulk-selected {
 
 .scenario-rendered[data-linked-navigation="true"] .diagram {
   transition: none;
+}
+
+/* Preserve canvas room while editing properties on laptop-sized displays. */
+@media (min-width: 900px) and (max-width: 1440px) {
+  .app:is(.has-side-inspector, .has-project-inspector) .gantt-controls-help {
+    display: none;
+  }
+}
+.gantt-options {
+  padding: 4px 8px;
+}
+.gantt-options > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.new-document-dialog section[hidden] {
+  display: none;
+}
+
+.inspector-commit-status > span {
+  display: block;
+  margin-block: 3px;
+  font-weight: 600;
 }
