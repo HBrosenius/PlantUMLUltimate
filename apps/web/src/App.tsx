@@ -99,6 +99,7 @@ import { useSequenceController } from "./features/sequence/use-sequence-controll
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
+import { deleteGanttTaskKeepingDates } from "./gantt-delete";
 import { ganttAnalysisContext } from "./gantt-analysis-context";
 import { analyzeCriticalPath } from "./schedule-analysis";
 import { optionShortcut } from "./platform-shortcuts";
@@ -114,7 +115,6 @@ import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
 import {
   applySourceEdits,
-  deleteTask,
   findTaskAt,
   moveVerticalSeparatorByDays,
   parseGantt,
@@ -5650,7 +5650,7 @@ export function App() {
               onClose={() => setPendingGanttDeleteTaskId(undefined)}
               onChoose={(policy) => {
                 if (policy === "keep") {
-                  const operation = deleteTask(workspace.source, parseResult.document, task);
+                  const operation = deleteGanttTaskKeepingDates(workspace.source, parseResult.document, task);
                   if (operation.unavailableReason) return setInteractionMessage(operation.unavailableReason);
                   const nextLinks = (activeDocument.wbsGanttLinks ?? []).filter((item) => item !== link);
                   const converted = convertWbsToGantt(

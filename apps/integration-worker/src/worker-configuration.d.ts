@@ -3,7 +3,7 @@ interface __BaseEnv_Env {
   JIRA_DB: D1Database;
   CONNECT_TOKEN_LIMITER: RateLimit;
   ATLASSIAN_CLIENT_ID: "Ubbo1sh4wffsZBPfafJMPYXV3VfzIFMo";
-  ALLOWED_ORIGINS: "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173";
+  ALLOWED_ORIGINS: "https://plantuml.brosenius.se";
   ATLASSIAN_CLIENT_SECRET: string;
   TOKEN_ENCRYPTION_KEY: string;
 }

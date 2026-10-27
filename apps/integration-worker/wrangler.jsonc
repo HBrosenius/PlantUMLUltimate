@@ -21,7 +21,7 @@
   },
   "vars": {
     "ATLASSIAN_CLIENT_ID": "Ubbo1sh4wffsZBPfafJMPYXV3VfzIFMo",
-    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173",
+    "ALLOWED_ORIGINS": "https://plantuml.brosenius.se",
   },
   "observability": {
     "enabled": true,

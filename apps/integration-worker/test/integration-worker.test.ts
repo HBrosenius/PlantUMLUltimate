@@ -23,7 +23,7 @@ async function startOAuth(): Promise<{ state: string; temporaryCookie: string }>
   expect(location.searchParams.get("redirect_uri")).toBe(`${WORKER_ORIGIN}/oauth/callback`);
   return {
     state: location.searchParams.get("state")!,
-    temporaryCookie: cookieValue(response, "jira_oauth_session"),
+    temporaryCookie: cookieValue(response, "__Host-jira_oauth_session"),
   };
 }
 
@@ -48,13 +48,13 @@ async function connect(expiresIn = 3600): Promise<{ sessionCookie: string; state
   vi.stubGlobal("fetch", outbound);
   const callback = await exports.default.fetch(
     new Request(`${WORKER_ORIGIN}/oauth/callback?code=authorization-code&state=${started.state}`, {
-      headers: { Cookie: `jira_oauth_session=${started.temporaryCookie}` },
+      headers: { Cookie: `__Host-jira_oauth_session=${started.temporaryCookie}` },
       redirect: "manual",
     }),
   );
   expect(callback.status).toBe(302);
   expect(callback.headers.get("Location")).toBe(`${APP_ORIGIN}/editor?document=1&jira=connected`);
-  return { ...started, sessionCookie: cookieValue(callback, "jira_session") };
+  return { ...started, sessionCookie: cookieValue(callback, "__Host-jira_session") };
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -73,7 +73,7 @@ describe("Jira integration Worker", () => {
     const connected = await connect();
     const connection = await exports.default.fetch(
       new Request(`${WORKER_ORIGIN}/api/connection`, {
-        headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${connected.sessionCookie}` },
+        headers: { Origin: APP_ORIGIN, Cookie: `__Host-jira_session=${connected.sessionCookie}` },
       }),
     );
     expect(connection.status).toBe(200);
@@ -92,7 +92,7 @@ describe("Jira integration Worker", () => {
 
     const replay = await exports.default.fetch(
       new Request(`${WORKER_ORIGIN}/oauth/callback?code=authorization-code&state=${connected.state}`, {
-        headers: { Cookie: `jira_oauth_session=${connected.temporaryCookie}` },
+        headers: { Cookie: `__Host-jira_oauth_session=${connected.temporaryCookie}` },
         redirect: "manual",
       }),
     );
@@ -104,17 +104,17 @@ describe("Jira integration Worker", () => {
     const callbackUrl = `${WORKER_ORIGIN}/oauth/callback?error=access_denied&state=${started.state}`;
     const denied = await exports.default.fetch(
       new Request(callbackUrl, {
-        headers: { Cookie: `jira_oauth_session=${started.temporaryCookie}` },
+        headers: { Cookie: `__Host-jira_oauth_session=${started.temporaryCookie}` },
         redirect: "manual",
       }),
     );
     expect(denied.status).toBe(302);
     expect(denied.headers.get("Location")).toBe(`${APP_ORIGIN}/editor?document=1&jira=error`);
-    expect(denied.headers.get("Set-Cookie")).toContain("jira_oauth_session=;");
+    expect(denied.headers.get("Set-Cookie")).toContain("__Host-jira_oauth_session=;");
 
     const replay = await exports.default.fetch(
       new Request(callbackUrl, {
-        headers: { Cookie: `jira_oauth_session=${started.temporaryCookie}` },
+        headers: { Cookie: `__Host-jira_oauth_session=${started.temporaryCookie}` },
         redirect: "manual",
       }),
     );
@@ -145,7 +145,7 @@ describe("Jira integration Worker", () => {
       throw new Error(`Unexpected outbound request: ${url}`);
     });
     vi.stubGlobal("fetch", outbound);
-    const headers = { Origin: APP_ORIGIN, Cookie: `jira_session=${connected.sessionCookie}` };
+    const headers = { Origin: APP_ORIGIN, Cookie: `__Host-jira_session=${connected.sessionCookie}` };
     const fields = await exports.default.fetch(new Request(`${WORKER_ORIGIN}/api/fields?cloudId=cloud-1`, { headers }));
     await expect(fields.json()).resolves.toEqual({
       fields: [
@@ -190,7 +190,7 @@ describe("Jira integration Worker", () => {
         method: "POST",
         headers: {
           Origin: APP_ORIGIN,
-          Cookie: `jira_session=${connected.sessionCookie}`,
+          Cookie: `__Host-jira_session=${connected.sessionCookie}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -216,7 +216,11 @@ describe("Jira integration Worker", () => {
     return exports.default.fetch(
       new Request(`${WORKER_ORIGIN}/api/issues/update`, {
         method: "POST",
-        headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${sessionCookie}`, "Content-Type": "application/json" },
+        headers: {
+          Origin: APP_ORIGIN,
+          Cookie: `__Host-jira_session=${sessionCookie}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(body),
       }),
     );
@@ -271,7 +275,7 @@ describe("Jira integration Worker", () => {
     );
     return exports.default.fetch(
       new Request(`${WORKER_ORIGIN}/api/connection`, {
-        headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${sessionCookie}` },
+        headers: { Origin: APP_ORIGIN, Cookie: `__Host-jira_session=${sessionCookie}` },
       }),
     );
   }
@@ -316,7 +320,7 @@ describe("Jira integration Worker", () => {
       ),
     );
     expect(rejected.status).toBe(401);
-    expect(rejected.headers.get("Set-Cookie")).toContain("jira_session=;");
+    expect(rejected.headers.get("Set-Cookie")).toContain("__Host-jira_session=;");
     const after = await connectionWithRefresh(connected.sessionCookie, () =>
       Response.json({ access_token: "access-token-2", expires_in: 3600 }),
     );
@@ -325,7 +329,7 @@ describe("Jira integration Worker", () => {
 
   it("requires an allowed origin and can disconnect the opaque session", async () => {
     const connected = await connect();
-    const cookie = `jira_session=${connected.sessionCookie}`;
+    const cookie = `__Host-jira_session=${connected.sessionCookie}`;
     const rejected = await exports.default.fetch(
       new Request(`${WORKER_ORIGIN}/api/connection`, { headers: { Origin: "https://evil.example", Cookie: cookie } }),
     );
@@ -393,8 +397,8 @@ describe("Jira API token connection", () => {
     expect(body).toContain("cloud-1");
     expect(body).not.toContain("secret-token");
     expect(body).not.toContain("user@example.com");
-    const session = cookieValue(connected, "jira_session");
-    const headers = { Origin: APP_ORIGIN, Cookie: `jira_session=${session}` };
+    const session = cookieValue(connected, "__Host-jira_session");
+    const headers = { Origin: APP_ORIGIN, Cookie: `__Host-jira_session=${session}` };
     const fields = await exports.default.fetch(new Request(`${WORKER_ORIGIN}/api/fields?cloudId=cloud-1`, { headers }));
     expect(fields.status).toBe(200);
     expect(outbound).toHaveBeenCalledWith("https://acme.atlassian.net/rest/api/3/field", expect.anything());
@@ -451,10 +455,10 @@ it("uses the gateway for scoped tokens and remembers it for later requests", asy
     }),
   );
   expect(response.status).toBe(200);
-  const session = cookieValue(response, "jira_session");
+  const session = cookieValue(response, "__Host-jira_session");
   const fields = await exports.default.fetch(
     new Request(`${WORKER_ORIGIN}/api/fields?cloudId=cloud-1`, {
-      headers: { Origin: APP_ORIGIN, Cookie: `jira_session=${session}` },
+      headers: { Origin: APP_ORIGIN, Cookie: `__Host-jira_session=${session}` },
     }),
   );
   expect(fields.status).toBe(200);
@@ -476,7 +480,7 @@ it("returns confirmed successes and uncertain outcomes after an upstream transpo
       method: "POST",
       headers: {
         Origin: APP_ORIGIN,
-        Cookie: `jira_session=${connected.sessionCookie}`,
+        Cookie: `__Host-jira_session=${connected.sessionCookie}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

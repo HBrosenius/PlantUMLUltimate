@@ -569,20 +569,30 @@ export function parseGantt(source: string): ParseResult {
         continue;
       }
 
-      const arrow = simpleStatement.match(/^-+(?:\[[^\]]*])?-*>\s*\[([^\]]+)]\s*$/i);
-      if (arrow?.[1]) {
-        const successorLabel = arrow[1];
-        const successorStart = line.text.lastIndexOf(successorLabel);
-        const successor = taskReference(successorLabel, range(line, successorStart, successorLabel));
-        const target = getOrCreateTask(taskMap, taskReferences, successorLabel, successor.range, lineRange);
-        dependencies.push({
-          predecessorTaskId: task.id,
-          successorTaskId: target.id,
-          predecessor: taskReference(label, labelRange),
-          successor,
-          relation: "start-after-end",
-          sourceRange: lineRange,
-        });
+      // `[A] -> [B]`, or a chain `[A] -> [B] -> [C]`: each arrow makes its right task follow its left one.
+      // Each arrow is `-->` or `-[style]->`; the dashes before and after a style are matched by
+      // separate, non-overlapping parts so a long chain cannot backtrack exponentially.
+      if (/^(?:-+(?:\[[^\]]*]-*)?>\s*\[[^\]]+]\s*)+$/i.test(simpleStatement)) {
+        let predecessor = taskReference(label, labelRange);
+        let predecessorId = task.id;
+        let cursor = labelRange.to - line.from;
+        for (const arrow of simpleStatement.matchAll(/-+(?:\[[^\]]*]-*)?>\s*\[([^\]]+)]/gi)) {
+          const successorLabel = arrow[1]!;
+          const successorStart = line.text.indexOf(`[${successorLabel}]`, cursor) + 1;
+          cursor = successorStart + successorLabel.length;
+          const successor = taskReference(successorLabel, range(line, successorStart, successorLabel));
+          const target = getOrCreateTask(taskMap, taskReferences, successorLabel, successor.range, lineRange);
+          dependencies.push({
+            predecessorTaskId: predecessorId,
+            successorTaskId: target.id,
+            predecessor,
+            successor,
+            relation: "start-after-end",
+            sourceRange: lineRange,
+          });
+          predecessor = successor;
+          predecessorId = target.id;
+        }
         declaration(task, "modifier", lineRange);
         continue;
       }

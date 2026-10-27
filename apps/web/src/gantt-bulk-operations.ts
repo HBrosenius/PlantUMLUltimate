@@ -1,6 +1,5 @@
 import {
   applySourceEdits,
-  deleteTask,
   duplicateTask,
   moveTaskByDays,
   normalizeTaskId,
@@ -10,6 +9,7 @@ import {
   type GanttTask,
   type MoveTaskResult,
 } from "@plantuml-studio/diagram-gantt";
+import { deleteGanttTaskKeepingDates } from "./gantt-delete";
 
 /** The full line (including its line break) containing `range`. */
 function wholeLineRange(source: string, range: { from: number; to: number }) {
@@ -75,7 +75,9 @@ export const setTasksResource = (source: string, taskIds: readonly string[], res
   );
 
 export const deleteTasks = (source: string, taskIds: readonly string[]) =>
-  eachTask(source, taskIds, (current, task) => deleteTask(current, parseGantt(current).document, task));
+  eachTask(source, taskIds, (current, task) =>
+    deleteGanttTaskKeepingDates(current, parseGantt(current).document, task),
+  );
 
 /** Duplicates each task after itself and returns the copies' IDs in selection order. */
 export function duplicateTasks(source: string, taskIds: readonly string[]): BulkTaskResult & { copies: string[] } {

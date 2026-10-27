@@ -3,7 +3,7 @@
 interface __BaseEnv_Env {
   ROOM_CREATION_LIMITER: RateLimit;
   ROOM_REQUEST_LIMITER: RateLimit;
-  ALLOWED_ORIGINS: "https://plantuml.brosenius.se,http://localhost:5173,http://127.0.0.1:5173";
+  ALLOWED_ORIGINS: "https://plantuml.brosenius.se";
   COLLABORATION_ROOM: DurableObjectNamespace<import("./index").CollaborationRoom>;
 }
 declare namespace Cloudflare {
