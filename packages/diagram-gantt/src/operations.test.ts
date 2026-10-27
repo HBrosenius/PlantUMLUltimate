@@ -447,6 +447,12 @@ describe("task inspector operations", () => {
       ).toEqual(["d>e", "e>f"]);
     });
 
+    it("parses a long malformed arrow line in linear time", () => {
+      const started = performance.now();
+      parseGantt(`@startgantt\n[A] ${"-->[\\]".repeat(5_000)}!\n@endgantt`);
+      expect(performance.now() - started).toBeLessThan(1_000);
+    });
+
     it("rewrites a chain without the deleted task", () => {
       expect(remove("e")).toBe("@startgantt\n[D] lasts 1 day\n[F] lasts 1 day\n  [D] -> [F]\n@endgantt");
       expect(remove("f")).toBe("@startgantt\n[D] lasts 1 day\n[E] lasts 1 day\n  [D] -> [E]\n@endgantt");

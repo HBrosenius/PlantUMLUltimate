@@ -570,11 +570,13 @@ export function parseGantt(source: string): ParseResult {
       }
 
       // `[A] -> [B]`, or a chain `[A] -> [B] -> [C]`: each arrow makes its right task follow its left one.
-      if (/^(?:-+(?:\[[^\]]*])?-*>\s*\[[^\]]+]\s*)+$/i.test(simpleStatement)) {
+      // Each arrow is `-->` or `-[style]->`; the dashes before and after a style are matched by
+      // separate, non-overlapping parts so a long chain cannot backtrack exponentially.
+      if (/^(?:-+(?:\[[^\]]*]-*)?>\s*\[[^\]]+]\s*)+$/i.test(simpleStatement)) {
         let predecessor = taskReference(label, labelRange);
         let predecessorId = task.id;
         let cursor = labelRange.to - line.from;
-        for (const arrow of simpleStatement.matchAll(/-+(?:\[[^\]]*])?-*>\s*\[([^\]]+)]/gi)) {
+        for (const arrow of simpleStatement.matchAll(/-+(?:\[[^\]]*]-*)?>\s*\[([^\]]+)]/gi)) {
           const successorLabel = arrow[1]!;
           const successorStart = line.text.indexOf(`[${successorLabel}]`, cursor) + 1;
           cursor = successorStart + successorLabel.length;
