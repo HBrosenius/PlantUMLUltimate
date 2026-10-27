@@ -14,7 +14,8 @@ it("native diagrams prepare three assets, with Graphviz fetched only when reques
   await loadRendererAssets("native");
   const graph = await loadRendererAssets("graphviz");
   expect(graph.engine).toBe(native.engine);
-  expect(graph.graphviz).toMatch(/^data:text\/javascript;base64,/);
+  // Script text, which the frame turns into its own blob: URL.
+  expect(graph.graphviz).toBe("/* local script */\n//# sourceURL=plantuml-renderer-graphviz.js");
   expect(fetch).toHaveBeenCalledTimes(4);
 });
 it("retries a failed asset without downloading successful assets again", async () => {

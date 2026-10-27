@@ -112,8 +112,8 @@ test("renders native and Graphviz diagrams with the deployed CSP header", async 
       response,
       headers: {
         ...response.headers(),
-        "content-security-policy":
-          "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss: ws:; worker-src 'self' blob: data:; frame-src 'self'",
+        // Cloudflare adds only this to every document; the page's own meta policy does the rest.
+        "content-security-policy": "frame-ancestors 'self'",
       },
     });
   });

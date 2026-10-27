@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { frameDocument } from "./renderer-assets";
+import { rendererFrameBootstrap } from "./renderer-frame";
 
 it("terminates only the cancelled worker and ignores its queued messages after replacement", () => {
   const workers: FakeWorker[] = [];
@@ -14,16 +14,15 @@ it("terminates only the cancelled worker and ignores its queued messages after r
   }
   const parent = { postMessage: vi.fn() };
   let receive!: (event: { source: typeof parent; data: object }) => void;
-  const html = frameDocument("test-channel");
-  const encoded = html.match(/src="data:text\/javascript;base64,([^"]+)"/)![1]!;
-  const bootstrap = Buffer.from(encoded, "base64").toString("utf8");
+  const bootstrap = rendererFrameBootstrap;
   // Execute our frame bootstrap with controlled workers, without loading the Java engine.
-  new Function("parent", "Worker", "addEventListener", bootstrap)(
+  new Function("parent", "Worker", "addEventListener", "document", bootstrap)(
     parent,
     FakeWorker,
     (_type: string, listener: typeof receive) => {
       receive = listener;
     },
+    { querySelector: () => ({ content: "test-channel" }) },
   );
   const send = (data: object) => receive({ source: parent, data: { channel: "test-channel", ...data } });
   send({ type: "initialize", assets: { worker: "worker.js" } });
@@ -63,15 +62,14 @@ function bootFrame() {
   }
   const parent = { postMessage: vi.fn() };
   let receive!: (event: { source: typeof parent; data: object }) => void;
-  const html = frameDocument("test-channel");
-  const encoded = html.match(/src="data:text\/javascript;base64,([^"]+)"/)![1]!;
-  const bootstrap = Buffer.from(encoded, "base64").toString("utf8");
-  new Function("parent", "Worker", "addEventListener", bootstrap)(
+  const bootstrap = rendererFrameBootstrap;
+  new Function("parent", "Worker", "addEventListener", "document", bootstrap)(
     parent,
     FakeWorker,
     (_type: string, listener: typeof receive) => {
       receive = listener;
     },
+    { querySelector: () => ({ content: "test-channel" }) },
   );
   const send = (data: object) => receive({ source: parent, data: { channel: "test-channel", ...data } });
   send({ type: "initialize", assets: { worker: "worker.js" } });
