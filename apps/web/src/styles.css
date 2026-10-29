@@ -929,9 +929,10 @@ textarea:focus-visible {
   position: relative;
   top: auto;
   right: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 4px 8px;
   width: calc(100% - 16px);
   flex: none;
   margin: 8px 8px 0;
@@ -8867,12 +8868,23 @@ polygon.diagram-bulk-selected {
     display: none;
   }
 }
+.gantt-options-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.gantt-options-toggle > span {
+  width: 10px;
+}
 .gantt-options {
+  min-width: 0;
+  flex-basis: 100%;
   padding: 4px 8px;
 }
-.gantt-options > summary {
-  cursor: pointer;
-  font-size: 12px;
+.gantt-options[hidden] {
+  display: none;
 }
 .new-document-dialog section[hidden] {
   display: none;

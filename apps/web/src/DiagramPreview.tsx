@@ -198,6 +198,7 @@ export function DiagramPreview({
   onApplyForecast,
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
+  const [diagramOptionsOpen, setDiagramOptionsOpen] = useState(false);
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const viewportRef = navigation.viewportRef;
   const feedbackRef = useRef<HTMLOutputElement>(null);
@@ -1277,112 +1278,128 @@ export function DiagramPreview({
             </button>
           )}
         </div>
-      </div>
-      <details className="gantt-options">
-        <summary>Diagram options · filters &amp; move policy</summary>
-        <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
-          <span className="gantt-control-label">Forecast</span>
-          {onProgressForecastChange && (
-            <button
-              type="button"
-              aria-pressed={Boolean(progressForecast?.enabled)}
-              onClick={() =>
-                onProgressForecastChange({
-                  enabled: !progressForecast?.enabled,
-                  remainingDays: progressForecast?.remainingDays ?? {},
-                  ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
-                  timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
-                })
-              }
-            >
-              Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
-            </button>
-          )}
-          {progressForecastResult &&
-            !progressForecastResult.unavailable &&
-            hasDelayedForecastTask(progressForecastResult) &&
-            onApplyForecast && (
+        <button
+          type="button"
+          className="gantt-options-toggle"
+          aria-expanded={diagramOptionsOpen}
+          onClick={() => setDiagramOptionsOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{diagramOptionsOpen ? "▾" : "▸"}</span>
+          Diagram options · filters &amp; move policy
+        </button>
+        <div className="gantt-options" hidden={!diagramOptionsOpen}>
+          <div className="gantt-preview-tools-forecast" role="group" aria-label="Progress forecast controls">
+            <span className="gantt-control-label">Forecast</span>
+            {onProgressForecastChange && (
               <button
                 type="button"
-                className="gantt-apply-forecast-trigger"
+                aria-pressed={Boolean(progressForecast?.enabled)}
                 onClick={() =>
-                  setApplyReview(
-                    prepareForecastApply(source, forecastAsOf, progressForecast!.remainingDays, planTimeZone),
-                  )
+                  onProgressForecastChange({
+                    enabled: !progressForecast?.enabled,
+                    remainingDays: progressForecast?.remainingDays ?? {},
+                    ...(progressForecast?.asOf ? { asOf: progressForecast.asOf } : {}),
+                    timeZone: progressForecast?.timeZone ?? browserForecastTimeZone(),
+                  })
                 }
               >
-                Apply to plan…
+                Progress forecast: {progressForecast?.enabled ? "On" : "Off"}
               </button>
             )}
-          {progressForecast?.enabled && (
-            <label className="gantt-forecast-date-label">
-              As of{" "}
-              <input
-                aria-label="Forecast as of date"
-                type="date"
-                value={forecastAsOf}
-                onChange={(event) => {
-                  if (event.target.value)
-                    onProgressForecastChange?.({
-                      enabled: true,
-                      remainingDays: progressForecast.remainingDays,
-                      asOf: event.target.value,
-                      ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
-                    });
-                }}
-              />
-            </label>
-          )}
-        </div>
-
-        <div className="gantt-control-group" role="group" aria-label="Overlays">
-          <span className="gantt-control-label">Overlays</span>
-          <button type="button" aria-pressed={showCriticalPath} onClick={() => setShowCriticalPath((value) => !value)}>
-            Critical path
-          </button>
-        </div>
-        <div className="gantt-context-controls">
-          <div className="gantt-control-group" role="group" aria-label="Schedule controls">
-            {onOpenCalendar && (
-              <button
-                data-inspector-trigger
-                onClick={onOpenCalendar}
-                title="Change the time axis in Calendar & schedule; Apply edits diagram source"
-              >
-                Timeline scale…
-              </button>
-            )}
-            {onOpenGanttPreferences && (
-              <button
-                onClick={onOpenGanttPreferences}
-                title="Change the default for task moves and rescheduling in Gantt preferences"
-              >
-                Move policy:{" "}
-                {scheduleMode === "ask" ? "Always ask" : scheduleMode === "single" ? "Only task" : "Include dependents"}
-              </button>
+            {progressForecastResult &&
+              !progressForecastResult.unavailable &&
+              hasDelayedForecastTask(progressForecastResult) &&
+              onApplyForecast && (
+                <button
+                  type="button"
+                  className="gantt-apply-forecast-trigger"
+                  onClick={() =>
+                    setApplyReview(
+                      prepareForecastApply(source, forecastAsOf, progressForecast!.remainingDays, planTimeZone),
+                    )
+                  }
+                >
+                  Apply to plan…
+                </button>
+              )}
+            {progressForecast?.enabled && (
+              <label className="gantt-forecast-date-label">
+                As of{" "}
+                <input
+                  aria-label="Forecast as of date"
+                  type="date"
+                  value={forecastAsOf}
+                  onChange={(event) => {
+                    if (event.target.value)
+                      onProgressForecastChange?.({
+                        enabled: true,
+                        remainingDays: progressForecast.remainingDays,
+                        asOf: event.target.value,
+                        ...(progressForecast.timeZone ? { timeZone: progressForecast.timeZone } : {}),
+                      });
+                  }}
+                />
+              </label>
             )}
           </div>
-          {onResourceFilterChange && (
-            <div className="gantt-control-group" role="group" aria-label="Resource filter">
-              <label className="resource-filter">
-                Filter by resource{" "}
-                <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
-                  <option value="">All</option>
-                  {resourceNames.map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
-              {resourceFilter && (
-                <>
-                  <strong>Showing: {resourceFilter}</strong>
-                  <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
-                </>
+
+          <div className="gantt-control-group" role="group" aria-label="Overlays">
+            <span className="gantt-control-label">Overlays</span>
+            <button
+              type="button"
+              aria-pressed={showCriticalPath}
+              onClick={() => setShowCriticalPath((value) => !value)}
+            >
+              Critical path
+            </button>
+          </div>
+          <div className="gantt-context-controls">
+            <div className="gantt-control-group" role="group" aria-label="Schedule controls">
+              {onOpenCalendar && (
+                <button
+                  data-inspector-trigger
+                  onClick={onOpenCalendar}
+                  title="Change the time axis in Calendar & schedule; Apply edits diagram source"
+                >
+                  Timeline scale…
+                </button>
+              )}
+              {onOpenGanttPreferences && (
+                <button
+                  onClick={onOpenGanttPreferences}
+                  title="Change the default for task moves and rescheduling in Gantt preferences"
+                >
+                  Move policy:{" "}
+                  {scheduleMode === "ask"
+                    ? "Always ask"
+                    : scheduleMode === "single"
+                      ? "Only task"
+                      : "Include dependents"}
+                </button>
               )}
             </div>
-          )}
+            {onResourceFilterChange && (
+              <div className="gantt-control-group" role="group" aria-label="Resource filter">
+                <label className="resource-filter">
+                  Filter by resource{" "}
+                  <select value={resourceFilter} onChange={(event) => onResourceFilterChange(event.target.value)}>
+                    <option value="">All</option>
+                    {resourceNames.map((name) => (
+                      <option key={name}>{name}</option>
+                    ))}
+                  </select>
+                </label>
+                {resourceFilter && (
+                  <>
+                    <strong>Showing: {resourceFilter}</strong>
+                    <button onClick={() => onResourceFilterChange("")}>Clear filter</button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </details>
+      </div>
       <p className="gantt-controls-help">
         Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits change
         the diagram.
