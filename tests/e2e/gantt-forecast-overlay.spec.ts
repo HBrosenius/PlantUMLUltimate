@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openDiagramOptions, prepareEditor, setSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource } from "./editor-helpers";
 
 test("shows forecast dates and the cause chain on the editable Gantt chart", async ({ page }) => {
   await prepareEditor(page);

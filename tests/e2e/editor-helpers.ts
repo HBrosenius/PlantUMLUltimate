@@ -91,15 +91,24 @@ export async function fitDiagram(page: Page) {
   await settleDiagramZoom(page);
 }
 
+export async function openRibbonGroup(page: Page, category: "Edit" | "Insert" | "Plan" | "View", label: string) {
+  await page.getByRole("tab", { name: category, exact: true }).click();
+  const summary = page.locator(".ribbon-group > summary").filter({ hasText: label });
+  if (
+    (await summary.isVisible()) &&
+    !(await summary.evaluate((node) => (node.parentElement as HTMLDetailsElement).open))
+  )
+    await summary.click();
+}
+
 export async function openAddDialog(page: Page, item: "Task…" | "Milestone…" | "Divider…") {
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menu", { name: "Add" }).getByRole("menuitem", { name: item }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: item, exact: true }).click();
 }
 
 export async function linkedDiagramMenu(page: Page) {
-  const trigger = page.getByRole("button", { name: "Linked diagrams" });
-  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
-  return page.getByRole("menu", { name: "Linked diagrams", exact: true });
+  await openRibbonGroup(page, "Plan", "Linked diagrams");
+  return page.getByRole("group", { name: "Linked diagrams", exact: true });
 }
 
 export async function pointInText(page: Page, lineIndex: number, needle: string) {
@@ -130,7 +139,8 @@ export async function pointInText(page: Page, lineIndex: number, needle: string)
 }
 
 export async function openDiagramOptions(page: Page) {
-  const options = page.locator(".gantt-options");
-  await expect(options).toBeVisible();
-  if (!(await options.evaluate((element) => element.hasAttribute("open")))) await options.locator("summary").click();
+  const toggle = page.locator(".gantt-options-toggle");
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(page.locator(".gantt-options")).toBeVisible();
 }

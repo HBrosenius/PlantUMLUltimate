@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openDiagramOptions, prepareEditor, setSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource } from "./editor-helpers";
 
 test("shows finish causes and affected milestones, then opens the selected cause", async ({ page }) => {
   await prepareEditor(page);

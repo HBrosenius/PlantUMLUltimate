@@ -140,8 +140,7 @@ test("adds a personal starter to a document and preserves its authored theme ove
   await prepareEditor(page);
   const original = await readEditorSource(page);
   await saveStarter(page);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await settings.getByLabel("Default diagram theme", { exact: true }).selectOption("minty");
   await settings.getByRole("button", { name: "Apply", exact: true }).click();

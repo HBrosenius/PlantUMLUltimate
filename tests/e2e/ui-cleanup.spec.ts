@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openRibbonGroup, openDiagramOptions, prepareEditor, setSource, source } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource, source } from "./editor-helpers";
 
 test("keeps both toolbars usable across desktop and phone layouts", async ({ page }) => {
   await prepareEditor(page);
@@ -14,6 +13,7 @@ test("keeps both toolbars usable across desktop and phone layouts", async ({ pag
       expect(await toolbar.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     }
     await expect(page.getByRole("button", { name: "Save", exact: true })).toBeVisible();
+    await openRibbonGroup(page, "Plan", "Planning tools");
     await expect(page.getByRole("button", { name: "Workload", exact: true })).toBeVisible();
     await openDiagramOptions(page);
     await expect(page.getByRole("combobox", { name: "Filter by resource", exact: true })).toBeVisible();
@@ -22,18 +22,22 @@ test("keeps both toolbars usable across desktop and phone layouts", async ({ pag
         .getByRole("navigation", { name: "View mode" })
         .getByRole("button", { name: width <= 600 ? "Diagram" : "Split", exact: true }),
     ).toBeVisible();
+    await openRibbonGroup(page, "Plan", "Planning tools");
     await page.getByRole("button", { name: "Calendar & schedule" }).click();
     const panel = page.getByRole("complementary", { name: "Project and calendar inspector" });
     const rect = await panel.boundingBox();
-    const toolbarRect = await page.getByRole("region", { name: "Diagram controls" }).boundingBox();
+    const toolbarRect = await page.getByRole("region", { name: "Workspace views" }).boundingBox();
     expect(rect!.y).toBeGreaterThanOrEqual(toolbarRect!.y + toolbarRect!.height);
     expect(rect!.x).toBeGreaterThanOrEqual(0);
     await panel.getByRole("button", { name: "Close project inspector" }).click();
+    // Compact groups reopen to reveal the command receiving restored focus.
+    await page.keyboard.press("Escape");
   }
 });
 
 test("protects staged properties until applied or explicitly discarded", async ({ page }) => {
   await prepareEditor(page);
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule" }).click();
   const panel = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await panel.getByLabel("Diagram title", { exact: true }).fill("Unapplied draft");
@@ -74,20 +78,15 @@ test("reports a requested download separately from a confirmed file write", asyn
   await expect(page.locator(".file-save-indicator")).not.toContainText("Saved to file");
 });
 
-test("opens secondary actions by keyboard and restores the trigger on Escape", async ({ page }) => {
+test("persistent Help and category tabs are keyboard accessible", async ({ page }) => {
   await prepareEditor(page);
-  const more = page.getByRole("button", { name: "More", exact: true });
-  await more.focus();
-  await more.press("ArrowDown");
-  const menu = page.getByRole("menu", { name: "More", exact: true });
-  await expect(menu.getByRole("menuitem", { name: "Presentation & local review…" })).toBeFocused();
-  await page.keyboard.press("ArrowDown");
-  await expect(menu.getByRole("menuitem", { name: "Settings…" })).toBeFocused();
-  await page.keyboard.press("ArrowDown");
-  await expect(menu.getByRole("menuitem", { name: "Help" })).toBeFocused();
+  const insert = page.getByRole("tab", { name: "Insert", exact: true });
+  await insert.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Plan", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Help", exact: true }).click();
   await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
-  await expect(more).toBeFocused();
+  await expect(page.getByRole("button", { name: "Help", exact: true })).toBeFocused();
 });
 
 test("shows preserved source through the single Issues entry", async ({ page }) => {
@@ -149,6 +148,7 @@ test("keeps controls and properties reachable at doubled UI scale", async ({ pag
   await page.locator(".app").evaluate((app) => {
     app.style.zoom = "2";
   });
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule", exact: true }).click();
   const panel = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await panel.getByLabel("Diagram title", { exact: true }).fill("Large UI");
@@ -164,8 +164,10 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   await setSource(page, source("[Build] on {Alice} lasts 3 days"));
   const workload = page.getByRole("complementary", { name: "Resource workload" });
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   await expect(workload).toBeVisible();
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule" }).click();
   await expect(calendar).toBeVisible();
   await expect(workload).toBeHidden();
@@ -173,10 +175,12 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   await page.screenshot({ path: testInfo.outputPath("calendar-exclusive.png") });
   await calendar.getByLabel("Diagram title", { exact: true }).fill("Retained draft");
   page.once("dialog", (dialog) => dialog.dismiss());
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   await expect(calendar.getByLabel("Diagram title", { exact: true })).toHaveValue("Retained draft");
   await expect(workload).toBeHidden();
   page.once("dialog", (dialog) => dialog.accept());
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   await expect(workload).toBeVisible();
   await expect(calendar).toBeHidden();
@@ -185,6 +189,7 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   await page.screenshot({ path: testInfo.outputPath("workload-exclusive.png") });
   await workload.getByRole("button", { name: "Rename Alice", exact: true }).click();
   await workload.getByRole("textbox", { name: "New name for Alice" }).fill("Alice draft");
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).focus();
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.keyboard.press("Escape");
@@ -194,6 +199,7 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   await expect(workload).toBeHidden();
   await expect(page.getByRole("button", { name: "Workload", exact: true })).toBeFocused();
   await expect(page.locator(".cm-content")).not.toContainText("Alice draft");
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   await page.getByRole("button", { name: /^Issues/ }).click();
   const issues = page.getByRole("complementary", { name: "Issues", exact: true });

@@ -32,7 +32,7 @@ export function WorkspaceHint({ kind }: { kind: DiagramKind }) {
       </button>
       {open && (
         <span className="workspace-hint-content" role="note">
-          Use Add for a new {item}; click an item once to edit its properties.
+          Use Insert for a new {item}; click an item once to edit its properties.
           {kind === "sequence" && " Drag participants sideways and timeline elements vertically to reorder them."}
           <button type="button" aria-label="Dismiss editing hint" onClick={dismiss}>
             ×

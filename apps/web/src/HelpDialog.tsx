@@ -26,7 +26,7 @@ const topics: Topic[] = [
     group: "General",
     collapsible: true,
     paragraphs: [
-      "Use File → New to create a Blank diagram, a Simple starter, or a named example. Open loads an existing file. Use Add to build your diagram and click an item to edit its properties.",
+      "Use File → New to create a Blank diagram, a Simple starter, or a named example. Open loads an existing file. Use Insert to build your diagram and click an item to edit its properties.",
       "Code / Split / Diagram changes your view. Outline helps navigate; Commands finds actions. For Gantt plans, explore Reports, Forecast and What-if scenarios in Plan.",
     ],
   },
@@ -75,7 +75,7 @@ const topics: Topic[] = [
     group: "wbs",
     paragraphs: [
       "Use repeated * markers to define hierarchy, and + or - markers for right and left branches. Select a rendered node to edit its label, branch side, color and stereotype.",
-      "Drag a node onto another node to move its complete subtree. Use Linked diagrams to create or connect a Gantt plan. Add WBS node creates another work package.",
+      "Drag a node onto another node to move its complete subtree. Use Plan → Linked diagrams to create or connect a Gantt plan. Add WBS node creates another work package.",
     ],
   },
   {
@@ -90,28 +90,28 @@ const topics: Topic[] = [
     title: "Use Case diagrams",
     group: "usecase",
     paragraphs: [
-      "Use Add for actors, use cases and relationships. Click an element to inspect it. Use the relationship tools to connect actors and capabilities; packages organize the system boundary.",
+      "Use Insert for actors, use cases and relationships. Click an element to inspect it. Use the relationship tools to connect actors and capabilities; packages organize the system boundary.",
     ],
   },
   {
     title: "Class diagrams",
     group: "class",
     paragraphs: [
-      "Use Add to create entities and relationships. Click an entity or member to inspect its properties. Model attributes, operations and relationships; packages group related types.",
+      "Use Insert to create entities and relationships. Click an entity or member to inspect its properties. Model attributes, operations and relationships; packages group related types.",
     ],
   },
   {
     title: "Component diagrams",
     group: "component",
     paragraphs: [
-      "Use Add to create components, interfaces and relationships. Click an element to inspect it. Model infrastructure, dependencies and boundaries; use Code for unsupported source constructs.",
+      "Use Insert to create components, interfaces and relationships. Click an element to inspect it. Model infrastructure, dependencies and boundaries; use Code for unsupported source constructs.",
     ],
   },
   {
     title: "Activity diagrams",
     group: "activity",
     paragraphs: [
-      "Use Add for actions and workflow structure. Click an item to inspect it. Model decisions, parallel work, loops, partitions and outcomes. Outline helps navigate larger workflows.",
+      "Use Insert for actions and workflow structure. Click an item to inspect it. Model decisions, parallel work, loops, partitions and outcomes. Outline helps navigate larger workflows.",
     ],
   },
 ];

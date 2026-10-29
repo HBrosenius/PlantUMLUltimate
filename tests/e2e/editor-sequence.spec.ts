@@ -1,7 +1,6 @@
+import { openRibbonGroup, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
-
-import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -290,6 +289,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
   await expect(page.getByRole("button", { name: "Calendar & schedule" })).toBeHidden();
   await expect(page.getByRole("button", { name: "Workload" })).toBeHidden();
+  await openRibbonGroup(page, "View", "Diagram settings");
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const sequenceSettings = page.getByRole("complementary", { name: "Sequence settings" });
   await sequenceSettings.getByLabel("Diagram title").fill("Checkout flow");
@@ -305,12 +305,12 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("hide footbox");
   await expect(page.locator(".cm-content")).toContainText('autonumber 10 5 "000"');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  const sequenceAddMenu = page.getByRole("menu", { name: "Add" });
-  await expect(sequenceAddMenu.getByRole("menuitem", { name: "Participant…" })).toBeVisible();
-  await expect(sequenceAddMenu.getByRole("menuitem", { name: "Message…" })).toBeVisible();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  const sequenceAddMenu = page.getByRole("group", { name: "New diagram elements", exact: true });
+  await expect(sequenceAddMenu.getByRole("button", { name: "Participant…" })).toBeVisible();
+  await expect(sequenceAddMenu.getByRole("button", { name: "Message…" })).toBeVisible();
   await expect(sequenceAddMenu.getByRole("menuitem", { name: "Autonumber…" })).toHaveCount(0);
-  await page.getByRole("menuitem", { name: "Participant…" }).click();
+  await page.getByRole("button", { name: "Participant…" }).click();
   const participant = page.getByRole("dialog", { name: "Add participant" });
   await expect(participant.locator('datalist option[value="#LightBlue"]')).toHaveCount(1);
   await expect(participant.getByLabel("Color", { exact: true })).toHaveAttribute("list", /.+/);
@@ -347,8 +347,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await page.getByRole("button", { name: "Copy code" }).click();
   await expect(participantInspector).toBeHidden();
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Message…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Message…" }).click();
   const edgeMessage = page.getByRole("dialog", { name: "Add message" });
   await edgeMessage.getByText("Advanced", { exact: true }).click();
   await edgeMessage.getByLabel("Message type").selectOption("outgoing");
@@ -439,8 +439,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   if (await messageInspector.isVisible())
     await messageInspector.getByRole("button", { name: "Close message inspector" }).click();
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Message…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Message…" }).click();
   const standardMessage = page.getByRole("dialog", { name: "Add message" });
   await standardMessage.getByLabel("From", { exact: true }).fill("User");
   await standardMessage.getByLabel("To", { exact: true }).fill("Orders");
@@ -452,8 +452,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await renderedNewMessage.click();
   await expect(page.getByRole("complementary", { name: "Message inspector" })).toBeVisible();
   await expect(page.getByText("Message: New message", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Message…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Message…" }).click();
   const unlabelledMessage = page.getByRole("dialog", { name: "Add message" });
   await unlabelledMessage.getByLabel("From", { exact: true }).fill("User");
   await unlabelledMessage.getByLabel("To", { exact: true }).fill("Orders");
@@ -520,8 +520,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     })
     .toBe(true);
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Combined fragment…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Combined fragment…" }).click();
   const fragmentDialog = page.getByRole("dialog", { name: "Add Sequence fragment" });
   await fragmentDialog.getByLabel("Label", { exact: true }).fill("Successful request");
   await fragmentDialog.getByLabel("Second branch label").fill("Failure");
@@ -532,15 +532,15 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("alt#Gold #LightBlue Successful request");
   await expect(page.locator(".cm-content")).toContainText("else #Pink Failure");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Activation…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Activation…" }).click();
   const activationDialog = page.getByRole("dialog", { name: "Add Sequence activation" });
   await activationDialog.getByLabel("Participant").selectOption("System");
   await activationDialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("activate System");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const noteDialog = page.getByRole("dialog", { name: "Add Sequence note" });
   await noteDialog.getByLabel("Shape").selectOption("rnote");
   await noteDialog.getByRole("combobox").nth(3).selectOption("User");
@@ -551,15 +551,15 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(page.locator(".cm-content")).toContainText("Then confirm");
   await expect(page.locator(".cm-content")).toContainText("end note");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Flow controls and page breaks…" }).click();
   const separatorDialog = page.getByRole("dialog", { name: "Add Sequence separator" });
   await separatorDialog.getByLabel("Label").fill("Persistence");
   await separatorDialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("== Persistence ==");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Flow controls and page breaks…" }).click();
   const flowDialog = page.getByRole("dialog", { name: "Add Sequence separator" });
   await flowDialog.getByLabel("Structure").selectOption("create");
   await page
@@ -573,8 +573,8 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
     .click();
   await expect(page.locator(".cm-content")).toContainText("create control Worker");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Flow controls and page breaks…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Flow controls and page breaks…" }).click();
   await page.getByRole("dialog", { name: "Add Sequence separator" }).getByLabel("Structure").selectOption("return");
   const returnDialog = page.getByRole("dialog", { name: "Add Sequence return" });
   await returnDialog.getByLabel("Return text").fill("Completed");
@@ -631,6 +631,7 @@ test("configures advanced Sequence layout and style with undo and redo", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await openRibbonGroup(page, "View", "Diagram settings");
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
 
   const settings = page.getByRole("complementary", { name: "Sequence settings" });
@@ -672,8 +673,8 @@ test("reorders Sequence participants and messages from the dedicated drag tray",
     .getByRole("button", { name: "Sequence diagram" })
     .click();
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Participant…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Participant…" }).click();
   const addParticipant = page.getByRole("dialog", { name: "Add participant" });
   await addParticipant.getByLabel("Name").fill("Orders");
   await addParticipant.getByRole("button", { name: "Add participant" }).click();

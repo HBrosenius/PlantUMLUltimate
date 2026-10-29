@@ -1,6 +1,5 @@
+import { openRibbonGroup, openAddDialog, prepareEditor, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-
-import { openAddDialog, prepareEditor, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -114,6 +113,8 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("Inventory .[dotted].> Payments : requests stock");
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");
+
+  await openRibbonGroup(page, "View", "Diagram settings");
 
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Component settings" });

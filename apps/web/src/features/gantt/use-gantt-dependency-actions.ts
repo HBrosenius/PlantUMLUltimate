@@ -127,14 +127,17 @@ export function useGanttDependencyActions(options: Options) {
     ) => {
       const predecessor = document.symbols.tasks.get(predecessorTaskId);
       const successor = document.symbols.tasks.get(successorTaskId);
-      if (!predecessor || !successor) return;
+      if (!predecessor || !successor) return false;
       const operation = applicationGanttAdapter.applyVisualOperation(
         { kind: "create-dependency", predecessorTaskId, successorTaskId, predecessorAnchor, successorAnchor },
         document,
         source,
       );
-      if (operation.unavailableReason) return report(operation.unavailableReason);
-      apply(
+      if (operation.unavailableReason) {
+        report(operation.unavailableReason);
+        return false;
+      }
+      return apply(
         operation,
         `Connect ${predecessor.label}'s ${predecessorAnchor} to ${successor.label}'s ${successorAnchor}`,
       );

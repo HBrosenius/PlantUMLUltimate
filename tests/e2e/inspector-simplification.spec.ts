@@ -1,5 +1,5 @@
+import { openRibbonGroup, prepareEditor, fillSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, fillSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 test("task basics lead, optional choices persist, and invalid drafts remain recoverable", async ({
   page,
@@ -49,6 +49,7 @@ test("task basics lead, optional choices persist, and invalid drafts remain reco
 test("calendar leads with project schedule and protects staged edits", async ({ page }) => {
   await prepareEditor(page);
   const original = await readEditorSource(page);
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule", exact: true }).click();
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await expect(calendar.locator("form input").first()).toHaveAttribute("type", "date");
@@ -73,8 +74,8 @@ test("Sequence creation prioritizes endpoints and message, with keyboard pickers
     .getByRole("button", { name: "Sequence diagram" })
     .click();
   await fillSource(page, "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: Hello\n@enduml");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Message…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Message…" }).click();
   const dialog = page.getByRole("dialog", { name: "Add message", exact: true });
   await expect(dialog.getByRole("combobox", { name: "From", exact: true })).toBeFocused();
   await expect(dialog.getByLabel("Message", { exact: true })).toBeVisible();

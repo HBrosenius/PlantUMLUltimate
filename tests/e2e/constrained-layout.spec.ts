@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, setSource, source } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource, setSource, source } from "./editor-helpers";
 
 test("keeps long WBS outline results and footer inside the viewport", async ({ page }, testInfo) => {
   await prepareEditor(page);
@@ -39,8 +39,8 @@ test("keeps long WBS outline results and footer inside the viewport", async ({ p
 test("keeps creation actions reachable in a short phone viewport without losing drafts", async ({ page }, testInfo) => {
   await prepareEditor(page);
   await page.setViewportSize({ width: 320, height: 420 });
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: /^Task/ }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Task…", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Add task", exact: true });
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Phone draft");
   const rect = await dialog.boundingBox();
@@ -78,6 +78,8 @@ test("uses one phone pane and restores desktop Split without losing source", asy
 
 test("keeps editing help dismissals per diagram kind and offers a route to reopen", async ({ page }) => {
   await prepareEditor(page);
+  await openRibbonGroup(page, "View", "Navigation and panels");
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "New diagram tab" }).click();
@@ -86,19 +88,20 @@ test("keeps editing help dismissals per diagram kind and offers a route to reope
     .getByRole("button", { name: "Sequence diagram" })
     .click();
   await expect(page.getByRole("note")).toContainText("Drag participants sideways");
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   const tabs = page.getByRole("navigation", { name: "Open documents" });
   await tabs.getByRole("button").nth(0).click();
   await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "Editing help" }).click();
   await expect(page.getByRole("note")).toContainText("new task");
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await tabs.getByRole("button").nth(1).click();
   await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
   await page.setViewportSize({ width: 375, height: 844 });
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await expect(page.getByRole("menuitem", { name: "Commands…" })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: "Collaborate…" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Commands", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Collaborate", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -1,5 +1,5 @@
+import { openRibbonGroup, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 test("a blank Gantt renders without sample tasks and supports adding the first task", async ({ page }) => {
   await page.goto("/");
@@ -18,8 +18,8 @@ test("a blank Gantt renders without sample tasks and supports adding the first t
   await expect(page.locator(".preview")).not.toContainText("Preview could not be updated");
   await expect(page.locator(".diagram [data-task-id]")).toHaveCount(0);
   await page.screenshot({ path: "test-results/blank-gantt.png" });
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Task…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Task…" }).click();
   const task = page.getByRole("dialog", { name: "Add task", exact: true });
   await task.getByRole("textbox", { name: "Name", exact: true }).fill("First task");
   await task.getByRole("button", { name: "Add task", exact: true }).click();

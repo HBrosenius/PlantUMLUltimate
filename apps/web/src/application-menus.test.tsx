@@ -60,6 +60,21 @@ const fileActions = (): Omit<ComponentProps<typeof FileMenu>, "canExport"> => ({
 });
 
 describe("application menus", () => {
+  it("keeps every inline Insert command disabled for viewers and retargets handlers on document changes", async () => {
+    const user = userEvent.setup();
+    const first = actions();
+    const second = actions();
+    const view = render(<AddMenu inline diagramKind="gantt" disabled {...first} />);
+    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Task…" }));
+    expect(first.onTask).not.toHaveBeenCalled();
+    view.rerender(<AddMenu inline diagramKind="sequence" {...second} />);
+    expect(screen.queryByRole("button", { name: "Task…" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Participant…" }));
+    expect(second.onParticipant).toHaveBeenCalledOnce();
+    expect(first.onParticipant).not.toHaveBeenCalled();
+  });
+
   it("opens Add from the keyboard, cycles through its items, and restores focus on Escape", async () => {
     const user = userEvent.setup();
     const callbacks = actions();

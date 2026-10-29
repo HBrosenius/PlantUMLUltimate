@@ -64,6 +64,7 @@ export function FileMenu({
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   };
   const run = (action: () => void) => {
+    trigger.current?.focus();
     close();
     action();
   };
@@ -221,11 +222,21 @@ export function FileMenu({
               </div>
             )}
           </div>
-          <button role="menuitem" disabled={saving} onClick={() => run(onSave)}>
+          <button
+            role="menuitem"
+            disabled={saving}
+            title={saving ? "Saving is in progress" : undefined}
+            onClick={() => run(onSave)}
+          >
             <span>Save</span>
             <kbd aria-hidden="true">Ctrl/Cmd+S</kbd>
           </button>
-          <button role="menuitem" disabled={saving} onClick={() => run(onSaveAs)}>
+          <button
+            role="menuitem"
+            disabled={saving}
+            title={saving ? "Saving is in progress" : undefined}
+            onClick={() => run(onSaveAs)}
+          >
             Save as…
           </button>
           {onSaveAsStarter && (
@@ -284,17 +295,37 @@ export function FileMenu({
                 <button role="menuitem" onClick={() => run(onExportSource)}>
                   Source
                 </button>
-                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportSvg)}>
+                <button
+                  role="menuitem"
+                  disabled={!canExport}
+                  title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
+                  onClick={() => run(onExportSvg)}
+                >
                   SVG
                 </button>
-                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportPng)}>
+                <button
+                  role="menuitem"
+                  disabled={!canExport}
+                  title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
+                  onClick={() => run(onExportPng)}
+                >
                   PNG
                 </button>
-                <button role="menuitem" disabled={!canExport} onClick={() => run(onExportPdf)}>
+                <button
+                  role="menuitem"
+                  disabled={!canExport}
+                  title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
+                  onClick={() => run(onExportPdf)}
+                >
                   PDF
                 </button>
                 <span className="menu-separator" role="separator" />
-                <button role="menuitem" disabled={!canExport} onClick={() => run(onCopyImage)}>
+                <button
+                  role="menuitem"
+                  disabled={!canExport}
+                  title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
+                  onClick={() => run(onCopyImage)}
+                >
                   Copy image
                 </button>
                 <button

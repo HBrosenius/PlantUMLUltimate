@@ -101,8 +101,7 @@ test("browses WBS hierarchy by touch and reveals a work package", async ({ page 
 
 test("supports dark appearance and keyboard navigation in the phone sheet", async ({ page }, info) => {
   const list = await phone(page);
-  await page.getByRole("button", { name: "More", exact: true }).tap();
-  await page.getByRole("menuitem", { name: "Settings…" }).tap();
+  await page.getByRole("button", { name: "Settings" }).tap();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await settings.getByLabel("Theme", { exact: true }).selectOption("dark");
   await settings.getByRole("button", { name: "Apply", exact: true }).tap();

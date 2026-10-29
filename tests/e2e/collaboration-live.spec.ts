@@ -147,7 +147,7 @@ test("enforces collaboration capabilities through the real Durable Object", asyn
   const editor = await join(browser, editorLink, "Editor Bob", "editor");
   const viewer = await join(browser, viewerLink, "Viewer Vera", "viewer");
   await expect(viewer.page.locator(".cm-content")).toHaveAttribute("contenteditable", "false");
-  await expect(viewer.page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+  await expect(viewer.page.getByRole("button", { name: "Task…", exact: true })).toBeDisabled();
 
   await editor.page
     .getByRole("dialog", { name: "Collaboration" })

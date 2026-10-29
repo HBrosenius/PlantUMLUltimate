@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openDiagramOptions, prepareEditor, setSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, setSource } from "./editor-helpers";
 
 test("shows an overdue milestone at the forecast date and moves its linked successor", async ({ page }) => {
   await prepareEditor(page);

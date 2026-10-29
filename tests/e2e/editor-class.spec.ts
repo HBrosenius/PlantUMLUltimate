@@ -1,6 +1,5 @@
+import { openRibbonGroup, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-
-import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -174,8 +173,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   });
   await expect(page.locator(".cm-content")).toContainText("class Order");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Class, interface, or enum…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Class, interface, or enum…" }).click();
   const add = page.getByRole("dialog", { name: "Add Class object" });
   await add.getByLabel("Class object type").selectOption("enum");
   await add.getByLabel("Name").fill("OrderStatus");
@@ -184,8 +183,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await add.getByRole("button", { name: "Add object" }).click();
   await expect(page.locator(".cm-content")).toContainText('enum "OrderStatus" as Status');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Relationship…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Relationship…" }).click();
   const rel = page.getByRole("dialog", { name: "Add Class relationship" });
   await rel.getByLabel("From", { exact: true }).selectOption("order");
   await rel.getByLabel("To", { exact: true }).selectOption("status");
@@ -197,8 +196,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await rel.getByRole("button", { name: "Add relationship" }).click();
   await expect(page.locator(".cm-content")).toContainText('Order "1" *-[#DarkGreen]-> "many" Status : state');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Package or namespace…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Package or namespace…" }).click();
   const classPackage = page.getByRole("dialog", { name: "Add Class package" });
   await classPackage.getByLabel("Package name").fill("Reporting");
   await classPackage.getByLabel("Package alias").fill("Reports");
@@ -207,8 +206,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await classPackage.getByRole("button", { name: "Add package" }).click();
   await expect(page.locator(".cm-content")).toContainText('package "Reporting" as Reports #Lavender');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const classNote = page.getByRole("dialog", { name: "Add Class note" });
   await classNote.getByLabel("Attached to").selectOption("status");
   await classNote.getByLabel("Position").selectOption("left");
@@ -217,8 +216,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await classNote.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note left of Status #Wheat : Lifecycle state");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const relationshipNote = page.getByRole("dialog", { name: "Add Class note" });
   await relationshipNote.getByLabel("Attached to").selectOption("relationship-2");
   await expect(relationshipNote.getByLabel("Position")).toHaveCount(0);
@@ -338,6 +337,8 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   await expect(
     page.getByRole("group", { name: "Class containers" }).getByRole("button", { name: "Reporting", exact: true }),
   ).toBeVisible();
+
+  await openRibbonGroup(page, "View", "Diagram settings");
 
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Class settings" });

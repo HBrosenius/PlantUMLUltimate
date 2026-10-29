@@ -5,6 +5,7 @@ import type { DiagramKind } from "./model";
 export function AddMenu({
   diagramKind,
   disabled = false,
+  inline = false,
   onTask,
   onMilestone,
   onDivider,
@@ -36,6 +37,7 @@ export function AddMenu({
 }: {
   diagramKind: DiagramKind;
   disabled?: boolean | undefined;
+  inline?: boolean;
   onTask(): void;
   onMilestone(): void;
   onDivider(): void;
@@ -77,7 +79,7 @@ export function AddMenu({
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   };
   const run = (action: () => void) => {
-    trigger.current?.focus();
+    if (!inline) trigger.current?.focus();
     close();
     action();
   };
@@ -109,30 +111,36 @@ export function AddMenu({
   };
 
   return (
-    <div className="application-menu" ref={root} data-inspector-trigger={diagramKind === "gantt" || undefined}>
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={disabled}
-        title={disabled ? "Viewing only" : undefined}
-        onClick={() => setOpen((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            setOpen(true);
-            requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
-          }
-        }}
-      >
-        Add
-      </button>
-      {open && (
+    <div
+      className={inline ? "ribbon-insert" : "application-menu"}
+      ref={root}
+      data-inspector-trigger={diagramKind === "gantt" || undefined}
+    >
+      {!inline && (
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          disabled={disabled}
+          title={disabled ? "Viewing only" : undefined}
+          onClick={() => setOpen((value) => !value)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+              requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
+            }
+          }}
+        >
+          Add
+        </button>
+      )}
+      {(inline || open) && (
         <div
-          className="application-menu-panel"
-          role="menu"
-          aria-label="Add"
+          className={inline ? "ribbon-insert-actions" : "application-menu-panel"}
+          role={inline ? "group" : "menu"}
+          aria-label={inline ? "New diagram elements" : "Add"}
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
@@ -142,113 +150,253 @@ export function AddMenu({
         >
           {diagramKind === "gantt" ? (
             <>
-              <button role="menuitem" onClick={() => run(onTask)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onTask)}
+              >
                 <span>Task…</span>
-                <kbd>{taskShortcut}</kbd>
+                <kbd aria-hidden={inline || undefined}>{taskShortcut}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onMilestone)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onMilestone)}
+              >
                 <span>Milestone…</span>
-                <kbd>{milestoneShortcut}</kbd>
+                <kbd aria-hidden={inline || undefined}>{milestoneShortcut}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onDivider)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onDivider)}
+              >
                 <span>Divider…</span>
-                <kbd>{dividerShortcut}</kbd>
+                <kbd aria-hidden={inline || undefined}>{dividerShortcut}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onClosedDay)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onClosedDay)}
+              >
                 Closed day…
               </button>
             </>
           ) : diagramKind === "sequence" ? (
             <>
-              <button role="menuitem" onClick={() => run(onParticipant)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onParticipant)}
+              >
                 <span>Participant…</span>
-                <kbd>{optionShortcut("P")}</kbd>
+                <kbd aria-hidden={inline || undefined}>{optionShortcut("P")}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onMessage)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onMessage)}
+              >
                 <span>Message…</span>
-                <kbd>{optionShortcut("M")}</kbd>
+                <kbd aria-hidden={inline || undefined}>{optionShortcut("M")}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onFragment)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onFragment)}
+              >
                 <span>Combined fragment…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivation)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivation)}
+              >
                 <span>Activation…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onNote)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onNote)}
+              >
                 <span>Note…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onSequenceSpacing)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onSequenceSpacing)}
+              >
                 <span>Flow controls and page breaks…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onReference)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onReference)}
+              >
                 <span>Reference…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onParticipantBox)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onParticipantBox)}
+              >
                 <span>Participant box…</span>
               </button>
             </>
           ) : diagramKind === "usecase" ? (
             <>
-              <button role="menuitem" onClick={() => run(onUseCaseActor)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onUseCaseActor)}
+              >
                 <span>Actor…</span>
-                <kbd>{optionShortcut("A")}</kbd>
+                <kbd aria-hidden={inline || undefined}>{optionShortcut("A")}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onUseCase)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onUseCase)}
+              >
                 <span>Use case…</span>
-                <kbd>{optionShortcut("U")}</kbd>
+                <kbd aria-hidden={inline || undefined}>{optionShortcut("U")}</kbd>
               </button>
-              <button role="menuitem" onClick={() => run(onUseCaseRelationship)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onUseCaseRelationship)}
+              >
                 <span>Relationship…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onUseCasePackage)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onUseCasePackage)}
+              >
                 <span>Package or boundary…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onUseCaseNote)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onUseCaseNote)}
+              >
                 <span>Note…</span>
               </button>
             </>
           ) : diagramKind === "class" || diagramKind === "component" ? (
             <>
-              <button role="menuitem" onClick={() => run(onClassEntity)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onClassEntity)}
+              >
                 <span>
                   {diagramKind === "component" ? "Component or infrastructure…" : "Class, interface, or enum…"}
                 </span>
               </button>
-              <button role="menuitem" onClick={() => run(onClassRelationship)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onClassRelationship)}
+              >
                 <span>Relationship…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onClassPackage)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onClassPackage)}
+              >
                 <span>{diagramKind === "component" ? "Package or node…" : "Package or namespace…"}</span>
               </button>
-              <button role="menuitem" onClick={() => run(onClassNote)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onClassNote)}
+              >
                 <span>Note…</span>
               </button>
             </>
           ) : diagramKind === "activity" ? (
             <>
-              <button role="menuitem" onClick={() => run(onActivityAction)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityAction)}
+              >
                 <span>Action…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivityStructure)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityStructure)}
+              >
                 <span>Flow structure…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivityTerminal)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityTerminal)}
+              >
                 <span>Terminal…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivityArrow)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityArrow)}
+              >
                 <span>Flow arrow…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivityPartition)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityPartition)}
+              >
                 <span>Partition…</span>
               </button>
-              <button role="menuitem" onClick={() => run(onActivityNote)}>
+              <button
+                role={inline ? undefined : "menuitem"}
+                disabled={disabled}
+                title={disabled ? "Viewing only" : undefined}
+                onClick={() => run(onActivityNote)}
+              >
                 <span>Note…</span>
               </button>
             </>
           ) : (
-            <button role="menuitem" onClick={() => run(onWbsNode)}>
+            <button
+              role={inline ? undefined : "menuitem"}
+              disabled={disabled}
+              title={disabled ? "Viewing only" : undefined}
+              onClick={() => run(onWbsNode)}
+            >
               <span>WBS node…</span>
-              <kbd>{optionShortcut("N")}</kbd>
+              <kbd aria-hidden={inline || undefined}>{optionShortcut("N")}</kbd>
             </button>
           )}
         </div>

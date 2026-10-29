@@ -1,5 +1,12 @@
+import {
+  openRibbonGroup,
+  fillSource,
+  prepareEditor,
+  readEditorSource,
+  source,
+  waitForDiagramRender,
+} from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource, source, waitForDiagramRender } from "./editor-helpers";
 
 test("keeps Add independent of task selection and reuses calendar editing with undo", async ({ page }) => {
   await prepareEditor(page);
@@ -7,20 +14,20 @@ test("keeps Add independent of task selection and reuses calendar editing with u
   await waitForDiagramRender(page);
   const original = await readEditorSource(page);
   const openAdd = async () => {
-    await page.getByRole("button", { name: "Add", exact: true }).click();
-    const menu = page.getByRole("menu", { name: "Add", exact: true });
-    await expect(menu.getByRole("menuitem")).toHaveCount(4);
-    await expect(menu.getByRole("menuitem", { name: /Task…/ })).toBeEnabled();
-    await expect(menu.getByRole("menuitem", { name: /Milestone…/ })).toBeEnabled();
-    await expect(menu.getByRole("menuitem", { name: /Divider…/ })).toBeEnabled();
-    await expect(menu.getByRole("menuitem", { name: "Closed day…", exact: true })).toBeEnabled();
+    await openRibbonGroup(page, "Insert", "Insert elements");
+    const menu = page.getByRole("group", { name: "New diagram elements", exact: true });
+    await expect(menu.getByRole("button")).toHaveCount(4);
+    await expect(menu.getByRole("button", { name: /Task…/ })).toBeEnabled();
+    await expect(menu.getByRole("button", { name: /Milestone…/ })).toBeEnabled();
+    await expect(menu.getByRole("button", { name: /Divider…/ })).toBeEnabled();
+    await expect(menu.getByRole("button", { name: "Closed day…", exact: true })).toBeEnabled();
     return menu;
   };
   await openAdd();
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
   await page.locator('[data-task-id="beta"] .bar').click();
   await openAdd();
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Linked task", { exact: true })).toBeVisible();
   await inspector.locator("summary").filter({ hasText: "Resources" }).click();
@@ -31,7 +38,7 @@ test("keeps Add independent of task selection and reuses calendar editing with u
   await page.setViewportSize({ width: 390, height: 844 });
   const menu = await openAdd();
   await page.screenshot({ path: "test-results/a22-add-phone.png" });
-  await menu.getByRole("menuitem", { name: "Closed day…", exact: true }).click();
+  await menu.getByRole("button", { name: "Closed day…", exact: true }).click();
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await expect(calendar.getByRole("button", { name: "+ Add exception", exact: true })).toBeFocused();
   await page.setViewportSize({ width: 1280, height: 800 });

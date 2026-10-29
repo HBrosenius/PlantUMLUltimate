@@ -1,53 +1,24 @@
 import { expect, test } from "@playwright/test";
-import { prepareEditor, readEditorSource } from "./editor-helpers";
+import { openRibbonGroup, prepareEditor, readEditorSource } from "./editor-helpers";
 
-test("Plan opens existing Gantt tools, restores focus and retains alternate routes", async ({ page }, testInfo) => {
+test("Plan opens existing Gantt tools and restores command focus", async ({ page }) => {
   await prepareEditor(page);
   const initial = await readEditorSource(page);
-  const plan = page.getByRole("button", { name: "Plan", exact: true });
-  const menu = page.getByRole("menu", { name: "Plan", exact: true });
-  await plan.focus();
-  await page.keyboard.press("ArrowDown");
-  await expect(menu.getByRole("menuitem")).toHaveText([
-    "Calendar & schedule…",
-    "Workload…",
-    "Reports…",
-    "What-if scenario…",
-    "Jira…",
-  ]);
-  await expect(menu.getByRole("menuitem").first()).toBeFocused();
-  if (testInfo.project.name === "chromium") {
-    await page.screenshot({ path: testInfo.outputPath("plan-desktop.png") });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(plan).toBeInViewport();
-    await expect(menu.getByRole("menuitem").last()).toBeInViewport();
-    const bounds = await menu.boundingBox();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-    await page.screenshot({ path: testInfo.outputPath("plan-phone.png") });
-    await page.setViewportSize({ width: 1280, height: 720 });
-  }
-  await menu.getByRole("menuitem").first().focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Close project inspector" })).toBeVisible();
-  await page.getByRole("button", { name: "Close project inspector" }).click();
-  await expect(plan).toBeFocused();
   for (const [action, close] of [
-    ["Workload…", "Close resource workload"],
+    ["Calendar & schedule", "Close project inspector"],
+    ["Workload", "Close resource workload"],
     ["Reports…", "Close reports"],
     ["What-if scenario…", "Close what-if scenario"],
     ["Jira…", "Close Jira integration"],
   ]) {
-    await plan.click();
-    await menu.getByRole("menuitem", { name: action, exact: true }).click();
-    await expect(menu).toBeHidden();
+    await openRibbonGroup(page, "Plan", "Planning tools");
+    const command = page.getByRole("button", { name: action, exact: true });
+    await command.click();
     await page.getByRole("button", { name: close, exact: true }).click();
+    await expect(command).toBeFocused();
   }
   expect(await readEditorSource(page)).toBe(initial);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await expect(page.getByRole("menuitem", { name: "Reports…" })).toHaveCount(0);
-  await expect(page.getByRole("menuitem", { name: "Help", exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "More", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Commands", exact: true }).click();
   const commands = page.getByRole("dialog", { name: /command/i });
   await commands.getByRole("combobox").fill("What-if scenario");
@@ -55,7 +26,7 @@ test("Plan opens existing Gantt tools, restores focus and retains alternate rout
   await expect(page.getByRole("dialog", { name: "What-if scenario", exact: true })).toBeVisible();
 });
 
-test("Plan offers WBS linking and stays in place, disabled, on other diagram types", async ({ page }) => {
+test("Plan retains one WBS linking destination and explains applicability to Sequence", async ({ page }) => {
   await prepareEditor(page);
   for (const kind of ["WBS", "Sequence"]) {
     await page.getByRole("button", { name: "New diagram tab" }).click();
@@ -63,27 +34,18 @@ test("Plan offers WBS linking and stays in place, disabled, on other diagram typ
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram` })
       .click();
-    const plan = page.getByRole("button", { name: "Plan", exact: true });
     if (kind === "Sequence") {
-      // Plan keeps its place so the menus after it do not shift; it only explains where it applies.
-      await plan.click();
-      await expect(page.getByRole("menu", { name: "Plan", exact: true }).getByRole("menuitem")).toHaveText([
-        "Planning tools are for Gantt and WBS diagrams",
-      ]);
-      await expect(
-        page.getByRole("menuitem", { name: "Planning tools are for Gantt and WBS diagrams" }),
-      ).toBeDisabled();
-      break;
+      await openRibbonGroup(page, "Plan", "Planning tools");
+      await expect(page.getByText("Planning tools are for Gantt and WBS diagrams.", { exact: true })).toBeVisible();
+    } else {
+      await openRibbonGroup(page, "Plan", "Linked diagrams");
+      const create = page.getByRole("button", { name: "Create Gantt chart from WBS", exact: true });
+      await expect(create).toHaveCount(1);
+      await create.click();
+      const dialog = page.getByRole("dialog", { name: "Create document from WBS", exact: true });
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(create).toBeFocused();
     }
-    await plan.click();
-    const menu = page.getByRole("menu", { name: "Plan", exact: true });
-    await expect(menu.getByRole("menuitem")).toHaveText(["Create Gantt chart from WBS"]);
-    await menu.getByRole("menuitem", { name: "Create Gantt chart from WBS" }).click();
-    const dialog = page.getByRole("dialog", { name: "Create document from WBS", exact: true });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    await page.getByRole("button", { name: "Linked diagrams", exact: true }).click();
-    await expect(page.getByRole("menuitem", { name: "Create Gantt chart from WBS" })).toBeVisible();
-    await page.keyboard.press("Escape");
   }
 });

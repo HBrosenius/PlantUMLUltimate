@@ -2,8 +2,7 @@ import { expect, test } from "@playwright/test";
 import { prepareEditor } from "./editor-helpers";
 
 async function openHelp(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help", exact: true }).click();
+  await page.getByRole("button", { name: "Help", exact: true }).click();
   return page.getByRole("dialog", { name: "PlantUML Ultimate Help" });
 }
 

@@ -90,7 +90,7 @@ test("opens viewer collaboration links in enforced read-only mode", async ({ pag
   await expect(join).toContainText("Viewing only");
   await expect(page.locator(".cm-content")).toContainText("Shared plan");
   await expect(page.locator(".cm-content")).toHaveAttribute("contenteditable", "false");
-  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Task…", exact: true })).toBeDisabled();
   await expect(page.locator(".collaboration-status")).toHaveText("Viewing only");
   const transport = await page.evaluate(() => ({
     url: (window as Window & { viewerSocketUrl?: string }).viewerSocketUrl,

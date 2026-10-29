@@ -1,5 +1,5 @@
+import { openRibbonGroup, prepareEditor, fillSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, fillSource } from "./editor-helpers";
 
 test("closes Gantt inspectors with one Escape from the canvas and a field", async ({ page }) => {
   await prepareEditor(page);
@@ -15,6 +15,7 @@ test("closes Gantt inspectors with one Escape from the canvas and a field", asyn
   await inspector.getByLabel("Progress (%)", { exact: true }).focus();
   await page.keyboard.press("Escape");
   await expect(inspector).toBeHidden();
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule", exact: true }).click();
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await expect(calendar).toBeVisible();

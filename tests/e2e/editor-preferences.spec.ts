@@ -10,8 +10,7 @@ test("editor preferences apply, cancel and persist without changing source or ex
     .click();
   const source = await readEditorSource(page);
   const settings = async () => {
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
     return page.getByRole("dialog", { name: "Settings", exact: true });
   };
   let dialog = await settings();

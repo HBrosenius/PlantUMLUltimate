@@ -2,11 +2,7 @@ import { expect, test } from "@playwright/test";
 import { prepareEditor } from "./editor-helpers";
 
 async function openSettings(page: Parameters<typeof prepareEditor>[0]) {
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page
-    .getByRole("menu", { name: "More", exact: true })
-    .getByRole("menuitem", { name: "Settings…", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   return page.getByRole("dialog", { name: "Settings", exact: true });
 }
 

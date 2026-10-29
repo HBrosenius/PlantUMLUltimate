@@ -10,6 +10,7 @@ export type AppDialog =
   | { kind: "new-project" }
   | { kind: "wbs-gantt-project" }
   | { kind: "add-task" }
+  | { kind: "add-dependency" }
   | { kind: "add-divider" }
   | { kind: "add-milestone" }
   | { kind: "delivery-scenario" }

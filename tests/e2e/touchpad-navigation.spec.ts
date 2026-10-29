@@ -1,5 +1,5 @@
+import { openRibbonGroup, prepareEditor, setSource, source, readEditorSource } from "./editor-helpers";
 import { test, expect } from "@playwright/test";
-import { prepareEditor, setSource, source, readEditorSource } from "./editor-helpers";
 
 test("touchpad scrolling pans and pinch zooms without changing source or page zoom", async ({ page }) => {
   test.setTimeout(75_000);
@@ -74,8 +74,8 @@ test("navigates both what-if diagrams independently without editing either plan"
   await prepareEditor(page);
   const text = source(Array.from({ length: 40 }, (_, i) => `[Task ${i + 1}] lasts 60 days`).join("\n"));
   await setSource(page, text);
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "What-if scenario…", exact: true }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "What-if scenario…", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "What-if scenario", exact: true });
   await dialog.getByRole("button", { name: "Rendered preview" }).click();
   const base = dialog.getByLabel("Base plan rendered diagram", { exact: true });

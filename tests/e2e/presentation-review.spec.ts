@@ -1,10 +1,10 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
 const source =
   "@startgantt\nProject starts 2026-10-02\n[Build] as [b] lasts 2 days\n[Test] as [t] lasts 1 day\n@endgantt";
 async function openPresentation(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Presentation & local review…" }).click();
+  await openRibbonGroup(page, "View", "Navigation and panels");
+  await page.getByRole("button", { name: "Presentation & local review…" }).click();
   return page.getByRole("dialog", { name: "Presentation and local review" });
 }
 test("presents named highlights, isolates editing and persists personal notes through alias edits", async ({
@@ -15,7 +15,7 @@ test("presents named highlights, isolates editing and persists personal notes th
   let dialog = await openPresentation(page);
   await expect(dialog.locator("svg")).toBeVisible();
   await expect(dialog.locator("svg")).toBeInViewport({ ratio: 1 });
-  await expect(page.getByRole("button", { name: "Add", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Insert", exact: true })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Views & local review" }).click();
   await dialog.getByLabel("Diagram object").selectOption("task:b");
   await dialog.getByRole("button", { name: "Add highlight step" }).click();
@@ -36,7 +36,7 @@ test("presents named highlights, isolates editing and persists personal notes th
   await expect(dialog).toBeVisible();
   if (info.project.name === "chromium") await page.screenshot({ path: "docs/audits/2026-10-10-a32/desktop.png" });
   await dialog.getByRole("button", { name: "Exit presentation" }).click();
-  await expect(page.getByRole("button", { name: "More", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Presentation & local review…", exact: true })).toBeFocused();
   expect(await readEditorSource(page)).toBe(source);
   const changed = source.replace("[Build]", "[Compile]").replace("2 days", "3 days");
   await fillSource(page, changed);
@@ -72,8 +72,8 @@ test("navigates connected WBS and Gantt diagrams without changing sources", asyn
     .getByRole("button", { name: "WBS diagram" })
     .click();
   await fillSource(page, "@startwbs\n*(project) Project\n**(build) Build\n@endwbs");
-  await page.getByRole("button", { name: "Linked diagrams", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Create Gantt chart from WBS" }).click();
+  await openRibbonGroup(page, "Plan", "Linked diagrams");
+  await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
   const create = page.getByRole("dialog", { name: "Create document from WBS" });
   await create.getByLabel("Name", { exact: true }).fill("Delivery");
   await create.getByRole("button", { name: "Create Gantt chart", exact: true }).click();
@@ -103,7 +103,7 @@ test("presents the other diagram families without exposing source editing", asyn
     const before = await readEditorSource(page);
     const dialog = await openPresentation(page);
     await expect(dialog.locator("svg")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Insert", exact: true })).toHaveCount(0);
     await dialog.getByRole("button", { name: "Views & local review" }).click();
     await expect(dialog.getByLabel("Diagram object").locator("option").nth(1)).toBeAttached();
     await page.keyboard.press("Escape");

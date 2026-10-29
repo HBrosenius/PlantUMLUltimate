@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 async function prepareWbs(page: Parameters<typeof prepareEditor>[0]) {
   await prepareEditor(page);
@@ -19,6 +19,7 @@ test("searches displayed ancestry and keeps a hierarchical outline docked while 
   test.setTimeout(60_000);
   await prepareWbs(page);
   const original = await readEditorSource(page);
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Outline", exact: true }).click();
   const modal = page.getByRole("dialog", { name: "Diagram outline", exact: true });
   await modal.getByLabel("Search diagram elements").fill("Delivery Platform");
@@ -87,6 +88,7 @@ test("scopes Find to canvas focus, preserves source search and keeps diagram vie
 test("retains the modal on phones with clear search and filter-aware empty states", async ({ page }) => {
   await prepareEditor(page);
   await page.setViewportSize({ width: 390, height: 844 });
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Outline", exact: true }).click();
   const modal = page.getByRole("dialog", { name: "Diagram outline", exact: true });
   await expect(modal.getByRole("button", { name: "Dock outline", exact: true })).toHaveCount(0);
@@ -98,6 +100,7 @@ test("retains the modal on phones with clear search and filter-aware empty state
   await expect(modal.locator("footer")).toBeInViewport();
   await page.screenshot({ path: "test-results/a23-outline-phone.png" });
   await modal.getByRole("button", { name: "Close diagram outline", exact: true }).click();
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Find in diagram", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Find in diagram", exact: true })).toBeVisible();
 });

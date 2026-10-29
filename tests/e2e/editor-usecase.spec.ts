@@ -1,6 +1,5 @@
+import { openRibbonGroup, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-
-import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -117,8 +116,8 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await expect(page.getByRole("region", { name: "Use Case diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("actor Customer");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Actor…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Actor…" }).click();
   const actorDialog = page.getByRole("dialog", { name: "Add Use Case object" });
   await actorDialog.getByLabel("Name").fill("Administrator");
   await actorDialog.getByLabel("Alias").fill("Admin");
@@ -131,8 +130,8 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await expect(actorInspector.getByLabel("Name")).toHaveValue("Administrator");
   await actorInspector.getByRole("button", { name: "Close Use Case object inspector" }).click();
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Relationship…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Relationship…" }).click();
   const relationship = page.getByRole("dialog", { name: "Add Use Case relationship" });
   await relationship.getByLabel("From", { exact: true }).selectOption("admin");
   await relationship.getByLabel("To", { exact: true }).selectOption("order");
@@ -140,8 +139,8 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   await relationship.getByLabel("Label").fill("manages");
   await relationship.getByRole("button", { name: "Add relationship" }).click();
   await expect(page.locator(".cm-content")).toContainText("Admin --> Order : manages");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Package or boundary…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Package or boundary…" }).click();
   const container = page.getByRole("dialog", { name: "Add Use Case package" });
   await container.getByLabel("Name").fill("Administration");
   await container.getByRole("button", { name: "Add container" }).click();
@@ -192,16 +191,16 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
     .poll(() => page.locator(".cm-content").innerText())
     .toContain('rectangle "Administration" {\nactor "Administrator"');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const note = page.getByRole("dialog", { name: "Add Use Case note" });
   await note.getByLabel("Attached to").selectOption("admin");
   await note.getByLabel("Text").fill("Maintains access");
   await note.getByRole("button", { name: "Add note" }).click();
   await expect(page.locator(".cm-content")).toContainText("note right of Admin : Maintains access");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const floatingNote = page.getByRole("dialog", { name: "Add Use Case note" });
   await floatingNote.getByLabel("Attached to").selectOption("");
   await floatingNote.getByLabel("Alias").fill("ReleaseRisk");
@@ -221,6 +220,8 @@ test("edits general Use Case settings without rewriting diagram objects", async 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+
+  await openRibbonGroup(page, "View", "Diagram settings");
 
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Use Case settings" });

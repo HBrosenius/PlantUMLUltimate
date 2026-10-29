@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openDiagramOptions, prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 
 const source = `@startgantt
 Project starts 2026-09-04

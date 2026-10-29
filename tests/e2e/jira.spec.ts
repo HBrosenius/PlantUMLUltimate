@@ -1,3 +1,4 @@
+import { openRibbonGroup } from "./editor-helpers";
 import { expect, test, type Page } from "@playwright/test";
 import { createServer as createHttpServer } from "node:http";
 import { fileURLToPath } from "node:url";
@@ -20,8 +21,8 @@ async function openGantt(page: Page, url = "/") {
 }
 
 async function openJira(page: Page) {
-  await page.getByRole("button", { name: "Plan" }).click();
-  await page.getByRole("menuitem", { name: "Jira…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "Jira…" }).click();
 }
 
 function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:00:00.000Z") {

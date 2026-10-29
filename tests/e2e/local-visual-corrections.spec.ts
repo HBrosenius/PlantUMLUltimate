@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor, source } from "./editor-helpers";
 import { expect, test, type Locator } from "@playwright/test";
-import { fillSource, prepareEditor, source } from "./editor-helpers";
 
 async function noOverflow(element: Locator) {
   expect(await element.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
@@ -15,8 +15,7 @@ test("Help shortcuts and command labels wrap without collisions", async ({ page 
     { width: 640, height: 450 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Help", exact: true }).click();
+    await page.getByRole("button", { name: "Help", exact: true }).click();
     const help = page.getByRole("dialog", { name: "PlantUML Ultimate Help" });
     await noOverflow(help);
     await noOverflow(help.locator(".help-content"));
@@ -75,6 +74,7 @@ test("Workload check-ins and diagram opening use the existing secondary action s
     { width: 640, height: 450 },
   ]) {
     await page.setViewportSize(viewport);
+    await openRibbonGroup(page, "Plan", "Planning tools");
     await page.getByRole("button", { name: "Workload", exact: true }).click();
     const panel = page.getByRole("complementary", { name: "Resource workload" });
     const report = panel.getByRole("button", { name: "Create task check-in…", exact: true });

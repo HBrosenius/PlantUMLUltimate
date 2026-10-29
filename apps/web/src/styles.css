@@ -8895,3 +8895,197 @@ polygon.diagram-bulk-selected {
   margin-block: 3px;
   font-weight: 600;
 }
+
+/* Command categories, document navigation, and workspace views are separate surfaces. */
+.app {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.command-ribbon {
+  min-width: 0;
+  z-index: 5;
+}
+.ribbon-header {
+  gap: 4px 8px;
+}
+.ribbon-brand {
+  font-size: 12px;
+}
+.ribbon-categories,
+.ribbon-utilities {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.ribbon-categories button[aria-selected="true"] {
+  background: var(--bg);
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+.ribbon-utilities {
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.ribbon-utilities .history-tools {
+  margin-left: 0;
+}
+.ribbon-header .document-identity {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 11px;
+}
+.ribbon-panel {
+  padding-block: 5px;
+  min-height: 44px;
+}
+.ribbon-panel[hidden],
+.ribbon-category-panel[hidden] {
+  display: none;
+}
+.ribbon-category-panel {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.ribbon-group {
+  min-width: 0;
+  position: relative;
+  border-right: 1px solid var(--line);
+  padding-right: 12px;
+}
+.ribbon-group:last-child {
+  border-right: 0;
+}
+.ribbon-group > summary {
+  display: none;
+}
+.ribbon-group-content,
+.ribbon-insert-actions,
+.ribbon-settings {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ribbon-group-content::after {
+  content: attr(aria-label);
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 10px;
+}
+.ribbon-insert-actions button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ribbon-unavailable,
+.ribbon-link-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+.workspace-navigation {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-navigation .document-tabs {
+  flex: 1;
+  border-bottom: 0;
+}
+.workspace-navigation .workspace-toolbar {
+  gap: 4px;
+  padding: 2px 8px;
+  border-bottom: 0;
+  flex-shrink: 0;
+}
+.workspace-navigation .workspace-hint {
+  margin: 0;
+}
+.workspace-navigation .workspace-toolbar nav {
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .ribbon-group > summary {
+    display: list-item;
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .ribbon-group-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 30;
+    padding: 8px;
+    width: min(340px, calc(100vw - 40px));
+    max-height: 55dvh;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--control-radius);
+    background: var(--panel);
+    box-shadow: 0 4px 12px #0002;
+  }
+  .ribbon-category-panel {
+    gap: 4px;
+  }
+  .ribbon-group-content::after {
+    display: none;
+  }
+  .ribbon-brand {
+    display: none;
+  }
+  .workspace-navigation {
+    flex-wrap: wrap;
+  }
+  .workspace-navigation .document-tabs {
+    flex-basis: 100%;
+    min-height: 36px;
+  }
+  .workspace-navigation .workspace-toolbar {
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 600px) {
+  .ribbon-header {
+    padding: 4px 8px;
+    gap: 3px;
+  }
+  .ribbon-header button {
+    padding-inline: 7px;
+  }
+  .ribbon-utilities {
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .ribbon-collapse {
+    margin-left: auto;
+  }
+  .ribbon-group-content {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
+.ribbon-header .document-identity {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+}
+.ribbon-header .document-name {
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-navigation .document-tabs {
+  align-items: center;
+}
+.workspace-navigation .document-tabs > button {
+  align-self: stretch;
+}
+.ribbon-panel .workspace-hint-content {
+  max-width: 480px;
+}

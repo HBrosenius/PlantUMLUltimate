@@ -1,5 +1,5 @@
+import { openRibbonGroup, prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 
 test("Diagram mode exposes source without Settings", async ({ page }, testInfo) => {
   await page.goto("/");
@@ -21,8 +21,7 @@ test("Diagram mode exposes source without Settings", async ({ page }, testInfo) 
   await page.reload();
   await expect(page.locator(".cm-content")).toBeVisible();
   await expect(modes.getByRole("button", { name: "Split", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page
     .getByRole("dialog", { name: "Settings", exact: true })
     .getByRole("button", { name: "Apply", exact: true })
@@ -73,6 +72,7 @@ test("long Sequence starts readably and manual per-tab zoom survives edits, prop
   await fillSource(page, sequence.replace("Message 60", "Final response"));
   await expect(page.locator(".diagram svg")).toContainText("Final response");
   await expect(reset).toHaveText(chosenZoom!);
+  await openRibbonGroup(page, "View", "Diagram settings");
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   await page.getByRole("button", { name: /Close.*settings/i }).click();
   await expect(reset).toHaveText(chosenZoom!);

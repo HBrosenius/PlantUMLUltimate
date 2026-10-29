@@ -1,6 +1,5 @@
-import { openDiagramOptions } from "./editor-helpers";
+import { openDiagramOptions, fillSource, prepareEditor, setSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, setSource } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => prepareEditor(page));
 

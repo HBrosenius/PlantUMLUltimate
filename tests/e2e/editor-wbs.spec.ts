@@ -1,5 +1,12 @@
+import {
+  openRibbonGroup,
+  fitDiagram,
+  pointInText,
+  prepareEditor,
+  setSource,
+  waitForDiagramRender,
+} from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fitDiagram, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -100,8 +107,8 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await expect(page.locator(".wbs-placement-inside")).toBeVisible();
   await page.mouse.up();
   await expect.poll(() => page.locator(".cm-content").innerText()).toMatch(/\*\* Discovery[\s\S]*\*\*\* Delivery/);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "WBS node…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "WBS node…" }).click();
   const add = page.getByRole("dialog", { name: "Add WBS node" });
   await add.getByLabel("Label").fill("Operations");
   await add.getByLabel("Position").selectOption("child");
@@ -196,6 +203,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await arrowInspector.getByRole("button", { name: "Delete arrow" }).click();
   await expect(page.locator(".cm-content")).not.toContainText("operations -> delivery");
   await expect(page.locator(".cm-content")).toContainText("delivery -> experience_design");
+  await openRibbonGroup(page, "View", "Diagram settings");
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "WBS settings" });
   await settings.getByLabel("Diagram title").fill("Delivery breakdown");

@@ -1,6 +1,6 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test, type Page } from "@playwright/test";
 import { decodeDocument, decodeProject } from "@plantuml-studio/document-format";
-import { fillSource, prepareEditor, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 const source = `@startgantt
 Project starts 2026-10-01
 [Build] lasts 3 days
@@ -8,8 +8,8 @@ Project starts 2026-10-01
 [Release] happens at [Build]'s end
 @endgantt`;
 async function open(page: Page) {
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "What-if scenario…", exact: true }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "What-if scenario…", exact: true }).click();
   return page.getByRole("dialog", { name: "What-if scenario", exact: true });
 }
 async function saveAlternative(page: Page) {

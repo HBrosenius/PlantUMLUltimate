@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor } from "./editor-helpers";
 
 test.use({ locale: "sv-SE" });
 
@@ -9,8 +9,8 @@ test("forecast report exports projected dates and a plan comparison chart", asyn
     page,
     "@startgantt\n[API] on {Alice} starts 2026-10-01\n[API] lasts 5 days\n[API] is 40% completed\n@endgantt",
   );
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Reports…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "Reports…" }).click();
   const dialog = page.locator(".reports-dialog");
   await dialog.getByLabel("Report type", { exact: true }).selectOption("forecast");
   await dialog.getByLabel("As-of date", { exact: true }).fill("2026-10-08");
@@ -30,8 +30,8 @@ test("expanded reports preserve uncertainty and require explicit history capture
     page,
     "@startgantt\nProject starts 2026-10-01\n[API] as [api] on {Alice} starts 2026-10-01\n[api] ends 2026-10-07\n[api] is 60% completed\n[Docs] as [docs] on {Alice} starts 2026-10-08\n[docs] ends 2026-10-12\n@endgantt",
   );
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Reports…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "Reports…" }).click();
   const dialog = page.locator(".reports-dialog");
   await dialog.getByLabel("As-of date", { exact: true }).fill("2026-10-08");
   await dialog.getByLabel("Report type", { exact: true }).selectOption("progress");
@@ -53,8 +53,8 @@ test("report wording persists and Swedish dates appear in the exported preview",
     "@startgantt\nProject starts 2026-10-01\n[Design review] on {Alice} starts 2026-10-01\n[Design review] lasts 3 days\n@endgantt",
   );
   const openReports = async () => {
-    await page.getByRole("button", { name: "Plan", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Reports…" }).click();
+    await openRibbonGroup(page, "Plan", "Planning tools");
+    await page.getByRole("button", { name: "Reports…" }).click();
   };
   await openReports();
   const dialog = page.locator(".reports-dialog");
@@ -82,8 +82,8 @@ test("opens Issues from a report error and restores the report draft", async ({ 
   await prepareEditor(page);
   await fillSource(page, "@startgantt\n[A] lasts -2 days\n@endgantt");
   const openReports = async () => {
-    await page.getByRole("button", { name: "Plan", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Reports…" }).click();
+    await openRibbonGroup(page, "Plan", "Planning tools");
+    await page.getByRole("button", { name: "Reports…" }).click();
   };
   await openReports();
   const dialog = page.locator(".reports-dialog");
@@ -103,8 +103,8 @@ test("opens Issues from a report error and restores the report draft", async ({ 
 test("unassigned plans offer an explicit summary and explain scope exclusions", async ({ page }) => {
   await prepareEditor(page);
   await fillSource(page, "@startgantt\nProject starts 2099-10-01\n[A] starts 2099-10-01\n[A] lasts 3 days\n@endgantt");
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Reports…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "Reports…" }).click();
   const dialog = page.locator(".reports-dialog");
   await expect(dialog.getByText(/No people are assigned/)).toBeVisible();
   await dialog.getByRole("button", { name: "Create coordinator summary", exact: true }).click();
@@ -117,6 +117,7 @@ test("unassigned plans offer an explicit summary and explain scope exclusions", 
   await expect(page.frameLocator('iframe[title="Exported email preview"]').locator("body")).toContainText("A");
   await dialog.screenshot({ path: "test-results/a15-reports.png" });
   await dialog.getByRole("button", { name: "Close reports" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   const workload = page.getByRole("complementary", { name: "Resource workload", exact: true });
   await workload.getByRole("button", { name: "Create coordinator summary", exact: true }).click();

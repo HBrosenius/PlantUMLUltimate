@@ -1,6 +1,5 @@
+import { openRibbonGroup, pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-
-import { pointInText, prepareEditor, setSource, waitForDiagramRender } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -96,6 +95,7 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
     .click();
   await setSource(page, '@startuml\npartition "Operations" {\n:Receive order;\n:Review order;\n}\n@enduml');
 
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   await expect(page.getByRole("complementary", { name: "Activity partition inspector" })).toBeVisible();
@@ -161,6 +161,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await controlInspector.getByLabel("Condition").blur();
   await expect(page.locator(".cm-content")).toContainText("if (Payment approved?) then (yes)");
 
+  await openRibbonGroup(page, "View", "Diagram settings");
+
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   const settings = page.getByRole("complementary", { name: "Activity settings" });
   const title = settings.getByLabel("Title");
@@ -173,13 +175,14 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
     })
     .toBe(true);
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Partition…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Partition…" }).click();
   const partition = page.getByRole("dialog", { name: "Add Activity partition" });
   await partition.getByLabel("Name").fill("Operations");
   await partition.getByLabel("Color", { exact: true }).fill("Lavender");
   await partition.getByRole("button", { name: "Add partition" }).click();
   await expect(page.locator(".cm-content")).toContainText('partition "Operations" #Lavender');
+  await openRibbonGroup(page, "View", "Navigation and panels");
   await page.getByRole("button", { name: "Dismiss editing hint" }).click();
   await page.getByRole("group", { name: "Activity partitions" }).getByRole("button", { name: "Operations" }).click();
   const partitionInspector = page.getByRole("complementary", { name: "Activity partition inspector" });
@@ -187,8 +190,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await partitionInspector.getByLabel("Name").blur();
   await expect(page.locator(".cm-content")).toContainText('partition "Operations team" #Lavender');
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Action…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Action…" }).click();
   const action = page.getByRole("dialog", { name: "Add Activity action" });
   await action.getByLabel("Text").fill("Archive order");
   await action.getByLabel("Partition").selectOption("operations-team");
@@ -197,8 +200,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await action.getByRole("button", { name: "Add action" }).click();
   await expect(page.locator(".cm-content")).toContainText(":Archive order; <<service>> <<#PaleGreen>>");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Action…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Action…" }).click();
   const secondAction = page.getByRole("dialog", { name: "Add Activity action" });
   await secondAction.getByLabel("Text").fill("Index archive");
   await secondAction.getByLabel("Partition").selectOption("operations-team");
@@ -224,8 +227,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await inspector.getByLabel("Text").blur();
   await expect(page.locator(".cm-content")).toContainText(":Archive completed order; <<service>> <<#PaleGreen>>");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Note…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Note…" }).click();
   const note = page.getByRole("dialog", { name: "Add Activity note" });
   await note.getByLabel("Position").selectOption("left");
   await note.getByLabel("Attached to").selectOption({ label: "Archive completed order" });
@@ -251,8 +254,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
     })
     .toBe(true);
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Flow arrow…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Flow arrow…" }).click();
   const flowArrow = page.getByRole("dialog", { name: "Add Activity flow arrow" });
   await flowArrow.getByLabel("Place after").selectOption({ label: "Archive completed order" });
   await flowArrow.getByLabel("Label").fill("continue");
@@ -261,8 +264,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await flowArrow.getByRole("button", { name: "Add arrow" }).click();
   await expect(page.locator(".cm-content")).toContainText("-[#Blue,dashed]-> [continue]");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Flow structure…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Flow structure…" }).click();
   const structure = page.getByRole("dialog", { name: "Add Activity flow structure" });
   await structure.getByLabel("Structure").selectOption("while");
   await structure.getByLabel("Condition").fill("Archive pending?");
@@ -282,8 +285,8 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   await expect(page.locator(".cm-content")).not.toContainText("Archive pending?");
   await expect(page.locator(".cm-content")).not.toContainText("Check archive status");
 
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Terminal…" }).click();
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  await page.getByRole("button", { name: "Terminal…" }).click();
   const terminal = page.getByRole("dialog", { name: "Add Activity terminal" });
   await terminal.getByLabel("Terminal").selectOption("kill");
   await terminal.getByRole("button", { name: "Add terminal" }).click();

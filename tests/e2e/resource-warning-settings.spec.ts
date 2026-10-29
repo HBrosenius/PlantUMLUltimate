@@ -1,9 +1,8 @@
+import { openRibbonGroup, prepareEditor, setSource, source } from "./editor-helpers";
 import { expect, test, type Page } from "@playwright/test";
-import { prepareEditor, setSource, source } from "./editor-helpers";
 
 async function settings(page: Page) {
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menu", { name: "More", exact: true }).getByRole("menuitem", { name: "Settings…" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
   return page.getByRole("dialog", { name: "Settings", exact: true });
 }
 
@@ -25,6 +24,7 @@ test("can suppress the allocation banner without hiding workload and restore it 
   await dialog.getByRole("checkbox", { name: "Show resource over-allocation warnings" }).uncheck();
   await dialog.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(warning).toHaveCount(0);
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
   await expect(page.locator(".resource-card")).toContainText("Peak 200%");
   await expect(page.getByRole("spinbutton", { name: "Capacity for Team lead" })).toHaveValue("100");

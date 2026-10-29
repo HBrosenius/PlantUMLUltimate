@@ -1,8 +1,7 @@
+import { openRibbonGroup, fillSource, prepareEditor, setSource, source } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import * as Y from "yjs";
-
-import { fillSource, prepareEditor, setSource, source } from "./editor-helpers";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -206,8 +205,8 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await expect(file).toBeFocused();
 
   await file.click();
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menu", { name: "Plan" }).getByRole("menuitem", { name: "Jira…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "Jira…" }).click();
   const jira = page.getByRole("dialog", { name: "Jira integration" });
   await expect(jira).toBeVisible();
   await jira.getByRole("button", { name: "Close Jira integration" }).click();

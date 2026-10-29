@@ -23,8 +23,7 @@ test("starts with actions, exposes examples and keeps learning optional", async 
   await page.setViewportSize({ width: 1280, height: 720 });
   await chooser.getByRole("button", { name: "WBS diagram", exact: true }).click();
   await expect.poll(() => readEditorSource(page)).toBe("@startwbs\n* Project\n** Deliverable\n@endwbs");
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help", exact: true }).click();
+  await page.getByRole("button", { name: "Help", exact: true }).click();
   const help = page.getByRole("dialog", { name: "PlantUML Ultimate Help" });
   await help.getByText("Quick tour", { exact: true }).click();
   await expect(help.getByText(/Outline helps navigate/)).toBeVisible();
@@ -41,7 +40,7 @@ test("blank diagrams start with minimal content and an Add route", async ({ page
     const source = await readEditorSource(page);
     expect(source).not.toContain("Website redesign");
     expect(source.split("\n").length).toBeLessThanOrEqual(4);
-    await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Insert", exact: true })).toBeVisible();
     await page.keyboard.press("ControlOrMeta+n");
   }
 });

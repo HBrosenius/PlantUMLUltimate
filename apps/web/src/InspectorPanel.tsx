@@ -50,7 +50,8 @@ export function InspectorPanel({
     const element = panel.current;
     if (!element) return;
     const previousFocus = document.activeElement;
-    const focusFallback = element.closest(".app")?.querySelector<HTMLElement>(".workspace");
+    const app = element.closest(".app");
+    const focusFallback = app?.querySelector<HTMLElement>(".workspace");
     if (!initialized.current) {
       baseline.current = snapshot(element);
       initialized.current = true;
@@ -128,6 +129,8 @@ export function InspectorPanel({
         event.stopImmediatePropagation();
         return;
       }
+      // Browsing command categories does not leave or replace this inspector.
+      if (target.closest(".ribbon-categories, .ribbon-collapse, .ribbon-group > summary")) return;
       const button = target.closest("button");
       const close =
         target.closest('header button[aria-label^="Close"]') ||
@@ -241,7 +244,14 @@ export function InspectorPanel({
         );
         if (!replacement && (element.contains(document.activeElement) || document.activeElement === document.body)) {
           const target =
-            previousFocus instanceof HTMLElement && previousFocus.isConnected ? previousFocus : focusFallback;
+            previousFocus instanceof HTMLElement && previousFocus.isConnected
+              ? previousFocus.closest(".command-ribbon") && previousFocus.closest("[hidden]")
+                ? (app?.querySelector<HTMLElement>('.ribbon-categories [aria-selected="true"]') ?? focusFallback)
+                : previousFocus
+              : focusFallback;
+          // A compact group may have closed while its inspector was in use.
+          const group = target?.closest<HTMLDetailsElement>("details.ribbon-group");
+          if (group && !target?.closest("[hidden]")) group.open = true;
           target?.focus({ preventScroll: true });
         }
       });

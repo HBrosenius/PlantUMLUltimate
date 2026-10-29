@@ -1,3 +1,5 @@
+import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
+import { AddDependencyDialog } from "./AddDependencyDialog";
 import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
 import { InlineLabelEditor } from "./InlineLabelEditor";
@@ -18,7 +20,6 @@ import { useInteractionMessage } from "./use-interaction-message";
 import { startupChooserPolicy } from "./startup-chooser-policy";
 import { FileSaveStatus } from "./FileSaveStatus";
 import { useWorkspaceLayout } from "./use-workspace-layout";
-import { ActionMenu } from "./ActionMenu";
 
 import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
@@ -3115,6 +3116,7 @@ export function App() {
   const canRenameCommand =
     !commandReadOnly && !!renameCommandOccurrence && !!symbolProvider.renameRequest(renameCommandOccurrence);
 
+  const dependencyTaskCount = parseResult.document.tasks.length;
   const commands = useMemo<Command[]>(() => {
     const revealViewCommand = (eventName: string, targetView: "code" | "diagram") => {
       if (viewMode !== "split") update("viewMode", targetView);
@@ -3129,6 +3131,13 @@ export function App() {
               category: "Edit",
               shortcut: optionShortcut("T"),
               run: () => openDialog({ kind: "add-task" }),
+            },
+            {
+              id: "edit.add-dependency",
+              label: "Add dependency…",
+              category: "Insert",
+              enabled: !commandReadOnly && dependencyTaskCount >= 2,
+              run: () => openDialog({ kind: "add-dependency" }),
             },
             {
               id: "edit.add-milestone",
@@ -3447,6 +3456,7 @@ export function App() {
     renameCommandPosition,
     requestSymbolRename,
     viewMode,
+    dependencyTaskCount,
     activateTab,
     closeTab,
     tabs.documents,
@@ -3980,6 +3990,8 @@ export function App() {
       : []),
   ];
 
+  const linkedDiagramIssueCount =
+    (workspace.diagramKind === "wbs" ? missingWbsTaskCount : missingGanttTaskCount) + projectWbsGanttIssues.length;
   const initialDiagramFit =
     result?.documentId === tabs.activeId && result.source === workspace.source && result.svg
       ? {
@@ -4188,358 +4200,516 @@ export function App() {
           onClose={() => setExportDialog(undefined)}
         />
       )}
-      <header className="toolbar">
-        <strong>PlantUML Ultimate</strong>
-        <div className="file-tools" aria-label="File controls">
-          <FileMenu
-            saving={fileSaving}
-            canExport={exportReady}
-            onNew={newDocument}
-            onNewProject={() => openDialog({ kind: "new-project" })}
-            onOpenRecent={() => setOpenWorkOpen(true)}
-            onOpen={() => void openDocument()}
-            onOpenProject={() => void singleFileProject.openProject()}
-            onProjectConnections={project ? showDocumentNavigator : undefined}
-            projectName={project?.manifest.name}
-            onSave={() => void saveCurrentDocument()}
-            onSaveAs={() => void saveCurrentDocumentAs()}
-            onSaveAsStarter={() =>
-              setStarterDraft({
-                kind: workspace.diagramKind,
-                source: workspace.source,
-                name: tabs.documents.find((item) => item.id === tabs.activeId)?.displayName ?? "My starter",
-              })
-            }
-            onVersionHistory={() => void openVersionHistory()}
-            onDocumentSettings={() => setDocumentSettingsOpen(true)}
-            onBackup={backupWorkspace}
-            onRestore={() => void restoreWorkspace()}
-            onExportPreview={() => setExportDialog("export")}
-            onShareLink={() => setExportDialog("share")}
-            onExportSource={exportSource}
-            onExportSvg={exportSvg}
-            onExportPng={() => void exportPng()}
-            onExportPdf={() => void exportPdf()}
-            onCopyImage={() => void copyImage()}
-            onCopyMarkdown={() => void copyMarkdown()}
-            onCopyConfluence={() => void copyConfluence()}
-          />
-          <button
-            type="button"
-            className={`save-button${saveNeeded ? " save-needed" : ""}`}
-            disabled={fileSaving}
-            onClick={() => void saveCurrentDocument()}
-            title="Save (Ctrl/Cmd+S)"
-          >
-            Save
-          </button>
-          {/* Plan stays in the menu bar for every diagram kind so the menus after it never shift. */}
-          <ActionMenu
-            label="Plan"
-            actions={
-              workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs"
-                ? [
-                    ...(workspace.diagramKind === "gantt"
-                      ? [
-                          { label: "Calendar & schedule…", run: openProjectInspector, opensInspector: true },
-                          { label: "Workload…", run: openResourcePanel, opensInspector: true },
-                          { label: "Reports…", run: openReports },
-                          { label: "What-if scenario…", run: () => openDialog({ kind: "delivery-scenario" }) },
-                          { label: "Jira…", run: () => setJiraDialogOpen(true) },
-                        ]
-                      : []),
-                    ...(workspace.diagramKind === "wbs" || linkedWbs ? linkedDiagramActions : []),
-                  ]
-                : [{ label: "Planning tools are for Gantt and WBS diagrams", run: () => undefined, disabled: true }]
-            }
-          />
-          <button
-            className="desktop-command-trigger"
-            onClick={() => openDialog({ kind: "command-palette" })}
-            title="Command palette (Cmd/Ctrl+Shift+P)"
-          >
-            Commands
-          </button>
-          <button
-            className={
-              collaboration
-                ? `collaboration-button desktop-command-trigger ${collaboration.connection}`
-                : "collaboration-button desktop-command-trigger"
-            }
-            onClick={() => setCollaborationDialogOpen(true)}
-          >
-            {collaboration ? `${collaboration.participants.length} online` : "Collaborate"}
-          </button>
-          <ActionMenu
-            label="More"
-            actions={[
-              ...(narrow
-                ? [
-                    { label: "Commands…", run: () => openDialog({ kind: "command-palette" }) },
-                    {
-                      label: collaboration ? `${collaboration.participants.length} online` : "Collaborate…",
-                      run: () => setCollaborationDialogOpen(true),
-                    },
-                  ]
-                : []),
-              { label: "Presentation & local review…", run: openPresentation },
-              { label: "Settings…", run: () => setSettingsOpen(true) },
-              { label: "Help", run: () => openDialog({ kind: "help" }) },
-            ]}
-          />
-        </div>
-        <div className="document-identity">
-          <span
-            className="document-name"
-            title={
-              activeInSingleFileProject || activeInLegacyProject
-                ? (project?.manifest.name ?? workspace.fileName)
-                : workspace.fileName
-            }
-          >
-            {activeInSingleFileProject || activeInLegacyProject
-              ? `${tabLabels.get(activeDocument.id)} — ${project?.manifest.name ?? workspace.fileName}`
-              : `${tabLabels.get(activeDocument.id)} — ${activeDocument.fileCopy === "new" ? "New separate file" : workspace.fileName}`}
-          </span>
-          <FileSaveStatus
-            dirty={fileDirty}
-            fileCopy={fileCopy}
-            state={currentFileSaveState}
-            onRetry={() => void saveCurrentDocument()}
-          />
-        </div>
-        <div className="history-tools" aria-label="History controls">
-          <button onClick={undo} disabled={!activeHistory.canUndo} aria-label="Undo">
-            ↶
-          </button>
-          <button onClick={redo} disabled={!activeHistory.canRedo} aria-label="Redo">
-            ↷
-          </button>
-          <HistoryMenu
-            undoSteps={activeHistory.undoDescriptions}
-            redoSteps={activeHistory.redoDescriptions}
-            onUndo={undo}
-            onRedo={redo}
-          />
-        </div>
-      </header>
-      <nav className="document-tabs" aria-label="Open documents" ref={documentTabs}>
-        {tabs.documents.map((document) => (
-          <button
-            key={document.id}
-            draggable
-            className={`${document.id === tabs.activeId ? "active" : ""}${document.id === draggedTabId ? " dragging" : ""}`}
-            onClick={() => activateTab(document.id)}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setTabMenu({ id: document.id, x: event.clientX, y: event.clientY });
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
-              event.preventDefault();
-              const bounds = event.currentTarget.getBoundingClientRect();
-              setTabMenu({ id: document.id, x: Math.min(bounds.left, window.innerWidth - 210), y: bounds.bottom });
-            }}
-            onDragStart={(event) => {
-              setDraggedTabId(document.id);
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", document.id);
-            }}
-            onDragEnd={() => setDraggedTabId(undefined)}
-            onDragOver={(event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              const id = event.dataTransfer.getData("text/plain") || draggedTabId;
-              if (id) tabs.reorderDocument(id, document.id);
-              setDraggedTabId(undefined);
-            }}
-            title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
-          >
-            <span className="tab-label">
-              <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
-                ●
-              </span>
-              <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
-              <span className="tab-name">{tabLabels.get(document.id)}</span>
-              {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
-            </span>
-            <span
-              className="tab-close"
-              role="button"
-              aria-label={`Close ${tabLabels.get(document.id)}${isProjectMemberTab(document.id) ? ` in ${project?.manifest.name}` : ""}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                closeTab(document.id);
-              }}
-            >
-              ×
-            </span>
-          </button>
-        ))}
-        <button className="new-tab" onClick={newDocument} aria-label="New diagram tab">
-          +
-        </button>
-      </nav>
-      <section className="toolbar workspace-toolbar" aria-label="Diagram controls">
-        <div className="diagram-tools">
-          {" "}
-          <AddMenu
-            diagramKind={workspace.diagramKind}
-            disabled={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
-            onTask={() => openDialog({ kind: "add-task" })}
-            onMilestone={() => openDialog({ kind: "add-milestone" })}
-            onDivider={() => openDialog({ kind: "add-divider" })}
-            onClosedDay={() => {
-              openProjectInspector();
-              setClosedDayFocus((value) => value + 1);
-            }}
-            onParticipant={() => openDialog({ kind: "add-sequence-participant" })}
-            onMessage={() => openDialog({ kind: "add-sequence-message" })}
-            onFragment={() => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })}
-            onActivation={() => openDialog({ kind: "add-sequence-structure", structureKind: "activation" })}
-            onNote={() => openDialog({ kind: "add-sequence-structure", structureKind: "note" })}
-            onSequenceSpacing={() => openDialog({ kind: "add-sequence-structure", structureKind: "separator" })}
-            onReference={() => openDialog({ kind: "add-sequence-structure", structureKind: "reference" })}
-            onParticipantBox={() => openDialog({ kind: "add-sequence-structure", structureKind: "box" })}
-            onUseCaseActor={() => openDialog({ kind: "add-usecase-element", elementKind: "actor" })}
-            onUseCase={() => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })}
-            onUseCaseRelationship={() => openDialog({ kind: "add-usecase-relationship" })}
-            onUseCasePackage={() => openDialog({ kind: "add-usecase-package" })}
-            onUseCaseNote={() => openDialog({ kind: "add-usecase-note" })}
-            onClassEntity={() => openDialog({ kind: "add-class-entity" })}
-            onClassRelationship={() => openDialog({ kind: "add-class-relationship" })}
-            onClassPackage={() => openDialog({ kind: "add-class-package" })}
-            onClassNote={() => openDialog({ kind: "add-class-note" })}
-            onActivityAction={() => openDialog({ kind: "add-activity-action" })}
-            onActivityPartition={() => openDialog({ kind: "add-activity-partition" })}
-            onActivityNote={() => openDialog({ kind: "add-activity-note" })}
-            onActivityStructure={() => openDialog({ kind: "add-activity-structure" })}
-            onActivityTerminal={() => openDialog({ kind: "add-activity-terminal" })}
-            onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
-            onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
-          />
-          {(sideInspectorOpen || projectInspectorOpen) && (
-            <button type="button" onClick={() => selectViewMode(viewMode === "diagram" ? "split" : "diagram")}>
-              {viewMode === "diagram" ? "Restore split view" : "Focus on diagram"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              closeDialog("diagram-outline");
-              if (viewMode === "code") selectViewMode(narrow ? "diagram" : "split");
-              setOutlineMode("find");
-            }}
-          >
-            Find in diagram
-          </button>
-          <button
-            type="button"
-            className={dialog?.kind === "diagram-outline" ? "active" : ""}
-            onClick={() => openDialog({ kind: "diagram-outline" })}
-          >
-            Outline
-          </button>
-          {workspace.diagramKind === "gantt" && (
-            <>
-              <button data-inspector-trigger onClick={openProjectInspector}>
-                Calendar &amp; schedule
-              </button>
-              <button data-inspector-trigger onClick={openResourcePanel}>
-                Workload
-              </button>
-            </>
-          )}
-          {workspace.diagramKind === "sequence" && (
-            <button data-inspector-trigger onClick={openSequenceSettings}>
-              Diagram settings
-            </button>
-          )}
-          {workspace.diagramKind === "usecase" && (
-            <button data-inspector-trigger onClick={openUseCaseSettingsFromToolbar}>
-              Diagram settings
-            </button>
-          )}
-          {(workspace.diagramKind === "class" || workspace.diagramKind === "component") && (
-            <button data-inspector-trigger onClick={openClassSettingsFromToolbar}>
-              Diagram settings
-            </button>
-          )}
-          {workspace.diagramKind === "activity" && (
-            <button data-inspector-trigger onClick={openActivitySettingsFromToolbar}>
-              Diagram settings
-            </button>
-          )}
-          {(workspace.diagramKind === "wbs" || (workspace.diagramKind === "gantt" && linkedWbs)) && (
-            <ActionMenu
-              label="Linked diagrams"
-              count={
-                (workspace.diagramKind === "wbs" ? missingWbsTaskCount : missingGanttTaskCount) +
-                projectWbsGanttIssues.length
+      <Ribbon
+        file={
+          <>
+            <FileMenu
+              saving={fileSaving}
+              canExport={exportReady}
+              onNew={newDocument}
+              onNewProject={() => openDialog({ kind: "new-project" })}
+              onOpenRecent={() => setOpenWorkOpen(true)}
+              onOpen={() => void openDocument()}
+              onOpenProject={() => void singleFileProject.openProject()}
+              onProjectConnections={project ? showDocumentNavigator : undefined}
+              projectName={project?.manifest.name}
+              onSave={() => void saveCurrentDocument()}
+              onSaveAs={() => void saveCurrentDocumentAs()}
+              onSaveAsStarter={() =>
+                setStarterDraft({
+                  kind: workspace.diagramKind,
+                  source: workspace.source,
+                  name: tabs.documents.find((item) => item.id === tabs.activeId)?.displayName ?? "My starter",
+                })
               }
-              actions={linkedDiagramActions}
+              onVersionHistory={() => void openVersionHistory()}
+              onDocumentSettings={() => setDocumentSettingsOpen(true)}
+              onBackup={backupWorkspace}
+              onRestore={() => void restoreWorkspace()}
+              onExportPreview={() => setExportDialog("export")}
+              onShareLink={() => setExportDialog("share")}
+              onExportSource={exportSource}
+              onExportSvg={exportSvg}
+              onExportPng={() => void exportPng()}
+              onExportPdf={() => void exportPdf()}
+              onCopyImage={() => void copyImage()}
+              onCopyMarkdown={() => void copyMarkdown()}
+              onCopyConfluence={() => void copyConfluence()}
             />
-          )}
-          {workspace.diagramKind === "wbs" && (
+          </>
+        }
+        utilities={
+          <>
             <button
-              data-inspector-trigger
-              onClick={() => {
-                openWbsSettingsFromToolbar();
-              }}
+              className="ribbon-command-trigger"
+              onClick={() => openDialog({ kind: "command-palette" })}
+              title="Command palette (Cmd/Ctrl+Shift+P)"
             >
-              Diagram settings
+              Commands
             </button>
-          )}
-        </div>
-        <nav aria-label="View mode">
-          {viewModes.map((mode) => (
             <button
-              className={!mobileListActive && !taskViewActive && viewMode === mode ? "active" : ""}
-              onClick={() => update("viewMode", mode)}
-              aria-pressed={!mobileListActive && !taskViewActive && viewMode === mode}
-              title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : 3})`}
-              key={mode}
+              className={
+                collaboration
+                  ? `collaboration-button ribbon-command-trigger ${collaboration.connection}`
+                  : "collaboration-button ribbon-command-trigger"
+              }
+              onClick={() => setCollaborationDialogOpen(true)}
             >
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              {collaboration ? `${collaboration.participants.length} online` : "Collaborate"}
             </button>
-          ))}
-          {workspace.diagramKind === "gantt" && !mobileSupported && (
-            <button className={taskViewActive ? "active" : ""} aria-pressed={taskViewActive} onClick={openTasksView}>
-              Tasks
-            </button>
-          )}
-          {mobileSupported && (
             <button
-              className={mobileListActive ? "active" : ""}
-              aria-pressed={mobileListActive}
-              onClick={() => {
-                if (!requestSidePanelChange()) return;
-                dismissAllInspectors();
-                setTaskViewDocument(undefined);
-                setMobileDiagramDocument(undefined);
-                setMobileReveal(undefined);
-                selectNormalViewMode("diagram");
-              }}
+              type="button"
+              className={`save-button${saveNeeded ? " save-needed" : ""}`}
+              disabled={fileSaving}
+              onClick={() => void saveCurrentDocument()}
+              title="Save (Ctrl/Cmd+S)"
             >
-              {workspace.diagramKind === "gantt" ? "Task list" : "WBS list"}
+              Save
             </button>
-          )}
-        </nav>
-        {taskViewActive && tasksNarrow && (
-          <nav aria-label="Tasks pane">
-            <button aria-pressed={taskTablePane === "table"} onClick={() => setTaskTablePane("table")}>
-              Table
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              title="Application settings"
+              aria-label="Settings"
+            >
+              ⚙
             </button>
-            <button aria-pressed={taskTablePane === "chart"} onClick={() => setTaskTablePane("chart")}>
-              Chart
+            <button type="button" aria-label="Help" title="Help" onClick={() => openDialog({ kind: "help" })}>
+              ?
             </button>
-          </nav>
-        )}
-        {!mobileListActive && <WorkspaceHint key={workspace.diagramKind} kind={workspace.diagramKind} />}
-      </section>
+          </>
+        }
+        identity={
+          <>
+            <div className="document-identity">
+              <span
+                className="document-name"
+                title={
+                  activeInSingleFileProject || activeInLegacyProject
+                    ? (project?.manifest.name ?? workspace.fileName)
+                    : workspace.fileName
+                }
+              >
+                {activeInSingleFileProject || activeInLegacyProject
+                  ? `${tabLabels.get(activeDocument.id)} — ${project?.manifest.name ?? workspace.fileName}`
+                  : `${tabLabels.get(activeDocument.id)} — ${activeDocument.fileCopy === "new" ? "New separate file" : workspace.fileName}`}
+              </span>
+              <FileSaveStatus
+                dirty={fileDirty}
+                fileCopy={fileCopy}
+                state={currentFileSaveState}
+                onRetry={() => void saveCurrentDocument()}
+              />
+            </div>
+          </>
+        }
+        history={
+          <>
+            <div className="history-tools" aria-label="History controls">
+              <button onClick={undo} disabled={commandReadOnly || !activeHistory.canUndo} aria-label="Undo">
+                ↶
+              </button>
+              <button onClick={redo} disabled={commandReadOnly || !activeHistory.canRedo} aria-label="Redo">
+                ↷
+              </button>
+            </div>
+          </>
+        }
+        panels={{
+          Edit: (
+            <>
+              <RibbonGroup label="History">
+                <HistoryMenu
+                  undoSteps={commandReadOnly ? [] : activeHistory.undoDescriptions}
+                  redoSteps={commandReadOnly ? [] : activeHistory.redoDescriptions}
+                  onUndo={undo}
+                  onRedo={redo}
+                />
+              </RibbonGroup>
+              <RibbonGroup label="Diagram selection">
+                <button
+                  disabled={!diagramMulti.selected.length}
+                  title={!diagramMulti.selected.length ? "Select diagram elements first" : undefined}
+                  onClick={() => void diagramMulti.copy()}
+                >
+                  Copy selection
+                </button>
+                <button
+                  disabled={commandReadOnly}
+                  title={commandReadOnly ? "Viewing only" : "Paste copied diagram elements"}
+                  onClick={() => void diagramMulti.paste()}
+                >
+                  Paste elements
+                </button>
+                <button
+                  disabled={commandReadOnly || !diagramMulti.selected.length}
+                  title={
+                    commandReadOnly
+                      ? "Viewing only"
+                      : !diagramMulti.selected.length
+                        ? "Select diagram elements first"
+                        : undefined
+                  }
+                  onClick={() => void diagramMulti.duplicate()}
+                >
+                  Duplicate selection
+                </button>
+              </RibbonGroup>
+              <RibbonGroup label="Source editing">
+                {commands
+                  .filter((command) =>
+                    ["edit.go-to-line", "edit.format-source", "edit.rename-symbol"].includes(command.id),
+                  )
+                  .map((command) => (
+                    <button
+                      key={command.id}
+                      disabled={command.enabled === false}
+                      title={
+                        command.enabled === false
+                          ? command.id === "edit.rename-symbol"
+                            ? "Select a renameable symbol in editable source"
+                            : "Viewing only"
+                          : undefined
+                      }
+                      onClick={() => void command.run()}
+                    >
+                      {command.label}
+                    </button>
+                  ))}
+              </RibbonGroup>
+            </>
+          ),
+          Insert: (
+            <RibbonGroup label="Insert elements">
+              <AddMenu
+                inline
+                diagramKind={workspace.diagramKind}
+                disabled={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
+                onTask={() => openDialog({ kind: "add-task" })}
+                onMilestone={() => openDialog({ kind: "add-milestone" })}
+                onDivider={() => openDialog({ kind: "add-divider" })}
+                onClosedDay={() => {
+                  openProjectInspector();
+                  setClosedDayFocus((value) => value + 1);
+                }}
+                onParticipant={() => openDialog({ kind: "add-sequence-participant" })}
+                onMessage={() => openDialog({ kind: "add-sequence-message" })}
+                onFragment={() => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })}
+                onActivation={() => openDialog({ kind: "add-sequence-structure", structureKind: "activation" })}
+                onNote={() => openDialog({ kind: "add-sequence-structure", structureKind: "note" })}
+                onSequenceSpacing={() => openDialog({ kind: "add-sequence-structure", structureKind: "separator" })}
+                onReference={() => openDialog({ kind: "add-sequence-structure", structureKind: "reference" })}
+                onParticipantBox={() => openDialog({ kind: "add-sequence-structure", structureKind: "box" })}
+                onUseCaseActor={() => openDialog({ kind: "add-usecase-element", elementKind: "actor" })}
+                onUseCase={() => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })}
+                onUseCaseRelationship={() => openDialog({ kind: "add-usecase-relationship" })}
+                onUseCasePackage={() => openDialog({ kind: "add-usecase-package" })}
+                onUseCaseNote={() => openDialog({ kind: "add-usecase-note" })}
+                onClassEntity={() => openDialog({ kind: "add-class-entity" })}
+                onClassRelationship={() => openDialog({ kind: "add-class-relationship" })}
+                onClassPackage={() => openDialog({ kind: "add-class-package" })}
+                onClassNote={() => openDialog({ kind: "add-class-note" })}
+                onActivityAction={() => openDialog({ kind: "add-activity-action" })}
+                onActivityPartition={() => openDialog({ kind: "add-activity-partition" })}
+                onActivityNote={() => openDialog({ kind: "add-activity-note" })}
+                onActivityStructure={() => openDialog({ kind: "add-activity-structure" })}
+                onActivityTerminal={() => openDialog({ kind: "add-activity-terminal" })}
+                onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
+                onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
+              />
+              {workspace.diagramKind === "gantt" && (
+                <button
+                  type="button"
+                  disabled={commandReadOnly || parseResult.document.tasks.length < 2}
+                  title={
+                    commandReadOnly
+                      ? "Viewing only"
+                      : parseResult.document.tasks.length < 2
+                        ? "Add at least two tasks first"
+                        : "Choose predecessor and successor tasks"
+                  }
+                  onClick={() => openDialog({ kind: "add-dependency" })}
+                >
+                  Add dependency…
+                </button>
+              )}
+            </RibbonGroup>
+          ),
+          Plan: (
+            <>
+              {workspace.diagramKind !== "wbs" && (
+                <RibbonGroup label="Planning tools">
+                  {workspace.diagramKind === "gantt" ? (
+                    <>
+                      <button data-inspector-trigger onClick={openProjectInspector}>
+                        Calendar &amp; schedule
+                      </button>
+                      <button data-inspector-trigger onClick={openResourcePanel}>
+                        Workload
+                      </button>
+                      <button onClick={openReports}>Reports…</button>
+                      <button
+                        disabled={commandReadOnly}
+                        title={commandReadOnly ? "Viewing only" : undefined}
+                        onClick={() => openDialog({ kind: "delivery-scenario" })}
+                      >
+                        What-if scenario…
+                      </button>
+                      <button onClick={() => setJiraDialogOpen(true)}>Jira…</button>
+                    </>
+                  ) : (
+                    <span className="ribbon-unavailable">Planning tools are for Gantt and WBS diagrams.</span>
+                  )}
+                </RibbonGroup>
+              )}
+              {(workspace.diagramKind === "wbs" || linkedWbs) && (
+                <RibbonGroup label="Linked diagrams">
+                  <span className="ribbon-link-count" aria-label="Sync issues">
+                    {linkedDiagramIssueCount > 0 ? `${linkedDiagramIssueCount} sync issues` : ""}
+                  </span>
+                  {linkedDiagramActions.map((action) => (
+                    <button
+                      key={action.label}
+                      disabled={action.disabled}
+                      title={
+                        action.disabled
+                          ? commandReadOnly
+                            ? "Viewing only"
+                            : "Linked diagrams are already synchronized"
+                          : undefined
+                      }
+                      data-inspector-trigger
+                      onClick={action.run}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </RibbonGroup>
+              )}
+            </>
+          ),
+          View: (
+            <>
+              <RibbonGroup label="Navigation and panels">
+                {(sideInspectorOpen || projectInspectorOpen) && (
+                  <button type="button" onClick={() => selectViewMode(viewMode === "diagram" ? "split" : "diagram")}>
+                    {viewMode === "diagram" ? "Restore split view" : "Focus on diagram"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDialog("diagram-outline");
+                    if (viewMode === "code") selectViewMode(narrow ? "diagram" : "split");
+                    setOutlineMode("find");
+                  }}
+                >
+                  Find in diagram
+                </button>
+                <button
+                  type="button"
+                  className={dialog?.kind === "diagram-outline" ? "active" : ""}
+                  onClick={() => openDialog({ kind: "diagram-outline" })}
+                >
+                  Outline
+                </button>
+                <button onClick={openPresentation}>Presentation &amp; local review…</button>
+                <button onClick={() => setProblemsOpen(true)}>Issues</button>
+                {!mobileListActive && <WorkspaceHint key={workspace.diagramKind} kind={workspace.diagramKind} />}
+              </RibbonGroup>
+              <RibbonGroup label="Diagram settings">
+                <div className="ribbon-settings">
+                  {workspace.diagramKind === "sequence" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openSequenceSettings}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {workspace.diagramKind === "usecase" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openUseCaseSettingsFromToolbar}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {(workspace.diagramKind === "class" || workspace.diagramKind === "component") && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openClassSettingsFromToolbar}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {workspace.diagramKind === "activity" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={openActivitySettingsFromToolbar}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                  {workspace.diagramKind === "wbs" && (
+                    <button
+                      disabled={commandReadOnly}
+                      title={commandReadOnly ? "Viewing only" : undefined}
+                      data-inspector-trigger
+                      onClick={() => {
+                        openWbsSettingsFromToolbar();
+                      }}
+                    >
+                      Diagram settings
+                    </button>
+                  )}
+                </div>
+                {commandReadOnly && <span>Viewing only</span>}
+                {workspace.diagramKind === "gantt" && (
+                  <button
+                    disabled={commandReadOnly}
+                    title={commandReadOnly ? "Viewing only" : undefined}
+                    onClick={() => setLegendInspectorOpen(true)}
+                  >
+                    Legend labels…
+                  </button>
+                )}
+              </RibbonGroup>
+            </>
+          ),
+        }}
+      />
+      <WorkspaceNavigation
+        documents={
+          <>
+            <nav className="document-tabs" aria-label="Open documents" ref={documentTabs}>
+              {tabs.documents.map((document) => (
+                <button
+                  key={document.id}
+                  draggable
+                  className={`${document.id === tabs.activeId ? "active" : ""}${document.id === draggedTabId ? " dragging" : ""}`}
+                  onClick={() => activateTab(document.id)}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setTabMenu({ id: document.id, x: event.clientX, y: event.clientY });
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+                    event.preventDefault();
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    setTabMenu({
+                      id: document.id,
+                      x: Math.min(bounds.left, window.innerWidth - 210),
+                      y: bounds.bottom,
+                    });
+                  }}
+                  onDragStart={(event) => {
+                    setDraggedTabId(document.id);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", document.id);
+                  }}
+                  onDragEnd={() => setDraggedTabId(undefined)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const id = event.dataTransfer.getData("text/plain") || draggedTabId;
+                    if (id) tabs.reorderDocument(id, document.id);
+                    setDraggedTabId(undefined);
+                  }}
+                  title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
+                >
+                  <span className="tab-label">
+                    <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
+                      ●
+                    </span>
+                    <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
+                    <span className="tab-name">{tabLabels.get(document.id)}</span>
+                    {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
+                  </span>
+                  <span
+                    className="tab-close"
+                    role="button"
+                    aria-label={`Close ${tabLabels.get(document.id)}${isProjectMemberTab(document.id) ? ` in ${project?.manifest.name}` : ""}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      closeTab(document.id);
+                    }}
+                  >
+                    ×
+                  </span>
+                </button>
+              ))}
+              <button className="new-tab" onClick={newDocument} aria-label="New diagram tab">
+                +
+              </button>
+            </nav>
+          </>
+        }
+        views={
+          <>
+            <nav aria-label="View mode">
+              {viewModes.map((mode) => (
+                <button
+                  className={!mobileListActive && !taskViewActive && viewMode === mode ? "active" : ""}
+                  onClick={() => update("viewMode", mode)}
+                  aria-pressed={!mobileListActive && !taskViewActive && viewMode === mode}
+                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : 3})`}
+                  key={mode}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+              {workspace.diagramKind === "gantt" && !mobileSupported && (
+                <button
+                  className={taskViewActive ? "active" : ""}
+                  aria-pressed={taskViewActive}
+                  onClick={openTasksView}
+                >
+                  Tasks
+                </button>
+              )}
+              {mobileSupported && (
+                <button
+                  className={mobileListActive ? "active" : ""}
+                  aria-pressed={mobileListActive}
+                  onClick={() => {
+                    if (!requestSidePanelChange()) return;
+                    dismissAllInspectors();
+                    setTaskViewDocument(undefined);
+                    setMobileDiagramDocument(undefined);
+                    setMobileReveal(undefined);
+                    selectNormalViewMode("diagram");
+                  }}
+                >
+                  {workspace.diagramKind === "gantt" ? "Task list" : "WBS list"}
+                </button>
+              )}
+            </nav>
+            {taskViewActive && tasksNarrow && (
+              <nav aria-label="Tasks pane">
+                <button aria-pressed={taskTablePane === "table"} onClick={() => setTaskTablePane("table")}>
+                  Table
+                </button>
+                <button aria-pressed={taskTablePane === "chart"} onClick={() => setTaskTablePane("chart")}>
+                  Chart
+                </button>
+              </nav>
+            )}
+          </>
+        }
+        hint={null}
+      />
       {tabMenu && (
         <div
           className="tab-menu"
@@ -5755,6 +5925,19 @@ export function App() {
           onAddPackage={addUseCasePackage}
           onAddNote={addUseCaseNote}
           onClose={closeDialog}
+        />
+      )}
+      {dialog?.kind === "add-dependency" && workspace.diagramKind === "gantt" && (
+        <AddDependencyDialog
+          key={tabs.activeId}
+          tasks={parseResult.document.tasks}
+          selectedTaskId={selectedTaskId}
+          readOnly={commandReadOnly}
+          onClose={() => closeDialog("add-dependency")}
+          onAdd={(predecessor, successor, from, to) => {
+            if (commandReadOnly) return false;
+            return connectTasks(predecessor, successor, from, to);
+          }}
         />
       )}
       <GanttDialogs

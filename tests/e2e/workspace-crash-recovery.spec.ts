@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
 
 const key = "plantuml-studio.workspace.recovery.v6";
 const first = source("[Unsaved delivery] lasts 3 days");
@@ -11,8 +11,8 @@ test("reopens unsaved tabs, their active selection and a scenario without Indexe
   });
   await prepareEditor(page);
   await fillSource(page, first);
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menuitem", { name: "What-if scenario…", exact: true }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "What-if scenario…", exact: true }).click();
   const scenario = page.getByRole("dialog", { name: "What-if scenario", exact: true });
   await scenario.getByLabel("Scenario name", { exact: true }).fill("Crash recovery alternative");
   await scenario.getByLabel("Scenario assumptions", { exact: true }).fill("Keep two extra days");
@@ -45,8 +45,8 @@ test("reopens unsaved tabs, their active selection and a scenario without Indexe
   await expect(reopened.locator(".file-save-indicator")).toContainText("Unsaved");
   await tabs.first().click();
   expect(await readEditorSource(reopened)).toBe(first);
-  await reopened.getByRole("button", { name: "Plan", exact: true }).click();
-  await reopened.getByRole("menuitem", { name: "What-if scenario…", exact: true }).click();
+  await openRibbonGroup(reopened, "Plan", "Planning tools");
+  await reopened.getByRole("button", { name: "What-if scenario…", exact: true }).click();
   const restored = reopened.getByRole("dialog", { name: "What-if scenario", exact: true });
   await restored.getByLabel("Saved scenario", { exact: true }).selectOption({ label: "Crash recovery alternative" });
   await restored.getByRole("button", { name: "Open saved scenario", exact: true }).click();

@@ -1,8 +1,6 @@
-import { openDiagramOptions } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
-
 import {
+  openRibbonGroup,
+  openDiagramOptions,
   fillSource,
   fitDiagram,
   openAddDialog,
@@ -12,6 +10,8 @@ import {
   source,
   waitForDiagramRender,
 } from "./editor-helpers";
+import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 test.beforeEach(async ({ page }) => {
   await prepareEditor(page);
@@ -230,7 +230,7 @@ test("opens semantic actions from a diagram task", async ({ page }) => {
   await expect(task).toBeVisible();
   await task.click({ button: "right" });
   const menu = page.getByRole("menu", { name: "Symbol actions" });
-  await expect(menu.getByRole("menuitem")).toHaveCount(6);
+  await expect(menu.getByRole("button")).toHaveCount(6);
   await menu.getByRole("menuitem", { name: "Find references" }).click();
   const references = page.getByRole("complementary", { name: "References for Build" });
   await expect(references).toContainText("2 occurrences");
@@ -362,25 +362,24 @@ test.describe(() => {
   });
 });
 
-test("groups creation commands in an accessible Add menu", async ({ page }) => {
+test("groups creation commands in the Insert ribbon", async ({ page }) => {
   const modifier = await page.evaluate(() => (/Mac|iPhone|iPad|iPod/i.test(navigator.platform) ? "⌥" : "Alt+"));
-  const add = page.getByRole("button", { name: "Add", exact: true });
-  await add.click();
-  const menu = page.getByRole("menu", { name: "Add" });
-  await expect(menu.getByRole("menuitem")).toHaveText([
+  await openRibbonGroup(page, "Insert", "Insert elements");
+  const menu = page.getByRole("group", { name: "New diagram elements", exact: true });
+  await expect(menu.getByRole("button")).toHaveText([
     `Task…${modifier}T`,
     `Milestone…${modifier}M`,
     `Divider…${modifier}D`,
     "Closed day…",
   ]);
-  await menu.getByRole("menuitem", { name: "Milestone…" }).click();
+  await menu.getByRole("button", { name: "Milestone…" }).click();
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Add milestone" })).toBeHidden();
 });
 
 test("opens creation dialogs with keyboard shortcuts", async ({ page }) => {
-  await page.getByRole("button", { name: "Add", exact: true }).focus();
+  await page.getByRole("tab", { name: "Insert", exact: true }).focus();
   await page.keyboard.press("Alt+t");
   await expect(page.getByRole("dialog", { name: "Add task" })).toBeVisible();
   await page.keyboard.press("Alt+m");
@@ -466,6 +465,7 @@ test("suggests inline task continuations after a fixed start date", async ({ pag
 
 test("edits the diagram title from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule" }).click();
   await expect(page.getByRole("group", { name: "Closed weekdays" }).locator("label")).toHaveText([
     "Mon",
@@ -484,6 +484,7 @@ test("edits the diagram title from project settings", async ({ page }) => {
 
 test("adds a colored critical date from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule" }).click();
   const highlights = page.getByRole("group", { name: "Highlighted dates" });
   await highlights.getByRole("button", { name: "Add highlighted date" }).click();
@@ -947,8 +948,8 @@ test("edits, reviews, and applies a delivery scenario from the rendered preview"
   test.skip(browserName === "webkit", "WebKit automation does not preserve SVG pointer coordinates for task drags");
   await setSource(page, source("[A] starts 2026-09-01\n[A] lasts 3 days\n[B] starts 2026-09-08\n[B] lasts 2 days"));
 
-  await page.getByRole("button", { name: "Plan", exact: true }).click();
-  await page.getByRole("menu", { name: "Plan" }).getByRole("menuitem", { name: "What-if scenario…" }).click();
+  await openRibbonGroup(page, "Plan", "Planning tools");
+  await page.getByRole("button", { name: "What-if scenario…" }).click();
   const dialog = page.getByRole("dialog", { name: "What-if scenario", exact: true });
   await dialog.getByRole("button", { name: "Rendered preview" }).click();
   const scenario = dialog.getByLabel("Scenario preview");
@@ -1157,7 +1158,7 @@ test("moves, resizes, and reorders focused tasks from the keyboard", async ({ pa
 });
 
 test("traps modal focus, closes with Escape, and restores the trigger", async ({ page }) => {
-  const trigger = page.getByRole("button", { name: "Add", exact: true });
+  const trigger = page.getByRole("button", { name: "Task…", exact: true });
   await trigger.focus();
   await openAddDialog(page, "Task…");
   const dialog = page.getByRole("dialog", { name: "Add task" });
@@ -1643,6 +1644,7 @@ test("keeps the relationship choice available before selecting a linked task", a
 test("keeps resource capacities isolated between document tabs", async ({ page }) => {
   const firstSource = source("[A] on {Kalle:100%} starts 2026-09-01\n[A] lasts 2 days");
   await setSource(page, firstSource);
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload" }).click();
   await page.getByRole("spinbutton", { name: "Capacity for Kalle" }).fill("50");
   await expect(page.locator(".resource-card details")).toHaveCount(1);
@@ -1653,6 +1655,7 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
     .getByRole("button", { name: "Gantt diagram", exact: true })
     .click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload" }).click();
   await expect(page.getByRole("spinbutton", { name: "Capacity for Kalle" })).toHaveValue("100");
   await expect(page.locator(".resource-card details")).toHaveCount(0);
@@ -1660,6 +1663,7 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
 
 test("shows resource over-allocation directly below the diagram", async ({ page }) => {
   await setSource(page, source("[A] on {Kalle:100%} starts 2026-09-01\n[A] lasts 2 days"));
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload" }).click();
   await page.getByRole("spinbutton", { name: "Capacity for Kalle" }).fill("50");
   await page.getByRole("button", { name: "Close resource workload" }).click();
@@ -1680,6 +1684,7 @@ test("does not over-allocate a person when multiple people shorten a task", asyn
   );
 
   await expect(page.getByRole("alert", { name: "Resource over-allocation" })).toHaveCount(0);
+  await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload" }).click();
   const tyra = page.locator(".resource-card").filter({ has: page.getByRole("button", { name: "Tyra" }) });
   await expect(tyra).toContainText("Peak 100%");
@@ -1857,8 +1862,7 @@ test("closes inspectors on any outside click and switches directly to another ta
   await page.locator('[data-task-id="a"] .bar').click();
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Name")).toHaveValue("A");
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help", exact: true }).click();
+  await page.getByRole("button", { name: "Help", exact: true }).click();
   await expect(inspector).toHaveCount(0);
   await page.getByRole("button", { name: "Close help" }).click();
 

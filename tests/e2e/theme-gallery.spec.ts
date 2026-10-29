@@ -3,8 +3,7 @@ import { readFileSync } from "node:fs";
 import { prepareEditor, readEditorSource } from "./editor-helpers";
 
 async function openAppSettings(page: Parameters<typeof prepareEditor>[0]) {
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   return page.getByRole("dialog", { name: "Settings", exact: true });
 }
 async function openDocumentSettings(page: Parameters<typeof prepareEditor>[0]) {

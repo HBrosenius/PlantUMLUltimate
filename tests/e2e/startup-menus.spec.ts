@@ -1,5 +1,5 @@
+import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
 
 test("File submenus receive keyboard focus and return it to their trigger", async ({ page }) => {
   await prepareEditor(page);
@@ -23,8 +23,7 @@ test("one click opens menus after a dialog closes and after view changes", async
   for (const view of ["Code", "Split", "Diagram"]) {
     await page.getByRole("navigation", { name: "View mode" }).getByRole("button", { name: view, exact: true }).click();
     for (const dismiss of ["button", "escape", "backdrop"]) {
-      await page.getByRole("button", { name: "More", exact: true }).click();
-      await page.getByRole("menuitem", { name: "Help", exact: true }).click();
+      await page.getByRole("button", { name: "Help", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "PlantUML Ultimate Help" });
       if (dismiss === "button") await dialog.getByRole("button", { name: "Close Help" }).click();
       else if (dismiss === "escape") await page.keyboard.press("Escape");
@@ -33,8 +32,8 @@ test("one click opens menus after a dialog closes and after view changes", async
       await page.getByRole("button", { name: "File", exact: true }).click();
       await expect(page.getByRole("menu", { name: "File", exact: true })).toBeVisible();
       await page.keyboard.press("Escape");
-      await page.getByRole("button", { name: "Add", exact: true }).click();
-      await expect(page.getByRole("menu", { name: "Add", exact: true })).toBeVisible();
+      await openRibbonGroup(page, "Insert", "Insert elements");
+      await expect(page.getByRole("group", { name: "New diagram elements", exact: true })).toBeVisible();
       await page.keyboard.press("Escape");
     }
   }
@@ -54,8 +53,7 @@ test("startup preference restores every tab and chooser creation adds without re
   await prepareEditor(page);
   const edited = source("[Keep this diagram] lasts 4 days");
   await fillSource(page, edited);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await settings.getByRole("combobox", { name: "On startup", exact: true }).selectOption("chooser");
   await settings.getByRole("button", { name: "Apply", exact: true }).click();
@@ -68,8 +66,7 @@ test("startup preference restores every tab and chooser creation adds without re
   await expect(tabs).toHaveCount(2);
   await tabs.first().click();
   expect(await readEditorSource(page)).toBe(edited);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings…", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(settings.getByRole("combobox", { name: "On startup", exact: true })).toHaveValue("chooser");
   await settings.getByRole("combobox", { name: "On startup", exact: true }).selectOption("restore");
   await settings.getByRole("button", { name: "Apply", exact: true }).click();
