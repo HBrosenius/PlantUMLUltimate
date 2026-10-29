@@ -298,16 +298,14 @@ export function useDiagramNavigation(
     event.preventDefault();
     const now = performance.now();
     const previousGesture = gestureRef.current;
-    // Wheel events have no device identity. Horizontal movement in any unit
-    // and fine pixel deltas indicate scrolling; retain that choice through momentum bursts.
+    // Wheel events have no device identity: mice can emit small or fractional
+    // pixel deltas too. Only explicit horizontal/Shift gestures start panning;
+    // retain that choice through pixel-mode momentum bursts.
     const pan =
       !event.ctrlKey &&
       (event.shiftKey ||
         event.deltaX !== 0 ||
-        (event.deltaMode === 0 &&
-          (previousGesture && now - previousGesture.at < 200
-            ? previousGesture.pan
-            : Math.abs(event.deltaY) < 80 || !Number.isInteger(event.deltaY))));
+        (event.deltaMode === 0 && (previousGesture && now - previousGesture.at < 200 ? previousGesture.pan : false)));
     // Pinch is a separate gesture, not a mouse-wheel burst.
     gestureRef.current = event.ctrlKey ? undefined : { at: now, pan };
     if (pan) {

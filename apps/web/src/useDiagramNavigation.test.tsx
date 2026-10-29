@@ -58,7 +58,7 @@ it("handles purely horizontal gestures and Shift scrolling without zooming", () 
 
 it("pinches to zoom even after panning and keeps mouse-wheel zoom available", async () => {
   const viewport = render(<Canvas />).getByTestId("viewport");
-  wheel(viewport, { deltaY: 10 });
+  wheel(viewport, { deltaX: 10, deltaY: 10 });
   wheel(viewport, { deltaY: -20, ctrlKey: true });
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000);
@@ -70,6 +70,15 @@ it("pinches to zoom even after panning and keeps mouse-wheel zoom available", as
     await vi.advanceTimersByTimeAsync(1000);
   });
   expect(Number(viewport.querySelector("output")?.textContent)).toBeGreaterThan(pinched);
+});
+
+it.each([1, 40, 79, 2.5, 100])("zooms with a vertical mouse-wheel delta of %s pixels", async (deltaY) => {
+  const viewport = render(<Canvas />).getByTestId("viewport");
+  wheel(viewport, { deltaY });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+  });
+  expect(Number(viewport.querySelector("output")?.textContent)).toBeCloseTo(Math.exp(-deltaY * 0.0008));
 });
 
 it("stops a zoom animation when a horizontal touchpad pan starts", async () => {
