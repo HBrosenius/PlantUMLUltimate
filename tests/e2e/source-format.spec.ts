@@ -145,3 +145,30 @@ test("preserves exported geometry for the other supported diagram families", asy
     expect(await renderedGeometry(page), kind).toEqual(before);
   }
 });
+
+test("formats a complete Gantt project with resources, milestones and compound clauses as one undoable change", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await prepareEditor(page);
+  const source = readFileSync("tests/fixtures/gantt-formatter-complete.puml", "utf8")
+    .split("\n")
+    .map((line) => (!line.trim() || line.startsWith("'") ? line : "  " + line.replace(/^(\[[^\]]+\]) /, "$1      ")))
+    .join("\n");
+  await fillSource(page, source);
+  await waitForDiagramRender(page);
+  const before = await renderedGeometry(page);
+  await page.getByRole("button", { name: "Format source…", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Format source preview", exact: true });
+  await expect(dialog.getByRole("status")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Apply formatting", exact: true })).toBeEnabled();
+  await dialog.getByText("Full proposed source", { exact: true }).click();
+  const proposed = await dialog.locator(".format-full-source").textContent();
+  await dialog.getByRole("button", { name: "Apply formatting", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await readEditorSource(page)).toBe(proposed);
+  await waitForDiagramRender(page);
+  expect(await renderedGeometry(page)).toEqual(before);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  expect(await readEditorSource(page)).toBe(source);
+});

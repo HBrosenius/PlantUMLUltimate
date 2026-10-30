@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { formatSource } from "./source-format";
 import { parseProjectSettings } from "./project-settings";
@@ -229,6 +230,160 @@ it.each([
   "2026-11-16 to 2026-11-22 are colored in lightyellow extra syntax",
 ])("withholds malformed calendar colour syntax atomically: %s", (rule) => {
   const source = `@startgantt\n  [A]      lasts 4 days\n${rule}\n@endgantt`;
+  expect(formatSource("gantt", source)).toMatchObject({
+    source,
+    changes: [],
+    reason: expect.stringContaining("does not yet support this syntax on line 3"),
+  });
+});
+
+it.each([
+  "-- Data Fabric / Orion / Rialto --",
+  "-- Data  Fabric / Orion / Rialto --",
+  "-- Déploiement / 数据平台 --",
+  '-- "Data Fabric" / {Orion} / Rialto --',
+  "----",
+])("formats Gantt dividers without changing their labels: %s", (divider) => {
+  const source = [
+    "@startgantt",
+    "Project starts 2026-11-01",
+    "  [A]      lasts 4 days",
+    ...Array<string>(17).fill(""),
+    `\t${divider}  `,
+    "2026-11-16 to 2026-11-22 are colored in lightyellow",
+    "@endgantt",
+  ].join("\n");
+  const result = formatSource("gantt", source);
+  expect(result.reason).toBeUndefined();
+  expect(result.source).toBe(source.replace("  [A]      lasts", "[A] lasts").replace(`\t${divider}`, divider));
+  expect(result.changes.map((change) => change.line)).toEqual([3, 21]);
+  const labels = (value: string) => parseGantt(value).document.dividers.map((item) => item.label);
+  expect(labels(source)).toHaveLength(1);
+  expect(labels(result.source)).toEqual(labels(source));
+  expect(formatSource("gantt", result.source)).toMatchObject({ source: result.source, changes: [] });
+});
+
+it("withholds an unterminated Gantt divider without partial formatting", () => {
+  const source = "@startgantt\n  [A]      lasts 4 days\n-- Data Fabric / Orion / Rialto\n@endgantt";
+  expect(formatSource("gantt", source)).toMatchObject({
+    source,
+    changes: [],
+    reason: expect.stringContaining("does not yet support this syntax on line 3"),
+  });
+});
+
+it.each(["\n", "\r\n"])(
+  "formats a combined Gantt start/end statement while preserving dates and %j line endings",
+  (newline) => {
+    const task = "[Orion-DF-Rialto Message Count Confirmation]";
+    const lines = [
+      "@startgantt",
+      "Project starts 2026-08-01",
+      ...Array<string>(18).fill(""),
+      "-- Data Fabric / Orion / Rialto --",
+      "",
+      `\t${task}    starts 2026-08-13 and ends 2026-08-19`,
+      "@endgantt",
+    ];
+    lines[7] = "2026-11-16 to 2026-11-22 are colored in lightyellow";
+    const source = lines.join(newline);
+    const result = formatSource("gantt", source);
+    expect(result.reason).toBeUndefined();
+    expect(result.source).toBe(source.replace(`\t${task}    starts`, `${task} starts`));
+    expect(result.changes.map((change) => change.line)).toEqual([23]);
+    const dates = (value: string) =>
+      parseGantt(value).document.tasks.map((item) => [item.start?.value, item.end?.value]);
+    expect(dates(source)).toEqual([["2026-08-13", "2026-08-19"]]);
+    expect(dates(result.source)).toEqual(dates(source));
+    expect(formatSource("gantt", result.source)).toEqual({
+      source: result.source,
+      changes: [],
+      reason: "No supported whitespace changes are needed.",
+    });
+  },
+);
+
+it("rejects an incomplete combined Gantt statement without partial formatting", () => {
+  const source = "@startgantt\n  [A]      starts 2026-08-13 and ends\n@endgantt";
+  expect(formatSource("gantt", source)).toMatchObject({
+    source,
+    changes: [],
+    reason: expect.stringContaining("does not yet support this syntax on line 2"),
+  });
+});
+
+it("supports every statement in a complete weekend-aware project schedule without changing its meaning", () => {
+  const source = readFileSync(
+    new URL("../../../tests/fixtures/gantt-formatter-complete.puml", import.meta.url),
+    "utf8",
+  );
+  const semantics = (value: string) =>
+    JSON.parse(
+      JSON.stringify({ document: parseGantt(value).document, settings: parseProjectSettings(value) }, (key, entry) =>
+        key === "range" || key.endsWith("Range") ? undefined : entry,
+      ),
+    );
+  const parsed = parseGantt(source);
+  expect(parsed.diagnostics.filter((item) => item.severity === "error")).toEqual([]);
+  expect(parsed.document.tasks).toHaveLength(53);
+  expect(parsed.document.dependencies).toHaveLength(23);
+  expect(parsed.document.dividers).toHaveLength(8);
+  expect(parsed.document.tasks.some((task) => task.resources?.length === 2)).toBe(true);
+  expect(parsed.document.tasks.some((task) => task.milestone)).toBe(true);
+  expect(formatSource("gantt", source)).toEqual({
+    source,
+    changes: [],
+    reason: "No supported whitespace changes are needed.",
+  });
+  for (const newline of ["\n", "\r\n"]) {
+    const messy = source
+      .trimEnd()
+      .split("\n")
+      .map((line) =>
+        !line.trim() || line.trim().startsWith("'") ? line : "  " + line.replace(/^(\[[^\]]+\]) /, "$1\t  "),
+      )
+      .join(newline);
+    const result = formatSource("gantt", messy);
+    expect(result.reason).toBeUndefined();
+    expect(result.changes.length).toBeGreaterThan(100);
+    expect(semantics(result.source)).toEqual(semantics(messy));
+    expect(formatSource("gantt", result.source)).toEqual({
+      source: result.source,
+      changes: [],
+      reason: "No supported whitespace changes are needed.",
+    });
+  }
+});
+
+it.each([
+  "[Build] starts 2026-08-10 and lasts 3 days",
+  "[Build] is colored in LightBlue",
+  "[Build] is 85% completed",
+  "[Release] happens 2026-09-23",
+  "[Build] on {Person One:100%} starts 2026-08-10 and lasts 3 days",
+  "[Build] on {Person One:50%} {Person Two:50%} starts at [Design and review]'s end and lasts 7 days",
+  "[Build] on {Person One:100%} starts 16 days after [Design and review]'s end and lasts 7 days",
+])("formats supported task clauses while preserving authored text: %s", (statement) => {
+  const source = `@startgantt\nProject starts 2026-08-01\n[Design and review] lasts 1 day\n  ${statement}\n@endgantt`;
+  const result = formatSource("gantt", source);
+  expect(result.reason).toBeUndefined();
+  expect(result.source).toBe(source.replace(`  ${statement}`, statement));
+  const semantics = (value: string) =>
+    JSON.parse(
+      JSON.stringify({ document: parseGantt(value).document, settings: parseProjectSettings(value) }, (key, entry) =>
+        key === "range" || key.endsWith("Range") ? undefined : entry,
+      ),
+    );
+  expect(semantics(result.source)).toEqual(semantics(source));
+});
+
+it.each([
+  "[A] starts 2026-08-10 and lasts 3 days and unknown clause",
+  "[A] is 50% completed trailing syntax",
+  "[A] on {Person One:50% starts 2026-08-10 and lasts 3 days",
+  "[A] happens",
+])("withholds unrecognized task clauses atomically: %s", (statement) => {
+  const source = `@startgantt\n  [B]      lasts 1 day\n${statement}\n@endgantt`;
   expect(formatSource("gantt", source)).toMatchObject({
     source,
     changes: [],

@@ -1,0 +1,249 @@
+@startgantt
+title Weekend-Aware Project Schedule
+caption Saturdays and Sundays are non-working days. Dates follow business-day scheduling.
+Project starts 2026-08-01
+printscale daily
+sunday are closed
+saturday are closed
+2026-11-16 to 2026-11-22 are colored in lightyellow
+2026-11-23 to 2026-11-29 are colored in Red
+2026-11-30 to 2026-12-06 are colored in lightyellow
+today is colored in #AAF
+hide resources footbox
+' plantuml-ultimate: legend hidden
+
+
+
+' Calendar and task colours are authored preferences.
+' Calendar and task colours are authored preferences.
+' Calendar and task colours are authored preferences.
+
+-- Section 1 / Workstream 1 --
+
+[Work item 01 (phase / group)] starts 2026-08-13 and ends 2026-08-19
+[Work item 01 (phase / group)] is colored in Green
+[Work item 01 (phase / group)] is 100% completed
+
+[Work item 02 (phase / group)] starts 2026-08-10 and lasts 3 days
+[Work item 02 (phase / group)] is colored in Red
+
+[Work item 03 (phase / group)] starts 2026-08-13 and lasts 15 days
+[Work item 03 (phase / group)] is colored in Red
+
+[Work item 04 (phase / group)] happens 2026-09-23
+[Work item 05 (phase / group)] on {Person 01:100%} starts 2026-09-25 and lasts 17 days
+[Work item 05 (phase / group)] is 100% completed
+[Work item 05 (phase / group)] is colored in LightBlue
+
+[Work item 06 (phase / group)] on {Person 01:100%} starts 2026-09-30 and lasts 3 days
+[Work item 06 (phase / group)] is 100% completed
+[Work item 06 (phase / group)] is colored in lightyellow
+
+-- Section 2 / Workstream 2 --
+
+[Work item 07 (phase / group)] on {Person 02:100%} starts 2026-08-13 and lasts 61 days
+[Work item 07 (phase / group)] is 90% completed
+[Work item 07 (phase / group)] is colored in LightBlue
+
+[Work item 08 (phase / group)] on {Person 02:100%} starts at [Work item 07 (phase / group)]'s end and lasts 14 days
+[Work item 08 (phase / group)] is colored in Orange
+
+[Work item 09 (phase / group)] starts 2026-08-03 and lasts 5 days
+[Work item 09 (phase / group)] is 100% completed
+[Work item 09 (phase / group)] is colored in LightBlue
+
+[Work item 10 (phase / group)] starts at [Work item 09 (phase / group)]'s end and lasts 14 days
+[Work item 10 (phase / group)] is 100% completed
+[Work item 10 (phase / group)] is colored in Orange
+
+[Work item 11 (phase / group)] starts 2026-08-10 and lasts 32 days
+[Work item 11 (phase / group)] is colored in Aqua
+[Work item 11 (phase / group)] is 100% completed
+
+-- Section 3 / Workstream 3 --
+
+[Work item 12 (phase / group)] on {Person 01:100%} starts 2026-09-01 and lasts 35 days
+[Work item 12 (phase / group)] is colored in Aqua
+[Work item 12 (phase / group)] is 100% completed
+
+[Work item 13 (phase / group)] happens 2026-09-17
+
+[Work item 14 (phase / group)] on {Person 02:100%} starts at [Work item 13 (phase / group)]'s end
+[Work item 14 (phase / group)] lasts 35 days
+[Work item 14 (phase / group)] is 85% completed
+[Work item 14 (phase / group)] is colored in LightBlue
+
+[Work item 15 (phase / group)] on {Person 02:100%} starts at [Work item 14 (phase / group)]'s end
+[Work item 15 (phase / group)] lasts 20 days
+[Work item 15 (phase / group)] is colored in Orange
+
+[Work item 16 (phase / group)] on {Person 02:100%} starts at [Work item 13 (phase / group)]'s end
+[Work item 16 (phase / group)] lasts 35 days
+[Work item 16 (phase / group)] is 85% completed
+[Work item 16 (phase / group)] is colored in LightBlue
+
+[Work item 17 (phase / group)] on {Person 02:100%} starts at [Work item 16 (phase / group)]'s end
+[Work item 17 (phase / group)] lasts 14 days
+[Work item 17 (phase / group)] is colored in Orange
+
+-- Section 4 / Workstream 4 --
+
+''[Work item 18 (phase / group)] happens 2026-05-21
+
+''[Work item 19 (phase / group)] happens 2026-05-29
+
+''[Work item 20 (phase / group)] happens 2026-06-26
+
+[Work item 21 (phase / group)] happens 2026-08-15
+
+[Work item 22 (phase / group)] happens 2026-09-09
+
+[Work item 23 (phase / group)] starts 2026-09-02 and lasts 5 days
+[Work item 23 (phase / group)] is 100% completed
+[Work item 23 (phase / group)] is colored in LightGreen
+
+[Work item 24 (phase / group)] starts 2026-09-09 and lasts 1 day
+[Work item 24 (phase / group)] is 100% completed
+[Work item 24 (phase / group)] is colored in LightBlue
+
+[Work item 25 (phase / group)] on {Person 01:100%} starts at [Work item 24 (phase / group)]'s end and lasts 12 days
+[Work item 25 (phase / group)] is 100% completed
+[Work item 25 (phase / group)] is colored in Orange
+
+[Work item 26 (phase / group)] on {Person 01:100%} starts at [Work item 25 (phase / group)]'s end
+[Work item 26 (phase / group)] lasts 15 days
+[Work item 26 (phase / group)] is 100% completed
+[Work item 26 (phase / group)] is colored in Orange
+
+[Work item 27 (phase / group)] starts at [Work item 26 (phase / group)]'s end
+[Work item 27 (phase / group)] lasts 1 day
+[Work item 27 (phase / group)] is colored in Bisque
+
+[Work item 28 (phase / group)] starts 2026-08-31 and lasts 15 days
+[Work item 28 (phase / group)] is colored in LightBlue
+[Work item 28 (phase / group)] is 100% completed
+
+[Work item 29 (phase / group)] on {Person 01:100%} starts at [Work item 27 (phase / group)]'s end and lasts 7 days
+[Work item 29 (phase / group)] is 100% completed
+[Work item 29 (phase / group)] is colored in Orange
+
+[Work item 30 (phase / group)] on {Person 02:100%} starts at [Work item 27 (phase / group)]'s end
+[Work item 30 (phase / group)] lasts 10 days
+[Work item 30 (phase / group)] is colored in LimeGreen
+[Work item 30 (phase / group)] is 70% completed
+
+[Work item 31 (phase / group)] on {Person 02:100%} starts at [Work item 27 (phase / group)]'s end
+[Work item 31 (phase / group)] lasts 10 days
+[Work item 31 (phase / group)] is 70% completed
+[Work item 31 (phase / group)] is colored in LimeGreen
+
+
+-- Section 5 / Workstream 5 --
+[Work item 32 (phase / group)] starts 2026-08-03 and lasts 19 days
+[Work item 32 (phase / group)] is colored in Green
+[Work item 32 (phase / group)] is 100% completed
+
+[Work item 33 (phase / group)] on {Person 01:100%} starts at [Work item 32 (phase / group)]'s end and lasts 7 days
+[Work item 33 (phase / group)] is 100% completed
+[Work item 33 (phase / group)] is colored in Orange
+
+[Work item 34 (phase / group)] on {Person 01:100%} starts at [Work item 32 (phase / group)]'s end and lasts 7 days
+[Work item 34 (phase / group)] is 100% completed
+[Work item 34 (phase / group)] is colored in Orange
+
+[Work item 35 (phase / group)] on {Person 01:100%} starts at [Work item 34 (phase / group)]'s end and lasts 5 days
+[Work item 35 (phase / group)] is 100% completed
+[Work item 35 (phase / group)] is colored in Bisque
+
+-- Section 6 / Workstream 6 --
+
+
+[Work item 36 (phase / group)] on {Person 02:100%} starts 2026-10-15
+[Work item 36 (phase / group)] lasts 7 days
+[Work item 36 (phase / group)] is 100% completed
+[Work item 36 (phase / group)] is colored in LightBlue
+
+[Work item 37 (phase / group)] on {Person 02:100%} starts 2026-10-15
+[Work item 37 (phase / group)] lasts 7 days
+[Work item 37 (phase / group)] is 100% completed
+[Work item 37 (phase / group)] is colored in LightBlue
+
+[Work item 38 (phase / group)] on {Person 02:100%} starts at [Work item 37 (phase / group)]'s end and lasts 10 days
+[Work item 38 (phase / group)] is 30% completed
+[Work item 38 (phase / group)] is colored in Orange
+
+[Work item 39 (phase / group)] on {Person 02:100%} starts at [Work item 37 (phase / group)]'s end and lasts 10 days
+[Work item 39 (phase / group)] is 30% completed
+[Work item 39 (phase / group)] is colored in Orange
+
+[Work item 40 (phase / group)] on {Person 01:100%} starts 16 days after [Work item 35 (phase / group)]'s end and lasts 7 days
+[Work item 40 (phase / group)] is 100% completed
+[Work item 40 (phase / group)] is colored in Orange
+
+-- Section 7 / Workstream 7 --
+
+[Work item 41 (phase / group)] starts 2026-08-25 and lasts 7 days
+[Work item 41 (phase / group)] is 100% completed
+[Work item 41 (phase / group)] is colored in Orange
+
+[Work item 42 (phase / group)] on {Person 03:50%} {Person 04:50%} starts 2026-10-22 and lasts 15 days
+[Work item 42 (phase / group)] is 40% completed
+[Work item 42 (phase / group)] is colored in Orange
+
+[Work item 43 (phase / group)] starts 2026-09-01 and lasts 19 days
+[Work item 43 (phase / group)] is 100% completed
+[Work item 43 (phase / group)] is colored in Orange
+
+[Work item 44 (phase / group)] on {Person 03:50%} {Person 04:50%} starts at [Work item 43 (phase / group)]'s end and lasts 14 days
+[Work item 44 (phase / group)] is colored in Orange
+
+[Work item 45 (phase / group)] on {Person 03:50%} {Person 04:50%} starts at [Work item 38 (phase / group)]'s end and lasts 10 days
+[Work item 45 (phase / group)] is colored in Orange
+
+[Work item 46 (phase / group)] on {Person 03:50%} {Person 04:50%} starts 2026-11-09 and lasts 7 days
+[Work item 46 (phase / group)] is colored in Orange
+
+-- Section 8 / Workstream 8 --
+
+[Work item 47 (phase / group)] starts 2026-09-04 and lasts 6 days
+[Work item 47 (phase / group)] is colored in LightSalmon
+[Work item 47 (phase / group)] is 100% completed
+
+[Work item 48 (phase / group)] starts 2026-09-12 and lasts 10 days
+[Work item 48 (phase / group)] is colored in LightSalmon
+
+[Work item 49 (phase / group)] starts 2026-11-02 and lasts 15 days
+[Work item 49 (phase / group)] is colored in LightSalmon
+
+[Work item 50 (phase / group)] starts 2026-09-12 and lasts 10 days
+[Work item 50 (phase / group)] is 100% completed
+[Work item 50 (phase / group)] is colored in LightSalmon
+
+
+[Work item 44 (phase / group)] starts at [Work item 42 (phase / group)]'s end
+[Work item 44 (phase / group)] starts at [Work item 14 (phase / group)]'s end
+[Work item 08 (phase / group)] starts at [Work item 07 (phase / group)]'s end
+[Work item 51 (phase / group)] starts 2026-10-12
+[Work item 51 (phase / group)] lasts 3 days
+[Work item 51 (phase / group)] is 100% completed
+
+[Work item 52 (phase / group)] starts 2026-10-12
+[Work item 52 (phase / group)] lasts 3 days
+[Work item 52 (phase / group)] is 100% completed
+
+[Work item 53 (phase / group)] on {Person 01:100%} starts 2026-10-12
+[Work item 53 (phase / group)] lasts 10 days
+[Work item 53 (phase / group)] is 100% completed
+
+[Work item 54 (phase / group)] starts 2026-10-16
+[Work item 54 (phase / group)] lasts 4 days
+[Work item 54 (phase / group)] is 100% completed
+
+
+[Work item 55 (phase / group)] on {Person 01:100%} starts 2026-10-26
+[Work item 55 (phase / group)] lasts 10 days
+
+[Work item 56 (phase / group)] on {Person 01:100%} starts 2026-10-26
+[Work item 56 (phase / group)] lasts 10 days
+
+@endgantt

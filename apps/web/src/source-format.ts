@@ -2,6 +2,17 @@ import type { DiagramKind } from "./model";
 import { diagnosticsForDiagram } from "./diagram-diagnostics";
 import { validateGeneratedSource } from "./generated-source-validation";
 
+// Compose task clauses so combined scheduling, assignments, colours and progress
+// use the same conservative grammar instead of separate whole-line exceptions.
+const ganttDate = String.raw`\d{4}[-/]\d{2}[-/]\d{2}`;
+const ganttReference = String.raw`\[[^\]]+\][’']s\s+(?:start|end)`;
+const ganttDateExpression = String.raw`(?:${ganttDate}|at\s+${ganttReference}|(?:\d+\s+(?:days?|weeks?)\s+)?(?:after|before)\s+${ganttReference})`;
+const ganttTaskClause = String.raw`(?:(?:starts|ends)\s+${ganttDateExpression}|lasts\s+\d+\s+(?:days?|weeks?)|is\s+(?:colou?red\s+in\s+\S+|\d+%\s+completed))`;
+const ganttTaskStatement = new RegExp(
+  String.raw`^\[[^\]]+\](?:\s+on(?:\s+\{[^{}]+\})+)?\s+(?:happens\s+${ganttDateExpression}|${ganttTaskClause}(?:\s+and\s+${ganttTaskClause})*)$`,
+  "i",
+);
+
 export interface FormatChange {
   line: number;
   before: string;
@@ -105,9 +116,11 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
         continue; // WBS prefixes and label whitespace remain exactly authored.
       } else if (
         kind === "gantt" &&
-        (/^(?:\[[^\]]+\]\s+(?:(?:starts|ends)\s+(?:\d{4}-\d{2}-\d{2}|at\s+\[[^\]]+\][’']s\s+(?:start|end)|(?:\d+\s+(?:days?|weeks?)\s+)?(?:after|before)\s+\[[^\]]+\][’']s\s+(?:start|end))|lasts\s+\d+\s+(?:days?|weeks?))|Project starts\s+\d{4}-\d{2}-\d{2}|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+are\s+(?:closed|open)|today is colored in\s+#[\da-f]{3,8}|printscale\s+(?:daily|weekly|monthly|quarterly|yearly))$/i.test(
-          text,
-        ) ||
+        (ganttTaskStatement.test(text) ||
+          /^(?:Project starts\s+\d{4}-\d{2}-\d{2}|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+are\s+(?:closed|open)|today is colored in\s+#[\da-f]{3,8}|printscale\s+(?:daily|weekly|monthly|quarterly|yearly))$/i.test(
+            text,
+          ) ||
+          /^--\s*(.*?)\s*--$/.test(text) ||
           /^\d{4}[-/]\d{2}[-/]\d{2}(?:\s+to\s+\d{4}[-/]\d{2}[-/]\d{2})?\s+(?:is|are)\s+colou?red\s+in\s+\S+$/i.test(
             text,
           ))
@@ -140,7 +153,8 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
       } else return fail("Formatter does not yet support this syntax");
       const depth = stack.length - (sequenceBranch ? 1 : 0);
       let after = "  ".repeat(Math.max(0, depth)) + line.replace(/^[ \t]*/, "");
-      if (kind === "gantt") after = after.replace(/^(\[[^\]]+\])[ \t]+(?=(?:starts|ends|lasts)\b)/i, "$1 ");
+      if (kind === "gantt")
+        after = after.replace(/^(\[[^\]]+\])[ \t]+(?=(?:starts|ends|lasts|on|is|happens)\b)/i, "$1 ");
       if (after !== line) changes.push({ line: index / 2 + 1, before: line, after });
       parts[index] = after;
       if (braceDeclaration)
