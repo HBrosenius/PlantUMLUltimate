@@ -303,15 +303,62 @@ it("accepts a large valid snapshot and merges an offline delta on reconnect", as
 });
 
 it("closes a socket that exceeds its message budget", async () => {
-  const socket = await connect("B".repeat(43), {
+  const roomId = "B".repeat(43);
+  const socket = await connect(roomId, {
     owner: "o".repeat(43),
     editor: "e".repeat(43),
     viewer: "v".repeat(43),
   });
   await nextBinary(socket);
   const closed = new Promise<CloseEvent>((resolve) => socket.addEventListener("close", resolve));
-  for (let i = 0; i < 601; i++) socket.send("{}");
+  await runInDurableObject(env.COLLABORATION_ROOM.getByName(roomId), async (instance, state) => {
+    const server = state.getWebSockets()[0]!;
+    // Deliver the burst inside one fixed budget window. Queued client messages
+    // can otherwise straddle a real 10-second boundary and never exceed it.
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    try {
+      for (let i = 0; i < 600; i++) instance.webSocketMessage(server, "{}");
+      expect(server.readyState).toBe(WebSocket.OPEN);
+      expect(server.deserializeAttachment().budget.messages).toBe(600);
+      instance.webSocketMessage(server, "{}");
+    } finally {
+      now.mockRestore();
+    }
+  });
   expect((await closed).code).toBe(1008);
+});
+
+it("resets a socket's message budget in the next window", async () => {
+  const roomId = "C".repeat(43);
+  const socket = await connect(roomId, {
+    owner: "o".repeat(43),
+    editor: "e".repeat(43),
+    viewer: "v".repeat(43),
+  });
+  await nextBinary(socket);
+  try {
+    await runInDurableObject(env.COLLABORATION_ROOM.getByName(roomId), async (instance, state) => {
+      const server = state.getWebSockets()[0]!;
+      const boundary = Math.floor(Date.now() / 10_000) * 10_000;
+      const now = vi.spyOn(Date, "now").mockReturnValue(boundary + 9_999);
+      try {
+        for (let i = 0; i < 600; i++) instance.webSocketMessage(server, "{}");
+        expect(server.readyState).toBe(WebSocket.OPEN);
+        now.mockReturnValue(boundary + 10_000);
+        instance.webSocketMessage(server, "{}");
+        expect(server.readyState).toBe(WebSocket.OPEN);
+        expect(server.deserializeAttachment().budget).toEqual({
+          window: (boundary + 10_000) / 10_000,
+          messages: 1,
+          bytes: 4,
+        });
+      } finally {
+        now.mockRestore();
+      }
+    });
+  } finally {
+    socket.close(1000);
+  }
 });
 
 it("throttles creation attempts before allocating more rooms", async () => {
