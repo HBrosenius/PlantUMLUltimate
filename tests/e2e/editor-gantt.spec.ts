@@ -230,7 +230,7 @@ test("opens semantic actions from a diagram task", async ({ page }) => {
   await expect(task).toBeVisible();
   await task.click({ button: "right" });
   const menu = page.getByRole("menu", { name: "Symbol actions" });
-  await expect(menu.getByRole("button")).toHaveCount(6);
+  await expect(menu.getByRole("menuitem")).toHaveCount(6);
   await menu.getByRole("menuitem", { name: "Find references" }).click();
   const references = page.getByRole("complementary", { name: "References for Build" });
   await expect(references).toContainText("2 occurrences");

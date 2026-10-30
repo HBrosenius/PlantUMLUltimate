@@ -9089,3 +9089,17 @@ polygon.diagram-bulk-selected {
 .ribbon-panel .workspace-hint-content {
   max-width: 480px;
 }
+
+/* Keep editor and canvas overlays below ribbon menus without lifting dialogs. */
+.workspace {
+  isolation: isolate;
+}
+
+/* Forecast hides plan navigation without moving its toggle or the options panel. */
+.gantt-plan-navigation {
+  display: contents;
+}
+.gantt-preview-tools-main [data-forecast-hidden="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}

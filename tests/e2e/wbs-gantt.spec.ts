@@ -26,6 +26,11 @@ async function hoverWbsLabel(page: import("@playwright/test").Page, name: string
 }
 
 async function expectToolbarButtonInViewport(page: import("@playwright/test").Page, name: string) {
+  if (name === "Add") {
+    await openRibbonGroup(page, "Insert", "Insert elements");
+    await expect(page.getByRole("group", { name: "New diagram elements", exact: true })).toBeInViewport();
+    return;
+  }
   const button = page.getByRole("button", { name, exact: true });
   await expect(button).toBeInViewport();
 }
@@ -322,7 +327,7 @@ test("adds an unlinked Gantt task beneath its predecessor in the WBS once", asyn
     .click();
   await page.getByRole("button", { name: "Close document navigator" }).click();
   await openRibbonGroup(page, "Plan", "Linked diagrams");
-  const importButton = (await linkedDiagramMenu(page)).getByRole("menuitem", {
+  const importButton = (await linkedDiagramMenu(page)).getByRole("button", {
     name: "Add missing Gantt tasks to WBS (0)",
   });
   await expect(importButton).toBeDisabled();
@@ -764,11 +769,11 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
     await navigator.getByRole("button", { name: "Linked plan schedule: Build" }).click();
     await expect(reopened.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
     await openRibbonGroup(reopened, "Plan", "Linked diagrams");
-    await reopened.getByRole("menuitem", { name: "Diagram connections", exact: true }).click();
+    await reopened.getByRole("button", { name: "Diagram connections", exact: true }).click();
     await navigator.getByRole("button", { name: "Work breakdown: Build" }).click();
     await expect(reopened.getByRole("complementary", { name: "WBS node inspector" })).toBeVisible();
     await openRibbonGroup(reopened, "Plan", "Linked diagrams");
-    await reopened.getByRole("menuitem", { name: "Diagram connections", exact: true }).click();
+    await reopened.getByRole("button", { name: "Diagram connections", exact: true }).click();
     await navigator.getByRole("button", { name: "Linked plan schedule: Build" }).click();
     await expect(reopened.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
     await reopened.getByRole("button", { name: "Split", exact: true }).click();

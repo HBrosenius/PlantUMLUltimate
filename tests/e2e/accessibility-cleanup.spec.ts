@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { fillSource, prepareEditor, source } from "./editor-helpers";
+import { fillSource, prepareEditor, source, openRibbonGroup } from "./editor-helpers";
 
 for (const kind of ["Class", "Component", "Activity"] as const) {
   test(`${kind} settings has a contextual close name and restores keyboard focus`, async ({ page }) => {
@@ -9,6 +9,7 @@ for (const kind of ["Class", "Component", "Activity"] as const) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram` })
       .click();
+    await openRibbonGroup(page, "View", "Diagram settings");
     const trigger = page.getByRole("button", { name: "Diagram settings", exact: true });
     await trigger.click();
     const panel = page.getByRole("complementary", { name: `${kind} settings`, exact: true });

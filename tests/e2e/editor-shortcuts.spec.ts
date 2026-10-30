@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openAddDialog, prepareEditor, setSource, source } from "./editor-helpers";
+import { openAddDialog, openRibbonGroup, prepareEditor, setSource, source } from "./editor-helpers";
 
 test("undoes continuous typing as one step", async ({ page }) => {
   await prepareEditor(page);
@@ -51,6 +51,7 @@ test("jumps back several steps from the undo history", async ({ page }) => {
     await expect(editor).toContainText(`[${name}]`);
   }
 
+  await openRibbonGroup(page, "Edit", "History");
   await page.getByRole("button", { name: "Recent changes" }).click();
   const menu = page.getByRole("menu", { name: "Recent changes" });
   const steps = menu.getByRole("menuitem");
@@ -62,6 +63,7 @@ test("jumps back several steps from the undo history", async ({ page }) => {
   await expect(editor).not.toContainText("[Design]");
   await expect(editor).not.toContainText("[Review]");
 
+  await openRibbonGroup(page, "Edit", "History");
   await page.getByRole("button", { name: "Recent changes" }).click();
   await expect(menu.getByText("Redo")).toBeVisible();
   await menu.getByRole("menuitem").first().click();

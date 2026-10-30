@@ -1189,34 +1189,37 @@ export function DiagramPreview({
         <div className="gantt-preview-tools-main">
           <div className="gantt-control-group" role="group" aria-label="Task navigation">
             <span className="gantt-control-label">Navigate</span>
-            {!progressForecast?.enabled && (
-              <>
-                <button
-                  data-inspector-trigger
-                  onClick={() => adjacentTask(-1)}
-                  aria-label="Previous task"
-                  title="Select and reveal the previous task; source stays unchanged"
-                >
-                  ↑
-                </button>
-                <button
-                  data-inspector-trigger
-                  onClick={() => adjacentTask(1)}
-                  aria-label="Next task"
-                  title="Select and reveal the next task; source stays unchanged"
-                >
-                  ↓
-                </button>
-                <button
-                  data-inspector-trigger
-                  onClick={() => revealTask(selectedTaskId)}
-                  disabled={!selectedTaskId}
-                  aria-label="Jump to selected task"
-                >
-                  Selected
-                </button>
-              </>
-            )}
+            <span
+              className="gantt-plan-navigation"
+              data-forecast-hidden={progressForecast?.enabled || undefined}
+              aria-hidden={progressForecast?.enabled || undefined}
+              inert={Boolean(progressForecast?.enabled)}
+            >
+              <button
+                data-inspector-trigger
+                onClick={() => adjacentTask(-1)}
+                aria-label="Previous task"
+                title="Select and reveal the previous task; source stays unchanged"
+              >
+                ↑
+              </button>
+              <button
+                data-inspector-trigger
+                onClick={() => adjacentTask(1)}
+                aria-label="Next task"
+                title="Select and reveal the next task; source stays unchanged"
+              >
+                ↓
+              </button>
+              <button
+                data-inspector-trigger
+                onClick={() => revealTask(selectedTaskId)}
+                disabled={!selectedTaskId}
+                aria-label="Jump to selected task"
+              >
+                Selected
+              </button>
+            </span>
             <button
               onClick={() =>
                 progressForecast?.enabled
@@ -1234,44 +1237,47 @@ export function DiagramPreview({
               Today
             </button>
           </div>
-          {!progressForecast?.enabled && (
-            <>
-              <div className="gantt-control-group" role="group" aria-label="Preview zoom">
-                <span className="gantt-control-label">Preview zoom</span>
-                <button
-                  type="button"
-                  data-view-control
-                  onClick={navigation.fit}
-                  aria-label="Fit diagram"
-                  title="Fit the diagram in the visible canvas"
-                >
-                  Fit
-                </button>
-                <button
-                  onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))}
-                  data-view-control
-                  aria-label="Zoom out"
-                >
-                  −
-                </button>
-                <button
-                  onClick={() => onZoomChange(1)}
-                  data-view-control
-                  aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
-                  title="Show the diagram at its natural size"
-                >
-                  {Math.round(zoom * 100)}%
-                </button>
-                <button
-                  onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))}
-                  data-view-control
-                  aria-label="Zoom in"
-                >
-                  +
-                </button>
-              </div>
-            </>
-          )}
+          <div
+            className="gantt-control-group"
+            role="group"
+            aria-label="Preview zoom"
+            data-forecast-hidden={progressForecast?.enabled || undefined}
+            aria-hidden={progressForecast?.enabled || undefined}
+            inert={Boolean(progressForecast?.enabled)}
+          >
+            <span className="gantt-control-label">Preview zoom</span>
+            <button
+              type="button"
+              data-view-control
+              onClick={navigation.fit}
+              aria-label="Fit diagram"
+              title="Fit the diagram in the visible canvas"
+            >
+              Fit
+            </button>
+            <button
+              onClick={() => onZoomChange(Math.max(MIN_DIAGRAM_ZOOM, zoom - 0.1))}
+              data-view-control
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            <button
+              onClick={() => onZoomChange(1)}
+              data-view-control
+              aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
+              title="Show the diagram at its natural size"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              onClick={() => onZoomChange(Math.min(MAX_DIAGRAM_ZOOM, zoom + 0.1))}
+              data-view-control
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+          </div>
           {selectedDependencyIndex !== undefined && (
             <button onClick={onDependencyDelete} aria-label="Delete dependency">
               Delete link

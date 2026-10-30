@@ -85,6 +85,7 @@ test("persistent Help and category tabs are keyboard accessible", async ({ page 
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Plan", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Help", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "PlantUML Ultimate Help" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Help", exact: true })).toBeFocused();
 });

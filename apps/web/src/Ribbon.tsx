@@ -24,7 +24,6 @@ export function Ribbon({
   return (
     <div
       className="command-ribbon"
-      data-inspector-trigger
       onClickCapture={(event) => {
         // WebKit does not focus mouse-activated buttons. Establish the invoking
         // control before a command opens a dialog or inspector.
@@ -35,7 +34,13 @@ export function Ribbon({
       <header className="toolbar ribbon-header">
         <strong className="ribbon-brand">PlantUML Ultimate</strong>
         <div className="file-tools">{file}</div>
-        <div ref={tabs} className="ribbon-categories" role="tablist" aria-label="Command categories">
+        <div
+          ref={tabs}
+          className="ribbon-categories"
+          data-inspector-trigger
+          role="tablist"
+          aria-label="Command categories"
+        >
           {categories.map((name, index) => (
             <button
               type="button"
@@ -69,6 +74,7 @@ export function Ribbon({
         <button
           type="button"
           className="ribbon-collapse"
+          data-inspector-trigger
           aria-label={collapsed ? "Expand ribbon" : "Collapse ribbon"}
           aria-expanded={!collapsed}
           aria-controls={`${id}-panel`}
@@ -144,7 +150,7 @@ export function RibbonGroup({ label, children }: { label: string; children: Reac
         }
       }}
     >
-      <summary>{label}</summary>
+      <summary data-inspector-trigger>{label}</summary>
       <div className="ribbon-group-content" role="group" aria-label={label}>
         {children}
       </div>
