@@ -105,9 +105,12 @@ export function formatSource(kind: DiagramKind, source: string): FormatResult {
         continue; // WBS prefixes and label whitespace remain exactly authored.
       } else if (
         kind === "gantt" &&
-        /^(?:\[[^\]]+\]\s+(?:(?:starts|ends)\s+(?:\d{4}-\d{2}-\d{2}|at\s+\[[^\]]+\][’']s\s+(?:start|end)|(?:\d+\s+(?:days?|weeks?)\s+)?(?:after|before)\s+\[[^\]]+\][’']s\s+(?:start|end))|lasts\s+\d+\s+(?:days?|weeks?))|Project starts\s+\d{4}-\d{2}-\d{2}|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+are\s+(?:closed|open)|today is colored in\s+#[\da-f]{3,8}|printscale\s+(?:daily|weekly|monthly|quarterly|yearly))$/i.test(
+        (/^(?:\[[^\]]+\]\s+(?:(?:starts|ends)\s+(?:\d{4}-\d{2}-\d{2}|at\s+\[[^\]]+\][’']s\s+(?:start|end)|(?:\d+\s+(?:days?|weeks?)\s+)?(?:after|before)\s+\[[^\]]+\][’']s\s+(?:start|end))|lasts\s+\d+\s+(?:days?|weeks?))|Project starts\s+\d{4}-\d{2}-\d{2}|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+are\s+(?:closed|open)|today is colored in\s+#[\da-f]{3,8}|printscale\s+(?:daily|weekly|monthly|quarterly|yearly))$/i.test(
           text,
-        )
+        ) ||
+          /^\d{4}[-/]\d{2}[-/]\d{2}(?:\s+to\s+\d{4}[-/]\d{2}[-/]\d{2})?\s+(?:is|are)\s+colou?red\s+in\s+\S+$/i.test(
+            text,
+          ))
       ) {
         // Known single-line Gantt statements; only their leading whitespace changes.
       } else if (

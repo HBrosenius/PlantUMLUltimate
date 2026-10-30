@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatSource } from "./source-format";
+import { parseProjectSettings } from "./project-settings";
 import {
   DEFAULT_ACTIVITY_SOURCE,
   DEFAULT_CLASS_SOURCE,
@@ -202,4 +203,35 @@ it("normalizes task separator tabs without altering task-name or note whitespace
   expect(result.source).toBe(source.replace("[Architecture  review]\t  lasts", "[Architecture  review] lasts"));
   const semantics = (value: string) => parseGantt(value).document.tasks.map((t) => [t.label, t.duration?.value]);
   expect(semantics(result.source)).toEqual(semantics(source));
+});
+
+it.each([
+  "2026-11-16 to 2026-11-22 are colored in lightyellow",
+  "2026-11-16 to 2026-11-22 are colored in #FFFFE0",
+  "2026-11-16 is colored in LightYellow",
+  "2026-11-16 is coloured in #ffe",
+  "2026/11/16 to 2026/11/22 are coloured in lightyellow",
+  "2026-11-16 TO 2026-11-22 ARE COLORED IN LightYellow",
+])("formats Gantt whitespace around calendar colour rules without changing %s", (rule) => {
+  const source = `@startgantt\nProject starts 2026-11-01\n\n[A]      lasts 4 days\n\n' Calendar highlight\n\n  ${rule}\n@endgantt`;
+  const result = formatSource("gantt", source);
+  expect(result.reason).toBeUndefined();
+  expect(result.source).toBe(source.replace("[A]      lasts", "[A] lasts").replace(`  ${rule}`, rule));
+  expect(result.changes.map((change) => change.line)).toEqual([4, 8]);
+  const before = parseProjectSettings(source).dateRules;
+  expect(before).toHaveLength(1);
+  expect(parseProjectSettings(result.source).dateRules).toEqual(before);
+  expect(formatSource("gantt", result.source)).toMatchObject({ source: result.source, changes: [] });
+});
+
+it.each([
+  "2026-11-16 to 2026-11-22 are colored in",
+  "2026-11-16 to 2026-11-22 are colored in lightyellow extra syntax",
+])("withholds malformed calendar colour syntax atomically: %s", (rule) => {
+  const source = `@startgantt\n  [A]      lasts 4 days\n${rule}\n@endgantt`;
+  expect(formatSource("gantt", source)).toMatchObject({
+    source,
+    changes: [],
+    reason: expect.stringContaining("does not yet support this syntax on line 3"),
+  });
 });
