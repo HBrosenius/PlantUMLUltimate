@@ -640,7 +640,8 @@ test("edits pauses and links with structured inspector rows", async ({ page }) =
       "[Build] starts 2026-09-01 and lasts 5 days\n[Build] pauses on monday\n[Build] links to [[https://example.com Existing]]",
     ),
   );
-  await page.locator('[data-task-id="build"]').click();
+  // Linked task labels navigate on click; use the task's keyboard action to edit it.
+  await page.locator('[data-task-id="build"][role="button"]').press("Enter");
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector.getByLabel("Pause date or weekday")).toHaveValue("monday");
   await inspector.getByRole("button", { name: "Add pause" }).click();

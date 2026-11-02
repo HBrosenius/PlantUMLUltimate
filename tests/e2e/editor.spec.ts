@@ -238,7 +238,8 @@ Project starts 2026-09-01
   await setSource(page, jiraSource("2026-09-01"));
   const task = page.locator('[data-task-id="jira_10042"]').first();
   await expect(task).toHaveAttribute("data-jira-status", "synchronized");
-  await task.click();
+  // The linked label opens Jira on click; the task's keyboard action opens its inspector.
+  await task.press("Enter");
   const inspector = page.getByRole("complementary", { name: "Task inspector" });
   await expect(inspector).toContainText("Synchronized with Jira");
   await inspector.getByRole("button", { name: "Close task inspector" }).click();
@@ -248,7 +249,7 @@ Project starts 2026-09-01
     "data-jira-status",
     "local-changes",
   );
-  await page.locator('[data-task-id="jira_10042"]').first().dispatchEvent("click");
+  await page.locator('[data-task-id="jira_10042"]').first().press("Enter");
   await expect(page.getByRole("complementary", { name: "Task inspector" })).toContainText("Local changes: startDate");
 });
 
