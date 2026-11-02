@@ -1,0 +1,73 @@
+WEBVTT
+
+00:00:00.250 --> 00:00:05.100
+It's Friday afternoon, and you need to know where the project really stands.
+
+00:00:05.220 --> 00:00:11.145
+So you open the plan, work out who owns what, and write the same email to everyone on the team.
+
+00:00:11.265 --> 00:00:14.065
+Task check-in does that part for you.
+
+00:00:15.565 --> 00:00:19.690
+Open Reports from the Plan tab, and choose Task check-in.
+
+00:00:19.810 --> 00:00:25.685
+It works from the Gantt chart you already have: your tasks, your dates, and the people assigned to them.
+
+00:00:27.185 --> 00:00:29.760
+First, pick what to ask about.
+
+00:00:29.880 --> 00:00:35.580
+Ongoing is the default: work that has started, or is already past its planned finish.
+
+00:00:35.700 --> 00:00:39.800
+Finished tasks, and work that hasn't begun, stay out of the way.
+
+00:00:39.920 --> 00:00:45.545
+Set the as-of date, and an optional reply-by date, so people know when you need an answer.
+
+00:00:47.045 --> 00:00:52.795
+Everyone assigned to those tasks appears here, with the number of tasks they need to confirm.
+
+00:00:52.915 --> 00:00:56.465
+Alice has one, Bob has two, and Carol has one.
+
+00:00:56.585 --> 00:01:02.985
+Content migration is shared between Alice and Bob, so it appears in both messages, and says so.
+
+00:01:04.485 --> 00:01:06.910
+Then preview each message.
+
+00:01:07.030 --> 00:01:15.480
+This is Alice's: only her own tasks, with the recorded progress, the planned dates, and a clear flag when work is past its planned finish.
+
+00:01:15.600 --> 00:01:22.900
+And every task ends with the same short questions: is it on track, what's the updated progress, and what's blocking you?
+
+00:01:24.400 --> 00:01:26.175
+Make it yours.
+
+00:01:26.295 --> 00:01:30.995
+Edit the introduction and the sign-off, and they're remembered for next time.
+
+00:01:31.115 --> 00:01:34.765
+Add a Gantt chart showing just that person's tasks.
+
+00:01:34.885 --> 00:01:39.960
+Or switch to a combined summary, if you'd rather read everything in one place.
+
+00:01:41.460 --> 00:01:46.485
+When it looks right, click Copy for email, and paste it straight into your mail app.
+
+00:01:46.605 --> 00:01:50.080
+Nothing is sent from here, so you stay in control.
+
+00:01:50.200 --> 00:01:53.350
+Then move on to Bob and Carol the same way.
+
+00:01:54.850 --> 00:01:57.825
+Know who's on track, and who needs a nudge.
+
+00:01:57.945 --> 00:02:01.770
+Task check-in, in PlantUML Ultimate Reports.

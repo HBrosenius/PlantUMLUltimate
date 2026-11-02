@@ -1,0 +1,74 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:03.725
+What happens if a task estimate changes?
+
+00:00:03.845 --> 00:00:07.045
+Open Plan and choose What-if scenario.
+
+00:00:07.165 --> 00:00:11.190
+The app creates a draft based on a snapshot of the current
+plan.
+
+00:00:11.310 --> 00:00:16.535
+Editing that draft leaves the document unchanged until you
+review and apply it.
+
+00:00:16.655 --> 00:00:20.405
+Use this space to test a specific planning assumption.
+
+00:00:23.933 --> 00:00:27.108
+Here we explore a smaller Backend estimate.
+
+00:00:27.228 --> 00:00:31.303
+Select Backend and set Scenario duration to eight days.
+
+00:00:31.423 --> 00:00:35.923
+Choose Update scenario to recalculate the draft and its
+impact.
+
+00:00:36.043 --> 00:00:39.693
+Compare the downstream schedule and release milestone.
+
+00:00:39.813 --> 00:00:45.863
+An earlier date depends on the assumption being
+achievable, so explain what changed in the work.
+
+00:00:49.367 --> 00:00:52.267
+Give the alternative a useful name.
+
+00:00:52.387 --> 00:00:55.862
+First update the task estimate in the scenario.
+
+00:00:55.982 --> 00:01:00.807
+Add a name such as Reduced backend scope and write down
+the assumption.
+
+00:01:00.927 --> 00:01:03.452
+Save it as a new scenario.
+
+00:01:03.572 --> 00:01:07.847
+A saved alternative retains the basis for the comparison.
+
+00:01:07.967 --> 00:01:12.117
+It is a proposal to review, not an automatic improvement.
+
+00:01:15.633 --> 00:01:19.333
+When the proposal is ready, choose Review and apply.
+
+00:01:19.453 --> 00:01:23.528
+Inspect the source patch and the reported scheduling
+impact.
+
+00:01:23.648 --> 00:01:27.023
+Check that the changed tasks match your intention.
+
+00:01:27.143 --> 00:01:30.643
+Resolve any warnings before committing the draft.
+
+00:01:30.763 --> 00:01:34.713
+Apply scenario writes the reviewed changes into the plan.
+
+00:01:34.833 --> 00:01:40.508
+The source now records the eight day estimate, so the
+accepted decision stays visible.

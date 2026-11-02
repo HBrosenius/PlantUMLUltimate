@@ -75,3 +75,22 @@ it("keeps other diagram videos available through All diagrams", () => {
   fireEvent.change(screen.getByLabelText("Show help for"), { target: { value: "all" } });
   expect(screen.getByRole("link", { name: "05 · People and workload" })).toBeTruthy();
 });
+
+it("links the refreshed demos alongside the full course", () => {
+  render(<HelpDialog kind="gantt" onClose={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Show help for"), { target: { value: "all" } });
+  const demos = [
+    ["Gantt planning, people and history", "eL66XUKBV7Y"],
+    ["Diagram outline", "7V6AVE_eLaQ"],
+    ["What-if scenarios", "G85LFQaHwbc"],
+    ["Progress forecast", "bEn-q79MS7U"],
+    ["Task check-in", "Qd7sdOdmSlw"],
+    ["Connected WBS and Gantt", "jbpdiGrMu0A"],
+  ];
+  for (const [title, id] of demos) {
+    expect(screen.getByRole("link", { name: `Demo · ${title}` }).getAttribute("href")).toBe(
+      `https://www.youtube.com/watch?v=${id}`,
+    );
+  }
+  expect(screen.getByRole("link", { name: "03 · Gantt tasks and progress" })).toBeTruthy();
+});

@@ -3,6 +3,12 @@ import type { DiagramKind } from "./model";
 
 type HelpGroup = "General" | "Editing" | DiagramKind;
 const groups: Record<string, HelpGroup> = {
+  "demo-overview": "General",
+  "demo-outline": "Editing",
+  "demo-scenario-lab": "gantt",
+  "demo-forecast": "gantt",
+  "demo-task-check-in": "gantt",
+  "demo-wbs-gantt": "wbs",
   "01": "General",
   "02": "Editing",
   "03": "gantt",
@@ -25,12 +31,13 @@ const groups: Record<string, HelpGroup> = {
 };
 
 /** Only saved YouTube uploads appear in Help; the same manifest powers the course index. */
-export const trainingVideos = course.lessons.flatMap((lesson) => {
+export const trainingVideos = [...course.demos, ...course.lessons].flatMap((lesson) => {
   const group = groups[lesson.id];
   return lesson.youtubeId && group
     ? [
         {
           id: lesson.id,
+          label: lesson.id.startsWith("demo-") ? "Demo" : lesson.id,
           title: lesson.title,
           group,
           url: `https://www.youtube.com/watch?v=${lesson.youtubeId}`,
