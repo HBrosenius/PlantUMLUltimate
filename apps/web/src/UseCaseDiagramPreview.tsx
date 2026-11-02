@@ -92,7 +92,8 @@ export function UseCaseDiagramPreview({
         });
       if (!object) continue;
       // Keep the visible label associated with its editor when a URL owns the click.
-      text.setAttribute("data-usecase-object-id", object.id);
+      if (text.closest("a[href]")) text.setAttribute("data-usecase-object-id", object.id);
+      else text.removeAttribute("data-usecase-object-id");
       const renderedEntityId = text.closest<SVGGElement>("g.entity")?.id;
       if (renderedEntityId && "kind" in object && (object.kind === "actor" || object.kind === "usecase"))
         renderedEntityIds.set(renderedEntityId, object.id);
