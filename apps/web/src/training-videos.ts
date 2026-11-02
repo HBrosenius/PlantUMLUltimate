@@ -43,6 +43,7 @@ export const trainingVideos = [...course.demos, ...course.lessons].flatMap((less
           url: `https://www.youtube.com/watch?v=${lesson.youtubeId}`,
           searchText: [
             "video tutorial training lesson",
+            lesson.id,
             lesson.title,
             lesson.objective,
             ...lesson.chapters.map((chapter) => chapter.title),
