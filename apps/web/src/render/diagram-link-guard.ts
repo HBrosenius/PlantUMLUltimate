@@ -22,13 +22,49 @@ export function installDiagramLinkGuard(
   confirmOpen: (url: string) => boolean = (url) => window.confirm(`Open this link from the diagram?\n\n${url}`),
   open: (url: string) => void = (url) => void window.open(url, "_blank", "noopener,noreferrer"),
 ): () => void {
-  const onClick = (event: Event) => {
+  const svgAnchor = (event: Event) => {
     const anchor = event.target instanceof Element ? event.target.closest("a") : null;
-    if (!anchor || anchor.namespaceURI !== "http://www.w3.org/2000/svg") return;
+    return anchor?.namespaceURI === "http://www.w3.org/2000/svg" ? anchor : null;
+  };
+  const onClick = (event: Event) => {
+    const anchor = svgAnchor(event);
+    if (!anchor) return;
     event.preventDefault();
     const url = diagramLinkTarget(anchor, location.href);
-    if (url && confirmOpen(url)) open(url);
+    if (url) {
+      event.stopPropagation();
+      if (confirmOpen(url)) open(url);
+    }
+  };
+  const onKeyDown = (event: Event) => {
+    if (!(event instanceof KeyboardEvent) || event.key !== "Enter" || !svgAnchor(event)) return;
+    // Handle this before preview keyboard handlers can focus or edit source.
+    if (event.repeat) {
+      event.preventDefault();
+      event.stopPropagation();
+    } else onClick(event);
+  };
+  const onMouseUp = (event: Event) => {
+    // Safari does not emit auxclick; mouseup is common to all supported browsers.
+    if (event instanceof MouseEvent && event.button === 1) onClick(event);
+  };
+  const onAuxClick = (event: Event) => {
+    if (event instanceof MouseEvent && event.button === 1 && svgAnchor(event)) event.preventDefault();
+  };
+  const onPointerDown = (event: Event) => {
+    const anchor = svgAnchor(event);
+    if (anchor && diagramLinkTarget(anchor, location.href)) event.stopPropagation();
   };
   target.addEventListener("click", onClick, true);
-  return () => target.removeEventListener("click", onClick, true);
+  target.addEventListener("mouseup", onMouseUp, true);
+  target.addEventListener("auxclick", onAuxClick, true);
+  target.addEventListener("keydown", onKeyDown, true);
+  target.addEventListener("pointerdown", onPointerDown, true);
+  return () => {
+    target.removeEventListener("click", onClick, true);
+    target.removeEventListener("mouseup", onMouseUp, true);
+    target.removeEventListener("auxclick", onAuxClick, true);
+    target.removeEventListener("keydown", onKeyDown, true);
+    target.removeEventListener("pointerdown", onPointerDown, true);
+  };
 }

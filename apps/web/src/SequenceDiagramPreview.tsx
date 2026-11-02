@@ -1,4 +1,5 @@
 import { previewInteractionGuard } from "./preview-interaction-guard";
+import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import { useMemo, useLayoutEffect, useRef, useState } from "react";
 import type { RenderStatus } from "./model";
@@ -214,6 +215,7 @@ export function SequenceDiagramPreview({
       });
     }
     addStructureTimelineGrips(root, structures, undefined);
+    preserveDiagramLinkHitAreas(root, "rect[data-sequence-drag-hit][data-draggable]");
   }, [svg, geometry]);
   useLayoutEffect(() => {
     const { participants, messages, structures } = geometry;

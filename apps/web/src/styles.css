@@ -1383,6 +1383,11 @@ textarea:focus-visible {
     monospace;
   pointer-events: none;
 }
+.diagram svg a[href],
+.diagram svg a[href] *,
+.wbs-diagram svg a[href] text[data-wbs-node-id] {
+  cursor: pointer;
+}
 .sequence-diagram [data-sequence-participant-id],
 .sequence-diagram [data-sequence-message-id],
 .sequence-diagram [data-sequence-structure-id] {

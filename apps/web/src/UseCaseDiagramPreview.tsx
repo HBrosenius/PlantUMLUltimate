@@ -1,4 +1,5 @@
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
+import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import {
   useMemo,
   useEffect,
@@ -195,6 +196,7 @@ export function UseCaseDiagramPreview({
         addRelationshipEndpoint(rendered, end, relationship.id, firstIsFrom ? "to" : "from");
       }
     }
+    preserveDiagramLinkHitAreas(host, ".usecase-semantic-hit");
   }, [document, keyboardConnectFrom, selectedId, svg]);
 
   useEffect(() => {

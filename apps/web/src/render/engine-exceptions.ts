@@ -1,3 +1,5 @@
+import { withSvgHyperlinks } from "./engine-hyperlinks";
+
 /** TeaVM uses Java exceptions for routine parser control flow. Its generated
  * stack conversion is disabled (the frame factory returns null), yet creating
  * native errors still captures enormous data-URL stacks in WebKit. Keep Java
@@ -25,5 +27,5 @@ export function withoutJavaExceptionStacks(source: string): string {
 export function classicEngineScript(source: string): string {
   const exports = "export{C as render,D as renderToString};";
   if (source.split(exports).length !== 2) throw new Error("Unsupported PlantUML module exports");
-  return `(() => {\n${withoutJavaExceptionStacks(source).replace(exports, "globalThis.__plantumlRenderToString = D;")}\n})();`;
+  return `(() => {\n${withSvgHyperlinks(withoutJavaExceptionStacks(source)).replace(exports, "globalThis.__plantumlRenderToString = D;")}\n})();`;
 }

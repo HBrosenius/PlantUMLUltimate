@@ -9,6 +9,34 @@ import * as sanitizeSvg from "./render/sanitize-svg";
 
 afterEach(cleanup);
 
+it.each(["Enter", " "])("consumes %j when selecting a task moves focus into the source editor", (key) => {
+  const editor = document.createElement("textarea");
+  editor.value = "[Build] lasts 3 days";
+  document.body.append(editor);
+  try {
+    const select = vi.fn(() => {
+      editor.focus();
+      editor.setSelectionRange(8, editor.value.length);
+    });
+    const view = render(
+      preview(
+        '<svg xmlns="http://www.w3.org/2000/svg"><g data-task-id="build" role="button" tabindex="0"><text>Build</text></g></svg>',
+        undefined,
+        { onTaskSelect: select },
+      ),
+    );
+    const task = view.container.querySelector('[data-task-id="build"]')!;
+    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    task.dispatchEvent(event);
+    expect(select).toHaveBeenCalledWith("build");
+    expect(document.activeElement).toBe(editor);
+    expect(event.defaultPrevented).toBe(true);
+    expect(editor.value).toBe("[Build] lasts 3 days");
+  } finally {
+    editor.remove();
+  }
+});
+
 it("keeps overlays aligned with the displayed render while source changes", () => {
   const overlay = vi.spyOn(ganttOverlay, "addCanonicalGanttOverlay");
   const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Old task</text></svg>';

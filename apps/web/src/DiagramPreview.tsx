@@ -1,4 +1,5 @@
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
+import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import { BaselineDependencyReport } from "./BaselineDependencyReport";
 import {
   compareBaselineDependencies,
@@ -1498,6 +1499,9 @@ export function DiagramPreview({
                 return;
               }
               if (event.key === "Enter" || event.key === " ") {
+                // Selection can focus a source range in CodeMirror. Do not let the
+                // key's default action edit that newly focused range or scroll it.
+                event.preventDefault();
                 selectFromEvent(event);
                 return;
               }
@@ -2088,6 +2092,7 @@ const MemoizedSvgMarkup = memo(function SvgMarkup({
     // than serializing and parsing it again. The guard also preserves StrictMode's
     // effect replay after the fragment has been consumed.
     measurePreviewPhase("install", () => root.replaceChildren(sanitizedSvg));
+    preserveDiagramLinkHitAreas(root, ".interaction-hit");
     installed.current = sanitizedSvg;
   }, [sanitizedSvg]);
   useLayoutEffect(() => {

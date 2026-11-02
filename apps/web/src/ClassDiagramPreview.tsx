@@ -1,4 +1,5 @@
 import { previewInteractionGuard } from "./preview-interaction-guard";
+import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
 import {
   useMemo,
@@ -295,6 +296,7 @@ export function ClassDiagramPreview({
       .querySelectorAll(".class-connect-handle,.class-move-handle,.class-relationship-endpoint")
       .forEach((control) => rendered.append(control));
     // Rebuilding overlays is our own mutation, not a fresh renderer result.
+    preserveDiagramLinkHitAreas(host, ".class-semantic-hit");
     renderObserver.current?.takeRecords();
   }, [diagramKind, geometry, renderRevision, svg]);
   useLayoutEffect(() => {

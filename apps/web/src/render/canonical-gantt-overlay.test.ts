@@ -84,6 +84,19 @@ describe("addCanonicalGanttOverlay with themed rounded-rect bars", () => {
 });
 
 describe("Gantt task completion", () => {
+  it("makes an overlapping task label use the actual bar destination without duplicating its ID", () => {
+    const tasks = parseGantt("@startgantt\n[Build] lasts 3 days\n@endgantt").document.tasks;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="30">Build</text>
+      <a id="bar-link" href="https://example.test/build" aria-label="Build reference"><title>Build reference</title>
+      <rect x="10" y="20" width="80" height="13" fill="#aaa" /></a></svg>`;
+    const output = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    const label = output.querySelector("text")!;
+    expect(label.closest("a")?.getAttribute("href")).toBe("https://example.test/build");
+    expect(label.closest("a")?.querySelector("title")?.textContent).toBe("Build reference");
+    expect(output.querySelectorAll("#bar-link")).toHaveLength(1);
+    expect(output.querySelector("a a")).toBeNull();
+  });
+
   it("marks 100% tasks and fills only the completed portion of partial tasks", () => {
     const tasks = parseGantt(`@startgantt
 [Architecture] lasts 4 days

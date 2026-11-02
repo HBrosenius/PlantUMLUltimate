@@ -31,5 +31,38 @@ export function sourceForPlantUmlRenderer(source: string): string {
       return inNote ? "" : line;
     })
     .join("\n");
-  return expandBundledTheme(safeSource);
+  const diagramKind = safeSource.match(/^[ \t]*@start(\w+)\b/im)?.[1]?.toLowerCase();
+  if (diagramKind !== "gantt") return expandBundledTheme(safeSource);
+  // The bundled engine accepts pairwise arrows, but not compact Gantt chains.
+  // Keep the first edge on its authored line and append the remaining edges at
+  // the block's end, so diagnostics for subsequent authored statements stay aligned.
+  const compatibleSource = safeSource.replace(
+    /^([ \t]*@startgantt\b[^\n]*\n)([\s\S]*?)(^[ \t]*@endgantt\b[^\n]*)/gim,
+    (_block, start: string, body: string, end: string) => {
+      // Moving edges out of a macro or conditional would change its meaning.
+      if (/^[ \t]*!(?!theme\b)/im.test(body)) return _block;
+      const extraEdges: string[] = [];
+      let inComment = false;
+      const compatibleBody = body
+        .split("\n")
+        .map((line) => {
+          const commented = inComment || line.includes("/'");
+          if (line.includes("/'")) inComment = true;
+          if (line.includes("'/")) inComment = false;
+          if (commented) return line;
+          return line.replace(
+            /^([ \t]*)(\[[^\]\n]+\](?:[ \t]*->[ \t]*\[[^\]\n]+\]){2,})([ \t]*(?:'.*)?)$/,
+            (_line, indent: string, chain: string, comment: string) => {
+              const tasks = chain.match(/\[[^\]\n]+\]/g)!;
+              for (let index = 1; index < tasks.length - 1; index += 1)
+                extraEdges.push(`${indent}${tasks[index]} -> ${tasks[index + 1]}`);
+              return `${indent}${tasks[0]} -> ${tasks[1]}${comment}`;
+            },
+          );
+        })
+        .join("\n");
+      return `${start}${compatibleBody}${extraEdges.length ? `${extraEdges.join("\n")}\n` : ""}${end}`;
+    },
+  );
+  return expandBundledTheme(compatibleSource);
 }

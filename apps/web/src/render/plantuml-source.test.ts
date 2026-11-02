@@ -2,6 +2,42 @@ import { describe, expect, it } from "vitest";
 import { sourceForPlantUmlRenderer } from "./plantuml-source";
 
 describe("sourceForPlantUmlRenderer", () => {
+  it("renders compact Gantt chains as pairwise arrows without shifting authored body diagnostics", () => {
+    const source = [
+      "@startgantt",
+      "[A] lasts 2 days",
+      "[B] lasts 2 days",
+      "[C] lasts 2 days",
+      "[D] lasts 2 days",
+      "  [A] -> [B] -> [C] -> [D] ' delivery",
+      "invalid statement",
+      "@endgantt",
+    ].join("\n");
+    const rendered = sourceForPlantUmlRenderer(source);
+    expect(rendered.split("\n")[5]).toBe("  [A] -> [B] ' delivery");
+    expect(rendered.split("\n")[6]).toBe("invalid statement");
+    expect(rendered).toContain("  [B] -> [C]\n  [C] -> [D]\n@endgantt");
+    expect(source).toContain("[A] -> [B] -> [C] -> [D]");
+  });
+
+  it("leaves pairwise arrows and other diagram kinds unchanged and does not expand note text", () => {
+    const sequence = "@startuml\n[A] -> [B] -> [C]\n@enduml";
+    expect(sourceForPlantUmlRenderer(sequence)).toBe(sequence);
+    const literal = "@startuml\nnote as Example\n@startgantt\n[A] -> [B] -> [C]\n@endgantt\nend note\n@enduml";
+    expect(sourceForPlantUmlRenderer(literal)).toBe(literal);
+    const gantt = "@startgantt\n[A] lasts 1 day\n[B] lasts 1 day\n[A] -> [B]\n@endgantt";
+    expect(sourceForPlantUmlRenderer(gantt)).toBe(gantt);
+    const note = "@startgantt\nnote bottom\n[A] -> [B] -> [C]\nend note\n@endgantt";
+    expect(sourceForPlantUmlRenderer(note)).not.toContain(" -> ");
+  });
+
+  it("does not move edges out of comments or preprocessor conditions", () => {
+    const comment = "@startgantt\n/'\n[A] -> [B] -> [C]\n'/\n@endgantt";
+    expect(sourceForPlantUmlRenderer(comment)).toBe(comment);
+    const conditional = "@startgantt\n!if false\n[A] -> [B] -> [C]\n!endif\n@endgantt";
+    expect(sourceForPlantUmlRenderer(conditional)).toBe(conditional);
+  });
+
   it("removes native note blocks while preserving line count", () => {
     const source = "@startgantt\n[A] lasts 1 day\nnote right\nDetails\nend note\n@endgantt";
     const rendered = sourceForPlantUmlRenderer(source);

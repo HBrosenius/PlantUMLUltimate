@@ -59,6 +59,51 @@ describe("diagram link guard", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
+  it("handles Enter before diagram editing handlers and ignores key repeats", () => {
+    const open = vi.fn();
+    const confirmOpen = vi.fn(() => true);
+    uninstall = installDiagramLinkGuard(document, confirmOpen, open);
+    const text = svgLink("https://example.com/spec");
+    const edit = vi.fn();
+    text.parentElement!.addEventListener("keydown", edit);
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    text.dispatchEvent(enter);
+    text.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", repeat: true, bubbles: true, cancelable: true }));
+    expect(enter.defaultPrevented).toBe(true);
+    expect(open).toHaveBeenCalledExactlyOnceWith("https://example.com/spec");
+    expect(confirmOpen).toHaveBeenCalledOnce();
+    expect(edit).not.toHaveBeenCalled();
+  });
+
+  it("confirms middle clicks instead of letting them bypass the guard", () => {
+    const confirmOpen = vi.fn(() => true);
+    const open = vi.fn();
+    uninstall = installDiagramLinkGuard(document, confirmOpen, open);
+    const text = svgLink("https://example.com/spec");
+    const event = new MouseEvent("mouseup", { button: 1, bubbles: true, cancelable: true });
+    text.dispatchEvent(event);
+    const auxiliary = new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true });
+    text.dispatchEvent(auxiliary);
+    expect(auxiliary.defaultPrevented).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+    expect(confirmOpen).toHaveBeenCalledExactlyOnceWith("https://example.com/spec");
+    expect(open).toHaveBeenCalledExactlyOnceWith("https://example.com/spec");
+  });
+
+  it("keeps link pointer presses out of diagram dragging without blocking normal link focus", () => {
+    uninstall = installDiagramLinkGuard(document, () => true, vi.fn());
+    const text = svgLink("https://example.com/spec");
+    const drag = vi.fn();
+    text.parentElement!.addEventListener("pointerdown", drag);
+    const pointer = new Event("pointerdown", { bubbles: true, cancelable: true });
+    text.dispatchEvent(pointer);
+    expect(drag).not.toHaveBeenCalled();
+    expect(pointer.defaultPrevented).toBe(false);
+    uninstall();
+    text.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(drag).toHaveBeenCalledOnce();
+  });
+
   it("leaves ordinary HTML links alone", () => {
     const open = vi.fn();
     uninstall = installDiagramLinkGuard(document, () => true, open);

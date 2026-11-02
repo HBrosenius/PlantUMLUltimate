@@ -568,6 +568,19 @@ export function addCanonicalGanttOverlay(
     });
     label.setAttribute("data-visual-task-id", task.id);
     label.setAttribute("data-resource-match", String(resourceMatch));
+    // PlantUML links the bar, while the visible task label can overlap it.
+    // Give that label the same renderer-provided destination, never a text match.
+    const taskLink = [...rowBars, ...rowPolygons, ...rowPaths, ...milestoneShapes]
+      .map((shape) => shape.closest("a[href]"))
+      .find((anchor) => anchor);
+    if (taskLink && !label.closest("a")) {
+      const labelLink = taskLink.cloneNode(false) as Element;
+      labelLink.removeAttribute("id");
+      const title = taskLink.querySelector("title");
+      if (title) labelLink.append(title.cloneNode(true));
+      label.replaceWith(labelLink);
+      labelLink.append(label);
+    }
     const completion = task.completion?.value;
     if (completion !== undefined && completion > 0 && completion < 100 && !task.milestone) {
       const progressShapes: Element[] = rowBars.length ? rowBars : rowPaths.length ? rowPaths : rowPolygons;
