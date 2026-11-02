@@ -1,0 +1,279 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.500
+Live collaboration shares a document through a private
+room.
+
+00:00:04.620 --> 00:00:08.945
+Editors can change it; viewers can follow without editing.
+
+00:00:09.065 --> 00:00:16.065
+In this lesson we use two independent browser sessions
+against a disposable local collaboration service.
+
+00:00:16.185 --> 00:00:22.410
+We will inspect presence, synchronize an edit, reconnect a
+participant and revoke the old links.
+
+00:00:22.530 --> 00:00:29.380
+The service is local for training, while the roles and
+application controls are the real collaboration workflow.
+
+00:00:32.900 --> 00:00:36.275
+Open Collaborate and enter your display name.
+
+00:00:36.395 --> 00:00:42.795
+For this training we use Advanced to choose the disposable
+local service, then create a private room.
+
+00:00:42.915 --> 00:00:46.015
+Review the Connected state and the two links.
+
+00:00:46.135 --> 00:00:51.810
+An editor link is an editing credential, and a viewer link
+has a different permission boundary.
+
+00:00:51.930 --> 00:00:55.230
+Share each only with the intended recipients.
+
+00:00:55.350 --> 00:01:01.400
+The room contains the shared document; a local review note
+is not automatically part of it.
+
+00:01:04.900 --> 00:01:10.800
+Open the viewer link in an independent browser session and
+join with a recognizable name.
+
+00:01:10.920 --> 00:01:14.945
+The owner can see that participant in the collaboration
+panel.
+
+00:01:15.065 --> 00:01:21.540
+In the second session, the source is read only: viewing
+the document does not grant permission to change it.
+
+00:01:21.660 --> 00:01:26.360
+Use viewer access for people who need to follow progress
+without authoring.
+
+00:01:26.480 --> 00:01:32.605
+This is a real second browser session, shown here as a
+captured view so you can inspect its state.
+
+00:01:36.133 --> 00:01:39.483
+Join through the editor link in the second browser.
+
+00:01:39.603 --> 00:01:43.028
+Both participants can inspect the shared source.
+
+00:01:43.148 --> 00:01:50.248
+In that session, change the diagram title to Customer
+portal shared launch and verify that the owner receives
+it.
+
+00:01:50.368 --> 00:01:57.193
+Shared editing should be checked at the source and current
+preview, especially when several people touch nearby work.
+
+00:01:57.313 --> 00:02:04.863
+Coordinate substantial structural changes and use clear
+participant names so others can understand who is active.
+
+00:02:08.367 --> 00:02:13.367
+Participants can navigate independently while editing the
+same document.
+
+00:02:13.487 --> 00:02:20.687
+Your selected diagram, cursor and working view help you
+work; a shared source edit changes the common content.
+
+00:02:20.807 --> 00:02:27.257
+Presence can show a participant's diagram and cursor
+without forcing everyone to look at the same place.
+
+00:02:27.377 --> 00:02:33.427
+Before making a change, check which member is active and
+communicate a large reorganization.
+
+00:02:33.547 --> 00:02:41.722
+Personal presentation notes and local retained history do
+not become a shared review log simply because a room is
+open.
+
+00:02:45.233 --> 00:02:50.258
+A temporary connection loss is different from revocation
+or expiration.
+
+00:02:50.378 --> 00:02:56.478
+In the second session we interrupt its network connection,
+then restore it and wait for Connected.
+
+00:02:56.598 --> 00:03:01.323
+Keep a local copy of important edits when the service is
+unavailable.
+
+00:03:01.443 --> 00:03:12.868
+If the room reports revoked, expired or access denied,
+automatic reconnection stops; read that state rather than
+repeatedly editing under the assumption that others
+receive it.
+
+00:03:12.988 --> 00:03:17.863
+After reconnection, check that both sessions show the same
+authored result.
+
+00:03:21.367 --> 00:03:25.692
+Both browser sessions place their cursor at the same end
+of the title.
+
+00:03:25.812 --> 00:03:31.537
+Each inserts a short note concurrently, so the edits
+overlap at one shared position.
+
+00:03:31.657 --> 00:03:38.132
+Wait for synchronization and verify that both notes remain
+and that both browsers have the same source.
+
+00:03:38.252 --> 00:03:44.027
+Convergence preserves the edits, but the combined wording
+may still need a human review.
+
+00:03:44.147 --> 00:03:53.122
+Coordinate meaningful structural changes and inspect the
+result rather than treating synchronization as a guarantee
+of the intended meaning.
+
+00:03:56.633 --> 00:04:01.833
+A connected document can be shared while participants
+navigate different members.
+
+00:04:01.953 --> 00:04:07.853
+Create the linked schedule from the WBS, then join the
+document from the second browser.
+
+00:04:07.973 --> 00:04:12.723
+Keep that participant on Gantt while the owner opens WBS.
+
+00:04:12.843 --> 00:04:17.743
+Verify each source delimiter and the visible member before
+editing.
+
+00:04:17.863 --> 00:04:25.563
+Independent navigation lets people inspect different
+views, while shared authored changes still belong to the
+same document.
+
+00:04:25.683 --> 00:04:30.833
+Tell collaborators which member and work item a large
+change concerns.
+
+00:04:34.333 --> 00:04:39.308
+After reviewing a shared edit, create a named checkpoint
+from the owner session.
+
+00:04:39.428 --> 00:04:46.228
+Open its history entry and inspect the version context and
+contributor information that is available.
+
+00:04:46.348 --> 00:04:52.223
+A useful checkpoint name describes the reviewed state, not
+simply who happened to click Save.
+
+00:04:52.343 --> 00:04:58.868
+Retained history remains local to the document workflow
+and is not a permanent audit service for the room.
+
+00:04:58.988 --> 00:05:04.488
+Save a portable copy when that reviewed state must survive
+the collaboration session.
+
+00:05:08.000 --> 00:05:11.625
+Rooms expire twenty four hours after creation.
+
+00:05:11.745 --> 00:05:15.095
+Leaving a room does not revoke its shared links.
+
+00:05:15.215 --> 00:05:21.365
+Owner rights survive a reload of the creating tab, but
+closing that tab clears owner recovery.
+
+00:05:21.485 --> 00:05:26.460
+Do not assume that opening the same link in another tab
+restores ownership.
+
+00:05:26.580 --> 00:05:32.505
+Before ending a sensitive session, save the work and
+revoke the old access when it should stop.
+
+00:05:32.625 --> 00:05:36.200
+Plan a new room when the existing room has expired.
+
+00:05:39.700 --> 00:05:44.125
+Owner recovery survives a reload of the tab that created
+the room.
+
+00:05:44.245 --> 00:05:49.445
+Start a disposable room, reload that same tab and rejoin
+when prompted.
+
+00:05:49.565 --> 00:05:56.115
+Verify that the owner can still revoke its links, then
+revoke and create a new room for this exercise.
+
+00:05:56.235 --> 00:06:01.260
+This does not imply that closing the creating tab
+preserves owner recovery.
+
+00:06:01.380 --> 00:06:07.780
+Save the document and end access deliberately before
+closing a tab when the old links should stop working.
+
+00:06:11.300 --> 00:06:16.400
+The owner can revoke the current links and create a new
+room for the current document.
+
+00:06:16.520 --> 00:06:21.495
+Read the confirmation: the old room disconnects and its
+links stop working.
+
+00:06:21.615 --> 00:06:27.665
+In this disposable exercise, revoke and create a new link,
+then inspect the second browser.
+
+00:06:27.785 --> 00:06:32.460
+It disconnects from the old room and no longer receives
+shared changes.
+
+00:06:32.580 --> 00:06:36.255
+Give the new link only to the people who should continue.
+
+00:06:36.375 --> 00:06:41.450
+Revocation is a permission change, not a substitute for
+saving the document.
+
+00:06:41.570 --> 00:06:49.545
+In the second browser, save a local copy, leave the
+stopped room and reopen the copy to verify the preserved
+source and preview.
+
+00:06:53.067 --> 00:06:56.167
+Pause and create a disposable room.
+
+00:06:56.287 --> 00:07:01.612
+Join from another browser as a viewer and verify that
+editing is unavailable.
+
+00:07:01.732 --> 00:07:07.357
+Join as an editor and make a small agreed change, then
+verify it in the first browser.
+
+00:07:07.477 --> 00:07:12.952
+Inspect presence and reconnection, save a local copy, and
+revoke the old links.
+
+00:07:13.072 --> 00:07:17.122
+Record the room expiry and who owns the creating tab.
+
+00:07:17.242 --> 00:07:22.392
+Success means you can explain what is shared, who can
+edit, and how access ends.

@@ -1,0 +1,330 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:05.300
+A Sequence diagram explains who interacts with whom and in
+what order.
+
+00:00:05.420 --> 00:00:10.745
+It is useful when a component picture does not tell you
+how a request actually proceeds.
+
+00:00:10.865 --> 00:00:16.490
+We will model a customer submitting a request through a
+web app and API to a database.
+
+00:00:16.610 --> 00:00:23.660
+You will create participants and messages, inspect
+lifecycle and fragment controls, and review an error
+branch.
+
+00:00:23.780 --> 00:00:32.280
+The goal is a readable explanation of behavior, not a
+drawing that implies more concurrency or timing precision
+than the model contains.
+
+00:00:35.800 --> 00:00:40.850
+Participants represent the actors and systems taking part
+in the interaction.
+
+00:00:40.970 --> 00:00:44.945
+Use Insert and Participant to add a support service.
+
+00:00:45.065 --> 00:00:53.265
+The kind can represent an actor, boundary, control,
+entity, database, collection or queue, depending on what
+you need to communicate.
+
+00:00:53.385 --> 00:00:59.035
+Use an alias when a readable display name would be
+cumbersome in repeated message statements.
+
+00:00:59.155 --> 00:01:06.480
+Inspect the created declaration and keep naming consistent
+with the other diagrams in the customer portal document.
+
+00:01:10.000 --> 00:01:13.950
+Select the API participant to open its inspector.
+
+00:01:14.070 --> 00:01:18.970
+Participant settings include identity and presentation
+choices.
+
+00:01:19.090 --> 00:01:27.390
+Review aliases, stereotypes, colors and ordering without
+assuming that the visible display name is the only
+reference used elsewhere.
+
+00:01:27.510 --> 00:01:34.935
+This inspector applies related changes together with
+Apply, so it differs from a field that commits when focus
+leaves.
+
+00:01:35.055 --> 00:01:39.205
+Make an intentional change and check the messages
+afterward.
+
+00:01:39.325 --> 00:01:45.275
+Close or cancel an unneeded draft rather than leaving an
+unexplained pending edit.
+
+00:01:48.800 --> 00:01:53.400
+A message identifies sender, receiver and the interaction
+text.
+
+00:01:53.520 --> 00:02:00.270
+Use the message creation screen to review the participant
+pickers, message kinds and advanced modifiers.
+
+00:02:00.390 --> 00:02:07.765
+A request and a return are different parts of the story;
+arrow shape and direction should express your meaning
+consistently.
+
+00:02:07.885 --> 00:02:15.360
+Existing and newly introduced names need to be deliberate
+so that a typo does not create an unintended participant.
+
+00:02:15.480 --> 00:02:21.180
+Inspect a message's source statement before drawing
+conclusions from its position alone.
+
+00:02:24.700 --> 00:02:29.775
+Activation represents a period of activity on a
+participant's lifeline.
+
+00:02:29.895 --> 00:02:36.020
+It is useful when you want to distinguish being present in
+an interaction from actively handling a call.
+
+00:02:36.140 --> 00:02:42.765
+Paste the supplied extended example and follow the
+activation of Web and API through the request.
+
+00:02:42.885 --> 00:02:46.185
+Deactivation ends those active regions.
+
+00:02:46.305 --> 00:02:58.780
+Creation, destruction, return shortcuts and message
+modifiers have more specialized meanings; use a small
+reference example to check the syntax before combining
+them into a complicated interaction.
+
+00:03:02.300 --> 00:03:06.300
+Follow the worker lifecycle in this small source example.
+
+00:03:06.420 --> 00:03:12.970
+Creation introduces Worker at its first received message,
+while activation marks its active work.
+
+00:03:13.090 --> 00:03:18.815
+The return statement completes the most recent active call
+and produces the receipt.
+
+00:03:18.935 --> 00:03:22.685
+Destruction ends the worker lifeline after release.
+
+00:03:22.805 --> 00:03:29.180
+Read these statements alongside the rendered interaction
+before combining them into a larger model.
+
+00:03:32.700 --> 00:03:37.875
+The combined fragment in this example separates valid and
+invalid requests.
+
+00:03:37.995 --> 00:03:42.795
+Read each branch condition and follow the messages within
+that branch.
+
+00:03:42.915 --> 00:03:50.115
+Other fragment families include optional behavior, loops,
+parallel work, breaks, critical regions and grouping.
+
+00:03:50.235 --> 00:03:54.610
+Choose the construct for its behavioral meaning, not just
+its border.
+
+00:03:54.730 --> 00:04:00.980
+The structure inspector and source show where the fragment
+begins, where branches change and where it ends.
+
+00:04:01.100 --> 00:04:06.325
+Keep nested fragments small enough that a reader can
+follow one path without guessing.
+
+00:04:09.833 --> 00:04:13.833
+An optional block represents a conditional interaction.
+
+00:04:13.953 --> 00:04:18.503
+A loop represents repeated interaction under its stated
+condition.
+
+00:04:18.623 --> 00:04:23.898
+Parallel branches describe concurrent work, rather than an
+alternative choice.
+
+00:04:24.018 --> 00:04:28.793
+A break identifies an interaction that terminates its
+enclosing path.
+
+00:04:28.913 --> 00:04:35.113
+A critical region identifies work that must be considered
+indivisible in this interaction model.
+
+00:04:35.233 --> 00:04:42.783
+A named group organizes related messages; these blocks are
+separate teaching examples supplied with the practice
+files.
+
+00:04:46.300 --> 00:04:51.300
+Notes explain assumptions or context that would make a
+message label too long.
+
+00:04:51.420 --> 00:04:55.395
+A reference can point to a separately described
+interaction.
+
+00:04:55.515 --> 00:05:03.115
+Separators, delays, spacing, duration arrows, page breaks
+and numbering controls each affect how the story is read.
+
+00:05:03.235 --> 00:05:08.085
+The example numbers its messages and places a note beside
+Web.
+
+00:05:08.205 --> 00:05:14.305
+Inspect these facilities in Insert, then choose only the
+ones that improve the explanation.
+
+00:05:14.425 --> 00:05:21.225
+Adding many presentation devices cannot repair an unclear
+interaction or a missing branch condition.
+
+00:05:24.733 --> 00:05:28.908
+A reference names a separately described interaction
+contract.
+
+00:05:29.028 --> 00:05:33.578
+Separators and automatic numbering organize the message
+sequence.
+
+00:05:33.698 --> 00:05:40.773
+A delay and explicit spacing affect how the interaction is
+read, while notes retain explanatory context.
+
+00:05:40.893 --> 00:05:47.243
+Page breaks remain explicit source statements; check the
+page handling of your intended export.
+
+00:05:47.363 --> 00:05:53.638
+Duration anchors use the Teoz layout to mark a measured
+span between two points in the interaction.
+
+00:05:53.758 --> 00:06:01.983
+Inspect the source and actual preview for these
+constructs, and use Issues when a supported source feature
+has a visual-editing limitation.
+
+00:06:05.500 --> 00:06:09.775
+Participant order and message placement affect
+readability.
+
+00:06:09.895 --> 00:06:16.345
+Use the diagram's supported dragging or reordering
+controls and inspect the resulting source order.
+
+00:06:16.465 --> 00:06:24.390
+Open Diagram settings to compare alignment, wrapping,
+spacing, boxes and layout choices such as Teoz where
+supported.
+
+00:06:24.510 --> 00:06:30.160
+These settings should make the interaction easier to
+follow without changing its intended meaning.
+
+00:06:30.280 --> 00:06:41.580
+If a valid language construct has no dedicated visual
+editor, keep it in source and review the rendered result
+rather than promising that every syntax variant has its
+own form.
+
+00:06:45.100 --> 00:06:48.575
+Open the reorder panel for this small interaction.
+
+00:06:48.695 --> 00:06:55.470
+Move API before Web in the participant list and inspect
+the declaration order and lifeline layout.
+
+00:06:55.590 --> 00:06:59.715
+Move Check attachments before Check draft in the message
+list.
+
+00:06:59.835 --> 00:07:06.385
+Message order changes the interaction being described, so
+check the authored statements and drawing together.
+
+00:07:06.505 --> 00:07:11.080
+Undo both reorder operations to recover the original
+sequence.
+
+00:07:11.200 --> 00:07:18.200
+Finally change the diagram title through its presentation
+settings and verify the committed title in source.
+
+00:07:21.700 --> 00:07:26.000
+Use modifier selection to choose Web and API together.
+
+00:07:26.120 --> 00:07:29.595
+Inspect the bulk panel and apply a shared style.
+
+00:07:29.715 --> 00:07:39.415
+This is useful when several participants belong to one
+category, but a box or a meaningful label can communicate
+that grouping more directly than color alone.
+
+00:07:39.535 --> 00:07:46.535
+Copy and duplicate only a deliberate selection, then
+inspect the messages and identifiers in the result.
+
+00:07:46.655 --> 00:07:51.855
+The common source history remains the place to reconsider
+a bulk operation.
+
+00:07:55.367 --> 00:08:01.092
+Pause and build the successful request interaction, then
+add a validation-error branch.
+
+00:08:01.212 --> 00:08:06.162
+Include one activation and one note that explains a real
+assumption.
+
+00:08:06.282 --> 00:08:13.732
+Inspect a participant and a message through their visual
+controls, and apply one shared style to a verified
+selection.
+
+00:08:13.852 --> 00:08:21.252
+Your success check is that someone can trace the
+successful and unsuccessful paths and identify who
+performs each step.
+
+00:08:21.372 --> 00:08:27.297
+Use the supplied source examples to check specialized
+arrow and lifecycle syntax separately.
+
+00:08:30.800 --> 00:08:40.700
+Use participants for the actors and systems, messages for
+their interactions, and lifecycle or fragment constructs
+only when they express an important distinction.
+
+00:08:40.820 --> 00:08:45.895
+Review identity, endpoints and branch conditions before
+tuning appearance.
+
+00:08:46.015 --> 00:08:50.540
+Keep the source available for precise syntax and reference
+examples.
+
+00:08:50.660 --> 00:08:59.210
+We will reuse this same portal behavior when comparing
+capabilities, types, architecture and workflows in the
+following modeling lessons.

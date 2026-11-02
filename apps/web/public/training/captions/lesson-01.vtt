@@ -1,0 +1,300 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.700
+This lesson introduces the workspace you will use
+throughout the course.
+
+00:00:04.820 --> 00:00:12.895
+We will create a diagram, choose an editing view, navigate
+the canvas, and find the settings that make the editor
+comfortable to use.
+
+00:00:13.015 --> 00:00:16.315
+The example is a customer portal launch.
+
+00:00:16.435 --> 00:00:19.910
+You do not need Plant UML experience yet.
+
+00:00:20.030 --> 00:00:27.005
+Your first goal is to recognize where a command belongs
+and distinguish a change to your view from a change to the
+document.
+
+00:00:30.533 --> 00:00:34.308
+The diagram chooser offers seven diagram types.
+
+00:00:34.428 --> 00:00:40.978
+Gantt is for schedules, WBS for the breakdown of work, and
+Activity for workflows and decisions.
+
+00:00:41.098 --> 00:00:44.448
+Sequence explains interactions over time.
+
+00:00:44.568 --> 00:00:52.443
+Use Case connects actors to capabilities, Class describes
+types and members, and Component describes software
+structure.
+
+00:00:52.563 --> 00:00:59.488
+Choose a type for the question you want to answer, rather
+than trying to put every kind of information into one
+picture.
+
+00:00:59.608 --> 00:01:03.333
+The visual tools and inspectors adapt to your choice.
+
+00:01:06.833 --> 00:01:10.408
+Start with controls how much source is provided.
+
+00:01:10.528 --> 00:01:16.403
+Blank gives you a minimal document; a simple starter gives
+you a small editable example.
+
+00:01:16.523 --> 00:01:20.823
+The example route offers more realistic starting material.
+
+00:01:20.943 --> 00:01:24.793
+Give the diagram a useful name before choosing its type.
+
+00:01:24.913 --> 00:01:28.538
+We will create a Gantt starter called Portal practice.
+
+00:01:28.658 --> 00:01:34.558
+The name helps you find the diagram later, while saving
+still chooses the destination file.
+
+00:01:34.678 --> 00:01:38.903
+A starter is a beginning you can change, not a locked
+template.
+
+00:01:42.433 --> 00:01:45.433
+The ribbon groups commands by purpose.
+
+00:01:45.553 --> 00:01:49.728
+Edit contains history, selection and source operations.
+
+00:01:49.848 --> 00:01:53.573
+Insert creates objects for the current diagram type.
+
+00:01:53.693 --> 00:01:59.618
+Plan contains scheduling tools for Gantt, and connected-
+work actions for WBS.
+
+00:01:59.738 --> 00:02:03.988
+View contains navigation, panels and diagram settings.
+
+00:02:04.108 --> 00:02:07.333
+You can collapse the ribbon when you want more room.
+
+00:02:07.453 --> 00:02:16.803
+If a command is unavailable, inspect its context before
+assuming something is wrong: the diagram type, selection
+and editing permission can all matter.
+
+00:02:20.333 --> 00:02:24.783
+The Plan category is still present when a Class diagram is
+active.
+
+00:02:24.903 --> 00:02:30.078
+Its message explains that planning tools are for Gantt and
+work breakdown diagrams.
+
+00:02:30.198 --> 00:02:35.448
+Insert instead exposes the Class editing commands
+appropriate to this model.
+
+00:02:35.568 --> 00:02:40.743
+A command category can explain its scope without changing
+the authored diagram.
+
+00:02:44.267 --> 00:02:47.742
+Code view gives the source editor the workspace.
+
+00:02:47.862 --> 00:02:50.937
+Diagram view gives the picture more room.
+
+00:02:51.057 --> 00:02:57.357
+Split view keeps the two together, which is useful while
+learning how a visual edit changes the text.
+
+00:02:57.477 --> 00:03:00.577
+Switching views does not rewrite your plan.
+
+00:03:00.697 --> 00:03:07.422
+Compare the same tasks in all three layouts, and return to
+Split when you want to check both representations.
+
+00:03:07.542 --> 00:03:14.242
+Later lessons will sometimes focus on the diagram for
+interaction, and sometimes on the source for precision.
+
+00:03:17.767 --> 00:03:21.317
+Fit adjusts the preview to the available canvas.
+
+00:03:21.437 --> 00:03:26.862
+Zoom changes magnification, and panning changes which part
+of the drawing you see.
+
+00:03:26.982 --> 00:03:29.607
+These are viewing operations.
+
+00:03:29.727 --> 00:03:36.652
+In a Gantt chart, timeline scale is different: it is an
+authored setting that changes the time axis in the source.
+
+00:03:36.772 --> 00:03:44.472
+Use the preview controls when a diagram is difficult to
+see, rather than altering dates or durations to make it
+fit the screen.
+
+00:03:44.592 --> 00:03:47.492
+You can always return to a fitted view.
+
+00:03:51.000 --> 00:03:54.175
+Select a task to open its inspector.
+
+00:03:54.295 --> 00:04:00.395
+An inspector explains the object you selected and provides
+its supported editing controls.
+
+00:04:00.515 --> 00:04:06.965
+When the panel takes too much space, focus on the diagram
+or restore Split view using the view buttons.
+
+00:04:07.085 --> 00:04:12.510
+The Diagram options group contains filters and move policy
+for the Gantt preview.
+
+00:04:12.630 --> 00:04:17.580
+A filter can hide work from the canvas without deleting it
+from the plan.
+
+00:04:17.700 --> 00:04:22.450
+Close panels when you have finished a task so the
+workspace stays readable.
+
+00:04:25.967 --> 00:04:30.467
+Open Settings to adjust the app appearance and editing
+preferences.
+
+00:04:30.587 --> 00:04:34.262
+Light, dark and system themes affect the application.
+
+00:04:34.382 --> 00:04:42.107
+Preview adaptation changes how a drawing is presented in
+the app, while a diagram theme is part of the diagram's
+own appearance.
+
+00:04:42.227 --> 00:04:47.927
+Editor font size, tab size, wrapping and line numbers help
+you read and edit source.
+
+00:04:48.047 --> 00:04:51.222
+Default view and zoom apply to new tabs.
+
+00:04:51.342 --> 00:04:57.917
+Set these for comfort; you do not need to change the
+project itself to make the interface easier to use.
+
+00:05:01.433 --> 00:05:04.708
+Choose defaults for future work in Settings.
+
+00:05:04.828 --> 00:05:12.403
+Set Split as the default view, one hundred percent as the
+default zoom, two space tabs and the chooser on startup.
+
+00:05:12.523 --> 00:05:16.773
+Apply, reopen Settings and verify those retained values.
+
+00:05:16.893 --> 00:05:21.768
+Search Help for dependency and keep the Gantt-specific
+reference in view.
+
+00:05:21.888 --> 00:05:27.088
+Application defaults and Help navigation leave this
+authored plan unchanged.
+
+00:05:30.600 --> 00:05:35.975
+Commands helps when you know what you want to do but
+cannot remember where its control lives.
+
+00:05:36.095 --> 00:05:40.345
+Search for a familiar action and inspect the available
+result.
+
+00:05:40.465 --> 00:05:45.565
+Help provides a quick tour, diagram-specific guidance and
+keyboard shortcuts.
+
+00:05:45.685 --> 00:05:49.985
+Search there when you need an explanation rather than an
+operation.
+
+00:05:50.105 --> 00:05:57.305
+Learning a few shortcuts is useful, but understanding the
+command's context matters more than memorizing a long
+list.
+
+00:05:57.425 --> 00:06:02.200
+The next lesson will use these editing surfaces to make
+precise changes.
+
+00:06:05.700 --> 00:06:13.900
+If you repeatedly create the same kind of diagram, save a
+personal starter rather than copying an unrelated project
+each time.
+
+00:06:14.020 --> 00:06:18.770
+File contains Save as starter for preserving a useful
+starting source.
+
+00:06:18.890 --> 00:06:24.340
+Give it a name that explains its purpose, then find
+personal starters in the chooser.
+
+00:06:24.460 --> 00:06:30.110
+Review its source, choose Create from starter, and verify
+the new independent diagram.
+
+00:06:30.230 --> 00:06:38.480
+A starter helps create new work; the portable file is
+where you keep the specific project's diagrams, settings
+and retained history.
+
+00:06:42.000 --> 00:06:46.275
+Pause and create a separate practice diagram with a useful
+name.
+
+00:06:46.395 --> 00:06:50.770
+Switch through Code, Split and Diagram views, then return
+to Split.
+
+00:06:50.890 --> 00:06:56.665
+Zoom in, pan to inspect another part of the drawing, and
+use Fit to recover the overview.
+
+00:06:56.785 --> 00:07:00.835
+Find the editor settings and choose a readable font size.
+
+00:07:00.955 --> 00:07:04.905
+Finally, locate a command and its explanation in Help.
+
+00:07:05.025 --> 00:07:11.425
+You have succeeded when you can do those things without
+changing the diagram source simply to adjust the view.
+
+00:07:14.933 --> 00:07:21.933
+Begin with the right diagram type, choose a view for the
+task, and use navigation controls to see the work clearly.
+
+00:07:22.053 --> 00:07:26.953
+Use inspectors for supported object edits and the ribbon
+for commands.
+
+00:07:27.073 --> 00:07:33.623
+Keep view preferences separate from authored content, and
+use Help when the meaning of a control is unclear.
+
+00:07:33.743 --> 00:07:40.293
+In the next lesson you will edit a plan visually and in
+source, checking that both describe the same result.

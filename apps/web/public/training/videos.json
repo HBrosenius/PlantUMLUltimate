@@ -1,0 +1,1213 @@
+{
+  "visibility": "unlisted",
+  "edition": "review",
+  "lessons": [
+    {
+      "id": "01",
+      "title": "First launch and workspace",
+      "youtubeId": "TApeKd8XATI",
+      "durationSeconds": 463.3005,
+      "objective": "Create and name a diagram; switch views and return to a fitted preview.",
+      "chapters": [
+        {
+          "title": "Find your way around",
+          "start": 0
+        },
+        {
+          "title": "Choose the right diagram",
+          "start": 30
+        },
+        {
+          "title": "Blank, starter or example",
+          "start": 66
+        },
+        {
+          "title": "Use the command categories",
+          "start": 101
+        },
+        {
+          "title": "Read command scope on a non-planning diagram",
+          "start": 139
+        },
+        {
+          "title": "Code, Split and Diagram",
+          "start": 163
+        },
+        {
+          "title": "Navigate without changing the plan",
+          "start": 197
+        },
+        {
+          "title": "Panels and diagram options",
+          "start": 230
+        },
+        {
+          "title": "Make the editor comfortable",
+          "start": 265
+        },
+        {
+          "title": "Save editor defaults and search the relevant help",
+          "start": 300
+        },
+        {
+          "title": "Commands and Help",
+          "start": 330
+        },
+        {
+          "title": "Save a personal starting point",
+          "start": 365
+        },
+        {
+          "title": "Your first workspace exercise",
+          "start": 401
+        },
+        {
+          "title": "A repeatable working routine",
+          "start": 434
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "title": "PlantUML and visual editing",
+      "youtubeId": "Y60Ovv4AVKk",
+      "durationSeconds": 415.700333,
+      "objective": "Make the same change from each side and undo it without losing unrelated source.",
+      "chapters": [
+        {
+          "title": "One authored model, two editing routes",
+          "start": 0
+        },
+        {
+          "title": "Read a small source document",
+          "start": 34
+        },
+        {
+          "title": "Inspect a visual change in source",
+          "start": 68
+        },
+        {
+          "title": "Distinguish field drafts from committed diagram changes",
+          "start": 100
+        },
+        {
+          "title": "Make the corresponding source edit",
+          "start": 147
+        },
+        {
+          "title": "Change a label without losing its alias",
+          "start": 181
+        },
+        {
+          "title": "Navigate symbol references",
+          "start": 218
+        },
+        {
+          "title": "Use shared Undo and Redo",
+          "start": 246
+        },
+        {
+          "title": "Read the failed line and last good preview",
+          "start": 283
+        },
+        {
+          "title": "Repair the statement and verify",
+          "start": 318
+        },
+        {
+          "title": "Practice both routes and recovery",
+          "start": 351
+        },
+        {
+          "title": "Check the authored result",
+          "start": 385
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "title": "Gantt tasks and progress",
+      "youtubeId": "mDHo-B3zvfs",
+      "durationSeconds": 655.900167,
+      "objective": "Build a small launch plan with a release milestone and progress values.",
+      "chapters": [
+        {
+          "title": "Build a plan you can maintain",
+          "start": 0
+        },
+        {
+          "title": "Create a task with a real start",
+          "start": 30
+        },
+        {
+          "title": "Edit a task and its effort",
+          "start": 67
+        },
+        {
+          "title": "Move work deliberately",
+          "start": 102
+        },
+        {
+          "title": "Resize duration rather than the view",
+          "start": 136
+        },
+        {
+          "title": "Move, resize and reorder with the keyboard",
+          "start": 171
+        },
+        {
+          "title": "Record progress explicitly",
+          "start": 213
+        },
+        {
+          "title": "Represent an event with a milestone",
+          "start": 249
+        },
+        {
+          "title": "Dividers, notes and row order",
+          "start": 284
+        },
+        {
+          "title": "Open a task reference without changing the plan",
+          "start": 323
+        },
+        {
+          "title": "Edit several selected tasks",
+          "start": 356
+        },
+        {
+          "title": "Copy and duplicate a task selection",
+          "start": 395
+        },
+        {
+          "title": "Paste selected tasks into another practice diagram",
+          "start": 437
+        },
+        {
+          "title": "Delete a predecessor and check dates",
+          "start": 479
+        },
+        {
+          "title": "Shift selected tasks and assign a person",
+          "start": 515
+        },
+        {
+          "title": "Delete a predecessor inside a compact arrow chain",
+          "start": 548
+        },
+        {
+          "title": "Create a small release plan",
+          "start": 585
+        },
+        {
+          "title": "A maintained plan is more than a picture",
+          "start": 622
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "title": "Dependencies and calendars",
+      "youtubeId": "JXuYmFHcsHg",
+      "durationSeconds": 626.8335,
+      "objective": "Add a holiday and dependency; explain the resulting schedule.",
+      "chapters": [
+        {
+          "title": "Explain the dates with rules",
+          "start": 0
+        },
+        {
+          "title": "Create a dependency explicitly",
+          "start": 33
+        },
+        {
+          "title": "Compare four endpoint relations",
+          "start": 69
+        },
+        {
+          "title": "Add a lag and read it correctly",
+          "start": 111
+        },
+        {
+          "title": "Verify lag across a closed weekend",
+          "start": 147
+        },
+        {
+          "title": "Reconnect and explain a link",
+          "start": 180
+        },
+        {
+          "title": "Compare only-task and cascade movement",
+          "start": 216
+        },
+        {
+          "title": "Convert an explicit start rule in source",
+          "start": 252
+        },
+        {
+          "title": "Reconnect and remove a dependency",
+          "start": 289
+        },
+        {
+          "title": "Inspect a problematic dependency change",
+          "start": 325
+        },
+        {
+          "title": "Choose the working calendar",
+          "start": 358
+        },
+        {
+          "title": "Add a dated exception",
+          "start": 395
+        },
+        {
+          "title": "Pause one task instead of the whole calendar",
+          "start": 429
+        },
+        {
+          "title": "Timeline scale and preview zoom",
+          "start": 464
+        },
+        {
+          "title": "Highlights, labels and filtering",
+          "start": 497
+        },
+        {
+          "title": "Name a color in the legend",
+          "start": 532
+        },
+        {
+          "title": "Explain a weekend and a holiday",
+          "start": 561
+        },
+        {
+          "title": "Rules first, picture second",
+          "start": 594
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "title": "People and workload",
+      "youtubeId": "SmjJtu5gBgA",
+      "durationSeconds": 414.4335,
+      "objective": "Fix an overloaded person and explain the scheduling consequence.",
+      "chapters": [
+        {
+          "title": "Who can do the work?",
+          "start": 0
+        },
+        {
+          "title": "Inspect an assignment",
+          "start": 31
+        },
+        {
+          "title": "Effort and elapsed time",
+          "start": 67
+        },
+        {
+          "title": "Add a second person and inspect the working duration",
+          "start": 103
+        },
+        {
+          "title": "Open the workload panel",
+          "start": 134
+        },
+        {
+          "title": "Daily and weekly views",
+          "start": 174
+        },
+        {
+          "title": "Capacity is an assumption",
+          "start": 209
+        },
+        {
+          "title": "Resolve the overlap in the plan",
+          "start": 248
+        },
+        {
+          "title": "Warnings and calculations are separate",
+          "start": 282
+        },
+        {
+          "title": "Turn assignments into a useful check-in",
+          "start": 315
+        },
+        {
+          "title": "Fix a real resource conflict",
+          "start": 345
+        },
+        {
+          "title": "Keep assumptions visible",
+          "start": 381
+        }
+      ]
+    },
+    {
+      "id": "06",
+      "title": "Forecasts and schedule scenarios",
+      "youtubeId": "_umPpKFHhrE",
+      "durationSeconds": 445.067,
+      "objective": "Compare two alternatives and apply only the chosen change.",
+      "chapters": [
+        {
+          "title": "Compare a plan with an informed forecast",
+          "start": 0
+        },
+        {
+          "title": "Turn on forecasting with a fixed status date",
+          "start": 34
+        },
+        {
+          "title": "Read plan and forecast together",
+          "start": 72
+        },
+        {
+          "title": "Investigate why a finish moved",
+          "start": 107
+        },
+        {
+          "title": "Open an isolated what-if scenario",
+          "start": 144
+        },
+        {
+          "title": "Change a scenario task and update the draft",
+          "start": 181
+        },
+        {
+          "title": "Name and retain the alternative",
+          "start": 216
+        },
+        {
+          "title": "Copy a saved scenario and review a changed base",
+          "start": 249
+        },
+        {
+          "title": "Review the patch before applying it",
+          "start": 310
+        },
+        {
+          "title": "Forecast application is also a reviewed change",
+          "start": 344
+        },
+        {
+          "title": "Compare two defensible alternatives",
+          "start": 379
+        },
+        {
+          "title": "A forecast supports a decision",
+          "start": 414
+        }
+      ]
+    },
+    {
+      "id": "07",
+      "title": "Reports and task check-in",
+      "youtubeId": "m9SNK_nkvac",
+      "durationSeconds": 610.333667,
+      "objective": "Prepare an accurate check-in for each person without sending anything.",
+      "chapters": [
+        {
+          "title": "Choose a report for the question",
+          "start": 0
+        },
+        {
+          "title": "Prepare a person-specific task check-in",
+          "start": 36
+        },
+        {
+          "title": "Review workload and assignment coverage",
+          "start": 71
+        },
+        {
+          "title": "Report the progress forecast",
+          "start": 108
+        },
+        {
+          "title": "Critical path and schedule sensitivity",
+          "start": 142
+        },
+        {
+          "title": "Milestone and delivery outlook",
+          "start": 181
+        },
+        {
+          "title": "Progress and due-date outlook",
+          "start": 215
+        },
+        {
+          "title": "Record explicit historical observations",
+          "start": 251
+        },
+        {
+          "title": "Explain changes since a saved baseline",
+          "start": 290
+        },
+        {
+          "title": "Coordinator and delivery presets",
+          "start": 326
+        },
+        {
+          "title": "Customize content without changing facts",
+          "start": 361
+        },
+        {
+          "title": "Keep report scope independent of canvas filters",
+          "start": 399
+        },
+        {
+          "title": "Refresh after the plan changes",
+          "start": 437
+        },
+        {
+          "title": "Refresh a report changed by another editor",
+          "start": 470
+        },
+        {
+          "title": "Copy or export after reviewing",
+          "start": 507
+        },
+        {
+          "title": "Choose evidence for a delivery conversation",
+          "start": 543
+        },
+        {
+          "title": "A useful report makes its limits clear",
+          "start": 578
+        }
+      ]
+    },
+    {
+      "id": "08",
+      "title": "WBS structure",
+      "youtubeId": "O7dolOSFc6M",
+      "durationSeconds": 339.088021,
+      "objective": "Build the launch WBS and reorganize a branch while preserving its children.",
+      "chapters": [
+        {
+          "title": "Describe what the project delivers",
+          "start": 0
+        },
+        {
+          "title": "Read the hierarchy",
+          "start": 35
+        },
+        {
+          "title": "Add a work package",
+          "start": 70
+        },
+        {
+          "title": "Edit a label and branch side",
+          "start": 102
+        },
+        {
+          "title": "Move the whole subtree",
+          "start": 136
+        },
+        {
+          "title": "Reorder with the keyboard",
+          "start": 172
+        },
+        {
+          "title": "Connect related work",
+          "start": 206
+        },
+        {
+          "title": "Style several nodes together",
+          "start": 243
+        },
+        {
+          "title": "Create and reorganize a branch",
+          "start": 277
+        },
+        {
+          "title": "Connect scope to delivery next",
+          "start": 309
+        }
+      ]
+    },
+    {
+      "id": "09",
+      "title": "Documents and connected diagrams",
+      "youtubeId": "-Bdd9lgGExo",
+      "durationSeconds": 513.1005,
+      "objective": "Add one item on each side, reconcile coverage, and reopen the saved document.",
+      "chapters": [
+        {
+          "title": "One document, several views",
+          "start": 0
+        },
+        {
+          "title": "Create a connected schedule",
+          "start": 31
+        },
+        {
+          "title": "Navigate document members",
+          "start": 66
+        },
+        {
+          "title": "Inspect the linked work",
+          "start": 99
+        },
+        {
+          "title": "Review coverage before adding or deleting",
+          "start": 137
+        },
+        {
+          "title": "Delete a WBS item and keep its schedule",
+          "start": 173
+        },
+        {
+          "title": "Delete both linked counterparts",
+          "start": 205
+        },
+        {
+          "title": "Add missing scheduled work to WBS",
+          "start": 235
+        },
+        {
+          "title": "Link existing work and navigate its counterpart",
+          "start": 264
+        },
+        {
+          "title": "Save the portable document",
+          "start": 302
+        },
+        {
+          "title": "Import and rename a member diagram",
+          "start": 338
+        },
+        {
+          "title": "Remove a disposable member",
+          "start": 373
+        },
+        {
+          "title": "Connect scheduled work to a model object",
+          "start": 410
+        },
+        {
+          "title": "Reconcile a small project",
+          "start": 448
+        },
+        {
+          "title": "Keep connections intentional",
+          "start": 483
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Sequence diagrams",
+      "youtubeId": "q69OiEX6m_4",
+      "durationSeconds": 542.233667,
+      "objective": "Model a successful request plus an error branch and explain the interaction.",
+      "chapters": [
+        {
+          "title": "Explain an interaction over time",
+          "start": 0
+        },
+        {
+          "title": "Create and identify participants",
+          "start": 35
+        },
+        {
+          "title": "Inspect before changing identity",
+          "start": 69
+        },
+        {
+          "title": "Read and create messages",
+          "start": 108
+        },
+        {
+          "title": "Show activation and returns",
+          "start": 144
+        },
+        {
+          "title": "Create and end a participant lifecycle",
+          "start": 181
+        },
+        {
+          "title": "Model a successful path and an error path",
+          "start": 212
+        },
+        {
+          "title": "Compare fragment families with small references",
+          "start": 249
+        },
+        {
+          "title": "Notes, references and flow controls",
+          "start": 285
+        },
+        {
+          "title": "Read reference, spacing and duration source constructs",
+          "start": 324
+        },
+        {
+          "title": "Reorder and tune presentation",
+          "start": 365
+        },
+        {
+          "title": "Reorder participants and messages deliberately",
+          "start": 404
+        },
+        {
+          "title": "Style a participant selection",
+          "start": 441
+        },
+        {
+          "title": "Explain both outcomes",
+          "start": 474
+        },
+        {
+          "title": "A readable interaction is a precise explanation",
+          "start": 510
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "title": "Use Case diagrams",
+      "youtubeId": "fzd7SVMMFJ8",
+      "durationSeconds": 389.867167,
+      "objective": "Model portal capabilities and an include/extend relationship with a clear meaning.",
+      "chapters": [
+        {
+          "title": "Model capabilities and their users",
+          "start": 0
+        },
+        {
+          "title": "Create another capability",
+          "start": 34
+        },
+        {
+          "title": "Create an actor deliberately",
+          "start": 69
+        },
+        {
+          "title": "Identity, appearance and placement",
+          "start": 103
+        },
+        {
+          "title": "Connect actors and capabilities",
+          "start": 140
+        },
+        {
+          "title": "Include and extend are different",
+          "start": 178
+        },
+        {
+          "title": "Add context and tune presentation",
+          "start": 218
+        },
+        {
+          "title": "Commit a presentation setting and verify source",
+          "start": 257
+        },
+        {
+          "title": "Style a selected category",
+          "start": 289
+        },
+        {
+          "title": "Explain the portal scope",
+          "start": 325
+        },
+        {
+          "title": "Keep the actor\u2019s goal in view",
+          "start": 359
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "Class diagrams",
+      "youtubeId": "pvPYcWLqb_E",
+      "durationSeconds": 430.833833,
+      "objective": "Model request types and a repository with appropriate relationships.",
+      "chapters": [
+        {
+          "title": "Model types, members and relationships",
+          "start": 0
+        },
+        {
+          "title": "Add an entity with the right kind",
+          "start": 35
+        },
+        {
+          "title": "Inspect the entity and its members",
+          "start": 71
+        },
+        {
+          "title": "Fields and operations are structured information",
+          "start": 111
+        },
+        {
+          "title": "Use parameter and type information precisely",
+          "start": 147
+        },
+        {
+          "title": "Create a method parameter in the structured editor",
+          "start": 182
+        },
+        {
+          "title": "Choose and inspect relationships",
+          "start": 221
+        },
+        {
+          "title": "Create and undo a typed relationship",
+          "start": 257
+        },
+        {
+          "title": "Packages, notes and layout",
+          "start": 290
+        },
+        {
+          "title": "Apply a deliberate bulk style",
+          "start": 328
+        },
+        {
+          "title": "Describe a small domain",
+          "start": 363
+        },
+        {
+          "title": "Keep structure and behavior distinct",
+          "start": 398
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "title": "Component diagrams",
+      "youtubeId": "5EJWvQFyCVw",
+      "durationSeconds": 323.188021,
+      "objective": "Explain the portal's deployment or service structure in a readable diagram.",
+      "chapters": [
+        {
+          "title": "Explain the architecture at the right level",
+          "start": 0
+        },
+        {
+          "title": "Create a component or infrastructure object",
+          "start": 38
+        },
+        {
+          "title": "Inspect identity and placement",
+          "start": 72
+        },
+        {
+          "title": "Make the service boundary explicit",
+          "start": 111
+        },
+        {
+          "title": "Inspect dependency endpoints and meaning",
+          "start": 148
+        },
+        {
+          "title": "Packages, nodes and notes",
+          "start": 184
+        },
+        {
+          "title": "Style a component category",
+          "start": 220
+        },
+        {
+          "title": "Explain the notification path",
+          "start": 254
+        },
+        {
+          "title": "Choose the view for the question",
+          "start": 289
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Activity diagrams",
+      "youtubeId": "2edapov2iYw",
+      "durationSeconds": 379.967,
+      "objective": "Build an intake workflow containing a decision and parallel work.",
+      "chapters": [
+        {
+          "title": "Explain a workflow and its conditions",
+          "start": 0
+        },
+        {
+          "title": "Add a meaningful action",
+          "start": 35
+        },
+        {
+          "title": "Inspect an action and its presentation",
+          "start": 67
+        },
+        {
+          "title": "Read both branches of a decision",
+          "start": 101
+        },
+        {
+          "title": "A loop repeats work under a condition",
+          "start": 136
+        },
+        {
+          "title": "Parallel work and responsibility partitions",
+          "start": 170
+        },
+        {
+          "title": "Connections, terminals and ordering",
+          "start": 204
+        },
+        {
+          "title": "Create a labeled flow arrow",
+          "start": 244
+        },
+        {
+          "title": "Style a set of actions",
+          "start": 276
+        },
+        {
+          "title": "Trace every path",
+          "start": 310
+        },
+        {
+          "title": "Use structure to explain behavior",
+          "start": 346
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Editor assistance and navigation",
+      "youtubeId": "Z1gzr-5OQNQ",
+      "durationSeconds": 581.933667,
+      "objective": "Diagnose an intentional error, rename a referenced element, and review a proposed patch.",
+      "chapters": [
+        {
+          "title": "A deliberate editing routine",
+          "start": 0
+        },
+        {
+          "title": "Find an available command",
+          "start": 29
+        },
+        {
+          "title": "Find work by meaning",
+          "start": 58
+        },
+        {
+          "title": "Read the preserved-source explanation",
+          "start": 91
+        },
+        {
+          "title": "Dock the outline and navigate a match",
+          "start": 127
+        },
+        {
+          "title": "Search the authored statements",
+          "start": 160
+        },
+        {
+          "title": "Preview source formatting before applying it",
+          "start": 192
+        },
+        {
+          "title": "Understand an intentional error",
+          "start": 235
+        },
+        {
+          "title": "Verify the repaired result",
+          "start": 267
+        },
+        {
+          "title": "Use completion and semantic references",
+          "start": 301
+        },
+        {
+          "title": "Rename a referenced identity",
+          "start": 338
+        },
+        {
+          "title": "Accept a completion deliberately",
+          "start": 373
+        },
+        {
+          "title": "Preview and accept a safe repair",
+          "start": 408
+        },
+        {
+          "title": "Review Sequence changes as groups",
+          "start": 443
+        },
+        {
+          "title": "Accept a grouped Sequence proposal",
+          "start": 480
+        },
+        {
+          "title": "Repair and review a practice copy",
+          "start": 519
+        },
+        {
+          "title": "Assistance supports judgment",
+          "start": 553
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "title": "History and change review",
+      "youtubeId": "9EbX7yZUjxc",
+      "durationSeconds": 405.967167,
+      "objective": "Recover an earlier state, then identify the differences from the current version.",
+      "chapters": [
+        {
+          "title": "Review before replacing",
+          "start": 0
+        },
+        {
+          "title": "Create a named checkpoint",
+          "start": 28
+        },
+        {
+          "title": "Compare the exact source",
+          "start": 61
+        },
+        {
+          "title": "Compare the drawing",
+          "start": 95
+        },
+        {
+          "title": "Review meaningful groups",
+          "start": 126
+        },
+        {
+          "title": "Export review evidence",
+          "start": 162
+        },
+        {
+          "title": "Export and apply a selected change",
+          "start": 196
+        },
+        {
+          "title": "Review a connected document against its saved baseline",
+          "start": 239
+        },
+        {
+          "title": "Name, pin and retain deliberately",
+          "start": 276
+        },
+        {
+          "title": "Restore a known checkpoint",
+          "start": 309
+        },
+        {
+          "title": "Recover and explain a change",
+          "start": 342
+        },
+        {
+          "title": "Preserve the reason for a change",
+          "start": 375
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "title": "Live collaboration",
+      "youtubeId": "8XME1xp3dso",
+      "durationSeconds": 445.400333,
+      "objective": "Join as a viewer, demonstrate the permission boundary, then revoke the old links.",
+      "chapters": [
+        {
+          "title": "Share the work with a clear role",
+          "start": 0
+        },
+        {
+          "title": "Create a private room",
+          "start": 32
+        },
+        {
+          "title": "Join a second browser as a viewer",
+          "start": 64
+        },
+        {
+          "title": "Synchronize an editor change",
+          "start": 95
+        },
+        {
+          "title": "Separate shared work from local navigation",
+          "start": 127
+        },
+        {
+          "title": "Inspect reconnection and preserve a copy",
+          "start": 164
+        },
+        {
+          "title": "Verify overlapping concurrent edits",
+          "start": 200
+        },
+        {
+          "title": "Navigate connected members independently",
+          "start": 236
+        },
+        {
+          "title": "Checkpoint a reviewed shared state",
+          "start": 273
+        },
+        {
+          "title": "Understand room and owner lifetime",
+          "start": 307
+        },
+        {
+          "title": "Reload the creating owner tab",
+          "start": 339
+        },
+        {
+          "title": "Revoke the old links",
+          "start": 370
+        },
+        {
+          "title": "Verify the permission boundary",
+          "start": 412
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "title": "Saving, recovery, and offline use",
+      "youtubeId": "n5ylKu-XKH8",
+      "durationSeconds": 641.021354,
+      "objective": "Save, close, reopen, recover a checkpoint, and edit offline after an initial online visit.",
+      "chapters": [
+        {
+          "title": "Choose the right safeguard",
+          "start": 0
+        },
+        {
+          "title": "Save through the browser fallback",
+          "start": 33
+        },
+        {
+          "title": "Reopen and verify",
+          "start": 65
+        },
+        {
+          "title": "Save and reopen with the macOS picker",
+          "start": 98
+        },
+        {
+          "title": "Compression and history limits",
+          "start": 137
+        },
+        {
+          "title": "Understand password protection",
+          "start": 171
+        },
+        {
+          "title": "Save and unlock a protected practice copy",
+          "start": 208
+        },
+        {
+          "title": "Recovery and workspace backups",
+          "start": 245
+        },
+        {
+          "title": "Restore a workspace backup",
+          "start": 280
+        },
+        {
+          "title": "Handle external changes deliberately",
+          "start": 320
+        },
+        {
+          "title": "Prepare offline use before you need it",
+          "start": 361
+        },
+        {
+          "title": "Restart the cached app offline",
+          "start": 398
+        },
+        {
+          "title": "Install the desktop app and apply an update",
+          "start": 438
+        },
+        {
+          "title": "Use the mobile task view",
+          "start": 488
+        },
+        {
+          "title": "Update a task in a narrow-screen browser",
+          "start": 523
+        },
+        {
+          "title": "Review an externally changed file handle",
+          "start": 560
+        },
+        {
+          "title": "Test your recovery routine",
+          "start": 607
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "title": "Export and final handover",
+      "youtubeId": "dnkuaPguNK4",
+      "durationSeconds": 478.033667,
+      "objective": "Deliver the final document, plaintext source, and a readable exported diagram.",
+      "chapters": [
+        {
+          "title": "Deliver a usable result",
+          "start": 0
+        },
+        {
+          "title": "Preview and download SVG",
+          "start": 32
+        },
+        {
+          "title": "Choose a practical raster scale",
+          "start": 68
+        },
+        {
+          "title": "Understand the PDF output",
+          "start": 100
+        },
+        {
+          "title": "Keep source and copy formats clear",
+          "start": 132
+        },
+        {
+          "title": "Download the authored source",
+          "start": 168
+        },
+        {
+          "title": "Verify Markdown and Confluence clipboard output",
+          "start": 201
+        },
+        {
+          "title": "Verify a copied image",
+          "start": 234
+        },
+        {
+          "title": "Encoded links disclose their source",
+          "start": 269
+        },
+        {
+          "title": "Present a focused view",
+          "start": 303
+        },
+        {
+          "title": "Present connected diagram members",
+          "start": 334
+        },
+        {
+          "title": "Keep local views and notes in context",
+          "start": 366
+        },
+        {
+          "title": "Verify and open rendered links",
+          "start": 399
+        },
+        {
+          "title": "Verify the final package",
+          "start": 441
+        }
+      ]
+    }
+  ]
+}

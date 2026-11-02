@@ -1,0 +1,241 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:07.425
+A Use Case diagram explains which actors interact with a
+system and which capabilities the system offers.
+
+00:00:07.545 --> 00:00:13.920
+It is a view of scope and responsibility, rather than a
+sequence of internal implementation steps.
+
+00:00:14.040 --> 00:00:20.415
+Our customer portal lets customers submit and track
+requests, while a support agent resolves them.
+
+00:00:20.535 --> 00:00:28.210
+We will create objects, inspect their identity and
+appearance, add relationships and notes, and compare
+include with extend.
+
+00:00:28.330 --> 00:00:31.780
+Keep each capability meaningful to an actor.
+
+00:00:35.300 --> 00:00:38.750
+Use Insert and Use case to add Read help.
+
+00:00:38.870 --> 00:00:44.520
+A good name describes an actor's goal rather than a screen
+widget or a database table.
+
+00:00:44.640 --> 00:00:49.890
+Review the kind, name and alias in the creation screen
+before adding the object.
+
+00:00:50.010 --> 00:00:55.235
+The alias is useful when you refer to this capability
+repeatedly in source.
+
+00:00:55.355 --> 00:00:59.730
+After creation, locate the declaration and the rendered
+object.
+
+00:00:59.850 --> 00:01:06.750
+We will connect capabilities separately so that adding an
+object is not confused with defining who can use it.
+
+00:01:10.267 --> 00:01:16.067
+An actor represents a role interacting with the system,
+not necessarily one named person.
+
+00:01:16.187 --> 00:01:19.237
+Add an Auditor role to this practice model.
+
+00:01:19.357 --> 00:01:25.857
+Inspect the actor and use-case kind choices rather than
+selecting a shape only for decoration.
+
+00:01:25.977 --> 00:01:31.727
+External services can also be actors when they play a
+relevant role at the system boundary.
+
+00:01:31.847 --> 00:01:40.722
+Keep the diagram focused on the capabilities you are
+explaining, and avoid listing every internal
+implementation component as another actor.
+
+00:01:44.233 --> 00:01:47.833
+Select Submit request and inspect its properties.
+
+00:01:47.953 --> 00:01:55.978
+Name and alias identify the capability, while color,
+stereotype and the business-object option change how it is
+presented.
+
+00:01:56.098 --> 00:02:00.673
+The container setting places it within a system boundary
+or package.
+
+00:02:00.793 --> 00:02:06.393
+Keep identity changes deliberate because other statements
+refer to these objects.
+
+00:02:06.513 --> 00:02:13.588
+A boundary groups what belongs to the modeled system; it
+is not a substitute for explaining the capability itself.
+
+00:02:13.708 --> 00:02:17.583
+Review the source when moving an object between
+containers.
+
+00:02:21.100 --> 00:02:25.650
+Relationship tools connect the actors and capabilities you
+have modeled.
+
+00:02:25.770 --> 00:02:31.345
+Open the relationship creation screen and inspect the
+endpoint and type choices.
+
+00:02:31.465 --> 00:02:38.890
+Associations explain participation, while generalization
+and other relationship types express different meanings.
+
+00:02:39.010 --> 00:02:45.110
+Select endpoints deliberately and reconnect a relationship
+when the original endpoint was wrong.
+
+00:02:45.230 --> 00:02:50.180
+Do not compensate for an incorrect association with a
+misleading label.
+
+00:02:50.300 --> 00:02:55.900
+Notes can explain an assumption, but the relationship
+should still be semantically correct.
+
+00:02:59.400 --> 00:03:04.775
+Paste the supplied reference example and compare its two
+additional relationships.
+
+00:03:04.895 --> 00:03:09.670
+Submit request includes validation as part of that
+capability.
+
+00:03:09.790 --> 00:03:15.315
+Attach a file extends the submission behavior under an
+appropriate optional condition.
+
+00:03:15.435 --> 00:03:21.060
+Include and extend are not interchangeable labels for any
+arrow between two ovals.
+
+00:03:21.180 --> 00:03:28.755
+Use them when you can explain the behavioral distinction
+in plain language, and check arrow direction and
+stereotype in the source.
+
+00:03:28.875 --> 00:03:35.350
+Keep the actor associations visible so the diagram still
+answers who needs each capability.
+
+00:03:38.867 --> 00:03:44.917
+Use packages or boundaries to organize the model, and
+notes to record useful assumptions.
+
+00:03:45.037 --> 00:03:50.462
+Diagram settings control overall presentation, including
+layout choices.
+
+00:03:50.582 --> 00:03:55.107
+Open these screens and compare their purpose with the
+object inspector.
+
+00:03:55.227 --> 00:04:02.227
+A good system boundary keeps internal capabilities
+together while actors remain outside the system they use.
+
+00:04:02.347 --> 00:04:05.947
+Layout and styling should reinforce that distinction.
+
+00:04:06.067 --> 00:04:14.217
+If the valid syntax you need is not represented by a
+dedicated form, preserve it in source and inspect the
+resulting preview.
+
+00:04:17.733 --> 00:04:23.333
+Open the Use Case diagram settings and change the layout
+direction to top to bottom.
+
+00:04:23.453 --> 00:04:27.203
+Give this review copy an explicit title and caption.
+
+00:04:27.323 --> 00:04:34.823
+These settings commit as you leave the fields; this
+inspector does not require the Apply button used by some
+other editors.
+
+00:04:34.943 --> 00:04:39.493
+Inspect the saved title and caption statements and the
+current preview.
+
+00:04:39.613 --> 00:04:46.513
+Use shared Undo to reconsider a committed setting rather
+than assuming that closing the inspector cancels it.
+
+00:04:50.033 --> 00:04:56.058
+Select Submit request and Track request together with a
+modifier, then inspect the bulk panel.
+
+00:04:56.178 --> 00:05:00.303
+Apply a supported shared style and check the source
+changes.
+
+00:05:00.423 --> 00:05:07.973
+A common style can make related capabilities easier to
+recognize, but retain clear names and meaningful
+boundaries.
+
+00:05:08.093 --> 00:05:16.043
+Copy or duplicate only a verified selection, and review
+resulting identifiers and associations before continuing.
+
+00:05:16.163 --> 00:05:22.388
+Shared history lets you reconsider a bulk operation
+without manually reversing each object.
+
+00:05:25.900 --> 00:05:31.200
+Pause and add an Auditor actor and a Read help capability
+to a practice copy.
+
+00:05:31.320 --> 00:05:35.595
+Decide whether they belong in an association and explain
+why.
+
+00:05:35.715 --> 00:05:42.490
+Add one useful note, then use the reference example to
+explain include and extend in your own words.
+
+00:05:42.610 --> 00:05:48.460
+Inspect a capability's container and apply a shared style
+to two selected objects.
+
+00:05:48.580 --> 00:05:56.680
+Your success check is that someone can identify the system
+boundary, the actors and their goals without needing to
+know the implementation.
+
+00:06:00.200 --> 00:06:04.425
+A capability model should make system scope
+understandable.
+
+00:06:04.545 --> 00:06:09.445
+Keep actors, use cases, boundaries and relationship
+meanings distinct.
+
+00:06:09.565 --> 00:06:18.215
+Inspect identity and placement before presentation, and
+verify associations after moving, renaming or duplicating
+objects.
+
+00:06:18.335 --> 00:06:26.860
+The next lesson describes the types and members inside the
+system, using a Class diagram to answer a different
+question from this actor-centered view.

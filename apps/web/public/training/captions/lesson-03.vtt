@@ -1,0 +1,422 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.625
+In this lesson we will build and maintain the work in a
+Gantt plan.
+
+00:00:04.745 --> 00:00:10.470
+You will create a task, edit its details, move and resize
+work, and represent progress.
+
+00:00:10.590 --> 00:00:15.890
+We will also add a milestone, organize rows, and change
+several tasks together.
+
+00:00:16.010 --> 00:00:21.535
+Finally, we will inspect what happens to dependent work
+when a predecessor is deleted.
+
+00:00:21.655 --> 00:00:27.555
+Work with a disposable practice copy so that the examples
+can be repeated and compared.
+
+00:00:31.067 --> 00:00:35.217
+Use Insert and choose Task to create another activity.
+
+00:00:35.337 --> 00:00:40.287
+Give the task a specific outcome: in our example,
+acceptance testing.
+
+00:00:40.407 --> 00:00:44.207
+Enter three working days and choose a fixed start date.
+
+00:00:44.327 --> 00:00:49.302
+Alternatively, select a predecessor when the work should
+follow another task.
+
+00:00:49.422 --> 00:00:54.522
+A dependency takes precedence over a fixed start in this
+creation dialog.
+
+00:00:54.642 --> 00:00:58.992
+After adding the task, check both its bar and its source
+statement.
+
+00:00:59.112 --> 00:01:04.312
+Naming the work clearly makes later dependency and
+resource discussions easier.
+
+00:01:07.833 --> 00:01:11.008
+Select Design to open its inspector.
+
+00:01:11.128 --> 00:01:17.203
+The name is what the reader sees, while the alias in the
+source remains a useful stable reference.
+
+00:01:17.323 --> 00:01:23.498
+Rename the displayed work to Interaction design and set
+its duration to six working days.
+
+00:01:23.618 --> 00:01:27.468
+Move focus out of a valid field to apply the change.
+
+00:01:27.588 --> 00:01:30.388
+Keep the source visible while you work.
+
+00:01:30.508 --> 00:01:39.933
+A label change should not require you to reconstruct every
+relationship manually, and a duration change should not be
+confused with a simple zoom operation.
+
+00:01:43.433 --> 00:01:48.658
+For an independently dated task, dragging horizontally
+changes its start.
+
+00:01:48.778 --> 00:01:57.703
+Moving a task that drives other work can also affect
+downstream dates, so pay attention to the move policy and
+any review offered by the app.
+
+00:01:57.823 --> 00:02:03.023
+In this example the dates are explicit, making the
+movement easy to inspect.
+
+00:02:03.143 --> 00:02:08.893
+Select Design, move it a short distance, and read the
+resulting start in the inspector.
+
+00:02:09.013 --> 00:02:13.813
+Use Undo if the move does not represent the intended
+scheduling decision.
+
+00:02:17.333 --> 00:02:20.933
+Dragging a task's right edge changes its duration.
+
+00:02:21.053 --> 00:02:26.603
+That is different from dragging the body to move the
+start, and different again from preview zoom.
+
+00:02:26.723 --> 00:02:32.148
+Resize Design and then open its inspector to read the
+resulting duration.
+
+00:02:32.268 --> 00:02:38.018
+Working calendars can make the bar span more calendar days
+than the effort number suggests.
+
+00:02:38.138 --> 00:02:43.763
+When precision matters, enter the required number directly
+after the visual adjustment.
+
+00:02:43.883 --> 00:02:48.533
+Confirm the authored statement before moving on to the
+next operation.
+
+00:02:52.033 --> 00:02:57.058
+For this independent-task practice, set the move policy to
+Only task.
+
+00:02:57.178 --> 00:03:04.178
+Focus Design and use Alt plus Right Arrow to request a one
+day move, then inspect its resulting dates.
+
+00:03:04.298 --> 00:03:09.098
+Alt plus Shift plus Right Arrow increases its duration by
+one day.
+
+00:03:09.218 --> 00:03:14.418
+Control plus Down Arrow reorders the focused task in the
+authored task list.
+
+00:03:14.538 --> 00:03:19.338
+Undo those three diagram operations to return to the
+original source.
+
+00:03:19.458 --> 00:03:24.633
+Start a horizontal drag, then hold Shift to snap pointer
+movement to weeks.
+
+00:03:24.753 --> 00:03:30.328
+Read the new task dates in the inspector and check the
+current preview after the edit.
+
+00:03:33.833 --> 00:03:40.008
+Progress describes how much work is completed; it is not a
+replacement for dates or effort.
+
+00:03:40.128 --> 00:03:44.078
+Select Build and enter twenty five percent in Progress.
+
+00:03:44.198 --> 00:03:48.198
+Leave the field, then inspect the bar and the new source
+statement.
+
+00:03:48.318 --> 00:03:55.718
+Use an agreed reporting practice when updating
+percentages, especially when several people contribute to
+one task.
+
+00:03:55.838 --> 00:04:01.638
+A progress value by itself does not explain whether the
+remaining work is realistic.
+
+00:04:01.758 --> 00:04:06.758
+Forecasting and status-date interpretation are taught in a
+later lesson.
+
+00:04:10.267 --> 00:04:14.742
+A milestone represents an event rather than a block of
+effort.
+
+00:04:14.862 --> 00:04:18.137
+The launch marker already follows Build's end.
+
+00:04:18.257 --> 00:04:23.582
+Add another milestone called Readiness review, using a
+fixed date in this example.
+
+00:04:23.702 --> 00:04:30.127
+Inspect the difference between a fixed milestone and one
+tied to a task's calculated start or end.
+
+00:04:30.247 --> 00:04:37.622
+The choice expresses a real planning rule: does the review
+have an independently committed date, or should it follow
+the work?
+
+00:04:37.742 --> 00:04:41.767
+Use the source and preview to check which rule you
+created.
+
+00:04:45.267 --> 00:04:50.092
+Horizontal dividers organize task rows into readable
+sections.
+
+00:04:50.212 --> 00:04:58.062
+They are useful for separating discovery, implementation
+and release work without pretending that a section is
+another task.
+
+00:04:58.182 --> 00:05:02.007
+Add a Release preparation divider at the end of the plan.
+
+00:05:02.127 --> 00:05:09.702
+Notes provide explanations that do not belong in a task
+name, while task links can point to relevant supporting
+material.
+
+00:05:09.822 --> 00:05:12.722
+Keep these annotations concise.
+
+00:05:12.842 --> 00:05:20.392
+Row ordering and same-row display improve presentation,
+but dependencies should still carry the actual scheduling
+rules.
+
+00:05:23.900 --> 00:05:28.275
+Task links open supporting material without changing the
+schedule.
+
+00:05:28.395 --> 00:05:33.795
+Activate the Design reference and review the destination
+in the browser confirmation.
+
+00:05:33.915 --> 00:05:38.990
+Cancel the first request, then verify that the authored
+source is unchanged.
+
+00:05:39.110 --> 00:05:42.510
+Open the link again and accept the destination.
+
+00:05:42.630 --> 00:05:48.080
+The reference opens in a separate tab while the original
+diagram stays available.
+
+00:05:48.200 --> 00:05:53.000
+Return to the diagram and confirm its current preview
+before continuing.
+
+00:05:56.500 --> 00:06:02.550
+When the same change applies to several tasks, select them
+together and inspect the bulk panel.
+
+00:06:02.670 --> 00:06:10.045
+Here we select Research and Design, then examine the
+available fields for shifting dates, completion and
+resources.
+
+00:06:10.165 --> 00:06:17.465
+Enter twenty five and choose Set completion for both
+tasks, then inspect the source to confirm both changes.
+
+00:06:17.585 --> 00:06:24.485
+Check which tasks are included before applying it, and use
+the shared Undo history to reconsider the operation.
+
+00:06:24.605 --> 00:06:32.355
+Copy and Duplicate are useful for reusing structure, but
+inspect the generated identifiers and relationships
+afterward.
+
+00:06:35.867 --> 00:06:41.642
+Select Research and Design together and check that the
+panel names the intended tasks.
+
+00:06:41.762 --> 00:06:46.462
+Choose Copy and inspect the actual clipboard text in this
+training preview.
+
+00:06:46.582 --> 00:06:51.332
+Copy prepares reusable content without changing the
+authored plan.
+
+00:06:51.452 --> 00:06:56.352
+Close the clipboard preview, then choose Duplicate for the
+selected tasks.
+
+00:06:56.472 --> 00:07:02.472
+Inspect the new declarations and aliases in the source,
+and check the new tasks in the drawing.
+
+00:07:02.592 --> 00:07:08.942
+Use shared Undo to return to the original plan and verify
+that the original declarations remain.
+
+00:07:09.062 --> 00:07:14.662
+Reusing a selection still requires a check of identifiers,
+dates and relationships.
+
+00:07:18.167 --> 00:07:22.142
+Copy Research and Design from the selected task panel.
+
+00:07:22.262 --> 00:07:27.712
+Open a second Gantt practice tab and keep a small setup
+task in that diagram.
+
+00:07:27.832 --> 00:07:36.557
+Place the source cursor before the closing delimiter and
+paste the copied task statements, then separate the
+closing delimiter onto its own line.
+
+00:07:36.677 --> 00:07:43.927
+Verify that Research, Design and their dependency render
+in the receiving diagram alongside the setup task.
+
+00:07:44.047 --> 00:07:51.522
+Switch between the tabs to verify their independent
+source, and check aliases before pasting into a populated
+plan.
+
+00:07:51.642 --> 00:07:56.892
+Copying task statements does not copy a connected project
+or its document links.
+
+00:08:00.400 --> 00:08:06.300
+Deleting a task is a structural change, so inspect its
+dependents before and after.
+
+00:08:06.420 --> 00:08:09.595
+First select Build and read its start date.
+
+00:08:09.715 --> 00:08:13.390
+Then delete Design in this disposable example.
+
+00:08:13.510 --> 00:08:17.910
+Open Build again and compare its start with the value you
+recorded.
+
+00:08:18.030 --> 00:08:27.005
+The app preserves the dependent task's date when removing
+the predecessor rather than silently pulling all following
+work to the beginning of the plan.
+
+00:08:27.125 --> 00:08:32.650
+Inspect the rewritten source, and use Undo if deletion was
+not the intended change.
+
+00:08:36.167 --> 00:08:41.767
+Choose the only-task movement policy before selecting
+Research and Design together.
+
+00:08:41.887 --> 00:08:48.362
+Shift the selected work by two days and verify that the
+source changes while the preview remains current.
+
+00:08:48.482 --> 00:08:52.307
+Enter Sam in the bulk Resource field and choose Assign.
+
+00:08:52.427 --> 00:08:57.427
+Confirm that both selected tasks now have Sam in their
+source declarations.
+
+00:08:57.547 --> 00:09:05.447
+Combined with the completion and copy examples, this
+demonstrates one reviewed intention applied to several
+selected tasks.
+
+00:09:08.967 --> 00:09:14.067
+Inspect Build and retain its resolved start before
+deleting a predecessor.
+
+00:09:14.187 --> 00:09:19.512
+This diagram uses a compact arrow chain as well as
+explicit scheduling rules.
+
+00:09:19.632 --> 00:09:24.382
+Delete Design from the inspector and compare the resulting
+dates.
+
+00:09:24.502 --> 00:09:32.977
+Build keeps its previous date, the tied gate is pinned to
+its earlier date, and the chain becomes a direct arrow
+from Analysis to Build.
+
+00:09:33.097 --> 00:09:36.272
+Review the source and current preview together.
+
+00:09:36.392 --> 00:09:42.242
+Use one shared Undo to recover the original tasks, compact
+chain and scheduling rules.
+
+00:09:45.767 --> 00:09:50.617
+Pause and create an acceptance-testing task lasting three
+working days.
+
+00:09:50.737 --> 00:09:58.237
+Add a readiness milestone, organize the release work with
+a divider, and record twenty five percent progress for
+Build.
+
+00:09:58.357 --> 00:10:03.807
+Try one move and one resize, inspecting the values after
+each operation.
+
+00:10:03.927 --> 00:10:07.202
+Then undo those experimental changes.
+
+00:10:07.322 --> 00:10:14.147
+Your final plan should retain its meaningful dependencies
+and contain the new work and status you intended.
+
+00:10:14.267 --> 00:10:19.417
+Compare source and diagram rather than relying on the
+general shape of the bars.
+
+00:10:22.933 --> 00:10:29.083
+You can now create work, edit its details, record
+progress, and organize a readable schedule.
+
+00:10:29.203 --> 00:10:35.153
+Moving, resizing and deleting tasks change the authored
+plan, so check their consequences.
+
+00:10:35.273 --> 00:10:42.023
+Use milestones for events, notes for explanation, and bulk
+operations for a clearly defined selection.
+
+00:10:42.143 --> 00:10:48.943
+The next lesson concentrates on the rules behind the
+dates: dependencies, lags and working calendars.
+
+00:10:49.063 --> 00:10:52.888
+Those rules explain why a task begins where it does.

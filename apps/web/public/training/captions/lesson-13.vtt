@@ -1,0 +1,190 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:06.950
+A Component diagram describes software structure and the
+services or infrastructure that connect it.
+
+00:00:07.070 --> 00:00:15.445
+It is useful when an audience needs to understand
+responsibilities and dependencies without reading a
+sequence of individual messages.
+
+00:00:15.565 --> 00:00:21.290
+Our portal has a web app, API, request database,
+notification queue and worker.
+
+00:00:21.410 --> 00:00:29.485
+We will create another component, inspect infrastructure
+kinds and interfaces, group the architecture, and apply a
+shared style.
+
+00:00:29.605 --> 00:00:35.105
+State what a connection means rather than treating every
+arrow as an interchangeable line.
+
+00:00:38.633 --> 00:00:43.558
+Choose Component or infrastructure from Insert and add an
+Audit service.
+
+00:00:43.678 --> 00:00:53.028
+Review the kind options: the editor also supports
+interfaces, databases, queues, clouds, nodes, artifacts,
+files, folders and rectangles.
+
+00:00:53.148 --> 00:00:56.873
+Choose the kind for what the object represents in this
+view.
+
+00:00:56.993 --> 00:01:02.418
+A database or deployment node is not the same concept as a
+software component.
+
+00:01:02.538 --> 00:01:09.463
+Inspect the resulting declaration and give the object a
+stable alias when other statements will refer to it.
+
+00:01:12.967 --> 00:01:16.317
+Select API and open its inspector.
+
+00:01:16.437 --> 00:01:24.162
+Kind, name and alias identify the object, while stereotype
+and color describe presentation or classification.
+
+00:01:24.282 --> 00:01:28.082
+Container placement groups it within a package or node.
+
+00:01:28.202 --> 00:01:34.277
+These fields answer different questions, so avoid changing
+them all merely to make the drawing fit.
+
+00:01:34.397 --> 00:01:39.147
+Inspect the source after an identity change and verify the
+connections.
+
+00:01:39.267 --> 00:01:48.567
+The same common editor pattern applies here as in Class
+diagrams, but the modeled meaning is architectural rather
+than a member-level type design.
+
+00:01:52.067 --> 00:01:57.242
+The reference example adds a Request service interface
+beside API.
+
+00:01:57.362 --> 00:02:05.237
+An interface helps explain what another component relies
+on, while the API implementation remains a separate
+object.
+
+00:02:05.357 --> 00:02:11.607
+Read the declaration and connection together, and decide
+how much detail is useful for this audience.
+
+00:02:11.727 --> 00:02:17.402
+Do not imply an implemented protocol simply because two
+objects are next to each other.
+
+00:02:17.522 --> 00:02:25.497
+Use a label or note to state the relevant interaction or
+contract, and keep that explanation consistent with the
+Sequence model.
+
+00:02:29.000 --> 00:02:34.050
+Open Relationship to inspect the supported kinds and
+endpoint controls.
+
+00:02:34.170 --> 00:02:43.920
+In our example, Web uses API over HTTPS, API reads and
+writes the database, and notifications move through the
+queue to the worker.
+
+00:02:44.040 --> 00:02:47.390
+Those labels explain different interactions.
+
+00:02:47.510 --> 00:02:54.135
+Reconnect an incorrectly chosen endpoint rather than
+leaving a misleading architectural dependency.
+
+00:02:54.255 --> 00:03:01.680
+Check the source after reordering or moving an object into
+a container so that the intended structure remains intact.
+
+00:03:05.200 --> 00:03:10.350
+A package or node groups related objects, but the kind of
+grouping matters.
+
+00:03:10.470 --> 00:03:17.620
+The extended example puts the web app in a browser
+environment and records an assumption at the API boundary.
+
+00:03:17.740 --> 00:03:23.965
+Compare these declarations with the preview, then inspect
+package creation and Diagram settings.
+
+00:03:24.085 --> 00:03:29.710
+A deployment node, ownership grouping and logical package
+can answer different questions.
+
+00:03:29.830 --> 00:03:37.755
+Keep a boundary explicit enough that a reader does not
+have to guess whether it means physical location,
+ownership or software structure.
+
+00:03:41.267 --> 00:03:46.342
+Select Web and API together and inspect the bulk styling
+controls.
+
+00:03:46.462 --> 00:03:51.087
+Apply one shared style to distinguish a category of
+software objects.
+
+00:03:51.207 --> 00:03:56.732
+Styling should support names and boundaries, not become
+the only way to understand them.
+
+00:03:56.852 --> 00:04:04.602
+Review the source after the bulk change and check copied
+or duplicated objects for unintended identifiers or
+connections.
+
+00:04:04.722 --> 00:04:11.022
+The source history provides a way to reconsider the
+operation when the selected set was too broad.
+
+00:04:14.533 --> 00:04:17.158
+Pause and add an Audit service.
+
+00:04:17.278 --> 00:04:28.228
+Identify the request database, notification queue and
+worker as distinct responsibilities, then explain the path
+from request creation to notification processing.
+
+00:04:28.348 --> 00:04:32.873
+Add one interface and one boundary that have a clear
+meaning in your model.
+
+00:04:32.993 --> 00:04:38.643
+Inspect a connection, add an explanatory note and style a
+verified pair of components.
+
+00:04:38.763 --> 00:04:46.788
+A successful result can be explained without pretending
+that this structural diagram is a complete timeline of
+runtime behavior.
+
+00:04:50.300 --> 00:04:56.525
+Components, infrastructure, interfaces and boundaries help
+explain the system's major structure.
+
+00:04:56.645 --> 00:05:02.620
+Use messages or workflow models for the detailed behavior
+that this diagram does not show.
+
+00:05:02.740 --> 00:05:09.240
+Keep aliases, endpoint meaning and grouping deliberate,
+and use notes to state relevant assumptions.
+
+00:05:09.360 --> 00:05:20.160
+The next lesson models a request intake workflow with
+decisions, loops and parallel work, moving from structural
+responsibilities back to the order and conditions of
+behavior.

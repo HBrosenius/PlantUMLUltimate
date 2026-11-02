@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useDialogFocus } from "./use-dialog-focus";
 import { isApplePlatform, optionShortcut } from "./platform-shortcuts";
 import type { DiagramKind } from "./model";
+import { trainingVideos } from "./training-videos";
 
 type Topic = {
   title: string;
@@ -194,6 +195,7 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
   const sections = topics.filter(
     (topic) => inScope(topic.group) && matches([topic.title, ...topic.paragraphs, topic.example ?? ""].join(" ")),
   );
+  const videos = trainingVideos.filter((video) => inScope(video.group) && matches(video.searchText));
   const rows = shortcuts().filter(
     (row) =>
       inScope(row.group) &&
@@ -222,6 +224,10 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
             <p>
               <a href="/guide/" target="_blank" rel="noopener noreferrer">
                 Getting started and diagram examples (opens in a new tab)
+              </a>
+              {" · "}
+              <a href="/training/" target="_blank" rel="noopener noreferrer">
+                Video course and practice files (opens in a new tab)
               </a>
             </p>
           </div>
@@ -256,17 +262,18 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
             All shortcuts & gestures
           </button>
           <p role="status">
-            {sections.length} topics · {rows.length} shortcuts
+            {sections.length} topics · {rows.length} shortcuts · {videos.length} videos
           </p>
         </div>
         <div className="help-content">
-          {!sections.length && !rows.length && (
+          {!sections.length && !rows.length && !videos.length && (
             <p>No matching help. Try another action or shortcut, or choose All diagrams.</p>
           )}
           {groups.map((group) => {
             const groupTopics = sections.filter((topic) => topic.group === group);
             const groupRows = rows.filter((row) => row.group === group);
-            if (!groupTopics.length && !groupRows.length) return null;
+            const groupVideos = videos.filter((video) => video.group === group);
+            if (!groupTopics.length && !groupRows.length && !groupVideos.length) return null;
             return (
               <section key={group} aria-label={`${names[group as DiagramKind] ?? group} help`}>
                 <h3>
@@ -298,6 +305,21 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
                     </div>
                   );
                 })}
+                {groupVideos.length > 0 && (
+                  <details className="help-videos" open={query.trim() ? true : undefined}>
+                    <summary>Video tutorials ({groupVideos.length})</summary>
+                    <p>Watch on YouTube in a new tab. Videos are unlisted review copies.</p>
+                    <ul>
+                      {groupVideos.map((video) => (
+                        <li key={video.id}>
+                          <a href={video.url} target="_blank" rel="noopener noreferrer">
+                            {video.id} · {video.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 {groupRows.length > 0 && (
                   <>
                     <h4>Keyboard shortcuts</h4>

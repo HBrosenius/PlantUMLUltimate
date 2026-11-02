@@ -1,0 +1,258 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:06.575
+Version history gives you named checkpoints and ways to
+compare them with the current working copy.
+
+00:00:06.695 --> 00:00:11.445
+A checkpoint is useful before a risky edit, a review or a
+handover.
+
+00:00:11.565 --> 00:00:19.840
+We will name a version, change a duration, compare the
+result as source and as a drawing, export a review report,
+and recover a known state.
+
+00:00:19.960 --> 00:00:25.910
+History is useful evidence, but it still needs a
+deliberate retention and saving routine.
+
+00:00:29.433 --> 00:00:32.208
+Open File and Version history.
+
+00:00:32.328 --> 00:00:36.878
+Enter Before review as the new version name and create the
+version.
+
+00:00:36.998 --> 00:00:43.848
+Use names that describe a decision or a state, rather than
+several indistinguishable copies called final.
+
+00:00:43.968 --> 00:00:47.843
+Close history and continue editing the working copy.
+
+00:00:47.963 --> 00:00:53.688
+Creating a checkpoint gives you a comparison point; it
+does not prevent later changes.
+
+00:00:53.808 --> 00:00:58.958
+Save the portable document when you want to preserve its
+retained history in a file.
+
+00:01:02.467 --> 00:01:07.217
+Start from a named checkpoint and change Design from five
+days to seven.
+
+00:01:07.337 --> 00:01:10.762
+Reopen history and select Before review.
+
+00:01:10.882 --> 00:01:14.832
+Compare it with the current working copy, then choose
+Source.
+
+00:01:14.952 --> 00:01:18.877
+Read the changed statement and its surrounding context.
+
+00:01:18.997 --> 00:01:25.497
+A text difference tells you exactly what changed,
+including edits that may have little visual effect.
+
+00:01:25.617 --> 00:01:32.892
+Use it when a semantic summary is incomplete or when
+specialized Plant UML syntax needs careful inspection.
+
+00:01:36.400 --> 00:01:41.300
+Switch to Rendered to inspect the visual consequence of
+the same source change.
+
+00:01:41.420 --> 00:01:47.570
+Check task endpoints, dependencies and nearby work rather
+than judging only the changed bar.
+
+00:01:47.690 --> 00:01:52.740
+A rendered comparison helps a reviewer connect the edit to
+what people will see.
+
+00:01:52.860 --> 00:01:56.260
+Return to Source when a highlight is ambiguous.
+
+00:01:56.380 --> 00:02:03.830
+The two comparisons support each other: the picture
+explains the effect, while the source identifies the
+authored statement.
+
+00:02:07.333 --> 00:02:11.608
+Choose Review for a semantic summary of recognized
+changes.
+
+00:02:11.728 --> 00:02:16.828
+Confirmed groups can be selected together and reviewed as
+a combined result.
+
+00:02:16.948 --> 00:02:21.148
+Related changes may need to stay together to remain valid.
+
+00:02:21.268 --> 00:02:27.718
+Unclassified changes require source review, and selecting
+a group is not the same as applying it.
+
+00:02:27.838 --> 00:02:34.438
+Check the proposed result and any replacement warning
+before accepting selected groups into the working copy.
+
+00:02:34.558 --> 00:02:39.458
+If the working copy changes during review, review again
+before applying.
+
+00:02:42.967 --> 00:02:48.342
+A review report records the comparison for someone who
+needs to inspect the changes.
+
+00:02:48.462 --> 00:02:53.937
+From Review, export the report and keep it alongside the
+document for this exercise.
+
+00:02:54.057 --> 00:03:02.307
+A selected patch is a more focused artifact containing
+selected changes; select and validate those groups before
+exporting it.
+
+00:03:02.427 --> 00:03:06.152
+Neither artifact replaces the portable project.
+
+00:03:06.272 --> 00:03:13.972
+Explain the baseline, the compared working copy and the
+intended scope so the recipient knows what the evidence
+describes.
+
+00:03:17.500 --> 00:03:24.425
+Create a named review base, then change both the Design
+duration and the title in this disposable copy.
+
+00:03:24.545 --> 00:03:30.270
+In Review, select only the confirmed duration group and
+export its selected patch.
+
+00:03:30.390 --> 00:03:38.940
+Read the replacement warning carefully: applying this
+selection from the review base removes unselected
+differences from the working copy.
+
+00:03:39.060 --> 00:03:44.385
+Confirm that consequence only for this exercise, then
+apply the selected group.
+
+00:03:44.505 --> 00:03:50.555
+Verify that Design remains seven days while the unselected
+title change is removed.
+
+00:03:50.675 --> 00:03:56.025
+This is why selection, validation and replacement
+confirmation belong together.
+
+00:03:59.533 --> 00:04:04.133
+Save a connected document before creating the comparison
+baseline.
+
+00:04:04.253 --> 00:04:10.553
+Change the Requirements label in the work breakdown
+structure, then open the document navigator review.
+
+00:04:10.673 --> 00:04:16.173
+Inspect which member diagrams and connections differ from
+the last successful save.
+
+00:04:16.293 --> 00:04:23.718
+A document review gives the connected context, while a
+single diagram history comparison answers a narrower
+question.
+
+00:04:23.838 --> 00:04:29.038
+Export the review report and keep it alongside the
+portable practice document.
+
+00:04:29.158 --> 00:04:33.983
+Saving a new baseline is a deliberate next step after
+reviewing the change.
+
+00:04:37.500 --> 00:04:42.350
+Select a checkpoint and inspect its name, pin and baseline
+controls.
+
+00:04:42.470 --> 00:04:46.845
+Rename a checkpoint when a clearer description will help
+the next reviewer.
+
+00:04:46.965 --> 00:04:52.790
+Pin a state you need to retain, and choose a baseline
+deliberately for comparisons that use it.
+
+00:04:52.910 --> 00:04:57.585
+Retention still depends on document settings and the
+history budget.
+
+00:04:57.705 --> 00:05:06.955
+Browser recovery and a saved portable document are
+different safeguards, so keep a saved copy before major
+experiments or clearing browser data.
+
+00:05:10.467 --> 00:05:14.967
+Now restore a known checkpoint in this disposable practice
+document.
+
+00:05:15.087 --> 00:05:21.387
+Start with Before review, change Design to seven days, and
+select the earlier checkpoint in history.
+
+00:05:21.507 --> 00:05:25.482
+Choose Restore this version and read any confirmation.
+
+00:05:25.602 --> 00:05:31.727
+Return to the source and verify that Design is five days
+again, then inspect the current preview.
+
+00:05:31.847 --> 00:05:39.047
+A restore is an authored change to the working copy, so
+save the recovered result when it is the state you intend
+to keep.
+
+00:05:42.567 --> 00:05:45.342
+Pause and save a named checkpoint.
+
+00:05:45.462 --> 00:05:51.912
+Change a task duration and one label, then compare the
+working copy using Source, Rendered and Review.
+
+00:05:52.032 --> 00:05:54.432
+Export a review report.
+
+00:05:54.552 --> 00:06:02.102
+Locate the checkpoint you would restore, read the
+confirmation carefully, and restore it in your disposable
+practice document.
+
+00:06:02.222 --> 00:06:06.572
+Verify the recovered source and drawing, then save the
+result.
+
+00:06:06.692 --> 00:06:12.042
+Success means you can explain both what changed and
+exactly which state you recovered.
+
+00:06:15.567 --> 00:06:22.092
+A useful review has a clear starting state, a clear
+proposed result and evidence that connects the two.
+
+00:06:22.212 --> 00:06:27.687
+Use named checkpoints, complementary comparison views and
+explicit acceptance.
+
+00:06:27.807 --> 00:06:32.757
+Preserve the portable document and review evidence when
+handing work over.
+
+00:06:32.877 --> 00:06:42.952
+The next lesson extends this discipline to concurrent
+collaboration, where permissions, room lifetime and the
+difference between shared work and local history also
+matter.
