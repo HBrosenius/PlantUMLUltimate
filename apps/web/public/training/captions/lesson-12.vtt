@@ -1,0 +1,258 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.975
+A Class diagram describes types and the relationships
+between them.
+
+00:00:05.095 --> 00:00:11.445
+It helps you explain a domain model or an interface
+design, rather than the order of one request.
+
+00:00:11.565 --> 00:00:16.965
+Our example has Customer, Request, RequestStatus and a
+repository interface.
+
+00:00:17.085 --> 00:00:24.610
+You will add an entity, inspect structured members, review
+relationship choices, organize types and apply a shared
+style.
+
+00:00:24.730 --> 00:00:32.505
+Keep the level of detail appropriate for the audience: not
+every implementation field needs to appear in an
+explanatory model.
+
+00:00:36.033 --> 00:00:40.933
+Use Insert and Class, interface, or enum to create
+AuditRecord.
+
+00:00:41.053 --> 00:00:44.278
+Inspect the kind options before adding it.
+
+00:00:44.398 --> 00:00:50.448
+A class, abstract class, interface, enumeration and
+annotation carry different meanings.
+
+00:00:50.568 --> 00:00:55.843
+Give the type a clear name and use an alias where it makes
+source references easier.
+
+00:00:55.963 --> 00:01:01.113
+After creation, inspect the generated declaration and the
+rendered object.
+
+00:01:01.233 --> 00:01:08.708
+Adding a type is only the beginning; its members and
+relationships should explain the responsibility you intend
+it to have.
+
+00:01:12.233 --> 00:01:15.858
+Select Customer to open the entity inspector.
+
+00:01:15.978 --> 00:01:21.553
+Identity includes the type kind, name, alias and generic
+type information.
+
+00:01:21.673 --> 00:01:29.748
+The Members section presents fields and operations rather
+than forcing you to treat the entire declaration as one
+opaque label.
+
+00:01:29.868 --> 00:01:35.693
+Review visibility, static and abstract modifiers alongside
+the actual member meaning.
+
+00:01:35.813 --> 00:01:39.838
+Presentation and package placement are separate choices.
+
+00:01:39.958 --> 00:01:48.433
+Make a small, intentional change and check the source
+rather than editing several unrelated properties before
+reviewing the result.
+
+00:01:51.933 --> 00:01:57.558
+A field describes stored or exposed state; a method
+describes an operation.
+
+00:01:57.678 --> 00:02:05.053
+In the inspector, use the structured member controls to
+distinguish these kinds and review their visibility and
+type.
+
+00:02:05.173 --> 00:02:11.498
+We will add a description field and an assignment
+operation to Request using the structured controls.
+
+00:02:11.618 --> 00:02:14.543
+Inspect the source and then the entity.
+
+00:02:14.663 --> 00:02:24.088
+Keep the declaration readable: a useful model tells the
+reader what the type is responsible for, not just how many
+members were copied from an implementation.
+
+00:02:27.600 --> 00:02:32.925
+The assignment operation takes an agent identifier and
+returns no value.
+
+00:02:33.045 --> 00:02:39.970
+A parameter name and its type communicate different facts,
+just as a method name differs from its return type.
+
+00:02:40.090 --> 00:02:46.715
+Use type completion and structured controls where
+available, then inspect the resulting declaration.
+
+00:02:46.835 --> 00:02:52.510
+For generic types or specialized syntax, source remains
+the precise editing path.
+
+00:02:52.630 --> 00:02:59.505
+A completion suggestion is a convenience, not evidence
+that the chosen type is semantically right for the model.
+
+00:03:03.033 --> 00:03:07.933
+Select Request and add a method named assignTo with return
+type void.
+
+00:03:08.053 --> 00:03:11.378
+Use the new method row to add a parameter.
+
+00:03:11.498 --> 00:03:20.998
+Enter agentId as its name and UUID as its type, then click
+outside the parameter group to commit and inspect the
+resulting declaration in source.
+
+00:03:21.118 --> 00:03:26.018
+The parameter type and return type describe different
+parts of the operation.
+
+00:03:26.138 --> 00:03:31.513
+Reveal the member in source and verify that its enclosing
+class remains intact.
+
+00:03:31.633 --> 00:03:38.108
+Choose types that express your domain; a completion list
+is an editing aid, not a design decision.
+
+00:03:41.633 --> 00:03:46.708
+The associations and dependency in this model express
+different connections.
+
+00:03:46.828 --> 00:03:54.328
+Customer submits requests, Request uses a status, and the
+repository depends on Request as a parameter type.
+
+00:03:54.448 --> 00:04:01.173
+Open the relationship tool to inspect available endpoint,
+kind, label and multiplicity choices.
+
+00:04:01.293 --> 00:04:08.843
+Choose a relation because it describes the responsibility
+or ownership you mean, not because its arrow happens to
+look familiar.
+
+00:04:08.963 --> 00:04:14.288
+Reconnect mistaken endpoints and verify the source after
+an identity change.
+
+00:04:17.800 --> 00:04:22.050
+Use a small proposal to check a relationship before
+keeping it.
+
+00:04:22.170 --> 00:04:28.795
+Choose the repository as the source, the status type as
+the target and dependency as the relationship.
+
+00:04:28.915 --> 00:04:33.940
+Label it filters by, add it and inspect the authored arrow
+and current preview.
+
+00:04:34.060 --> 00:04:40.560
+The label explains the proposed contract; decide whether
+that contract fits the types in your model.
+
+00:04:40.680 --> 00:04:47.480
+Shared Undo removes this relationship as one authored
+change, leaving the original domain model intact.
+
+00:04:51.000 --> 00:04:54.500
+A package or namespace groups related types.
+
+00:04:54.620 --> 00:05:00.070
+Notes explain an important assumption without turning a
+class name into a paragraph.
+
+00:05:00.190 --> 00:05:06.040
+The reference example places a note beside Request to
+explain stable identity.
+
+00:05:06.160 --> 00:05:10.860
+Open package and note creation, then inspect Diagram
+settings.
+
+00:05:10.980 --> 00:05:20.630
+Keep grouping consistent with the abstraction you are
+teaching: a domain package, a code namespace and a
+deployment boundary are not automatically the same thing.
+
+00:05:20.750 --> 00:05:25.900
+Layout should support the relationship story without
+inventing new semantics.
+
+00:05:29.400 --> 00:05:33.725
+Use modifier selection to choose Customer and Request
+together.
+
+00:05:33.845 --> 00:05:37.920
+Inspect the bulk panel and apply a supported shared style.
+
+00:05:38.040 --> 00:05:47.565
+The style can distinguish domain types from infrastructure
+interfaces, but labels and relationship meaning must
+remain understandable without color alone.
+
+00:05:47.685 --> 00:05:54.810
+When copying or duplicating model elements, inspect the
+identifiers, members and connections in the result.
+
+00:05:54.930 --> 00:06:00.105
+Use the source diff or Undo when the operation includes
+more than you intended.
+
+00:06:03.633 --> 00:06:11.658
+Pause and add the audit record class, then give Request a
+description field and an assignment operation with a typed
+parameter.
+
+00:06:11.778 --> 00:06:17.003
+Explain the status enumeration and repository interface in
+your own words.
+
+00:06:17.123 --> 00:06:25.448
+Review one relationship endpoints and multiplicity, add a
+useful note, and apply a shared style to a selected pair
+of entities.
+
+00:06:25.568 --> 00:06:35.393
+A successful result makes the type responsibilities and
+relationships clear without requiring the reader to
+reconstruct the implementation from a cluttered drawing.
+
+00:06:38.900 --> 00:06:43.550
+Use Class diagrams for types, members and structural
+relationships.
+
+00:06:43.670 --> 00:06:49.170
+Use Sequence or Activity diagrams when the important
+question is behavioral flow.
+
+00:06:49.290 --> 00:06:58.240
+The common editing pattern remains the same: create or
+select an object, inspect supported properties, and check
+the source and rendered result.
+
+00:06:58.360 --> 00:07:07.810
+The next lesson moves outward from types to components and
+infrastructure, while retaining that habit of separating
+identity, meaning and presentation.

@@ -1,0 +1,258 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.300
+The source and the drawing describe one authored diagram.
+
+00:00:04.420 --> 00:00:10.870
+A visual edit changes Plant UML text, and a source edit
+changes the resulting picture.
+
+00:00:10.990 --> 00:00:18.115
+In this lesson we inspect labels and aliases, make changes
+from both sides and use shared undo and redo.
+
+00:00:18.235 --> 00:00:25.885
+We will also break one line deliberately, read the
+diagnostic and repair it while the last valid preview
+remains available.
+
+00:00:26.005 --> 00:00:31.505
+Work in a disposable practice copy so each experiment is
+easy to inspect.
+
+00:00:35.033 --> 00:00:39.008
+The start and end delimiters identify the diagram.
+
+00:00:39.128 --> 00:00:45.828
+Each task declaration gives the reader a display label and
+can provide an alias for later references.
+
+00:00:45.948 --> 00:00:53.998
+In Design as design, the first label is what people read,
+while the alias gives the source a stable identity to
+reference.
+
+00:00:54.118 --> 00:00:58.668
+The dependency statements use those identities to connect
+work.
+
+00:00:58.788 --> 00:01:05.088
+Keep the labels clear, preserve references deliberately
+and check the current preview after editing.
+
+00:01:08.600 --> 00:01:13.975
+Select Design in the picture and change its duration from
+five days to seven.
+
+00:01:14.095 --> 00:01:20.695
+Leave the field to apply the supported inspector edit,
+then inspect the generated task declaration.
+
+00:01:20.815 --> 00:01:26.615
+The visual control updates the authored source; it does
+not create a separate hidden schedule.
+
+00:01:26.735 --> 00:01:33.310
+Check following work as well as the selected bar, because
+a dependency can carry the effect downstream.
+
+00:01:33.430 --> 00:01:37.055
+Keep unrelated labels and statements intact.
+
+00:01:40.567 --> 00:01:44.267
+Select Design and keep the original source visible.
+
+00:01:44.387 --> 00:01:50.837
+Type a temporary label while the name field retains focus;
+the source still contains the committed name.
+
+00:01:50.957 --> 00:01:56.732
+Undo inside that text field and verify that Design returns
+without a diagram change.
+
+00:01:56.852 --> 00:02:03.727
+Enter a negative duration and leave the field; an invalid
+value must not replace the last valid schedule.
+
+00:02:03.847 --> 00:02:08.722
+Correct the duration to seven days and verify the
+committed task statement.
+
+00:02:08.842 --> 00:02:13.842
+Now focus the source editor and use shared Undo to restore
+five days.
+
+00:02:13.962 --> 00:02:17.537
+Redo returns the committed seven day edit.
+
+00:02:17.657 --> 00:02:24.657
+The focused text field, an invalid draft and the shared
+diagram history are different states to check
+deliberately.
+
+00:02:28.167 --> 00:02:31.242
+Now make the change directly in source.
+
+00:02:31.362 --> 00:02:36.962
+Replace Design’s five day duration with six days and wait
+for Preview current.
+
+00:02:37.082 --> 00:02:40.957
+Select the same task and inspect its duration field.
+
+00:02:41.077 --> 00:02:45.052
+It should agree with the authored statement and the
+current drawing.
+
+00:02:45.172 --> 00:02:53.047
+When those views disagree during a failed render, read the
+status before assuming the visible picture represents the
+newest source.
+
+00:02:53.167 --> 00:02:58.467
+Source ownership means that both editing routes must
+preserve the same intended model.
+
+00:03:01.967 --> 00:03:07.017
+Rename the visible Design task to Interaction design in
+its inspector.
+
+00:03:07.137 --> 00:03:11.912
+Inspect the task declaration and its dependencies after
+the edit.
+
+00:03:12.032 --> 00:03:18.357
+The display label changes while the design alias remains
+available to the connected statements.
+
+00:03:18.477 --> 00:03:25.877
+A label edit is different from a semantic alias rename,
+which updates recognized references and has a preview.
+
+00:03:25.997 --> 00:03:29.572
+Later editor assistance shows that workflow.
+
+00:03:29.692 --> 00:03:35.092
+For now, verify the label, the stable alias and the
+resulting schedule together.
+
+00:03:38.600 --> 00:03:44.225
+Place the caret on a task identifier in a scheduling rule
+and open its symbol menu.
+
+00:03:44.345 --> 00:03:49.945
+Find references gathers the declaration and its uses
+without changing the source.
+
+00:03:50.065 --> 00:03:56.890
+Select the declaration to jump to its source line and
+inspect the scheduling rules that use the same alias.
+
+00:03:57.010 --> 00:04:03.385
+These actions help you inspect the consequences of an edit
+before renaming or deleting a symbol.
+
+00:04:06.900 --> 00:04:12.500
+Change the duration visually, then return focus to the
+source editor and use Undo.
+
+00:04:12.620 --> 00:04:16.320
+Verify that the duration returns to five days.
+
+00:04:16.440 --> 00:04:19.990
+Redo the edit and verify seven days again.
+
+00:04:20.110 --> 00:04:26.010
+This demonstrates one authored edit history across the
+visual control and source editor.
+
+00:04:26.130 --> 00:04:32.630
+Be aware of focus: a field can have its own text-editing
+behavior while you are still entering a value.
+
+00:04:32.750 --> 00:04:40.425
+Inspect the source after undoing a meaningful change,
+rather than assuming the keyboard action affected the
+intended edit.
+
+00:04:43.933 --> 00:04:49.483
+Replace the duration with the invalid word banana in this
+disposable copy.
+
+00:04:49.603 --> 00:04:53.678
+Wait for the failed render and read Line eight cannot be
+drawn.
+
+00:04:53.798 --> 00:04:59.698
+The message identifies the statement, while the drawing
+retains the last version that worked.
+
+00:04:59.818 --> 00:05:04.868
+Switch to Diagram view, then use Go to line eight to visit
+the reported source.
+
+00:05:04.988 --> 00:05:09.738
+A visible picture is not proof that the newest text
+rendered successfully.
+
+00:05:09.858 --> 00:05:15.358
+Check the status, the reported line and the actual
+statement before choosing a repair.
+
+00:05:18.867 --> 00:05:23.817
+Restore the numeric duration to five days and wait for
+Preview current.
+
+00:05:23.937 --> 00:05:29.887
+Verify that the task statement is intact and that the
+error no longer controls the preview.
+
+00:05:30.007 --> 00:05:35.357
+A repair should preserve the model you intended, not
+merely make the error count smaller.
+
+00:05:35.477 --> 00:05:41.777
+The editor assistance lesson adds error navigation,
+explanation and proposed quick fixes.
+
+00:05:41.897 --> 00:05:48.297
+The habit is the same: understand the statement, make a
+deliberate edit and check the current result.
+
+00:05:51.800 --> 00:05:57.800
+Pause and change the same duration visually and in source,
+checking that the other view agrees.
+
+00:05:57.920 --> 00:06:02.770
+Rename a display label while preserving its alias and
+dependencies.
+
+00:06:02.890 --> 00:06:07.365
+Undo and redo a visual edit with focus in the source
+editor.
+
+00:06:07.485 --> 00:06:13.910
+Finally introduce one invalid duration, read the failed
+line, use Go to line and repair it.
+
+00:06:14.030 --> 00:06:22.455
+You have succeeded when the source, inspector and current
+preview agree, and you can explain why a retained picture
+may be older than the current text.
+
+00:06:25.967 --> 00:06:32.392
+The source holds the authored model, while the picture and
+inspectors make it easier to understand and edit.
+
+00:06:32.512 --> 00:06:40.337
+Use both editing routes deliberately, preserve identity
+and references, and verify shared undo or redo in the
+source.
+
+00:06:40.457 --> 00:06:43.982
+Read render status whenever a change fails.
+
+00:06:44.102 --> 00:06:52.677
+The next lessons apply this routine to tasks,
+dependencies, people and forecasts so that the schedule
+remains understandable as it grows.

@@ -1,0 +1,231 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:06.200
+An Activity diagram explains how work flows through
+actions and control structures.
+
+00:00:06.320 --> 00:00:13.845
+It is useful when the important question is what happens
+next, under which condition, and which work can proceed in
+parallel.
+
+00:00:13.965 --> 00:00:20.515
+Our request-intake example validates input, stores valid
+work and notifies the people involved.
+
+00:00:20.635 --> 00:00:29.010
+We will add an action, inspect decisions and partitions,
+compare a loop with a branch, and review supported
+connection and ordering controls.
+
+00:00:29.130 --> 00:00:32.680
+Keep each path traceable from start to outcome.
+
+00:00:36.200 --> 00:00:40.100
+Use Insert and Action to add Record audit event.
+
+00:00:40.220 --> 00:00:46.745
+An action label should describe something the process
+does, rather than a vague status or a screen title.
+
+00:00:46.865 --> 00:00:51.015
+Inspect where the action is inserted and check the source
+order.
+
+00:00:51.135 --> 00:00:56.385
+Creating another box is not enough if the surrounding flow
+no longer makes sense.
+
+00:00:56.505 --> 00:01:04.080
+Use the supported ordering or connection workflow to place
+it appropriately, and review the path on both sides of the
+new action.
+
+00:01:07.600 --> 00:01:09.975
+Select Receive request.
+
+00:01:10.095 --> 00:01:15.070
+Review its editable label and presentation properties in
+the inspector.
+
+00:01:15.190 --> 00:01:20.915
+A color or stereotype can classify an action, while a note
+explains an assumption.
+
+00:01:21.035 --> 00:01:24.510
+Keep the label focused on the work being performed.
+
+00:01:24.630 --> 00:01:31.855
+Renaming an action should improve the explanation without
+silently changing which branch or partition owns it.
+
+00:01:31.975 --> 00:01:38.475
+After editing, inspect the source and the surrounding flow
+rather than checking only the selected box.
+
+00:01:42.000 --> 00:01:46.675
+The validation decision has a successful path and a
+correction path.
+
+00:01:46.795 --> 00:01:51.745
+Read the condition and branch labels, then trace each path
+to its outcome.
+
+00:01:51.865 --> 00:01:56.415
+A decision is not simply a decorative diamond between two
+actions.
+
+00:01:56.535 --> 00:02:00.710
+The condition must explain why the process chooses one
+path.
+
+00:02:00.830 --> 00:02:09.205
+Open Flow structure to inspect the supported constructs,
+and use the source to check how a structure begins,
+changes branch and ends.
+
+00:02:09.325 --> 00:02:13.800
+Keep conditions and labels concise enough to follow on the
+diagram.
+
+00:02:17.300 --> 00:02:22.925
+The extended example repeats receipt and validation while
+corrections are needed.
+
+00:02:23.045 --> 00:02:26.720
+Compare the loop's condition with a one-time decision.
+
+00:02:26.840 --> 00:02:36.090
+Repetition should have an understandable continuation
+condition and an exit; otherwise the diagram leaves the
+reader guessing when work can proceed.
+
+00:02:36.210 --> 00:02:40.835
+Different loop constructs express different orderings of
+the test and the body.
+
+00:02:40.955 --> 00:02:47.930
+Use a small reference example to check the syntax before
+nesting several structures into one large process.
+
+00:02:51.433 --> 00:02:57.958
+After storing a request, confirmation and support
+notification can proceed in parallel in this model.
+
+00:02:58.078 --> 00:03:06.003
+Fork and join structure makes that distinction explicit;
+two boxes on the same horizontal level are not enough by
+themselves.
+
+00:03:06.123 --> 00:03:10.498
+The Request processing partition groups work by
+responsibility.
+
+00:03:10.618 --> 00:03:15.643
+A partition is different from a branch condition or a
+scheduling dependency.
+
+00:03:15.763 --> 00:03:21.438
+Explain those meanings separately and check where the flow
+enters and leaves the grouped work.
+
+00:03:24.967 --> 00:03:30.492
+Use the diagram's supported connection and reordering
+tools to organize the workflow.
+
+00:03:30.612 --> 00:03:37.612
+Start and terminal constructs explain entry and outcome,
+while arrows make the flow explicit where supported.
+
+00:03:37.732 --> 00:03:45.732
+Select an object before choosing a connection handle, and
+inspect the resulting source rather than assuming the drop
+target was correct.
+
+00:03:45.852 --> 00:03:54.677
+For specialized valid Plant UML constructs without a
+dedicated visual operation, use source editing and inspect
+the rendered result.
+
+00:03:54.797 --> 00:04:01.772
+The goal is an unambiguous process, not a promise that
+every syntax variation has a separate button.
+
+00:04:05.300 --> 00:04:10.475
+Open the flow arrow tool and choose Receive request as its
+insertion point.
+
+00:04:10.595 --> 00:04:16.870
+Label the flow Validated input and choose a dashed line so
+its authored style is explicit.
+
+00:04:16.990 --> 00:04:20.865
+Add the arrow, then inspect its statement and current
+preview.
+
+00:04:20.985 --> 00:04:26.735
+The insertion point determines where this flow annotation
+sits in the activity structure.
+
+00:04:26.855 --> 00:04:33.830
+Check that both decision branches still lead to the
+intended outcomes before reorganizing a larger workflow.
+
+00:04:37.333 --> 00:04:42.358
+Select Receive request and Store request together and
+inspect the bulk panel.
+
+00:04:42.478 --> 00:04:49.528
+Apply a supported shared style and verify that it changes
+presentation without changing the control flow.
+
+00:04:49.648 --> 00:04:54.398
+A selected group is not automatically a parallel block or
+a partition.
+
+00:04:54.518 --> 00:04:58.493
+Use the appropriate structural construct for those
+meanings.
+
+00:04:58.613 --> 00:05:07.913
+Copy and duplicate only a deliberate selection, then check
+how the resulting actions fit into the workflow and
+whether their labels remain distinct.
+
+00:05:11.433 --> 00:05:15.033
+Pause and add an audit action to the intake model.
+
+00:05:15.153 --> 00:05:24.603
+Explain both validation outcomes, then use the extended
+example to show how corrections repeat and how two
+notifications can proceed in parallel.
+
+00:05:24.723 --> 00:05:30.148
+Put related work in a meaningful partition, add a note and
+inspect a connection.
+
+00:05:30.268 --> 00:05:33.543
+Finally, style a selected pair of actions.
+
+00:05:33.663 --> 00:05:43.963
+You have succeeded when every path has an understandable
+next step and outcome, and a reader can distinguish
+responsibility, branching, repetition and parallelism.
+
+00:05:47.467 --> 00:05:54.592
+Activity diagrams combine actions with decisions,
+repetition, parallel work and responsibility grouping.
+
+00:05:54.712 --> 00:06:00.737
+Use each construct for its meaning, and check the
+surrounding flow after moving or adding work.
+
+00:06:00.857 --> 00:06:04.932
+Keep source available for precision and specialized
+syntax.
+
+00:06:05.052 --> 00:06:16.952
+The following lessons return to the common editor tools,
+review and document workflows, so you can maintain these
+models as they evolve instead of treating them as pictures
+that must be rebuilt from scratch.

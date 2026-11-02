@@ -48,3 +48,30 @@ it("searches prose and reveals matching collapsed guidance", () => {
   fireEvent.keyDown(document, { key: "Escape" });
   expect(close).toHaveBeenCalledOnce();
 });
+
+it("shows videos for the current diagram with safe external links and a full course index", () => {
+  render(<HelpDialog kind="class" onClose={vi.fn()} />);
+  const link = screen.getByRole("link", { name: "12 · Class diagrams" });
+  expect(link.getAttribute("href")).toBe("https://www.youtube.com/watch?v=pvPYcWLqb_E");
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(screen.queryByRole("link", { name: "10 · Sequence diagrams" })).toBeNull();
+  expect(screen.getByRole("link", { name: /Video course and practice files/ }).getAttribute("href")).toBe("/training/");
+});
+
+it("finds a video by a chapter topic even when no prose or shortcut matches", () => {
+  render(<HelpDialog kind="sequence" onClose={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Search Help"), { target: { value: "duration source constructs" } });
+  const video = screen.getByRole("link", { name: "10 · Sequence diagrams" });
+  expect(video.closest("details")?.open).toBe(true);
+  expect(screen.queryByText(/No matching help/)).toBeNull();
+  expect(screen.getByRole("status").textContent).toContain("1 videos");
+});
+
+it("keeps other diagram videos available through All diagrams", () => {
+  render(<HelpDialog kind="class" onClose={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Search Help"), { target: { value: "People and workload" } });
+  expect(screen.queryByRole("link", { name: "05 · People and workload" })).toBeNull();
+  fireEvent.change(screen.getByLabelText("Show help for"), { target: { value: "all" } });
+  expect(screen.getByRole("link", { name: "05 · People and workload" })).toBeTruthy();
+});

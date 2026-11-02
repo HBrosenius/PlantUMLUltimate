@@ -1,0 +1,276 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:03.550
+A plan describes the schedule you authored.
+
+00:00:03.670 --> 00:00:09.945
+A progress forecast asks what current progress and
+remaining-work assumptions imply about the future.
+
+00:00:10.065 --> 00:00:13.915
+A scenario explores an alternative before you commit it.
+
+00:00:14.035 --> 00:00:17.285
+This lesson keeps those three ideas separate.
+
+00:00:17.405 --> 00:00:24.230
+We will fix a status date, inspect the forecast,
+investigate a delay and create a named alternative.
+
+00:00:24.350 --> 00:00:31.700
+You should finish able to explain the assumptions behind a
+proposed change and review its effect before applying it
+to the plan.
+
+00:00:35.200 --> 00:00:39.250
+Expand Diagram options and turn Progress forecast on.
+
+00:00:39.370 --> 00:00:45.045
+Select the sixteenth of November as the status date so
+that the example is repeatable.
+
+00:00:45.165 --> 00:00:52.415
+Automatic Today uses the document's forecast time zone,
+while an explicit date gives a fixed point of reference.
+
+00:00:52.535 --> 00:00:56.910
+Read the status date alongside the task progress values.
+
+00:00:57.030 --> 00:01:04.580
+A forecast based on an inappropriate date can be
+misleading even if every calculation is internally
+consistent.
+
+00:01:04.700 --> 00:01:09.225
+Check that enabling this view does not rewrite the
+authored task statements.
+
+00:01:12.733 --> 00:01:15.708
+Compare the planned and forecast bars.
+
+00:01:15.828 --> 00:01:23.778
+The forecast is not a record that the plan was already
+changed; it is a calculation based on the current status
+and assumptions.
+
+00:01:23.898 --> 00:01:27.123
+Follow Backend and the work that depends on it.
+
+00:01:27.243 --> 00:01:32.043
+A delayed predecessor can affect later tasks and the
+launch milestone.
+
+00:01:32.163 --> 00:01:37.513
+Keep the dependency chain visible instead of reading only
+one finish date.
+
+00:01:37.633 --> 00:01:44.658
+Before discussing an action, identify which result belongs
+to the authored plan and which belongs to the forecast.
+
+00:01:48.167 --> 00:01:53.167
+Use the task and forecast explanations to investigate a
+changed finish.
+
+00:01:53.287 --> 00:01:59.512
+Low completion, remaining effort, allocation, closed days
+and dependencies can all matter.
+
+00:01:59.632 --> 00:02:08.607
+Backend has substantial remaining work and a half-time
+assignment in this example, so a simple calendar glance is
+not enough to explain delivery.
+
+00:02:08.727 --> 00:02:13.302
+Inspect the task's progress and resource assumptions
+before changing them.
+
+00:02:13.422 --> 00:02:21.722
+A useful forecast discussion names the cause and the
+assumption, rather than treating the projected date as an
+unexplained prediction.
+
+00:02:25.233 --> 00:02:27.958
+Choose What-if scenario from Plan.
+
+00:02:28.078 --> 00:02:34.228
+The base plan is a snapshot used for comparison; the draft
+is where you explore an alternative.
+
+00:02:34.348 --> 00:02:38.423
+Changing the draft does not immediately change the current
+plan.
+
+00:02:38.543 --> 00:02:43.318
+Inspect the task controls and the comparison modes before
+editing.
+
+00:02:43.438 --> 00:02:51.813
+Keep the alternative small enough to explain: for example,
+change Backend's effort or assignment assumption and
+observe the consequence.
+
+00:02:51.933 --> 00:02:58.208
+A scenario is useful when its assumptions are explicit,
+not just when it produces an earlier finish.
+
+00:03:01.733 --> 00:03:05.033
+Select Backend in the scenario task picker.
+
+00:03:05.153 --> 00:03:11.828
+Set its effort to eight days and choose Update scenario to
+include the task-control edits in the draft.
+
+00:03:11.948 --> 00:03:14.598
+Compare that result with the base.
+
+00:03:14.718 --> 00:03:23.518
+An earlier result is not automatically a better plan:
+reducing effort requires a reason, such as reduced scope
+or a changed estimate.
+
+00:03:23.638 --> 00:03:28.313
+Resource changes likewise need a realistic availability
+assumption.
+
+00:03:28.433 --> 00:03:33.608
+Inspect warnings and the source patch before treating the
+alternative as a decision.
+
+00:03:37.133 --> 00:03:41.633
+Give the alternative a meaningful name and record why it
+might work.
+
+00:03:41.753 --> 00:03:48.303
+We will call this one Reduced backend scope and state that
+the estimate assumes a smaller release boundary.
+
+00:03:48.423 --> 00:03:50.948
+Save it as a new scenario.
+
+00:03:51.068 --> 00:03:56.893
+Named alternatives let you compare proposals without
+confusing them with the live schedule.
+
+00:03:57.013 --> 00:04:06.213
+Use the saved-scenario controls to reopen or copy an
+alternative later, and keep its base and assumptions
+visible when the current plan has moved on.
+
+00:04:09.733 --> 00:04:14.158
+Save a named eight day back end alternative with its
+assumptions.
+
+00:04:14.278 --> 00:04:21.178
+Set the copied alternative to nine days, change its name
+and save it as a new scenario against the same base.
+
+00:04:21.298 --> 00:04:27.048
+Reopen the original saved alternative and confirm its
+eight day task estimate.
+
+00:04:27.168 --> 00:04:32.368
+Now close the draft and change the current plan to eleven
+days for that task.
+
+00:04:32.488 --> 00:04:39.763
+Reopen the saved alternative and review it against the
+changed plan, paying attention to the stale base guidance.
+
+00:04:39.883 --> 00:04:45.133
+Keep the current plan unchanged while deciding how to
+reconcile the alternative.
+
+00:04:45.253 --> 00:04:51.678
+Choose Reconcile with current plan and inspect the
+overlapping current and scenario task estimates.
+
+00:04:51.798 --> 00:04:57.673
+Explicitly keep the scenario version of the task, then
+choose Use reconciled scenario.
+
+00:04:57.793 --> 00:05:07.743
+Review the updated source patch; the rebased alternative
+remains a proposal, and the authored plan still contains
+eleven days until you apply a reviewed result.
+
+00:05:11.267 --> 00:05:16.517
+Choose Review and apply to inspect the proposed source
+changes and schedule impact.
+
+00:05:16.637 --> 00:05:22.712
+Confirm that the draft changes only what you intended and
+that reported problems are resolved.
+
+00:05:22.832 --> 00:05:29.432
+Apply scenario commits the reviewed result to the current
+plan; closing an uncommitted draft is different.
+
+00:05:29.552 --> 00:05:37.577
+If the plan or capacities changed since the saved base,
+reconcile the alternative rather than applying a stale
+proposal blindly.
+
+00:05:37.697 --> 00:05:41.447
+Recheck the actual source after an accepted change.
+
+00:05:44.967 --> 00:05:50.167
+Enable the forecast and set its status date before opening
+Apply to plan.
+
+00:05:50.287 --> 00:05:53.837
+Review the proposed task dates and source changes.
+
+00:05:53.957 --> 00:05:57.657
+Opening the review leaves the authored plan unchanged.
+
+00:05:57.777 --> 00:06:07.152
+Accept Apply to plan in this disposable example, verify
+that the source changes and the preview is current, then
+save a portable copy of the result.
+
+00:06:07.272 --> 00:06:12.097
+Applying a forecast is a separate decision from enabling
+its overlay.
+
+00:06:12.217 --> 00:06:16.842
+Keep a recoverable checkpoint before committing a
+significant reschedule.
+
+00:06:20.367 --> 00:06:24.267
+Pause and set the fixed status date in the supplied plan.
+
+00:06:24.387 --> 00:06:31.437
+Identify one task that drives a delayed result and explain
+its remaining-work and allocation assumptions.
+
+00:06:31.557 --> 00:06:36.157
+Create two alternatives with different, realistic
+justifications.
+
+00:06:36.277 --> 00:06:42.202
+Name and save them, review each patch and choose only the
+one whose assumptions you can defend.
+
+00:06:42.322 --> 00:06:51.447
+You have succeeded when you can distinguish the original
+plan, the forecast and the selected draft, and identify
+exactly what applying it would change.
+
+00:06:54.967 --> 00:06:59.217
+Use forecasting to make assumptions and consequences
+visible.
+
+00:06:59.337 --> 00:07:05.812
+Use scenarios to explore alternatives, and review source
+changes before they become the current plan.
+
+00:07:05.932 --> 00:07:11.407
+Keep status dates, time zones, remaining work and resource
+capacity explicit.
+
+00:07:11.527 --> 00:07:22.052
+The reporting lesson uses these same facts to prepare
+useful summaries and check-ins, while retaining the
+distinction between a calculation, an observation and a
+decision.

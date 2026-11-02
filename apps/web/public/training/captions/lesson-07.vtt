@@ -1,0 +1,364 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:05.700
+Reports turn the plan into a focused explanation for a
+person or a decision.
+
+00:00:05.820 --> 00:00:14.545
+This lesson covers eight report types, shared scope
+controls, coordinator presets, explicit progress
+observations and useful output.
+
+00:00:14.665 --> 00:00:22.965
+We will distinguish current status, forecast, workload,
+critical path, milestones, baseline changes and historical
+progress.
+
+00:00:23.085 --> 00:00:29.260
+The same dataset can answer different questions, so choose
+the question before formatting the result.
+
+00:00:29.380 --> 00:00:33.705
+Nothing in this lesson automatically sends a message to
+your team.
+
+00:00:37.233 --> 00:00:41.733
+Task check-in prepares a focused follow-up for each
+selected person.
+
+00:00:41.853 --> 00:00:47.553
+Choose the reporting date and reply-by date, then inspect
+the assigned tasks and questions.
+
+00:00:47.673 --> 00:00:56.998
+Ongoing includes unfinished work that has started, is past
+planned finish or has positive progress, with unresolved
+dates controlled separately.
+
+00:00:57.118 --> 00:01:02.168
+Check who will receive which tasks, especially for shared
+or unassigned work.
+
+00:01:02.288 --> 00:01:08.063
+The app prepares text for you to copy; it does not send
+email or a message automatically.
+
+00:01:11.567 --> 00:01:17.992
+Resource workload and assignment coverage answers who is
+carrying the work and what is not assigned clearly.
+
+00:01:18.112 --> 00:01:27.037
+Inspect allocation, capacity and any unresolved scheduling
+information before using a summary as evidence that the
+team is feasible.
+
+00:01:27.157 --> 00:01:33.382
+An unassigned task can disappear from a person-only view
+while remaining important to delivery.
+
+00:01:33.502 --> 00:01:38.102
+Compare the report with the resource panel when
+investigating a conflict.
+
+00:01:38.222 --> 00:01:45.397
+A useful coordinator summary includes that missing
+ownership rather than making the plan look tidier by
+omission.
+
+00:01:48.900 --> 00:01:56.575
+The Progress forecast report uses the same calculations
+and saved remaining-work assumptions as the forecast view.
+
+00:01:56.695 --> 00:02:03.645
+Its as-of date begins with the saved forecast date or
+today, and changing it produces a report scenario.
+
+00:02:03.765 --> 00:02:07.565
+Explain which date and assumptions the report uses.
+
+00:02:07.685 --> 00:02:13.235
+A projected finish is not an observation that the source
+has already been rescheduled.
+
+00:02:13.355 --> 00:02:19.430
+Compare planned and forecast work, then trace a relevant
+cause before sharing a conclusion.
+
+00:02:22.933 --> 00:02:31.183
+Critical path and schedule sensitivity helps identify work
+with little or no scheduling flexibility in the modeled
+network.
+
+00:02:31.303 --> 00:02:35.778
+Inspect the dependency chain and close to critical
+threshold.
+
+00:02:35.898 --> 00:02:42.498
+Near-critical work deserves attention even when it is not
+the single most restrictive path at this moment.
+
+00:02:42.618 --> 00:02:50.718
+This report depends on the modeled schedule and its
+assumptions; missing dependencies can produce a
+misleadingly comfortable result.
+
+00:02:50.838 --> 00:02:58.788
+Explain the relevant chain and the threshold you chose
+rather than treating a highlighted task as an unexplained
+risk label.
+
+00:03:02.300 --> 00:03:07.425
+Milestone and delivery outlook focuses the conversation on
+delivery events.
+
+00:03:07.545 --> 00:03:14.895
+Trace a milestone back to the work that drives it and
+identify the status or forecast facts behind any concern.
+
+00:03:15.015 --> 00:03:21.715
+A milestone marker is not a block of effort, and a
+highlighted deadline is not proof that the date is
+achievable.
+
+00:03:21.835 --> 00:03:32.235
+Use the report to make a specific conversation possible:
+which delivery event is affected, which work matters, and
+what decision or clarification is needed next.
+
+00:03:35.767 --> 00:03:40.892
+Progress and due-date outlook summarizes completion and
+due-date status.
+
+00:03:41.012 --> 00:03:48.237
+Read the as-of date, task scope and treatment of
+unresolved schedules before interpreting totals or charts.
+
+00:03:48.357 --> 00:03:55.057
+A percentage may summarize reported work without
+explaining whether the remaining effort is realistic.
+
+00:03:55.177 --> 00:03:59.077
+Compare the detailed tasks when an aggregate looks
+surprising.
+
+00:03:59.197 --> 00:04:08.547
+Use notes or a follow-up to clarify uncertainty rather
+than hiding it behind a compact report that appears more
+precise than the plan actually is.
+
+00:04:12.067 --> 00:04:20.217
+Historical burndown and burnup requires at least two
+explicit observations and stable aliases for every task
+and milestone.
+
+00:04:20.337 --> 00:04:23.562
+Previewing a report does not create history.
+
+00:04:23.682 --> 00:04:30.832
+Record a snapshot for the ninth of November, update the
+reported progress, then record another for the sixteenth.
+
+00:04:30.952 --> 00:04:36.927
+Select the historical report and compare fixed baseline
+scope with current scope over time.
+
+00:04:37.047 --> 00:04:40.897
+Explain whether scope changes belong in the comparison.
+
+00:04:41.017 --> 00:04:47.742
+Save the document to retain these pinned observations in
+the portable file; they are separate from undo history.
+
+00:04:51.267 --> 00:04:56.042
+Changes since baseline compares the current plan with a
+retained reference.
+
+00:04:56.162 --> 00:05:00.062
+Save a baseline before making the change you want to
+discuss.
+
+00:05:00.182 --> 00:05:05.082
+We will then update Backend's completion and inspect the
+baseline report.
+
+00:05:05.202 --> 00:05:14.777
+A useful review identifies what changed and why, rather
+than presenting every task as newly added because the
+reference was not the intended plan.
+
+00:05:14.897 --> 00:05:23.947
+Keep this report separate from a historical progress
+chart: a baseline comparison and a sequence of dated
+observations answer different questions.
+
+00:05:27.467 --> 00:05:34.342
+Coordinator summary and Delivery outlook presets begin
+with broader scope than a person-specific check-in.
+
+00:05:34.462 --> 00:05:40.637
+Compare the two presets and inspect which tasks,
+milestones and unassigned work they include.
+
+00:05:40.757 --> 00:05:45.682
+A preset is a starting configuration, not a reason to skip
+review.
+
+00:05:45.802 --> 00:05:49.827
+Canvas filters do not silently define the report scope.
+
+00:05:49.947 --> 00:05:58.422
+Check dates and recipients again after switching report
+type, especially when the result will be used to
+coordinate work across several people.
+
+00:06:01.933 --> 00:06:07.108
+Content and layout controls decide how much supporting
+material to include.
+
+00:06:07.228 --> 00:06:14.353
+Notes, task links, unresolved schedules, milestones,
+compact output and charts serve different audiences.
+
+00:06:14.473 --> 00:06:19.623
+Introduction and sign-off fields help the prepared message
+fit your context.
+
+00:06:19.743 --> 00:06:24.993
+Keep the underlying facts and uncertainty visible while
+choosing the presentation.
+
+00:06:25.113 --> 00:06:31.013
+A compact result should not imply that unassigned or
+unresolved work has ceased to exist.
+
+00:06:31.133 --> 00:06:36.308
+Inspect the complete preview before copying a message or
+downloading a report.
+
+00:06:39.833 --> 00:06:44.958
+Filter the canvas to Alice and note that this is a view
+choice, not a deletion.
+
+00:06:45.078 --> 00:06:50.903
+Open Reports and explicitly choose all tasks for the
+report as of November sixteenth.
+
+00:06:51.023 --> 00:06:56.598
+Select Sam as the preview recipient and set a reply date
+of November eighteenth.
+
+00:06:56.718 --> 00:07:01.868
+Backend remains in Sam’s report even though the canvas is
+filtered to Alice.
+
+00:07:01.988 --> 00:07:06.888
+Change the compact layout and check the same task and
+recipient facts again.
+
+00:07:07.008 --> 00:07:14.358
+The report controls determine its scope; they do not
+silently inherit the canvas filter or change the authored
+plan.
+
+00:07:17.867 --> 00:07:20.592
+Reports capture a view of the plan.
+
+00:07:20.712 --> 00:07:27.687
+If the source changes while a report is open, the app
+warns that the plan changed and offers Refresh report.
+
+00:07:27.807 --> 00:07:31.907
+Do not share a stale preview as though it were a current
+calculation.
+
+00:07:32.027 --> 00:07:41.302
+Close the report, change a progress value, reopen and
+inspect the result; when working concurrently, look for
+the stale warning and refresh explicitly.
+
+00:07:41.422 --> 00:07:47.972
+The useful habit is to check the report's date, scope and
+freshness immediately before using its output.
+
+00:07:51.500 --> 00:07:55.925
+Keep a report open while another editor changes the shared
+plan.
+
+00:07:56.045 --> 00:08:00.945
+The second browser updates Backend progress from ten to
+forty percent.
+
+00:08:01.065 --> 00:08:07.665
+The open report now warns that the plan changed, and its
+output controls are disabled until you refresh.
+
+00:08:07.785 --> 00:08:14.910
+Read that warning and choose Refresh report, then inspect
+the updated report before copying or downloading it.
+
+00:08:15.030 --> 00:08:19.855
+This prevents an older captured report from being mistaken
+for the current plan.
+
+00:08:19.975 --> 00:08:24.800
+The change is real collaboration traffic between the two
+training browsers.
+
+00:08:28.300 --> 00:08:34.150
+Use the supported output controls to copy or download the
+prepared result after reviewing it.
+
+00:08:34.270 --> 00:08:42.995
+Check a pasted or exported example rather than assuming
+that rich text, charts and plain text will look identical
+in every destination.
+
+00:08:43.115 --> 00:08:47.815
+Keep links and recipient-specific content appropriate for
+the audience.
+
+00:08:47.935 --> 00:08:54.485
+The app does not send these check-ins, so the final choice
+of recipient and delivery channel remains with you.
+
+00:08:54.605 --> 00:09:00.255
+Save relevant progress observations separately when they
+should remain part of the document.
+
+00:09:03.767 --> 00:09:10.492
+Pause and prepare a check-in for each assigned person,
+then a coordinator view that includes unassigned work.
+
+00:09:10.612 --> 00:09:17.037
+Explain a critical or near-critical chain, inspect a
+milestone and compare progress with forecast.
+
+00:09:17.157 --> 00:09:22.557
+Record two explicit observations and explain the scope of
+the historical chart.
+
+00:09:22.677 --> 00:09:28.502
+Finally, save a baseline, make one clear change and
+identify it in the baseline report.
+
+00:09:28.622 --> 00:09:35.747
+You have succeeded when each result answers a distinct
+question and its date, scope and assumptions are
+understandable.
+
+00:09:39.267 --> 00:09:44.667
+Choose the report for the question, then check dates,
+scope, assumptions and freshness.
+
+00:09:44.787 --> 00:09:50.862
+Keep current status, forecast, baseline changes and
+historical observations distinct.
+
+00:09:50.982 --> 00:09:57.357
+Review the output before copying or exporting, and
+remember that preparing a message does not send it.
+
+00:09:57.477 --> 00:10:07.327
+The following lessons return to scope structure and
+connected diagrams, so the work behind these reports
+remains organized and traceable as the project evolves.

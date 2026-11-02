@@ -1,0 +1,392 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:04.475
+A useful schedule explains why work begins when it does.
+
+00:00:04.595 --> 00:00:11.945
+In this lesson we will connect tasks, compare dependency
+relations, add a lag, and adjust working calendars.
+
+00:00:12.065 --> 00:00:16.990
+We will also distinguish authored timeline scale from
+preview magnification.
+
+00:00:17.110 --> 00:00:22.435
+The customer portal plan gives us a small example that is
+easy to inspect.
+
+00:00:22.555 --> 00:00:30.680
+Keep checking the source as you change the rules: an
+arrow's appearance is less important than the start or end
+condition it represents.
+
+00:00:34.200 --> 00:00:37.350
+Start with independently dated tasks.
+
+00:00:37.470 --> 00:00:44.620
+Use Add dependency to choose a predecessor and successor,
+then choose which endpoint of each task participates.
+
+00:00:44.740 --> 00:00:48.265
+We will connect Research's end to Design's start.
+
+00:00:48.385 --> 00:00:52.210
+Check the generated statement and the resulting dates.
+
+00:00:52.330 --> 00:00:56.930
+A dependency is a rule, not merely an annotation on the
+drawing.
+
+00:00:57.050 --> 00:01:06.500
+If you connect the wrong pair, inspect or remove the link
+rather than trying to compensate by dragging unrelated
+tasks into a convenient-looking arrangement.
+
+00:01:10.000 --> 00:01:16.350
+A start can follow another task's end or start, and an end
+can follow another task's end or start.
+
+00:01:16.470 --> 00:01:19.945
+These four relations express different constraints.
+
+00:01:20.065 --> 00:01:26.565
+We will compare valid source examples, checking the
+relationship shown by the inspector after each one.
+
+00:01:26.685 --> 00:01:32.635
+The end-constrained examples keep an explicit start so the
+duration has a clear basis.
+
+00:01:32.755 --> 00:01:37.805
+Return to the original end-to-start rule after comparing
+the endpoints.
+
+00:01:37.925 --> 00:01:41.900
+Do not choose a relation just because its arrow looks
+tidy.
+
+00:01:42.020 --> 00:01:48.120
+State which event constrains the work and verify that the
+resulting dates express that requirement.
+
+00:01:51.633 --> 00:01:54.608
+A dependency can include an offset.
+
+00:01:54.728 --> 00:02:00.303
+Open the Research-to-Design link and set a lag of two days
+after the predecessor's end.
+
+00:02:00.423 --> 00:02:06.923
+For the statement N days after A's end, the candidate
+start is A's last day, plus one, plus N.
+
+00:02:07.043 --> 00:02:12.993
+If that candidate is closed in the working calendar, the
+start moves to the next working day.
+
+00:02:13.113 --> 00:02:18.538
+This is different from treating the predecessor's last day
+as the successor's first day.
+
+00:02:18.658 --> 00:02:24.358
+Read the authored expression and calculated date together,
+especially across a weekend.
+
+00:02:27.867 --> 00:02:34.092
+The zero-lag start-at-end rule places Design on Friday,
+the sixth, in this working calendar.
+
+00:02:34.212 --> 00:02:38.387
+In the source, change the rule to one day after Research
+ends.
+
+00:02:38.507 --> 00:02:45.332
+The candidate date falls on a closed Saturday, so the
+working calendar advances Design to Monday the ninth.
+
+00:02:45.452 --> 00:02:51.452
+Hover over Design to read its resulting dates and compare
+them with the explicit source rule.
+
+00:02:51.572 --> 00:02:57.422
+Closed-day advancement must follow the same working
+calendar used to interpret the schedule.
+
+00:03:00.933 --> 00:03:06.733
+The dependency inspector lets you change the endpoint
+tasks as well as the relation.
+
+00:03:06.853 --> 00:03:13.303
+In a practice copy, redirect the predecessor from Research
+to Build and inspect what the app permits.
+
+00:03:13.423 --> 00:03:18.723
+Avoid creating a cycle: a task cannot ultimately depend on
+itself.
+
+00:03:18.843 --> 00:03:26.193
+Line style, color and an optional note communicate the
+dependency's meaning, but they do not replace the
+scheduling rule.
+
+00:03:26.313 --> 00:03:33.763
+Return to the intended pair or delete an unwanted link,
+then use Undo to reconsider the change if necessary.
+
+00:03:37.267 --> 00:03:42.892
+In this fixed-task example, choose Only task and retain
+Build’s authored start date.
+
+00:03:43.012 --> 00:03:47.287
+Move Design by one day and verify that Build keeps its
+start.
+
+00:03:47.407 --> 00:03:51.132
+Undo that edit before comparing the other policy.
+
+00:03:51.252 --> 00:03:57.277
+Choose Include dependents and move Design again; the
+connected Build task now moves with it.
+
+00:03:57.397 --> 00:04:02.422
+One shared Undo restores the complete cascade as a single
+source change.
+
+00:04:02.542 --> 00:04:09.992
+Relative start statements express their own scheduling
+rules, so check the authored rules as well as the movement
+preference.
+
+00:04:13.500 --> 00:04:19.400
+Use separate task declarations and scheduling statements
+to make this rule easy to review.
+
+00:04:19.520 --> 00:04:25.670
+Replace Design’s fixed start statement with a start at
+Research’s end, and check the current preview.
+
+00:04:25.790 --> 00:04:30.165
+The relative rule records why the start follows the
+earlier task.
+
+00:04:30.285 --> 00:04:36.910
+Replace it with the original fixed date and verify that
+the source and preview return to the starting state.
+
+00:04:37.030 --> 00:04:42.005
+Hover over Design to read the resulting task date after
+the source edits.
+
+00:04:42.125 --> 00:04:46.525
+Keep property inspectors closed during these rule
+replacements.
+
+00:04:50.033 --> 00:04:55.533
+Select the Design to Build dependency and inspect its
+predecessor and successor.
+
+00:04:55.653 --> 00:05:02.728
+Change the predecessor to the independent Review task,
+then check the generated reference and the current
+schedule.
+
+00:05:02.848 --> 00:05:09.648
+Reconnecting an endpoint changes which work constrains
+Build; it is not just moving an arrow for appearance.
+
+00:05:09.768 --> 00:05:16.093
+Delete that link in the disposable copy and verify that
+the old relation is no longer authored.
+
+00:05:16.213 --> 00:05:22.338
+Inspect dates after removing a constraint so the resulting
+schedule remains understandable.
+
+00:05:25.867 --> 00:05:32.667
+In this disposable example, try making Design depend on
+Build while Build already depends on Design.
+
+00:05:32.787 --> 00:05:37.312
+That request creates a cycle rather than a meaningful
+order of work.
+
+00:05:37.432 --> 00:05:42.457
+Inspect the validation feedback and the authored result
+before continuing.
+
+00:05:42.577 --> 00:05:47.877
+Do not try to repair a cycle simply by dragging bars until
+they look separated.
+
+00:05:47.997 --> 00:05:55.772
+Restore the known good source and verify the current
+preview, then choose dependencies that express a
+consistent direction of work.
+
+00:05:59.300 --> 00:06:01.800
+Open Calendar and schedule.
+
+00:06:01.920 --> 00:06:05.945
+The project start and closed weekdays are authored
+settings.
+
+00:06:06.065 --> 00:06:12.790
+This example closes Saturday and Sunday, so five working
+days can span a longer calendar interval.
+
+00:06:12.910 --> 00:06:16.785
+Compare the weekday controls with the source declarations.
+
+00:06:16.905 --> 00:06:21.930
+Changing the calendar changes the schedule calculation,
+not just the picture.
+
+00:06:22.050 --> 00:06:32.900
+Use a calendar that reflects the work being planned, and
+explain exceptions rather than silently changing every
+task's duration to compensate for holidays or non-working
+periods.
+
+00:06:36.400 --> 00:06:41.525
+Use Add exception to mark a specific day or range as
+closed or opened.
+
+00:06:41.645 --> 00:06:44.345
+We will close the tenth of November.
+
+00:06:44.465 --> 00:06:49.890
+Set the From and To dates to that day and leave the state
+closed, then choose Apply.
+
+00:06:50.010 --> 00:06:53.410
+Inspect the source and the affected task dates.
+
+00:06:53.530 --> 00:07:00.330
+An opened exception can represent a special working day,
+while a closed exception can represent a holiday.
+
+00:07:00.450 --> 00:07:06.875
+These are changes to the shared plan, so include the
+assumptions when reviewing the schedule with other people.
+
+00:07:10.400 --> 00:07:16.500
+Sometimes the whole project is working, but a particular
+task cannot proceed on a certain day.
+
+00:07:16.620 --> 00:07:20.945
+A task pause is different from closing that day for every
+task.
+
+00:07:21.065 --> 00:07:28.315
+Inspect Design's pause controls and compare a task-
+specific pause with the calendar exception we just
+created.
+
+00:07:28.435 --> 00:07:32.485
+Use the narrowest rule that expresses the real constraint.
+
+00:07:32.605 --> 00:07:41.230
+After applying a pause, check the effective end date and
+any dependent work; a correct local change can still move
+the overall delivery.
+
+00:07:44.733 --> 00:07:51.608
+The Timeline scale control changes the authored time axis:
+daily, weekly, monthly, quarterly or yearly.
+
+00:07:51.728 --> 00:07:55.203
+Preview zoom only magnifies the current drawing.
+
+00:07:55.323 --> 00:07:59.048
+Choose weekly scale and apply it, then compare the source.
+
+00:07:59.168 --> 00:08:03.943
+Use this distinction when preparing a long-range view for
+stakeholders.
+
+00:08:04.063 --> 00:08:10.063
+A monthly overview may be useful for a programme, while
+daily detail is useful for short work.
+
+00:08:10.183 --> 00:08:14.933
+Neither choice changes the task effort simply to make the
+diagram look smaller.
+
+00:08:18.467 --> 00:08:23.817
+Use calendar and display settings for highlights, title,
+header, footer and caption.
+
+00:08:23.937 --> 00:08:31.637
+Highlighting a deadline makes it easier to discuss, but it
+does not create a dependency or promise that the date is
+achievable.
+
+00:08:31.757 --> 00:08:36.832
+Diagram filters can hide work from the canvas while
+leaving the source intact.
+
+00:08:36.952 --> 00:08:40.352
+Legend labels explain colors for the reader.
+
+00:08:40.472 --> 00:08:49.672
+Keep these presentation choices consistent with the
+scheduling facts, and avoid using color alone as the only
+way to convey a critical distinction.
+
+00:08:53.200 --> 00:08:56.925
+The blue Research task supplies a color for the legend.
+
+00:08:57.045 --> 00:09:01.245
+Open Legend labels and name that color Discovery work.
+
+00:09:01.365 --> 00:09:06.290
+Apply the label, then reopen the dialog to verify that it
+was retained.
+
+00:09:06.410 --> 00:09:12.160
+A legend explains the visual meaning of a color; it does
+not change a task dependency.
+
+00:09:12.280 --> 00:09:18.305
+Canvas filters and report scope remain separate choices,
+as shown in the reporting lesson.
+
+00:09:21.833 --> 00:09:26.433
+Pause and create an end-to-start dependency with a two-day
+lag.
+
+00:09:26.553 --> 00:09:34.303
+State the predecessor's last day, calculate the candidate
+start using the plus-one rule, and then account for closed
+days.
+
+00:09:34.423 --> 00:09:38.648
+Add the November holiday and compare the calculated
+result.
+
+00:09:38.768 --> 00:09:44.143
+Switch to weekly timeline scale, then use preview zoom
+without editing the source.
+
+00:09:44.263 --> 00:09:51.838
+Your answer should explain each movement with a rule,
+rather than simply report that one bar became longer or
+moved to the right.
+
+00:09:55.367 --> 00:10:02.142
+You can now create and inspect dependencies, distinguish
+their endpoints, and account for lag and closed days.
+
+00:10:02.262 --> 00:10:11.762
+You can express project-wide calendar exceptions
+separately from task pauses, and choose a useful timeline
+scale without confusing it with magnification.
+
+00:10:11.882 --> 00:10:16.357
+Keep the source and calculated dates together when
+reviewing a change.
+
+00:10:16.477 --> 00:10:23.827
+The next lesson adds people and capacity, because a plan
+also needs to explain who is available to perform the
+work.

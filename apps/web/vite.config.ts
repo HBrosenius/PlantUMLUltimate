@@ -182,13 +182,14 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: "guide-directory-index",
+      name: "public-directory-index",
       configureServer(server) {
         // Vite's public middleware needs an explicit file; otherwise the SPA
-        // fallback serves the editor at the guide's production directory URL.
+        // fallback serves the editor at a static page's production directory URL.
         server.middlewares.use((request, _response, next) => {
-          if (request.url?.split("?")[0] === "/guide/") {
-            request.url = request.url.replace("/guide/", "/guide/index.html");
+          const directory = request.url?.split("?")[0];
+          if (directory === "/guide/" || directory === "/training/") {
+            request.url = request.url!.replace(directory, `${directory}index.html`);
           }
           next();
         });

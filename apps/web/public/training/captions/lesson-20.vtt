@@ -1,0 +1,293 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:06.250
+A useful handover gives the recipient the right artifact
+and enough context to use it.
+
+00:00:06.370 --> 00:00:16.795
+A portable document supports continued editing; plain
+Plant UML source supports text based reuse; images and PDF
+support reading and presentation.
+
+00:00:16.915 --> 00:00:25.915
+We will preview and download the supported image formats,
+inspect encoded renderer links, and create local
+presentation views and review notes.
+
+00:00:26.035 --> 00:00:29.535
+Finish by checking the files you intend to deliver.
+
+00:00:33.067 --> 00:00:36.492
+Open File, Export and Preview export.
+
+00:00:36.612 --> 00:00:41.437
+Select SVG and inspect the full drawing, margin and
+background.
+
+00:00:41.557 --> 00:00:46.132
+SVG is useful when a recipient needs a scalable diagram.
+
+00:00:46.252 --> 00:00:52.627
+The export includes the rendered image rather than editor
+selections and interaction overlays.
+
+00:00:52.747 --> 00:00:57.847
+Check long labels, clipping and authored appearance in the
+preview before downloading.
+
+00:00:57.967 --> 00:01:05.317
+Keep the file alongside the document so the recipient can
+distinguish the readable picture from the editable
+project.
+
+00:01:08.833 --> 00:01:13.983
+Choose PNG for a raster image that can be inserted into
+many documents.
+
+00:01:14.103 --> 00:01:18.303
+Raster scale changes pixel dimensions and memory use.
+
+00:01:18.423 --> 00:01:26.048
+Increase it only as far as the intended output requires,
+then inspect readability and the estimated image size.
+
+00:01:26.168 --> 00:01:29.218
+Choose a suitable margin and background.
+
+00:01:29.338 --> 00:01:37.613
+If the app reports an image size limit, reduce scale or
+use SVG rather than repeatedly attempting an oversized
+export.
+
+00:01:41.133 --> 00:01:44.983
+Select PDF and review its page and image bounds.
+
+00:01:45.103 --> 00:01:52.328
+This PDF output uses a white page with a rasterized
+diagram, so it is different from a vector SVG.
+
+00:01:52.448 --> 00:01:56.373
+Check the result at the reading size the recipient will
+use.
+
+00:01:56.493 --> 00:02:02.693
+A very wide schedule may be better shared as a scalable
+image or the portable document as well.
+
+00:02:02.813 --> 00:02:09.738
+Download the PDF after checking the preview, and include a
+clear title and revision context in the handover.
+
+00:02:13.267 --> 00:02:17.667
+File Export also provides plain source and clipboard
+formats.
+
+00:02:17.787 --> 00:02:26.362
+Plain source is useful for text workflows, but it does not
+replace a connected portable document with retained
+application information.
+
+00:02:26.482 --> 00:02:34.957
+Copy as Markdown and Copy for Confluence prepare content
+for their destination; review what was copied before
+pasting it into a shared page.
+
+00:02:35.077 --> 00:02:38.702
+Copying and preparing content do not publish it.
+
+00:02:38.822 --> 00:02:45.297
+Keep private or unfinished work in your practice
+environment until the intended handover is ready.
+
+00:02:48.800 --> 00:02:53.725
+Export Source to obtain the plain Plant UML text for the
+active diagram.
+
+00:02:53.845 --> 00:02:57.395
+Download it and compare it with the authored statements.
+
+00:02:57.515 --> 00:03:07.815
+The source is useful for text workflows and other
+compatible renderers, but it does not carry the complete
+application document, connected members or retained
+history.
+
+00:03:07.935 --> 00:03:14.085
+Keep the portable project as well when the recipient needs
+to continue the full application workflow.
+
+00:03:14.205 --> 00:03:18.055
+Check which diagram member is active before exporting.
+
+00:03:21.567 --> 00:03:25.867
+Copy as Markdown prepares a fenced Plant UML code block.
+
+00:03:25.987 --> 00:03:30.862
+After copying, inspect the actual clipboard content in
+this training preview.
+
+00:03:30.982 --> 00:03:39.382
+Copy for Confluence prepares the corresponding wiki macro
+markup; inspect that content too before pasting it into
+the destination.
+
+00:03:39.502 --> 00:03:44.552
+These commands prepare text, and do not publish a page or
+send a message.
+
+00:03:44.672 --> 00:03:51.472
+Keep source disclosure and destination permissions in mind
+when moving a real project into another system.
+
+00:03:55.000 --> 00:04:00.100
+Copy image prepares a rendered picture for a destination
+that accepts images.
+
+00:04:00.220 --> 00:04:07.570
+Choose the command from File and Export, then inspect the
+actual PNG read from the clipboard in this training
+preview.
+
+00:04:07.690 --> 00:04:12.415
+Check the dimensions and that all task labels and the
+milestone are visible.
+
+00:04:12.535 --> 00:04:19.735
+A copied image is a snapshot; it does not carry the
+editable document, history or connected diagram members.
+
+00:04:19.855 --> 00:04:26.180
+Keep the portable source alongside a shared picture when
+the recipient needs to continue editing.
+
+00:04:29.700 --> 00:04:35.500
+Link and embed creates an encoded source URL, not a
+collaboration invitation.
+
+00:04:35.620 --> 00:04:41.020
+Encoding is not encryption: someone with the URL can
+recover the source.
+
+00:04:41.140 --> 00:04:49.540
+Opening or embedding that URL sends the source to the
+chosen renderer, and external rendering can differ from
+this app's local preview.
+
+00:04:49.660 --> 00:04:54.160
+Review the renderer address and disclosure before
+generating a link.
+
+00:04:54.280 --> 00:05:00.130
+Generating the text locally does not mean the eventual
+image is an offline artifact.
+
+00:05:03.633 --> 00:05:07.258
+Open Presentation and local review from View.
+
+00:05:07.378 --> 00:05:13.078
+Presentation gives the diagram a read only stage with
+navigation and review tools.
+
+00:05:13.198 --> 00:05:18.373
+Use Fit and zoom for the audience rather than changing
+task dates to fit a screen.
+
+00:05:18.493 --> 00:05:23.443
+Open the local review panel to choose diagram objects and
+add highlight steps.
+
+00:05:23.563 --> 00:05:31.763
+A focused explanation should guide the audience through a
+few meaningful objects, not animate every item simply
+because it is available.
+
+00:05:35.267 --> 00:05:40.567
+Open presentation from a connected document rather than a
+separate diagram.
+
+00:05:40.687 --> 00:05:46.537
+Use its diagram selector to move between the work
+breakdown structure and the linked schedule.
+
+00:05:46.657 --> 00:05:52.057
+Fit the selected diagram for the audience and confirm
+which member is being presented.
+
+00:05:52.177 --> 00:05:59.552
+Presentation navigation changes the view, while the
+connected document retains the authored member sources and
+links.
+
+00:05:59.672 --> 00:06:03.172
+Return to the editor when you need to change the plan.
+
+00:06:06.700 --> 00:06:10.975
+Use a view name to save a meaningful sequence of highlight
+steps.
+
+00:06:11.095 --> 00:06:15.945
+Choose an object, write a personal review note and anchor
+it to that object.
+
+00:06:16.065 --> 00:06:19.690
+These views and notes are stored locally in the browser.
+
+00:06:19.810 --> 00:06:24.835
+They are not included in the portable file, exports or
+live collaboration.
+
+00:06:24.955 --> 00:06:28.405
+Another person will not receive them automatically.
+
+00:06:28.525 --> 00:06:36.100
+Include the required explanation explicitly in your
+handover, and revisit an anchor if the underlying diagram
+changes.
+
+00:06:39.600 --> 00:06:45.175
+Rendered links are working controls, so review their
+destinations before opening them.
+
+00:06:45.295 --> 00:06:49.645
+Activate the Portal reference and check the browser
+confirmation.
+
+00:06:49.765 --> 00:06:55.340
+Cancel this first request and verify that the diagram and
+source remain unchanged.
+
+00:06:55.460 --> 00:07:01.410
+Accept the second request to open the reference in a
+separate tab without replacing the editor.
+
+00:07:01.530 --> 00:07:08.980
+The exported SVG also retains the link destination; check
+the actual artifact when preparing a handover.
+
+00:07:09.100 --> 00:07:18.300
+Web links and mail links use the confirmation guard, while
+cross diagram member connections and collaboration
+invitations remain separate features.
+
+00:07:21.800 --> 00:07:27.725
+Finish with a portable project, the required plain source
+and readable exported diagrams.
+
+00:07:27.845 --> 00:07:34.445
+Reopen the project and inspect connected members, labels,
+schedule assumptions and retained history.
+
+00:07:34.565 --> 00:07:38.940
+Open the images and PDF at their intended reading size.
+
+00:07:39.060 --> 00:07:45.710
+Include the project start date, status date and important
+assumptions so a reader can interpret the plan.
+
+00:07:45.830 --> 00:07:50.880
+Document limitations honestly; Jira is excluded from this
+edition.
+
+00:07:51.000 --> 00:07:55.025
+A good handover makes the next person's first action
+clear.
