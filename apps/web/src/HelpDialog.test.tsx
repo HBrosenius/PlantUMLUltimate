@@ -93,4 +93,7 @@ it("links the refreshed demos alongside the full course", () => {
     );
   }
   expect(screen.getByRole("link", { name: "03 · Gantt tasks and progress" })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Search Help"), { target: { value: "demo" } });
+  expect(screen.getAllByRole("link", { name: /^Demo ·/ })).toHaveLength(6);
+  expect(screen.queryByRole("link", { name: "03 · Gantt tasks and progress" })).toBeNull();
 });
