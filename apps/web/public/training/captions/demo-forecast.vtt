@@ -1,0 +1,82 @@
+WEBVTT
+
+00:00:00.250 --> 00:00:04.375
+Your plan says the website launches on the sixteenth of October.
+
+00:00:04.495 --> 00:00:08.845
+But it's October second, and the work isn't going quite as planned.
+
+00:00:08.965 --> 00:00:11.465
+So when will you really launch?
+
+00:00:12.965 --> 00:00:18.190
+In PlantUML Ultimate, turn on Progress forecast and pick a status date.
+
+00:00:18.310 --> 00:00:27.910
+The app looks at how much of each task is complete, works out what's left, and projects the whole plan forward, respecting your dependencies and your closed weekends.
+
+00:00:29.410 --> 00:00:31.535
+And there's the answer.
+
+00:00:31.655 --> 00:00:34.980
+Projected finish: October twenty-first.
+
+00:00:35.100 --> 00:00:38.100
+Three working days later than planned.
+
+00:00:38.220 --> 00:00:46.345
+On the chart, the grey bar is the plan, the blue bar is the forecast, and the hatching marks work that's running past its planned finish.
+
+00:00:47.845 --> 00:00:50.070
+But a number isn't enough.
+
+00:00:50.190 --> 00:00:52.190
+You need to know why.
+
+00:00:52.310 --> 00:00:59.510
+Click Backend, and the inspector explains it: planned to finish on October ninth, forecast to finish on the fourteenth.
+
+00:00:59.630 --> 00:01:03.955
+It's only ten percent done, with nine working days remaining.
+
+00:01:05.455 --> 00:01:09.455
+Zoom out, and the project finish causes tell you where to act.
+
+00:01:09.575 --> 00:01:13.125
+One root task is moving the release: Backend.
+
+00:01:13.245 --> 00:01:17.045
+It holds up two linked tasks, and the Launch milestone.
+
+00:01:17.165 --> 00:01:19.690
+Everything else is on plan.
+
+00:01:21.190 --> 00:01:23.315
+Now try a what-if.
+
+00:01:23.435 --> 00:01:27.110
+Suppose Backend only needs six more working days.
+
+00:01:27.230 --> 00:01:31.505
+Type it in, and the projected finish snaps back to the sixteenth.
+
+00:01:31.625 --> 00:01:33.700
+Plus zero days.
+
+00:01:33.820 --> 00:01:37.695
+Your source file hasn't changed, so it's safe to explore.
+
+00:01:39.195 --> 00:01:42.220
+When the delay is real, you can accept it.
+
+00:01:42.340 --> 00:01:49.565
+Apply to plan shows exactly which tasks will change: Backend gets longer, Integration and Launch move with it.
+
+00:01:49.685 --> 00:01:54.060
+Review the changes, apply them, and the plan now matches reality.
+
+00:01:55.560 --> 00:01:59.385
+Know where you really stand, see why, and test your options.
+
+00:01:59.505 --> 00:02:03.130
+Progress forecast, in PlantUML Ultimate.

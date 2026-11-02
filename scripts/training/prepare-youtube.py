@@ -45,7 +45,12 @@ for lesson in json.loads((COURSE / 'course-progress.json').read_text())['lessons
                  'chapters': [{'title': c['title'], 'start': int(c['start'])} for c in chapters]})
     (TARGET / 'captions').mkdir(exist_ok=True)
     (TARGET / 'captions' / f'lesson-{lid}.vtt').write_bytes((COURSE / lid / 'captions.vtt').read_bytes())
-manifest = {'visibility': 'unlisted', 'edition': 'review', 'lessons': rows}
+demos = json.loads((REPO / 'docs/training/demo-videos.json').read_text())
+for demo in demos:
+    assert re.fullmatch(r'demo-[a-z-]+', demo['id'])
+    assert re.fullmatch(r'[A-Za-z0-9_-]{11}', demo['youtubeId'])
+    (TARGET / 'captions' / f"{demo['id']}.vtt").write_bytes((REPO / 'output/demo-refresh' / demo['id'].removeprefix('demo-') / 'captions.vtt').read_bytes())
+manifest = {'visibility': 'unlisted', 'edition': 'review', 'demos': demos, 'lessons': rows}
 manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
 (UPLOAD / 'upload-manifest.json').write_text(json.dumps([
     {'id': r['id'], 'title': (UPLOAD / f"{r['id']}-title.txt").read_text().strip(),
@@ -66,6 +71,12 @@ for row in rows:
     cards.append(f'''<article><span class="number">{row['id']}</span><div><h2>{heading}</h2>
 <p>{esc(row['objective'])}</p><p class="meta">{stamp(row['durationSeconds'])} · {'Unlisted review video' if url else 'YouTube upload pending'}</p>
 <details><summary>Chapters and captions</summary><ol>{chapters}</ol><a href="captions/lesson-{row['id']}.vtt" download>Download English captions</a></details></div></article>''')
+demo_cards = []
+for row in demos:
+    url = f"https://www.youtube.com/watch?v={row['youtubeId']}"
+    demo_cards.append(f'''<article><span class="number">Demo</span><div><h2><a href="{url}">{html.escape(row['title'])}</a></h2>
+<p>{html.escape(row['objective'])}</p><p class="meta">{stamp(row['durationSeconds'])} · Unlisted review video</p>
+<a href="captions/{row['id']}.vtt" download>Download English captions</a></div></article>''')
 uploaded = sum(bool(r['youtubeId']) for r in rows)
 review_note = ('These videos are unlisted on YouTube. Anyone with a video link can watch.' if uploaded == len(rows) else f'{uploaded} of {len(rows)} videos are saved as unlisted YouTube uploads; remaining uploads are pending.')
 (TARGET / 'index.html').write_text('''<!doctype html>
@@ -79,5 +90,5 @@ review_note = ('These videos are unlisted on YouTube. Anyone with a video link c
 <p><a href="https://www.youtube.com/watch?v=f-0B0l88-K4">Watch the introduction on YouTube ↗</a></p>
 <p><a class="button" href="practice.zip" download>Download practice sources and transcripts</a></p>
 <p class="meta">Source snapshots are plain PlantUML. Follow the videos for connected documents and browser-local workflows. Exercise time is separate from video runtime.</p>
-<section aria-label="Course lessons">''' + ''.join(cards) + '''</section><footer>Lesson 18 (Jira) is excluded from this edition. Narrated with MimikaStudio / Kokoro / Emma.</footer></main></body></html>''')
+<h2>Short feature demos</h2><p>Quick walkthroughs recorded with the current menus.</p>''' + ''.join(demo_cards) + '''<h2>Full training course</h2><section aria-label="Course lessons">''' + ''.join(cards) + '''</section><footer>Lesson 18 (Jira) is excluded from this edition. Narrated with MimikaStudio / Kokoro / Emma.</footer></main></body></html>''')
 print(f'Prepared {len(rows)} lessons; {sum(bool(r["youtubeId"]) for r in rows)} YouTube IDs recorded. Nothing uploaded or published.')
