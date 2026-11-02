@@ -9,7 +9,7 @@ The clip text lives in [`scripts/demo-video/narration-task-check-in.json`](../sc
 One chore, removed: chasing the team for status updates.
 
 1. **Hook.** It's Friday, you need real status, and writing the same email to everyone is tedious.
-2. **Open.** More → Reports… → Task check-in.
+2. **Open.** Plan → Reports… → Task check-in.
 3. **Scope.** Which tasks to ask about (Ongoing), as-of date, reply-by date.
 4. **People.** Who has what, and how a shared task is handled.
 5. **Preview.** One message per person: only their tasks, overdue work flagged, three standard questions.
@@ -92,7 +92,7 @@ Pronunciation notes: "PlantUML" is "plant U-M-L". "Gantt" rhymes with "want". Ev
 
 **On screen:** Click **More**, then **Reports…**. The dialog opens on **Task check-in**: options on the left, the email preview on the right. The cursor rests on the Report type selector.
 
-> Open Reports from the More menu, and choose Task check-in. It works from the Gantt chart you already have: your tasks, your dates, and the people assigned to them.
+> Open Reports from the Plan tab, and choose Task check-in. It works from the Gantt chart you already have: your tasks, your dates, and the people assigned to them.
 
 ## 03-scope
 

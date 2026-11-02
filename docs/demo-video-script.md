@@ -18,11 +18,11 @@ Recording setup: fresh browser profile, 1920 by 1080 viewport, light theme, sour
 
 ## Scene 2: Add a task
 
-**On screen:** Open the Add menu in the toolbar and choose Task. In the dialog, name the task "API tests", duration 5 days. Submit. A fifth bar appears and two new lines appear in the source.
+**On screen:** Open the Insert tab in the ribbon and choose Task… In the dialog, name the task "API tests", duration 5 days. Submit. A fifth bar appears and two new lines appear in the source.
 
 **Narration:**
 
-> Let's add a task. We click Add, then Task, call it API tests, and give it five days. The new bar shows up immediately, and the matching lines are added to the source. No syntax to remember.
+> Let's add a task. We open Insert, then Task, call it API tests, and give it five days. The new bar shows up immediately, and the matching lines are added to the source. No syntax to remember.
 
 ## Scene 3: Edit a task
 
@@ -74,7 +74,7 @@ Recording setup: fresh browser profile, 1920 by 1080 viewport, light theme, sour
 
 ## Scene 8: The Resources panel
 
-**On screen:** Click the Resources button in the toolbar. The Resource workload panel opens with a card for Alice and one for Bob. Alice's card shows Capacity 100%, a red meter, "Peak 200%", her two tasks, and an expanded list of over-allocated dates. Switch the Summary select from Daily to Weekly and back. Click one of the dates to select the affected task. Finally, raise Alice's capacity to 200 and show the alert disappearing.
+**On screen:** Click Workload in the Plan tab. The Resource workload panel opens with a card for Alice and one for Bob. Alice's card shows Capacity 100%, a red meter, "Peak 200%", her two tasks, and an expanded list of over-allocated dates. Switch the Summary select from Daily to Weekly and back. Click one of the dates to select the affected task. Finally, raise Alice's capacity to 200 and show the alert disappearing.
 
 **Narration:**
 
