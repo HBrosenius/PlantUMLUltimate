@@ -875,15 +875,16 @@ textarea:focus-visible {
 /* Keep selections distinct from the active line while preserving syntax colors. */
 .editor-host .cm-selectionBackground {
   background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, var(--panel));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, var(--panel));
 }
 .editor-host .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
   background: color-mix(in srgb, var(--accent) 16%, var(--panel));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 65%, var(--panel));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 65%, var(--panel));
 }
 .editor-host .cm-activeLine,
 .editor-host .cm-activeLineGutter {
-  background: color-mix(in srgb, var(--accent) 2%, var(--panel));
+  /* The selection layer is below the text; an opaque row fill covers selections. */
+  background: color-mix(in srgb, var(--accent) 2%, transparent);
 }
 .editor-host .cm-scroller {
   font-family: "SFMono-Regular", Consolas, monospace;

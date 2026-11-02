@@ -48,6 +48,64 @@ test("File submenu names and view tooltips describe their actions", async ({ pag
 });
 
 for (const colorScheme of ["light", "dark"] as const) {
+  test(`single-line selection is visible over the active row in the ${colorScheme} theme`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme });
+    await prepareEditor(page);
+    await fillSource(page, source("[Build] lasts 3 days"));
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+Home");
+    for (let index = 0; index < 5; index++) await editor.press("Shift+ArrowRight");
+    const selection = page.locator(".cm-selectionBackground");
+    await expect(selection).toHaveCount(1);
+    for (const focused of [true, false]) {
+      if (!focused) await page.getByRole("button", { name: "File", exact: true }).focus();
+      const box = await selection.boundingBox();
+      expect(box).not.toBeNull();
+      const width = Math.ceil(box!.width);
+      const height = Math.ceil(box!.height);
+      // Sample the actual painted result: a computed selection color can be hidden by the active row.
+      const png = await page.screenshot({ scale: "css" });
+      const contrast = await page.evaluate(
+        async ({ png, x, y, width, height }) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${png}`;
+          await image.decode();
+          const canvas = document.createElement("canvas");
+          canvas.width = width + 220;
+          canvas.height = height;
+          const context = canvas.getContext("2d")!;
+          context.drawImage(image, -x, -y);
+          const luminance = (x: number, y: number) => {
+            const rgb = [...context.getImageData(x, y, 1, 1).data].slice(0, 3);
+            return rgb
+              .map((value) => {
+                const s = value / 255;
+                return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+              })
+              .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index]!, 0);
+          };
+          const background = luminance(width + 200, height - 3);
+          const ratio = (value: number) => (Math.max(value, background) + 0.05) / (Math.min(value, background) + 0.05);
+          return {
+            fill: ratio(luminance(Math.floor(width / 2), height - 3)),
+            edge: Math.max(ratio(luminance(Math.floor(width / 2), 0)), ratio(luminance(Math.floor(width / 2), 1))),
+          };
+        },
+        { png: png.toString("base64"), x: Math.floor(box!.x), y: Math.floor(box!.y), width, height },
+      );
+      expect(contrast.fill).toBeGreaterThan(1.12);
+      expect(contrast.edge).toBeGreaterThan(1.8);
+      await testInfo.attach(`single-line-${focused ? "focused" : "unfocused"}`, {
+        body: png,
+        contentType: "image/png",
+      });
+      if (focused && testInfo.project.name === "chromium")
+        await page.screenshot({ path: testInfo.outputPath(`single-line-${colorScheme}.png`) });
+    }
+  });
+
   test(`selected syntax remains readable in the ${colorScheme} theme`, async ({ page }, testInfo) => {
     await page.emulateMedia({ colorScheme });
     await prepareEditor(page);
