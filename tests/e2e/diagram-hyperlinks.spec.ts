@@ -92,7 +92,10 @@ async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle"
 }
 
 for (const [index, item] of cases.entries()) {
-  test(`${item.name} keeps real SVG links and confirms a separate unlinked tab`, async ({ page, context }) => {
+  test(`${item.name} offers actions for real SVG links and opens a separate unlinked tab`, async ({
+    page,
+    context,
+  }) => {
     const href = `https://example.test/review/${index}`;
     const source = item.source(href);
     await context.route("https://example.test/**", (route) =>
@@ -109,21 +112,19 @@ for (const [index, item] of cases.entries()) {
     await expect(link).toBeVisible();
     expect(await link.evaluate((element) => getComputedStyle(element).cursor)).toBe("pointer");
     const editorUrl = page.url();
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain(href);
-      await dialog.dismiss();
-    });
+    const menu = page.getByRole("menu", { name: "Linked element" });
     await clickSvgLink(page, link);
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText(href);
     expect(context.pages()).toHaveLength(1);
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
     expect(page.url()).toBe(editorUrl);
     expect(await readEditorSource(page)).toBe(source);
 
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain(href);
-      await dialog.accept();
-    });
-    const opened = context.waitForEvent("page");
     await clickSvgLink(page, link);
+    const opened = context.waitForEvent("page");
+    await menu.getByRole("menuitem", { name: "Open URL", exact: true }).click();
     const destination = await opened;
     await expect(destination).toHaveURL(href);
     await expect(destination).toHaveTitle("Linked review");
@@ -133,20 +134,28 @@ for (const [index, item] of cases.entries()) {
     await destination.close();
 
     if (item.kind === "Gantt") {
-      page.once("dialog", (dialog) => dialog.accept());
       const keyboardOpened = context.waitForEvent("page");
       await page.locator(`svg a[href="${href}"]`).first().press("Enter");
+      await menu.getByRole("menuitem", { name: "Open URL", exact: true }).click();
       const keyboardDestination = await keyboardOpened;
       await expect(keyboardDestination).toHaveURL(href);
       expect(await readEditorSource(page)).toBe(source);
       await keyboardDestination.close();
-      page.once("dialog", (dialog) => dialog.accept());
       const middleOpened = context.waitForEvent("page");
       await clickSvgLink(page, link, "middle");
+      await menu.getByRole("menuitem", { name: "Open URL", exact: true }).click();
       const middleDestination = await middleOpened;
       await expect(middleDestination).toHaveURL(href);
       expect(await readEditorSource(page)).toBe(source);
       await middleDestination.close();
+    }
+    if (item.kind !== "Activity") {
+      await clickSvgLink(page, link);
+      await menu.getByRole("menuitem", { name: "Open settings", exact: true }).click();
+      await expect(menu).toBeHidden();
+      await expect(page.locator('aside[aria-label$="inspector"]')).toBeVisible();
+      expect(context.pages()).toHaveLength(1);
+      expect(await readEditorSource(page)).toBe(source);
     }
     if (item.kind === "Class") {
       await page.getByRole("button", { name: "File", exact: true }).click();
@@ -162,7 +171,7 @@ for (const [index, item] of cases.entries()) {
   });
 }
 
-test("mailto is confirmed with its destination without handing control to the editor", async ({ page }) => {
+test("mailto offers its destination without handing control to the editor", async ({ page }) => {
   const href = "mailto:team@example.test";
   const source = `@startuml\nclass Portal [[${href}]]\n@enduml`;
   await openSource(page, "Class", source);
@@ -172,8 +181,8 @@ test("mailto is confirmed with its destination without handing control to the ed
       return null;
     };
   });
-  page.once("dialog", (dialog) => dialog.accept());
   await clickSvgLink(page, page.locator(`svg a[href="${href}"] text`).last());
+  await page.getByRole("menuitem", { name: "Open URL", exact: true }).click();
   expect(await page.evaluate(() => (window as typeof window & { openedLink?: unknown }).openedLink)).toEqual({
     url: href,
     target: "_blank",
@@ -201,8 +210,39 @@ test("member links keep their own target and do not leak to an unlinked class", 
       return null;
     };
   });
-  page.once("dialog", (dialog) => dialog.accept());
   await clickSvgLink(page, page.locator(`svg a[href="${inner}"] text`).last());
+  await page.getByRole("menuitem", { name: "Open URL", exact: true }).click();
   expect(await page.evaluate(() => (window as typeof window & { memberLink?: unknown }).memberLink)).toBe(inner);
   expect(await readEditorSource(page)).toBe(source);
+  await clickSvgLink(page, page.locator(`svg a[href="${inner}"] text`).last());
+  await page.getByRole("menuitem", { name: "Open settings", exact: true }).click();
+  await expect(page.locator('aside[aria-label$="inspector"]')).toBeVisible();
+  expect(await readEditorSource(page)).toBe(source);
 });
+
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`linked task chooser supports dismissal and keyboard choices in ${colorScheme} mode`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme });
+    const href = "https://example.test/task-reference";
+    await openSource(page, "Gantt", cases[0]!.source(href));
+    const link = page.locator(`svg a[href="${href}"] text`).last();
+    const menu = page.getByRole("menu", { name: "Linked element" });
+    await clickSvgLink(page, link);
+    await expect(menu.getByRole("menuitem", { name: "Open settings" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitem", { name: "Open URL" })).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath(`link-menu-${colorScheme}.png`) });
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await clickSvgLink(page, link);
+    await page.getByRole("button", { name: "Copy code", exact: true }).click();
+    await expect(menu).toBeHidden();
+    await clickSvgLink(page, link);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("complementary", { name: "Task inspector" })).toBeVisible();
+    await expect(menu).toBeHidden();
+    expect(await readEditorSource(page)).toBe(cases[0]!.source(href));
+  });
+}

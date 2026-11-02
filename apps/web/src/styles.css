@@ -1388,6 +1388,29 @@ textarea:focus-visible {
 .wbs-diagram svg a[href] text[data-wbs-node-id] {
   cursor: pointer;
 }
+.diagram-link-menu {
+  position: fixed;
+  z-index: 1000;
+  width: 280px;
+  max-width: calc(100vw - 16px);
+  color: var(--text);
+  font-size: 13px;
+}
+.diagram-link-menu button {
+  background: transparent;
+  color: inherit;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.diagram-link-menu button:hover {
+  background: var(--bg);
+}
+.diagram-link-destination {
+  margin: 4px 8px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .sequence-diagram [data-sequence-participant-id],
 .sequence-diagram [data-sequence-message-id],
 .sequence-diagram [data-sequence-structure-id] {

@@ -1,4 +1,29 @@
+import { showDiagramLinkMenu } from "./diagram-link-menu";
+
 const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
+
+export interface DiagramLinkActions {
+  url: string;
+  origin: Element;
+  x: number;
+  y: number;
+  openSettings?: (() => void) | undefined;
+  openUrl: () => void;
+}
+
+// The settings choice reuses the preview's existing selection handler without navigating.
+const settingsClicks = new WeakSet<Event>();
+const settingsSelector =
+  "[data-task-id], [data-class-object-id], [data-class-hit-id], [data-sequence-participant-id], [data-sequence-message-id], [data-sequence-structure-id], [data-wbs-node-id], [data-wbs-relationship-id], [data-usecase-object-id]";
+
+function settingsTarget(origin: Element, anchor: Element): Element | undefined {
+  if (origin.closest('[aria-disabled="true"]')) return undefined;
+  const visualTask = origin.closest("[data-visual-task-id]") ?? anchor.querySelector("[data-visual-task-id]");
+  const taskId = visualTask?.getAttribute("data-visual-task-id");
+  if (taskId) return anchor.closest("svg")?.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`) ?? undefined;
+  if (origin.closest(settingsSelector)) return origin;
+  return anchor.querySelector(settingsSelector) ?? undefined;
+}
 
 /** The external URL a diagram link points to, or undefined when it is not one the app should open. */
 export function diagramLinkTarget(anchor: Element, base: string): string | undefined {
@@ -15,25 +40,48 @@ export function diagramLinkTarget(anchor: Element, base: string): string | undef
 /**
  * Diagram `[[url]]` links become SVG anchors. Left alone, a click navigates the editor away from
  * unsaved work, or hands the opened page a reference to this window. Intercept every SVG anchor
- * click, confirm the destination, and open it in a separate, unlinked tab.
+ * click and offer settings or navigation in a separate, unlinked tab.
  */
 export function installDiagramLinkGuard(
   target: Pick<Document, "addEventListener" | "removeEventListener"> = document,
-  confirmOpen: (url: string) => boolean = (url) => window.confirm(`Open this link from the diagram?\n\n${url}`),
+  choose: (actions: DiagramLinkActions) => void | (() => void) = showDiagramLinkMenu,
   open: (url: string) => void = (url) => void window.open(url, "_blank", "noopener,noreferrer"),
 ): () => void {
+  let dismissMenu: (() => void) | undefined;
   const svgAnchor = (event: Event) => {
     const anchor = event.target instanceof Element ? event.target.closest("a") : null;
     return anchor?.namespaceURI === "http://www.w3.org/2000/svg" ? anchor : null;
   };
   const onClick = (event: Event) => {
+    if (settingsClicks.has(event)) return;
     const anchor = svgAnchor(event);
     if (!anchor) return;
     event.preventDefault();
     const url = diagramLinkTarget(anchor, location.href);
     if (url) {
       event.stopPropagation();
-      if (confirmOpen(url)) open(url);
+      dismissMenu?.();
+      const origin = event.target as Element;
+      const selection = settingsTarget(origin, anchor);
+      const bounds = anchor.getBoundingClientRect();
+      const pointer = event instanceof MouseEvent && (event.clientX !== 0 || event.clientY !== 0);
+      dismissMenu =
+        choose({
+          url,
+          origin,
+          x: pointer ? event.clientX : bounds.left,
+          y: pointer ? event.clientY : bounds.bottom,
+          openSettings: selection
+            ? () => {
+                if (!selection.isConnected) return;
+                const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+                click.preventDefault();
+                settingsClicks.add(click);
+                selection.dispatchEvent(click);
+              }
+            : undefined,
+          openUrl: () => open(url),
+        }) || undefined;
     }
   };
   const onKeyDown = (event: Event) => {
@@ -61,6 +109,7 @@ export function installDiagramLinkGuard(
   target.addEventListener("keydown", onKeyDown, true);
   target.addEventListener("pointerdown", onPointerDown, true);
   return () => {
+    dismissMenu?.();
     target.removeEventListener("click", onClick, true);
     target.removeEventListener("mouseup", onMouseUp, true);
     target.removeEventListener("auxclick", onAuxClick, true);
