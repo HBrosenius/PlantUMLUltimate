@@ -872,13 +872,13 @@ textarea:focus-visible {
   background: var(--panel);
   color: var(--text);
 }
-/* Opaque theme-aware selections keep syntax colors readable in both themes. */
+/* Keep selections distinct from the active line while preserving syntax colors. */
 .editor-host .cm-selectionBackground {
-  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel));
 }
 .editor-host .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 35%, var(--panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 65%, var(--panel));
 }
 .editor-host .cm-activeLine,
 .editor-host .cm-activeLineGutter {
