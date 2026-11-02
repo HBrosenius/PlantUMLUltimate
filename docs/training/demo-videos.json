@@ -1,0 +1,232 @@
+[
+  {
+    "id": "demo-overview",
+    "title": "Gantt planning, people and history",
+    "youtubeId": "eL66XUKBV7Y",
+    "durationSeconds": 253.533667,
+    "objective": "A short tour of Gantt tasks, progress, people, workload and version history.",
+    "chapters": [
+      {
+        "title": "Build a plan you can maintain",
+        "start": 0
+      },
+      {
+        "title": "Create a task with a real start",
+        "start": 27
+      },
+      {
+        "title": "Edit a task and its effort",
+        "start": 48
+      },
+      {
+        "title": "Record progress explicitly",
+        "start": 70
+      },
+      {
+        "title": "Inspect an assignment",
+        "start": 94
+      },
+      {
+        "title": "Add a second person and inspect the working duration",
+        "start": 118
+      },
+      {
+        "title": "Open the workload panel",
+        "start": 145
+      },
+      {
+        "title": "Capacity is an assumption",
+        "start": 173
+      },
+      {
+        "title": "Compare the exact source",
+        "start": 202
+      },
+      {
+        "title": "Compare the drawing",
+        "start": 227
+      }
+    ]
+  },
+  {
+    "id": "demo-outline",
+    "title": "Diagram outline",
+    "youtubeId": "7V6AVE_eLaQ",
+    "durationSeconds": 68.933833,
+    "objective": "Search diagram elements, dock the outline and navigate to a matching task.",
+    "chapters": [
+      {
+        "title": "A deliberate editing routine",
+        "start": 0
+      },
+      {
+        "title": "Find work by meaning",
+        "start": 22
+      },
+      {
+        "title": "Dock the outline and navigate a match",
+        "start": 44
+      }
+    ]
+  },
+  {
+    "id": "demo-scenario-lab",
+    "title": "What-if scenarios",
+    "youtubeId": "G85LFQaHwbc",
+    "durationSeconds": 103.533667,
+    "objective": "Experiment with an estimate, save an alternative and review before applying.",
+    "chapters": [
+      {
+        "title": "Open an isolated what-if scenario",
+        "start": 0
+      },
+      {
+        "title": "Change a scenario task and update the draft",
+        "start": 23
+      },
+      {
+        "title": "Name and retain the alternative",
+        "start": 48
+      },
+      {
+        "title": "Review the patch before applying it",
+        "start": 75
+      }
+    ]
+  },
+  {
+    "id": "demo-forecast",
+    "title": "Progress forecast",
+    "youtubeId": "bEn-q79MS7U",
+    "durationSeconds": 124.433333,
+    "objective": "Enable progress forecasting, inspect causes and review a proposed schedule update.",
+    "chapters": [
+      {
+        "title": "Intro",
+        "start": 0
+      },
+      {
+        "title": "Turn On",
+        "start": 12
+      },
+      {
+        "title": "Result",
+        "start": 29
+      },
+      {
+        "title": "Why",
+        "start": 47
+      },
+      {
+        "title": "Causes",
+        "start": 65
+      },
+      {
+        "title": "What If",
+        "start": 80
+      },
+      {
+        "title": "Apply",
+        "start": 98
+      },
+      {
+        "title": "Outro",
+        "start": 115
+      }
+    ]
+  },
+  {
+    "id": "demo-task-check-in",
+    "title": "Task check-in",
+    "youtubeId": "Qd7sdOdmSlw",
+    "durationSeconds": 123.6,
+    "objective": "Prepare person-specific status requests from Plan \u2192 Reports.",
+    "chapters": [
+      {
+        "title": "Intro",
+        "start": 0
+      },
+      {
+        "title": "Open",
+        "start": 15
+      },
+      {
+        "title": "Scope",
+        "start": 26
+      },
+      {
+        "title": "People",
+        "start": 46
+      },
+      {
+        "title": "Preview",
+        "start": 64
+      },
+      {
+        "title": "Customize",
+        "start": 84
+      },
+      {
+        "title": "Copy",
+        "start": 101
+      },
+      {
+        "title": "Outro",
+        "start": 114
+      }
+    ]
+  },
+  {
+    "id": "demo-wbs-gantt",
+    "title": "Connected WBS and Gantt",
+    "youtubeId": "jbpdiGrMu0A",
+    "durationSeconds": 164.166667,
+    "objective": "Create a connected schedule from a WBS and keep structure, dates and people linked.",
+    "chapters": [
+      {
+        "title": "Intro",
+        "start": 0
+      },
+      {
+        "title": "Create",
+        "start": 18
+      },
+      {
+        "title": "Project",
+        "start": 38
+      },
+      {
+        "title": "Gantt",
+        "start": 58
+      },
+      {
+        "title": "Plan Alice",
+        "start": 76
+      },
+      {
+        "title": "Plan Bob",
+        "start": 85
+      },
+      {
+        "title": "Plan Carol",
+        "start": 93
+      },
+      {
+        "title": "Back To Wbs",
+        "start": 104
+      },
+      {
+        "title": "Hover",
+        "start": 120
+      },
+      {
+        "title": "Rename",
+        "start": 135
+      },
+      {
+        "title": "Outro",
+        "start": 152
+      }
+    ]
+  }
+]

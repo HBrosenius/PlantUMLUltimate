@@ -313,7 +313,7 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
                       {groupVideos.map((video) => (
                         <li key={video.id}>
                           <a href={video.url} target="_blank" rel="noopener noreferrer">
-                            {video.id} · {video.title}
+                            {video.label} · {video.title}
                           </a>
                         </li>
                       ))}
