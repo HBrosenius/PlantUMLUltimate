@@ -153,7 +153,7 @@ export function NewDocumentDialog({
             Try an example
           </button>
         </nav>
-        <p className="start-preferences">Preferences are available later in More → Settings.</p>
+        <p className="start-preferences">Preferences are available later from the Settings button in the top bar.</p>
         <section className="diagram-creation-destination">
           <label>
             Start with
@@ -258,7 +258,9 @@ export function NewDocumentDialog({
             What’s new: named diagrams within documents, clearer save status, report presets for unassigned work, and
             simpler property panels.
           </p>
-          <p>Reopen this guide from File → New, or More → Help for workspace and scheduling guidance.</p>
+          <p>
+            Reopen this guide from File → New, or the Help button in the top bar for workspace and scheduling guidance.
+          </p>
         </details>
         <div className="dialog-actions">
           <button type="button" onClick={onClose} disabled={busy}>
