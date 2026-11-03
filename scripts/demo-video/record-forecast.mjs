@@ -181,12 +181,10 @@ if (await onboarding.isVisible()) {
 await chooser.getByRole("button", { name: "Gantt diagram" }).click();
 await page.locator(".cm-content").fill(demoSource);
 await page.locator(".diagram svg").waitFor();
-await page
-  .getByRole("button", { name: "Close project inspector" })
-  .click()
-  .catch(() => {});
+const navigatorClose = page.getByRole("button", { name: "Close document navigator", exact: true });
+if (await navigatorClose.count()) await navigatorClose.click();
 await page.getByRole("button", { name: "Diagram", exact: true }).click();
-await page.getByLabel("Timeline zoom preset").selectOption("fit");
+await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
 for (let i = 0; i < 6; i += 1) await page.getByRole("button", { name: "Zoom in" }).click();
 await page.mouse.move(mouse.x, mouse.y);
 await wait(1200);
@@ -242,12 +240,15 @@ await scene("01-intro", async () => {
 
 await scene("02-turn-on", async () => {
   await wait(800);
+  await click(page.getByRole("button", { name: /^Diagram options/ }));
   await click(forecastToggle);
   await summary.waitFor();
   await wait(900);
   const asOf = page.getByLabel("Forecast as of date");
   await click(asOf);
   await asOf.fill("2026-10-02");
+  const options = page.getByRole("button", { name: /^Diagram options/ });
+  if ((await options.getAttribute("aria-expanded")) === "true") await click(options);
   await wait(1200);
 });
 
@@ -276,7 +277,7 @@ await scene("04-why", async () => {
 });
 
 await scene("05-causes", async () => {
-  await click(page.getByRole("button", { name: "View project finish causes" }));
+  await page.getByRole("button", { name: "View project finish causes" }).click();
   const causes = page.getByRole("region", { name: "Project finish causes" });
   await causes.waitFor();
   await wait(1500);
@@ -304,6 +305,8 @@ await scene("06-what-if", async () => {
 
 await scene("07-apply", async () => {
   await click(page.getByRole("button", { name: "Use automatic" }));
+  const options = page.getByRole("button", { name: /^Diagram options/ });
+  if ((await options.getAttribute("aria-expanded")) !== "true") await options.click();
   const applyButton = page.getByRole("button", { name: "Apply to plan…" });
   await applyButton.waitFor();
   await wait(1200);

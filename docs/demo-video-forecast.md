@@ -79,7 +79,7 @@ Pronunciation notes: "PlantUML" is "plant U-M-L". Dates are written out in words
 
 ## 02-turn-on
 
-**On screen:** Click **Progress forecast: Off** in the preview toolbar, so it flips to On. Click the **As of** date field and set 2026-10-02. The purple "today" line appears on the chart.
+**On screen:** Open **Diagram options**, then click **Progress forecast: Off**, so it flips to On. Click the **As of** date field and set 2026-10-02. The purple "today" line appears on the chart.
 
 > In PlantUML Ultimate, turn on Progress forecast and pick a status date. The app looks at how much of each task is complete, works out what's left, and projects the whole plan forward, respecting your dependencies and your closed weekends.
 

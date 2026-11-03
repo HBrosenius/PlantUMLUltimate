@@ -12,6 +12,16 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Jira client", () => {
+  it("reports network failures with the integration address instead of Failed to fetch", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    await expect(
+      connectJiraApiToken("https://jira.example", {
+        siteUrl: "https://team.atlassian.net",
+        email: "user@example.com",
+        apiToken: "test-token",
+      }),
+    ).rejects.toThrow("Could not reach the Jira integration service at https://jira.example");
+  });
   it("selects one unambiguous Jira Start date field", () => {
     expect(
       preferredJiraStartField([

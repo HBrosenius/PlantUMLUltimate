@@ -9,3 +9,6 @@ test-results
 .DS_Store
 *.local
 *.tsbuildinfo
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

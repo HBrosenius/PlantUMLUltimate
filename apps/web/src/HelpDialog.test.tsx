@@ -8,6 +8,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+it("always exposes app address, environment and version under About this app", () => {
+  render(<HelpDialog onClose={vi.fn()} />);
+  const about = screen.getByText("About this app").closest("details")!;
+  expect(about.textContent).toContain(window.location.origin);
+  expect(about.textContent).toContain("Environment");
+  expect(about.textContent).toContain("Version");
+});
+
 it("prioritizes the current diagram and keeps other diagrams available", () => {
   render(<HelpDialog kind="sequence" onClose={vi.fn()} />);
   const sections = document.querySelectorAll(".help-content > section");

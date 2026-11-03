@@ -1,4 +1,5 @@
 import type { JiraIssueSnapshot } from "@plantuml-studio/jira-integration";
+import { jiraNetworkError } from "./app-identity";
 
 export interface JiraSite {
   id: string;
@@ -64,11 +65,18 @@ class JiraRequestError extends Error {
 async function apiJson<T>(endpoint: string, path: string, init?: RequestInit): Promise<T> {
   const base = endpoint.replace(/\/$/, "");
   const apiBase = import.meta.env.DEV && base === "https://jira.plantuml.brosenius.se" ? "/__jira" : base;
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    credentials: "include",
-    signal: init?.signal ?? AbortSignal.timeout(60_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase}${path}`, {
+      ...init,
+      credentials: "include",
+      signal: init?.signal ?? AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    if (init?.signal?.aborted) throw error;
+    const address = typeof location === "undefined" ? "https://plantuml.brosenius.se" : location.href;
+    throw new Error(jiraNetworkError(base, address), { cause: error });
+  }
   if (!response.ok) {
     let message = `Jira request failed (${response.status})`;
     try {

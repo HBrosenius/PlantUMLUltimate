@@ -3,6 +3,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { isApplePlatform, optionShortcut } from "./platform-shortcuts";
 import type { DiagramKind } from "./model";
 import { trainingVideos } from "./training-videos";
+import { appIdentity } from "./app-identity";
 
 type Topic = {
   title: string;
@@ -28,7 +29,7 @@ const topics: Topic[] = [
     collapsible: true,
     paragraphs: [
       "Use File → New to create a Blank diagram, a Simple starter, or a named example. Open loads an existing file. Use Insert to build your diagram and click an item to edit its properties.",
-      "Code / Split / Diagram changes your view. Outline helps navigate; Commands finds actions. For Gantt plans, explore Reports, Forecast and What-if scenarios in Plan.",
+      "Code / Split / Diagram changes your view. View → Outline helps navigate; Commands finds actions. For Gantt plans, explore Reports, Forecast and What-if scenarios in Plan.",
     ],
   },
   {
@@ -43,7 +44,7 @@ const topics: Topic[] = [
     title: "Workspace controls",
     group: "General",
     paragraphs: [
-      "File, Save, Undo/Redo, Commands and Collaborate are above the diagram tabs. Add, Outline, diagram settings and Code / Split / Diagram are in the workspace toolbar. More contains Settings and Help. Change the app theme in Settings → Appearance or through Commands.",
+      "File, Undo/Redo, Commands, Collaborate, Save, Settings (⚙) and Help (?) are in the top bar. The ribbon below has four tabs: Edit (history, copy/paste, source editing), Insert (add diagram elements), Plan (Gantt and WBS planning tools and linked diagrams) and View (Find, Outline, Issues, presentation and diagram settings). Code / Split / Diagram switch views above the canvas. On narrow windows ribbon groups collapse into named dropdowns, and the ▴ button collapses the ribbon. Change the app theme in Settings → Appearance or through Commands.",
       "File saving and browser recovery are separate. Saved to file confirms a file write; Download requested means a snapshot was sent to your browser downloads. Browser recovery restores local work and does not save your file. Open Issues for errors, warnings and source that can only be edited in Code view.",
       "Fit sizes the diagram to its canvas. Use Linked diagrams for WBS/Gantt synchronization and connection review.",
     ],
@@ -63,7 +64,7 @@ const topics: Topic[] = [
     paragraphs: [
       "Click a task box or name to open its inspector. Drag horizontally to move between dates, vertically to reorder, or drag the right edge to resize duration. The target row turns green. Hold Shift while dragging to snap movement to weeks.",
       "Drag the round right anchor to another task to create a dependency. Click a dependency line to inspect or delete it. Hover a task for dates, people and dependency navigation.",
-      "Calendar & schedule controls working days. Workload shows resource workload and capacity. In More → Settings → Gantt, resource over-allocation warnings can be disabled for team assignees; workload details remain available.",
+      "Calendar & schedule controls working days. Workload shows resource workload and capacity. In Settings (⚙) → Gantt preferences, resource over-allocation warnings can be disabled for team assignees; workload details remain available.",
       "When moving tasks controls whether downstream dated tasks move automatically. Relative PlantUML tasks follow their predecessor. Cascade changes and diagram edits are recorded as single undo operations.",
       "Plan → Reports offers Task check-in, coordinator summaries, Delivery outlook, Progress forecast, Critical path and other reports. Report scope is independent of canvas filters. What-if scenario tests draft changes before review and apply.",
       "Type [ on a new line to complete an existing task.",
@@ -83,8 +84,8 @@ const topics: Topic[] = [
     title: "Sequence diagrams",
     group: "sequence",
     paragraphs: [
-      "Use Add participant and Add message to build an interaction. Message participant pickers accept existing or new names. Advanced options include lifecycle modifiers, anchors and message types.",
-      "Click an item to inspect it. Drag participants sideways and timeline elements vertically to reorder them. Add combined fragment, activation or note for more detail.",
+      "Use Insert → Participant and Message to build an interaction. Message participant pickers accept existing or new names. Advanced options include lifecycle modifiers, anchors and message types.",
+      "Click an item to inspect it. Drag participants sideways and timeline elements vertically to reorder them. Insert a combined fragment, activation or note for more detail.",
     ],
   },
   {
@@ -179,6 +180,7 @@ function searchable(text: string) {
 }
 
 export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?: DiagramKind }) {
+  const app = appIdentity(window.location.href);
   const dialog = useRef<HTMLElement>(null);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("current");
@@ -235,6 +237,17 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
             ×
           </button>
         </header>
+        <details className="help-about">
+          <summary>About this app</summary>
+          <dl>
+            <dt>Address</dt>
+            <dd>{app.address}</dd>
+            <dt>Environment</dt>
+            <dd>{app.environment}</dd>
+            <dt>Version</dt>
+            <dd>{app.version}</dd>
+          </dl>
+        </details>
         <div className="help-search">
           <label>
             Search Help

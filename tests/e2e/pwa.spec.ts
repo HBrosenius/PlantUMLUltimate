@@ -95,6 +95,9 @@ test("starts its production renderer and cached offline shell", async ({ page, c
   await context.setOffline(true);
   await page.reload();
   await dismissOnboarding();
+  await expect(page.getByRole("note", { name: "App environment" })).toContainText("Local development");
+  await expect(page.getByRole("note", { name: "App environment" })).toContainText(new URL(page.url()).origin);
+  await expect(page).toHaveTitle("PlantUML Ultimate — Local");
   await expect(page.locator("header.toolbar")).toContainText("PlantUML Ultimate");
   await expect(page.locator(".diagram svg")).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));

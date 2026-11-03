@@ -190,12 +190,10 @@ if (await onboarding.isVisible()) {
 await chooser.getByRole("button", { name: "Gantt diagram" }).click();
 await page.locator(".cm-content").fill(demoSource);
 await page.locator(".diagram svg").waitFor();
-await page
-  .getByRole("button", { name: "Close project inspector" })
-  .click()
-  .catch(() => {});
+const navigatorClose = page.getByRole("button", { name: "Close document navigator", exact: true });
+if (await navigatorClose.count()) await navigatorClose.click();
 await page.getByRole("button", { name: "Diagram", exact: true }).click();
-await page.getByLabel("Timeline zoom preset").selectOption("fit");
+await page.getByRole("button", { name: "Fit diagram", exact: true }).click();
 for (let i = 0; i < 6; i += 1) await page.getByRole("button", { name: "Zoom in" }).click();
 await page.mouse.move(mouse.x, mouse.y);
 await wait(1200);
@@ -264,8 +262,8 @@ await scene("01-intro", async () => {
 
 await scene("02-open", async () => {
   await wait(800);
-  await click(page.getByRole("button", { name: "Plan", exact: true }));
-  await click(page.getByRole("menuitem", { name: "Reports…" }));
+  await click(page.getByRole("tab", { name: "Plan", exact: true }));
+  await click(page.getByRole("button", { name: "Reports…", exact: true }));
   await dialog.waitFor();
   await wait(1200);
   await point(dialog.getByLabel("Report type", { exact: true }), { ms: 800 });

@@ -23,7 +23,6 @@ import { useWorkspaceLayout } from "./use-workspace-layout";
 
 import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
-import { WorkspaceHint } from "./WorkspaceHint";
 import { storageGet } from "./safe-storage";
 import { applyShellTheme } from "./shell-theme";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
@@ -4515,7 +4514,6 @@ export function App() {
                 </button>
                 <button onClick={openPresentation}>Presentation &amp; local review…</button>
                 <button onClick={() => setProblemsOpen(true)}>Issues</button>
-                {!mobileListActive && <WorkspaceHint key={workspace.diagramKind} kind={workspace.diagramKind} />}
               </RibbonGroup>
               <RibbonGroup label="Diagram settings">
                 <div className="ribbon-settings">
