@@ -161,7 +161,7 @@ for (const [index, item] of cases.entries()) {
       await page.getByRole("button", { name: "File", exact: true }).click();
       await page.getByRole("menuitem", { name: "Export", exact: true }).click();
       await page.getByRole("menuitem", { name: "Preview export…", exact: true }).click();
-      await page.getByLabel("Format").selectOption("svg");
+      await page.getByRole("dialog", { name: "Export preview" }).getByLabel("Format").selectOption("svg");
       const downloaded = page.waitForEvent("download");
       await page.getByRole("button", { name: "Download SVG", exact: true }).click();
       const download = await downloaded;
