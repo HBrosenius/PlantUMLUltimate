@@ -73,6 +73,10 @@ test("Sequence creation prioritizes endpoints and message, with keyboard pickers
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(page, "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: Hello\n@enduml");
   await openRibbonGroup(page, "Insert", "Insert elements");
   await page.getByRole("button", { name: "Message…" }).click();
@@ -118,6 +122,10 @@ test("single click opens properties and double click preserves source in every f
       await page
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${kind} diagram` })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
         .click();
     }
     const minimal: Record<string, string> = {

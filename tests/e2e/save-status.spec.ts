@@ -34,7 +34,7 @@ test("new, saving, written, changed and recovered documents show the correct Sav
     .poll(() => page.evaluate(() => Boolean((window as Window & { finishSave?: () => void }).finishSave)))
     .toBe(true);
   await page.evaluate(() => (window as Window & { finishSave?: () => void }).finishSave!());
-  await expect(status).toHaveText("Saved to file");
+  await expect(status).toHaveText("Saved to written.pumlu");
   await expect(save).not.toHaveClass(/save-needed/);
   if (testInfo.project.name === "chromium") await page.screenshot({ path: testInfo.outputPath("saved.png") });
   await fillSource(page, source("[Changed] lasts 4 days"));
@@ -93,7 +93,11 @@ test("routine creation status expires and source problems take priority", async 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(page, source("[Invalid] lasts -2 days"));
   await expect(page.locator(".statusbar")).not.toContainText("Created a new Gantt diagram");
-  await expect(page.getByRole("button", { name: /^Issues \(/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^\d+ issues$/ })).toBeVisible();
 });

@@ -98,6 +98,10 @@ for (const [secondKind, original] of Object.entries(diagrams)) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${secondKind} diagram`, exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await setSource(page, b);
     const bZoom = await choosePosition(80, 180);
     const edited = b.replace("\n", "\n' Navigation revision\n");
@@ -113,7 +117,7 @@ for (const [secondKind, original] of Object.entries(diagrams)) {
     await waitForDiagramRender(page);
     await checkPosition(80, 180, bZoom!);
     b = edited;
-    const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+    const tabs = page.locator(".document-tab > button:first-child");
     await tabs.first().click();
     await checkPosition(120, 280, aZoom!);
     await tabs.nth(1).click();

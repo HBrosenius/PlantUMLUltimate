@@ -113,9 +113,9 @@ describe("application menus", () => {
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByRole("menu", { name: "Export" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("menuitem", { name: "Source" })).toHaveFocus());
-    expect(screen.getByRole("menuitem", { name: "SVG" })).toBeDisabled();
-    expect(screen.getByRole("menuitem", { name: "PNG" })).toBeDisabled();
-    expect(screen.getByRole("menuitem", { name: "PDF" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Quick download SVG" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Quick download PNG" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Quick download PDF" })).toBeDisabled();
     expect(screen.getByRole("menuitem", { name: "Copy image" })).toBeDisabled();
 
     await user.keyboard("{ArrowDown}");
@@ -136,7 +136,7 @@ describe("application menus", () => {
     render(<FileMenu canExport {...callbacks} />);
 
     for (const [name, callback] of [
-      ["PDF", callbacks.onExportPdf],
+      ["Quick download PDF", callbacks.onExportPdf],
       ["Copy image", callbacks.onCopyImage],
       ["Copy as Markdown", callbacks.onCopyMarkdown],
       ["Copy for Confluence", callbacks.onCopyConfluence],

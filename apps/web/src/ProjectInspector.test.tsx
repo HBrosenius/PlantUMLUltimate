@@ -17,7 +17,7 @@ describe("ProjectInspector drafts", () => {
     );
     fireEvent.change(screen.getByLabelText("Diagram title"), { target: { value: "Release roadmap — 2026" } });
     rerender(<ProjectInspector settings={parseProjectSettings(source)} onApply={onApply} onClose={onClose} />);
-    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply changes" }));
     expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ title: "Release roadmap — 2026" }));
   });
 

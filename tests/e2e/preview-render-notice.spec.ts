@@ -95,11 +95,11 @@ for (const [kind, source] of Object.entries(diagrams)) {
     await error.getByRole("button", { name: "Retry rendering" }).click();
     await heldRetry;
     const retiredFrame = await page.locator('iframe[title="Local PlantUML renderer"]').elementHandle();
-    await page.locator(".document-tabs > button").filter({ hasText: "Other.pumlu" }).click();
+    await page.locator(".document-tab > button:first-child").filter({ hasText: "Other.pumlu" }).click();
     await expect(svg).toContainText("Other document", { timeout: 45_000 });
     await expect.poll(() => retiredFrame!.evaluate((element) => element.isConnected)).toBe(false);
     const heldAgain = page.waitForEvent("console", { predicate: (message) => message.text() === "notice-test-held" });
-    await page.locator(".document-tabs > button").filter({ hasText: "Recovery.pumlu" }).click();
+    await page.locator(".document-tab > button:first-child").filter({ hasText: "Recovery.pumlu" }).click();
     await heldAgain;
     const corrected = source("Corrected diagram");
     await fillSource(page, corrected);

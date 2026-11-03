@@ -17,7 +17,7 @@ it("caches fixed sample thumbnails and keeps custom source themes selectable", a
   const view = render(<ThemeGallery value="team-theme" onChange={change} diagramKind="class" label="PlantUML theme" />);
   await waitFor(() => expect(document.querySelectorAll(".theme-thumbnail img")).toHaveLength(6));
   expect(screen.getByRole("option", { name: "team-theme (from source)" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "minty" }));
+  fireEvent.click(screen.getByRole("radio", { name: "minty" }));
   expect(change).toHaveBeenCalledWith("minty");
   expect(
     renderer.mock.calls.every(([source]) => source.includes("class Order") && !source.includes("working document")),

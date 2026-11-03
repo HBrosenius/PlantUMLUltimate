@@ -74,7 +74,7 @@ export function SequenceSettingsInspector({
                 checked={value.hideFootbox}
                 onChange={(event) => update("hideFootbox", event.target.checked)}
               />
-              <span>Hide participant footboxes</span>
+              <span>Hide participant footers (footboxes)</span>
             </label>
             <label className="checkbox-row">
               <input

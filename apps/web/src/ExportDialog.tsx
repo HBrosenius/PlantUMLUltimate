@@ -121,20 +121,19 @@ export function ExportDialog({
                 <option value="pdf">PDF</option>
               </select>
             </label>
-            <label>
-              Raster scale
-              <select
-                disabled={options.format === "svg"}
-                value={options.scale}
-                onChange={(e) => change({ ...options, scale: Number(e.target.value) })}
-              >
-                {[1, 2, 3].map((n) => (
-                  <option key={n} value={n}>
-                    {n}×
-                  </option>
-                ))}
-              </select>
-            </label>
+            {options.format !== "svg" && (
+              <label>
+                Image resolution
+                <select value={options.scale} onChange={(e) => change({ ...options, scale: Number(e.target.value) })}>
+                  {[1, 2, 3].map((n) => (
+                    <option key={n} value={n}>
+                      {n}×
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <p>SVG stays sharp at any size. PNG and PDF use the image resolution selected here.</p>
             <label>
               Margin
               <select value={options.margin} onChange={(e) => change({ ...options, margin: Number(e.target.value) })}>
@@ -275,7 +274,7 @@ export function ExportDialog({
                 </button>
               </>
             )}
-            <p>For a local artifact, use File → Export → Preview export… or the quick SVG, PNG and PDF commands.</p>
+            <p>For a local artifact, use File → Export → Export… or the quick SVG, PNG and PDF commands.</p>
           </>
         )}
         {message && <p role="status">{message}</p>}

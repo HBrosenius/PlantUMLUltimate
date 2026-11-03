@@ -8,6 +8,10 @@ async function prepareWbs(page: Parameters<typeof prepareEditor>[0]) {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(
     page,
     `@startwbs\n* Delivery\n** Platform\n*** Deep leaf\n${Array.from({ length: 12 }, (_, i) => `** Workstream ${i + 1}\n*** Deliverable ${i + 1}`).join("\n")}\n@endwbs`,

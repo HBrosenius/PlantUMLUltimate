@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { prepareEditor, readEditorSource } from "./editor-helpers";
-const tabs = (page: Page) => page.locator(".document-tabs > button:not(.new-tab)");
+const tabs = (page: Page) => page.locator(".document-tab > button:first-child");
 async function openWork(page: Page) {
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Open", exact: true }).hover();
@@ -41,7 +41,7 @@ test("imports pasted source into a new tab and rejects invalid or cancelled work
   await expect(dialog).toBeHidden();
   await expect(tabs(page)).toHaveCount(count + 1);
   await expect.poll(() => readEditorSource(page)).toBe(source);
-  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
+  await expect(page.locator(".document-tab > button.active .dirty-dot.visible")).toBeVisible();
   dialog = await openWork(page);
   await expect(dialog.getByText("No recent files yet.", { exact: false })).toBeVisible();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();

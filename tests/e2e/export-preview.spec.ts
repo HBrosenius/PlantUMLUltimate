@@ -26,10 +26,10 @@ test("guides an oversized raster export to a lower scale or SVG without changing
   const source = "@startgantt\n[LARGE_EXPORT_TEST] lasts 2 days\n@endgantt";
   await fillSource(page, source);
   await waitForDiagramRender(page);
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
   await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption("png");
-  await dialog.getByRole("combobox", { name: "Raster scale" }).selectOption("2");
+  await dialog.getByRole("combobox", { name: "Image resolution" }).selectOption("2");
   await expect(dialog.getByRole("alert", { name: "Image export size limit" })).toContainText("Choose 1×");
   await expect(dialog.getByRole("button", { name: "Download PNG" })).toBeDisabled();
   await dialog.getByRole("button", { name: "Use 1× scale" }).click();
@@ -47,7 +47,7 @@ test("guides an oversized raster export to a lower scale or SVG without changing
       expect(bytes.toString("latin1")).toContain("/Width 8232 /Height 1032");
     }
   }
-  await dialog.getByRole("combobox", { name: "Raster scale" }).selectOption("3");
+  await dialog.getByRole("combobox", { name: "Image resolution" }).selectOption("3");
   await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption("pdf");
   await expect(dialog.getByRole("button", { name: "Download PDF" })).toBeDisabled();
   await dialog.getByRole("button", { name: "Switch to SVG" }).click();
@@ -62,7 +62,7 @@ test("recovers from an image encoding failure and retries without losing the doc
   await prepareEditor(page);
   await waitForDiagramRender(page);
   const source = await readEditorSource(page);
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
   await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption("png");
   await page.evaluate(() => {
@@ -88,7 +88,7 @@ test("renders edited Code-view source before allowing an image download", async 
   await waitForDiagramRender(page);
   await page.getByRole("button", { name: "Code", exact: true }).click();
   await fillSource(page, "@startgantt\n[Latest export revision] lasts 3 days\n@endgantt");
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
   for (const format of ["svg", "png", "pdf"]) {
     await dialog.getByRole("combobox", { name: "Format", exact: true }).selectOption(format);
@@ -112,7 +112,7 @@ test("explains failed renders and disables every image format while retaining th
   await waitForDiagramRender(page);
   await fillSource(page, "@startgantt\n[Broken] starts nope\n@endgantt");
   await expect(page.locator(".preview")).toHaveAttribute("data-render-status", "error", { timeout: 45_000 });
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
   await expect(dialog).toContainText("The image below is the last successful diagram");
   await expect(dialog.getByRole("alert")).toBeVisible();
@@ -128,7 +128,7 @@ test("previews and downloads all formats, remembers preferences and preserves so
   await prepareEditor(page);
   await waitForDiagramRender(page);
   const source = await readEditorSource(page);
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   const dialog = page.getByRole("dialog", { name: "Export preview", exact: true });
   await expect(dialog.getByRole("img")).toBeVisible();
   await dialog.getByRole("combobox", { name: "Margin", exact: true }).selectOption("32");
@@ -146,7 +146,7 @@ test("previews and downloads all formats, remembers preferences and preserves so
   }
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   expect(await readEditorSource(page)).toBe(source);
-  await open(page, "Preview export…");
+  await open(page, "Export…");
   await expect(dialog.getByRole("combobox", { name: "Margin", exact: true })).toHaveValue("32");
   await expect(dialog.getByRole("combobox", { name: "Format", exact: true })).toHaveValue("pdf");
   await page.setViewportSize({ width: 390, height: 844 });

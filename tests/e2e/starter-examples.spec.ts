@@ -11,11 +11,13 @@ test("creates a document from a starter example", async ({ page }) => {
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await expect(chooser).toBeVisible();
-  await chooser.getByRole("button", { name: "Try an example", exact: true }).click();
+  await chooser.getByRole("button", { name: "Examples", exact: true }).click();
   await chooser.getByLabel("Example diagram type").selectOption("sequence");
   await expect(chooser.getByRole("heading", { name: "Try an example" })).toBeVisible();
   await chooser.getByRole("button", { name: /Login with OAuth/ }).click();
 
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(chooser).toBeHidden();
   const editor = page.locator(".cm-content");
   await expect(editor).toContainText('participant "Identity provider" as IdP');

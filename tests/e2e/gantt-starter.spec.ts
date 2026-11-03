@@ -31,6 +31,10 @@ test("new Gantt diagrams use today's calendar and highlight today", async ({ pag
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await expect(editor).toContainText(`Project starts ${stockholmDate(now, -6)}`);
   await expect(editor).toContainText(`[Backend] starts ${stockholmDate(now, -2)}`);
   await expect(editor).toContainText("today is colored in #AAF");

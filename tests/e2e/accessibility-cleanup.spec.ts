@@ -9,6 +9,10 @@ for (const kind of ["Class", "Component", "Activity"] as const) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await openRibbonGroup(page, "View", "Diagram settings");
     const trigger = page.getByRole("button", { name: "Diagram settings", exact: true });
     await trigger.click();

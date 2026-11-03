@@ -93,7 +93,7 @@ test("persistent Help and category tabs are keyboard accessible", async ({ page 
 test("shows preserved source through the single Issues entry", async ({ page }) => {
   await prepareEditor(page);
   await setSource(page, source("skinparam handwritten true\n[Build] lasts 3 days"));
-  await page.getByRole("button", { name: "Issues (1)", exact: true }).click();
+  await page.getByRole("button", { name: "1 issues", exact: true }).click();
   const issues = page.getByRole("complementary", { name: "Issues", exact: true });
   await issues.getByText("Preserved source (1)").click();
   await expect(issues).toContainText("Some syntax can only be edited in Code view");
@@ -132,7 +132,11 @@ test("reorders diagram tabs through the keyboard context menu", async ({ page })
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
+  const tabs = page.locator(".document-tab > button:first-child");
   await tabs.last().focus();
   await page.keyboard.press("Shift+F10");
   await page.getByRole("menuitem", { name: "Move tab left", exact: true }).click();
@@ -202,7 +206,7 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   await expect(page.locator(".cm-content")).not.toContainText("Alice draft");
   await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Workload", exact: true }).click();
-  await page.getByRole("button", { name: /^Issues/ }).click();
+  await page.getByRole("button", { name: /^(?:No issues|\d+ issues)$/ }).click();
   const issues = page.getByRole("complementary", { name: "Issues", exact: true });
   await expect(issues).toBeVisible();
   await expect(workload).toBeHidden();
@@ -210,13 +214,13 @@ test("gives Calendar, Workload, Issues, and task properties one side-panel owner
   const task = page.getByRole("complementary", { name: "Task inspector", exact: true });
   await expect(task).toBeVisible();
   await expect(issues).toBeHidden();
-  await page.getByRole("button", { name: /^Issues/ }).click();
+  await page.getByRole("button", { name: /^(?:No issues|\d+ issues)$/ }).click();
   await expect(issues).toBeVisible();
   await expect(task).toBeHidden();
   await issues.getByRole("button", { name: "Close issues", exact: true }).focus();
   await page.keyboard.press("Escape");
   await expect(issues).toBeHidden();
-  await expect(page.getByRole("button", { name: /^Issues/ })).toBeFocused();
+  await expect(page.getByRole("button", { name: /^(?:No issues|\d+ issues)$/ })).toBeFocused();
 });
 
 test("labels a retained preview by its rendered revision and recovers on undo", async ({ page }) => {

@@ -25,10 +25,10 @@ test("Gantt view controls, active filtering and keyboard timeline scrolling pres
   await setup(page);
   await expect(page.getByRole("group", { name: "Overlays", exact: true })).toBeHidden();
   await openDiagramOptions(page);
-  for (const group of ["Task navigation", "Preview zoom", "Overlays", "Schedule controls", "Resource filter"])
+  for (const group of ["Task navigation", "Canvas zoom", "Overlays", "Schedule controls", "Resource filter"])
     await expect(page.getByRole("group", { name: group, exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Timeline zoom preset" })).toHaveCount(0);
-  const zoom = page.getByRole("group", { name: "Preview zoom", exact: true });
+  const zoom = page.getByRole("group", { name: "Canvas zoom", exact: true });
   await zoom.getByRole("button", { name: /Reset zoom/ }).click();
   // 100 % is the natural size, which fits this small plan; zoom in until the timeline overflows horizontally.
   const viewport = page.locator(".gantt-preview .preview-viewport");
@@ -96,11 +96,11 @@ test("move preference is visible and recoverable; timeline scale and task fields
   await openDiagramOptions(page);
   await expect(policy).toHaveText("Move policy: Include dependents");
   await openDiagramOptions(page);
-  await page.getByRole("button", { name: "Timeline scale…", exact: true }).click();
+  await page.getByRole("button", { name: "Time axis…", exact: true }).click();
   const calendar = page.getByRole("complementary", { name: "Project and calendar inspector" });
-  await expect(calendar).toContainText("Preview zoom only changes the canvas view");
-  await calendar.getByRole("combobox", { name: "Timeline scale", exact: true }).selectOption("weekly");
-  await calendar.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(calendar).toContainText("Canvas zoom only changes the canvas view");
+  await calendar.getByRole("combobox", { name: "Time axis", exact: true }).selectOption("weekly");
+  await calendar.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("printscale weekly");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => readEditorSource(page)).toBe(source);

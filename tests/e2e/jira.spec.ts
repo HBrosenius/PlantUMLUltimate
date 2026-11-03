@@ -17,6 +17,7 @@ async function openGantt(page: Page, url = "/") {
     await onboarding.getByRole("button", { name: "Get started" }).click();
   }
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 

@@ -1,5 +1,6 @@
+import { InspectorHistoryContext } from "./inspector-history";
 import { sidePanelOverlayOpen } from "./side-panel-events";
-import { Children, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { Children, useContext, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 import { storageGet } from "./safe-storage";
 
 const WIDTH_KEY = "plantuml-ultimate.properties-width";
@@ -20,8 +21,9 @@ export function InspectorPanel({
   closeOnOutsideEscape = true,
   ...props
 }: ComponentProps<"aside"> & { invalidDraft?: boolean; closeOnOutsideEscape?: boolean }) {
+  const history = useContext(InspectorHistoryContext);
   const panel = useRef<HTMLElement>(null);
-  const [commitState, setCommitState] = useState("Applied");
+  const [commitState, setCommitState] = useState("Diagram updated");
   const [staged, setStaged] = useState(false);
   const refreshStatus = useRef<() => void>(() => {});
   const content = Children.toArray(children);
@@ -73,7 +75,7 @@ export function InspectorPanel({
           ? "Invalid changes — correct the highlighted fields"
           : touched.current && baseline.current !== snapshot(element)
             ? "Unapplied changes"
-            : "Applied",
+            : "Diagram updated",
       );
     };
     refreshStatus.current = refresh;
@@ -92,14 +94,16 @@ export function InspectorPanel({
         }
         refresh();
       });
-    const blurred = () =>
+    const blurred = () => {
+      const committedFields = snapshot(element);
       requestAnimationFrame(() => {
         if (!isStaged() && !isInvalid()) {
-          baseline.current = snapshot(element);
-          touched.current = false;
+          baseline.current = committedFields;
+          touched.current = baseline.current !== snapshot(element);
         }
         refresh();
       });
+    };
     element.addEventListener("input", changed);
     element.addEventListener("change", changed);
     element.addEventListener("focusout", blurred);
@@ -303,10 +307,20 @@ export function InspectorPanel({
       {content[0]}
       <p className="inspector-commit-status" role="status" aria-label="Property commit status">
         <strong>{commitState}</strong>
-        <span>{staged ? "Apply / Cancel properties" : "Auto-save properties"}</span>
+        <span>{staged ? "Apply changes together" : "Updates diagram"}</span>
+        {!staged && history && (
+          <button
+            type="button"
+            disabled={!history.canUndo || commitState !== "Diagram updated"}
+            title="Undo the last diagram change"
+            onClick={() => history.undo()}
+          >
+            Undo
+          </button>
+        )}
         {staged
-          ? "Choose Apply to commit edits."
-          : "Valid changes apply automatically; text fields apply when you leave them."}
+          ? "Apply commits changes to the diagram. Closing asks before discarding drafts."
+          : "Valid changes update the diagram; text applies when you leave the field. Save writes the file."}
       </p>
       {content.slice(1)}
     </aside>

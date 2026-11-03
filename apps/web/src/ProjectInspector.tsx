@@ -50,38 +50,41 @@ export function ProjectInspector({
           onApply(value);
         }}
       >
-        <label>
-          Project starts
-          <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} />
-        </label>
-        <label>
-          Timeline scale
-          <select
-            value={value.scale}
-            onChange={(event) => update("scale", event.target.value as ProjectSettings["scale"])}
-          >
-            {["daily", "weekly", "monthly", "quarterly", "yearly"].map((scale) => (
-              <option key={scale}>{scale}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Timeline scale factor
-          <input
-            type="number"
-            min="1"
-            step="1"
-            placeholder="PlantUML default"
-            value={value.scaleZoom}
-            onChange={(event) => update("scaleZoom", event.target.value)}
-          />
-        </label>
-        <p className="calculated-hint">
-          Timeline scale changes the time axis in diagram source when you Apply. Preview zoom only changes the canvas
-          view.
-        </p>
         <fieldset>
-          <legend>Closed weekdays</legend>
+          <legend>Timeline</legend>
+          <label>
+            Project starts
+            <input type="date" value={value.startDate} onChange={(event) => update("startDate", event.target.value)} />
+          </label>
+          <label>
+            Time axis
+            <select
+              value={value.scale}
+              onChange={(event) => update("scale", event.target.value as ProjectSettings["scale"])}
+            >
+              {["daily", "weekly", "monthly", "quarterly", "yearly"].map((scale) => (
+                <option key={scale}>{scale}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Time-axis spacing
+            <input
+              type="number"
+              min="1"
+              step="1"
+              placeholder="PlantUML default"
+              value={value.scaleZoom}
+              onChange={(event) => update("scaleZoom", event.target.value)}
+            />
+          </label>
+          <p className="calculated-hint">
+            Time axis changes the time axis in diagram source when you Apply. Canvas zoom only changes the canvas view.
+          </p>
+        </fieldset>
+        <fieldset>
+          <legend>Working days</legend>
+          <p>Checked days are closed for scheduling.</p>
           <div className="weekday-grid">
             {mondayFirstWeekdays.map((index) => {
               const day = WEEKDAY_NAMES[index]!;
@@ -261,8 +264,8 @@ export function ProjectInspector({
             + Add highlighted date
           </button>
         </fieldset>
-        <fieldset>
-          <legend>Display</legend>
+        <details className="inspector-section">
+          <summary>Advanced display options</summary>
           <label className="check">
             <input
               type="checkbox"
@@ -294,7 +297,7 @@ export function ProjectInspector({
               checked={value.hideFootbox}
               onChange={(event) => update("hideFootbox", event.target.checked)}
             />
-            Hide footbox
+            Hide timeline footer (footbox)
           </label>
           <label className="check">
             <input
@@ -310,52 +313,57 @@ export function ProjectInspector({
               checked={value.hideResourceFootbox}
               onChange={(event) => update("hideResourceFootbox", event.target.checked)}
             />
-            Hide resource footbox
+            Hide resource footer (footbox)
+          </label>
+        </details>
+        <p className="inspector-note">
+          Time-axis spacing changes the saved timeline density; 2 doubles the spacing between time units.
+        </p>
+        <fieldset>
+          <legend>Diagram text</legend>
+          <label>
+            Diagram title
+            <input
+              type="text"
+              placeholder="Optional project title"
+              value={value.title}
+              onChange={(event) => update("title", event.target.value)}
+            />
+          </label>
+          <label>
+            Header
+            <input
+              type="text"
+              placeholder="Optional page header"
+              value={value.header}
+              onChange={(event) => update("header", event.target.value)}
+            />
+          </label>
+          <label>
+            Footer
+            <input
+              type="text"
+              placeholder="Optional page footer"
+              value={value.footer}
+              onChange={(event) => update("footer", event.target.value)}
+            />
+          </label>
+          <label>
+            Caption
+            <input
+              type="text"
+              placeholder="Optional diagram caption"
+              value={value.caption}
+              onChange={(event) => update("caption", event.target.value)}
+            />
           </label>
         </fieldset>
-        <p className="inspector-note">
-          Scale zoom changes PlantUML’s timeline density. The diagram zoom buttons only magnify the preview.
-        </p>
-        <label>
-          Diagram title
-          <input
-            type="text"
-            placeholder="Optional project title"
-            value={value.title}
-            onChange={(event) => update("title", event.target.value)}
-          />
-        </label>
-        <label>
-          Header
-          <input
-            type="text"
-            placeholder="Optional page header"
-            value={value.header}
-            onChange={(event) => update("header", event.target.value)}
-          />
-        </label>
-        <label>
-          Footer
-          <input
-            type="text"
-            placeholder="Optional page footer"
-            value={value.footer}
-            onChange={(event) => update("footer", event.target.value)}
-          />
-        </label>
-        <label>
-          Caption
-          <input
-            type="text"
-            placeholder="Optional diagram caption"
-            value={value.caption}
-            onChange={(event) => update("caption", event.target.value)}
-          />
-        </label>
         <div className="inspector-actions">
-          <span />
+          <button type="button" onClick={onClose}>
+            Cancel
+          </button>
           <button type="submit" className="primary">
-            Apply
+            Apply changes
           </button>
         </div>
       </form>

@@ -48,8 +48,12 @@ for (const operation of ["switch", "close"] as const) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "Gantt diagram", exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await setSource(page, "@startgantt\n[Other document] lasts 3 days\n@endgantt");
-    const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+    const tabs = page.locator(".document-tab > button:first-child");
     await tabs.first().click();
     await expect(page.locator(".diagram svg")).toContainText("Original preview");
     const oldFrame = await page.locator('iframe[title="Local PlantUML renderer"]').elementHandle();

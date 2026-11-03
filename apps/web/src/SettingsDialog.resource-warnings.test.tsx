@@ -21,6 +21,7 @@ it("applies the warning override only when Settings is submitted", async () => {
     />,
   );
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Gantt" }));
   const checkbox = screen.getByRole("checkbox", { name: "Show resource over-allocation warnings" });
   expect(checkbox).toBeChecked();
   await user.click(checkbox);
@@ -44,6 +45,7 @@ it("keeps the saved preference when the draft is cancelled", async () => {
     />,
   );
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Gantt" }));
   await user.click(screen.getByRole("checkbox", { name: "Show resource over-allocation warnings" }));
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(change).not.toHaveBeenCalled();

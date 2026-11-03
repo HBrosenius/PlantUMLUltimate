@@ -423,7 +423,7 @@ async function saveAndReopen(page, expected, allowFailedPreview = false, expecte
       { timeout: 30_000 },
     );
   else
-    await expect(page.locator('.document-tabs > button[title*="saved-audit.pumlu"]').first()).toBeVisible({
+    await expect(page.locator('.document-tab > button[title*="saved-audit.pumlu"]').first()).toBeVisible({
       timeout: 30_000,
     });
   if (allowFailedPreview)
@@ -640,7 +640,7 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
             wbs: "Deliverable 25",
           }[lateMember.document.current.diagramKind];
           await settle(page, beforeMemberRender, memberMarker);
-          await expect(page.locator(".document-tabs > button.active")).toContainText(lateMember.name);
+          await expect(page.locator(".document-tab > button.active")).toContainText(lateMember.name);
           record.documentSearch = { name: lateMember.name, searchAndOpenMs: performance.now() - searchStarted };
           await search.fill("no matching diagram audit");
           await expect(navigator.getByText("No diagrams match this search.", { exact: true })).toBeVisible();
@@ -659,7 +659,7 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
               class: "Entity12",
               wbs: "Deliverable 25",
             }[member.document.current.diagramKind];
-            await expect(page.locator(".document-tabs > button.active")).toContainText(member.name);
+            await expect(page.locator(".document-tab > button.active")).toContainText(member.name);
             await expect(page.locator(".diagram svg")).toContainText(switchMarker, { timeout: 65_000 });
             await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
             await page.evaluate(
@@ -670,7 +670,7 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
           stage("project-edit-undo");
           const firstMember = item.project.diagrams[0];
           await navigator.getByRole("button", { name: `Inspect diagram ${firstMember.name}`, exact: true }).click();
-          await expect(page.locator(".document-tabs > button.active")).toContainText(firstMember.name);
+          await expect(page.locator(".document-tab > button.active")).toContainText(firstMember.name);
           await expect(page.locator(".diagram svg")).toContainText("Delivery task 30", { timeout: 65_000 });
           const editor = page.locator(".cm-content");
           const originalTitle = firstMember.document.current.source.split("\n")[1];

@@ -24,7 +24,7 @@ it("offers a lower scale or SVG before an oversized raster export", () => {
   fireEvent.click(screen.getByRole("button", { name: "Use 1× scale" }));
   expect(screen.queryByRole("alert")).toBeNull();
   expect((screen.getByRole("button", { name: "Download PNG" }) as HTMLButtonElement).disabled).toBe(false);
-  fireEvent.change(screen.getByRole("combobox", { name: "Raster scale" }), { target: { value: "3" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Image resolution" }), { target: { value: "3" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Format" }), { target: { value: "pdf" } });
   expect((screen.getByRole("button", { name: "Download PDF" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Switch to SVG" }));

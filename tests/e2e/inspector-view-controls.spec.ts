@@ -26,6 +26,10 @@ test("fit and zoom keep a keyboard-selected class relationship and its inspector
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startuml\nclass Order\nclass OrderLine\nOrder *-- OrderLine\n@enduml");
   const relationship = page.locator(".class-relationship-hit").first();
   await relationship.focus();

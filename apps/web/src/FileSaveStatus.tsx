@@ -8,10 +8,12 @@ export function FileSaveStatus({
   dirty,
   state,
   fileCopy,
+  fileName,
   onRetry,
 }: {
   dirty: boolean;
   fileCopy?: "new" | "file" | "download" | undefined;
+  fileName?: string | undefined;
   state?: FileSaveState | undefined;
   onRetry(): void;
 }) {
@@ -25,17 +27,23 @@ export function FileSaveStatus({
             ? "Save cancelled · Unsaved changes"
             : "Save cancelled"
           : dirty
-            ? "Unsaved changes"
+            ? fileCopy === "new"
+              ? "Not saved to a file"
+              : "Unsaved changes"
             : state?.status === "downloaded"
               ? "Download requested"
               : state?.status === "saved"
-                ? "Saved to file"
+                ? fileName
+                  ? `Saved to ${fileName}`
+                  : "Saved to file"
                 : fileCopy === "new"
                   ? "Not saved to a file"
                   : fileCopy === "download"
                     ? "Download requested"
                     : fileCopy === "file"
-                      ? "Saved to file"
+                      ? fileName
+                        ? `Saved to ${fileName}`
+                        : "Saved to file"
                       : "No unsaved changes";
   return (
     <span

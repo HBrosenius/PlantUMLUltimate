@@ -555,7 +555,7 @@ textarea:focus-visible {
   background: var(--bg);
   padding-left: 8px;
 }
-.document-tabs > button {
+.document-tabs button {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -569,12 +569,12 @@ textarea:focus-visible {
   background: transparent;
   color: var(--muted);
 }
-.document-tabs > button.active {
+.document-tabs button.active {
   background: var(--panel);
   color: var(--text);
   box-shadow: inset 0 2px var(--accent);
 }
-.document-tabs > button.dragging {
+.document-tabs button.dragging {
   opacity: 0.4;
 }
 .tab-label {
@@ -611,7 +611,7 @@ textarea:focus-visible {
 .document-tabs .tab-close:hover {
   background: rgb(127 127 127 / 18%);
 }
-.document-tabs > button.new-tab {
+.document-tabs button.new-tab {
   font-size: 18px;
   padding-inline: 11px;
 }
@@ -1051,7 +1051,7 @@ textarea:focus-visible {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  background: var(--panel);
   box-shadow: 0 8px 30px rgb(0 0 0 / 20%);
   transform: translateX(-50%);
   font-size: 12px;
@@ -6846,7 +6846,7 @@ textarea:focus-visible,
   }
   .task-inspector {
     width: min(300px, calc(100vw - 16px));
-    background: color-mix(in srgb, var(--panel) 96%, transparent);
+    background: var(--panel);
   }
   .project-inspector {
     width: min(380px, calc(100vw - 16px));
@@ -8028,7 +8028,7 @@ polygon.diagram-bulk-selected {
   color: var(--text);
   overflow-wrap: anywhere;
 }
-.theme-gallery button[aria-pressed="true"] {
+.theme-gallery button[aria-checked="true"] {
   border-color: var(--accent);
 }
 .theme-gallery button:focus-visible {
@@ -9161,7 +9161,7 @@ polygon.diagram-bulk-selected {
 .workspace-navigation .document-tabs {
   align-items: center;
 }
-.workspace-navigation .document-tabs > button {
+.workspace-navigation .document-tabs button {
   align-self: stretch;
 }
 .ribbon-panel .workspace-hint-content {
@@ -9180,4 +9180,136 @@ polygon.diagram-bulk-selected {
 .gantt-preview-tools-main [data-forecast-hidden="true"] {
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Keep task choices and commit controls visible in compact workspaces. */
+.diagram-kind-options button[aria-pressed="true"] {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+}
+.new-document-dialog .diagram-kind-options {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+}
+.new-document-dialog .diagram-kind-preview {
+  max-height: 65px;
+}
+.task-inspector .inspector-actions {
+  position: sticky;
+  bottom: -14px;
+  padding-block: 12px;
+  background: var(--panel);
+  z-index: 2;
+}
+@media (max-width: 850px) {
+  .task-inspector,
+  .task-inspector.project-inspector {
+    top: var(--workspace-top);
+    right: 0;
+    bottom: var(--footer-height, 38px);
+    width: 100vw;
+    border-radius: 0;
+  }
+  .inspector-resize {
+    display: none;
+  }
+}
+
+.document-tab {
+  display: inline-flex;
+  align-items: stretch;
+  position: relative;
+}
+.document-tabs .document-tab > button:first-child {
+  padding-right: 30px;
+}
+.document-tabs .document-tab > .tab-close {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  bottom: 2px;
+  min-width: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.theme-gallery button[aria-checked="true"] {
+  outline: 2px solid var(--accent);
+}
+
+.settings-dialog section[hidden] {
+  display: none;
+}
+.settings-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  padding: 8px 0;
+  background: var(--panel);
+  z-index: 2;
+}
+.settings-categories button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.new-document-dialog .diagram-kind-options button {
+  min-height: 105px;
+  grid-template-columns: 55px minmax(0, 1fr);
+  grid-template-rows: auto;
+  gap: 8px;
+  align-items: center;
+}
+.new-document-dialog .diagram-kind-options button svg {
+  width: 55px;
+  height: 55px;
+}
+.new-document-dialog > .dialog-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+  z-index: 3;
+}
+
+/* Keep identity in the action row when space permits, and quiet healthy status details. */
+@media (min-width: 1101px) {
+  .ribbon-header .document-identity {
+    flex: 1 1 220px;
+  }
+}
+.statusbar {
+  gap: 8px;
+}
+.statusbar > span:empty {
+  display: none;
+}
+.statusbar .source-cursor {
+  order: -1;
+}
+.inspector-commit-status button {
+  margin-left: 8px;
+  min-height: 28px;
+}
+.starter-example-options button[aria-pressed="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tab-close,
+.history-tools button,
+.statusbar button,
+.statusbar summary {
+  min-width: 24px;
+  min-height: 24px;
+}
+@media (pointer: coarse), (max-width: 850px) {
+  .statusbar button,
+  .statusbar summary,
+  .tab-close,
+  .history-tools button {
+    min-height: 32px;
+    min-width: 32px;
+  }
+}
+.diagram-creation-destination label[hidden] {
+  display: none;
 }

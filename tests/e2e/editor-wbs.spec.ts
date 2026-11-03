@@ -18,6 +18,10 @@ test("highlights, finds, and renames WBS node aliases", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     "@startwbs\n*(project) Project\n**(plan) Plan\n**(deliver) Deliver\nplan -> deliver #Blue\n@endwbs",
@@ -54,6 +58,7 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   const choice = chooser.getByRole("button", { name: "WBS diagram" });
   await expect(choice.getByText("Beta", { exact: true })).toHaveCount(0);
   await choice.click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await setSource(page, "@startwbs\n* Project\n** Discovery\n** Design\n** Delivery\n@endwbs");
   await expect(page.getByRole("region", { name: "WBS diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("@startwbs");
@@ -217,6 +222,10 @@ test("reorders a WBS branch and moves it from left to right with one drag", asyn
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n* Project\n-- Research\n++ Delivery\n@endwbs");
 
   const research = page.locator("text[data-wbs-node-id]", { hasText: "Research" }).first();
@@ -244,6 +253,10 @@ test("moves a WBS branch to the left by dropping in empty space beside the root"
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n* Project\n++ Research\n++ Delivery\n@endwbs");
 
@@ -276,6 +289,10 @@ test("edits and clears a WBS node link", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
   const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
   await plan.focus();
@@ -300,6 +317,10 @@ test("edits and clears a WBS node icon", async ({ page }) => {
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
   const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
@@ -328,6 +349,10 @@ test("has no Stereotype field, and preserves an existing stereotype set via sour
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n* Project\n** Plan <<phase>>\n@endwbs");
   const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
   await plan.focus();
@@ -344,6 +369,10 @@ test("picks a built-in icon from the searchable gallery instead of typing it", a
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
   const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
@@ -364,6 +393,10 @@ test("edits a WBS node label into and out of a multiline shape", async ({ page }
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n* Project\n** Plan\n@endwbs");
   const plan = page.locator("[data-wbs-node-id]").filter({ hasText: "Plan" }).first();
@@ -391,6 +424,10 @@ test("reorders and connects WBS nodes with the keyboard", async ({ page }) => {
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n*(root) Project\n**(plan) Plan\n**(build) Build\n@endwbs");
   const build = page.getByRole("button", { name: "Select WBS node Build" });

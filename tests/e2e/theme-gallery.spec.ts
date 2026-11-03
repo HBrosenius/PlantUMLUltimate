@@ -16,10 +16,10 @@ test("compares actual theme thumbnails, cancels drafts and applies authored appe
   await prepareEditor(page);
   const source = await readEditorSource(page);
   let dialog = await openDocumentSettings(page);
-  const gallery = dialog.getByRole("group", { name: "Featured themes" });
+  const gallery = dialog.getByRole("radiogroup", { name: "Featured themes" });
   await expect(gallery.locator("img")).toHaveCount(6, { timeout: 30000 });
-  await gallery.getByRole("button", { name: "cerulean", exact: true }).click();
-  await expect(gallery.getByRole("button", { name: "cerulean", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await gallery.getByRole("radio", { name: "cerulean", exact: true }).click();
+  await expect(gallery.getByRole("radio", { name: "cerulean", exact: true })).toHaveAttribute("aria-checked", "true");
   expect(await readEditorSource(page)).toBe(source);
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   expect(await readEditorSource(page)).toBe(source);
@@ -50,8 +50,10 @@ test("keeps preview adaptation separate from authored source and export", async 
   await prepareEditor(page);
   const source = await readEditorSource(page);
   let dialog = await openAppSettings(page);
+  await dialog.getByRole("button", { name: "Appearance", exact: true }).click();
   await dialog.getByLabel("Theme", { exact: true }).selectOption("dark");
   await dialog.getByLabel("Adapt preview to app theme", { exact: true }).check();
+  await dialog.getByRole("button", { name: "New diagrams", exact: true }).click();
   await dialog.getByLabel("Default diagram theme", { exact: true }).selectOption("minty");
   await dialog.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.locator(".preview-viewport .diagram").first()).toHaveCSS("filter", "brightness(0.82)");
@@ -66,13 +68,14 @@ test("keeps preview adaptation separate from authored source and export", async 
   await page.getByRole("menuitem", { name: "Export", exact: true }).hover();
   await page
     .getByRole("menu", { name: "Export", exact: true })
-    .getByRole("menuitem", { name: "SVG", exact: true })
+    .getByRole("menuitem", { name: "Quick download SVG", exact: true })
     .click();
   const path = await (await downloadPromise).path();
   const svg = readFileSync(path!, "utf8");
   expect(svg).not.toContain("brightness(0.82)");
   expect(svg).not.toContain("!theme minty");
   dialog = await openAppSettings(page);
+  await dialog.getByRole("button", { name: "Appearance", exact: true }).click();
   await expect(dialog.getByLabel("Adapt preview to app theme", { exact: true })).toBeChecked();
   await dialog.getByLabel("Adapt preview to app theme", { exact: true }).uncheck();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -85,18 +88,23 @@ test("keeps preview adaptation separate from authored source and export", async 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await expect.poll(() => readEditorSource(page)).toContain("!theme minty");
   dialog = await openAppSettings(page);
+  await dialog.getByRole("button", { name: "Appearance", exact: true }).click();
   await dialog.getByLabel("Theme", { exact: true }).selectOption("light");
   await dialog.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.locator(".preview-viewport .diagram").first()).toHaveCSS("filter", "none");
   dialog = await openAppSettings(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  const gallery = dialog.getByRole("group", { name: "Featured themes" });
+  const gallery = dialog.getByRole("radiogroup", { name: "Featured themes" });
   await gallery.scrollIntoViewIfNeeded();
-  await gallery.getByRole("button", { name: "plain", exact: true }).focus();
+  await gallery.getByRole("radio", { name: "plain", exact: true }).focus();
   await page.keyboard.press("Space");
-  await expect(gallery.getByRole("button", { name: "plain", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(gallery.getByRole("radio", { name: "plain", exact: true })).toHaveAttribute("aria-checked", "true");
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(gallery.locator("img")).toHaveCount(6, { timeout: 30000 });
   await gallery.screenshot({ path: "test-results/a20-gallery-phone.png" });
@@ -109,6 +117,7 @@ test("renders curated sample galleries for all seven diagram families", async ({
   for (const kind of ["Gantt", "WBS", "Sequence", "Use Case", "Class", "Component", "Activity"]) {
     const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
     await chooser.getByRole("button", { name: `${kind} diagram`, exact: true }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     // Gantt creation opens its project inspector; dismiss before opening a modal.
     if (kind === "Gantt") await page.keyboard.press("Escape");
     const dialog = await openDocumentSettings(page);

@@ -141,6 +141,10 @@ test("modifier keyboard selection toggles and text fields retain native clipboar
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startuml\nclass One\nclass Two\n@enduml");
   const first = page.locator('.diagram g[data-class-hit-id="one"][tabindex]');
   const second = page.locator('.diagram g[data-class-hit-id="two"][tabindex]');

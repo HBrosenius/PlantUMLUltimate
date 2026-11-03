@@ -26,7 +26,7 @@ async function renderedGeometry(page: Parameters<typeof prepareEditor>[0]) {
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Export", exact: true }).click();
   const downloaded = page.waitForEvent("download");
-  await page.getByRole("menuitem", { name: "SVG", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Quick download SVG", exact: true }).click();
   const file = await downloaded;
   const source = readFileSync((await file.path())!, "utf8");
   return page.evaluate((source) => {

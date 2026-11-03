@@ -18,6 +18,7 @@ async function saveDialog(page: Parameters<typeof prepareEditor>[0]) {
 async function chooser(page: Parameters<typeof prepareEditor>[0]) {
   await page.getByRole("button", { name: "New diagram tab", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Choose a diagram type", exact: true });
+  await dialog.getByRole("button", { name: "Examples", exact: true }).click();
   await dialog
     .locator("summary")
     .filter({ hasText: /^Personal starters$/ })
@@ -49,7 +50,8 @@ test("reviews reuse choices and creates an independent styled diagram without ch
   await review.getByLabel("Keep task resource assignments", { exact: true }).uncheck();
   await review.getByLabel("Keep task links", { exact: true }).uncheck();
   await review.getByLabel("New project start (optional)", { exact: true }).fill("2026-09-08");
-  await review.getByRole("button", { name: "Create from starter", exact: true }).click();
+  await review.getByRole("button", { name: "Select starter", exact: true }).click();
+  await create.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(create).toBeHidden();
   await waitForDiagramRender(page);
   const created = await readEditorSource(page);
@@ -58,9 +60,9 @@ test("reviews reuse choices and creates an independent styled diagram without ch
   expect(created).toContain("starts 2026-09-02");
   expect(created).not.toContain("Morgan");
   expect(created).not.toContain("https://example.com");
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  const tabs = page.locator(".document-tab > button:first-child");
   await expect(tabs).toHaveCount(2);
-  await page.getByRole("button", { name: "Close project inspector", exact: true }).click();
+
   await fillSource(page, created.replaceAll("Build", "Copy"));
   await tabs.nth(0).click();
   expect(await readEditorSource(page)).toBe(source);
@@ -142,6 +144,7 @@ test("adds a personal starter to a document and preserves its authored theme ove
   await saveStarter(page);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings.getByRole("button", { name: "New diagrams", exact: true }).click();
   await settings.getByLabel("Default diagram theme", { exact: true }).selectOption("minty");
   await settings.getByRole("button", { name: "Apply", exact: true }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
@@ -162,7 +165,8 @@ test("adds a personal starter to a document and preserves its authored theme ove
   await review
     .getByLabel("Editable starter source", { exact: true })
     .fill(original.replace("@startgantt", "@startgantt\n!theme cerulean"));
-  await review.getByRole("button", { name: "Create from starter", exact: true }).click();
+  await review.getByRole("button", { name: "Select starter", exact: true }).click();
+  await create.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(create).toBeHidden();
   await waitForDiagramRender(page);
   expect(await readEditorSource(page)).toContain("!theme cerulean");

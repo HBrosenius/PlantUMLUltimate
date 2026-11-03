@@ -81,6 +81,50 @@ it.each([1, 40, 79, 2.5, 100])("zooms with a vertical mouse-wheel delta of %s pi
   expect(Number(viewport.querySelector("output")?.textContent)).toBeCloseTo(Math.exp(-deltaY * 0.0008));
 });
 
+it("keeps compact diagram origins stable throughout repeated wheel zoom and commit", async () => {
+  const observers: Array<() => void> = [];
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        observers.push(callback);
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const viewport = render(<Canvas />).getByTestId("viewport");
+  const diagram = viewport.querySelector<HTMLElement>(".diagram")!;
+  Object.defineProperties(viewport, {
+    clientWidth: { value: 900 },
+    clientHeight: { value: 700 },
+  });
+  Object.defineProperties(diagram, {
+    offsetWidth: { value: 200 },
+    offsetHeight: { value: 100 },
+  });
+  act(() => observers.forEach((callback) => callback()));
+  const expectStableOrigin = () => {
+    expect(parseFloat(diagram.style.marginLeft) || 0).toBe(0);
+    expect(parseFloat(diagram.style.marginTop) || 0).toBe(0);
+  };
+  expectStableOrigin();
+  for (const deltaY of [-120, -120, 120]) {
+    wheel(viewport, { deltaY });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(64);
+    });
+    expectStableOrigin();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expectStableOrigin();
+    const zoom = Number(viewport.querySelector("output")?.textContent);
+    expect(viewport.scrollLeft).toBeCloseTo(50 * (zoom - 1));
+    expect(viewport.scrollTop).toBeCloseTo(50 * (zoom - 1));
+  }
+});
+
 it("stops a zoom animation when a horizontal touchpad pan starts", async () => {
   const viewport = render(<Canvas />).getByTestId("viewport");
   wheel(viewport, { deltaY: -120 });

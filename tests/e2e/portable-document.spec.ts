@@ -30,6 +30,7 @@ test("saves and reopens a portable document with retained history", async ({ pag
   await Promise.race([welcome.waitFor({ state: "visible" }), chooser.waitFor({ state: "visible" })]);
   if (await welcome.isVisible()) await welcome.getByRole("button", { name: "Get started" }).click();
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
 
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save", exact: true }).click();
@@ -44,7 +45,7 @@ test("saves and reopens a portable document with retained history", async ({ pag
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Open", exact: true }).click();
   await page.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Diagram…" }).click();
-  await expect(page.locator('.document-tabs > button[title*="File: round-trip.pumlu"]')).toHaveCount(2);
+  await expect(page.locator('.document-tab > button[title*="File: round-trip.pumlu"]')).toHaveCount(2);
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(page.getByRole("dialog", { name: "Version history" })).toContainText("Saved portable document");

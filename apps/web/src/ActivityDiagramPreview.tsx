@@ -267,7 +267,7 @@ export function ActivityDiagramPreview({
           onClick={() => onZoomChange(1)}
           data-view-control
           aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
-          title="Show the diagram at its natural size"
+          title="Reset canvas zoom to 100%"
         >
           {Math.round(zoom * 100)}%
         </button>

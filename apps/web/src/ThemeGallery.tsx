@@ -55,12 +55,38 @@ export function ThemeGallery({
   const custom = value && !PLANTUML_THEMES.some((theme) => theme === value);
   return (
     <div className="theme-picker">
-      <div className="theme-gallery" role="group" aria-label="Featured themes">
+      <div className="theme-gallery" role="radiogroup" aria-label="Featured themes">
         {CURATED_THEMES.map((theme) => {
           const source = sourceFor(diagramKind, theme);
           const svg = previews.get(source);
           return (
-            <button type="button" key={theme} aria-pressed={value === theme} onClick={() => onChange(theme)}>
+            <button
+              type="button"
+              role="radio"
+              key={theme}
+              aria-checked={value === theme}
+              tabIndex={
+                value === theme ||
+                (!CURATED_THEMES.some((candidate) => candidate === value) && theme === CURATED_THEMES[0])
+                  ? 0
+                  : -1
+              }
+              onClick={() => onChange(theme)}
+              onKeyDown={(event) => {
+                if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                const index = CURATED_THEMES.indexOf(theme);
+                const next =
+                  event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? CURATED_THEMES.length - 1
+                      : (index + (["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 1) + CURATED_THEMES.length) %
+                        CURATED_THEMES.length;
+                onChange(CURATED_THEMES[next]!);
+                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button")[next]?.focus();
+              }}
+            >
               <span className="theme-thumbnail" aria-hidden="true">
                 {svg ? (
                   <img src={imageSource(svg)} alt="" />

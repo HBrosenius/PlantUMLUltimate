@@ -15,6 +15,7 @@ export async function prepareEditor(page: Page) {
   await expect(chooser).toBeVisible();
   await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   if ((page.viewportSize()?.width ?? 1280) <= 600)
     await page
       .getByRole("navigation", { name: "View mode" })

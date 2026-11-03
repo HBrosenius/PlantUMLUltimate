@@ -11,6 +11,10 @@ test("connects Browse products to Process payment in a nested ordering system", 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     `@startuml
@@ -46,6 +50,10 @@ test("highlights, finds, and renames Use Case actor references", async ({ page }
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -87,6 +95,10 @@ test("rejects an invalid visual edit without adding it to undo history", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const original = '@startuml\nactor "Alpha" as A\nusecase "Beta" as B\n@enduml';
   await setSource(page, original);
 
@@ -113,6 +125,7 @@ test("creates and edits Use Case objects through diagram-specific tools", async 
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser.getByRole("button", { name: "Use Case diagram" }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: "Use Case diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.getByRole("region", { name: "Use Case diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("actor Customer");
 
@@ -220,6 +233,10 @@ test("edits general Use Case settings without rewriting diagram objects", async 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
 
   await openRibbonGroup(page, "View", "Diagram settings");
 
@@ -251,6 +268,10 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -339,6 +360,10 @@ test("selects and reorders Use Case objects with the keyboard", async ({ page })
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\nleft to right direction\nactor "User" as First\nactor "User" as Second\nusecase "Review" as Review\n@enduml',
@@ -374,6 +399,10 @@ test("keeps Use Case selection aligned after zoom and responsive resizing", asyn
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\nleft to right direction\nactor "Alpha" as A\nusecase "Beta" as B\nA --> B : uses\n@enduml',
@@ -406,6 +435,10 @@ test("selects and edits actors and use cases declared only by relationship endpo
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Use Case diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\n:User: --> (Login)\n@enduml");
 

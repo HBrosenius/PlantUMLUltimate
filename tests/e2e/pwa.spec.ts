@@ -42,7 +42,7 @@ test("opens a PlantUML file delivered by the installed app launch queue", async 
       ],
     });
   });
-  await expect(page.locator('.document-tabs > button[title*="File: launched.plantuml"]')).toBeVisible();
+  await expect(page.locator('.document-tab > button[title*="File: launched.plantuml"]')).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText("Opened from Windows");
 });
 

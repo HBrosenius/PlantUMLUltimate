@@ -10,7 +10,8 @@ test("a blank Gantt renders without sample tasks and supports adding the first t
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   });
   await chooser.getByRole("button", { name: "Gantt diagram", exact: true }).click();
-  await page.getByRole("button", { name: "Close project inspector" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Close project inspector" })).toHaveCount(0);
   await expect.poll(() => readEditorSource(page)).toBe(`@startgantt\nProject starts ${localDate}\n@endgantt`);
   await waitForDiagramRender(page);
   await expect(page.locator(".diagram svg")).toBeVisible();

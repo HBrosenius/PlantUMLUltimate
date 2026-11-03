@@ -11,6 +11,10 @@ for (const kind of ["Gantt", "Sequence", "Activity"]) {
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${kind} diagram`, exact: true })
         .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
+        .click();
     }
     await waitForDiagramRender(page);
     const source = await readEditorSource(page);

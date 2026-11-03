@@ -32,7 +32,8 @@ export function WorkspaceHint({ kind }: { kind: DiagramKind }) {
       </button>
       {open && (
         <span className="workspace-hint-content" role="note">
-          Use Insert for a new {item}; click an item once to edit its properties.
+          Select a {item} to edit its properties. Use Insert to add another.
+          {kind === "gantt" && " Drag a task edge to change duration, or use its inspector fields."}
           {kind === "sequence" && " Drag participants sideways and timeline elements vertically to reorder them."}
           <button type="button" aria-label="Dismiss editing hint" onClick={dismiss}>
             ×

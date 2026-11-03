@@ -30,7 +30,7 @@ test("downloads the diagram as a PDF", async ({ page }) => {
 
   const menu = await openExportMenu(page);
   const download = page.waitForEvent("download");
-  await menu.getByRole("menuitem", { name: "PDF" }).click();
+  await menu.getByRole("menuitem", { name: "Quick download PDF" }).click();
   const pdf = await download;
 
   expect(pdf.suggestedFilename()).toMatch(/\.pdf$/);

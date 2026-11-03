@@ -8,6 +8,10 @@ test("editor preferences apply, cancel and persist without changing source or ex
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const source = await readEditorSource(page);
   const settings = async () => {
     await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -18,6 +22,7 @@ test("editor preferences apply, cancel and persist without changing source or ex
   await dialog.getByLabel("Word wrap", { exact: true }).uncheck();
   await dialog.getByLabel("Line numbers", { exact: true }).uncheck();
   await dialog.getByLabel("Tab size", { exact: true }).selectOption("8");
+  await dialog.getByRole("button", { name: "New diagrams", exact: true }).click();
   await dialog.getByLabel("Default view", { exact: true }).selectOption("diagram");
   await dialog.getByLabel("Default zoom", { exact: true }).selectOption("1.5");
   await dialog.getByRole("button", { name: "Apply", exact: true }).click();
@@ -33,8 +38,10 @@ test("editor preferences apply, cancel and persist without changing source or ex
   await expect(page.locator(".cm-editor").first()).toHaveCSS("font-size", "19px");
   expect(await readEditorSource(page)).toBe(source);
   dialog = await settings();
+  await dialog.getByRole("button", { name: "New diagrams", exact: true }).click();
   await expect(dialog.getByLabel("Default view", { exact: true })).toHaveValue("diagram");
   await expect(dialog.getByLabel("Default zoom", { exact: true })).toHaveValue("1.5");
+  await dialog.getByRole("button", { name: "Editor & navigation", exact: true }).click();
   await dialog
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "Code editor · this browser" }) })

@@ -54,7 +54,7 @@ test("selects a native PlantUML theme from document settings", async ({ page }) 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menu", { name: "File" }).getByRole("menuitem", { name: "Export" }).hover();
-  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "SVG" }).click();
+  await page.getByRole("menu", { name: "Export" }).getByRole("menuitem", { name: "Quick download SVG" }).click();
   const downloadPath = await (await downloadPromise).path();
   expect(downloadPath).not.toBeNull();
   expect(readFileSync(downloadPath!, "utf8")).toContain("#003153");
@@ -815,7 +815,7 @@ test("moves the Automated Web Testing separator below Unified End To End Testing
 
 test("lists and reveals syntax that is preserved but not visually editable", async ({ page }) => {
   await setSource(page, source("skinparam handwritten true\n[A] starts 2026-09-01\n[A] lasts 2 days"));
-  const count = page.getByRole("button", { name: "Issues (1)" });
+  const count = page.getByRole("button", { name: "1 issues" });
   await expect(count).toBeVisible();
   await count.click();
   const panel = page.getByRole("complementary", { name: "Issues" });
@@ -891,7 +891,7 @@ note right: Days needed = "?" — unscheduled until estimated
 test("replaces the preview after pasting the large weekend-aware project", async ({ page }) => {
   const value = readFileSync("tests/fixtures/weekend-aware-large.puml", "utf8");
   await fillSource(page, value, "Project Gantt Chart — Weekend-Aware");
-  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
+  await expect(page.locator(".document-tab > button.active .dirty-dot.visible")).toBeVisible();
   await expect(page.locator(".render-notice.rendering")).toContainText("Rendering updated preview");
   await expect(page.locator(".diagram svg")).toContainText("Unified End To End Testing", { timeout: 20_000 });
   await expect(page.locator(".diagram svg")).not.toContainText("Architecture");
@@ -1571,8 +1571,8 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
   });
 
   await page.goto("/");
-  await expect(page.locator('.document-tabs > button[title*="File: first.puml"]')).toBeVisible();
-  await expect(page.locator('.document-tabs > button[title*="File: second.puml"]')).toBeVisible();
+  await expect(page.locator('.document-tab > button[title*="File: first.puml"]')).toBeVisible();
+  await expect(page.locator('.document-tab > button[title*="File: second.puml"]')).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeHidden();
   await expect
@@ -1581,7 +1581,7 @@ test("migrates dependencies in every persisted open Gantt tab on reload", async 
       return text.indexOf("[Frontend] starts at [Testing]'s end") > text.indexOf("[Testing] lasts 2 days");
     })
     .toBe(true);
-  await page.locator('.document-tabs > button[title*="File: second.puml"]').click();
+  await page.locator('.document-tab > button[title*="File: second.puml"]').click();
   await expect
     .poll(async () => {
       const text = await page.locator(".cm-content").innerText();
@@ -1654,6 +1654,10 @@ test("keeps resource capacities isolated between document tabs", async ({ page }
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, firstSource.replaceAll("[A]", "[B]"));
   await openRibbonGroup(page, "Plan", "Planning tools");
@@ -2033,7 +2037,7 @@ test("explains dependency cycles and reveals each relationship", async ({ page }
       "[Architecture] lasts 2 days\n[Backend] lasts 3 days\n[Architecture] starts at [Backend]'s end\n[Backend] starts at [Architecture]'s end",
     ),
   );
-  await page.getByRole("button", { name: "Issues (2)" }).click();
+  await page.getByRole("button", { name: "2 issues" }).click();
   const panel = page.getByRole("complementary", { name: "Issues" });
   const cycles = panel.getByRole("listitem").filter({ hasText: "Dependency cycle:" });
   await expect(cycles).toHaveCount(2);

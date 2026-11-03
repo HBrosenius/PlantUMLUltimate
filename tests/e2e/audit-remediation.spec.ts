@@ -57,7 +57,7 @@ test("save completion belongs to its original document after tab switching", asy
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: "Save as…" }).click();
   await page.waitForFunction(() => Boolean((window as unknown as { finishSave?: unknown }).finishSave));
-  await page.locator(".document-tabs > button").filter({ hasText: "B.pumlu" }).click();
+  await page.locator(".document-tab > button:first-child").filter({ hasText: "B.pumlu" }).click();
   await page.evaluate(() => (window as unknown as { finishSave: () => void }).finishSave());
   await expect
     .poll(() =>
@@ -86,10 +86,10 @@ test("stale render cannot be exported after switching documents", async ({ page 
   await page.getByRole("button", { name: "Split", exact: true }).click();
   await expect(page.locator(".diagram svg")).toContainText("A", { timeout: 60_000 });
   await page.getByRole("button", { name: "Code", exact: true }).click();
-  await page.locator(".document-tabs > button").filter({ hasText: "B.pumlu" }).click();
+  await page.locator(".document-tab > button:first-child").filter({ hasText: "B.pumlu" }).click();
   await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("menuitem", { name: /^Export/ }).hover();
-  await expect(page.getByRole("menuitem", { name: "SVG", exact: true })).toBeDisabled();
+  await expect(page.getByRole("menuitem", { name: "Quick download SVG", exact: true })).toBeDisabled();
 });
 test("resource directives are blocked for every line ending", async ({ page }) => {
   await page.goto("/");

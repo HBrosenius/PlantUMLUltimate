@@ -307,7 +307,7 @@ export function PersonalStarterLibrary({ onChoose, busy }: { onChoose(example: S
           kind={selected.kind}
           source={selected.source}
           busy={busy}
-          action="Create from starter"
+          action="Select starter"
           onAccept={(source) => onChoose({ ...selected, source, personal: true })}
         />
       )}

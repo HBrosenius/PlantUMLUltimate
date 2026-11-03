@@ -62,7 +62,8 @@ test("startup preference restores every tab and chooser creation adds without re
   await expect(chooser).toBeVisible();
   expect(await readEditorSource(page)).toBe(edited);
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  const tabs = page.locator(".document-tab > button:first-child");
   await expect(tabs).toHaveCount(2);
   await tabs.first().click();
   expect(await readEditorSource(page)).toBe(edited);

@@ -5,7 +5,7 @@ import { FileSaveStatus, type FileSaveState } from "./FileSaveStatus";
 afterEach(cleanup);
 it.each([
   [false, undefined, "new", "Not saved to a file"],
-  [true, undefined, "new", "Unsaved changes"],
+  [true, undefined, "new", "Not saved to a file"],
   [false, "saved", "file", "Saved to file"],
   [false, undefined, "file", "Saved to file"],
   [false, undefined, "download", "Download requested"],

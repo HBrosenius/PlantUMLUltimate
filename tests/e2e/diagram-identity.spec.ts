@@ -8,8 +8,9 @@ test("three separate diagrams expose names, types and distinct close controls", 
     await page.getByRole("button", { name: "New diagram tab" }).click();
     await expect(chooser.getByRole("combobox", { name: "Create in", exact: true })).toHaveCount(0);
     await chooser.getByRole("button", { name: `${kind} diagram` }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   }
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  const tabs = page.locator(".document-tab > button:first-child");
   await expect(tabs).toHaveCount(3);
   await expect(tabs.nth(0)).toContainText("Gantt diagram (1)");
   await expect(tabs.nth(1)).toContainText("Sequence diagram");
@@ -52,17 +53,18 @@ test("chooser defaults to the active document, preserves example source and perm
   if (testInfo.project.name === "chromium") {
     await chooser.screenshot({ path: testInfo.outputPath("destination.png") });
     await page.setViewportSize({ width: 390, height: 844 });
+    await destination.scrollIntoViewIfNeeded();
     await expect(destination).toBeInViewport();
     await expect(chooser.getByRole("textbox", { name: "Diagram name", exact: true })).toBeInViewport();
     await page.screenshot({ path: testInfo.outputPath("destination-phone.png") });
     await page.setViewportSize({ width: 1280, height: 720 });
   }
-  await chooser.getByRole("button", { name: "Try an example", exact: true }).click();
+  await chooser.getByRole("button", { name: "Examples", exact: true }).click();
   await chooser.getByLabel("Example diagram type").selectOption("gantt");
   await chooser.getByRole("button", { name: /Product launch plan/ }).click();
   await expect(chooser).toBeHidden();
   expect(await readEditorSource(page)).toContain("title Product launch plan");
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  const tabs = page.locator(".document-tab > button:first-child");
   const member = tabs.filter({ hasText: "Product launch plan" });
   await expect(member).toHaveAttribute("title", /Document: Launch document/);
   await expect(page.locator(".document-identity")).toContainText("Launch document");
@@ -71,6 +73,7 @@ test("chooser defaults to the active document, preserves example source and perm
   await destination.selectOption("separate");
   await chooser.getByRole("textbox", { name: "Diagram name", exact: true }).fill("Independent flow");
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(tabs.filter({ hasText: "Independent flow" })).toHaveAttribute("title", /New separate file/);
   await expect(page.locator(".document-identity")).toContainText("New separate file");
   await page.getByRole("button", { name: "New diagram tab" }).click();

@@ -88,6 +88,10 @@ test("retargets Insert by document, preserves Plan position and keyboard categor
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: "Participant…", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Task…", exact: true })).toHaveCount(0);
   const plan = page.getByRole("tab", { name: "Plan", exact: true });
@@ -140,6 +144,10 @@ test("all seven diagram types retain applicable insertion tools in desktop and m
       await page
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${kind} diagram`, exact: true })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
         .click();
     }
     for (const width of [1440, 390]) {

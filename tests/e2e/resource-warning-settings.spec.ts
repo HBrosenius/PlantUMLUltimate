@@ -32,7 +32,10 @@ test("can suppress the allocation banner without hiding workload and restore it 
   await page.reload();
   await expect(page.locator(".cm-content")).toBeVisible();
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-  if (await chooser.isVisible()) await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  if (await chooser.isVisible()) {
+    await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+  }
   await setSource(
     page,
     source(

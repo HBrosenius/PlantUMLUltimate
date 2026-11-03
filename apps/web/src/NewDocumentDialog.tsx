@@ -52,7 +52,9 @@ export function NewDocumentDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const [destination, setDestination] = useState(onAddToDocument ? "document" : "separate");
-  const [route, setRoute] = useState<"create" | "examples">("create");
+  const [route, setRoute] = useState<"create" | "open" | "examples">("create");
+  const [selectedKind, setSelectedKind] = useState<DiagramKind>("sequence");
+  const [selectedExample, setSelectedExample] = useState<StarterExample>();
   const [exampleKind, setExampleKind] = useState<DiagramKind>("gantt");
   const [name, setName] = useState("");
   const [content, setContent] = useState("starter");
@@ -120,20 +122,6 @@ export function NewDocumentDialog({
         <header className="new-diagram-heading">
           <h2 id="new-document-title">Create a diagram</h2>
           <p>Choose a type or try an example. PlantUML source stays editable.</p>
-          {(onOpen || onOpenRecent) && (
-            <div className="new-diagram-heading-actions">
-              {onOpen && (
-                <button className="secondary-action" type="button" onClick={onOpen} disabled={busy}>
-                  Open…
-                </button>
-              )}
-              {onOpenRecent && (
-                <button className="secondary-action" type="button" onClick={onOpenRecent} disabled={busy}>
-                  Recent files & import…
-                </button>
-              )}
-            </div>
-          )}
         </header>
         <nav className="start-routes" aria-label="Start options">
           <button
@@ -144,18 +132,43 @@ export function NewDocumentDialog({
           >
             Create
           </button>
-          {onOpen && (
-            <button type="button" onClick={onOpen}>
+          {(onOpen || onOpenRecent) && (
+            <button type="button" aria-pressed={route === "open"} onClick={() => setRoute("open")}>
               Open
             </button>
           )}
           <button type="button" aria-pressed={route === "examples"} onClick={() => setRoute("examples")}>
-            Try an example
+            Examples
           </button>
         </nav>
-        <p className="start-preferences">Preferences are available later from the Settings button in the top bar.</p>
-        <section className="diagram-creation-destination">
-          <label>
+        <section hidden={route !== "create"} className="diagram-kind-section" aria-labelledby="diagram-kind-title">
+          <div className="diagram-kind-heading">
+            <div>
+              <h3 id="diagram-kind-title">Choose a diagram</h3>
+              <p>The editor and visual tools will adapt to your selection.</p>
+            </div>
+          </div>
+          <div className="diagram-kind-options">
+            {OPTIONS.map((option) => (
+              <button
+                key={option.kind}
+                aria-label={option.title}
+                type="button"
+                disabled={busy}
+                aria-pressed={selectedKind === option.kind}
+                onClick={() => setSelectedKind(option.kind)}
+              >
+                <DiagramKindPreview kind={option.kind} />
+                <span className="diagram-kind-copy">
+                  <strong>{option.title}</strong>
+                  <span>{option.description}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section hidden={route === "open"} className="diagram-creation-destination">
+          <label hidden={route !== "create"}>
             Start with
             <select value={content} onChange={(event) => setContent(event.target.value)} disabled={busy}>
               <option value="blank">Blank · minimal source</option>
@@ -187,41 +200,22 @@ export function NewDocumentDialog({
           </p>
           {error && <p role="alert">{error}</p>}
         </section>
-        <section hidden={route !== "create"} className="diagram-kind-section" aria-labelledby="diagram-kind-title">
-          <div className="diagram-kind-heading">
-            <div>
-              <h3 id="diagram-kind-title">Choose a diagram</h3>
-              <p>The editor and visual tools will adapt to your selection.</p>
-            </div>
-          </div>
-          <div className="diagram-kind-options">
-            {OPTIONS.map((option) => (
-              <button
-                key={option.kind}
-                aria-label={option.title}
-                type="button"
-                disabled={busy}
-                onClick={() => void choose(option.kind)}
-              >
-                <DiagramKindPreview kind={option.kind} />
-                <span className="diagram-kind-copy">
-                  <strong>{option.title}</strong>
-                  <span>{option.description}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
         <section hidden={route !== "examples"} className="diagram-kind-section" aria-labelledby="starter-example-title">
           <div className="diagram-kind-heading">
             <div>
               <h3 id="starter-example-title">Try an example</h3>
-              <p>Open a realistic diagram and adapt it to your own project.</p>
+              <p>Select an example, then create a diagram to adapt to your own project.</p>
             </div>
           </div>
           <label>
             Example diagram type{" "}
-            <select value={exampleKind} onChange={(event) => setExampleKind(event.target.value as DiagramKind)}>
+            <select
+              value={exampleKind}
+              onChange={(event) => {
+                setExampleKind(event.target.value as DiagramKind);
+                setSelectedExample(undefined);
+              }}
+            >
               {OPTIONS.map((option) => (
                 <option key={option.kind} value={option.kind}>
                   {option.title}
@@ -231,7 +225,13 @@ export function NewDocumentDialog({
           </label>
           <div className="starter-example-options">
             {STARTER_EXAMPLES.filter((example) => example.kind === exampleKind).map((example) => (
-              <button key={example.id} type="button" disabled={busy} onClick={() => void choose(example.kind, example)}>
+              <button
+                key={example.id}
+                type="button"
+                disabled={busy}
+                aria-pressed={selectedExample?.id === example.id}
+                onClick={() => setSelectedExample(example)}
+              >
                 <DiagramKindPreview kind={example.kind} />
                 <span className="starter-example-kind">{kindLabel(example.kind)}</span>
                 <strong>{example.title}</strong>
@@ -240,29 +240,39 @@ export function NewDocumentDialog({
             ))}
           </div>
         </section>
-        <details>
+        <details hidden={route !== "examples"}>
           <summary>Personal starters</summary>
-          <PersonalStarterLibrary busy={busy} onChoose={(example) => void choose(example.kind, example)} />
+          <PersonalStarterLibrary busy={busy} onChoose={setSelectedExample} />
         </details>
-        <details id="start-learning" className="start-learning">
-          <summary>Quick tour & what’s new</summary>
-          <p>
-            Create a diagram or open a file. Use Add to build it, click an item to edit its properties, and use Code /
-            Split / Diagram to choose your view.
-          </p>
-          <p>
-            For planning, Plan contains Reports, Forecast and What-if scenarios. Commands finds actions; Outline
-            navigates large diagrams.
-          </p>
-          <p>
-            What’s new: named diagrams within documents, clearer save status, report presets for unassigned work, and
-            simpler property panels.
-          </p>
-          <p>
-            Reopen this guide from File → New, or the Help button in the top bar for workspace and scheduling guidance.
-          </p>
-        </details>
+        {route === "examples" && selectedExample && <p role="status">Selected: {selectedExample.title}</p>}
+        <section hidden={route !== "open"} aria-label="Open a diagram">
+          {onOpen && (
+            <button type="button" onClick={onOpen}>
+              Open file…
+            </button>
+          )}
+          {onOpenRecent && (
+            <button type="button" onClick={onOpenRecent}>
+              Recent files &amp; import…
+            </button>
+          )}
+        </section>
         <div className="dialog-actions">
+          {route === "examples" && (
+            <button
+              className="primary"
+              type="button"
+              disabled={busy || !selectedExample}
+              onClick={() => selectedExample && void choose(selectedExample.kind, selectedExample)}
+            >
+              Create diagram
+            </button>
+          )}
+          {route === "create" && (
+            <button className="primary" type="button" disabled={busy} onClick={() => void choose(selectedKind)}>
+              Create diagram
+            </button>
+          )}
           <button type="button" onClick={onClose} disabled={busy}>
             Cancel
           </button>

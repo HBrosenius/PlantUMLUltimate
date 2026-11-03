@@ -77,7 +77,6 @@ export function useWorkspaceDocuments({
   retainHistories,
   refreshHistoryControls,
   resetSelection,
-  openProjectInspector,
   reportError,
   setInteractionMessage,
   notifySuccess = setInteractionMessage,
@@ -202,14 +201,12 @@ export function useWorkspaceDocuments({
           : `Created a new ${diagramKindDisplayName(diagramKind)} diagram`,
         { documentId: createdId, source },
       );
-      if (diagramKind === "gantt") window.setTimeout(openProjectInspector, 0);
     },
     [
       defaultDiagramTheme,
       externalCheckSnoozedUntil,
       fileHandles,
       fileSnapshots,
-      openProjectInspector,
       refreshHistoryControls,
       removeHistory,
       replaceActiveDocumentOnCreate,

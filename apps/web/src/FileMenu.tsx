@@ -183,11 +183,19 @@ export function FileMenu({
             </button>
             {activeSubmenu === "new" && (
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="New">
-                <button role="menuitem" onClick={() => run(onNew)}>
+                <button
+                  role="menuitem"
+                  title="Add to this document or create a separate file"
+                  onClick={() => run(onNew)}
+                >
                   Diagram…
                 </button>
                 {onNewProject && (
-                  <button role="menuitem" onClick={() => run(onNewProject)}>
+                  <button
+                    role="menuitem"
+                    title="A document contains multiple diagrams"
+                    onClick={() => run(onNewProject)}
+                  >
                     Document…
                   </button>
                 )}
@@ -284,7 +292,7 @@ export function FileMenu({
               <div className="application-menu-panel application-submenu-panel" role="menu" aria-label="Export">
                 {onExportPreview && (
                   <button role="menuitem" onClick={() => run(onExportPreview)}>
-                    Preview export…
+                    Export…
                   </button>
                 )}
                 {onShareLink && (
@@ -301,7 +309,7 @@ export function FileMenu({
                   title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
                   onClick={() => run(onExportSvg)}
                 >
-                  SVG
+                  Quick download SVG
                 </button>
                 <button
                   role="menuitem"
@@ -309,7 +317,7 @@ export function FileMenu({
                   title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
                   onClick={() => run(onExportPng)}
                 >
-                  PNG
+                  Quick download PNG
                 </button>
                 <button
                   role="menuitem"
@@ -317,7 +325,7 @@ export function FileMenu({
                   title={!canExport ? "Wait for the current diagram preview to finish rendering" : undefined}
                   onClick={() => run(onExportPdf)}
                 >
-                  PDF
+                  Quick download PDF
                 </button>
                 <span className="menu-separator" role="separator" />
                 <button

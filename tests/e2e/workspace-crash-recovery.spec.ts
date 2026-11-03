@@ -26,6 +26,10 @@ test("reopens unsaved tabs, their active selection and a scenario without Indexe
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(page, second);
   await expect
     .poll(() =>
@@ -40,7 +44,7 @@ test("reopens unsaved tabs, their active selection and a scenario without Indexe
   await reopened.goto("/");
   await expect(reopened.locator(".cm-content")).toBeVisible();
   expect(await readEditorSource(reopened)).toBe(second);
-  const tabs = reopened.locator(".document-tabs > button:not(.new-tab)");
+  const tabs = reopened.locator(".document-tab > button:first-child");
   await expect(tabs).toHaveCount(2);
   await expect(reopened.locator(".file-save-indicator")).toContainText("Unsaved");
   await tabs.first().click();
@@ -115,6 +119,10 @@ test("explains how to recover when every stored copy is damaged", async ({ page 
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await expect(page.locator(".cm-content")).toBeVisible();
   await storage.click();

@@ -95,6 +95,10 @@ async function openFixture(page: Page, kind: string, source: string) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram`, exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
   }
   await setSource(page, source);
   await waitForDiagramRender(page);

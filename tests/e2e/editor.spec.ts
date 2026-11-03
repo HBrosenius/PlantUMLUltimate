@@ -12,8 +12,9 @@ test("shows the diagram splash after closing the final tab", async ({ page }) =>
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
-  await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(1);
+  await expect(page.locator(".document-tab > button:first-child")).toHaveCount(1);
 });
 
 test("creates a private collaboration link without exposing its credential in the request URL", async ({ page }) => {
@@ -190,7 +191,7 @@ test("groups document commands in an accessible File and Export menu", async ({ 
   await menu.getByRole("menuitem", { name: "Export" }).hover();
   const exportMenu = page.getByRole("menu", { name: "Export" });
   await expect(exportMenu.getByRole("menuitem")).toHaveText([
-    "Preview export…",
+    "Export…",
     "Link and embed…",
     "Source",
     "SVG",
@@ -349,6 +350,10 @@ test("imports a local PlantUML file for semantic review without replacing the wo
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const before = '@startuml\nparticipant "Payment API" as Pay\nhide footbox\nPay -> Store: Authorize\n@enduml';
   const proposed = '@startuml\nparticipant "Billing API" as Pay\nhide footbox\nPay -> Store: Capture\n@enduml';
   await setSource(page, before);
@@ -394,6 +399,10 @@ test("compares two imported PlantUML files without applying over a different wor
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\nAlice -> Bob: Working copy\n@enduml");
   await page.getByRole("button", { name: "File" }).click();
@@ -447,7 +456,7 @@ test("retains version history after Save As", async ({ page }) => {
 
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Save as…" }).click();
-  await expect(page.locator(".document-tabs > button.active")).toHaveAttribute("title", /File: forked-plan.pumlu/);
+  await expect(page.locator(".document-tab > button.active")).toHaveAttribute("title", /File: forked-plan.pumlu/);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(history.getByRole("button", { name: "Select version Saved portable document" })).toBeVisible();
@@ -478,6 +487,10 @@ test("backs up and restores all open documents", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, source("[Second tab] lasts 3 days"));
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "File" }).click();
@@ -500,7 +513,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Workspace restore…" }).click();
   await expect(page.locator(".cm-content")).toContainText("[Second tab] lasts 3 days");
-  await expect(page.locator(".document-tabs > button:not(.new-tab)")).toHaveCount(2);
+  await expect(page.locator(".document-tab > button:first-child")).toHaveCount(2);
   const checkpoint = await checkpointDownload;
   expect(checkpoint.suggestedFilename()).toBe("plantuml-studio-before-restore.json");
   const checkpointPath = await checkpoint.path();
@@ -515,7 +528,7 @@ test("backs up and restores all open documents", async ({ page }) => {
   expect(previousWorkspace.versions.some((version: { label?: string }) => version.label === "Backup checkpoint")).toBe(
     true,
   );
-  await page.locator(".document-tabs > button:not(.new-tab)").first().click();
+  await page.locator(".document-tab > button:first-child").first().click();
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Version history…" }).click();
   await expect(history.getByRole("button", { name: "Select version Backup checkpoint" })).toBeVisible();
@@ -557,7 +570,7 @@ test("reloads clean external file edits and merges conflicting local changes", a
 
   // Wait for CodeMirror and the document state to commit before notifying the file watcher.
   await fillSource(page, source("[Unsaved local edit] lasts 4 days"));
-  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
+  await expect(page.locator(".document-tab > button.active .dirty-dot.visible")).toBeVisible();
   await page.evaluate((contents) => {
     const fileWindow = window as Window & { testExternalFileSource?: string; testExternalModified?: number };
     fileWindow.testExternalFileSource = contents;
@@ -580,7 +593,7 @@ test("reloads clean external file edits and merges conflicting local changes", a
 
 test("protects dirty tabs from browser unload", async ({ page }) => {
   await fillSource(page, source("[Unsaved] lasts 2 days"));
-  await expect(page.locator(".document-tabs > button.active .dirty-dot.visible")).toBeVisible();
+  await expect(page.locator(".document-tab > button.active .dirty-dot.visible")).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => {

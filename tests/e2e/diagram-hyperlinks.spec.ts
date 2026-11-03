@@ -55,6 +55,10 @@ async function openSource(page: Page, kind: string, source: string) {
   if (kind !== "Gantt") {
     await page.getByRole("button", { name: "New diagram tab", exact: true }).click();
     await page.getByRole("button", { name: `${kind} diagram`, exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
   }
   if (kind === "Class")
     await page
@@ -160,7 +164,7 @@ for (const [index, item] of cases.entries()) {
     if (item.kind === "Class") {
       await page.getByRole("button", { name: "File", exact: true }).click();
       await page.getByRole("menuitem", { name: "Export", exact: true }).click();
-      await page.getByRole("menuitem", { name: "Preview export…", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Export…", exact: true }).click();
       await page.getByRole("dialog", { name: "Export preview" }).getByLabel("Format").selectOption("svg");
       const downloaded = page.waitForEvent("download");
       await page.getByRole("button", { name: "Download SVG", exact: true }).click();

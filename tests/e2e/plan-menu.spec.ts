@@ -34,6 +34,10 @@ test("Plan retains one WBS linking destination and explains applicability to Seq
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     if (kind === "Sequence") {
       await openRibbonGroup(page, "Plan", "Planning tools");
       await expect(page.getByText("Planning tools are for Gantt and WBS diagrams.", { exact: true })).toBeVisible();

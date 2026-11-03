@@ -179,7 +179,7 @@ try {
       );
     }
     await measure("switch-tabs-10", async () => {
-      const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+      const tabs = page.locator(".document-tab > button:first-child");
       for (let i = 0; i < 10; i++) await tabs.nth(i % 2).click();
     });
     await measure("render-100", async () => {

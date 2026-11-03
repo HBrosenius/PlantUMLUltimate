@@ -8,6 +8,10 @@ test("keeps long WBS outline results and footer inside the viewport", async ({ p
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(
     page,
     `@startwbs\n* Root\n${Array.from({ length: 50 }, (_, i) => `** Item ${i + 1}`).join("\n")}\n@endwbs`,
@@ -96,6 +100,10 @@ test("keeps Sequence secondary message actions in a keyboard-accessible menu", a
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   const original = "@startuml\nparticipant A\nparticipant B\nA -> B: Hello\n@enduml";
   await fillSource(page, original);

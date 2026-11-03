@@ -42,6 +42,10 @@ test("converts a nested WBS into linked Gantt entries without explicit dates", a
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     "@startwbs\n*(project) Project\n**(design) Design\n***(draft) Draft\n**(build) Build\ndraft -> build\n@endwbs",
@@ -153,6 +157,10 @@ test("keeps a generated task's dependency and position when completion changes",
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     "@startwbs\n* Website redesign\n** Discovery\n*** Stakeholder interviews\n*** Content inventory\n** Design\n*** Information architecture\n*** Visual design\n** Delivery\n*** Frontend implementation\n*** Quality assurance\n@endwbs",
@@ -196,6 +204,10 @@ test("links an existing WBS node to an existing Gantt task", async ({ page }) =>
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n* Project\n** Design\n@endwbs");
   await selectWbsNode(page, "Design");
   const inspector = page.getByRole("complementary", { name: "WBS node inspector" });
@@ -216,6 +228,10 @@ test("shows unlinked work in the project and adds selected items in either direc
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
@@ -273,6 +289,10 @@ test("links two existing unlinked items from project coverage", async ({ page })
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -317,6 +337,10 @@ test("adds an unlinked Gantt task beneath its predecessor in the WBS once", asyn
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
@@ -385,6 +409,10 @@ for (const policy of ["keep", "delete"] as const) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "WBS diagram" })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n***(draft) Draft\n@endwbs");
     await openRibbonGroup(page, "Plan", "Linked diagrams");
     await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -439,6 +467,10 @@ for (const policy of ["keep", "delete"] as const) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "WBS diagram" })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
     await openRibbonGroup(page, "Plan", "Linked diagrams");
     await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -483,6 +515,10 @@ test("keeps scheduled Gantt work when deleting its linked WBS node", async ({ pa
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
@@ -530,6 +566,10 @@ test("deletes linked Gantt work when deleting in both diagrams", async ({ page }
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -564,6 +604,10 @@ test("marks a cyclic WBS dependency at its arrow", async ({ page }) => {
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(a) A\n**(b) B\na -> b\nb -> a\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
@@ -605,6 +649,10 @@ test("opens linked diagrams from both node context menus", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n*(project) Project\n**(design) Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -635,6 +683,10 @@ test("opens an imported summary divider on the first click", async ({ page }) =>
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startwbs\n* Project\n** Design\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();
@@ -654,6 +706,10 @@ test("Escape closes the WBS node inspector", async ({ page }) => {
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startwbs\n* Project\n** Design\n@endwbs");
   await selectWbsNode(page, "Design");
@@ -685,6 +741,10 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -756,6 +816,7 @@ test("saves and reopens WBS and Gantt as one linked project file", async ({ page
       await welcome.getByRole("button", { name: "Get started" }).click();
     }
     await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     await reopened.getByRole("button", { name: "File", exact: true }).click();
     await reopened.getByRole("menuitem", { name: "Open", exact: true }).click();
     await reopened.getByRole("menu", { name: "Open" }).getByRole("menuitem", { name: "Document…" }).click();
@@ -824,6 +885,10 @@ test("adds a task after an aliased WBS summary without invalidating the Gantt", 
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();

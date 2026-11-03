@@ -78,12 +78,12 @@ test("keeps each document's latest preview after switching during rendering and 
   const updated = source("Pending A", 150);
   await fillSource(page, updated);
   await expect(page.locator(".preview[data-render-status]")).toHaveAttribute("data-render-status", "rendering");
-  await page.locator(".document-tabs > button").filter({ hasText: "B.pumlu" }).click();
+  await page.locator(".document-tab > button:first-child").filter({ hasText: "B.pumlu" }).click();
   await expect.poll(() => readEditorSource(page)).toBe(source("Document B"));
   await expect(page.locator(".diagram svg")).toContainText("Document B", { timeout: 45_000 });
   await expect(page.locator(".render-details summary")).toHaveText("Preview current");
   await expect(page.locator(".diagram svg")).not.toContainText("Pending A");
-  await page.locator(".document-tabs > button").filter({ hasText: "A.pumlu" }).click();
+  await page.locator(".document-tab > button:first-child").filter({ hasText: "A.pumlu" }).click();
   await expect.poll(() => readEditorSource(page)).toBe(updated);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => readEditorSource(page)).toBe(source("Document A"));

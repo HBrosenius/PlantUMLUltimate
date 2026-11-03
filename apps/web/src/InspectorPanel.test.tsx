@@ -1,3 +1,4 @@
+import { InspectorHistoryContext } from "./inspector-history";
 import { requestSidePanelChange } from "./side-panel-events";
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -241,12 +242,46 @@ it("shows staged changes and invalid fields without changing commit rules", asyn
       </form>
     </InspectorPanel>,
   );
-  expect(screen.getByRole("status")).toHaveTextContent("Applied");
+  expect(screen.getByRole("status")).toHaveTextContent("Diagram updated");
   await user.type(screen.getByRole("textbox"), " draft");
   expect(screen.getByRole("status")).toHaveTextContent("Unapplied changes");
   await user.clear(screen.getByRole("textbox"));
   expect(screen.getByRole("status")).toHaveTextContent("Invalid changes");
   await user.type(screen.getByRole("textbox"), "Valid");
   await user.click(screen.getByRole("button", { name: "Apply" }));
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/^Applied/));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/^Diagram updated/));
+});
+
+it("offers existing diagram history only for applied ordinary properties", async () => {
+  const undo = vi.fn();
+  const user = userEvent.setup();
+  const view = render(
+    <InspectorHistoryContext.Provider value={{ canUndo: true, undo }}>
+      <InspectorPanel>
+        <header>Properties</header>
+        <label>
+          Title
+          <input defaultValue="Original" />
+        </label>
+      </InspectorPanel>
+    </InspectorHistoryContext.Provider>,
+  );
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+  expect(undo).toHaveBeenCalledOnce();
+  await user.type(screen.getByRole("textbox", { name: "Title" }), " draft");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled());
+  await user.tab();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled());
+  view.rerender(
+    <InspectorHistoryContext.Provider value={{ canUndo: true, undo }}>
+      <InspectorPanel key="staged">
+        <header>Properties</header>
+        <form>
+          <input defaultValue="Title" />
+          <button type="submit">Apply changes</button>
+        </form>
+      </InspectorPanel>
+    </InspectorHistoryContext.Provider>,
+  );
+  expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
 });

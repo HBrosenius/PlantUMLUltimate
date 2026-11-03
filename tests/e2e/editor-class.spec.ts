@@ -11,6 +11,10 @@ test("highlights, finds, and renames Class entity references", async ({ page }) 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\nclass "Customer account" as Account {\n  +owner: Account\n}\ninterface Customer\nAccount --> Customer : Account serves Customer\nnote right of Account : Account note\n@enduml',
@@ -44,6 +48,10 @@ test("edits structured Class members and reveals rendered members", async ({ pag
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -104,6 +112,10 @@ test("completes Class aliases in member type signatures", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\nclass "Customer account" as Customer\nclass Service {\n  +owner: Cus\n  +load(customer: Customer): Customer\n}\n@enduml',
@@ -139,10 +151,14 @@ test("shows parser problems and applies a safe quick fix", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const editor = page.locator(".cm-content");
   await editor.fill("@startuml\nclass Order {\n  +id: UUID\n@enduml");
 
-  const problemCount = page.getByRole("button", { name: "Issues (2)", exact: true });
+  const problemCount = page.getByRole("button", { name: "2 issues", exact: true });
   await expect(problemCount).toBeVisible();
   await problemCount.click();
   const problems = page.getByRole("complementary", { name: "Issues" });
@@ -167,6 +183,7 @@ test("creates and edits Class diagram objects, members, relationships, packages,
   const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
   await expect(chooser.getByRole("button", { name: /Class diagram/ }).getByText("Beta")).toHaveCount(0);
   await chooser.getByRole("button", { name: /Class diagram/ }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.getByRole("region", { name: "Class diagram preview" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Class diagram preview" }).locator("svg")).toBeVisible({
     timeout: 45_000,
@@ -351,6 +368,10 @@ test("creates a Class relationship by dragging between classes", async ({ page }
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\nleft to right direction\nclass Customer\nclass Invoice\n@enduml");
 

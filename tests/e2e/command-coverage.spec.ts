@@ -29,6 +29,10 @@ test("palette creation commands match every diagram family", async ({ page }) =>
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${kind} diagram` })
         .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
+        .click();
     }
     const dialog = await palette(page);
     await expect(dialog.getByRole("option").filter({ hasText: action! })).toBeEnabled();
@@ -96,6 +100,10 @@ test("palette navigation uses existing handlers and recent commands stay applica
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   dialog = await palette(page);
   await expect(dialog.getByRole("option").filter({ hasText: "Reports…" })).toHaveCount(0);

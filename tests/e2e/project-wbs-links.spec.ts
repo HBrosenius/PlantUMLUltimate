@@ -27,7 +27,7 @@ test("links nodes in three WBS diagrams and saves the project", async ({ page })
     await navigator.getByRole("textbox", { name: "Diagram name" }).fill(name);
     await navigator.getByRole("button", { name: "Add to document" }).click();
     await expect(navigator.getByRole("combobox", { name: "Diagram type" })).toHaveCount(0);
-    await expect(page.locator(".document-tabs > button.active")).toContainText(name);
+    await expect(page.locator(".document-tab > button.active")).toContainText(name);
     await setSource(page, `@startwbs\n*(${alias}) ${name}\n@endwbs`);
   }
 

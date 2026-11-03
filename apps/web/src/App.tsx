@@ -1,3 +1,4 @@
+import { InspectorWorkspace } from "./InspectorWorkspace";
 import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
 import { AddDependencyDialog } from "./AddDependencyDialog";
 import type { ComponentProps } from "react";
@@ -568,6 +569,7 @@ export function App() {
   const [repairHost, setRepairHost] = useState<HTMLDivElement | null>(null);
   const [documentSettingsOpen, setDocumentSettingsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsCategory, setSettingsCategory] = useState("Editor & navigation");
   const [problemPreview, setProblemPreview] = useState<SourceProblemPreview>();
   const [linkedWorkPreview, setLinkedWorkPreview] = useState<LinkedWorkPreview>();
   const [projectNavigatorOpen, setProjectNavigatorOpen] = useState(true);
@@ -3347,7 +3349,15 @@ export function App() {
       { id: "file.new", label: "New diagram", category: "File", shortcut: "⌘N", run: newDocument },
       { id: "file.open", label: "Open…", category: "File", shortcut: "⌘O", run: openDocument },
       { id: "file.save", label: "Save", category: "File", shortcut: "⌘S", run: saveCurrentDocument },
-      { id: "settings.open", label: "Settings…", category: "View", run: () => setSettingsOpen(true) },
+      {
+        id: "settings.open",
+        label: "Settings…",
+        category: "View",
+        run: () => {
+          setSettingsCategory("Editor & navigation");
+          setSettingsOpen(true);
+        },
+      },
       ...(["light", "dark", "system"] as const).map((theme) => ({
         id: `appearance.${theme}`,
         label: `App theme: ${theme}`,
@@ -4142,7 +4152,8 @@ export function App() {
     );
 
   return (
-    <div
+    <InspectorWorkspace
+      history={{ canUndo: !commandReadOnly && activeHistory.canUndo, undo }}
       inert={presentationOpen || mobileSheetOpen}
       aria-hidden={presentationOpen || mobileSheetOpen || undefined}
       className={`app${outlineMode === "dock" && outlineWide ? " has-outline-dock" : ""}${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple ? " has-project-navigator" : ""}`}
@@ -4267,7 +4278,10 @@ export function App() {
             </button>
             <button
               type="button"
-              onClick={() => setSettingsOpen(true)}
+              onClick={() => {
+                setSettingsCategory("Editor & navigation");
+                setSettingsOpen(true);
+              }}
               title="Application settings"
               aria-label="Settings"
             >
@@ -4291,11 +4305,16 @@ export function App() {
               >
                 {activeInSingleFileProject || activeInLegacyProject
                   ? `${tabLabels.get(activeDocument.id)} — ${project?.manifest.name ?? workspace.fileName}`
-                  : `${tabLabels.get(activeDocument.id)} — ${activeDocument.fileCopy === "new" ? "New separate file" : workspace.fileName}`}
+                  : activeDocument.fileCopy === "new"
+                    ? `${tabLabels.get(activeDocument.id)} — New separate file`
+                    : tabLabels.get(activeDocument.id) === workspace.fileName
+                      ? workspace.fileName
+                      : `${tabLabels.get(activeDocument.id)} — ${workspace.fileName}`}
               </span>
               <FileSaveStatus
                 dirty={fileDirty}
                 fileCopy={fileCopy}
+                fileName={workspace.fileName}
                 state={currentFileSaveState}
                 onRetry={() => void saveCurrentDocument()}
               />
@@ -4594,54 +4613,55 @@ export function App() {
           <>
             <nav className="document-tabs" aria-label="Open documents" ref={documentTabs}>
               {tabs.documents.map((document) => (
-                <button
-                  key={document.id}
-                  draggable
-                  className={`${document.id === tabs.activeId ? "active" : ""}${document.id === draggedTabId ? " dragging" : ""}`}
-                  onClick={() => activateTab(document.id)}
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    setTabMenu({ id: document.id, x: event.clientX, y: event.clientY });
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
-                    event.preventDefault();
-                    const bounds = event.currentTarget.getBoundingClientRect();
-                    setTabMenu({
-                      id: document.id,
-                      x: Math.min(bounds.left, window.innerWidth - 210),
-                      y: bounds.bottom,
-                    });
-                  }}
-                  onDragStart={(event) => {
-                    setDraggedTabId(document.id);
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", document.id);
-                  }}
-                  onDragEnd={() => setDraggedTabId(undefined)}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    const id = event.dataTransfer.getData("text/plain") || draggedTabId;
-                    if (id) tabs.reorderDocument(id, document.id);
-                    setDraggedTabId(undefined);
-                  }}
-                  title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
-                >
-                  <span className="tab-label">
-                    <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
-                      ●
+                <div className="document-tab" key={document.id}>
+                  <button
+                    draggable
+                    className={`${document.id === tabs.activeId ? "active" : ""}${document.id === draggedTabId ? " dragging" : ""}`}
+                    onClick={() => activateTab(document.id)}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      setTabMenu({ id: document.id, x: event.clientX, y: event.clientY });
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+                      event.preventDefault();
+                      const bounds = event.currentTarget.getBoundingClientRect();
+                      setTabMenu({
+                        id: document.id,
+                        x: Math.min(bounds.left, window.innerWidth - 210),
+                        y: bounds.bottom,
+                      });
+                    }}
+                    onDragStart={(event) => {
+                      setDraggedTabId(document.id);
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", document.id);
+                    }}
+                    onDragEnd={() => setDraggedTabId(undefined)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const id = event.dataTransfer.getData("text/plain") || draggedTabId;
+                      if (id) tabs.reorderDocument(id, document.id);
+                      setDraggedTabId(undefined);
+                    }}
+                    title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
+                  >
+                    <span className="tab-label">
+                      <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
+                        ●
+                      </span>
+                      <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
+                      <span className="tab-name">{tabLabels.get(document.id)}</span>
+                      {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
                     </span>
-                    <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
-                    <span className="tab-name">{tabLabels.get(document.id)}</span>
-                    {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
-                  </span>
-                  <span
+                  </button>
+                  <button
+                    type="button"
                     className="tab-close"
-                    role="button"
                     aria-label={`Close ${tabLabels.get(document.id)}${isProjectMemberTab(document.id) ? ` in ${project?.manifest.name}` : ""}`}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -4649,8 +4669,8 @@ export function App() {
                     }}
                   >
                     ×
-                  </span>
-                </button>
+                  </button>
+                </div>
               ))}
               <button className="new-tab" onClick={newDocument} aria-label="New diagram tab">
                 +
@@ -4723,7 +4743,7 @@ export function App() {
             if (event.key === "Escape") {
               event.preventDefault();
               setTabMenu(undefined);
-              document.querySelector<HTMLButtonElement>(".document-tabs > button.active")?.focus();
+              document.querySelector<HTMLButtonElement>(".document-tabs button.active")?.focus();
               return;
             }
             if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -5203,7 +5223,10 @@ export function App() {
               resourceNames={resourceNames}
               onResourceFilterChange={setResourceFilter}
               scheduleMode={scheduleMode}
-              onOpenGanttPreferences={() => setSettingsOpen(true)}
+              onOpenGanttPreferences={() => {
+                setSettingsCategory("Gantt");
+                setSettingsOpen(true);
+              }}
               onOpenCalendar={openProjectInspector}
               scheduleGhost={
                 schedulePreview
@@ -5445,11 +5468,7 @@ export function App() {
       </main>
       <footer className="statusbar">
         <span role="status" aria-live="polite">
-          {result?.error
-            ? `⚠ ${result.error}`
-            : diagnosticCount
-              ? "Source has problems"
-              : (interactionMessage ?? "✓ Valid")}
+          {result?.error ? `⚠ ${result.error}` : diagnosticCount ? "Source has problems" : (interactionMessage ?? "")}
         </span>
         <button
           type="button"
@@ -5460,7 +5479,7 @@ export function App() {
             setUnsupportedOpen(false);
           }}
         >
-          Issues{diagnosticCount + unsupportedCount > 0 ? ` (${diagnosticCount + unsupportedCount})` : ""}
+          {diagnosticCount + unsupportedCount > 0 ? `${diagnosticCount + unsupportedCount} issues` : "No issues"}
         </button>
         <span>
           {workspace.diagramKind === "sequence"
@@ -5498,7 +5517,7 @@ export function App() {
           </div>
         </details>
         {viewMode !== "diagram" && (
-          <span>
+          <span className="source-cursor" aria-label="Source cursor position">
             Ln {workspace.cursor.line}, Col {workspace.cursor.column}
           </span>
         )}
@@ -6179,6 +6198,11 @@ export function App() {
       {settingsOpen && (
         <SettingsDialog
           mode="settings"
+          initialCategory={settingsCategory}
+          onDocumentSettings={() => {
+            setSettingsOpen(false);
+            setDocumentSettingsOpen(true);
+          }}
           scheduleMode={scheduleMode}
           onScheduleModeChange={setScheduleMode}
           resourceWarningsEnabled={resourceWarningsEnabled}
@@ -7004,6 +7028,6 @@ export function App() {
           }}
         />
       )}
-    </div>
+    </InspectorWorkspace>
   );
 }

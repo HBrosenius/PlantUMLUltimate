@@ -71,6 +71,10 @@ test("navigates connected WBS and Gantt diagrams without changing sources", asyn
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await fillSource(page, "@startwbs\n*(project) Project\n**(build) Build\n@endwbs");
   await openRibbonGroup(page, "Plan", "Linked diagrams");
   await page.getByRole("button", { name: "Create Gantt chart from WBS" }).click();

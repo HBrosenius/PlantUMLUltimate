@@ -7,6 +7,10 @@ test("Diagram mode exposes source without Settings", async ({ page }, testInfo) 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const modes = page.getByRole("navigation", { name: "View mode" });
   await expect(modes.getByRole("button")).toHaveText(["Code", "Split", "Diagram"]);
   await modes.getByRole("button", { name: "Diagram", exact: true }).click();
@@ -76,7 +80,7 @@ test("long Sequence starts readably and manual per-tab zoom survives edits, prop
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
   await page.getByRole("button", { name: /Close.*settings/i }).click();
   await expect(reset).toHaveText(chosenZoom!);
-  const tabs = page.locator(".document-tabs > button:not(.new-tab)");
+  const tabs = page.locator(".document-tab > button:first-child");
   await tabs.first().click();
   await page.getByRole("button", { name: "Zoom out", exact: true }).click();
   const ganttZoom = await reset.textContent();
@@ -102,6 +106,10 @@ test("initial fitting completes for every preview family", async ({ page }) => {
       await page
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${kind} diagram` })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
         .click();
     }
     await expect(page.locator(".diagram svg")).toBeVisible();

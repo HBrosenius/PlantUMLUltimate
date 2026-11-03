@@ -38,6 +38,7 @@ for (const label of ["Move fixed dates to satisfy dependency", "Let dependency d
         label.startsWith("Move") ? "starts 2026-09-28" : "[Frontend] lasts 2 days",
       );
       await choice.click();
+      await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
       const editor = page.locator(".cm-content");
       await expect(editor).toContainText("lasts 2 days and is 50% completed");
       await expect(editor).toContainText("[Frontend] starts at [Backend]'s end");

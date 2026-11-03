@@ -39,6 +39,7 @@ async function createGantt(page: Page) {
   }
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 

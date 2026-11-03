@@ -77,6 +77,10 @@ test("browses WBS hierarchy by touch and reveals a work package", async ({ page 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "WBS diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const wbs = "@startwbs\n*(root) Project\n**(build) Build\n***(test) Test\n@endwbs";
   await fillSource(page, wbs);
   await page.setViewportSize({ width: 390, height: 844 });

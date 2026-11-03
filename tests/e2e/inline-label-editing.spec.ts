@@ -76,6 +76,10 @@ test("inline drafts stay reviewable on phones and block changed source", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Class diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await prepareDiagram(page, cases[0]!.source);
   const object = page.locator('.diagram [data-class-object-id="o"]:not([data-class-member-id])').first();
   await object.focus();
@@ -102,6 +106,10 @@ test("ambiguous rendered labels do not rename an inferred Activity identity", as
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const source = "@startuml\n:Review;\n:Review;\n@enduml";
   await prepareDiagram(page, source);
   await page.getByRole("button", { name: "Select action Review", exact: true }).last().focus();
@@ -117,6 +125,10 @@ test("renames an Activity partition from its keyboard-accessible container tray"
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await prepareDiagram(page, '@startuml\npartition "Operations" {\n:Review;\n}\n@enduml');
   await page

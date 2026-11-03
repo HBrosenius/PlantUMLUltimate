@@ -19,7 +19,9 @@ export function Ribbon({
   panels: Record<RibbonCategory, ReactNode>;
 }) {
   const [category, setCategory] = useState<RibbonCategory>("Insert");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window.matchMedia === "function" && window.matchMedia("(max-width: 850px)").matches,
+  );
   const id = useId();
   const tabs = useRef<HTMLDivElement>(null);
   const app = appIdentity(window.location.href);

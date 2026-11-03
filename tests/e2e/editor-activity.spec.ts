@@ -11,6 +11,10 @@ test("highlights and renames distinct Activity actions and partitions", async ({
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\npartition "Operations" {\n:Review order;\nnote right\nReview order note\nend note\n:Review order;\n}\n@enduml',
@@ -52,6 +56,10 @@ test("reorders Activity actions with the keyboard", async ({ page }) => {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, "@startuml\n:First step;\n:Second step;\n@enduml");
   const secondAction = page.getByRole("button", { name: "Select action Second step" });
   await secondAction.focus();
@@ -70,6 +78,10 @@ test("keeps Activity actions selectable after zooming", async ({ page }) => {
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\n:Receive order;\n:Review order;\n@enduml");
 
@@ -93,6 +105,10 @@ test("selects actions inside a partition from the rendered diagram", async ({ pa
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(page, '@startuml\npartition "Operations" {\n:Receive order;\n:Review order;\n}\n@enduml');
 
   await openRibbonGroup(page, "View", "Navigation and panels");
@@ -110,6 +126,10 @@ test("reorders actions with a preview and creates a structured transition by dra
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Activity diagram/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\n:First;\n:Second;\n:Third;\n@enduml");
   const third = page.getByLabel("Drag to reorder Third");
@@ -150,6 +170,7 @@ test("creates and edits Activity actions, partitions, and notes", async ({ page,
   const activityChoice = chooser.getByRole("button", { name: /Activity diagram/ });
   await expect(activityChoice.getByText("Beta", { exact: true })).toHaveCount(0);
   await activityChoice.click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.getByRole("region", { name: "Activity diagram preview" })).toBeVisible();
   await expect(page.locator(".cm-content")).toContainText(":Receive order;");
   await expect(page.locator(".activity-diagram svg")).toBeVisible({ timeout: 45_000 });

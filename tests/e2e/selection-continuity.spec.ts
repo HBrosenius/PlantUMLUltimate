@@ -10,6 +10,10 @@ for (const kind of ["Class", "Component", "Use Case"]) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram`, exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const original = `@startuml\n${kind === "Use Case" ? "usecase" : kind.toLowerCase()} "Order" as O\n@enduml`;
     await setSource(page, original);
     const attribute = kind === "Use Case" ? "data-usecase-object-id" : "data-class-object-id";
@@ -45,6 +49,10 @@ test("Activity selection and keyboard focus follow a moved action through Undo a
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Activity diagram", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   const original = "@startuml\n:First step;\n:Second step;\n@enduml";
   await setSource(page, original);

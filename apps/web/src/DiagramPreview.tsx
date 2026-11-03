@@ -1260,12 +1260,12 @@ export function DiagramPreview({
           <div
             className="gantt-control-group"
             role="group"
-            aria-label="Preview zoom"
+            aria-label="Canvas zoom"
             data-forecast-hidden={progressForecast?.enabled || undefined}
             aria-hidden={progressForecast?.enabled || undefined}
             inert={Boolean(progressForecast?.enabled)}
           >
-            <span className="gantt-control-label">Preview zoom</span>
+            <span className="gantt-control-label">Canvas zoom</span>
             <button
               type="button"
               data-view-control
@@ -1286,7 +1286,7 @@ export function DiagramPreview({
               onClick={() => onZoomChange(1)}
               data-view-control
               aria-label={`Reset zoom, ${Math.round(zoom * 100)}%`}
-              title="Show the diagram at its natural size"
+              title="Reset canvas zoom to 100%"
             >
               {Math.round(zoom * 100)}%
             </button>
@@ -1387,7 +1387,7 @@ export function DiagramPreview({
                   onClick={onOpenCalendar}
                   title="Change the time axis in Calendar & schedule; Apply edits diagram source"
                 >
-                  Timeline scale…
+                  Time axis…
                 </button>
               )}
               {onOpenGanttPreferences && (
@@ -1429,8 +1429,8 @@ export function DiagramPreview({
       {!gestureHintDismissed && (
         <p className="gantt-controls-help">
           <span>
-            Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits
-            change the diagram. This is also in Help.
+            Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Time axis and task edits change
+            the diagram. This is also in Help.
           </span>
           <button type="button" onClick={dismissGestureHint} aria-label="Dismiss tip" title="Dismiss tip">
             ×

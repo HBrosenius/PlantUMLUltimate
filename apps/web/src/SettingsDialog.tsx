@@ -77,6 +77,8 @@ export function SettingsDialog({
   onApply,
   onClose,
   onPreview,
+  onDocumentSettings,
+  initialCategory = "Editor & navigation",
   scheduleMode = "ask",
   onScheduleModeChange,
   resourceWarningsEnabled = true,
@@ -87,6 +89,8 @@ export function SettingsDialog({
   onApply(settings: AppSettings): void;
   onClose(): void;
   onPreview?(settings: AppSettings): void;
+  onDocumentSettings?(): void;
+  initialCategory?: string;
   scheduleMode?: "ask" | "single" | "cascade";
   onScheduleModeChange?(value: "ask" | "single" | "cascade"): void;
   resourceWarningsEnabled?: boolean;
@@ -94,6 +98,7 @@ export function SettingsDialog({
 }) {
   const dialog = useRef<HTMLFormElement>(null);
   useDialogFocus(dialog, mode === "onboarding" ? () => undefined : onClose);
+  const [category, setCategory] = useState(initialCategory);
   const [editor, setEditor] = useState(loadEditorPreferences);
   const [theme, setTheme] = useState<Theme>(current.theme);
   const [advancedMode, setAdvancedMode] = useState(current.advancedMode);
@@ -136,7 +141,20 @@ export function SettingsDialog({
             <h2>Settings</h2>
           </header>
         )}
-        <section className="document-settings-section" aria-labelledby="settings-appearance-heading">
+        {mode === "settings" && (
+          <nav className="settings-categories" aria-label="Settings categories">
+            {["Appearance", "Editor & navigation", "New diagrams", "Gantt"].map((name) => (
+              <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>
+                {name}
+              </button>
+            ))}
+          </nav>
+        )}
+        <section
+          hidden={mode === "settings" && category !== "Appearance"}
+          className="document-settings-section"
+          aria-labelledby="settings-appearance-heading"
+        >
           <h3 id="settings-appearance-heading">Appearance</h3>
           <label>
             Theme
@@ -168,7 +186,11 @@ export function SettingsDialog({
             images keep their authored colors. Off by default.
           </p>
         </section>
-        <section className="document-settings-section" aria-labelledby="settings-diagram-theme-heading">
+        <section
+          hidden={mode === "settings" && category !== "New diagrams"}
+          className="document-settings-section"
+          aria-labelledby="settings-diagram-theme-heading"
+        >
           <h3 id="settings-diagram-theme-heading">New diagram theme</h3>
           <ThemeGallery
             value={defaultDiagramTheme}
@@ -182,42 +204,53 @@ export function SettingsDialog({
             Applied to new diagrams you create. Existing diagrams keep their own saved theme. Change the current diagram
             in Document settings.
           </p>
+          {onDocumentSettings && (
+            <button type="button" onClick={onDocumentSettings}>
+              Change this diagram’s theme…
+            </button>
+          )}
         </section>
-        <section className="document-settings-section" aria-labelledby="settings-mode-heading">
-          <h3 id="settings-mode-heading">Editing mode</h3>
-          <p>Choose how you want to work. You can change this at any time.</p>
-          <div className="editing-mode-options" role="radiogroup" aria-labelledby="settings-mode-heading">
-            {[false, true].map((advanced) => (
-              <label
-                className={`editing-mode-option${advancedMode === advanced ? " selected" : ""}`}
-                key={String(advanced)}
-              >
-                <EditingModePreview split={advanced} />
-                <span className="editing-mode-option-title">
-                  <input
-                    type="radio"
-                    name="editing-mode"
-                    value={advanced ? "advanced" : "visual"}
-                    checked={advancedMode === advanced}
-                    aria-label={advanced ? "Diagram + code" : "Diagram only"}
-                    aria-describedby={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
-                    onChange={() => setAdvancedMode(advanced)}
-                  />
-                  <strong>{advanced ? "Diagram + code" : "Diagram only"}</strong>
-                </span>
-                <span
-                  className="editing-mode-option-description"
-                  id={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
+        {mode === "onboarding" && (
+          <section className="document-settings-section" aria-labelledby="settings-mode-heading">
+            <h3 id="settings-mode-heading">Editing mode</h3>
+            <p>Choose how you want to work. You can change this at any time.</p>
+            <div className="editing-mode-options" role="radiogroup" aria-labelledby="settings-mode-heading">
+              {[false, true].map((advanced) => (
+                <label
+                  className={`editing-mode-option${advancedMode === advanced ? " selected" : ""}`}
+                  key={String(advanced)}
                 >
-                  {advanced
-                    ? "Starts with code and diagram side by side. Switch views at any time."
-                    : "Starts with a full-width diagram. Use Code or Split to reveal the source at any time."}
-                </span>
-              </label>
-            ))}
-          </div>
-        </section>
-        <section className="document-settings-section" aria-labelledby="settings-editor-heading">
+                  <EditingModePreview split={advanced} />
+                  <span className="editing-mode-option-title">
+                    <input
+                      type="radio"
+                      name="editing-mode"
+                      value={advanced ? "advanced" : "visual"}
+                      checked={advancedMode === advanced}
+                      aria-label={advanced ? "Diagram + code" : "Diagram only"}
+                      aria-describedby={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
+                      onChange={() => setAdvancedMode(advanced)}
+                    />
+                    <strong>{advanced ? "Diagram + code" : "Diagram only"}</strong>
+                  </span>
+                  <span
+                    className="editing-mode-option-description"
+                    id={advanced ? "editing-mode-code-description" : "editing-mode-visual-description"}
+                  >
+                    {advanced
+                      ? "Starts with code and diagram side by side. Switch views at any time."
+                      : "Starts with a full-width diagram. Use Code or Split to reveal the source at any time."}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
+        <section
+          hidden={mode === "settings" && category !== "Editor & navigation"}
+          className="document-settings-section"
+          aria-labelledby="settings-editor-heading"
+        >
           <h3 id="settings-editor-heading">Code editor · this browser</h3>
           <p>Applies to source editors without changing diagram source.</p>
           <label>
@@ -261,11 +294,15 @@ export function SettingsDialog({
             Line numbers
           </label>
         </section>
-        <section className="document-settings-section" aria-labelledby="settings-defaults-heading">
+        <section
+          hidden={mode === "settings" && category !== "New diagrams"}
+          className="document-settings-section"
+          aria-labelledby="settings-defaults-heading"
+        >
           <h3 id="settings-defaults-heading">New diagram tabs · this browser</h3>
           <p>Defaults apply when opening a new tab without saved choices. Existing tabs keep their view and zoom.</p>
           <label>
-            Default view
+            Default view for new tabs
             <select
               aria-label="Default view"
               value={editor.defaultView}
@@ -298,7 +335,11 @@ export function SettingsDialog({
           </label>
         </section>
         {mode === "settings" && onResourceWarningsChange && (
-          <section className="document-settings-section" aria-labelledby="settings-gantt-heading">
+          <section
+            hidden={mode === "settings" && category !== "Gantt"}
+            className="document-settings-section"
+            aria-labelledby="settings-gantt-heading"
+          >
             <h3 id="settings-gantt-heading">Gantt preferences</h3>
             {onScheduleModeChange && (
               <>
@@ -337,7 +378,11 @@ export function SettingsDialog({
           </section>
         )}
         {mode === "settings" && (
-          <section className="document-settings-section" aria-labelledby="settings-startup-heading">
+          <section
+            hidden={mode === "settings" && category !== "Editor & navigation"}
+            className="document-settings-section"
+            aria-labelledby="settings-startup-heading"
+          >
             <h3 id="settings-startup-heading">Startup</h3>
             <label>
               On startup

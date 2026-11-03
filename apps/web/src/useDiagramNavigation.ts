@@ -108,6 +108,8 @@ export function useDiagramNavigation(
       }
       if (diagram.nextElementSibling !== extent) diagram.after(extent);
       const scale = wheelRef.current?.current ?? zoomRef.current;
+      // Wheel zoom anchors content against a stable layout origin. Recentring with
+      // zoom-dependent margins shifts that origin after every animation commits.
       extent.style.width = `${diagram.offsetWidth * scale}px`;
       extent.style.height = `${Math.max(0, diagram.offsetHeight * (scale - 1))}px`;
     };

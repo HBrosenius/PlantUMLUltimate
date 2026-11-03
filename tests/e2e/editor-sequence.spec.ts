@@ -20,6 +20,10 @@ test("highlights, finds, and renames Sequence participant references", async ({ 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     '@startuml\nactor "API User" as User\ndatabase Store\nUser -> Store: User requests data\nactivate User\nnote right of User: User is waiting\n@enduml',
@@ -52,6 +56,10 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(page, "@startuml\nparticipant API\nparticipant Store\nAPI -> Store: Save\n@enduml");
 
@@ -91,6 +99,10 @@ test("renames created Sequence lifelines and suggests duration anchors", async (
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -134,6 +146,10 @@ test("reviews and applies a confirmed Sequence change group", async ({ page }) =
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   const before = '@startuml\nparticipant "Payment API" as Pay\nhide footbox\nPay -> Store: Authorize\n@enduml';
@@ -249,6 +265,10 @@ test("applies adjacent Sequence edits as one confirmed transaction", async ({ pa
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const before = '@startuml\nparticipant "Payment API" as Pay\nPay -> Store: Authorize\n@enduml';
   const after = '@startuml\nparticipant "Billing API" as Pay\nPay -> Store: Capture\n@enduml';
   await setSource(page, before);
@@ -285,6 +305,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   await expect(chooser).toBeVisible();
   await expect(chooser.locator(".diagram-kind-options .diagram-kind-preview")).toHaveCount(7);
   await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("@startuml");
   await expect(page.locator(".cm-content")).toContainText("User -> System: Request");
   await expect(page.getByRole("button", { name: "Calendar & schedule" })).toBeHidden();
@@ -631,6 +652,10 @@ test("configures advanced Sequence layout and style with undo and redo", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await openRibbonGroup(page, "View", "Diagram settings");
   await page.getByRole("button", { name: "Diagram settings", exact: true }).click();
 
@@ -671,6 +696,10 @@ test("reorders Sequence participants and messages from the dedicated drag tray",
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
 
   await openRibbonGroup(page, "Insert", "Insert elements");
@@ -717,6 +746,10 @@ test("drags Sequence structures and reconnects their participant attachments", a
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -775,6 +808,10 @@ test("selects and edits Sequence notes and references from the diagram", async (
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     "@startuml\nparticipant User\nparticipant System\nparticipant Orders\nnote over User, System: Important note\nref#LightBlue over User, System: External flow\n@enduml",
@@ -814,6 +851,10 @@ test("selects and edits the remaining Sequence timeline structures", async ({ pa
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   await setSource(
     page,
@@ -867,6 +908,10 @@ test("reorders Sequence fragment branches without detaching nested bodies", asyn
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await setSource(
     page,
     "@startuml\nparticipant A\nparticipant B\nalt#Gold #LightBlue Primary\nA -> B: Main\nelse #Pink Failure\nloop Retry\nB -> A: Nested failure\nend\nelse #Orange Timeout\nA -> B: Final attempt\nend\nA -> B: After fragment\n@enduml",
@@ -903,6 +948,10 @@ test("keeps Sequence inspector edits on the selected message after preceding sou
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Sequence diagram" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   const original =
     "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob: First\nBob -> Alice: Selected\n@enduml";
