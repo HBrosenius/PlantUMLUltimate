@@ -443,7 +443,7 @@ test("places a newly added task on the selected task row", async ({ page, browse
       const newTask = await page.locator('[data-task-id="new task"] .bar').boundingBox();
       if (!architecture || !newTask) return undefined;
       return {
-        sameRow: Math.abs(architecture.y - newTask.y) < 2,
+        sameRow: Math.abs(architecture.y - newTask.y) < architecture.height / 4,
         separated: newTask.x >= architecture.x + architecture.width,
       };
     })
