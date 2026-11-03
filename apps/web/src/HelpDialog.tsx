@@ -3,6 +3,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { isApplePlatform, optionShortcut } from "./platform-shortcuts";
 import type { DiagramKind } from "./model";
 import { trainingVideos } from "./training-videos";
+import { appIdentity } from "./app-identity";
 
 type Topic = {
   title: string;
@@ -179,6 +180,7 @@ function searchable(text: string) {
 }
 
 export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?: DiagramKind }) {
+  const app = appIdentity(window.location.href);
   const dialog = useRef<HTMLElement>(null);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("current");
@@ -235,6 +237,17 @@ export function HelpDialog({ onClose, kind = "gantt" }: { onClose(): void; kind?
             ×
           </button>
         </header>
+        <details className="help-about">
+          <summary>About this app</summary>
+          <dl>
+            <dt>Address</dt>
+            <dd>{app.address}</dd>
+            <dt>Environment</dt>
+            <dd>{app.environment}</dd>
+            <dt>Version</dt>
+            <dd>{app.version}</dd>
+          </dl>
+        </details>
         <div className="help-search">
           <label>
             Search Help

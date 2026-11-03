@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { appIdentity } from "./app-identity";
 
 export type RibbonCategory = "Edit" | "Insert" | "Plan" | "View";
 const categories: RibbonCategory[] = ["Edit", "Insert", "Plan", "View"];
@@ -21,6 +22,7 @@ export function Ribbon({
   const [collapsed, setCollapsed] = useState(false);
   const id = useId();
   const tabs = useRef<HTMLDivElement>(null);
+  const app = appIdentity(window.location.href);
   return (
     <div
       className="command-ribbon"
@@ -31,6 +33,16 @@ export function Ribbon({
           event.target.closest<HTMLButtonElement>("button")?.focus({ preventScroll: true });
       }}
     >
+      {app.local && (
+        <div className="local-app-banner" role="note" aria-label="App environment">
+          <strong>Local development</strong>
+          <span>{app.address}</span>
+          <span>Requires a running local server</span>
+          <a href="https://plantuml.brosenius.se" target="_blank" rel="noopener noreferrer">
+            Open production app ↗
+          </a>
+        </div>
+      )}
       <header className="toolbar ribbon-header">
         <strong className="ribbon-brand">PlantUML Ultimate</strong>
         <div className="file-tools">{file}</div>

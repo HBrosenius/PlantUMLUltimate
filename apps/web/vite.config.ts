@@ -6,6 +6,33 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { rendererFrameBootstrap } from "./src/render/renderer-frame";
 
+const appVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version as string;
+
+export function localAppManifest(): Plugin {
+  const manifest = JSON.parse(readFileSync(new URL("./public/manifest.webmanifest", import.meta.url), "utf8"));
+  const source = JSON.stringify({
+    ...manifest,
+    name: "PlantUML Ultimate — Local",
+    short_name: "PlantUML Local",
+    description: "Local development app. Requires a running local server.",
+    theme_color: "#9a3412",
+    icons: [{ src: "/icon-local.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
+  });
+  return {
+    name: "plantuml-local-app-identity",
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (request.url?.split("?")[0] !== "/manifest-local.webmanifest") return next();
+        response.setHeader("Content-Type", "application/manifest+json");
+        response.end(source);
+      });
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "manifest-local.webmanifest", source });
+    },
+  };
+}
+
 // @plantuml/core's engine lazily loads its OpenIconic sprite set (for a WBS/mindmap node's
 // "<&name>" icon) by requesting "/openiconic.js" relative to the page's own origin — not
 // relative to wherever the bundler placed plantuml.js — so it must be served verbatim at that
@@ -111,6 +138,7 @@ export function serviceWorkerSource(files: readonly string[]): string {
       "/icon-192.png",
       "/icon-512.png",
       "/icon-maskable-512.png",
+      "/icon-local.svg",
       "/theme-init.js",
       ...files,
     ]),
@@ -179,8 +207,10 @@ export function jiraDevelopmentCookieToWorker(header: string): string {
 
 export default defineConfig({
   base: "/",
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   plugins: [
     react(),
+    localAppManifest(),
     {
       name: "public-directory-index",
       configureServer(server) {

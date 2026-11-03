@@ -1,6 +1,26 @@
 import { expect, it } from "vitest";
 import { jiraDevelopmentCookieToBrowser, jiraDevelopmentCookieToWorker, jiraDevelopmentOrigin } from "./vite.config";
 
+it("emits a distinct local manifest while retaining stable app identity and file handling", async () => {
+  const { localAppManifest } = await import("./vite.config");
+  const { readFileSync } = await import("node:fs");
+  const production = JSON.parse(readFileSync(new URL("./public/manifest.webmanifest", import.meta.url), "utf8"));
+  let source = "";
+  const generate = localAppManifest().generateBundle as (this: { emitFile(asset: { source: string }): void }) => void;
+  generate.call({
+    emitFile: (asset) => {
+      source = asset.source;
+    },
+  });
+  const local = JSON.parse(source);
+  expect(local.name).toBe("PlantUML Ultimate — Local");
+  expect(local.short_name).toBe("PlantUML Local");
+  expect(local.icons[0].src).toBe("/icon-local.svg");
+  expect(local.id).toBe(production.id);
+  expect(local.file_handlers).toEqual(production.file_handlers);
+  expect(production.name).toBe("PlantUML Ultimate");
+});
+
 it("supplies the accepted upstream origin for same-origin development requests on any local port", () => {
   expect(jiraDevelopmentOrigin(undefined, "localhost:5175", "GET")).toBe("https://plantuml.brosenius.se");
   expect(jiraDevelopmentOrigin("http://localhost:5175", "localhost:5175", "POST")).toBe(

@@ -76,33 +76,17 @@ test("uses one phone pane and restores desktop Split without losing source", asy
   expect(await readEditorSource(page)).toBe(edited);
 });
 
-test("keeps editing help dismissals per diagram kind and offers a route to reopen", async ({ page }) => {
+test("keeps editing guidance in Help rather than the View menu", async ({ page }) => {
   await prepareEditor(page);
   await openRibbonGroup(page, "View", "Navigation and panels");
-  await openRibbonGroup(page, "View", "Navigation and panels");
-  await page.getByRole("button", { name: "Dismiss editing hint" }).click();
-  await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
-  await page.getByRole("button", { name: "New diagram tab" }).click();
-  await page
-    .getByRole("dialog", { name: "Choose a diagram type" })
-    .getByRole("button", { name: "Sequence diagram" })
-    .click();
-  await expect(page.getByRole("note")).toContainText("Drag participants sideways");
-  await openRibbonGroup(page, "View", "Navigation and panels");
-  await page.getByRole("button", { name: "Dismiss editing hint" }).click();
-  const tabs = page.getByRole("navigation", { name: "Open documents" });
-  await tabs.getByRole("button").nth(0).click();
-  await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
-  await page.getByRole("button", { name: "Editing help" }).click();
-  await expect(page.getByRole("note")).toContainText("new task");
-  await openRibbonGroup(page, "View", "Navigation and panels");
-  await page.getByRole("button", { name: "Dismiss editing hint" }).click();
-  await tabs.getByRole("button").nth(1).click();
-  await expect(page.getByRole("button", { name: "Editing help" })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "Editing help", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Help", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "PlantUML Ultimate Help" })).toBeVisible();
+  await expect(page.getByText("About this app", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 375, height: 844 });
   await expect(page.getByRole("button", { name: "Commands", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Collaborate", exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

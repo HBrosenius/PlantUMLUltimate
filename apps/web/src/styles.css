@@ -7947,7 +7947,7 @@ polygon.diagram-bulk-selected {
 }
 
 .help-dialog {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
 }
 .help-search {
   display: flex;
@@ -8939,6 +8939,38 @@ polygon.diagram-bulk-selected {
 }
 .ribbon-brand {
   font-size: 12px;
+}
+.local-app-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 5px 12px;
+  background: #9a3412;
+  color: #fff7ed;
+  font-size: 12px;
+}
+.local-app-banner a {
+  margin-left: auto;
+  color: inherit;
+  text-decoration: underline;
+}
+.help-about {
+  margin: 8px 20px;
+  font-size: 13px;
+}
+.help-about summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.help-about dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+}
+.help-about dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .ribbon-categories,
 .ribbon-utilities {
