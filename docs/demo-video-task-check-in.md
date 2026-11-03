@@ -90,7 +90,7 @@ Pronunciation notes: "PlantUML" is "plant U-M-L". "Gantt" rhymes with "want". Ev
 
 ## 02-open
 
-**On screen:** Click **More**, then **Reports…**. The dialog opens on **Task check-in**: options on the left, the email preview on the right. The cursor rests on the Report type selector.
+**On screen:** Open the **Plan** tab, then choose **Reports…**. The dialog opens on **Task check-in**: options on the left, the email preview on the right. The cursor rests on the Report type selector.
 
 > Open Reports from the Plan tab, and choose Task check-in. It works from the Gantt chart you already have: your tasks, your dates, and the people assigned to them.
 

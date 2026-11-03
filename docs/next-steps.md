@@ -6,7 +6,13 @@ Status review, 2026-10-11: this September reliability plan is substantially addr
 
 Prepared: 2026-09-07. Repository baseline: `795e39c`, version `0.2.0`.
 
-## Recommendation
+> **Status update — 2026-09-28 (`7d7b2ae` plus local fixes):** This is a historical plan. The app now supports seven diagram types, including Component, and later commits implemented much of the project snapshot, link-state, performance, and project change-review work described below. `npm run validate` passed (748 unit, 7 collaboration, and 6 integration tests, plus lint, formatting, typecheck, and three builds). The final full browser matrix passed with 489 passed and 24 skipped across Chromium, Firefox, and WebKit. Earlier runs exposed six linked-WBS failures and two intermittent browser-test races; the affected WBS/project sweep passed with 89 passed and one skipped, and each corrected race passed 20 consecutive focused runs. PWA tests passed 6/6 and live collaboration passed 1/1. The public app and both Worker health endpoints returned HTTP 200; the local fixes have not been deployed. Recheck each older audit item against current code before treating it as open work.
+
+## Next verification on current code
+
+Review and commit the local fixes, then publish through the release workflow. After publishing, verify the deployed WBS workflows and both Workers, recording any reproducible failures. The public health checks establish availability, not deployed feature behavior. Use those results to choose the next reliability or usability task.
+
+## Historical recommendation (2026-09-07)
 
 Make the next release a reliability and usability release. The app already supports six diagram types, local rendering, visual editing, offline use, recovery, collaboration, and Jira integration. The highest-value next step is to make those workflows consistently trustworthy and easy to discover before adding more diagram types or integrations.
 

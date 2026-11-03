@@ -124,11 +124,11 @@ async function click(locator, options) {
   await page.mouse.up();
   await wait(250);
 }
-async function typeInto(locator, text, { delay = 85 } = {}) {
-  await click(locator);
-  await page.keyboard.press("ControlOrMeta+a");
-  await page.keyboard.type(text, { delay });
-  await wait(200);
+async function typeInto(locator, text) {
+  await locator.scrollIntoViewIfNeeded();
+  await locator.fill(text);
+  await locator.press("Tab");
+  await wait(400);
 }
 async function card(html, show) {
   await page.evaluate(
@@ -199,20 +199,29 @@ async function plan(taskId, { complete, duration, person }) {
   await inspector.waitFor();
   await wait(500);
   if (duration) await typeInto(inspector.getByRole("spinbutton", { name: /^Duration/ }), duration);
-  if (complete) await typeInto(inspector.getByLabel("Complete", { exact: true }), complete);
+  if (complete) await typeInto(inspector.getByLabel("Progress (%)", { exact: true }), complete);
   await page.keyboard.press("Tab");
   await wait(500);
   if (person) {
-    await click(inspector.getByRole("button", { name: "+ Add person" }));
-    await typeInto(inspector.getByPlaceholder("Name").last(), person, { delay: 110 });
+    const resources = inspector.locator("summary").filter({ hasText: /^Resources$/ });
+    if (!(await resources.evaluate((el) => el.parentElement.open))) await resources.click();
+    await inspector.getByRole("button", { name: "+ Add person" }).click();
+    await typeInto(inspector.locator('input[aria-label="Person name"]').last(), person, { delay: 110 });
     await page.keyboard.press("Tab");
     await wait(700);
+    if (!(await page.locator(".cm-content").innerText()).includes(person))
+      throw new Error(`Assignment was not committed: ${person}`);
   }
 }
 
 await scene("01-intro", async () => {
   await wait(700);
   await click(chooser.getByRole("button", { name: "WBS diagram" }));
+  await page
+    .locator(".cm-content")
+    .fill(
+      "@startwbs\n* Website redesign\n** Discovery\n*** Stakeholder interviews\n*** Content inventory\n** Design\n*** Information architecture\n*** Visual design\n** Delivery\n*** Frontend implementation\n*** Quality assurance\n@endwbs",
+    );
   await page.getByRole("button", { name: "Select WBS node Discovery" }).waitFor();
   await wait(1500);
   await point(wbsNode("Website redesign"), { ms: 900 });
@@ -226,8 +235,9 @@ await scene("01-intro", async () => {
 
 await scene("02-create", async () => {
   await wait(3200);
-  await click(page.getByRole("button", { name: "Create Gantt chart from WBS" }));
-  const dialog = page.getByRole("dialog", { name: "Create project from WBS" });
+  await click(page.getByRole("tab", { name: "Plan", exact: true }));
+  await click(page.getByRole("button", { name: "Create Gantt chart from WBS", exact: true }));
+  const dialog = page.getByRole("dialog", { name: /Create (?:project|document) from WBS/ });
   await dialog.waitFor();
   await wait(500);
   await typeInto(dialog.getByLabel("Name"), "Website redesign");
@@ -251,7 +261,7 @@ await scene("03-project", async () => {
 });
 
 await scene("04-gantt", async () => {
-  await click(page.getByRole("button", { name: "Close project navigator" }));
+  await click(page.getByRole("button", { name: "Close document navigator" }));
   await bar("wbs_stakeholder_interviews").waitFor();
   await wait(1000);
   await point(bar("wbs_discovery"), { ms: 800 });

@@ -1,6 +1,6 @@
 # Demo video script: Gantt planning with resources and version history
 
-Target length: about 3 minutes 45 seconds. Narration is roughly 560 words, which the macOS `say` voice reads in about 3 minutes 40 seconds at its default rate. Each scene lists the on-screen action that will be scripted with Playwright and the narration that will be recorded as one audio clip. Clip numbers match scene numbers so the audio can be lined up with the video in an editor.
+Target length: about 3 minutes 45 seconds. Narration is roughly 560 words, to be narrated with MimikaStudio / Kokoro / Emma; measured timing determines the final runtime. Each scene lists the on-screen action that will be scripted with Playwright and the narration that will be recorded as one audio clip. Clip numbers match scene numbers so the audio can be lined up with the video in an editor.
 
 Recording setup: fresh browser profile, 1920 by 1080 viewport, light theme, source editor visible on the left and the diagram preview on the right. The project starts from the app's default Gantt template (Architecture, Backend, Frontend, Testing, project start 2026-09-01, weekends closed).
 
@@ -72,13 +72,13 @@ Recording setup: fresh browser profile, 1920 by 1080 viewport, light theme, sour
 
 > Of course, people cannot be in two places at once. Frontend runs at the same time as Backend, so when we assign Alice to it too, the app warns us right away: Alice is over-allocated.
 
-## Scene 8: The Resources panel
+## Scene 8: The Workload panel
 
 **On screen:** Click Workload in the Plan tab. The Resource workload panel opens with a card for Alice and one for Bob. Alice's card shows Capacity 100%, a red meter, "Peak 200%", her two tasks, and an expanded list of over-allocated dates. Switch the Summary select from Daily to Weekly and back. Click one of the dates to select the affected task. Finally, raise Alice's capacity to 200 and show the alert disappearing.
 
 **Narration:**
 
-> The Resources panel shows the workload for everyone on the project. Alice peaks at two hundred percent against a capacity of one hundred, and each over-booked day is listed. We can view it by day or by week, and clicking a date jumps to the task that causes it. If Alice really can take on more, we raise her capacity and the warning clears. Otherwise, we move a task or reduce her allocation, and the chart updates as we do.
+> The Workload panel shows the workload for everyone on the project. Alice peaks at two hundred percent against a capacity of one hundred, and each over-booked day is listed. We can view it by day or by week, and clicking a date jumps to the task that causes it. If Alice really can take on more, we raise her capacity and the warning clears. Otherwise, we move a task or reduce her allocation, and the chart updates as we do.
 
 ## Scene 9: Version history
 
