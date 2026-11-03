@@ -929,6 +929,8 @@ textarea:focus-visible {
 }
 .gantt-preview .preview-tools {
   position: relative;
+  /* Preview reports must not cover filtering and navigation controls. */
+  z-index: 9;
   top: auto;
   right: auto;
   display: flex;
