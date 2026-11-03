@@ -122,6 +122,16 @@ interface Props {
   onApplyForecast?: ((review: ForecastApplyReview) => boolean) | undefined;
 }
 
+const GESTURE_HINT_KEY = "plantuml-studio.gantt-gesture-hint.v1";
+
+function readGestureHintDismissed(): boolean {
+  try {
+    return localStorage.getItem(GESTURE_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export type ProjectDiagramLink = {
   documentId: string;
   path: string;
@@ -200,6 +210,15 @@ export function DiagramPreview({
 }: Props) {
   const previewRef = useRef<HTMLElement>(null);
   const [diagramOptionsOpen, setDiagramOptionsOpen] = useState(false);
+  const [gestureHintDismissed, setGestureHintDismissed] = useState(readGestureHintDismissed);
+  const dismissGestureHint = useCallback(() => {
+    setGestureHintDismissed(true);
+    try {
+      localStorage.setItem(GESTURE_HINT_KEY, "1");
+    } catch {
+      /* The tip simply returns next session. */
+    }
+  }, []);
   const navigation = useDiagramNavigation(zoom, onZoomChange, { svg, initialFit });
   const viewportRef = navigation.viewportRef;
   const feedbackRef = useRef<HTMLOutputElement>(null);
@@ -1407,10 +1426,17 @@ export function DiagramPreview({
           </div>
         </div>
       </div>
-      <p className="gantt-controls-help">
-        Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits change
-        the diagram.
-      </p>
+      {!gestureHintDismissed && (
+        <p className="gantt-controls-help">
+          <span>
+            Two-finger scroll pans; pinch zooms. View controls leave source unchanged. Timeline scale and task edits
+            change the diagram. This is also in Help.
+          </span>
+          <button type="button" onClick={dismissGestureHint} aria-label="Dismiss tip" title="Dismiss tip">
+            ×
+          </button>
+        </p>
+      )}
       <div
         className={`preview-viewport${renderStatus !== "idle" && decoratedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}

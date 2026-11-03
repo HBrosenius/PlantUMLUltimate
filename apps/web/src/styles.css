@@ -7807,6 +7807,20 @@ polygon.diagram-bulk-selected {
   color: var(--muted);
   font-size: 11px;
 }
+.gantt-controls-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gantt-controls-help button {
+  min-height: 0;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+}
 @media (max-width: 600px) {
   .gantt-context-controls .gantt-control-group {
     width: 100%;
