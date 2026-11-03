@@ -1,5 +1,5 @@
 import { InspectorPanel } from "./InspectorPanel";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { WEEKDAY_NAMES, type ProjectSettings } from "./project-settings";
 import { ColorField, ColorSwatch } from "./ColorField";
 
@@ -31,6 +31,7 @@ export function ProjectInspector({
   const update = <K extends keyof ProjectSettings>(key: K, next: ProjectSettings[K]) =>
     setValue((current) => ({ ...current, [key]: next }));
   const mondayFirstWeekdays = [1, 2, 3, 4, 5, 6, 0];
+  const weekdayId = useId();
   return (
     <InspectorPanel
       closeOnOutsideEscape
@@ -85,9 +86,11 @@ export function ProjectInspector({
             {mondayFirstWeekdays.map((index) => {
               const day = WEEKDAY_NAMES[index]!;
               return (
-                <label key={day}>
+                <label key={day} htmlFor={`${weekdayId}-${day}`}>
                   <input
+                    id={`${weekdayId}-${day}`}
                     type="checkbox"
+                    aria-label={day.slice(0, 1).toUpperCase() + day.slice(1)}
                     checked={value.closedWeekdays.includes(index)}
                     onChange={(event) =>
                       update(

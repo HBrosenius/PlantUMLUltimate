@@ -46,7 +46,7 @@ const topics: Topic[] = [
     paragraphs: [
       "File, Undo/Redo, Commands, Collaborate, Save, Settings (⚙) and Help (?) are in the top bar. The ribbon below has four tabs: Edit (history, copy/paste, source editing), Insert (add diagram elements), Plan (Gantt and WBS planning tools and linked diagrams) and View (Find, Outline, Issues, presentation and diagram settings). Code / Split / Diagram switch views above the canvas. On narrow windows ribbon groups collapse into named dropdowns, and the ▴ button collapses the ribbon. Change the app theme in Settings → Appearance or through Commands.",
       "File saving and browser recovery are separate. Saved to file confirms a file write; Download requested means a snapshot was sent to your browser downloads. Browser recovery restores local work and does not save your file. Open Issues for errors, warnings and source that can only be edited in Code view.",
-      "Fit sizes the diagram to its canvas. Use Linked diagrams for WBS/Gantt synchronization and connection review.",
+      "Fit sizes the diagram to its canvas, and a new diagram is fitted automatically until you zoom or pan. Two-finger scroll pans and pinch zooms the preview. View controls leave the source unchanged, while timeline scale and task edits change the diagram. Use Linked diagrams for WBS/Gantt synchronization and connection review.",
     ],
   },
   {

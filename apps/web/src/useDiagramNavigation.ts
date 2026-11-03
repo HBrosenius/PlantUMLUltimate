@@ -22,6 +22,8 @@ export function useDiagramNavigation(
   const zoomRef = useRef(zoom);
   const gestureRef = useRef<{ at: number; pan: boolean } | undefined>(undefined);
   const zoomChangeRef = useRef(onZoomChange);
+  // While set, the diagram follows the pane size; any manual zoom or pan clears it.
+  const autoFitRef = useRef<{ documentId: string; zoom: number } | undefined>(undefined);
   const wheelRef = useRef<
     | {
         frame: number;
@@ -37,6 +39,9 @@ export function useDiagramNavigation(
   >(undefined);
 
   zoomChangeRef.current = onZoomChange;
+  useEffect(() => {
+    if (autoFitRef.current && Math.abs(autoFitRef.current.zoom - zoom) > 0.0001) autoFitRef.current = undefined;
+  }, [zoom]);
   useLayoutEffect(() => {
     const wheel = wheelRef.current;
     const viewport = viewportRef.current;
@@ -279,23 +284,74 @@ export function useDiagramNavigation(
     const bounds = svg.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return;
     fittedDocument.current = initialDocumentId;
-    zoomChangeRef.current(
-      initialDiagramZoom(
+    const next = initialDiagramZoom(
+      bounds.width / zoomRef.current,
+      bounds.height / zoomRef.current,
+      viewport.clientWidth,
+      viewport.clientHeight,
+      svg.viewBox.baseVal.width || svg.width.baseVal.value || bounds.width / zoomRef.current,
+      true,
+    );
+    autoFitRef.current = { documentId: initialDocumentId, zoom: next };
+    zoomChangeRef.current(next);
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+  }, [initialDocumentId, options?.svg, options?.initialFit?.fit]);
+
+  // Keep an automatically fitted diagram fitted when the pane is resized, until the user zooms, pans or clicks in the diagram.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === "undefined") return;
+    let size: string | undefined;
+    let frame: number | undefined;
+    const refit = () => {
+      frame = undefined;
+      const auto = autoFitRef.current;
+      const svg = viewport.querySelector<SVGSVGElement>(".diagram svg");
+      if (!auto || auto.documentId !== initialDocumentId || !svg || wheelRef.current) return;
+      if (!viewport.clientWidth || !viewport.clientHeight) return;
+      const bounds = svg.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      const next = initialDiagramZoom(
         bounds.width / zoomRef.current,
         bounds.height / zoomRef.current,
         viewport.clientWidth,
         viewport.clientHeight,
         svg.viewBox.baseVal.width || svg.width.baseVal.value || bounds.width / zoomRef.current,
-      ),
-    );
-    viewport.scrollLeft = 0;
-    viewport.scrollTop = 0;
-  }, [initialDocumentId, options?.svg, options?.initialFit?.fit]);
+        true,
+      );
+      if (Math.abs(next - zoomRef.current) < 0.005) return;
+      autoFitRef.current = { documentId: auto.documentId, zoom: next };
+      zoomChangeRef.current(next);
+    };
+    // Compare the border box so scrollbars appearing after a zoom change cannot retrigger a fit.
+    const observer = new ResizeObserver(() => {
+      const rect = viewport.getBoundingClientRect();
+      const next = `${Math.round(rect.width)}x${Math.round(rect.height)}`;
+      if (size === next) return;
+      const first = size === undefined;
+      size = next;
+      if (first || frame !== undefined) return;
+      frame = requestAnimationFrame(refit);
+    });
+    observer.observe(viewport);
+    // Working in the diagram (selecting, dragging) also settles the view, so opening an inspector never rescales it.
+    const settle = () => {
+      autoFitRef.current = undefined;
+    };
+    viewport.addEventListener("pointerdown", settle, true);
+    return () => {
+      observer.disconnect();
+      viewport.removeEventListener("pointerdown", settle, true);
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [initialDocumentId, options?.svg]);
 
   const onWheel = useCallback((event: WheelEvent) => {
     const viewport = viewportRef.current;
     if (!viewport || (event.deltaY === 0 && event.deltaX === 0)) return;
     event.preventDefault();
+    autoFitRef.current = undefined;
     const now = performance.now();
     const previousGesture = gestureRef.current;
     // Wheel events have no device identity: mice can emit small or fractional
@@ -397,6 +453,7 @@ export function useDiagramNavigation(
     if (!viewport) return;
     event.preventDefault();
     event.stopPropagation();
+    autoFitRef.current = undefined;
     panRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -430,6 +487,7 @@ export function useDiagramNavigation(
         (viewport.clientHeight - 32) / (bounds.height / displayedZoom),
       ),
     );
+    autoFitRef.current = undefined;
     zoomChangeRef.current(next);
     requestAnimationFrame(() => {
       viewport.scrollLeft = 0;

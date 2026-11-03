@@ -151,31 +151,34 @@ export function AddMenu({
           {diagramKind === "gantt" ? (
             <>
               <button
+                aria-keyshortcuts="Alt+T"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onTask)}
               >
                 <span>Task…</span>
-                <kbd aria-hidden={inline || undefined}>{taskShortcut}</kbd>
+                <kbd aria-hidden="true">{taskShortcut}</kbd>
               </button>
               <button
+                aria-keyshortcuts="Alt+M"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onMilestone)}
               >
                 <span>Milestone…</span>
-                <kbd aria-hidden={inline || undefined}>{milestoneShortcut}</kbd>
+                <kbd aria-hidden="true">{milestoneShortcut}</kbd>
               </button>
               <button
+                aria-keyshortcuts="Alt+D"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onDivider)}
               >
                 <span>Divider…</span>
-                <kbd aria-hidden={inline || undefined}>{dividerShortcut}</kbd>
+                <kbd aria-hidden="true">{dividerShortcut}</kbd>
               </button>
               <button
                 role={inline ? undefined : "menuitem"}
@@ -189,22 +192,24 @@ export function AddMenu({
           ) : diagramKind === "sequence" ? (
             <>
               <button
+                aria-keyshortcuts="Alt+P"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onParticipant)}
               >
                 <span>Participant…</span>
-                <kbd aria-hidden={inline || undefined}>{optionShortcut("P")}</kbd>
+                <kbd aria-hidden="true">{optionShortcut("P")}</kbd>
               </button>
               <button
+                aria-keyshortcuts="Alt+M"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onMessage)}
               >
                 <span>Message…</span>
-                <kbd aria-hidden={inline || undefined}>{optionShortcut("M")}</kbd>
+                <kbd aria-hidden="true">{optionShortcut("M")}</kbd>
               </button>
               <button
                 role={inline ? undefined : "menuitem"}
@@ -258,22 +263,24 @@ export function AddMenu({
           ) : diagramKind === "usecase" ? (
             <>
               <button
+                aria-keyshortcuts="Alt+A"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onUseCaseActor)}
               >
                 <span>Actor…</span>
-                <kbd aria-hidden={inline || undefined}>{optionShortcut("A")}</kbd>
+                <kbd aria-hidden="true">{optionShortcut("A")}</kbd>
               </button>
               <button
+                aria-keyshortcuts="Alt+U"
                 role={inline ? undefined : "menuitem"}
                 disabled={disabled}
                 title={disabled ? "Viewing only" : undefined}
                 onClick={() => run(onUseCase)}
               >
                 <span>Use case…</span>
-                <kbd aria-hidden={inline || undefined}>{optionShortcut("U")}</kbd>
+                <kbd aria-hidden="true">{optionShortcut("U")}</kbd>
               </button>
               <button
                 role={inline ? undefined : "menuitem"}
@@ -390,13 +397,14 @@ export function AddMenu({
             </>
           ) : (
             <button
+              aria-keyshortcuts="Alt+N"
               role={inline ? undefined : "menuitem"}
               disabled={disabled}
               title={disabled ? "Viewing only" : undefined}
               onClick={() => run(onWbsNode)}
             >
               <span>WBS node…</span>
-              <kbd aria-hidden={inline || undefined}>{optionShortcut("N")}</kbd>
+              <kbd aria-hidden="true">{optionShortcut("N")}</kbd>
             </button>
           )}
         </div>

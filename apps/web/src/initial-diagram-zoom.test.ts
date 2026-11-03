@@ -17,3 +17,8 @@ it("uses natural SVG size when CSS has stretched a narrow Sequence diagram", () 
   expect(initialDiagramZoom(600, 12000, 800, 600, 180)).toBeCloseTo(0.3);
   expect(initialDiagramZoom(300, 1200, 390, 600, 900)).toBeCloseTo(2.25);
 });
+
+it("enlarges compact diagrams but not tall timelines when asked", () => {
+  expect(initialDiagramZoom(300, 200, 800, 600, 300, true)).toBe(1.5);
+  expect(initialDiagramZoom(600, 5000, 800, 600, 600, true)).toBe(1);
+});

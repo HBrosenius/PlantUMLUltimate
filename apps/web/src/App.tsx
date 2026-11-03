@@ -4328,6 +4328,7 @@ export function App() {
               <RibbonGroup label="Diagram selection">
                 <button
                   disabled={!diagramMulti.selected.length}
+                  aria-label="Copy selection"
                   title={!diagramMulti.selected.length ? "Select diagram elements first" : undefined}
                   onClick={() => void diagramMulti.copy()}
                 >
@@ -4335,6 +4336,7 @@ export function App() {
                 </button>
                 <button
                   disabled={commandReadOnly}
+                  aria-label="Paste elements"
                   title={commandReadOnly ? "Viewing only" : "Paste copied diagram elements"}
                   onClick={() => void diagramMulti.paste()}
                 >
@@ -4342,6 +4344,7 @@ export function App() {
                 </button>
                 <button
                   disabled={commandReadOnly || !diagramMulti.selected.length}
+                  aria-label="Duplicate selection"
                   title={
                     commandReadOnly
                       ? "Viewing only"
@@ -4363,6 +4366,7 @@ export function App() {
                     <button
                       key={command.id}
                       disabled={command.enabled === false}
+                      aria-label={command.label}
                       title={
                         command.enabled === false
                           ? command.id === "edit.rename-symbol"
