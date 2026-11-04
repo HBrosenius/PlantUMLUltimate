@@ -19,6 +19,10 @@ async function newKind(page: Parameters<typeof prepareEditor>[0], name: string) 
     .getByRole("dialog", { name: "Choose a diagram type", exact: true })
     .getByRole("button", { name, exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   const close = page.getByRole("button", { name: "Close project inspector", exact: true });
   if (await close.isVisible()) await close.click();
 }

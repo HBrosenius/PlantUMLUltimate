@@ -45,7 +45,7 @@ test("protects staged properties until applied or explicitly discarded", async (
   await panel.getByRole("button", { name: "Close project inspector" }).click();
   await expect(panel).toBeVisible();
   await expect(panel.getByLabel("Diagram title", { exact: true })).toHaveValue("Unapplied draft");
-  await panel.getByRole("button", { name: "Apply", exact: true }).click();
+  await panel.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("Unapplied draft");
   await expect(panel).toBeHidden();
 });
@@ -157,7 +157,7 @@ test("keeps controls and properties reachable at doubled UI scale", async ({ pag
   await page.getByRole("button", { name: "Calendar & schedule", exact: true }).click();
   const panel = page.getByRole("complementary", { name: "Project and calendar inspector" });
   await panel.getByLabel("Diagram title", { exact: true }).fill("Large UI");
-  await panel.getByRole("button", { name: "Apply", exact: true }).click();
+  await panel.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect(panel).toBeHidden();
   await expect(page.locator(".cm-content")).toContainText("Large UI");
   const save = await page.getByRole("button", { name: "Save", exact: true }).boundingBox();

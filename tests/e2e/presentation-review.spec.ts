@@ -104,6 +104,10 @@ test("presents the other diagram families without exposing source editing", asyn
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: family, exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const before = await readEditorSource(page);
     const dialog = await openPresentation(page);
     await expect(dialog.locator("svg")).toBeVisible();

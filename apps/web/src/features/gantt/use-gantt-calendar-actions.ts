@@ -94,7 +94,7 @@ export function useGanttCalendarActions(options: Options) {
     (value: ProjectSettings) => {
       const zoom = value.scaleZoom === "" ? undefined : Number(value.scaleZoom);
       if (zoom !== undefined && (!Number.isInteger(zoom) || zoom < 1)) {
-        report("Scale zoom must be a positive whole number");
+        report("Time-axis spacing must be a positive whole number");
         return;
       }
       if (value.highlightToday && (!value.todayColor.trim() || /\s/.test(value.todayColor.trim()))) {

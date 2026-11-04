@@ -36,6 +36,10 @@ for (const fixture of fixtures) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: new RegExp(names[fixture.kind]!) })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const envelope = fixture.kind === "wbs" ? "wbs" : "uml";
     await setSource(page, `@start${envelope}\n${fixture.body}\n@end${envelope}`);
     const editor = page.locator(".cm-content");

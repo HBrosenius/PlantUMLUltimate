@@ -9,6 +9,10 @@ for (const type of ["Class", "Component", "Use case", "Sequence"]) {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const declarations =
       type === "Class"
         ? ["class A", "class B"]

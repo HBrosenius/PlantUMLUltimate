@@ -315,7 +315,7 @@ export function InspectorPanel({
             title="Undo the last diagram change"
             onClick={() => history.undo()}
           >
-            Undo
+            Undo last change
           </button>
         )}
         {staged

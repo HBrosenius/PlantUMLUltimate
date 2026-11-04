@@ -330,7 +330,7 @@ test("edits and clears a WBS node icon", async ({ page }) => {
   await inspector.getByLabel("Icon", { exact: true }).fill("&home");
   await inspector.getByLabel("Icon", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("<&home> Plan");
-  await expect(page.getByRole("region", { name: "WBS diagram preview" })).toHaveAttribute("data-render-status", "idle");
+  await waitForDiagramRender(page);
   await expect(page.locator(".render-error")).toHaveCount(0);
   await expect(page.locator(".wbs-diagram svg")).not.toContainText("Syntax Error");
 
@@ -339,6 +339,11 @@ test("edits and clears a WBS node icon", async ({ page }) => {
   await expect(inspector.getByLabel("Icon", { exact: true })).toHaveValue("&home");
   await inspector.getByLabel("Icon", { exact: true }).fill("");
   await inspector.getByLabel("Icon", { exact: true }).blur();
+  await expect(page.locator(".cm-content")).toContainText("** Plan");
+  await expect(page.locator(".cm-content")).not.toContainText("<&home>");
+  await inspector.getByRole("button", { name: "Undo last change", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("<&home> Plan");
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("** Plan");
   await expect(page.locator(".cm-content")).not.toContainText("<&home>");
 });

@@ -24,6 +24,10 @@ for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ["chro
     await page.getByRole("button", { name: "Get started" }).click();
     let began = Date.now();
     await page.getByRole("button", { name: "Gantt diagram" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await page.locator(".diagram svg").waitFor({ timeout: 60000 });
     await page.waitForFunction(() => Boolean(globalThis.renderBenchmarkResult), undefined, { timeout: 60000 });
     const coldMs = Date.now() - began;

@@ -30,6 +30,10 @@ test("production headers allow native and Graphviz rendering", async ({ page }) 
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: /Component diagram/ })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await expect(page.getByRole("region", { name: "Component diagram preview" }).locator("svg")).toContainText(
     "Order service",
   );

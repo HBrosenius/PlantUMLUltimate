@@ -266,12 +266,12 @@ it("offers existing diagram history only for applied ordinary properties", async
       </InspectorPanel>
     </InspectorHistoryContext.Provider>,
   );
-  await user.click(screen.getByRole("button", { name: "Undo" }));
+  await user.click(screen.getByRole("button", { name: "Undo last change" }));
   expect(undo).toHaveBeenCalledOnce();
   await user.type(screen.getByRole("textbox", { name: "Title" }), " draft");
-  await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Undo last change" })).toBeDisabled());
   await user.tab();
-  await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Undo last change" })).toBeEnabled());
   view.rerender(
     <InspectorHistoryContext.Provider value={{ canUndo: true, undo }}>
       <InspectorPanel key="staged">
@@ -283,5 +283,5 @@ it("offers existing diagram history only for applied ordinary properties", async
       </InspectorPanel>
     </InspectorHistoryContext.Provider>,
   );
-  expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Undo last change" })).toBeNull();
 });

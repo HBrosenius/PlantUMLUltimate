@@ -15,6 +15,10 @@ for (const [type, suffix, body] of [
           .getByRole("dialog", { name: "Choose a diagram type" })
           .getByRole("button", { name: `${type} diagram` })
           .click();
+        await page
+          .getByRole("dialog", { name: "Choose a diagram type" })
+          .getByRole("button", { name: "Create diagram", exact: true })
+          .click();
       }
       const lines = [
         opening ? `@strat${suffix}` : `@start${suffix}`,
@@ -45,7 +49,6 @@ test("repairs missing brackets on a declaration and dependency reference", async
     const choice = suggestion.getByRole("button", { name: /Apply fix.*Add missing closing bracket/ });
     if (!(await choice.isVisible())) await page.getByLabel("Show source fix suggestions").click();
     await choice.click();
-    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     await expect(page.locator(".cm-content")).toContainText(repaired);
   }
 });
@@ -90,7 +93,6 @@ for (const [faulty, repaired, label] of [
     const choice = page.getByRole("button", { name: new RegExp(label) });
     await expect(choice.locator("..").locator("code")).toHaveText(repaired);
     await choice.click();
-    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     await expect(page.locator(".cm-content .cm-line")).toHaveText([
       lines[0]!,
       lines[1]!,
@@ -121,7 +123,6 @@ for (const [faulty, repaired] of [
     });
     await expect(choice.locator("..").locator("code")).toHaveText(repaired);
     await choice.click();
-    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
     await expect(page.locator(".cm-content .cm-line")).toHaveText([lines[0]!, lines[1]!, repaired, lines[3]!]);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
@@ -138,6 +139,10 @@ for (const [type, line, expected, label] of [
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
       .click();
     const lines = ["@startuml", line, "@enduml"];
     await fillSource(page, lines.join("\n"));
@@ -160,6 +165,10 @@ for (const [type, suffix, body, opening] of [
       await page
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: `${type} diagram` })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
         .click();
     }
     const lines = opening ? ["' Header", "", body, `@end${suffix}`] : [`@start${suffix}`, body, "", "' Footer"];
@@ -227,6 +236,10 @@ for (const [type, faulty, valid, label] of [
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const source = `@startuml\n${faulty}\n@enduml`;
     await fillSource(page, source);
     await page.getByLabel("Show source fix suggestions").click();
@@ -248,6 +261,10 @@ for (const [type, faulty, expected, label] of [
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
       .click();
     const source = `@startuml\n${faulty}\n@enduml`;
     await fillSource(page, source);
@@ -280,6 +297,10 @@ for (const [type, faulty, expected, label] of [
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const lines = ["@startuml output", faulty, "@enduml"];
     await fillSource(page, lines.join("\n"));
     await page.getByLabel("Show source fix suggestions").click();
@@ -300,6 +321,10 @@ for (const [type, body, label, expected] of [
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
       .click();
     const lines = ["@startuml", ...body.split("\n"), "@enduml"];
     await fillSource(page, lines.join("\n"));
@@ -333,7 +358,6 @@ test("compares alternative task repairs and applies only the chosen reference", 
   await expect(choice.locator("..").locator("del")).toContainText("[Buil]'s end");
   await expect(choice.locator("..").locator("code")).toHaveText("[Release] starts 5 days after [Built]'s end");
   await choice.click();
-  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(lines.map((line) => line.replace("[Buil]", "[Built]")));
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(lines);
@@ -727,6 +751,10 @@ for (const [type, keyword] of [
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await fillSource(page, `@startuml\n${keyword} "Customer as Account as Other\n@enduml`);
     await page.locator(".cm-lintRange-error").first().hover();
     const guidance = page.locator(".cm-tooltip-lint .cm-manual-error-guidance");
@@ -1098,6 +1126,10 @@ for (const fixture of [
       await page
         .getByRole("dialog", { name: "Choose a diagram type" })
         .getByRole("button", { name: fixture.type })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Choose a diagram type" })
+        .getByRole("button", { name: "Create diagram", exact: true })
         .click();
     }
     await fillSource(page, fixture.source);

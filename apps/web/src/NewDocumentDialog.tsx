@@ -247,12 +247,12 @@ export function NewDocumentDialog({
         {route === "examples" && selectedExample && <p role="status">Selected: {selectedExample.title}</p>}
         <section hidden={route !== "open"} aria-label="Open a diagram">
           {onOpen && (
-            <button type="button" onClick={onOpen}>
+            <button className="secondary-action" type="button" onClick={onOpen}>
               Open file…
             </button>
           )}
           {onOpenRecent && (
-            <button type="button" onClick={onOpenRecent}>
+            <button className="secondary-action" type="button" onClick={onOpenRecent}>
               Recent files &amp; import…
             </button>
           )}

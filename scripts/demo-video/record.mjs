@@ -217,6 +217,7 @@ async function plan(taskId, { complete, duration, person }) {
 await scene("01-intro", async () => {
   await wait(700);
   await click(chooser.getByRole("button", { name: "WBS diagram" }));
+  await click(chooser.getByRole("button", { name: "Create diagram", exact: true }));
   await page
     .locator(".cm-content")
     .fill(

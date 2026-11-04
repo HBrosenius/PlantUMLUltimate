@@ -88,6 +88,10 @@ test("keeps inspector focus, zoom, and split position after applying a source ed
 
   await expect(page.locator(".cm-content")).toContainText("participant API LightBlue");
   if (browserName !== "webkit") await expect(inspector.getByRole("button", { name: "Apply" })).toBeFocused();
+  await inspector.getByLabel("Alias", { exact: true }).fill("Service");
+  await apply.click();
+  await expect(page.locator(".cm-content")).toContainText("as Service");
+  if (browserName !== "webkit") await expect(apply).toBeFocused();
   await expect(resetZoom).toHaveText(zoomLabel!);
   await expect.poll(async () => (await divider.boundingBox())!.x).toBeCloseTo(inspectorDividerX, 0);
   await inspector.getByRole("button", { name: "Close participant inspector" }).click();
@@ -315,7 +319,7 @@ test("creates a Sequence tab with diagram-specific tools", async ({ page, browse
   const sequenceSettings = page.getByRole("complementary", { name: "Sequence settings" });
   await sequenceSettings.getByLabel("Diagram title").fill("Checkout flow");
   await sequenceSettings.getByLabel("Automatically activate lifelines").check();
-  await sequenceSettings.getByLabel("Hide participant footboxes").check();
+  await sequenceSettings.getByLabel("Hide participant footers (footboxes)").check();
   await sequenceSettings.getByLabel("Enable autonumbering").check();
   await sequenceSettings.getByLabel("Start").fill("10");
   await sequenceSettings.getByLabel("Increment").fill("5");
@@ -683,7 +687,7 @@ test("configures advanced Sequence layout and style with undo and redo", async (
   await expect(editor).toContainText("skinparam noteBackgroundColor #FEF3C7");
   await expect(page.locator(".diagram svg")).not.toContainText("Syntax Error");
 
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(editor).not.toContainText("!pragma teoz true");
   await expect(editor).not.toContainText("skinparam sequenceArrowColor #2563EB");
   await page.getByRole("button", { name: "Redo" }).click();

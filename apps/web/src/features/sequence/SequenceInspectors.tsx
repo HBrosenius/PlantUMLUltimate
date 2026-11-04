@@ -61,7 +61,7 @@ export function SequenceInspectors({
       )}
       {selectedParticipant && (
         <SequenceParticipantInspector
-          key={`${selectedParticipant.id}:${selectedParticipant.sourceRange.to}`}
+          key={selectedParticipant.sourceRange.from}
           participant={selectedParticipant}
           onApply={onParticipantApply}
           onDelete={onParticipantDelete}

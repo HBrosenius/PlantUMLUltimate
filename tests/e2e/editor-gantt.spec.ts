@@ -467,7 +467,7 @@ test("edits the diagram title from project settings", async ({ page }) => {
   await setSource(page, source("[Build] lasts 2 days"));
   await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Calendar & schedule" }).click();
-  await expect(page.getByRole("group", { name: "Closed weekdays" }).locator("label")).toHaveText([
+  await expect(page.getByRole("group", { name: "Working days" }).locator("label")).toHaveText([
     "Mon",
     "Tue",
     "Wed",
@@ -477,7 +477,7 @@ test("edits the diagram title from project settings", async ({ page }) => {
     "Sun",
   ]);
   await page.getByLabel("Diagram title").fill("Release roadmap — 2026");
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("title Release roadmap — 2026");
   await expect(page.locator(".diagram svg")).toContainText("Release roadmap — 2026", { timeout: 20_000 });
 });
@@ -1312,7 +1312,7 @@ test("grows during resize and undo restores the duration", async ({ page }) => {
   await page.mouse.up();
   await expect(page.locator(".cm-content")).not.toContainText("[A] lasts 3 days");
   await expect(inspector.locator("label").filter({ hasText: "Duration" }).locator("input")).not.toHaveValue("3");
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("[A] lasts 3 days");
 });
 
@@ -1389,7 +1389,7 @@ test("creates a dependency visually and undo removes it", async ({ page }) => {
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts at [A]'s end");
   await expect(page.locator(".cm-content")).toContainText("[B] lasts 4 days and is colored in LightBlue");
   await expect(page.locator(".cm-content")).not.toContainText("[B] [B]");
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("[B] on {Kalle:100%} starts 2026-09-05");
 });
 

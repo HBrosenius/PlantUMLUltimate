@@ -7204,7 +7204,8 @@ polygon.diagram-bulk-selected {
 .problem-repair-workspace .source-fixes ul {
   position: static;
   width: 100%;
-  max-height: min(420px, calc(100dvh - 220px));
+  /* The inspector starts below a wrapping ribbon. Reserve room for its heading and summary. */
+  max-height: min(420px, calc(100dvh - var(--workspace-top) - var(--footer-height, 38px) - 8rem));
   overflow: auto;
   box-shadow: none;
 }

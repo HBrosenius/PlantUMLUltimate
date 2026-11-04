@@ -45,6 +45,10 @@ test("prioritizes each diagram and documents the working Sequence creation short
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${title} diagram`, exact: true })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const help = await openHelp(page);
     await expect(help.locator(".help-content > section").first()).toHaveAttribute("aria-label", `${label} help`);
     if (title === "Sequence") {

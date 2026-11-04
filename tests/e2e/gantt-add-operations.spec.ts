@@ -47,7 +47,7 @@ test("keeps Add independent of task selection and reuses calendar editing with u
   await calendar.getByRole("button", { name: "+ Add exception", exact: true }).click();
   await calendar.getByLabel("From date", { exact: true }).fill("2026-09-04");
   await calendar.getByLabel("To date", { exact: true }).fill("2026-09-04");
-  await calendar.getByRole("button", { name: "Apply", exact: true }).click();
+  await calendar.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect.poll(() => readEditorSource(page)).toContain("2026-09-04 is closed");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => readEditorSource(page)).toBe(original);

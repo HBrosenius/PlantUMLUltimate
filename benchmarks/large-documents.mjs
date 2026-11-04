@@ -283,6 +283,10 @@ async function prepare(page) {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram", exact: true })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
   const close = page.getByRole("button", { name: "Close project inspector", exact: true });
   if (await close.isVisible()) await close.click();
@@ -500,6 +504,10 @@ for (activeBrowser of process.argv.slice(2).length ? process.argv.slice(2) : ["c
               name: `${item.kind === "wbs" ? "WBS" : item.kind[0].toUpperCase() + item.kind.slice(1)} diagram`,
               exact: true,
             })
+            .click();
+          await page
+            .getByRole("dialog", { name: "Choose a diagram type" })
+            .getByRole("button", { name: "Create diagram", exact: true })
             .click();
           await expect(page.locator(".statusbar")).toContainText("Preview current", { timeout: 65_000 });
         }

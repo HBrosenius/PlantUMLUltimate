@@ -3,7 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 async function settings(page: Page) {
   await page.getByRole("button", { name: "Settings" }).click();
-  return page.getByRole("dialog", { name: "Settings", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.getByRole("button", { name: "Gantt", exact: true }).click();
+  return dialog;
 }
 
 test("can suppress the allocation banner without hiding workload and restore it after reload", async ({ page }) => {
