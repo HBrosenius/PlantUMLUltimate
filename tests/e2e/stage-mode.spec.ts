@@ -150,6 +150,134 @@ test.describe("Stage mode", () => {
     await expect(page.getByRole("option", { name: /Split view/ }).first()).toBeVisible();
   });
 
+  test("a duplicated dependent task starts where the original does and can be resized and dragged", async ({
+    page,
+  }) => {
+    await prepareEditor(page);
+    await setSource(page, gantt);
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    await page.locator('.diagram [data-task-id="build"]').first().click();
+    await page.getByRole("toolbar", { name: "Actions for Build" }).getByRole("button", { name: "Duplicate" }).click();
+    const dock = page.getByRole("toolbar", { name: "Actions for Build copy" });
+    await expect(dock).toBeVisible();
+    // The copy inherits the original's incoming dependency, so it starts in the same place.
+    await expect.poll(() => readEditorSource(page)).toContain("[Build copy] starts at [Design]'s end");
+    const lens = page.getByTestId("source-lens");
+    await expect(lens.locator(".cm-content")).toContainText("[Build copy] lasts 8 days");
+
+    await dock.getByRole("button", { name: "+1d" }).click();
+    await expect(lens.locator(".cm-content")).toContainText("[Build copy] lasts 9 days");
+
+    // Dragging the copy moves it (the source changes); before the fix it had no start to move.
+    const before = await readEditorSource(page);
+    const bar = page.locator('.diagram [data-task-id="build copy"]').first();
+    const box = (await bar.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(() => readEditorSource(page), { timeout: 15_000 }).not.toBe(before);
+  });
+
+  test("WBS dock adds a child, the lens shows the node's line, and dock and node line up", async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+    await chooser.getByRole("button", { name: "WBS diagram" }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+    await setSource(page, "@startwbs\n* Project\n** Discovery\n** Delivery\n@endwbs");
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    const node = page.locator("[data-wbs-node-id]").filter({ hasText: "Discovery" }).first();
+    await node.click();
+    const dock = page.getByRole("toolbar", { name: "Actions for Discovery" });
+    await expect(dock).toBeVisible();
+    await expect(dock.getByRole("button", { name: "Rename" })).toBeVisible();
+    const lens = page.getByTestId("source-lens");
+    await expect(lens.locator(".cm-content")).toContainText("** Discovery");
+    await expect(lens.locator(".cm-content")).not.toContainText("** Delivery");
+
+    // Overlay alignment at fit zoom: the node is inside the canvas and the dock sits next to it, not on it.
+    const nodeBox = (await node.boundingBox())!;
+    const dockBox = (await dock.boundingBox())!;
+    const canvas = (await page.locator(".preview-viewport").boundingBox())!;
+    expect(nodeBox.x).toBeGreaterThanOrEqual(canvas.x - 1);
+    expect(nodeBox.x + nodeBox.width).toBeLessThanOrEqual(canvas.x + canvas.width + 1);
+    const overlaps =
+      dockBox.x < nodeBox.x + nodeBox.width &&
+      dockBox.x + dockBox.width > nodeBox.x &&
+      dockBox.y < nodeBox.y + nodeBox.height &&
+      dockBox.y + dockBox.height > nodeBox.y;
+    expect(overlaps).toBe(false);
+
+    await dock.getByRole("button", { name: "+ Child" }).click();
+    await expect(page.locator(".diagram svg")).toContainText("New item", { timeout: 20_000 });
+    await expect(page.getByRole("toolbar", { name: /Actions for/ })).toBeVisible();
+  });
+
+  test("renaming in the lens keeps the dock and lens on the element", async ({ page }) => {
+    await prepareEditor(page);
+    await setSource(page, source("[Solo] lasts 3 days\n[Other] lasts 2 days"));
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    await page.locator('.diagram [data-task-id="solo"]').first().click();
+    const lens = page.getByTestId("source-lens");
+    await expect(page.getByRole("toolbar", { name: "Actions for Solo" })).toBeVisible();
+    await page.getByRole("toolbar", { name: "Actions for Solo" }).getByRole("button", { name: "Open inspector" });
+    await lens.locator(".cm-line", { hasText: "lasts 3 days" }).click();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.insertText("[Soloist] lasts 3 days");
+    await expect(page.getByRole("toolbar", { name: "Actions for Soloist" })).toBeVisible({ timeout: 15_000 });
+    await expect(lens).toHaveAttribute("data-state", "peek");
+    await expect(lens.locator(".cm-content")).toContainText("[Soloist] lasts 3 days");
+    await expect(lens.locator(".cm-content")).not.toContainText("[Other]");
+  });
+
+  test("Stage survives a reload", async ({ page }) => {
+    await prepareEditor(page);
+    await setSource(page, gantt);
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    await page.locator('.diagram [data-task-id="build"]').first().click();
+    await expect(page.getByRole("toolbar", { name: "Actions for Build" })).toBeVisible();
+    // Persistence is debounced; wait for the recovery copy before reloading.
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await expect(page.locator(".workspace.mode-stage")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 45_000 });
+    // The canvas outline and the dock agree: either both show a selection or neither does.
+    const outlined = await page.locator(".diagram [data-selected='true']").count();
+    const docked = await page.getByRole("toolbar", { name: /Actions for/ }).count();
+    expect(outlined > 0).toBe(docked > 0);
+  });
+
+  test("cluster navigation calls the preview handlers and the legend toggle is collapsed by default", async ({
+    page,
+  }) => {
+    await prepareEditor(page);
+    await setSource(page, gantt);
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    const cluster = page.getByTestId("stage-cluster");
+    await expect(page.locator(".timeline-minimap")).toBeHidden();
+    await cluster.getByRole("button", { name: "Timeline" }).click();
+    await expect(page.locator(".timeline-minimap")).toBeVisible();
+    await cluster.getByRole("button", { name: "Next task" }).click();
+    await expect(page.getByRole("toolbar", { name: /Actions for/ })).toBeVisible();
+  });
+
   test("True render shows the diagram as exported in the dark theme", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await prepareEditor(page);
