@@ -17,6 +17,26 @@ describe("diagram selection transitions", () => {
     );
   });
 
+  it("clears a source highlight on another task when a different task is selected", () => {
+    const state = selection({ selectedTaskId: "build", sourceHighlightedTaskId: "build" });
+    expect(diagramSelectionReducer(state, { type: "set", key: "selectedTaskId", value: "build copy" })).toEqual(
+      selection({ selectedTaskId: "build copy" }),
+    );
+  });
+
+  it("keeps a source highlight on the selected task and on deselection", () => {
+    const highlighted = selection({ sourceHighlightedTaskId: "release" });
+    expect(
+      diagramSelectionReducer(highlighted, { type: "set", key: "selectedTaskId", value: "release" })
+        .sourceHighlightedTaskId,
+    ).toBe("release");
+    const selected = selection({ selectedTaskId: "release", sourceHighlightedTaskId: "release" });
+    expect(
+      diagramSelectionReducer(selected, { type: "set", key: "selectedTaskId", value: undefined })
+        .sourceHighlightedTaskId,
+    ).toBe("release");
+  });
+
   it("supports functional selection updates", () => {
     const state = selection({ selectedDependencyIndex: 2 });
     expect(
