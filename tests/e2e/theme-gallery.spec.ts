@@ -100,6 +100,7 @@ test("keeps preview adaptation separate from authored source and export", async 
   await expect(page.locator(".preview-viewport .diagram").first()).toHaveCSS("filter", "none");
   dialog = await openAppSettings(page);
   await page.setViewportSize({ width: 390, height: 844 });
+  await dialog.getByRole("button", { name: "New diagrams", exact: true }).click();
   const gallery = dialog.getByRole("radiogroup", { name: "Featured themes" });
   await gallery.scrollIntoViewIfNeeded();
   await gallery.getByRole("radio", { name: "plain", exact: true }).focus();

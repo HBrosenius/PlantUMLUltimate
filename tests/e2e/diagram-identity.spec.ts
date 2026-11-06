@@ -62,6 +62,7 @@ test("chooser defaults to the active document, preserves example source and perm
   await chooser.getByRole("button", { name: "Examples", exact: true }).click();
   await chooser.getByLabel("Example diagram type").selectOption("gantt");
   await chooser.getByRole("button", { name: /Product launch plan/ }).click();
+  await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
   await expect(chooser).toBeHidden();
   expect(await readEditorSource(page)).toContain("title Product launch plan");
   const tabs = page.locator(".document-tab > button:first-child");

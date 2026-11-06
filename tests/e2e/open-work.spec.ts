@@ -86,6 +86,10 @@ test("shares file decoding for drop, picker, native documents and recent fallbac
   await page.keyboard.press("ControlOrMeta+n");
   await page
     .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Open", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Recent files & import…", exact: true })
     .click();
   dialog = page.getByRole("dialog", { name: "Open existing work" });

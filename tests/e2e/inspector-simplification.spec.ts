@@ -20,7 +20,7 @@ test("task basics lead, optional choices persist, and invalid drafts remain reco
   await task.getByLabel("Person name", { exact: true }).fill("Alice");
   await task.getByLabel("Person name", { exact: true }).press("Tab");
   await expect(page.locator(".cm-content")).toContainText("Alice");
-  await expect(task.getByRole("status", { name: "Property commit status" })).toContainText("Applied");
+  await expect(task.getByRole("status", { name: "Property commit status" })).toContainText("Diagram updated");
   await page.keyboard.press("Escape");
   await bar.click();
   await expect(resources).toHaveAttribute("open", "");
@@ -35,7 +35,7 @@ test("task basics lead, optional choices persist, and invalid drafts remain reco
   await expect(task.getByRole("status", { name: "Property commit status" })).toContainText("Unapplied changes");
   await name.press("Tab");
   await expect(page.locator(".cm-content")).toContainText("Design revised");
-  await expect(task.getByRole("status", { name: "Property commit status" })).toContainText("Applied");
+  await expect(task.getByRole("status", { name: "Property commit status" })).toContainText("Diagram updated");
   if (testInfo.project.name === "chromium") {
     await waitForDiagramRender(page);
     await page.mouse.move(10, 10);
@@ -60,7 +60,7 @@ test("calendar leads with project schedule and protects staged edits", async ({ 
   await page.keyboard.press("Escape");
   await expect(calendar).toBeVisible();
   await expect(calendar.getByLabel("Diagram title", { exact: true })).toHaveValue("Release plan");
-  await calendar.getByRole("button", { name: "Apply", exact: true }).click();
+  await calendar.getByRole("button", { name: "Apply changes", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("title Release plan");
 });
 

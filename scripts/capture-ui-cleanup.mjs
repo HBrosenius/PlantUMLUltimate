@@ -16,6 +16,10 @@ try {
     .getByRole("dialog", { name: "Choose a diagram type" })
     .getByRole("button", { name: "Gantt diagram" })
     .click();
+  await page
+    .getByRole("dialog", { name: "Choose a diagram type" })
+    .getByRole("button", { name: "Create diagram", exact: true })
+    .click();
   await page.locator(".diagram svg").waitFor({ timeout: 45000 });
   const close = page.getByRole("button", { name: "Close project inspector" });
   if (await close.isVisible()) await close.click();
@@ -44,6 +48,10 @@ try {
     await page
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${kind} diagram` })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
       .click();
     const preview =
       kind === "Sequence"

@@ -188,6 +188,7 @@ if (await onboarding.isVisible()) {
   await onboarding.getByRole("button", { name: "Get started" }).click();
 }
 await chooser.getByRole("button", { name: "Gantt diagram" }).click();
+await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
 await page.locator(".cm-content").fill(demoSource);
 await page.locator(".diagram svg").waitFor();
 const navigatorClose = page.getByRole("button", { name: "Close document navigator", exact: true });

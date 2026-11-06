@@ -107,6 +107,7 @@ test("supports dark appearance and keyboard navigation in the phone sheet", asyn
   const list = await phone(page);
   await page.getByRole("button", { name: "Settings" }).tap();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings.getByRole("button", { name: "Appearance", exact: true }).tap();
   await settings.getByLabel("Theme", { exact: true }).selectOption("dark");
   await settings.getByRole("button", { name: "Apply", exact: true }).tap();
   await list.getByRole("button", { name: "Open task Build" }).focus();

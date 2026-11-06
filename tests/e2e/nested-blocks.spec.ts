@@ -19,6 +19,10 @@ for (const [type, body, faulty, repaired, label] of [
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: `${type} diagram` })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     const source = `@startuml\n${body}\n@enduml`;
     await fillSource(page, source);
     await page.getByLabel("Show source fix suggestions").click();

@@ -72,7 +72,7 @@ saturday are closed
   await expect(page.locator(".gantt-forecast-summary")).toContainText("+0 working days from plan");
   await expect(page.locator(".cm-content")).not.toContainText("[Backend] lasts 8 days");
   await expect(page.locator(".gantt-forecast-summary")).toContainText("saved remaining-work estimate");
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("[Backend] lasts 8 days");
   await expect(page.locator(".gantt-forecast-summary")).not.toContainText("saved remaining-work estimate");
 });

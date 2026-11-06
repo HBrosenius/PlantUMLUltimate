@@ -40,6 +40,10 @@ for (const item of cases)
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: new RegExp(`${item.type} diagram`) })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await prepareDiagram(page, item.source);
     await waitForDiagramRender(page);
     const object = page.locator(`.diagram ${item.selector}`).first();

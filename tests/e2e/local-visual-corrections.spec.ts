@@ -96,7 +96,8 @@ test("Workload check-ins and diagram opening use the existing secondary action s
     await panel.getByRole("button", { name: "Close resource workload" }).click();
     await page.getByRole("button", { name: "New diagram tab" }).click();
     const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
-    const open = chooser.getByRole("button", { name: "Open…", exact: true });
+    await chooser.getByRole("button", { name: "Open", exact: true }).click();
+    const open = chooser.getByRole("button", { name: "Open file…", exact: true });
     const cancel = chooser.getByRole("button", { name: "Cancel", exact: true });
     const style = (node: Element) => {
       const css = getComputedStyle(node);

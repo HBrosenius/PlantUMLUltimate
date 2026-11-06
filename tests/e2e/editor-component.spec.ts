@@ -110,7 +110,7 @@ test("creates and visually edits a Component diagram", async ({ page }) => {
   await connectionInspector.getByRole("button", { name: "Reverse direction" }).click();
   await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");
 
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("Inventory .[dotted].> Payments : requests stock");
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.locator(".cm-content")).toContainText("Payments .[dotted].> Inventory : requests stock");

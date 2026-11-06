@@ -34,7 +34,7 @@ test("selects several tasks to move, copy, paste and delete them together", asyn
   await expect(editor).not.toContainText("copy");
   await expect(inspector).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(editor).toContainText("[Design copy]");
 });
 

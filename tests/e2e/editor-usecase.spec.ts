@@ -115,7 +115,7 @@ test("rejects an invalid visual edit without adding it to undo history", async (
   await inspector.getByLabel("Alias").fill("A");
   await inspector.getByLabel("Alias").blur();
   await inspector.getByRole("button", { name: /Close/ }).click();
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => page.locator(".cm-content").innerText()).not.toBe(original);
 });
 
@@ -347,7 +347,7 @@ test("inspects arrow properties and reconnects a Use Case endpoint visually", as
   await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 5 });
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> C : uses");
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> B : uses");
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.locator(".cm-content")).toContainText("A -[dashed]-> C : uses");

@@ -35,6 +35,10 @@ test("only-task and cascade moves preserve durations and undo as one edit", asyn
   await fillSource(page, plan);
   for (const policy of ["single", "cascade"]) {
     await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Settings", exact: true })
+      .getByRole("button", { name: "Gantt", exact: true })
+      .click();
     await page.getByLabel("When moving tasks").selectOption(policy);
     await page.getByRole("button", { name: "Apply", exact: true }).click();
     await openTask(page, "build");

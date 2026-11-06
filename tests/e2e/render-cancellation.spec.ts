@@ -63,7 +63,8 @@ for (const operation of ["switch", "close"] as const) {
     if (operation === "switch") await tabs.nth(1).click();
     else {
       page.on("dialog", (dialog) => dialog.accept());
-      await tabs
+      await page
+        .locator(".document-tab")
         .first()
         .getByRole("button", { name: /^Close / })
         .click();

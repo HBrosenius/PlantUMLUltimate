@@ -58,7 +58,7 @@ test("undoing a Gantt change leaves no semantic change to review", async ({ page
   await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 5 });
   await page.mouse.up();
   await expect(page.locator(".cm-content")).toContainText("[Backend] starts at [Architecture]'s end");
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".cm-content .cm-line")).toHaveText(initialLines);
 
   const history = await openHistory(page);

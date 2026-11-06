@@ -39,6 +39,10 @@ try {
       .getByRole("dialog", { name: "Choose a diagram type" })
       .getByRole("button", { name: "Gantt diagram" })
       .click();
+    await page
+      .getByRole("dialog", { name: "Choose a diagram type" })
+      .getByRole("button", { name: "Create diagram", exact: true })
+      .click();
     await page.locator(".diagram svg").waitFor({ state: "visible" });
     timings.startup.push(performance.now() - startupAt);
     await page.getByRole("button", { name: "Close project inspector" }).click();

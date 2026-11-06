@@ -46,7 +46,7 @@ test("reopens unsaved tabs, their active selection and a scenario without Indexe
   expect(await readEditorSource(reopened)).toBe(second);
   const tabs = reopened.locator(".document-tab > button:first-child");
   await expect(tabs).toHaveCount(2);
-  await expect(reopened.locator(".file-save-indicator")).toContainText("Unsaved");
+  await expect(reopened.locator(".file-save-indicator")).toHaveText("Not saved to a file");
   await tabs.first().click();
   expect(await readEditorSource(reopened)).toBe(first);
   await openRibbonGroup(reopened, "Plan", "Planning tools");
