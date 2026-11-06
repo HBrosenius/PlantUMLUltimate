@@ -32,7 +32,14 @@ export function SourceLens({ state, selection, onExpand, onCollapse, onFocusView
 
   if (state === "strip")
     return (
-      <aside ref={panel} className="stage-lens" data-state="strip" data-testid="source-lens" aria-label="Source lens">
+      <aside
+        ref={panel}
+        className="stage-lens"
+        data-view-control
+        data-state="strip"
+        data-testid="source-lens"
+        aria-label="Source lens"
+      >
         <button
           type="button"
           className="stage-lens-strip"
@@ -51,6 +58,7 @@ export function SourceLens({ state, selection, onExpand, onCollapse, onFocusView
     <aside
       ref={panel}
       className="stage-lens"
+      data-view-control
       data-state={state}
       data-testid="source-lens"
       aria-label="Source lens"

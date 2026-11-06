@@ -36,7 +36,7 @@ export function StageTopBar({
   onExit,
 }: StageTopBarProps) {
   return (
-    <header className="stage-topbar" data-testid="stage-topbar" role="banner" aria-label="Stage bar">
+    <header className="stage-topbar" data-view-control data-testid="stage-topbar" role="banner" aria-label="Stage bar">
       <span className="stage-brand" aria-hidden="true">
         ◆
       </span>

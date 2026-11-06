@@ -3983,6 +3983,19 @@ export function App() {
   });
   // Stage mode: selection model for the lens and dock, and the theme-native preview SVG.
   const stageActive = viewMode === "stage";
+  const stagePendingMessage = useRef<{ index: number; document: unknown } | undefined>(undefined);
+  useEffect(() => {
+    const pending = stagePendingMessage.current;
+    // Wait for the parse that contains the reorder.
+    if (!pending || pending.document === sequenceDocument) return;
+    const moved = sequenceDocument.messages[pending.index];
+    if (moved) {
+      stagePendingMessage.current = undefined;
+      // Move the lens caret too, or its stale cursor position would reselect the message that took the old line.
+      setSelectionRequest({ ...moved.sourceRange });
+      setSelectedSequenceMessageId(moved.id);
+    }
+  }, [sequenceDocument, setSelectedSequenceMessageId]);
   const stageDark = useResolvedDark(workspace.theme);
   const stageSelection = useMemo(
     () =>
@@ -4387,7 +4400,10 @@ export function App() {
       const messages = sequenceDocument.messages;
       const index = messages.findIndex((item) => item.id === id);
       const target = messages[index + direction];
-      if (target) reorderSequenceMessage(id, target.id, direction < 0 ? "before" : "after");
+      if (!target) return;
+      reorderSequenceMessage(id, target.id, direction < 0 ? "before" : "after");
+      // The reorder clears the selection and ids follow position: reselect the moved message once parsed.
+      stagePendingMessage.current = { index: index + direction, document: sequenceDocument };
     },
     moveSequenceParticipant: (id, direction) => {
       const participants = sequenceDocument.participants;
@@ -4978,7 +4994,7 @@ export function App() {
                   className={!mobileListActive && !taskViewActive && viewMode === mode ? "active" : ""}
                   onClick={() => update("viewMode", mode)}
                   aria-pressed={!mobileListActive && !taskViewActive && viewMode === mode}
-                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : 3})`}
+                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : mode === "diagram" ? 3 : 4})`}
                   key={mode}
                 >
                   {mode.charAt(0).toUpperCase() + mode.slice(1)}

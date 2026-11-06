@@ -4,8 +4,8 @@ import { initialDiagramZoom } from "./initial-diagram-zoom";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useDiagramFocusContinuity } from "./use-diagram-focus-continuity";
 
-/** Stage fills the canvas but does not blow a compact diagram up past twice its natural size. */
-const STAGE_MAX_FIT_ZOOM = 2;
+/** Stage fills the canvas but does not blow a compact diagram up past three times its natural size. */
+const STAGE_MAX_FIT_ZOOM = 3;
 function stageFitZoom(width: number, height: number, viewport: HTMLElement): number {
   const fill = Math.min((viewport.clientWidth - 32) / width, (viewport.clientHeight - 32) / height);
   return Math.max(MIN_DIAGRAM_ZOOM, Math.min(STAGE_MAX_FIT_ZOOM, fill));

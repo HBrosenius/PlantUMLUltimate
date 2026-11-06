@@ -143,6 +143,7 @@ export function SelectionDock({
     <div
       ref={dock}
       className="stage-dock"
+      data-view-control
       data-placement={placement}
       data-testid="stage-dock"
       role="toolbar"

@@ -87,6 +87,50 @@ test.describe("Stage mode", () => {
     await expect(page.getByTestId("stage-topbar")).toHaveCount(0);
   });
 
+  test("dock and lens stay on the task across repeated dock actions", async ({ page }) => {
+    await prepareEditor(page);
+    await setSource(page, gantt);
+    const views = page.getByRole("navigation", { name: "View mode" });
+    await expect(views.getByRole("button", { name: "Stage", exact: true })).toHaveAttribute(
+      "title",
+      /Stage view \(Ctrl\/Cmd\+4\)/,
+    );
+    await views.getByRole("button", { name: "Stage", exact: true }).click();
+    await page.locator('.diagram [data-task-id="build"]').first().click();
+    const dock = page.getByRole("toolbar", { name: "Actions for Build" });
+    const lens = page.getByTestId("source-lens");
+    await expect(dock).toBeVisible();
+
+    await dock.getByRole("button", { name: "+1d" }).click();
+    await expect(page.locator(".diagram")).toHaveAttribute("data-selected-task", "build");
+    await expect(dock).toBeVisible();
+    await expect(lens).toHaveAttribute("data-state", "peek");
+    await dock.getByRole("button", { name: "+1d" }).click();
+    await expect(dock).toBeVisible();
+    await expect(lens).toHaveAttribute("data-state", "peek");
+    await expect(lens.locator(".cm-content")).toContainText("[Build] lasts 10 days");
+    await expect(lens.locator(".cm-content")).not.toContainText("[Design] lasts");
+  });
+
+  test("sequence dock keeps the message selected after moving it", async ({ page }) => {
+    await prepareEditor(page);
+    await page.getByRole("button", { name: "New diagram tab" }).click();
+    const chooser = page.getByRole("dialog", { name: "Choose a diagram type" });
+    await chooser.getByRole("button", { name: "Sequence diagram" }).click();
+    await chooser.getByRole("button", { name: "Create diagram", exact: true }).click();
+    await setSource(page, "@startuml\nparticipant A\nparticipant B\nA -> B: one\nB -> A: two\nA -> B: three\n@enduml");
+    await page
+      .getByRole("navigation", { name: "View mode" })
+      .getByRole("button", { name: "Stage", exact: true })
+      .click();
+    await page.locator("rect[data-sequence-drag-hit][data-sequence-message-id]").nth(1).click();
+    const dock = page.getByRole("toolbar", { name: "Actions for two" });
+    await expect(dock).toBeVisible();
+    await dock.getByRole("button", { name: /Later/ }).click();
+    await expect(page.getByRole("toolbar", { name: "Actions for two" })).toBeVisible();
+    await expect(page.getByTestId("source-lens").locator(".cm-content")).toContainText("B -> A: two");
+  });
+
   test("offers + Add with nothing selected and keeps commands in the palette", async ({ page }) => {
     await prepareEditor(page);
     await setSource(page, gantt);

@@ -150,6 +150,7 @@ export function StageView({
       />
       <div
         className="stage-cluster"
+        data-view-control
         role="toolbar"
         aria-label="View controls"
         data-idle={idle ? "true" : undefined}
