@@ -11,7 +11,7 @@ import { sourceFixPreview } from "./source-fix-preview";
 import { sourceFixOutcome } from "./source-fix-outcome";
 import { sourceFixDiagnosticPreview } from "./source-fix-diagnostic-preview";
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Compartment, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
+import { Annotation, Compartment, EditorState, Prec, StateEffect, StateField, type Text } from "@codemirror/state";
 import { Decoration, EditorView, keymap, tooltips, WidgetType, type DecorationSet } from "@codemirror/view";
 import { gotoLine } from "@codemirror/search";
 import { indentWithTab, isolateHistory } from "@codemirror/commands";
@@ -54,6 +54,10 @@ interface Props {
     sourceChanged?: boolean,
   ): void;
   selectedRange?: { from: number; to: number } | undefined;
+  /** Stage lens: show only the lines of this range (identity change re-anchors it); undefined shows everything. */
+  visibleRange?: { from: number; to: number } | undefined;
+  /** Reveal `selectedRange` without moving keyboard focus into the editor. */
+  revealWithoutFocus?: boolean | undefined;
   repairRequest?: SourceRepairRequest | undefined;
   repairHost?: HTMLElement | null;
   repairWorkspaceOpen?: boolean;
@@ -218,6 +222,60 @@ const remoteEditFlashField = StateField.define<DecorationSet>({
   },
   provide: (field) => EditorView.decorations.from(field),
 });
+/**
+ * Optional "lens" mode: every line outside the range is hidden with block decorations. The document, its
+ * diagnostics, line numbers and edits are unchanged, so a lens edits the real source.
+ */
+const setVisibleRange = StateEffect.define<{ from: number; to: number } | undefined>();
+/** Marks a whole-document replacement from the host, where positions must be re-found by line number. */
+const externalSync = Annotation.define<boolean>();
+interface VisibleRangeState {
+  range: { from: number; to: number } | undefined;
+  decorations: DecorationSet;
+}
+function hideOutside(doc: Text, range: { from: number; to: number } | undefined): DecorationSet {
+  if (!range) return Decoration.none;
+  const hidden = Decoration.replace({ block: true });
+  const first = doc.lineAt(Math.min(range.from, doc.length));
+  const last = doc.lineAt(Math.min(range.to, doc.length));
+  const ranges = [];
+  if (first.from > 0) ranges.push(hidden.range(0, first.from));
+  if (last.to < doc.length) ranges.push(hidden.range(last.to, doc.length));
+  return Decoration.set(ranges);
+}
+const visibleRangeField = StateField.define<VisibleRangeState>({
+  create: () => ({ range: undefined, decorations: Decoration.none }),
+  update(value, transaction) {
+    let range = value.range;
+    let explicit = false;
+    for (const effect of transaction.effects) {
+      if (!effect.is(setVisibleRange)) continue;
+      explicit = true;
+      range = effect.value
+        ? {
+            from: Math.min(effect.value.from, transaction.state.doc.length),
+            to: Math.min(effect.value.to, transaction.state.doc.length),
+          }
+        : undefined;
+    }
+    if (!range) return value.range ? { range: undefined, decorations: Decoration.none } : value;
+    if (transaction.docChanged && !explicit) {
+      const before = transaction.startState.doc;
+      if (transaction.annotation(externalSync)) {
+        const next = transaction.newDoc;
+        const firstLine = Math.min(before.lineAt(range.from).number, next.lines);
+        const lastLine = Math.min(before.lineAt(range.to).number, next.lines);
+        range = { from: next.line(firstLine).from, to: next.line(lastLine).to };
+      } else {
+        range = { from: transaction.changes.mapPos(range.from, -1), to: transaction.changes.mapPos(range.to, 1) };
+      }
+    } else if (!explicit && !transaction.docChanged) {
+      return value;
+    }
+    return { range, decorations: hideOutside(transaction.newDoc, range) };
+  },
+  provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
+});
 const symbolHighlightField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(value, transaction) {
@@ -248,6 +306,8 @@ export function CodeEditor({
   onFormatSource,
   onCursorChange,
   selectedRange,
+  visibleRange,
+  revealWithoutFocus = false,
   repairRequest,
   repairHost,
   repairWorkspaceOpen,
@@ -438,6 +498,7 @@ export function CodeEditor({
           fixHighlightField,
           remoteParticipantField,
           remoteEditFlashField,
+          visibleRangeField,
           editable.current.of([
             EditorState.readOnly.of(initialReadOnly.current),
             EditorView.editable.of(!initialReadOnly.current),
@@ -548,7 +609,10 @@ export function CodeEditor({
     if (!editor || editor.state.doc.toString() === value) return;
     synchronizingValue.current = true;
     try {
-      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+      editor.dispatch({
+        changes: { from: 0, to: editor.state.doc.length, insert: value },
+        annotations: externalSync.of(true),
+      });
     } finally {
       synchronizingValue.current = false;
     }
@@ -561,6 +625,10 @@ export function CodeEditor({
   }, [value, refreshFixes]);
 
   useEffect(() => {
+    view.current?.dispatch({ effects: setVisibleRange.of(visibleRange) });
+  }, [visibleRange]);
+
+  useEffect(() => {
     const editor = view.current;
     if (!editor || !selectedRange) return;
     const from = Math.min(selectedRange.from, editor.state.doc.length);
@@ -569,7 +637,8 @@ export function CodeEditor({
       selection: { anchor: from, head: to },
       effects: EditorView.scrollIntoView(from, { y: "center" }),
     });
-    editor.focus();
+    if (!revealWithoutFocus) editor.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRange]);
 
   useEffect(() => {

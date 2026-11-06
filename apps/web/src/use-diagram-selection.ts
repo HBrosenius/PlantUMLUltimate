@@ -38,6 +38,16 @@ export function diagramSelectionReducer(
         ? (action.value as (current: typeof previous) => typeof previous)(previous)
         : action.value;
     if (value === previous) return state;
+    // The canvas outline prefers the source-cursor highlight over the selection. Selecting a different task
+    // without moving the cursor (Duplicate, Paste) must not leave the outline on the previously highlighted task.
+    // A cursor move that follows the selection sets the highlight again afterwards.
+    if (
+      action.key === "selectedTaskId" &&
+      value !== undefined &&
+      state.sourceHighlightedTaskId !== undefined &&
+      state.sourceHighlightedTaskId !== value
+    )
+      return { ...state, selectedTaskId: value as string, sourceHighlightedTaskId: undefined };
     return { ...state, [action.key]: value };
   }
   if (action.type === "reset-transient-tab-selection") {

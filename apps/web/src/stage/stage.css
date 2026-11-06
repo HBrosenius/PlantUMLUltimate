@@ -1,0 +1,424 @@
+/* Stage mode: opt-in layout where the diagram is the app. Uses the existing theme tokens only. */
+
+/* Chrome that Stage replaces with one slim bar and floating controls. Everything stays mounted, so ribbon
+   commands (via the command palette), shortcuts and the existing view modes are unaffected. */
+.app.stage-mode > .command-ribbon,
+.app.stage-mode > .workspace-navigation,
+.app.stage-mode > .statusbar,
+.app.stage-mode > .project-navigator {
+  display: none;
+}
+.app.stage-mode {
+  grid-template-rows: 44px 0 minmax(0, 1fr) 0;
+}
+.app.stage-mode > .stage-topbar {
+  grid-row: 1;
+}
+.app.stage-mode > .workspace {
+  grid-row: 3;
+}
+.app.stage-mode.stage-inspector-hidden .task-inspector {
+  display: none;
+}
+.workspace.mode-stage {
+  position: relative;
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-width: 100%;
+}
+.app.stage-mode.has-side-inspector .workspace.mode-stage {
+  width: calc(100% - var(--properties-width) - 16px);
+  max-width: calc(100% - var(--properties-width) - 16px);
+}
+.app.stage-mode .workspace.mode-stage .preview-tools,
+.app.stage-mode .workspace.mode-stage .gantt-controls-help,
+.app.stage-mode .workspace.mode-stage .preview-hint,
+.app.stage-mode .workspace.mode-stage .gantt-options-toggle,
+.app.stage-mode .workspace.mode-stage .performance-badge,
+.app.stage-mode .workspace.mode-stage:not([data-stage-minimap]) .timeline-minimap,
+.app.stage-mode .workspace.mode-stage:not([data-stage-legend]) .calendar-legend {
+  display: none;
+}
+/* Compact legend and timeline range, opened from the floating cluster. */
+.app.stage-mode .workspace.mode-stage[data-stage-minimap] .timeline-minimap {
+  right: auto;
+  bottom: 68px;
+  left: 16px;
+  width: min(480px, calc(100% - 32px));
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+}
+.app.stage-mode .workspace.mode-stage[data-stage-legend] .calendar-legend {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 68px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+}
+.app.stage-mode .workspace.mode-stage[data-stage-legend][data-stage-minimap] .calendar-legend {
+  bottom: 112px;
+}
+/* A peeking lens is for reading and quick edits; the editor's own toolbar belongs to the full editor. */
+.stage-lens[data-state="peek"] .editor-actions {
+  display: none;
+}
+
+/* Dot-grid surface. */
+.app.stage-mode .workspace.mode-stage .preview {
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--text) 22%, transparent) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+.app.stage-mode .workspace.mode-stage .preview-viewport {
+  padding: 16px;
+}
+.app.stage-mode .workspace.mode-stage .diagram svg {
+  background-color: var(--panel);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 10px 36px rgb(0 0 0 / 22%);
+}
+.app.stage-mode.stage-true-render .workspace.mode-stage .diagram svg {
+  background-color: #fff;
+}
+/* The "adapt preview" brightness filter is superseded by the Stage recolouring. */
+.app.stage-mode[data-adapt-preview] .workspace.mode-stage .preview-viewport .diagram {
+  background: none;
+  filter: none;
+}
+
+/* Top bar. */
+.stage-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+}
+.stage-topbar button,
+.stage-topbar select {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.stage-topbar button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.stage-topbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.stage-topbar button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stage-brand {
+  color: var(--accent);
+}
+.stage-kind {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stage-spacer {
+  flex: 1;
+}
+.stage-doc-switch select {
+  max-width: min(320px, 30vw);
+  text-overflow: ellipsis;
+}
+.stage-palette {
+  min-width: 190px;
+  text-align: left;
+  color: var(--muted);
+}
+.stage-palette span {
+  margin-right: 6px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+.stage-save.needed {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.stage-issues {
+  color: var(--warning);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Overlay layer over the canvas. */
+.stage-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.stage-overlay > * {
+  pointer-events: auto;
+}
+
+/* Floating view cluster. */
+.stage-cluster {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  backdrop-filter: blur(8px);
+  transition: opacity 400ms ease;
+}
+.stage-cluster[data-idle="true"]:not(:hover):not(:focus-within) {
+  opacity: 0.18;
+}
+.stage-cluster button {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.stage-cluster button:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.stage-cluster-zoom {
+  min-width: 54px;
+  font-variant-numeric: tabular-nums;
+}
+.stage-cluster-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+/* Selection dock. */
+.stage-dock {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 16px);
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 30%);
+}
+.stage-dock[data-placement="floating"] {
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+}
+.stage-dock button {
+  height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.stage-dock button:hover:not(:disabled),
+.stage-dock button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.stage-dock button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.stage-dock button.danger {
+  color: var(--danger);
+}
+.stage-dock-label {
+  max-width: 160px;
+  padding: 0 8px 0 6px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage-dock-add {
+  position: relative;
+}
+.stage-dock-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 30%);
+}
+.stage-dock-menu button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Source lens. */
+.stage-lens {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  color: var(--text);
+  box-shadow: 0 10px 36px rgb(0 0 0 / 30%);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+.stage-lens[data-state="strip"] {
+  top: 50%;
+  bottom: auto;
+  width: 28px;
+  transform: translateY(-50%);
+  border-radius: 8px;
+}
+.stage-lens[data-state="peek"] {
+  top: auto;
+  bottom: 72px;
+  width: min(380px, calc(100% - 24px));
+  max-height: min(260px, calc(100% - 96px));
+}
+/* The peek hugs the selected lines instead of reserving a full editor's height. */
+.stage-lens[data-state="peek"] .editor-pane,
+.stage-lens[data-state="peek"] .editor-host,
+.stage-lens[data-state="peek"] .editor-host .cm-editor {
+  height: auto;
+}
+.stage-lens[data-state="peek"] .editor-host .cm-scroller {
+  max-height: 200px;
+}
+.stage-lens[data-state="expanded"] {
+  width: min(620px, 52%);
+}
+.stage-lens-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.stage-lens-strip:hover {
+  color: var(--accent);
+}
+.stage-lens-strip-text {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.stage-lens-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.stage-lens-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage-lens-hint {
+  flex: 1;
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.stage-lens-header button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.stage-lens-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.stage-lens-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.stage-lens-editor > .editor-pane {
+  flex: 1;
+  min-height: 0;
+  background: transparent;
+}
+.stage-lens button:focus-visible,
+.stage-dock button:focus-visible,
+.stage-cluster button:focus-visible,
+.stage-topbar :is(button, select):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-cluster {
+    transition: none;
+  }
+}

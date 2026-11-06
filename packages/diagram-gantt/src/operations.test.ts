@@ -194,6 +194,63 @@ describe("duplicateTask", () => {
     expect(result.unavailableReason).toContain("dependency-only");
   });
 
+  describe("incoming dependencies", () => {
+    const duplicate = (source: string, id: string) => {
+      const document = parseGantt(source).document;
+      const result = duplicateTask(source, document, document.symbols.tasks.get(id)!);
+      const changed = applySourceEdits(source, result.edits);
+      return { result, changed, parsed: parseGantt(changed) };
+    };
+    const edges = (document: ReturnType<typeof parseGantt>["document"]) =>
+      document.dependencies.map((item) => `${item.predecessorTaskId}>${item.successorTaskId}`);
+
+    it("gives the copy the original's `starts at [X]'s end` start so it starts in the same place", () => {
+      const source =
+        "@startgantt\n[Design] starts 2026-09-01\n[Design] lasts 3 days\n[Build] lasts 5 days\n[Build] starts at [Design]'s end\n[Test] starts at [Build]'s end\n@endgantt";
+      const { changed, parsed } = duplicate(source, "build");
+      expect(changed).toContain("[Build copy] lasts 5 days\n[Build copy] starts at [Design]'s end\n");
+      // Outgoing dependencies stay with the original: nothing starts to depend on the copy.
+      expect(edges(parsed.document)).toEqual(
+        expect.arrayContaining(["design>build", "build>test", "design>build copy"]),
+      );
+      expect(edges(parsed.document).filter((edge) => edge.startsWith("build copy>"))).toEqual([]);
+      expect(parsed.diagnostics).toEqual([]);
+    });
+
+    it("copies an incoming arrow dependency as a start clause on the copy", () => {
+      const source = "@startgantt\n[Design] lasts 3 days\n[Build] lasts 5 days\n[Design] -> [Build]\n@endgantt";
+      const { changed, parsed } = duplicate(source, "build");
+      expect(changed).toContain("[Design] -> [Build]\n");
+      expect(changed).toContain("[Build copy] starts at [Design]'s end");
+      expect(edges(parsed.document)).toEqual(expect.arrayContaining(["design>build", "design>build copy"]));
+    });
+
+    it("copies only the incoming edge of a chain", () => {
+      const source =
+        "@startgantt\n[A] lasts 1 day\n[Build] lasts 2 days\n[C] lasts 1 day\n[A] -> [Build] -> [C]\n@endgantt";
+      const { changed, parsed } = duplicate(source, "build");
+      expect(changed.match(/\[A] -> \[Build] -> \[C]/g)).toHaveLength(1);
+      expect(edges(parsed.document)).toEqual(expect.arrayContaining(["a>build", "build>c", "a>build copy"]));
+      expect(edges(parsed.document)).not.toContain("build copy>c");
+    });
+
+    it("keeps the offset of the original dependency", () => {
+      const source =
+        "@startgantt\n[Design] lasts 3 days\n[Build] lasts 5 days\n[Build] starts 2 days after [Design]'s end\n@endgantt";
+      const { parsed } = duplicate(source, "build");
+      const copy = parsed.document.dependencies.find((item) => item.successorTaskId === "build copy");
+      expect(copy).toMatchObject({ predecessorTaskId: "design", relation: "start-after-end" });
+      expect(copy?.offset?.value).toBe(2);
+    });
+
+    it("leaves explicit-date tasks as before and adds no dependency", () => {
+      const source = "@startgantt\n[Design] starts 2026-09-01\n[Design] lasts 3 days\n@endgantt";
+      const { changed, parsed } = duplicate(source, "design");
+      expect(changed).toContain("[Design copy] starts 2026-09-01\n[Design copy] lasts 3 days");
+      expect(parsed.document.dependencies).toEqual([]);
+    });
+  });
+
   it("increments the copy suffix when duplicating an existing copy", () => {
     const source = "@startgantt\n[Build] lasts 1 day\n[Build copy] lasts 1 day\n@endgantt";
     const document = parseGantt(source).document;

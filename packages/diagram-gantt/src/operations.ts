@@ -476,11 +476,8 @@ export interface DependencyUpdate {
   lineStyle: "solid" | "dotted" | "dashed" | "bold";
 }
 
-export function updateDependency(source: string, dependency: GanttDependency, value: DependencyUpdate): MoveTaskResult {
-  if (value.predecessorLabel === value.successorLabel)
-    return { edits: [], unavailableReason: "A task cannot depend on itself" };
-  if (!Number.isInteger(value.offset) || value.offset < 0)
-    return { edits: [], unavailableReason: "Dependency offset must be a non-negative whole number" };
+/** The `starts at [X]'s end`-style clause for a dependency, in the form the bundled renderer honours. */
+function dependencyRelationClause(value: DependencyUpdate): string {
   const [successorVerb, predecessorAnchor] =
     value.relation === "start-after-start"
       ? ["starts", "start"]
@@ -496,10 +493,17 @@ export function updateDependency(source: string, dependency: GanttDependency, va
   // the renderer expects for the default/solid style, so only include a style word when it's one
   // of the three the renderer honors.
   const styleSuffix = value.lineStyle === "solid" ? "" : ` ${value.lineStyle}`;
-  const relation =
-    value.offset === 0 && value.direction === "after" && !value.color && value.lineStyle === "solid"
-      ? `${successorVerb} at [${value.predecessorLabel}]'s ${predecessorAnchor}`
-      : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"}${styleSuffix} link` : ""}`;
+  return value.offset === 0 && value.direction === "after" && !value.color && value.lineStyle === "solid"
+    ? `${successorVerb} at [${value.predecessorLabel}]'s ${predecessorAnchor}`
+    : `${successorVerb} ${value.offset} day${value.offset === 1 ? "" : "s"} ${value.direction} [${value.predecessorLabel}]'s ${predecessorAnchor}${value.color || value.lineStyle !== "solid" ? ` with ${value.color || "Black"}${styleSuffix} link` : ""}`;
+}
+
+export function updateDependency(source: string, dependency: GanttDependency, value: DependencyUpdate): MoveTaskResult {
+  if (value.predecessorLabel === value.successorLabel)
+    return { edits: [], unavailableReason: "A task cannot depend on itself" };
+  if (!Number.isInteger(value.offset) || value.offset < 0)
+    return { edits: [], unavailableReason: "Dependency offset must be a non-negative whole number" };
+  const relation = dependencyRelationClause(value);
   const original = source.slice(dependency.sourceRange.from, dependency.sourceRange.to);
   if (!/^\s*\[/.test(original)) {
     return { edits: [{ range: dependency.sourceRange, text: relation }] };
@@ -989,7 +993,27 @@ export function duplicateTask(source: string, document: GanttDocument, task: Gan
       if (alias && key === task.id) return `[${alias}]`;
       return match;
     });
-  const block = unique.map((item) => replaceIdentity(source.slice(item.from, item.to))).join("");
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  // The copy must start where the original starts. When the original's start comes from a dependency, give the
+  // copy the same incoming dependency (only edges where the task is the successor, so no other task starts to
+  // depend on the copy). Rebuilt from the model, a chain `[A] -> [Build] -> [C]` yields just `[A] -> [Build copy]`.
+  const incoming = document.dependencies
+    .filter(
+      (item) => item.successorTaskId === task.id && item.predecessorTaskId !== task.id && item.relation !== "other",
+    )
+    .map(
+      (item) =>
+        `[${label}] ${dependencyRelationClause({
+          predecessorLabel: item.predecessor.value,
+          successorLabel: label,
+          relation: item.relation,
+          offset: item.offset?.value ?? 0,
+          direction: item.direction ?? "after",
+          ...(item.color ? { color: item.color.value } : {}),
+          lineStyle: item.lineStyle?.value ?? "solid",
+        })}${newline}`,
+    );
+  const block = unique.map((item) => replaceIdentity(source.slice(item.from, item.to))).join("") + incoming.join("");
   const insertionPoint = Math.max(...unique.map((item) => item.to));
   return {
     edits: [{ range: { from: insertionPoint, to: insertionPoint }, text: block }],
