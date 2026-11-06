@@ -654,6 +654,20 @@ export function DiagramPreview({
       revealTimerRef.current = window.setTimeout(() => revealTask(next.id), 0);
     }
   };
+  // Stage's floating cluster drives the same navigation handlers through an event instead of the toolbar buttons.
+  const navigationHandlers = useRef({ jumpToday, adjacentTask });
+  navigationHandlers.current = { jumpToday, adjacentTask };
+  useEffect(() => {
+    const navigate = (event: Event) => {
+      const action = (event as CustomEvent<{ action?: "today" | "previous" | "next" }>).detail?.action;
+      if (!previewRef.current?.closest(".workspace")) return;
+      if (action === "today") navigationHandlers.current.jumpToday();
+      else if (action === "previous") navigationHandlers.current.adjacentTask(-1);
+      else if (action === "next") navigationHandlers.current.adjacentTask(1);
+    };
+    window.addEventListener("gantt-navigate", navigate);
+    return () => window.removeEventListener("gantt-navigate", navigate);
+  }, []);
   useEffect(() => {
     if (!selectedTaskId) return;
     let cancelled = false;

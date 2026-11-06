@@ -208,7 +208,7 @@ export function normalizeSession(value: unknown): WorkspaceSession {
             : {}),
           dirty: Boolean(item.dirty) || source !== item.source,
           ...(["new", "file", "download"].includes(item.fileCopy ?? "") ? { fileCopy: item.fileCopy } : {}),
-          ...(["code", "split", "diagram"].includes(item.viewMode as string)
+          ...(["code", "split", "diagram", "stage"].includes(item.viewMode as string)
             ? { viewMode: item.viewMode as ViewMode }
             : {}),
           ...(migrateZoomUnits
@@ -293,7 +293,10 @@ export function normalizeSession(value: unknown): WorkspaceSession {
       version: 8,
       documents,
       activeDocumentId,
-      viewMode: candidate.viewMode === "code" || candidate.viewMode === "diagram" ? candidate.viewMode : "split",
+      viewMode:
+        candidate.viewMode === "code" || candidate.viewMode === "diagram" || candidate.viewMode === "stage"
+          ? candidate.viewMode
+          : "split",
       splitPercent: Math.min(80, Math.max(20, Number(candidate.splitPercent) || 50)),
       theme: candidate.theme === "light" || candidate.theme === "dark" ? candidate.theme : "system",
       advancedMode: candidate.advancedMode ?? true,

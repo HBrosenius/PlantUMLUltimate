@@ -4,6 +4,13 @@ import { initialDiagramZoom } from "./initial-diagram-zoom";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useDiagramFocusContinuity } from "./use-diagram-focus-continuity";
 
+/** Stage fills the canvas but does not blow a compact diagram up past three times its natural size. */
+const STAGE_MAX_FIT_ZOOM = 3;
+function stageFitZoom(width: number, height: number, viewport: HTMLElement): number {
+  const fill = Math.min((viewport.clientWidth - 32) / width, (viewport.clientHeight - 32) / height);
+  return Math.max(MIN_DIAGRAM_ZOOM, Math.min(STAGE_MAX_FIT_ZOOM, fill));
+}
+
 export interface InitialDiagramFit {
   documentId: string;
   fit?: boolean;
@@ -23,7 +30,7 @@ export function useDiagramNavigation(
   const gestureRef = useRef<{ at: number; pan: boolean } | undefined>(undefined);
   const zoomChangeRef = useRef(onZoomChange);
   // While set, the diagram follows the pane size; any manual zoom or pan clears it.
-  const autoFitRef = useRef<{ documentId: string; zoom: number } | undefined>(undefined);
+  const autoFitRef = useRef<{ documentId: string; zoom: number; stage?: boolean } | undefined>(undefined);
   const wheelRef = useRef<
     | {
         frame: number;
@@ -314,16 +321,18 @@ export function useDiagramNavigation(
       if (!viewport.clientWidth || !viewport.clientHeight) return;
       const bounds = svg.getBoundingClientRect();
       if (!bounds.width || !bounds.height) return;
-      const next = initialDiagramZoom(
-        bounds.width / zoomRef.current,
-        bounds.height / zoomRef.current,
-        viewport.clientWidth,
-        viewport.clientHeight,
-        svg.viewBox.baseVal.width || svg.width.baseVal.value || bounds.width / zoomRef.current,
-        true,
-      );
+      const next = auto.stage
+        ? stageFitZoom(bounds.width / zoomRef.current, bounds.height / zoomRef.current, viewport)
+        : initialDiagramZoom(
+            bounds.width / zoomRef.current,
+            bounds.height / zoomRef.current,
+            viewport.clientWidth,
+            viewport.clientHeight,
+            svg.viewBox.baseVal.width || svg.width.baseVal.value || bounds.width / zoomRef.current,
+            true,
+          );
       if (Math.abs(next - zoomRef.current) < 0.005) return;
-      autoFitRef.current = { documentId: auto.documentId, zoom: next };
+      autoFitRef.current = { documentId: auto.documentId, zoom: next, ...(auto.stage ? { stage: true } : {}) };
       zoomChangeRef.current(next);
     };
     // Compare the border box so scrollbars appearing after a zoom change cannot retrigger a fit.
@@ -470,40 +479,50 @@ export function useDiagramNavigation(
     if (event.button === 1) event.preventDefault();
   }, []);
 
-  const fit = useCallback(() => {
-    const viewport = viewportRef.current;
-    const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
-    if (!viewport || !svg) return;
-    const bounds = svg.getBoundingClientRect();
-    const displayedZoom = wheelRef.current?.current ?? zoomRef.current;
-    if (!bounds.width || !bounds.height) return;
-    if (wheelRef.current) cancelAnimationFrame(wheelRef.current.frame);
-    wheelRef.current = undefined;
-    viewport.classList.remove("diagram-wheel-zooming");
-    // Fit fills the pane (enlarging compact diagrams too); 100 % stays the natural size.
-    const next = Math.max(
-      MIN_DIAGRAM_ZOOM,
-      Math.min(
-        MAX_DIAGRAM_ZOOM,
-        (viewport.clientWidth - 32) / (bounds.width / displayedZoom),
-        (viewport.clientHeight - 32) / (bounds.height / displayedZoom),
-      ),
-    );
-    autoFitRef.current = undefined;
-    zoomChangeRef.current(next);
-    requestAnimationFrame(() => {
-      viewport.scrollLeft = 0;
-      viewport.scrollTop = 0;
-    });
-  }, []);
+  const fit = useCallback(
+    (keepFollowingPane = false) => {
+      const viewport = viewportRef.current;
+      const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
+      if (!viewport || !svg) return;
+      const bounds = svg.getBoundingClientRect();
+      const displayedZoom = wheelRef.current?.current ?? zoomRef.current;
+      if (!bounds.width || !bounds.height) return;
+      if (wheelRef.current) cancelAnimationFrame(wheelRef.current.frame);
+      wheelRef.current = undefined;
+      viewport.classList.remove("diagram-wheel-zooming");
+      // Fit fills the pane (enlarging compact diagrams too); 100 % stays the natural size.
+      const next = keepFollowingPane
+        ? stageFitZoom(bounds.width / displayedZoom, bounds.height / displayedZoom, viewport)
+        : Math.max(
+            MIN_DIAGRAM_ZOOM,
+            Math.min(
+              MAX_DIAGRAM_ZOOM,
+              (viewport.clientWidth - 32) / (bounds.width / displayedZoom),
+              (viewport.clientHeight - 32) / (bounds.height / displayedZoom),
+            ),
+          );
+      // Stage mode keeps the diagram fitted to the pane (until the user zooms or pans) after a fit.
+      autoFitRef.current =
+        keepFollowingPane && initialDocumentId ? { documentId: initialDocumentId, zoom: next, stage: true } : undefined;
+      zoomChangeRef.current(next);
+      requestAnimationFrame(() => {
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = 0;
+      });
+    },
+    [initialDocumentId],
+  );
 
   useEffect(() => {
-    const handleFit = () => {
-      if (viewportRef.current?.closest(".workspace") && !viewportRef.current.closest('[role="dialog"]')) fit();
+    const handleFit = (event: Event) => {
+      if (viewportRef.current?.closest(".workspace") && !viewportRef.current.closest('[role="dialog"]'))
+        fit(Boolean((event as CustomEvent<{ follow?: boolean } | undefined>).detail?.follow));
     };
     window.addEventListener("fit-active-diagram", handleFit);
     return () => window.removeEventListener("fit-active-diagram", handleFit);
-  }, [fit]);
+  }, [fit, initialDocumentId]);
 
-  return { viewportRef, onPointerDown, onAuxClick, fit };
+  const plainFit = useCallback(() => fit(), [fit]);
+
+  return { viewportRef, onPointerDown, onAuxClick, fit: plainFit };
 }
