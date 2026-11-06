@@ -22,14 +22,17 @@ export function useResponsiveViewMode(preferred: ViewMode, persist: (mode: ViewM
   }, []);
   const selectViewMode = useCallback(
     (mode: ViewMode) => {
-      if (narrow) setPhoneMode(mode === "split" ? "code" : mode);
+      // Stage is a desktop layout; on a phone it falls back to the diagram pane.
+      if (narrow) setPhoneMode(mode === "split" ? "code" : mode === "stage" ? "diagram" : mode);
       else persist(mode);
     },
     [narrow, persist],
   );
   return {
     narrow,
-    viewMode: narrow ? (phoneMode ?? (preferred === "split" ? "diagram" : preferred)) : preferred,
+    viewMode: narrow
+      ? (phoneMode ?? (preferred === "split" || preferred === "stage" ? "diagram" : preferred))
+      : preferred,
     selectViewMode,
   };
 }
