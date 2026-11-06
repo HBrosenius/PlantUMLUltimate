@@ -1,3 +1,4 @@
+import { EditorView } from "@codemirror/view";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "../diagram-zoom";
 import type { DiagramKind } from "../model";
@@ -25,11 +26,13 @@ export interface StageViewProps {
   readOnly: boolean;
   inspectorOpen: boolean;
   onToggleInspector(): void;
+  /** Reports whether the lens editor has focus (the app re-resolves the selection after a rename in the lens). */
+  onLensFocusChange?(focused: boolean): void;
 }
 
-/** Click an existing (hidden) preview control so Stage reuses each family's own navigation logic. */
-function clickPreviewControl(container: HTMLElement | null, label: string) {
-  container?.querySelector<HTMLButtonElement>(`.preview [aria-label="${label}"]`)?.click();
+/** The Gantt preview listens for this event and runs its own navigation handlers. */
+function navigateGantt(action: "today" | "previous" | "next") {
+  window.dispatchEvent(new CustomEvent("gantt-navigate", { detail: { action } }));
 }
 
 export function StageView({
@@ -47,6 +50,7 @@ export function StageView({
   readOnly,
   inspectorOpen,
   onToggleInspector,
+  onLensFocusChange,
 }: StageViewProps) {
   // Keep the last selection while the lens has focus: renaming a task in the lens changes its id, and the
   // lens must not vanish under the caret while the source is briefly unparsable.
@@ -56,6 +60,7 @@ export function StageView({
   if (!selection && !lensFocused) lastSelection.current = undefined;
   const effective = selection ?? (lensFocused ? lastSelection.current : undefined);
 
+  useEffect(() => onLensFocusChange?.(lensFocused), [lensFocused, onLensFocusChange]);
   const [dismissedFor, setDismissedFor] = useState<string>();
   const selectionKey = effective ? `${effective.kind}:${effective.id}` : undefined;
   useEffect(() => {
@@ -135,6 +140,37 @@ export function StageView({
     };
   }, [containerRef]);
 
+  // Collapsed-by-default Gantt extras (calendar legend, timeline range) are shown through the container.
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [minimapOpen, setMinimapOpen] = useState(false);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (legendOpen) container.dataset.stageLegend = "open";
+    else delete container.dataset.stageLegend;
+    if (minimapOpen) container.dataset.stageMinimap = "open";
+    else delete container.dataset.stageMinimap;
+    return () => {
+      delete container.dataset.stageLegend;
+      delete container.dataset.stageMinimap;
+    };
+  }, [containerRef, legendOpen, minimapOpen]);
+
+  // "Rename" in the dock: put the caret at the end of the selected element's source in the lens.
+  useEffect(() => {
+    const focusLens = () => {
+      requestAnimationFrame(() => {
+        const content = containerRef.current?.querySelector<HTMLElement>(".stage-lens .cm-content");
+        if (!content) return;
+        const view = EditorView.findFromDOM(content.closest<HTMLElement>(".cm-editor") ?? content);
+        if (view) view.dispatch({ selection: { anchor: view.state.selection.main.to } });
+        content.focus();
+      });
+    };
+    window.addEventListener("stage-focus-lens", focusLens);
+    return () => window.removeEventListener("stage-focus-lens", focusLens);
+  }, [containerRef]);
+
   const percent = Math.round(zoom * 100);
   return (
     <div className="stage-overlay" data-testid="stage-overlay">
@@ -162,24 +198,36 @@ export function StageView({
               type="button"
               aria-label="Previous task"
               title="Select the previous task"
-              onClick={() => clickPreviewControl(containerRef.current, "Previous task")}
+              onClick={() => navigateGantt("previous")}
             >
               ◂
             </button>
-            <button
-              type="button"
-              title="Jump to today"
-              onClick={() => clickPreviewControl(containerRef.current, "Jump to today")}
-            >
+            <button type="button" title="Jump to today" onClick={() => navigateGantt("today")}>
               Today
             </button>
             <button
               type="button"
               aria-label="Next task"
               title="Select the next task"
-              onClick={() => clickPreviewControl(containerRef.current, "Next task")}
+              onClick={() => navigateGantt("next")}
             >
               ▸
+            </button>
+            <button
+              type="button"
+              aria-pressed={legendOpen}
+              title="Show the calendar legend"
+              onClick={() => setLegendOpen((open) => !open)}
+            >
+              Legend
+            </button>
+            <button
+              type="button"
+              aria-pressed={minimapOpen}
+              title="Show the timeline range control"
+              onClick={() => setMinimapOpen((open) => !open)}
+            >
+              Timeline
             </button>
             <span className="stage-cluster-sep" aria-hidden="true" />
           </>

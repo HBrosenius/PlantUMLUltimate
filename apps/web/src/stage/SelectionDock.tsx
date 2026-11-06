@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { placeDock } from "./dock-placement";
 import type { AddItem, DockAction, StageSelection } from "./stage-selection";
 
 interface Rect {
@@ -9,11 +10,18 @@ interface Rect {
 }
 
 /** Follows the selected element's rendered position (pan, zoom, resize and edits all move it). */
-function useAnchorRect(container: RefObject<HTMLElement | null>, selector: string | undefined): Rect | undefined {
+function useAnchorRect(
+  container: RefObject<HTMLElement | null>,
+  selector: string | undefined,
+  neighbourSelector: string | undefined,
+): { rect: Rect | undefined; neighbours: Rect[] } {
   const [rect, setRect] = useState<Rect>();
+  const [neighbours, setNeighbours] = useState<Rect[]>([]);
+  const neighbourKey = useRef("");
   useEffect(() => {
     if (!selector) {
       setRect(undefined);
+      setNeighbours([]);
       return;
     }
     let frame = 0;
@@ -34,6 +42,25 @@ function useAnchorRect(container: RefObject<HTMLElement | null>, selector: strin
         return;
       }
       const base = root.getBoundingClientRect();
+      if (neighbourSelector) {
+        const others = [...root.querySelectorAll(neighbourSelector)]
+          .filter((element) => !elements.includes(element) && !elements.some((anchor) => anchor.contains(element)))
+          .map((element) => element.getBoundingClientRect())
+          .filter((box) => box.width && box.height)
+          .map((box) => ({
+            left: box.left - base.left,
+            top: box.top - base.top,
+            width: box.width,
+            height: box.height,
+          }));
+        const key = others
+          .map((box) => `${Math.round(box.left)},${Math.round(box.top)},${Math.round(box.width)}`)
+          .join("|");
+        if (key !== neighbourKey.current) {
+          neighbourKey.current = key;
+          setNeighbours(others);
+        }
+      }
       const left = Math.min(...boxes.map((box) => box.left)) - base.left;
       const top = Math.min(...boxes.map((box) => box.top)) - base.top;
       const right = Math.max(...boxes.map((box) => box.right)) - base.left;
@@ -51,8 +78,8 @@ function useAnchorRect(container: RefObject<HTMLElement | null>, selector: strin
     };
     tick();
     return () => cancelAnimationFrame(frame);
-  }, [container, selector]);
-  return rect;
+  }, [container, selector, neighbourSelector]);
+  return { rect, neighbours };
 }
 
 export interface SelectionDockProps {
@@ -67,7 +94,6 @@ export interface SelectionDockProps {
 }
 
 const DOCK_HEIGHT = 40;
-const GAP = 10;
 
 /**
  * Floating toolbar next to the selected object: a few actions that reuse the feature action hooks, and ⋯ for
@@ -83,7 +109,7 @@ export function SelectionDock({
   inspectorOpen,
   onToggleInspector,
 }: SelectionDockProps) {
-  const rect = useAnchorRect(container, selection?.anchor);
+  const { rect, neighbours } = useAnchorRect(container, selection?.anchor, selection?.neighbours);
   const dock = useRef<HTMLDivElement>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [size, setSize] = useState({ width: 240, height: DOCK_HEIGHT });
@@ -104,13 +130,8 @@ export function SelectionDock({
   let placement: "anchored" | "floating" = "floating";
   if (selection && rect && bounds) {
     placement = "anchored";
-    const below = rect.top + rect.height + GAP;
-    const top = below + size.height + 56 > bounds.height ? Math.max(8, rect.top - size.height - GAP) : below;
-    const left = Math.min(
-      Math.max(8, rect.left + rect.width / 2 - size.width / 2),
-      Math.max(8, bounds.width - size.width - 8),
-    );
-    style = { left, top };
+    const placed = placeDock(rect, size, bounds, neighbours);
+    style = { left: placed.left, top: placed.top };
   } else {
     style = {};
   }

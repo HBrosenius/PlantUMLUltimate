@@ -34,9 +34,32 @@
 .app.stage-mode .workspace.mode-stage .gantt-controls-help,
 .app.stage-mode .workspace.mode-stage .gantt-options-toggle,
 .app.stage-mode .workspace.mode-stage .performance-badge,
-.app.stage-mode .workspace.mode-stage .timeline-minimap,
-.app.stage-mode .workspace.mode-stage .calendar-legend {
+.app.stage-mode .workspace.mode-stage:not([data-stage-minimap]) .timeline-minimap,
+.app.stage-mode .workspace.mode-stage:not([data-stage-legend]) .calendar-legend {
   display: none;
+}
+/* Compact legend and timeline range, opened from the floating cluster. */
+.app.stage-mode .workspace.mode-stage[data-stage-minimap] .timeline-minimap {
+  right: auto;
+  bottom: 68px;
+  left: 16px;
+  width: min(480px, calc(100% - 32px));
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+}
+.app.stage-mode .workspace.mode-stage[data-stage-legend] .calendar-legend {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 68px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+}
+.app.stage-mode .workspace.mode-stage[data-stage-legend][data-stage-minimap] .calendar-legend {
+  bottom: 112px;
 }
 /* A peeking lens is for reading and quick edits; the editor's own toolbar belongs to the full editor. */
 .stage-lens[data-state="peek"] .editor-actions {

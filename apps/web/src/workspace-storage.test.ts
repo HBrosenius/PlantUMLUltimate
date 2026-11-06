@@ -180,6 +180,19 @@ describe("normalizeWorkspace", () => {
     expect(workspace.viewMode).toBe("code");
   });
 
+  it("keeps the opt-in Stage view mode through session normalisation and still rejects unknown modes", () => {
+    const session = (viewMode: string) =>
+      normalizeSession({
+        version: 8,
+        activeDocumentId: "a",
+        viewMode,
+        documents: [{ id: "a", fileName: "a.puml", source: "@startgantt\n@endgantt", viewMode }],
+      });
+    expect(session("stage").viewMode).toBe("stage");
+    expect(session("stage").documents[0]?.viewMode).toBe("stage");
+    expect(session("bogus").viewMode).toBe("split");
+  });
+
   it("clamps persisted layout values", () => {
     expect(normalizeWorkspace({ splitPercent: 500, zoom: 0 }).splitPercent).toBe(80);
     expect(normalizeWorkspace({ zoom: 9 }).zoom).toBe(9);

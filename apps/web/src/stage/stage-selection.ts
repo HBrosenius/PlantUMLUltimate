@@ -13,7 +13,37 @@ export type StageSelectionKind =
   | "sequence-participant"
   | "sequence-message"
   | "sequence-structure"
+  | "gantt-separator"
+  | "usecase-element"
+  | "usecase-package"
+  | "usecase-note"
+  | "usecase-relationship"
+  | "class-entity"
+  | "class-package"
+  | "class-note"
+  | "class-relationship"
+  | "activity-action"
+  | "activity-partition"
+  | "activity-note"
+  | "activity-control"
+  | "activity-terminal"
+  | "activity-arrow"
+  | "wbs-node"
+  | "wbs-relationship"
   | "other";
+
+/** Kinds whose selection is described by a generic `{ id, label|name, range }` item. */
+export type GenericStageKind = Exclude<
+  StageSelectionKind,
+  | "gantt-task"
+  | "gantt-milestone"
+  | "gantt-dependency"
+  | "gantt-divider"
+  | "sequence-participant"
+  | "sequence-message"
+  | "sequence-structure"
+  | "other"
+>;
 
 /** What is selected on the canvas, in the terms Stage's lens and dock need. */
 export interface StageSelection {
@@ -24,6 +54,8 @@ export interface StageSelection {
   range?: TextRange | undefined;
   /** CSS selector locating the element in the rendered preview, for dock placement. */
   anchor?: string | undefined;
+  /** Selector for the other elements of the same family, so the dock can avoid covering them. */
+  neighbours?: string | undefined;
 }
 
 interface RangedItem {
@@ -45,7 +77,18 @@ export interface StageSelectionInput {
   structure?: ({ id: string } & RangedItem) | undefined;
   /** Selection in a family the dock does not specialise yet. */
   otherId?: string | undefined;
+  /** Selected items of the non-Gantt/Sequence families (and Gantt vertical separators), by kind. */
+  items?: Partial<Record<GenericStageKind, GenericItem | undefined>> | undefined;
 }
+
+export type GenericItem = { id?: string; label?: string; name?: string; alias?: string } & RangedItem;
+
+const FAMILY_ANCHORS: Record<string, { attribute: string; neighbours: string }> = {
+  usecase: { attribute: "data-usecase-object-id", neighbours: "[data-usecase-object-id]" },
+  class: { attribute: "data-class-object-id", neighbours: "[data-class-object-id]" },
+  activity: { attribute: "data-activity-object-id", neighbours: "[data-activity-object-id]" },
+  wbs: { attribute: "data-wbs-node-id", neighbours: "[data-wbs-node-id]" },
+};
 
 const escape = (value: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(value) : value);
 
@@ -67,6 +110,7 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         label: task.label,
         range: union([rangeOf(task), ...task.declarations.map(rangeOf)]),
         anchor: `[data-task-id="${escape(task.id)}"]`,
+        neighbours: "[data-task-id]",
       };
     }
     if (input.dependency && input.dependencyIndex !== undefined) {
@@ -77,6 +121,7 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         label: `${dependency.predecessorTaskId} → ${dependency.successorTaskId}`,
         range: union([rangeOf(dependency)]),
         anchor: `[data-dependency-index="${input.dependencyIndex}"]`,
+        neighbours: "[data-task-id]",
       };
     }
     if (input.dividerIndex !== undefined) {
@@ -87,6 +132,14 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         range: union([rangeOf(input.divider), input.selectionRange]),
       };
     }
+    const separator = input.items?.["gantt-separator"];
+    if (separator)
+      return {
+        kind: "gantt-separator",
+        id: separator.id ?? "separator",
+        label: "Separator",
+        range: union([rangeOf(separator), input.selectionRange]),
+      };
     return undefined;
   }
   if (input.diagramKind === "sequence") {
@@ -97,6 +150,7 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         label: input.message.label || "Message",
         range: union([rangeOf(input.message)]),
         anchor: `[data-sequence-drag-hit][data-sequence-message-id="${escape(input.message.id)}"]`,
+        neighbours: "[data-sequence-drag-hit]",
       };
     if (input.participant)
       return {
@@ -105,6 +159,7 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         label: input.participant.label,
         range: union([rangeOf(input.participant)]),
         anchor: ".sequence-selected-participant",
+        neighbours: "[data-sequence-drag-hit]",
       };
     if (input.structure)
       return {
@@ -115,6 +170,18 @@ export function describeStageSelection(input: StageSelectionInput): StageSelecti
         anchor: `[data-sequence-structure-id="${escape(input.structure.id)}"]`,
       };
     return undefined;
+  }
+  for (const [kind, item] of Object.entries(input.items ?? {})) {
+    if (!item || kind === "gantt-separator") continue;
+    const anchors = FAMILY_ANCHORS[kind.split("-")[0]!];
+    const id = item.id ?? item.alias ?? "";
+    return {
+      kind: kind as GenericStageKind,
+      id,
+      label: item.label ?? item.name ?? item.alias ?? id,
+      range: union([rangeOf(item)]),
+      ...(anchors && id ? { anchor: `[${anchors.attribute}="${escape(id)}"]`, neighbours: anchors.neighbours } : {}),
+    };
   }
   if (input.otherId)
     return { kind: "other", id: input.otherId, label: "Selection", range: union([input.selectionRange]) };
@@ -145,6 +212,14 @@ export interface DockHandlers {
   deleteSequenceMessage(): void;
   deleteSequenceParticipant(): void;
   deleteSequenceStructure(): void;
+  /** Put the caret in the Source Lens on the selected element, to rename it by typing. */
+  renameInLens(): void;
+  /** Opens the family's "add relationship / arrow" dialog. */
+  addLinked(): void;
+  addClassMember(): void;
+  addWbsNode(position: "child" | "sibling"): void;
+  /** Delete operations for the families that have one, by selection kind. */
+  remove: Partial<Record<StageSelectionKind, () => void>>;
 }
 
 /** 3–5 object actions; the dock adds "⋯ Inspector" itself. Other families fall back to the inspector only. */
@@ -271,6 +346,72 @@ export function dockActionsFor(selection: StageSelection, handlers: DockHandlers
           run: handlers.deleteSequenceStructure,
         }),
       ];
+    default:
+      return genericActionsFor(selection, handlers, make);
+  }
+}
+
+type MakeAction = (action: Omit<DockAction, "disabled"> & { disabled?: boolean }) => DockAction;
+
+/** Actions for the other families, built only from operations the app already exposes. */
+function genericActionsFor(selection: StageSelection, handlers: DockHandlers, make: MakeAction): DockAction[] {
+  const rename = make({
+    id: "rename",
+    label: "Rename",
+    title: "Edit the name in the source lens",
+    run: handlers.renameInLens,
+  });
+  const remove = handlers.remove[selection.kind];
+  const del = remove
+    ? [make({ id: "delete", label: "Delete", title: "Delete this element", tone: "danger", run: remove })]
+    : [];
+  switch (selection.kind) {
+    case "usecase-element":
+      return [
+        rename,
+        make({ id: "relate", label: "Relate…", title: "Add a relationship", run: handlers.addLinked }),
+        ...del,
+      ];
+    case "class-entity":
+      return [
+        rename,
+        make({ id: "member", label: "+ Member", title: "Add a member to this class", run: handlers.addClassMember }),
+        make({ id: "relate", label: "Relate…", title: "Add a relationship", run: handlers.addLinked }),
+        ...del,
+      ];
+    case "activity-action":
+      return [
+        rename,
+        make({ id: "arrow", label: "Arrow…", title: "Connect with an arrow", run: handlers.addLinked }),
+        ...del,
+      ];
+    case "wbs-node":
+      return [
+        rename,
+        make({ id: "child", label: "+ Child", title: "Add a child node", run: () => handlers.addWbsNode("child") }),
+        make({
+          id: "sibling",
+          label: "+ Sibling",
+          title: "Add a sibling node",
+          run: () => handlers.addWbsNode("sibling"),
+        }),
+        ...del,
+      ];
+    case "usecase-package":
+    case "usecase-note":
+    case "class-package":
+    case "class-note":
+    case "activity-partition":
+    case "activity-note":
+      return [rename, ...del];
+    case "gantt-separator":
+    case "usecase-relationship":
+    case "class-relationship":
+    case "activity-control":
+    case "activity-terminal":
+    case "activity-arrow":
+    case "wbs-relationship":
+      return del;
     default:
       return [];
   }

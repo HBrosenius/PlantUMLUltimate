@@ -15,6 +15,11 @@ const handlers = (): DockHandlers => ({
   deleteSequenceMessage: vi.fn(),
   deleteSequenceParticipant: vi.fn(),
   deleteSequenceStructure: vi.fn(),
+  renameInLens: vi.fn(),
+  addLinked: vi.fn(),
+  addClassMember: vi.fn(),
+  addWbsNode: vi.fn(),
+  remove: {},
 });
 
 describe("describeStageSelection", () => {
