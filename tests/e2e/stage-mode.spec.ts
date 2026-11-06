@@ -194,7 +194,9 @@ test.describe("Stage mode", () => {
       .getByRole("button", { name: "Stage", exact: true })
       .click();
     const node = page.locator("[data-wbs-node-id]").filter({ hasText: "Discovery" }).first();
-    await node.click();
+    // WebKit cannot hit-test an SVG label under the node's hit area; click the hit area itself.
+    const nodeId = await node.getAttribute("data-wbs-node-id");
+    await page.locator(`rect.wbs-node-hit[data-wbs-node-id="${nodeId}"]`).click({ force: true });
     const dock = page.getByRole("toolbar", { name: "Actions for Discovery" });
     await expect(dock).toBeVisible();
     await expect(dock.getByRole("button", { name: "Rename" })).toBeVisible();

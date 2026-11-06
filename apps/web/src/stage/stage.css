@@ -32,6 +32,7 @@
 }
 .app.stage-mode .workspace.mode-stage .preview-tools,
 .app.stage-mode .workspace.mode-stage .gantt-controls-help,
+.app.stage-mode .workspace.mode-stage .preview-hint,
 .app.stage-mode .workspace.mode-stage .gantt-options-toggle,
 .app.stage-mode .workspace.mode-stage .performance-badge,
 .app.stage-mode .workspace.mode-stage:not([data-stage-minimap]) .timeline-minimap,
