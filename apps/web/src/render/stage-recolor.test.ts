@@ -39,6 +39,35 @@ describe("stage SVG recolouring", () => {
     expect(out).toContain('fill="#22aa44"');
   });
 
+  it("keeps text readable on fills the recolouring leaves alone", () => {
+    // Black text on a saturated blue bar: the foreground token would be too faint, so the dark surface is used.
+    const bar =
+      '<svg><rect fill="#2A9FD6" x="2" y="53" width="54" height="27"/><text x="6" y="71" font-size="12" fill="#000000">Plan</text></svg>';
+    expect(recolorSvgForStage(bar, tokens)).toContain('font-size="12" fill="#191c23">Plan');
+    // A theme's white label on a mid-dark fill keeps a light colour.
+    const label =
+      '<svg><rect fill="#555555" x="0" y="0" width="80" height="30"/><text x="4" y="20" font-size="12" fill="#ffffff">Tu</text></svg>';
+    expect(recolorSvgForStage(label, tokens)).toContain('fill="#e7eaf0"');
+    // Dark-grey text on a lifted light-grey band (a Bootstrap-style theme) becomes light.
+    const band =
+      '<svg><rect fill="#f8f9fa" x="0" y="0" width="80" height="30"/><text x="4" y="20" font-size="12" fill="#343a40">We</text></svg>';
+    expect(recolorSvgForStage(band, tokens)).toContain('fill="#e7eaf0"');
+  });
+
+  it("uses the group fill for text without its own and ignores arrowheads as backgrounds", () => {
+    const inherited = '<svg><g fill="#343a40"><text x="4" y="20" font-size="12">Order</text></g></svg>';
+    expect(recolorSvgForStage(inherited, tokens)).toContain('<text fill="#e7eaf0" x="4"');
+    const arrow =
+      '<svg><polygon points="0,0 10,5 0,10 4,5" stroke="#000000" fill="#000000"/><text x="2" y="6" font-size="13" fill="#000000">Request</text></svg>';
+    expect(recolorSvgForStage(arrow, tokens)).toContain('font-size="13" fill="#e7eaf0">Request');
+  });
+
+  it("turns dark-grey outlines into the foreground colour but keeps mid greys", () => {
+    expect(recolorPaint("#343a40", tokens, "stroke")).toBe("#e7eaf0");
+    expect(recolorPaint("#343a40", tokens, "fill")).toBeUndefined();
+    expect(recolorPaint("#808080", tokens, "stroke")).toBeUndefined();
+  });
+
   it("changes paint only: geometry and structure are identical", () => {
     const svg = '<svg width="10" height="5"><rect x="1" y="2" width="3" height="4" fill="#fff" stroke="#000"/></svg>';
     const strip = (value: string) => value.replace(/(fill|stroke)="[^"]*"/g, "");
