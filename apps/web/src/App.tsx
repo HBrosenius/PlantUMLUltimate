@@ -1535,6 +1535,11 @@ export function App() {
     // a stale task and made connection handles unclickable. Clear it once the editor is gone.
     if (viewMode === "diagram") setSourceHighlightedTaskId(undefined);
   }, [setSourceHighlightedTaskId, viewMode]);
+  // The canvas outline prefers the source-cursor highlight over the selection. A new selection that did not move
+  // the editor cursor (Duplicate, Paste) must not leave the outline on the previous task.
+  useEffect(() => {
+    setSourceHighlightedTaskId(undefined);
+  }, [selectedTaskId, setSourceHighlightedTaskId]);
 
   useEffect(() => {
     if (!hydrated || pendingProjectWbsSelection?.tabId === tabs.activeId) return;

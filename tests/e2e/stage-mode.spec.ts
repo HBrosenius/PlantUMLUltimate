@@ -129,6 +129,8 @@ test.describe("Stage mode", () => {
     await dock.getByRole("button", { name: /Later/ }).click();
     await expect(page.getByRole("toolbar", { name: "Actions for two" })).toBeVisible();
     await expect(page.getByTestId("source-lens").locator(".cm-content")).toContainText("B -> A: two");
+    // The canvas selection follows the moved message too (one outlined message, positioned at its new row).
+    await expect(page.locator(".diagram .sequence-selected-message-line")).toHaveCount(1);
   });
 
   test("offers + Add with nothing selected and keeps commands in the palette", async ({ page }) => {
@@ -163,6 +165,10 @@ test.describe("Stage mode", () => {
     await page.getByRole("toolbar", { name: "Actions for Build" }).getByRole("button", { name: "Duplicate" }).click();
     const dock = page.getByRole("toolbar", { name: "Actions for Build copy" });
     await expect(dock).toBeVisible();
+    // The canvas outline follows the selection to the copy, matching the dock and lens.
+    await expect(page.locator(".diagram")).toHaveAttribute("data-selected-task", "build copy");
+    await expect(page.locator('.diagram [data-task-id="build copy"][data-selected="true"]')).toHaveCount(1);
+    await expect(page.locator('.diagram [data-task-id="build"][data-selected="true"]')).toHaveCount(0);
     // The copy inherits the original's incoming dependency, so it starts in the same place.
     await expect.poll(() => readEditorSource(page)).toContain("[Build copy] starts at [Design]'s end");
     const lens = page.getByTestId("source-lens");
@@ -180,6 +186,19 @@ test.describe("Stage mode", () => {
     await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2, { steps: 8 });
     await page.mouse.up();
     await expect.poll(() => readEditorSource(page), { timeout: 15_000 }).not.toBe(before);
+  });
+
+  test("Split view: duplicating with Ctrl+D moves the canvas outline to the copy", async ({ page }) => {
+    await prepareEditor(page);
+    await setSource(page, gantt);
+    await page.locator('.diagram [data-task-id="build"]').first().click();
+    await expect(page.locator('.diagram [data-task-id="build"][data-selected="true"]')).toHaveCount(1);
+    // Selecting moves focus into the editor; the task shortcuts apply when focus is back on the diagram.
+    await page.locator('.diagram [data-task-id="build"][tabindex]').first().focus();
+    await page.keyboard.press("Control+d");
+    await expect.poll(() => readEditorSource(page)).toContain("[Build copy] lasts 8 days");
+    await expect(page.locator('.diagram [data-task-id="build copy"][data-selected="true"]')).toHaveCount(1);
+    await expect(page.locator('.diagram [data-task-id="build"][data-selected="true"]')).toHaveCount(0);
   });
 
   test("WBS dock adds a child, the lens shows the node's line, and dock and node line up", async ({ page }) => {
