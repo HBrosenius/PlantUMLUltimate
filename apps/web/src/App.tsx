@@ -24,6 +24,11 @@ import { useWorkspaceLayout } from "./use-workspace-layout";
 
 import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
+import { StageView } from "./stage/StageView";
+import { StageTopBar } from "./stage/StageTopBar";
+import { readStageTokens, useResolvedDark } from "./stage/stage-theme";
+import { describeStageSelection, dockActionsFor, type AddItem, type DockHandlers } from "./stage/stage-selection";
+import { recolorSvgForStage } from "./render/stage-recolor";
 import { storageGet } from "./safe-storage";
 import { applyShellTheme } from "./shell-theme";
 import { useResourceWarningPreference } from "./use-resource-warning-preference";
@@ -469,6 +474,8 @@ export function App() {
           : "diagram"
         : "split"
       : normalViewMode;
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
   const selectViewMode = useCallback(
     (mode: ViewMode) => {
       setTaskViewDocument(undefined);
@@ -551,6 +558,9 @@ export function App() {
   }>();
   const [repairRequest, setRepairRequest] = useState<SourceRepairRequest>();
   const [selectionRequest, setSelectionRequest] = useState<{ from: number; to: number }>();
+  const [stageTrueRender, setStageTrueRender] = useState(false);
+  const [stageInspectorOpen, setStageInspectorOpen] = useState(false);
+  const [stageLensExpanded, setStageLensExpanded] = useState(false);
   const {
     message: interactionMessage,
     setMessage: setInteractionMessage,
@@ -2206,7 +2216,7 @@ export function App() {
   );
 
   const viewModes = useMemo(
-    () => (narrow ? ["code", "diagram"] : ["code", "split", "diagram"]) as ViewMode[],
+    () => (narrow ? ["code", "diagram"] : ["code", "split", "diagram", "stage"]) as ViewMode[],
     [narrow],
   );
 
@@ -3411,7 +3421,7 @@ export function App() {
         id: `view.${mode}`,
         label: `${mode[0]!.toUpperCase()}${mode.slice(1)} view`,
         category: "View",
-        shortcut: `⌘${mode === "code" ? 1 : mode === "split" ? 2 : 3}`,
+        shortcut: `⌘${mode === "code" ? 1 : mode === "split" ? 2 : mode === "diagram" ? 3 : 4}`,
         run: () => update("viewMode", mode),
       })),
       {
@@ -3651,7 +3661,21 @@ export function App() {
         closeTab(tabs.activeId);
         return;
       }
-      const mode = event.key === "1" ? "code" : event.key === "2" ? "split" : event.key === "3" ? "diagram" : undefined;
+      if (event.key.toLowerCase() === "e" && viewModeRef.current === "stage") {
+        event.preventDefault();
+        setStageLensExpanded((expanded) => !expanded);
+        return;
+      }
+      const mode =
+        event.key === "1"
+          ? "code"
+          : event.key === "2"
+            ? "split"
+            : event.key === "3"
+              ? "diagram"
+              : event.key === "4" && !narrow
+                ? "stage"
+                : undefined;
       if (mode) {
         event.preventDefault();
         update("viewMode", mode);
@@ -3660,6 +3684,7 @@ export function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
+    narrow,
     closeTab,
     dismissAllInspectors,
     clearSelectedWbsNode,
@@ -3956,6 +3981,59 @@ export function App() {
       else selectWbsRelationship(item.id);
     },
   });
+  // Stage mode: selection model for the lens and dock, and the theme-native preview SVG.
+  const stageActive = viewMode === "stage";
+  const stageDark = useResolvedDark(workspace.theme);
+  const stageSelection = useMemo(
+    () =>
+      stageActive && !diagramMulti.multiple
+        ? describeStageSelection({
+            diagramKind: workspace.diagramKind,
+            selectionRange: selectionRequest,
+            task: selectedTask,
+            dependency: selectedDependency,
+            dependencyIndex: selectedDependencyIndex,
+            dividerIndex: selectedDividerIndex,
+            divider: selectedDivider,
+            participant: selectedSequenceParticipant,
+            message: selectedSequenceMessage,
+            structure: selectedSequenceStructure,
+            otherId: selectedUseCaseObjectId ?? selectedClassObjectId ?? selectedActivityObjectId ?? selectedWbsNodeId,
+          })
+        : undefined,
+    [
+      stageActive,
+      diagramMulti.multiple,
+      workspace.diagramKind,
+      selectionRequest,
+      selectedTask,
+      selectedDependency,
+      selectedDependencyIndex,
+      selectedDividerIndex,
+      selectedDivider,
+      selectedSequenceParticipant,
+      selectedSequenceMessage,
+      selectedSequenceStructure,
+      selectedUseCaseObjectId,
+      selectedClassObjectId,
+      selectedActivityObjectId,
+      selectedWbsNodeId,
+    ],
+  );
+  useEffect(() => {
+    if (!stageSelection) setStageInspectorOpen(false);
+  }, [stageSelection]);
+  useEffect(() => {
+    if (!stageActive) setStageLensExpanded(false);
+  }, [stageActive]);
+  const stageRecolor = stageActive && stageDark && !stageTrueRender;
+  const previewSvg = useMemo(
+    () =>
+      stageRecolor && result?.svg
+        ? recolorSvgForStage(result.svg, readStageTokens(workspaceElement.current?.closest(".app")))
+        : result?.svg,
+    [stageRecolor, result?.svg],
+  );
   clearDiagramMultiSelection.current = diagramMulti.clear;
   const canDuplicateMenuElement = !!menuOccurrence && diagramMulti.canDuplicateAt(menuOccurrence.range);
 
@@ -4151,12 +4229,226 @@ export function App() {
       </main>
     );
 
+  /** The one source editor; Stage mode mounts the same element inside its Source Lens. */
+  const renderSourceEditor = (lens?: {
+    visibleRange?: { from: number; to: number } | undefined;
+    revealWithoutFocus?: boolean | undefined;
+  }) => (
+    <CodeEditor
+      analyzeSource={analyzeSource}
+      documentId={tabs.activeId}
+      diagramKind={workspace.diagramKind}
+      value={workspace.source}
+      readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
+      onFormatSource={openFormatSource}
+      onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
+      onApplyFix={(source, label) => {
+        setRepairCategoryFilter((current) => (current ? { ...current, source } : undefined));
+        commitSource(source, `Apply fix: ${label}`, false);
+      }}
+      selectedRange={selectionRequest}
+      visibleRange={lens?.visibleRange}
+      revealWithoutFocus={lens?.revealWithoutFocus}
+      repairHost={repairHost}
+      repairWorkspaceOpen={problemsOpen}
+      repairCategoryFilter={
+        repairCategoryFilter?.source === workspace.source && repairCategoryFilter.documentId === tabs.activeId
+          ? repairCategoryFilter.category
+          : undefined
+      }
+      onFilterRepairCategory={(category) =>
+        setRepairCategoryFilter({ source: workspace.source, documentId: tabs.activeId, category })
+      }
+      onOpenRepairWorkspace={() => {
+        setProblemPreview(undefined);
+        setProblemsOpen(true);
+      }}
+      onCloseRepairWorkspace={() => {
+        setProblemsOpen(false);
+        setUnsupportedOpen(false);
+        setProblemPreview(undefined);
+      }}
+      repairRequest={repairRequest}
+      onRepairRequestHandled={() => setRepairRequest(undefined)}
+      symbolHighlights={symbolHighlights}
+      remoteParticipants={collaborationAppliesToActiveDiagram ? activeParticipants : []}
+      remoteEditFlash={collaborationAppliesToActiveDiagram ? remoteEditFlash : undefined}
+      onRenameRequest={
+        workspace.diagramKind === "gantt" ||
+        workspace.diagramKind === "sequence" ||
+        workspace.diagramKind === "usecase" ||
+        workspace.diagramKind === "class" ||
+        workspace.diagramKind === "component" ||
+        workspace.diagramKind === "activity" ||
+        workspace.diagramKind === "wbs"
+          ? requestSymbolRename
+          : undefined
+      }
+      onSymbolContextMenu={
+        workspace.diagramKind === "gantt" ||
+        workspace.diagramKind === "sequence" ||
+        workspace.diagramKind === "usecase" ||
+        workspace.diagramKind === "class" ||
+        workspace.diagramKind === "component" ||
+        workspace.diagramKind === "activity" ||
+        workspace.diagramKind === "wbs"
+          ? (position, x, y) => {
+              if (!symbolAt(position)) return false;
+              setSymbolMenu({ position, x, y });
+              return true;
+            }
+          : undefined
+      }
+      onCursorChange={(line, column, position, anchor, head, sourceChanged) => {
+        update("cursor", { line, column });
+        if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
+        // Cursor navigation in a utility panel must not replace it with object properties.
+        if (problemsOpen || unsupportedOpen || projectInspectorOpen || resourcePanelOpen) return;
+        if (workspace.diagramKind === "gantt") {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          setSourceHighlightedTaskId(
+            occurrence?.kind === "task" ? occurrence.key : findTaskAt(parseResult.document, position)?.id,
+          );
+        } else if (workspace.diagramKind === "sequence") {
+          // A source transaction reports its cursor before React has parsed the
+          // new source. Let the controller reconcile selection instead of
+          // looking up the new offset in the previous document.
+          if (sourceChanged) return;
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          setSourceHighlightedSequenceParticipantId(occurrence?.key);
+          const object = findSequenceObjectAt(sequenceDocument, position);
+          if (
+            object &&
+            sequenceDocument.participants.includes(object as (typeof sequenceDocument.participants)[number])
+          )
+            selectSequenceParticipant(object.id, false);
+          else if (object && "from" in object) selectSequenceMessage(object.id, false);
+          else if (object) selectSequenceStructure(object.id, false);
+          else if (!occurrence) clearSequenceSelection();
+        } else if (workspace.diagramKind === "usecase") {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          selectUseCaseFromSource(occurrence?.key, findUseCaseObjectAt(useCaseDocument, position)?.id);
+        } else if (workspace.diagramKind === "class" || workspace.diagramKind === "component") {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          const member = classDocument.entities
+            .flatMap((entity) => entity.members.map((item) => ({ entity, item })))
+            .find(({ item }) => position >= item.sourceRange.from && position <= item.sourceRange.to);
+          selectClassFromSource(
+            occurrence?.key ?? member?.entity.id,
+            member?.item.id,
+            findClassObjectAt(classDocument, position)?.id,
+          );
+        } else if (workspace.diagramKind === "activity") {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          selectActivityFromSource(occurrence?.key, findActivityObjectAt(activityDocument, position)?.id);
+        } else {
+          const occurrence = symbolAt(position);
+          setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
+          setSourceSymbolPosition(occurrence ? position : undefined);
+          selectWbsFromSource(occurrence?.key, findWbsNodeAt(wbsDocument, position)?.id);
+        }
+      }}
+    />
+  );
+
+  const stageUtilityPanelOpen =
+    problemsOpen ||
+    unsupportedOpen ||
+    resourcePanelOpen ||
+    projectInspectorOpen ||
+    legendInspectorOpen ||
+    sequenceSettingsOpen ||
+    useCaseSettingsOpen ||
+    classSettingsOpen ||
+    activitySettingsOpen ||
+    wbsSettingsOpen;
+  const stageHidesInspector = stageActive && !stageInspectorOpen && !stageUtilityPanelOpen && !diagramMulti.multiple;
+  const dockHandlers: DockHandlers = {
+    readOnly: commandReadOnly,
+    resizeTask: (id, days) => resizeGanttTask(id, days),
+    moveTask: (id, days) => moveGanttTask(id, days),
+    addDependency: () => openDialog({ kind: "add-dependency" }),
+    duplicateTask: (id) =>
+      duplicateTaskOccurrence({ kind: "task", key: id } as unknown as Parameters<typeof duplicateTaskOccurrence>[0]),
+    deleteTask: deleteSelectedTask,
+    deleteDependency,
+    deleteDivider: deleteSelectedDivider,
+    moveSequenceMessage: (id, direction) => {
+      const messages = sequenceDocument.messages;
+      const index = messages.findIndex((item) => item.id === id);
+      const target = messages[index + direction];
+      if (target) reorderSequenceMessage(id, target.id, direction < 0 ? "before" : "after");
+    },
+    moveSequenceParticipant: (id, direction) => {
+      const participants = sequenceDocument.participants;
+      const index = participants.findIndex((item) => item.id === id);
+      const target = participants[index + direction];
+      if (target) reorderSequenceParticipant(id, target.id, direction < 0 ? "before" : "after");
+    },
+    deleteSequenceMessage: removeSequenceMessage,
+    deleteSequenceParticipant: removeSequenceParticipant,
+    deleteSequenceStructure: removeSequenceStructure,
+  };
+  const stageDockActions = stageSelection ? dockActionsFor(stageSelection, dockHandlers) : [];
+  const stageAddItems: AddItem[] = (() => {
+    const item = (id: string, label: string, run: () => void): AddItem => ({ id, label, run });
+    switch (workspace.diagramKind) {
+      case "gantt":
+        return [
+          item("task", "Task", () => openDialog({ kind: "add-task" })),
+          item("milestone", "Milestone", () => openDialog({ kind: "add-milestone" })),
+          item("divider", "Divider", () => openDialog({ kind: "add-divider" })),
+          ...(parseResult.document.tasks.length >= 2
+            ? [item("dependency", "Dependency", () => openDialog({ kind: "add-dependency" }))]
+            : []),
+        ];
+      case "sequence":
+        return [
+          item("participant", "Participant", () => openDialog({ kind: "add-sequence-participant" })),
+          item("message", "Message", () => openDialog({ kind: "add-sequence-message" })),
+          item("fragment", "Fragment", () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })),
+          item("note", "Note", () => openDialog({ kind: "add-sequence-structure", structureKind: "note" })),
+        ];
+      case "usecase":
+        return [
+          item("actor", "Actor", () => openDialog({ kind: "add-usecase-element", elementKind: "actor" })),
+          item("usecase", "Use case", () => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })),
+          item("relationship", "Relationship", () => openDialog({ kind: "add-usecase-relationship" })),
+        ];
+      case "class":
+      case "component":
+        return [
+          item("entity", "Element", () => openDialog({ kind: "add-class-entity" })),
+          item("relationship", "Relationship", () => openDialog({ kind: "add-class-relationship" })),
+        ];
+      case "activity":
+        return [
+          item("action", "Action", () => openDialog({ kind: "add-activity-action" })),
+          item("arrow", "Arrow", () => openDialog({ kind: "add-activity-arrow" })),
+        ];
+      case "wbs":
+        return [item("node", "Node", () => openDialog({ kind: "add-wbs-node" }))];
+      default:
+        return [];
+    }
+  })();
+
   return (
     <InspectorWorkspace
       history={{ canUndo: !commandReadOnly && activeHistory.canUndo, undo }}
       inert={presentationOpen || mobileSheetOpen}
       aria-hidden={presentationOpen || mobileSheetOpen || undefined}
-      className={`app${outlineMode === "dock" && outlineWide ? " has-outline-dock" : ""}${sideInspectorOpen || diagramMulti.multiple ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple ? " has-project-navigator" : ""}`}
+      className={`app${outlineMode === "dock" && outlineWide ? " has-outline-dock" : ""}${(sideInspectorOpen || diagramMulti.multiple) && !stageHidesInspector ? " has-side-inspector" : ""}${projectInspectorOpen ? " has-project-inspector" : ""}${project && projectNavigatorOpen && !sideInspectorOpen && !diagramMulti.multiple && !stageActive ? " has-project-navigator" : ""}${stageActive ? " stage-mode" : ""}${stageHidesInspector ? " stage-inspector-hidden" : ""}${stageActive && stageTrueRender ? " stage-true-render" : ""}`}
       onDragOver={(event) => {
         if (Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault();
       }}
@@ -4814,6 +5106,28 @@ export function App() {
           </button>
         </div>
       )}
+      {stageActive && (
+        <StageTopBar
+          documents={tabs.documents.map((document) => ({
+            id: document.id,
+            label: tabLabels.get(document.id) ?? document.displayName ?? document.fileName,
+            dirty: document.dirty,
+          }))}
+          activeId={tabs.activeId}
+          diagramKindLabel={diagramKindDisplayName(workspace.diagramKind)}
+          onActivate={activateTab}
+          onOpenPalette={toggleCommandPalette}
+          onSave={() => void saveCurrentDocument()}
+          saving={fileSaving}
+          dirty={activeDocument.dirty}
+          issueCount={diagnosticCount + unsupportedCount}
+          onOpenIssues={() => setProblemsOpen(true)}
+          trueRender={stageTrueRender}
+          onTrueRenderChange={setStageTrueRender}
+          recolorAvailable={stageDark}
+          onExit={() => update("viewMode", "split")}
+        />
+      )}
       <main
         ref={workspaceElement}
         tabIndex={-1}
@@ -4982,131 +5296,7 @@ export function App() {
             }}
           />
         )}
-        {!mobileListActive && !taskViewActive && viewMode !== "diagram" && (
-          <CodeEditor
-            analyzeSource={analyzeSource}
-            documentId={tabs.activeId}
-            diagramKind={workspace.diagramKind}
-            value={workspace.source}
-            readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
-            onFormatSource={openFormatSource}
-            onChange={(source) => commitSource(source, SOURCE_EDIT_DESCRIPTION, false)}
-            onApplyFix={(source, label) => {
-              setRepairCategoryFilter((current) => (current ? { ...current, source } : undefined));
-              commitSource(source, `Apply fix: ${label}`, false);
-            }}
-            selectedRange={selectionRequest}
-            repairHost={repairHost}
-            repairWorkspaceOpen={problemsOpen}
-            repairCategoryFilter={
-              repairCategoryFilter?.source === workspace.source && repairCategoryFilter.documentId === tabs.activeId
-                ? repairCategoryFilter.category
-                : undefined
-            }
-            onFilterRepairCategory={(category) =>
-              setRepairCategoryFilter({ source: workspace.source, documentId: tabs.activeId, category })
-            }
-            onOpenRepairWorkspace={() => {
-              setProblemPreview(undefined);
-              setProblemsOpen(true);
-            }}
-            onCloseRepairWorkspace={() => {
-              setProblemsOpen(false);
-              setUnsupportedOpen(false);
-              setProblemPreview(undefined);
-            }}
-            repairRequest={repairRequest}
-            onRepairRequestHandled={() => setRepairRequest(undefined)}
-            symbolHighlights={symbolHighlights}
-            remoteParticipants={collaborationAppliesToActiveDiagram ? activeParticipants : []}
-            remoteEditFlash={collaborationAppliesToActiveDiagram ? remoteEditFlash : undefined}
-            onRenameRequest={
-              workspace.diagramKind === "gantt" ||
-              workspace.diagramKind === "sequence" ||
-              workspace.diagramKind === "usecase" ||
-              workspace.diagramKind === "class" ||
-              workspace.diagramKind === "component" ||
-              workspace.diagramKind === "activity" ||
-              workspace.diagramKind === "wbs"
-                ? requestSymbolRename
-                : undefined
-            }
-            onSymbolContextMenu={
-              workspace.diagramKind === "gantt" ||
-              workspace.diagramKind === "sequence" ||
-              workspace.diagramKind === "usecase" ||
-              workspace.diagramKind === "class" ||
-              workspace.diagramKind === "component" ||
-              workspace.diagramKind === "activity" ||
-              workspace.diagramKind === "wbs"
-                ? (position, x, y) => {
-                    if (!symbolAt(position)) return false;
-                    setSymbolMenu({ position, x, y });
-                    return true;
-                  }
-                : undefined
-            }
-            onCursorChange={(line, column, position, anchor, head, sourceChanged) => {
-              update("cursor", { line, column });
-              if (collaborationAppliesToActiveDiagram) updateCollaborationSelection(line, column, anchor, head);
-              // Cursor navigation in a utility panel must not replace it with object properties.
-              if (problemsOpen || unsupportedOpen || projectInspectorOpen || resourcePanelOpen) return;
-              if (workspace.diagramKind === "gantt") {
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedTaskId(
-                  occurrence?.kind === "task" ? occurrence.key : findTaskAt(parseResult.document, position)?.id,
-                );
-              } else if (workspace.diagramKind === "sequence") {
-                // A source transaction reports its cursor before React has parsed the
-                // new source. Let the controller reconcile selection instead of
-                // looking up the new offset in the previous document.
-                if (sourceChanged) return;
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                setSourceHighlightedSequenceParticipantId(occurrence?.key);
-                const object = findSequenceObjectAt(sequenceDocument, position);
-                if (
-                  object &&
-                  sequenceDocument.participants.includes(object as (typeof sequenceDocument.participants)[number])
-                )
-                  selectSequenceParticipant(object.id, false);
-                else if (object && "from" in object) selectSequenceMessage(object.id, false);
-                else if (object) selectSequenceStructure(object.id, false);
-                else if (!occurrence) clearSequenceSelection();
-              } else if (workspace.diagramKind === "usecase") {
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                selectUseCaseFromSource(occurrence?.key, findUseCaseObjectAt(useCaseDocument, position)?.id);
-              } else if (workspace.diagramKind === "class" || workspace.diagramKind === "component") {
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                const member = classDocument.entities
-                  .flatMap((entity) => entity.members.map((item) => ({ entity, item })))
-                  .find(({ item }) => position >= item.sourceRange.from && position <= item.sourceRange.to);
-                selectClassFromSource(
-                  occurrence?.key ?? member?.entity.id,
-                  member?.item.id,
-                  findClassObjectAt(classDocument, position)?.id,
-                );
-              } else if (workspace.diagramKind === "activity") {
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                selectActivityFromSource(occurrence?.key, findActivityObjectAt(activityDocument, position)?.id);
-              } else {
-                const occurrence = symbolAt(position);
-                setSourceSymbol(occurrence ? { kind: occurrence.kind, key: occurrence.key } : undefined);
-                setSourceSymbolPosition(occurrence ? position : undefined);
-                selectWbsFromSource(occurrence?.key, findWbsNodeAt(wbsDocument, position)?.id);
-              }
-            }}
-          />
-        )}
+        {!mobileListActive && !taskViewActive && viewMode !== "diagram" && viewMode !== "stage" && renderSourceEditor()}
         {viewMode === "split" && (
           <div
             className="divider"
@@ -5139,7 +5329,7 @@ export function App() {
           (workspace.diagramKind === "gantt" ? (
             <DiagramPreview
               initialFit={initialDiagramFit}
-              svg={result?.svg}
+              svg={previewSvg}
               renderedSource={result?.source}
               sharedDates={resolvedTaskDates}
               tasks={parseResult.document.tasks}
@@ -5311,7 +5501,7 @@ export function App() {
               editingEnabled={result?.source === workspace.source}
               geometryDocument={previewSequence}
               initialFit={initialDiagramFit}
-              svg={result?.svg}
+              svg={previewSvg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               renderStatus={status}
@@ -5345,7 +5535,7 @@ export function App() {
             <UseCaseDiagramPreview
               onInlineRename={commandReadOnly ? undefined : startInlineRename}
               initialFit={initialDiagramFit}
-              svg={result?.svg}
+              svg={previewSvg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               renderStatus={status}
@@ -5374,7 +5564,7 @@ export function App() {
               onInlineRename={commandReadOnly ? undefined : startInlineRename}
               initialFit={initialDiagramFit}
               diagramKind={workspace.diagramKind}
-              svg={result?.svg}
+              svg={previewSvg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               renderStatus={status}
@@ -5401,7 +5591,7 @@ export function App() {
             <ActivityDiagramPreview
               onInlineRename={commandReadOnly ? undefined : startInlineRename}
               initialFit={initialDiagramFit}
-              svg={result?.svg}
+              svg={previewSvg}
               zoom={workspace.zoom}
               onZoomChange={(zoom) => update("zoom", zoom)}
               renderStatus={status}
@@ -5430,7 +5620,7 @@ export function App() {
               editingEnabled={result?.source === workspace.source}
               geometryDocument={previewWbs}
               initialFit={initialDiagramFit}
-              svg={result?.svg}
+              svg={previewSvg}
               document={wbsDocument}
               dependencyWarnings={wbsDependencyWarnings}
               nodeCompletion={wbsNodeCompletion}
@@ -5465,6 +5655,24 @@ export function App() {
               onRelationshipReconnect={reconnectWbsArrow}
             />
           ))}
+        {stageActive && (
+          <StageView
+            containerRef={workspaceElement}
+            documentId={tabs.activeId}
+            diagramKind={workspace.diagramKind}
+            selection={stageSelection}
+            zoom={workspace.zoom}
+            onZoomChange={(zoom) => update("zoom", zoom)}
+            lensExpanded={stageLensExpanded}
+            onLensExpandedChange={setStageLensExpanded}
+            renderSourceEditor={renderSourceEditor}
+            dockActions={stageDockActions}
+            addItems={stageAddItems}
+            readOnly={commandReadOnly}
+            inspectorOpen={stageInspectorOpen}
+            onToggleInspector={() => setStageInspectorOpen((open) => !open)}
+          />
+        )}
       </main>
       <footer className="statusbar">
         <span role="status" aria-live="polite">
