@@ -12,7 +12,7 @@ test("Diagram mode exposes source without Settings", async ({ page }, testInfo) 
     .getByRole("button", { name: "Create diagram", exact: true })
     .click();
   const modes = page.getByRole("navigation", { name: "View mode" });
-  await expect(modes.getByRole("button")).toHaveText(["Code", "Split", "Diagram"]);
+  await expect(modes.getByRole("button")).toHaveText(["Code", "Split", "Diagram", "Stage"]);
   await modes.getByRole("button", { name: "Diagram", exact: true }).click();
   await expect(modes.getByRole("button", { name: "Diagram", exact: true })).toHaveAttribute("aria-pressed", "true");
   await modes.getByRole("button", { name: "Code", exact: true }).click();
