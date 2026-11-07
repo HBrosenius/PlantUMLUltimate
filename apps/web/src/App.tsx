@@ -85,6 +85,7 @@ import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
 import { FileMenu } from "./FileMenu";
+import { useStableHandlers, useStableList } from "./use-stable-handlers";
 import { ProjectNavigator } from "./projects/ProjectNavigator";
 import { UnsavedProjectDialog } from "./projects/UnsavedProjectDialog";
 import type { WbsGanttProjectLink } from "./projects/wbs-gantt-project-links";
@@ -217,6 +218,8 @@ function diagramFocusSelector(target: Element): string | undefined {
   return undefined;
 }
 
+/** A stable empty list so the memoised history menu is not re-rendered by a fresh [] each time. */
+const NO_HISTORY_STEPS: readonly string[] = [];
 const EMPTY_SEQUENCE_DOCUMENT = parseSequence("");
 const EMPTY_USECASE_DOCUMENT = parseUseCase("");
 const EMPTY_CLASS_DOCUMENT = parseClassDiagram("");
@@ -4319,6 +4322,74 @@ export function App() {
       }))
     : [];
   const presentationConnections: { from: string; to: string }[] = [];
+  // Stable identities let the memoised menu skip re-rendering on every edit.
+  const addMenuHandlers = useStableHandlers({
+    onTask: () => openDialog({ kind: "add-task" }),
+    onMilestone: () => openDialog({ kind: "add-milestone" }),
+    onDivider: () => openDialog({ kind: "add-divider" }),
+    onClosedDay: () => {
+      openProjectInspector();
+      setClosedDayFocus((value) => value + 1);
+    },
+    onParticipant: () => openDialog({ kind: "add-sequence-participant" }),
+    onMessage: () => openDialog({ kind: "add-sequence-message" }),
+    onFragment: () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" }),
+    onActivation: () => openDialog({ kind: "add-sequence-structure", structureKind: "activation" }),
+    onNote: () => openDialog({ kind: "add-sequence-structure", structureKind: "note" }),
+    onSequenceSpacing: () => openDialog({ kind: "add-sequence-structure", structureKind: "separator" }),
+    onReference: () => openDialog({ kind: "add-sequence-structure", structureKind: "reference" }),
+    onParticipantBox: () => openDialog({ kind: "add-sequence-structure", structureKind: "box" }),
+    onUseCaseActor: () => openDialog({ kind: "add-usecase-element", elementKind: "actor" }),
+    onUseCase: () => openDialog({ kind: "add-usecase-element", elementKind: "usecase" }),
+    onUseCaseRelationship: () => openDialog({ kind: "add-usecase-relationship" }),
+    onUseCasePackage: () => openDialog({ kind: "add-usecase-package" }),
+    onUseCaseNote: () => openDialog({ kind: "add-usecase-note" }),
+    onClassEntity: () => openDialog({ kind: "add-class-entity" }),
+    onClassRelationship: () => openDialog({ kind: "add-class-relationship" }),
+    onClassPackage: () => openDialog({ kind: "add-class-package" }),
+    onClassNote: () => openDialog({ kind: "add-class-note" }),
+    onActivityAction: () => openDialog({ kind: "add-activity-action" }),
+    onActivityPartition: () => openDialog({ kind: "add-activity-partition" }),
+    onActivityNote: () => openDialog({ kind: "add-activity-note" }),
+    onActivityStructure: () => openDialog({ kind: "add-activity-structure" }),
+    onActivityTerminal: () => openDialog({ kind: "add-activity-terminal" }),
+    onActivityArrow: () => openDialog({ kind: "add-activity-arrow" }),
+    onWbsNode: () => openDialog({ kind: "add-wbs-node" }),
+  });
+  const undoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.undoDescriptions);
+  const redoSteps = useStableList(commandReadOnly ? NO_HISTORY_STEPS : activeHistory.redoDescriptions);
+  const historyHandlers = useStableHandlers({ onUndo: undo, onRedo: redo });
+  const statusHandlers = useStableHandlers({ onRetrySave: () => void saveCurrentDocument() });
+  const fileMenuHandlers = useStableHandlers({
+    onNew: newDocument,
+    onNewProject: () => openDialog({ kind: "new-project" }),
+    onOpenRecent: () => setOpenWorkOpen(true),
+    onOpen: () => void openDocument(),
+    onOpenProject: () => void singleFileProject.openProject(),
+    onProjectConnections: project ? showDocumentNavigator : undefined,
+    onSave: () => void saveCurrentDocument(),
+    onSaveAs: () => void saveCurrentDocumentAs(),
+    onSaveAsStarter: () =>
+      setStarterDraft({
+        kind: workspace.diagramKind,
+        source: workspace.source,
+        name: tabs.documents.find((item) => item.id === tabs.activeId)?.displayName ?? "My starter",
+      }),
+    onVersionHistory: () => void openVersionHistory(),
+    onDocumentSettings: () => setDocumentSettingsOpen(true),
+    onBackup: backupWorkspace,
+    onRestore: () => void restoreWorkspace(),
+    onExportPreview: () => setExportDialog("export"),
+    onShareLink: () => setExportDialog("share"),
+    onExportSource: exportSource,
+    onExportSvg: exportSvg,
+    onExportPng: () => void exportPng(),
+    onExportPdf: () => void exportPdf(),
+    onCopyImage: () => void copyImage(),
+    onCopyMarkdown: () => void copyMarkdown(),
+    onCopyConfluence: () => void copyConfluence(),
+  });
+
   if (presentationOpen) {
     for (const item of tabs.documents) {
       const linked = tabs.documents.find((other) => other.id === item.linkedWbsDocumentId);
@@ -4660,35 +4731,8 @@ export function App() {
             <FileMenu
               saving={fileSaving}
               canExport={exportReady}
-              onNew={newDocument}
-              onNewProject={() => openDialog({ kind: "new-project" })}
-              onOpenRecent={() => setOpenWorkOpen(true)}
-              onOpen={() => void openDocument()}
-              onOpenProject={() => void singleFileProject.openProject()}
-              onProjectConnections={project ? showDocumentNavigator : undefined}
               projectName={project?.manifest.name}
-              onSave={() => void saveCurrentDocument()}
-              onSaveAs={() => void saveCurrentDocumentAs()}
-              onSaveAsStarter={() =>
-                setStarterDraft({
-                  kind: workspace.diagramKind,
-                  source: workspace.source,
-                  name: tabs.documents.find((item) => item.id === tabs.activeId)?.displayName ?? "My starter",
-                })
-              }
-              onVersionHistory={() => void openVersionHistory()}
-              onDocumentSettings={() => setDocumentSettingsOpen(true)}
-              onBackup={backupWorkspace}
-              onRestore={() => void restoreWorkspace()}
-              onExportPreview={() => setExportDialog("export")}
-              onShareLink={() => setExportDialog("share")}
-              onExportSource={exportSource}
-              onExportSvg={exportSvg}
-              onExportPng={() => void exportPng()}
-              onExportPdf={() => void exportPdf()}
-              onCopyImage={() => void copyImage()}
-              onCopyMarkdown={() => void copyMarkdown()}
-              onCopyConfluence={() => void copyConfluence()}
+              {...fileMenuHandlers}
             />
           </>
         }
@@ -4760,7 +4804,7 @@ export function App() {
                 fileCopy={fileCopy}
                 fileName={workspace.fileName}
                 state={currentFileSaveState}
-                onRetry={() => void saveCurrentDocument()}
+                onRetry={statusHandlers.onRetrySave}
               />
             </div>
           </>
@@ -4782,10 +4826,10 @@ export function App() {
             <>
               <RibbonGroup label="History">
                 <HistoryMenu
-                  undoSteps={commandReadOnly ? [] : activeHistory.undoDescriptions}
-                  redoSteps={commandReadOnly ? [] : activeHistory.redoDescriptions}
-                  onUndo={undo}
-                  onRedo={redo}
+                  undoSteps={undoSteps}
+                  redoSteps={redoSteps}
+                  onUndo={historyHandlers.onUndo}
+                  onRedo={historyHandlers.onRedo}
                 />
               </RibbonGroup>
               <RibbonGroup label="Diagram selection">
@@ -4851,37 +4895,7 @@ export function App() {
                 inline
                 diagramKind={workspace.diagramKind}
                 disabled={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
-                onTask={() => openDialog({ kind: "add-task" })}
-                onMilestone={() => openDialog({ kind: "add-milestone" })}
-                onDivider={() => openDialog({ kind: "add-divider" })}
-                onClosedDay={() => {
-                  openProjectInspector();
-                  setClosedDayFocus((value) => value + 1);
-                }}
-                onParticipant={() => openDialog({ kind: "add-sequence-participant" })}
-                onMessage={() => openDialog({ kind: "add-sequence-message" })}
-                onFragment={() => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })}
-                onActivation={() => openDialog({ kind: "add-sequence-structure", structureKind: "activation" })}
-                onNote={() => openDialog({ kind: "add-sequence-structure", structureKind: "note" })}
-                onSequenceSpacing={() => openDialog({ kind: "add-sequence-structure", structureKind: "separator" })}
-                onReference={() => openDialog({ kind: "add-sequence-structure", structureKind: "reference" })}
-                onParticipantBox={() => openDialog({ kind: "add-sequence-structure", structureKind: "box" })}
-                onUseCaseActor={() => openDialog({ kind: "add-usecase-element", elementKind: "actor" })}
-                onUseCase={() => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })}
-                onUseCaseRelationship={() => openDialog({ kind: "add-usecase-relationship" })}
-                onUseCasePackage={() => openDialog({ kind: "add-usecase-package" })}
-                onUseCaseNote={() => openDialog({ kind: "add-usecase-note" })}
-                onClassEntity={() => openDialog({ kind: "add-class-entity" })}
-                onClassRelationship={() => openDialog({ kind: "add-class-relationship" })}
-                onClassPackage={() => openDialog({ kind: "add-class-package" })}
-                onClassNote={() => openDialog({ kind: "add-class-note" })}
-                onActivityAction={() => openDialog({ kind: "add-activity-action" })}
-                onActivityPartition={() => openDialog({ kind: "add-activity-partition" })}
-                onActivityNote={() => openDialog({ kind: "add-activity-note" })}
-                onActivityStructure={() => openDialog({ kind: "add-activity-structure" })}
-                onActivityTerminal={() => openDialog({ kind: "add-activity-terminal" })}
-                onActivityArrow={() => openDialog({ kind: "add-activity-arrow" })}
-                onWbsNode={() => openDialog({ kind: "add-wbs-node" })}
+                {...addMenuHandlers}
               />
               {workspace.diagramKind === "gantt" && (
                 <button
