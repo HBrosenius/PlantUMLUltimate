@@ -76,6 +76,15 @@ export const rendererFrameBootstrap = `
           } catch (error) { send({ type: "bootstrap-error", error: String(error) }); }
           return;
         }
+        if (request.type === "add-graphviz") {
+          // Graphviz joins the running engine the first time a diagram needs it; no worker restart.
+          if (!configuration || configuration.graphviz) return;
+          try {
+            configuration.graphviz = scriptUrl(request.graphviz);
+            worker?.postMessage({ type: "load-graphviz", graphviz: configuration.graphviz });
+          } catch (error) { send({ type: "bootstrap-error", error: String(error) }); }
+          return;
+        }
         if (request.type === "dispose") { stop(); send({ type: "disposed" }); return; }
         if (request.type === "cancel") {
           if (nextRequest?.requestId === request.requestId) {

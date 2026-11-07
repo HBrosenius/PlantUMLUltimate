@@ -106,16 +106,35 @@ Object.assign(globalThis, {
 
 let renderToString:
   ((lines: string[], done: (svg: string) => void, fail: (error: unknown) => void) => void) | undefined;
+let graphvizLoaded = false;
+// The engine looks Graphviz up when it lays out a graph, so it can be added after the engine loaded.
+function loadGraphviz(url: string) {
+  if (graphvizLoaded || !url) return;
+  Object.defineProperty(document, "currentScript", { value: { tagName: "SCRIPT", src: url }, configurable: true });
+  importScripts(url);
+  graphvizLoaded = true;
+}
 self.onmessage = async (event: MessageEvent) => {
   const request = event.data;
   if (request.type === "initialize") {
     try {
-      Object.defineProperty(document, "currentScript", { value: { tagName: "SCRIPT", src: request.graphviz } });
-      if (request.layoutEngine === "graphviz") importScripts(request.graphviz);
+      Object.defineProperty(document, "currentScript", {
+        value: { tagName: "SCRIPT", src: request.graphviz },
+        configurable: true,
+      });
+      loadGraphviz(request.graphviz);
       importScripts(request.engine, request.icons);
       renderToString = (globalThis as typeof globalThis & { __plantumlRenderToString: typeof renderToString })
         .__plantumlRenderToString;
       self.postMessage({ type: "ready", nativeTextMetrics: nativeMetrics });
+    } catch (error) {
+      self.postMessage({ type: "bootstrap-error", error: String(error) });
+    }
+    return;
+  }
+  if (request.type === "load-graphviz") {
+    try {
+      loadGraphviz(request.graphviz);
     } catch (error) {
       self.postMessage({ type: "bootstrap-error", error: String(error) });
     }

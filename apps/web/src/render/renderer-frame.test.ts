@@ -128,3 +128,27 @@ it("restarts the worker on cancel so the replacement loads the engine while the 
   expect(worker.terminated).toBe(true);
   expect(FakeWorker.instances).toHaveLength(2);
 });
+
+it("loads Graphviz into the running worker on demand and hands it to any replacement worker", async () => {
+  const frame = await boot();
+  const first = FakeWorker.instances[0]!;
+  const initialize = first.posted.find((message) => message.type === "initialize") as { graphviz?: string };
+  expect(initialize.graphviz).toBe("");
+  frame.post({ type: "add-graphviz", graphviz: "viz" });
+  expect(first.posted.map((message) => message.type)).toEqual(["initialize", "load-graphviz"]);
+  // A second delivery is ignored: the engine already has it.
+  frame.post({ type: "add-graphviz", graphviz: "viz" });
+  expect(first.posted.filter((message) => message.type === "load-graphviz")).toHaveLength(1);
+  await render(frame, 1);
+  expect(FakeWorker.instances).toHaveLength(1);
+
+  // After the worker is replaced (cancel), the new one loads Graphviz at initialization.
+  first.postMessage = function (this: FakeWorker, message) {
+    this.posted.push(message);
+  };
+  frame.post({ type: "render", requestId: 2, source: "s", renderSource: "s" });
+  frame.post({ type: "cancel", requestId: 2 });
+  const second = FakeWorker.instances[1]!;
+  const secondInit = second.posted.find((message) => message.type === "initialize") as { graphviz?: string };
+  expect(secondInit.graphviz).toBe("blob:script");
+});

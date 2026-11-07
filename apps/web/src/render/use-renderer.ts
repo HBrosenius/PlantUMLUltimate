@@ -14,6 +14,7 @@ interface PendingRender {
   source: string;
   documentId: string;
   renderSource: string;
+  layoutEngine: RendererLayoutEngine;
 }
 interface FrameMessage {
   channel: string;
@@ -43,6 +44,10 @@ export function useRenderer(
   const pending = useRef<PendingRender | undefined>(undefined);
   const latest = useRef({ source, documentId });
   latest.current = { source, documentId };
+  // The renderer outlives tabs, view modes and layout engines: it starts the first time a preview is
+  // wanted and then stays warm until the hook unmounts. Hiding the preview only stops requests.
+  const [started, setStarted] = useState(enabled);
+  if (enabled && !started) setStarted(true);
   const requestId = useRef(0);
   const flush = useRef<(() => void) | undefined>(undefined);
   const supersede = useRef<(() => void) | undefined>(undefined);
@@ -55,13 +60,14 @@ export function useRenderer(
   const [restart, setRestart] = useState(0);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!started) return;
     let disposed = false;
     let frame: HTMLIFrameElement | undefined;
     let channel = "";
     let ready = false;
     let nativeTextMetrics = false;
     let booting = false;
+    let graphvizSent = false;
     let inFlight: PendingRender | undefined;
     let timeout: number | undefined;
     let obsoleteTimer: number | undefined;
@@ -76,6 +82,7 @@ export function useRenderer(
     const removeFrame = () => {
       ready = false;
       booting = false;
+      graphvizSent = false;
       const retired = frame;
       if (retired) {
         const owner = retired.contentWindow;
@@ -119,10 +126,26 @@ export function useRenderer(
       pending.current = undefined;
       if (!isCurrent(request)) return;
       inFlight = request;
-      const preparation =
-        nativeTextMetrics && document.fonts.size === 0
-          ? Promise.resolve(undefined)
-          : buildFontAtlas(request.renderSource, () => disposed || inFlight !== request || !isCurrent(request));
+      const abandoned = () => disposed || inFlight !== request || !isCurrent(request);
+      const armRenderTimeout = () => {
+        window.clearTimeout(timeout);
+        timeout = window.setTimeout(() => {
+          if (inFlight !== request) return;
+          fail("Rendering timed out. Reduce the diagram size or check its source and try again.", request);
+          inFlight = undefined;
+          removeFrame();
+          if (pending.current) void boot();
+        }, RENDER_TIMEOUT_MS);
+      };
+      // Graphviz joins the running worker the first time a diagram needs it; downloading it has its own
+      // stall timeout, so the render timeout only starts once it is in place.
+      const preparation = ensureGraphviz(request).then(() => {
+        if (abandoned()) return undefined;
+        armRenderTimeout();
+        return nativeTextMetrics && document.fonts.size === 0
+          ? undefined
+          : buildFontAtlas(request.renderSource, abandoned);
+      });
       void preparation.then(
         (fonts) => {
           if (disposed || inFlight !== request) return;
@@ -150,13 +173,13 @@ export function useRenderer(
           sendPending();
         },
       );
-      timeout = window.setTimeout(() => {
-        if (inFlight !== request) return;
-        fail("Rendering timed out. Reduce the diagram size or check its source and try again.", request);
-        inFlight = undefined;
-        removeFrame();
-        if (pending.current) void boot();
-      }, RENDER_TIMEOUT_MS);
+    };
+    const ensureGraphviz = async (request: PendingRender) => {
+      if (request.layoutEngine !== "graphviz" || graphvizSent) return;
+      const { graphviz } = await loadRendererAssets("graphviz");
+      if (disposed || graphvizSent || !frame?.contentWindow) return;
+      graphvizSent = true;
+      frame.contentWindow.postMessage({ channel, type: "add-graphviz", graphviz }, "*");
     };
     supersede.current = () => {
       const obsolete = inFlight;
@@ -195,7 +218,7 @@ export function useRenderer(
       const version = ++bootVersion;
       try {
         // Downloading has its own stall timeout; the startup timer covers only the frame and worker.
-        const assets = await loadRendererAssets(layoutEngine);
+        const assets = await loadRendererAssets("native");
         if (disposed || version !== bootVersion) return;
         startupTimeout = window.setTimeout(() => {
           bootVersion += 1;
@@ -221,10 +244,7 @@ export function useRenderer(
         frame.srcdoc = frameDocument(channel);
         frame.onload = () => {
           if (!disposed && version === bootVersion)
-            frame?.contentWindow?.postMessage(
-              { channel, type: "initialize", assets: { ...assets, layoutEngine } },
-              "*",
-            );
+            frame?.contentWindow?.postMessage({ channel, type: "initialize", assets }, "*");
         };
         document.body.append(frame);
       } catch (error) {
@@ -316,7 +336,7 @@ export function useRenderer(
       supersede.current = undefined;
       busy.current = undefined;
     };
-  }, [enabled, restart, layoutEngine, documentId]);
+  }, [started, restart]);
 
   useEffect(() => {
     const id = ++requestId.current;
@@ -360,7 +380,13 @@ export function useRenderer(
       }
       const queue = () => {
         if (cancelled || requestId.current !== id) return;
-        pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
+        pending.current = {
+          requestId: id,
+          source,
+          documentId,
+          renderSource: sourceForPlantUmlRenderer(source),
+          layoutEngine,
+        };
         flush.current?.();
       };
       // Bundled themes load on demand; sources without one keep the synchronous path.
@@ -373,7 +399,7 @@ export function useRenderer(
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [enabled, source, documentId, restart]);
+  }, [enabled, source, documentId, layoutEngine, restart]);
 
   const retry = () => {
     cache.current.delete(cacheKey(documentId, source));
