@@ -375,6 +375,14 @@ export function useRenderer(
       setStatus("idle");
       return;
     }
+    // After a tab switch, keep showing the newest preview this document already has (dimmed by the
+    // stale-preview styling, as for an edit in the same document) instead of an empty pane.
+    setResult((previous) => {
+      if (previous?.documentId === documentId) return previous;
+      let newest: RenderResult | undefined;
+      for (const value of cache.current.values()) if (value.documentId === documentId) newest = value;
+      return newest ? { ...newest, requestId: id } : previous;
+    });
     setStatus("rendering");
     const delay = renderDebounceMs({
       busy: busy.current?.() ?? false,

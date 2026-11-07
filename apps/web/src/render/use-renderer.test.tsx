@@ -403,3 +403,21 @@ it("keeps a failed warm-up silent until a preview is wanted", async () => {
   expect(hook.result.current.status).toBe("idle");
   expect(hook.result.current.result).toBeUndefined();
 });
+
+it("keeps a document's newest preview visible while its changed source renders after a tab switch", async () => {
+  const { result, rerender, frame } = await setup();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("A original") });
+  rerender({ text: source("B original"), documentId: "B" });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("B original") });
+  // Back to document A with a source that has never been rendered (it changed while hidden).
+  rerender({ text: source("A edited in code view"), documentId: "A" });
+  expect(result.current.status).toBe("rendering");
+  expect(result.current.result).toMatchObject({ documentId: "A", source: source("Original"), svg: svg("A original") });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("A edited") });
+  expect(result.current.result).toMatchObject({ source: source("A edited in code view"), svg: svg("A edited") });
+  // A document that was never rendered still shows nothing rather than another document's diagram.
+  rerender({ text: source("C new"), documentId: "C" });
+  expect(result.current.result).toBeUndefined();
+});
