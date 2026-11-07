@@ -247,3 +247,51 @@ it("loads a bundled theme on demand before sending the expanded source to the re
   expect(latest.renderSource).toContain("' !theme blueprint expanded locally by PlantUML Ultimate");
   expect(latest.renderSource).toContain('!$BGCOLOR = "#003153"');
 });
+
+it("sends the first edit after a pause immediately and waits while typing continues", async () => {
+  const { rerender, frame } = await setup();
+  await frame.receive({
+    type: "result",
+    requestId: frame.requests().at(-1)!.requestId,
+    svg: svg("Original"),
+    durationMs: 20,
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000);
+  });
+  rerender({ text: source("After a pause"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(frame.requests().map((request) => request.source)).toEqual([source("Original"), source("After a pause")]);
+  await frame.receive({
+    type: "result",
+    requestId: frame.requests().at(-1)!.requestId,
+    svg: svg("After"),
+    durationMs: 20,
+  });
+  rerender({ text: source("Typing 1"), documentId: "A" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  // Within the typing window: a short wait derived from the 20 ms render, not an immediate send.
+  expect(frame.requests()).toHaveLength(2);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30);
+  });
+  expect(frame.requests().at(-1)!.source).toBe(source("Typing 1"));
+});
+
+it("serves a render-cache hit synchronously without contacting the renderer", async () => {
+  const { result, rerender, frame } = await setup();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Original") });
+  rerender({ text: source("Edited"), documentId: "A" });
+  await advance();
+  await frame.receive({ type: "result", requestId: frame.requests().at(-1)!.requestId, svg: svg("Edited") });
+  const sent = frame.requests().length;
+  rerender({ text: source("Original"), documentId: "A" });
+  // No timer has been advanced: the cached preview is already current.
+  expect(result.current.status).toBe("idle");
+  expect(result.current.result?.source).toBe(source("Original"));
+  expect(frame.requests()).toHaveLength(sent);
+});

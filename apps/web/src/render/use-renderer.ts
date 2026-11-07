@@ -7,6 +7,7 @@ import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
 import { measurePreviewPhase } from "./preview-performance";
 import { buildFontAtlas } from "./font-atlas";
+import { renderDebounceMs } from "./render-debounce";
 
 interface PendingRender {
   requestId: number;
@@ -45,6 +46,9 @@ export function useRenderer(
   const requestId = useRef(0);
   const flush = useRef<(() => void) | undefined>(undefined);
   const supersede = useRef<(() => void) | undefined>(undefined);
+  const busy = useRef<(() => boolean) | undefined>(undefined);
+  const lastRenderMs = useRef<number | undefined>(undefined);
+  const lastEditAt = useRef<number | undefined>(undefined);
   const cache = useRef(new Map<string, RenderResult>());
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
@@ -167,6 +171,7 @@ export function useRenderer(
         sendPending();
       }, SUPERSEDED_GRACE_MS);
     };
+    busy.current = () => inFlight !== undefined;
     flush.current = () => {
       if (!frame && !booting) void boot();
       else sendPending();
@@ -273,6 +278,7 @@ export function useRenderer(
       } catch (error) {
         completed.error = error instanceof Error ? error.message : "Invalid SVG";
       }
+      if (!completed.error) lastRenderMs.current = completed.durationMs;
       if (completed.svg) {
         const key = cacheKey(request.documentId, request.source);
         cache.current.delete(key);
@@ -307,6 +313,7 @@ export function useRenderer(
       removeFrame();
       flush.current = undefined;
       supersede.current = undefined;
+      busy.current = undefined;
     };
   }, [enabled, restart, layoutEngine, documentId]);
 
@@ -314,11 +321,26 @@ export function useRenderer(
     const id = ++requestId.current;
     pending.current = undefined;
     supersede.current?.();
+    const now = performance.now();
+    const sinceLastEditMs = lastEditAt.current === undefined ? undefined : now - lastEditAt.current;
+    lastEditAt.current = now;
     if (!enabled) {
       setStatus("idle");
       return;
     }
+    // A preview already rendered for this exact source needs no debounce and no renderer.
+    const cached = cache.current.get(cacheKey(documentId, source));
+    if (cached) {
+      setResult({ ...cached, requestId: id });
+      setStatus("idle");
+      return;
+    }
     setStatus("rendering");
+    const delay = renderDebounceMs({
+      busy: busy.current?.() ?? false,
+      lastRenderMs: lastRenderMs.current,
+      sinceLastEditMs,
+    });
     const timer = window.setTimeout(() => {
       const error = renderSafetyError(source);
       if (error) {
@@ -335,12 +357,6 @@ export function useRenderer(
         }));
         return;
       }
-      const cached = cache.current.get(cacheKey(documentId, source));
-      if (cached) {
-        setResult({ ...cached, requestId: id });
-        setStatus("idle");
-        return;
-      }
       const queue = () => {
         if (cancelled || requestId.current !== id) return;
         pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
@@ -350,7 +366,7 @@ export function useRenderer(
       const theme = bundledThemeToLoad(source);
       if (theme) void loadBundledTheme(theme).then(queue, queue);
       else queue();
-    }, 150);
+    }, delay);
     let cancelled = false;
     return () => {
       cancelled = true;
