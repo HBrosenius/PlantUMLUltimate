@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObjec
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "../diagram-zoom";
 import type { DiagramKind } from "../model";
 import { SelectionDock } from "./SelectionDock";
+import { watchLayout } from "./layout-watch";
 import { SourceLens, type LensState } from "./SourceLens";
 import { DIAGRAM_NOUN, type AddItem, type DockAction, type StageSelection, type TextRange } from "./stage-selection";
 import "./stage.css";
@@ -89,12 +90,13 @@ export function StageView({
   }, [documentId, diagramKind, fit]);
 
   // Centre the (scaled) diagram in the canvas. Zoom is a CSS transform, so centring uses viewport padding.
+  // It is recomputed when something that can change the layout changes, not on every frame.
   useEffect(() => {
-    let frame = 0;
+    const container = containerRef.current;
+    if (!container) return;
     let last = "";
-    const tick = () => {
-      frame = requestAnimationFrame(tick);
-      const viewport = containerRef.current?.querySelector<HTMLElement>(".preview-viewport");
+    const centre = () => {
+      const viewport = container.querySelector<HTMLElement>(".preview-viewport");
       const svg = viewport?.querySelector<SVGSVGElement>(".diagram svg");
       if (!viewport || !svg) return;
       const box = svg.getBoundingClientRect();
@@ -107,11 +109,11 @@ export function StageView({
       viewport.style.paddingRight = "16px";
       viewport.style.paddingTop = `${top}px`;
     };
-    tick();
-    const container = containerRef.current;
+    centre();
+    const stopWatching = watchLayout(container, centre);
     return () => {
-      cancelAnimationFrame(frame);
-      const viewport = container?.querySelector<HTMLElement>(".preview-viewport");
+      stopWatching();
+      const viewport = container.querySelector<HTMLElement>(".preview-viewport");
       viewport?.style.removeProperty("padding-left");
       viewport?.style.removeProperty("padding-right");
       viewport?.style.removeProperty("padding-top");
