@@ -2,6 +2,8 @@ import plantUmlEngineUrl from "@plantuml/core/plantuml.js?url";
 import graphvizUrl from "@plantuml/core/viz-global.js?url";
 import workerUrl from "./canonical.worker.ts?worker&url";
 import { classicEngineScript } from "./engine-exceptions";
+import { fetchTextWithStallTimeout } from "./stall-fetch";
+import { rendererDownloadFinished, rendererDownloadProgress, rendererDownloadStarted } from "./renderer-download";
 
 const assets = new Map<string, Promise<string>>();
 
@@ -26,14 +28,22 @@ export function loadRendererAssets(layoutEngine: "native" | "graphviz" = "graphv
       const existing = assets.get(url);
       if (existing) return existing;
       const pending = (async () => {
-        const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-        if (!response.ok) throw new Error("Could not load the local renderer assets");
-        const source = await response.text();
-        if (source.length > 10_000_000) throw new Error("Renderer asset exceeds the expected size");
-        return scriptSource(
-          index === 0 ? classicEngineScript(source) : source,
-          ["engine", "graphviz", "worker", "icons"][index]!,
-        );
+        rendererDownloadStarted(url);
+        let ok = false;
+        try {
+          // A slow link is fine as long as bytes keep arriving; only a stalled download fails.
+          const source = await fetchTextWithStallTimeout(url, {
+            maxChars: 10_000_000,
+            onProgress: (loaded) => rendererDownloadProgress(url, loaded),
+          });
+          ok = true;
+          return scriptSource(
+            index === 0 ? classicEngineScript(source) : source,
+            ["engine", "graphviz", "worker", "icons"][index]!,
+          );
+        } finally {
+          rendererDownloadFinished(url, ok);
+        }
       })().catch((error) => {
         assets.delete(url);
         throw error;

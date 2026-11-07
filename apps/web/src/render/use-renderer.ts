@@ -193,13 +193,14 @@ export function useRenderer(
       window.clearTimeout(recoveryTimer);
       booting = true;
       const version = ++bootVersion;
-      startupTimeout = window.setTimeout(() => {
-        bootVersion += 1;
-        startupFailed("Renderer startup timed out");
-      }, TIMEOUT_MS);
       try {
+        // Downloading has its own stall timeout; the startup timer covers only the frame and worker.
         const assets = await loadRendererAssets(layoutEngine);
         if (disposed || version !== bootVersion) return;
+        startupTimeout = window.setTimeout(() => {
+          bootVersion += 1;
+          startupFailed("Renderer startup timed out");
+        }, TIMEOUT_MS);
         channel = `plantuml-${crypto.randomUUID()}`;
         frame = document.createElement("iframe");
         // Keep a layout box so browser callbacks are not deferred solely because the frame is display:none.
