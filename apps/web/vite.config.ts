@@ -150,7 +150,11 @@ export function serviceWorkerSource(files: readonly string[]): string {
     .toString(16);
   return `const CACHE = "plantuml-ultimate-${version}";
 const PRECACHE = ${JSON.stringify(paths)};
-self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE))));
+// The shell and other unhashed files must come from the network, not a stale HTTP cache entry: they
+// are the only source of the cached shell now. Hashed assets are immutable by name, so a copy the page
+// already downloaded (the 1.4 MB renderer engine, for one) is reused from the HTTP cache.
+const precacheRequest = (path) => new Request(path, { cache: path.startsWith("/assets/") ? "force-cache" : "reload" });
+self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE.map(precacheRequest)))));
 self.addEventListener("activate", (event) => event.waitUntil(Promise.all([caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("plantuml-ultimate-") && key !== CACHE).map((key) => caches.delete(key)))), self.clients.claim()])));
 self.addEventListener("message", (event) => { if (event.data === "SKIP_WAITING") self.skipWaiting(); });
 self.addEventListener("fetch", (event) => {
@@ -160,7 +164,13 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     // Static pages must never replace the cached editor used for offline startup.
     if (url.pathname !== "/" && url.pathname !== "/index.html") return;
-    event.respondWith(fetch(request).then((response) => { if (response.ok) { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put("/index.html", copy)); } return response; }).catch(() => caches.match("/index.html")));
+    // Cache-first shell: a stalled or slow network must never delay startup. When the shell is
+    // cached, serve it at once and let the browser check for a newer service worker in the
+    // background; a new version installs with its full precache and is offered through the update prompt.
+    event.respondWith(caches.open(CACHE).then((cache) => cache.match("/index.html").then((cached) => {
+      if (cached) { event.waitUntil(self.registration.update().catch(() => undefined)); return cached; }
+      return fetch(request).then((response) => { if (response.ok) cache.put("/index.html", response.clone()); return response; });
+    })));
     return;
   }
   event.respondWith(caches.match(url.pathname).then((cached) => cached || fetch(request).then((response) => { if (response.ok) { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put(url.pathname, copy)); } return response; })));

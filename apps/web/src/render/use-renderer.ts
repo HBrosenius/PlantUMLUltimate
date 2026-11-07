@@ -7,12 +7,14 @@ import { renderSafetyError } from "./render-safety";
 import { sanitizeSvg } from "./sanitize-svg";
 import { measurePreviewPhase } from "./preview-performance";
 import { buildFontAtlas } from "./font-atlas";
+import { renderDebounceMs } from "./render-debounce";
 
 interface PendingRender {
   requestId: number;
   source: string;
   documentId: string;
   renderSource: string;
+  layoutEngine: RendererLayoutEngine;
 }
 interface FrameMessage {
   channel: string;
@@ -38,26 +40,51 @@ export function useRenderer(
   enabled = true,
   layoutEngine: RendererLayoutEngine = "graphviz",
   documentId = "default",
+  options: { prewarm?: boolean } = {},
 ) {
   const pending = useRef<PendingRender | undefined>(undefined);
   const latest = useRef({ source, documentId });
   latest.current = { source, documentId };
+  // The renderer outlives tabs, view modes and layout engines: it starts the first time a preview is
+  // wanted and then stays warm until the hook unmounts. Hiding the preview only stops requests.
+  const [started, setStarted] = useState(enabled);
+  if (enabled && !started) setStarted(true);
+  // With `prewarm`, fetch and boot the engine as soon as the page is idle, before any preview is
+  // wanted (the new-document chooser and Code view do not need one yet), so the first diagram only
+  // pays for rendering.
+  const prewarm = options.prewarm === true;
+  useEffect(() => {
+    if (!prewarm || started) return;
+    const start = () => setStarted(true);
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(start, { timeout: 150 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(start, 50);
+    return () => window.clearTimeout(timer);
+  }, [prewarm, started]);
+  const wanted = useRef(enabled);
+  wanted.current = enabled;
   const requestId = useRef(0);
   const flush = useRef<(() => void) | undefined>(undefined);
   const supersede = useRef<(() => void) | undefined>(undefined);
+  const busy = useRef<(() => boolean) | undefined>(undefined);
+  const lastRenderMs = useRef<number | undefined>(undefined);
+  const lastEditAt = useRef<number | undefined>(undefined);
   const cache = useRef(new Map<string, RenderResult>());
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [result, setResult] = useState<RenderResult | undefined>();
   const [restart, setRestart] = useState(0);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!started) return;
     let disposed = false;
     let frame: HTMLIFrameElement | undefined;
     let channel = "";
     let ready = false;
     let nativeTextMetrics = false;
     let booting = false;
+    let graphvizSent = false;
     let inFlight: PendingRender | undefined;
     let timeout: number | undefined;
     let obsoleteTimer: number | undefined;
@@ -72,6 +99,7 @@ export function useRenderer(
     const removeFrame = () => {
       ready = false;
       booting = false;
+      graphvizSent = false;
       const retired = frame;
       if (retired) {
         const owner = retired.contentWindow;
@@ -97,6 +125,8 @@ export function useRenderer(
     };
     const fail = (error: string, request = inFlight ?? pending.current) => {
       if (disposed || (request && !isCurrent(request))) return;
+      // A warm-up that fails while no preview is wanted stays silent; the next request boots again.
+      if (!request && !wanted.current) return;
       setStatus("error");
       setResult((previous) => ({
         requestId: requestId.current,
@@ -115,10 +145,26 @@ export function useRenderer(
       pending.current = undefined;
       if (!isCurrent(request)) return;
       inFlight = request;
-      const preparation =
-        nativeTextMetrics && document.fonts.size === 0
-          ? Promise.resolve(undefined)
-          : buildFontAtlas(request.renderSource, () => disposed || inFlight !== request || !isCurrent(request));
+      const abandoned = () => disposed || inFlight !== request || !isCurrent(request);
+      const armRenderTimeout = () => {
+        window.clearTimeout(timeout);
+        timeout = window.setTimeout(() => {
+          if (inFlight !== request) return;
+          fail("Rendering timed out. Reduce the diagram size or check its source and try again.", request);
+          inFlight = undefined;
+          removeFrame();
+          if (pending.current) void boot();
+        }, RENDER_TIMEOUT_MS);
+      };
+      // Graphviz joins the running worker the first time a diagram needs it; downloading it has its own
+      // stall timeout, so the render timeout only starts once it is in place.
+      const preparation = ensureGraphviz(request).then(() => {
+        if (abandoned()) return undefined;
+        armRenderTimeout();
+        return nativeTextMetrics && document.fonts.size === 0
+          ? undefined
+          : buildFontAtlas(request.renderSource, abandoned);
+      });
       void preparation.then(
         (fonts) => {
           if (disposed || inFlight !== request) return;
@@ -146,13 +192,13 @@ export function useRenderer(
           sendPending();
         },
       );
-      timeout = window.setTimeout(() => {
-        if (inFlight !== request) return;
-        fail("Rendering timed out. Reduce the diagram size or check its source and try again.", request);
-        inFlight = undefined;
-        removeFrame();
-        if (pending.current) void boot();
-      }, RENDER_TIMEOUT_MS);
+    };
+    const ensureGraphviz = async (request: PendingRender) => {
+      if (request.layoutEngine !== "graphviz" || graphvizSent) return;
+      const { graphviz } = await loadRendererAssets("graphviz");
+      if (disposed || graphvizSent || !frame?.contentWindow) return;
+      graphvizSent = true;
+      frame.contentWindow.postMessage({ channel, type: "add-graphviz", graphviz }, "*");
     };
     supersede.current = () => {
       const obsolete = inFlight;
@@ -167,6 +213,7 @@ export function useRenderer(
         sendPending();
       }, SUPERSEDED_GRACE_MS);
     };
+    busy.current = () => inFlight !== undefined;
     flush.current = () => {
       if (!frame && !booting) void boot();
       else sendPending();
@@ -188,13 +235,14 @@ export function useRenderer(
       window.clearTimeout(recoveryTimer);
       booting = true;
       const version = ++bootVersion;
-      startupTimeout = window.setTimeout(() => {
-        bootVersion += 1;
-        startupFailed("Renderer startup timed out");
-      }, TIMEOUT_MS);
       try {
-        const assets = await loadRendererAssets(layoutEngine);
+        // Downloading has its own stall timeout; the startup timer covers only the frame and worker.
+        const assets = await loadRendererAssets("native");
         if (disposed || version !== bootVersion) return;
+        startupTimeout = window.setTimeout(() => {
+          bootVersion += 1;
+          startupFailed("Renderer startup timed out");
+        }, TIMEOUT_MS);
         channel = `plantuml-${crypto.randomUUID()}`;
         frame = document.createElement("iframe");
         // Keep a layout box so browser callbacks are not deferred solely because the frame is display:none.
@@ -215,10 +263,7 @@ export function useRenderer(
         frame.srcdoc = frameDocument(channel);
         frame.onload = () => {
           if (!disposed && version === bootVersion)
-            frame?.contentWindow?.postMessage(
-              { channel, type: "initialize", assets: { ...assets, layoutEngine } },
-              "*",
-            );
+            frame?.contentWindow?.postMessage({ channel, type: "initialize", assets }, "*");
         };
         document.body.append(frame);
       } catch (error) {
@@ -273,6 +318,7 @@ export function useRenderer(
       } catch (error) {
         completed.error = error instanceof Error ? error.message : "Invalid SVG";
       }
+      if (!completed.error) lastRenderMs.current = completed.durationMs;
       if (completed.svg) {
         const key = cacheKey(request.documentId, request.source);
         cache.current.delete(key);
@@ -307,18 +353,42 @@ export function useRenderer(
       removeFrame();
       flush.current = undefined;
       supersede.current = undefined;
+      busy.current = undefined;
     };
-  }, [enabled, restart, layoutEngine, documentId]);
+  }, [started, restart]);
 
   useEffect(() => {
     const id = ++requestId.current;
     pending.current = undefined;
     supersede.current?.();
+    const now = performance.now();
+    const sinceLastEditMs = lastEditAt.current === undefined ? undefined : now - lastEditAt.current;
+    lastEditAt.current = now;
     if (!enabled) {
       setStatus("idle");
       return;
     }
+    // A preview already rendered for this exact source needs no debounce and no renderer.
+    const cached = cache.current.get(cacheKey(documentId, source));
+    if (cached) {
+      setResult({ ...cached, requestId: id });
+      setStatus("idle");
+      return;
+    }
+    // After a tab switch, keep showing the newest preview this document already has (dimmed by the
+    // stale-preview styling, as for an edit in the same document) instead of an empty pane.
+    setResult((previous) => {
+      if (previous?.documentId === documentId) return previous;
+      let newest: RenderResult | undefined;
+      for (const value of cache.current.values()) if (value.documentId === documentId) newest = value;
+      return newest ? { ...newest, requestId: id } : previous;
+    });
     setStatus("rendering");
+    const delay = renderDebounceMs({
+      busy: busy.current?.() ?? false,
+      lastRenderMs: lastRenderMs.current,
+      sinceLastEditMs,
+    });
     const timer = window.setTimeout(() => {
       const error = renderSafetyError(source);
       if (error) {
@@ -335,28 +405,28 @@ export function useRenderer(
         }));
         return;
       }
-      const cached = cache.current.get(cacheKey(documentId, source));
-      if (cached) {
-        setResult({ ...cached, requestId: id });
-        setStatus("idle");
-        return;
-      }
       const queue = () => {
         if (cancelled || requestId.current !== id) return;
-        pending.current = { requestId: id, source, documentId, renderSource: sourceForPlantUmlRenderer(source) };
+        pending.current = {
+          requestId: id,
+          source,
+          documentId,
+          renderSource: sourceForPlantUmlRenderer(source),
+          layoutEngine,
+        };
         flush.current?.();
       };
       // Bundled themes load on demand; sources without one keep the synchronous path.
       const theme = bundledThemeToLoad(source);
       if (theme) void loadBundledTheme(theme).then(queue, queue);
       else queue();
-    }, 150);
+    }, delay);
     let cancelled = false;
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [enabled, source, documentId, restart]);
+  }, [enabled, source, documentId, layoutEngine, restart]);
 
   const retry = () => {
     cache.current.delete(cacheKey(documentId, source));

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
-export function FileMenu({
+function FileMenuView({
   canExport,
   saving = false,
   onNew,
@@ -358,3 +358,6 @@ export function FileMenu({
     </div>
   );
 }
+
+/** Skips re-rendering while its props are unchanged; callers pass stable handlers. */
+export const FileMenu = memo(FileMenuView);
