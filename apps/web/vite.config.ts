@@ -151,8 +151,9 @@ export function serviceWorkerSource(files: readonly string[]): string {
   return `const CACHE = "plantuml-ultimate-${version}";
 const PRECACHE = ${JSON.stringify(paths)};
 // The shell and other unhashed files must come from the network, not a stale HTTP cache entry: they
-// are the only source of the cached shell now. Hashed assets are immutable by name.
-const precacheRequest = (path) => path.startsWith("/assets/") ? new Request(path) : new Request(path, { cache: "reload" });
+// are the only source of the cached shell now. Hashed assets are immutable by name, so a copy the page
+// already downloaded (the 1.4 MB renderer engine, for one) is reused from the HTTP cache.
+const precacheRequest = (path) => new Request(path, { cache: path.startsWith("/assets/") ? "force-cache" : "reload" });
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE.map(precacheRequest)))));
 self.addEventListener("activate", (event) => event.waitUntil(Promise.all([caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("plantuml-ultimate-") && key !== CACHE).map((key) => caches.delete(key)))), self.clients.claim()])));
 self.addEventListener("message", (event) => { if (event.data === "SKIP_WAITING") self.skipWaiting(); });

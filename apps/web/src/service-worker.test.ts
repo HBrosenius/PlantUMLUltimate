@@ -118,7 +118,7 @@ describe("service worker navigation", () => {
     expect(await worker.navigate("/guide/")).toBeUndefined();
   });
 
-  it("fetches the unhashed shell past the HTTP cache at install and reuses hashed assets", async () => {
+  it("fetches the unhashed shell past the HTTP cache at install and reuses hashed assets from it", async () => {
     const modes = new Map<string, string | undefined>();
     const worker = startWorker(files, async (url, init) => {
       modes.set(new URL(url, "https://app.test").pathname, init?.cache);
@@ -127,6 +127,6 @@ describe("service worker navigation", () => {
     await worker.dispatch("install");
     expect(modes.get("/index.html")).toBe("reload");
     expect(modes.get("/")).toBe("reload");
-    expect(modes.get("/assets/app-1.js")).toBe("default");
+    expect(modes.get("/assets/app-1.js")).toBe("force-cache");
   });
 });
