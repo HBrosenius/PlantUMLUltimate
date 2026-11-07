@@ -58,7 +58,7 @@ const seededSession = (documents) => ({
 /** Records the renderer's `ready` and `result` replies with page timestamps (capture phase, like the app). */
 const recordRendererMessages = () => {
   globalThis.rendererMessages = [];
-  addEventListener(
+  globalThis.addEventListener(
     "message",
     (event) => {
       const data = event.data;
@@ -68,7 +68,7 @@ const recordRendererMessages = () => {
     true,
   );
 };
-const resultCount = (page) => page.evaluate(() => rendererMessages.filter((m) => m[0] === "result").length);
+const resultCount = (page) => page.evaluate(() => globalThis.rendererMessages.filter((m) => m[0] === "result").length);
 
 const median = (values) => [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)];
 const timings = {
@@ -145,33 +145,36 @@ async function measureEditingAndTabs(browser) {
     const before = await resultCount(page);
     const typedAt = await page.evaluate(() => performance.now());
     await page.keyboard.type(String.fromCharCode(97 + edit));
-    await page.waitForFunction((count) => rendererMessages.filter((m) => m[0] === "result").length > count, before);
-    const resultAt = await page.evaluate(() => rendererMessages.filter((m) => m[0] === "result").at(-1)[1]);
+    await page.waitForFunction(
+      (count) => globalThis.rendererMessages.filter((m) => m[0] === "result").length > count,
+      before,
+    );
+    const resultAt = await page.evaluate(() => globalThis.rendererMessages.filter((m) => m[0] === "result").at(-1)[1]);
     // The first edit can include one-time engine warm-up.
     if (edit > 0) timings["keystroke to preview"].push(resultAt - typedAt);
     await page.waitForTimeout(250);
   }
 
   const tabs = page.locator(".document-tab > button:first-child");
-  const bootsBefore = await page.evaluate(() => rendererMessages.filter((m) => m[0] === "ready").length);
+  const bootsBefore = await page.evaluate(() => globalThis.rendererMessages.filter((m) => m[0] === "ready").length);
   const visited = new Set([0]);
   for (const index of [1, 0, 1, 2, 3, 0, 2]) {
     const firstVisit = !visited.has(index);
     visited.add(index);
     const clickedAt = await page.evaluate(() => {
-      globalThis.previousSvg = document.querySelector(".diagram svg");
+      globalThis.previousSvg = globalThis.document.querySelector(".diagram svg");
       return performance.now();
     });
     await tabs.nth(index).click();
     await page.waitForFunction(() => {
-      const svg = document.querySelector(".diagram svg");
+      const svg = globalThis.document.querySelector(".diagram svg");
       return svg && svg !== globalThis.previousSvg;
     });
     const shownAt = await page.evaluate(() => performance.now());
     timings[firstVisit ? "tab switch (first visit)" : "tab switch (cached)"].push(shownAt - clickedAt);
     await page.waitForTimeout(500);
   }
-  const bootsAfter = await page.evaluate(() => rendererMessages.filter((m) => m[0] === "ready").length);
+  const bootsAfter = await page.evaluate(() => globalThis.rendererMessages.filter((m) => m[0] === "ready").length);
   counters["renderer boots per 7 tab switches"].push(bootsAfter - bootsBefore);
   await context.close();
 }
