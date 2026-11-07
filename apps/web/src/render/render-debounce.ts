@@ -6,7 +6,7 @@
  * typing, or a render is still running, it follows the measured render cost so cheap diagrams stay
  * responsive and expensive ones are not restarted on every character.
  *
- * It is never below 60 ms. A trial with 0-30 ms showed a preview update landing in the middle of the
+ * It is never below 75 ms. A trial with 0-30 ms showed a preview update landing in the middle of the
  * interaction that caused it (focus moving between inspector fields) and coinciding with the next
  * field's first input event, which the browser test then failed on 6 runs in 10. With 45 ms and above
  * the same test passed every run. The race itself was not root-caused (it needs an instant,
