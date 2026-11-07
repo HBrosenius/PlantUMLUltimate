@@ -40,6 +40,7 @@ export function useRenderer(
   enabled = true,
   layoutEngine: RendererLayoutEngine = "graphviz",
   documentId = "default",
+  options: { prewarm?: boolean } = {},
 ) {
   const pending = useRef<PendingRender | undefined>(undefined);
   const latest = useRef({ source, documentId });
@@ -48,6 +49,22 @@ export function useRenderer(
   // wanted and then stays warm until the hook unmounts. Hiding the preview only stops requests.
   const [started, setStarted] = useState(enabled);
   if (enabled && !started) setStarted(true);
+  // With `prewarm`, fetch and boot the engine as soon as the page is idle, before any preview is
+  // wanted (the new-document chooser and Code view do not need one yet), so the first diagram only
+  // pays for rendering.
+  const prewarm = options.prewarm === true;
+  useEffect(() => {
+    if (!prewarm || started) return;
+    const start = () => setStarted(true);
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(start, { timeout: 150 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(start, 50);
+    return () => window.clearTimeout(timer);
+  }, [prewarm, started]);
+  const wanted = useRef(enabled);
+  wanted.current = enabled;
   const requestId = useRef(0);
   const flush = useRef<(() => void) | undefined>(undefined);
   const supersede = useRef<(() => void) | undefined>(undefined);
@@ -108,6 +125,8 @@ export function useRenderer(
     };
     const fail = (error: string, request = inFlight ?? pending.current) => {
       if (disposed || (request && !isCurrent(request))) return;
+      // A warm-up that fails while no preview is wanted stays silent; the next request boots again.
+      if (!request && !wanted.current) return;
       setStatus("error");
       setResult((previous) => ({
         requestId: requestId.current,

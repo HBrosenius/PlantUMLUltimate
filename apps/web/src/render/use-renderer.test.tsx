@@ -361,3 +361,45 @@ it("serves a render-cache hit synchronously without contacting the renderer", as
   expect(result.current.result?.source).toBe(source("Original"));
   expect(frame.requests()).toHaveLength(sent);
 });
+
+it("pre-warms the renderer while no preview is wanted and renders the first request without a boot", async () => {
+  const hook = renderHook(({ enabled }) => useRenderer(source("First"), enabled, "native", "A", { prewarm: true }), {
+    initialProps: { enabled: false },
+  });
+  await act(async () => {});
+  // Nothing starts before the page is idle...
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(0);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+  const frame = rendererFrame();
+  await frame.receive({ type: "ready" });
+  // ...but no render request is made for a preview nobody asked for.
+  await advance();
+  expect(frame.requests()).toHaveLength(0);
+  expect(hook.result.current.status).toBe("idle");
+  hook.rerender({ enabled: true });
+  await advance();
+  expect(frame.requests().map((request) => request.source)).toEqual([source("First")]);
+  expect(document.querySelectorAll('iframe[title="Local PlantUML renderer"]')).toHaveLength(1);
+});
+
+it("keeps a failed warm-up silent until a preview is wanted", async () => {
+  const hook = renderHook(({ enabled }) => useRenderer(source("First"), enabled, "native", "A", { prewarm: true }), {
+    initialProps: { enabled: false },
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  const frame = rendererFrame();
+  // Two failed starts: the automatic retry is used up.
+  await frame.receive({ type: "bootstrap-error", error: "blocked" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(150);
+  });
+  const retry = rendererFrame();
+  await retry.receive({ type: "bootstrap-error", error: "blocked" });
+  expect(hook.result.current.status).toBe("idle");
+  expect(hook.result.current.result).toBeUndefined();
+});
