@@ -1,3 +1,4 @@
+import { GanttSideInspectors } from "./app/GanttSideInspectors";
 import { AppOverlays } from "./app/AppOverlays";
 import { InspectorWorkspace } from "./InspectorWorkspace";
 import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
@@ -63,7 +64,7 @@ import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
 import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
 import { GanttLinkedDeleteDialog } from "./features/gantt/GanttLinkedDeleteDialog";
-import { GanttInspectors } from "./features/gantt/GanttInspectors";
+
 import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
 import { useGanttController } from "./features/gantt/use-gantt-controller";
 import { useGanttDependencyActions } from "./features/gantt/use-gantt-dependency-actions";
@@ -80,7 +81,7 @@ import {
 } from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 
-import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
+import { buildResourceOverAllocations } from "./ResourceWorkloadPanel";
 
 import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
@@ -132,7 +133,6 @@ import {
   moveVerticalSeparatorByDays,
   parseGantt,
   renameTask,
-  renameResource,
 } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 
@@ -342,10 +342,6 @@ const UseCaseInspectors = lazyFeature<
   () => import("./features/usecase/UseCaseInspectors").then((module) => ({ default: module.UseCaseInspectors })),
   "use case inspectors",
   { silent: true },
-);
-const ReportsDialog = lazyFeature<ComponentProps<typeof import("./features/reports/ReportsDialog").ReportsDialog>>(
-  () => import("./features/reports/ReportsDialog").then((module) => ({ default: module.ReportsDialog })),
-  "reports",
 );
 const ExportDialog = lazyFeature<ComponentProps<typeof import("./ExportDialog").ExportDialog>>(
   () => import("./ExportDialog").then((module) => ({ default: module.ExportDialog })),
@@ -6793,229 +6789,70 @@ export function App() {
           onClose={() => setSelectedTaskId(undefined)}
         />
       )}
-      <GanttInspectors
-        selectedTask={multipleTasksSelected || (taskViewActive && !taskTableInspector) ? undefined : selectedTask}
-        linkedWbsAlias={
-          selectedTask
-            ? activeDocument.wbsGanttLinks?.find((link) => link.ganttAlias.toLowerCase() === selectedTask.id)?.wbsAlias
-            : undefined
-        }
-        wbsLinkStatus={
-          selectedTask && linkedWbs
-            ? (() => {
-                const link = activeDocument.wbsGanttLinks?.find(
-                  (item) => item.ganttAlias.toLowerCase() === selectedTask.id,
-                );
-                if (!link) return "Unlinked from WBS.";
-                const node = parseWbs(linkedWbs.source).nodes.find((item) => item.alias === link.wbsAlias);
-                return node ? `Linked to ${node.label}.` : `Missing WBS node (${link.wbsAlias}).`;
-              })()
-            : undefined
-        }
-        wbsTargets={
-          linkedWbs
-            ? parseWbs(linkedWbs.source)
-                .nodes.filter(
-                  (node) =>
-                    node.alias &&
-                    !activeDocument.wbsGanttLinks?.some(
-                      (link) => link.wbsAlias === node.alias && link.ganttAlias.toLowerCase() !== selectedTask?.id,
-                    ),
-                )
-                .map((node) => ({
-                  key: node.alias!,
-                  label: node.label,
-                }))
-            : []
-        }
-        onLinkWbsNode={(alias) => {
-          if (!selectedTask || !linkedWbs || !alias) return;
-          if (
-            activeDocument.wbsGanttLinks?.some(
-              (link) => link.wbsAlias === alias && link.ganttAlias.toLowerCase() !== selectedTask.id,
-            )
-          ) {
-            setInteractionMessage("That WBS node is already linked to another Gantt task");
-            return;
-          }
-          const ganttAlias = selectedTask.alias?.value ?? `wbs_link_${Date.now().toString(36)}`;
-          if (!selectedTask.alias) {
-            const at = selectedTask.labelRange.to + 1;
-            updateLinkedSource(
-              { id: tabs.activeId, source: workspace.source },
-              `${workspace.source.slice(0, at)} as [${ganttAlias}]${workspace.source.slice(at)}`,
-              "gantt",
-              "Link task to WBS",
-            );
-          }
-          const links = (activeDocument.wbsGanttLinks ?? []).filter(
-            (item) => item.wbsAlias !== alias && item.ganttAlias !== ganttAlias,
-          );
-          tabs.updateDocumentFormat(tabs.activeId, {
-            wbsGanttLinks: [...links, { wbsAlias: alias, ganttAlias }],
-          });
-          setInteractionMessage(`Linked ${selectedTask.label} to WBS node ${alias}`);
-        }}
-        linkedWbsLabel={
-          selectedTask && linkedWbs
-            ? (() => {
-                const link = activeDocument.wbsGanttLinks?.find(
-                  (item) => item.ganttAlias.toLowerCase() === selectedTask.id,
-                );
-                return link
-                  ? parseWbs(linkedWbs.source).nodes.find((node) => node.alias === link.wbsAlias)?.label
-                  : undefined;
-              })()
-            : undefined
-        }
-        onOpenLinkedWbs={() => selectedTask && openLinkedWbsNode(selectedTask.id)}
-        selectedDependency={selectedDependency}
-        selectedDivider={selectedDivider}
-        selectedVerticalSeparator={selectedVerticalSeparator}
-        tasks={parseResult.document.tasks}
-        relativeMilestoneAnchor={
-          selectedTask &&
-          workspace.source
-            .slice(
-              selectedTask.declarations.find((item) => item.kind === "milestone")?.range.from ?? 0,
-              selectedTask.declarations.find((item) => item.kind === "milestone")?.range.to ?? 0,
-            )
-            .match(/'s\s+(start|end)/i)?.[1]
-            ?.toLowerCase() === "start"
-            ? "start"
-            : "end"
-        }
-        predecessorId={selectedPredecessorId}
-        dependencyRelation={selectedTaskDependency?.relation ?? "start-after-end"}
-        effectiveStart={selectedTask ? (resolvedTaskDates.get(selectedTask.id)?.start ?? "") : ""}
-        effectiveEnd={selectedTask ? (resolvedTaskDates.get(selectedTask.id)?.end ?? "") : ""}
-        calendar={ganttCalendar}
-        resourceNames={resourceNames}
-        resourceConflicts={selectedResourceConflicts}
-        jiraStatus={selectedTask ? jiraTaskStatuses.get(selectedTask.id) : undefined}
-        focusTaskNote={Boolean(selectedTask && focusNoteTaskId === selectedTask.id)}
-        legendOpen={legendInspectorOpen}
+      <GanttSideInspectors
+        activeDocument={activeDocument}
+        applyDependencyInspector={applyDependencyInspector}
+        applyDividerInspector={applyDividerInspector}
+        applyGanttMilestoneInspector={applyGanttMilestoneInspector}
+        applyGanttTaskInspector={applyGanttTaskInspector}
+        applyLegendInspector={applyLegendInspector}
+        applyVerticalSeparatorInspector={applyVerticalSeparatorInspector}
+        baselineVersion={baselineVersion}
+        closeLegendInspector={closeLegendInspector}
+        commitGeneratedSource={commitGeneratedSource}
+        deleteDependency={deleteDependency}
+        deleteSelectedDivider={deleteSelectedDivider}
+        deleteSelectedTask={deleteSelectedTask}
+        deleteSelectedVerticalSeparator={deleteSelectedVerticalSeparator}
+        focusNoteTaskId={focusNoteTaskId}
+        ganttCalendar={ganttCalendar}
+        jiraTaskStatuses={jiraTaskStatuses}
         legendEntries={legendEntries}
         legendFocusColor={legendFocusColor}
-        onMilestoneApply={applyGanttMilestoneInspector}
-        onTaskApply={(value) => {
-          applyGanttTaskInspector(value);
-          if (!selectedTask || !linkedWbs || value.label.trim() === selectedTask.label.trim()) return;
-          const link = activeDocument.wbsGanttLinks?.find((item) => item.ganttAlias.toLowerCase() === selectedTask.id);
-          const document = parseWbs(linkedWbs.source);
-          const node = link && document.nodes.find((item) => item.alias === link.wbsAlias);
-          if (!node) return;
-          updateLinkedSource(
-            linkedWbs,
-            updateWbsNode(linkedWbs.source, node, {
-              label: value.label.replace(/^(?:↳\s*)+/, "").trim(),
-              ...(node.color ? { color: node.color } : {}),
-              ...(node.textColor ? { textColor: node.textColor } : {}),
-              ...(node.stereotype ? { stereotype: node.stereotype } : {}),
-              ...(node.link ? { link: node.link } : {}),
-              ...(node.icon ? { icon: node.icon } : {}),
-              side: node.side === "left" ? "left" : "right",
-            }),
-            "wbs",
-            "Rename node from linked Gantt",
-          );
-        }}
-        onTaskDelete={() => {
-          if (
-            selectedTask &&
-            linkedWbs &&
-            activeDocument.wbsGanttLinks?.some((item) => item.ganttAlias.toLowerCase() === selectedTask.id)
-          )
-            setPendingGanttDeleteTaskId(selectedTask.id);
-          else deleteSelectedTask();
-        }}
-        onDependencyApply={applyDependencyInspector}
-        onDependencyDelete={deleteDependency}
-        onDividerApply={applyDividerInspector}
-        onDividerDelete={deleteSelectedDivider}
-        onVerticalSeparatorApply={applyVerticalSeparatorInspector}
-        onVerticalSeparatorDelete={deleteSelectedVerticalSeparator}
-        onLegendApply={applyLegendInspector}
-        onCloseTask={() => {
-          setSelectedTaskId(undefined);
-          restorePreviousFocus();
-        }}
-        onCloseDependency={() => setSelectedDependencyIndex(undefined)}
-        onCloseDivider={() => setSelectedDividerIndex(undefined)}
-        onCloseVerticalSeparator={() => setSelectedVerticalSeparatorIndex(undefined)}
-        onCloseLegend={closeLegendInspector}
+        legendInspectorOpen={legendInspectorOpen}
+        linkedWbs={linkedWbs}
+        multipleTasksSelected={multipleTasksSelected}
+        openLinkedWbsNode={openLinkedWbsNode}
+        parseResult={parseResult}
+        prepareUtilityPanel={prepareUtilityPanel}
+        renameCapacity={renameCapacity}
+        reportCoordinator={reportCoordinator}
+        reportResource={reportResource}
+        reportsOpen={reportsOpen}
+        reportsSuspended={reportsSuspended}
+        resolvedTaskDates={resolvedTaskDates}
+        resourceCapacities={resourceCapacities}
+        resourceNames={resourceNames}
+        resourcePanelOpen={resourcePanelOpen}
+        restorePreviousFocus={restorePreviousFocus}
+        selectTask={selectTask}
+        selectedDependency={selectedDependency}
+        selectedDivider={selectedDivider}
+        selectedPredecessorId={selectedPredecessorId}
+        selectedResourceConflicts={selectedResourceConflicts}
+        selectedTask={selectedTask}
+        selectedTaskDependency={selectedTaskDependency}
+        selectedVerticalSeparator={selectedVerticalSeparator}
+        setInteractionMessage={setInteractionMessage}
+        setPendingGanttDeleteTaskId={setPendingGanttDeleteTaskId}
+        setProblemsOpen={setProblemsOpen}
+        setReportCoordinator={setReportCoordinator}
+        setReportResource={setReportResource}
+        setReportsOpen={setReportsOpen}
+        setReportsSuspended={setReportsSuspended}
+        setResourceFilter={setResourceFilter}
+        setResourcePanelOpen={setResourcePanelOpen}
+        setSelectedDependencyIndex={setSelectedDependencyIndex}
+        setSelectedDividerIndex={setSelectedDividerIndex}
+        setSelectedTaskId={setSelectedTaskId}
+        setSelectedVerticalSeparatorIndex={setSelectedVerticalSeparatorIndex}
+        tabs={tabs}
+        taskTableInspector={taskTableInspector}
+        taskViewActive={taskViewActive}
+        updateLinkedSource={updateLinkedSource}
+        updateResourceCapacities={updateResourceCapacities}
+        workspace={workspace}
       />
-      {reportsOpen && (
-        <ReportsDialog
-          source={workspace.source}
-          sourceIdentity={tabs.activeId}
-          documentName={workspace.fileName}
-          diagramName={workspace.source.match(/^\s*title\s+(.+)$/m)?.[1] ?? workspace.fileName}
-          timeZone={activeDocument.progressForecast?.timeZone}
-          forecastSettings={activeDocument.progressForecast}
-          resource={reportResource}
-          coordinator={reportCoordinator}
-          baselineSource={baselineVersion?.source}
-          baselineName={
-            baselineVersion ? `${baselineVersion.label ?? "Baseline"} · ${baselineVersion.createdAt}` : undefined
-          }
-          capacities={resourceCapacities}
-          history={activeDocument.reportingHistory}
-          onRecordProgress={(observation) => {
-            const target = tabs.getDocument(tabs.activeId);
-            if (target)
-              tabs.updateDocumentFormat(target.id, {
-                reportingHistory: [...(target.reportingHistory ?? []), observation],
-                dirty: true,
-              });
-          }}
-          suspended={reportsSuspended}
-          onOpenIssues={() => {
-            if (!prepareUtilityPanel()) return;
-            setProblemsOpen(true);
-            setReportsSuspended(true);
-          }}
-          onClose={() => setReportsOpen(false)}
-        />
-      )}
-      {resourcePanelOpen && (
-        <ResourceWorkloadPanel
-          onReport={(name, coordinator = false) => {
-            setReportResource(name);
-            setReportCoordinator(coordinator);
-            setReportsSuspended(false);
-            setReportsOpen(true);
-          }}
-          tasks={parseResult.document.tasks}
-          resolvedDates={resolvedTaskDates}
-          calendar={ganttCalendar}
-          capacities={resourceCapacities}
-          onCapacityChange={(name, capacity) =>
-            updateResourceCapacities((current) => ({
-              ...current,
-              [name]: Math.max(1, Number.isFinite(capacity) ? capacity : 100),
-            }))
-          }
-          onRename={(currentName, nextName) => {
-            const operation = renameResource(parseResult.document, currentName, nextName, workspace.source);
-            if (operation.unavailableReason) {
-              setInteractionMessage(operation.unavailableReason);
-              return;
-            }
-            if (!commitGeneratedSource(applySourceEdits(workspace.source, operation.edits), `Rename ${currentName}`))
-              return;
-            renameCapacity(currentName, nextName);
-            setResourceFilter((current) => (current === currentName ? nextName : current));
-            setInteractionMessage(`Renamed ${currentName} to ${nextName}`);
-          }}
-          onFilter={(name) => setResourceFilter(name)}
-          onTaskSelect={(id) => {
-            setResourcePanelOpen(false);
-            selectTask(id);
-          }}
-          onClose={() => setResourcePanelOpen(false)}
-        />
-      )}
       <AppOverlays
         activeDiagnostics={activeDiagnostics}
         activeDocument={activeDocument}
