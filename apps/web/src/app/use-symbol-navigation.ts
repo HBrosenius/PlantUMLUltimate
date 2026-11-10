@@ -215,7 +215,6 @@ export function useSymbolNavigation({
       lastDiagramFocusSelector,
       renameReturnFocus,
       setSymbolMenu,
-      setSymbolMenu,
       diagramOccurrenceForTarget,
     ],
   );
