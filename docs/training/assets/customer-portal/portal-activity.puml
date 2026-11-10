@@ -1,0 +1,17 @@
+@startuml
+title Customer request intake
+start
+:Receive request;
+if (Request valid?) then (yes)
+  :Store request;
+  fork
+    :Send confirmation;
+  fork again
+    :Notify support team;
+  end fork
+  :Show request status;
+else (no)
+  :Explain required corrections;
+endif
+stop
+@enduml

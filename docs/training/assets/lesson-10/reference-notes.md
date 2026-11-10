@@ -1,0 +1,1 @@
+These independent reference examples supplement the worked sequence lesson. Syntax was checked against the official PlantUML sequence reference: https://plantuml.com/sequence-diagram . Check the actual local preview/export behavior for page breaks and Teoz duration anchors; a source construct does not imply a dedicated visual editor.

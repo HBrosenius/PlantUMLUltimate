@@ -1,0 +1,14 @@
+@startuml
+title Break critical and grouping references
+participant Portal
+participant API
+break cancelled request
+API --> Portal: Cancelled
+end
+critical update request
+Portal -> API: Commit status
+end
+group receipt
+API --> Portal: Show receipt
+end
+@enduml

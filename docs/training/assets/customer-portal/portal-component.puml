@@ -1,0 +1,12 @@
+@startuml
+title Customer portal architecture
+component "Web app" as Web
+component API
+component "Notification worker" as Worker
+queue "Notification queue" as Queue
+database "Request database" as Database
+Web --> API : HTTPS
+API --> Database : read / write
+API --> Queue : request created
+Queue --> Worker : process event
+@enduml

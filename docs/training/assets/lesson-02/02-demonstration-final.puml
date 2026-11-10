@@ -1,0 +1,14 @@
+@startgantt
+title Customer portal launch
+Project starts 2026-11-02
+saturday are closed
+sunday are closed
+
+[Research] as [research] lasts 4 days
+[Design] as [design] lasts 7 days
+[design] starts at [research]'s end
+[Build] as [build] lasts 10 days
+[build] starts at [design]'s end
+[build] is 25% completed
+[Launch] happens at [build]'s end
+@endgantt

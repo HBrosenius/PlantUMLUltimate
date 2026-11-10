@@ -1,0 +1,1097 @@
+{
+  "id": "04",
+  "title": "Dependencies and calendars",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Explain the dates with rules",
+      "text": "A useful schedule explains why work begins when it does. In this lesson we will connect tasks, compare dependency relations, add a lag, and adjust working calendars. We will also distinguish authored timeline scale from preview magnification. The customer portal plan gives us a small example that is easy to inspect. Keep checking the source as you change the rules: an arrow's appearance is less important than the start or end condition it represents.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Dependencies and calendars explain the schedule",
+              "items": [
+                "Relations and lag",
+                "Working days and exceptions",
+                "Authored scale versus preview zoom"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-add",
+      "title": "Create a dependency explicitly",
+      "text": "Start with independently dated tasks. Use Add dependency to choose a predecessor and successor, then choose which endpoint of each task participates. We will connect Research's end to Design's start. Check the generated statement and the resulting dates. A dependency is a rule, not merely an annotation on the drawing. If you connect the wrong pair, inspect or remove the link rather than trying to compensate by dragging unrelated tasks into a convenient-looking arrangement.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts 2026-11-09\n[Build] as [build] lasts 8 days\n[build] starts 2026-11-16\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Add dependency\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Predecessor",
+              "value": "research"
+            },
+            {
+              "op": "select",
+              "label": "Successor",
+              "value": "design"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "From",
+              "value": "end"
+            },
+            {
+              "op": "select",
+              "label": "To",
+              "value": "start"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add dependency",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[design] starts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-relations",
+      "title": "Compare four endpoint relations",
+      "text": "A start can follow another task's end or start, and an end can follow another task's end or start. These four relations express different constraints. We will compare valid source examples, checking the relationship shown by the inspector after each one. The end-constrained examples keep an explicit start so the duration has a clear basis. Return to the original end-to-start rule after comparing the endpoints. Do not choose a relation just because its arrow looks tidy. State which event constrains the work and verify that the resulting dates express that requirement.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] starts 2026-11-16 and lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] starts 2026-11-16 and lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s start\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "wait",
+              "ms": 600
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] starts 2026-11-16 and lasts 4 days\n[Design] as [design] starts 2026-11-02\n[design] ends at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "wait",
+              "ms": 600
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] starts 2026-11-16 and lasts 4 days\n[Design] as [design] starts 2026-11-02\n[design] ends at [research]'s start\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "wait",
+              "ms": 600
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] starts 2026-11-16 and lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "wait",
+              "ms": 600
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-lag",
+      "title": "Add a lag and read it correctly",
+      "text": "A dependency can include an offset. Open the Research-to-Design link and set a lag of two days after the predecessor's end. For the statement N days after A's end, the candidate start is A's last day, plus one, plus N. If that candidate is closed in the working calendar, the start moves to the next working day. This is different from treating the predecessor's last day as the successor's first day. Read the authored expression and calculated date together, especially across a weekend.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select dependency from research to design",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Offset (days)",
+              "value": "2"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[design] starts"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Candidate start = predecessor last day + 1 + N; then advance off closed days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04a-lag-weekend",
+      "title": "Verify lag across a closed weekend",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "The zero-lag start-at-end rule places Design on Friday, the sixth, in this working calendar. In the source, change the rule to one day after Research ends. The candidate date falls on a closed Saturday, so the working calendar advances Design to Monday the ninth. Hover over Design to read its resulting dates and compare them with the explicit source rule. Closed-day advancement must follow the same working calendar used to interpret the schedule.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[design] starts at [research]'s end"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "[design] starts at [research]'s end",
+              "to": "[design] starts 1 day after [research]'s end"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "hover",
+              "css": "[data-task-id=\"design\"][role=\"button\"]"
+            },
+            {
+              "op": "assertText",
+              "value": "2026-11-09",
+              "exact": false
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "1 day after [research]'s end"
+            },
+            {
+              "op": "dump",
+              "name": "lag-closed-weekend"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-inspect-link",
+      "title": "Reconnect and explain a link",
+      "text": "The dependency inspector lets you change the endpoint tasks as well as the relation. In a practice copy, redirect the predecessor from Research to Build and inspect what the app permits. Avoid creating a cycle: a task cannot ultimately depend on itself. Line style, color and an optional note communicate the dependency's meaning, but they do not replace the scheduling rule. Return to the intended pair or delete an unwanted link, then use Undo to reconsider the change if necessary.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select dependency from research to design",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Line style",
+              "value": "dashed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Offset (days)",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check endpoint tasks and cycle warnings before accepting a connection."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delete link",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05c-movement-policies",
+      "title": "Compare only-task and cascade movement",
+      "source": "@startgantt\ntitle Fixed dependent movement practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 3 days\n[design] starts 2026-11-06\n[Build] as [build] lasts 3 days\n[build] starts 2026-11-13\n[design] -> [build]\n@endgantt",
+      "text": "In this fixed-task example, choose Only task and retain Build\u2019s authored start date. Move Design by one day and verify that Build keeps its start. Undo that edit before comparing the other policy. Choose Include dependents and move Design again; the connected Build task now moves with it. One shared Undo restores the complete cascade as a single source change. Relative start statements express their own scheduling rules, so check the authored rules as well as the movement preference.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings"
+            },
+            {
+              "op": "select",
+              "label": "When moving tasks",
+              "value": "single"
+            },
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "rememberSource",
+              "key": "base"
+            },
+            {
+              "op": "inspect",
+              "id": "build"
+            },
+            {
+              "op": "rememberField",
+              "key": "buildStart",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "press",
+              "css": "[data-task-id=\"design\"][role=\"button\"]",
+              "value": "Alt+ArrowRight"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "inspect",
+              "id": "build"
+            },
+            {
+              "op": "assertRememberedField",
+              "key": "buildStart",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            },
+            {
+              "op": "assertSource",
+              "value": "[build] starts 2026-11-13"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "base"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings"
+            },
+            {
+              "op": "select",
+              "label": "When moving tasks",
+              "value": "cascade"
+            },
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "press",
+              "css": "[data-task-id=\"design\"][role=\"button\"]",
+              "value": "Alt+ArrowRight"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "[build] starts 2026-11-14"
+            },
+            {
+              "op": "inspect",
+              "id": "build"
+            },
+            {
+              "op": "dump",
+              "name": "cascade-result"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "base"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05d-source-schedule-conversion",
+      "title": "Convert an explicit start rule in source",
+      "source": "@startgantt\ntitle Fixed dependent movement practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 3 days\n[design] starts 2026-11-06\n[Build] as [build] lasts 3 days\n[build] starts 2026-11-13\n[design] -> [build]\n@endgantt",
+      "text": "Use separate task declarations and scheduling statements to make this rule easy to review. Replace Design\u2019s fixed start statement with a start at Research\u2019s end, and check the current preview. The relative rule records why the start follows the earlier task. Replace it with the original fixed date and verify that the source and preview return to the starting state. Hover over Design to read the resulting task date after the source edits. Keep property inspectors closed during these rule replacements.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original"
+            },
+            {
+              "op": "focus",
+              "value": "[design] starts 2026-11-06"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "[design] starts 2026-11-06",
+              "to": "[design] starts at [research]'s end"
+            },
+            {
+              "op": "assertSource",
+              "value": "[design] starts at [research]'s end"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "[design] starts at [research]'s end",
+              "to": "[design] starts 2026-11-06"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "hover",
+              "css": "[data-task-id=\"design\"][role=\"button\"]"
+            },
+            {
+              "op": "assertText",
+              "value": "2026-11-06",
+              "exact": false
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-reconnect-endpoint",
+      "title": "Reconnect and remove a dependency",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Review] as [review] lasts 2 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Select the Design to Build dependency and inspect its predecessor and successor. Change the predecessor to the independent Review task, then check the generated reference and the current schedule. Reconnecting an endpoint changes which work constrains Build; it is not just moving an arrow for appearance. Delete that link in the disposable copy and verify that the old relation is no longer authored. Inspect dates after removing a constraint so the resulting schedule remains understandable.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select dependency from design to build"
+            },
+            {
+              "op": "assertField",
+              "label": "Predecessor",
+              "value": "design"
+            },
+            {
+              "op": "assertField",
+              "label": "Successor",
+              "value": "build"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Predecessor",
+              "value": "review"
+            },
+            {
+              "op": "assertSource",
+              "value": "[build] starts at [review]'s end"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delete link"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "[build] starts at [review]'s end"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ],
+      "setup": [
+        {
+          "op": "wait",
+          "ms": 1800
+        }
+      ]
+    },
+    {
+      "id": "05b-problematic-cycle",
+      "title": "Inspect a problematic dependency change",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "In this disposable example, try making Design depend on Build while Build already depends on Design. That request creates a cycle rather than a meaningful order of work. Inspect the validation feedback and the authored result before continuing. Do not try to repair a cycle simply by dragging bars until they look separated. Restore the known good source and verify the current preview, then choose dependencies that express a consistent direction of work.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "before-cycle"
+            },
+            {
+              "op": "click",
+              "name": "Select dependency from research to design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Predecessor",
+              "value": "build"
+            },
+            {
+              "op": "wait",
+              "ms": 800
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Issues",
+              "exact": false
+            },
+            {
+              "op": "dump",
+              "name": "cycle-validation"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-working-week",
+      "title": "Choose the working calendar",
+      "text": "Open Calendar and schedule. The project start and closed weekdays are authored settings. This example closes Saturday and Sunday, so five working days can span a longer calendar interval. Compare the weekday controls with the source declarations. Changing the calendar changes the schedule calculation, not just the picture. Use a calendar that reflects the work being planned, and explain exceptions rather than silently changing every task's duration to compensate for holidays or non-working periods.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Calendar & schedule",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "saturday are closed"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Working days drive the calculation; preview zoom does not."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-holiday",
+      "title": "Add a dated exception",
+      "text": "Use Add exception to mark a specific day or range as closed or opened. We will close the tenth of November. Set the From and To dates to that day and leave the state closed, then choose Apply. Inspect the source and the affected task dates. An opened exception can represent a special working day, while a closed exception can represent a holiday. These are changes to the shared plan, so include the assumptions when reviewing the schedule with other people.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Calendar & schedule",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "+ Add exception",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "From date",
+              "value": "2026-11-10"
+            },
+            {
+              "op": "fill",
+              "label": "To date",
+              "value": "2026-11-10"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Date state",
+              "value": "closed"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "2026-11-10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-task-pause",
+      "title": "Pause one task instead of the whole calendar",
+      "text": "Sometimes the whole project is working, but a particular task cannot proceed on a certain day. A task pause is different from closing that day for every task. Inspect Design's pause controls and compare a task-specific pause with the calendar exception we just created. Use the narrowest rule that expresses the real constraint. After applying a pause, check the effective end date and any dependent work; a correct local change can still move the overall delivery.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "append",
+              "value": "[design] pauses on 2026-11-10"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "pauses on"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A task pause and a project-wide closed day have different scopes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-scale",
+      "title": "Timeline scale and preview zoom",
+      "text": "The Timeline scale control changes the authored time axis: daily, weekly, monthly, quarterly or yearly. Preview zoom only magnifies the current drawing. Choose weekly scale and apply it, then compare the source. Use this distinction when preparing a long-range view for stakeholders. A monthly overview may be useful for a programme, while daily detail is useful for short work. Neither choice changes the task effort simply to make the diagram look smaller.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Calendar & schedule",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Timeline scale",
+              "value": "weekly"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "printscale weekly"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Authored scale: source changes. Preview zoom: view changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-presentation",
+      "title": "Highlights, labels and filtering",
+      "text": "Use calendar and display settings for highlights, title, header, footer and caption. Highlighting a deadline makes it easier to discuss, but it does not create a dependency or promise that the date is achievable. Diagram filters can hide work from the canvas while leaving the source intact. Legend labels explain colors for the reader. Keep these presentation choices consistent with the scheduling facts, and avoid using color alone as the only way to convey a critical distinction.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Calendar & schedule",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Diagram title",
+              "value": "Customer portal \u2014 delivery review"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Legend labels\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Highlights and legend labels explain the plan; they do not schedule the work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10a-legend-label",
+      "title": "Name a color in the legend",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n[research] is colored in #90caf9\n@endgantt",
+      "text": "The blue Research task supplies a color for the legend. Open Legend labels and name that color Discovery work. Apply the label, then reopen the dialog to verify that it was retained. A legend explains the visual meaning of a color; it does not change a task dependency. Canvas filters and report scope remain separate choices, as shown in the reporting lesson.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Legend labels\u2026"
+            },
+            {
+              "op": "fill",
+              "label": "Legend label for 90caf9",
+              "value": "Discovery work"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Legend labels\u2026"
+            },
+            {
+              "op": "assertField",
+              "label": "Legend label for 90caf9",
+              "value": "Discovery work"
+            },
+            {
+              "op": "dump",
+              "name": "retained-legend-label"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-practice",
+      "title": "Explain a weekend and a holiday",
+      "text": "Pause and create an end-to-start dependency with a two-day lag. State the predecessor's last day, calculate the candidate start using the plus-one rule, and then account for closed days. Add the November holiday and compare the calculated result. Switch to weekly timeline scale, then use preview zoom without editing the source. Your answer should explain each movement with a rule, rather than simply report that one bar became longer or moved to the right.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: explain why the task starts there",
+              "items": [
+                "Dependency with a two-day lag",
+                "Check last day + 1 + lag, then closed days",
+                "Add the holiday and inspect the effect",
+                "Compare authored scale with preview zoom"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12-recap",
+      "title": "Rules first, picture second",
+      "text": "You can now create and inspect dependencies, distinguish their endpoints, and account for lag and closed days. You can express project-wide calendar exceptions separately from task pauses, and choose a useful timeline scale without confusing it with magnification. Keep the source and calculated dates together when reviewing a change. The next lesson adds people and capacity, because a plan also needs to explain who is available to perform the work.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A schedule should explain its own dates",
+              "items": [
+                "Relations \u00b7 lag \u00b7 working calendars",
+                "Check the consequences on following work",
+                "Next: people and workload"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

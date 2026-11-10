@@ -1,0 +1,17 @@
+@startwbs
+title Customer portal scope
+* Customer portal launch
+** Discovery
+*** Customer interviews
+*** Requirements
+** Design
+*** User journeys
+*** Prototype
+** Implementation
+*** Frontend
+*** Backend
+** Testing
+*** Quality assurance
+** Release
+*** Launch
+@endwbs

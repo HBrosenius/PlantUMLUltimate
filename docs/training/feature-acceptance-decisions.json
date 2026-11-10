@@ -1,0 +1,425 @@
+{
+  "standard": "Assess each inventory demonstration_success_check; distinguish primary teaching acceptance from exhaustive product testing.",
+  "units": {
+    "W01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "W02": {
+      "status": "primary-check-met",
+      "note": "01/10-starters: create a diagram from the saved personal starter."
+    },
+    "W03": {
+      "status": "primary-check-met",
+      "note": "03/09b-paste-selection: original and receiving tabs activated separately and their source content verified."
+    },
+    "W04": {
+      "status": "primary-check-met",
+      "note": "01/04a-planning-scope: non-planning diagram displays the planning scope placeholder."
+    },
+    "W05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "W06": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "W07": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "W08": {
+      "status": "primary-check-met",
+      "note": "01/08a-defaults-help: save and reopen defaults; search diagram-specific Help."
+    },
+    "E01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E02": {
+      "status": "primary-check-met",
+      "note": "02/03a-inspector-drafts: native field undo contrasted with shared diagram Undo/Redo."
+    },
+    "E03": {
+      "status": "primary-check-met",
+      "note": "02/03a-inspector-drafts: rejected negative duration and corrected committed value verified."
+    },
+    "E04": {
+      "status": "primary-check-met",
+      "note": "03/09c-bulk-shift-resource: shift two explicitly dated tasks and assign Sam to both with source assertions; completion and copy/duplicate in 09-bulk, 09a-copy-duplicate and 09b-paste-selection."
+    },
+    "E05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E06": {
+      "status": "primary-check-met",
+      "note": "15/07a-rename and 02/05a-symbol-references: safe rename, list uses, navigate to declaration; source unchanged by navigation."
+    },
+    "E07": {
+      "status": "primary-check-met",
+      "note": "02/07-diagnostic plus 15/03a-preserved-source: syntax diagnostic and four preserved state source lines with current valid preview."
+    },
+    "E08": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E09": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E10": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E11": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G02": {
+      "status": "primary-check-met",
+      "note": "03/05a-keyboard-week-snap: keyboard move, resize and reorder; Undo; seven-day snapped drag."
+    },
+    "G03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G04": {
+      "status": "primary-check-met",
+      "note": "03/08a-task-links: actual task link confirmation, cancel, separate reference tab and unchanged editor source verified."
+    },
+    "G05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G06": {
+      "status": "primary-check-met",
+      "note": "04/05c-movement-policies: Only task preserves the fixed dependent start; Include dependents moves it; one Undo restores each complete edit. Source conversion in 05d-source-schedule-conversion."
+    },
+    "G07": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G08": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G09": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G10": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G11": {
+      "status": "primary-check-met",
+      "note": "04/10a-legend-label: rename a real color label, apply and reopen to verify retention; report independence in 07/11a-independent-report-scope."
+    },
+    "G12": {
+      "status": "primary-check-met",
+      "note": "05/03a-second-person: add Alex at 50% alongside Sam at 50%; retain authored duration 8; read current dates 2026-11-02 through 2026-11-11 and both people from the tooltip."
+    },
+    "G13": {
+      "status": "primary-check-met",
+      "note": "05/04-workload: identify the 200% overload and open Frontend task inspector from the workload panel."
+    },
+    "G14": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G15": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "G16": {
+      "status": "primary-check-met",
+      "note": "06/09-forecast-apply: opening review leaves source unchanged; Apply changes source, current preview, saved portal-applied-forecast.pumlu."
+    },
+    "G17": {
+      "status": "primary-check-met",
+      "note": "06/07a-reopen-stale-scenario and portal-scenario-comparison.pumlu: two alternatives retain the same base and distinct task durations."
+    },
+    "G18": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R04": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R06": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R07": {
+      "status": "primary-check-met",
+      "note": "07/08-history: fixed/dynamic scope shown at separate cues."
+    },
+    "R08": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R09": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R10": {
+      "status": "primary-check-met",
+      "note": "07/11a-independent-report-scope: independent report scope, recipient date and compact layout."
+    },
+    "R11": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "R12": {
+      "status": "primary-check-met",
+      "note": "07/08-history: both recording confirmations required; portable settings decode contains two explicit observations dated 2026-11-09 and 2026-11-16."
+    },
+    "R13": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "D01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "D02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "D03": {
+      "status": "primary-check-met",
+      "note": "09/06-save: saved connected document reopened, both members verified."
+    },
+    "D04": {
+      "status": "primary-check-met",
+      "note": "09/05d-repair-existing-link plus 06c-cross-diagram-object-link: an explicit cross-diagram object connection is created, and counterpart navigation follows a connection to its other member."
+    },
+    "D05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "D06": {
+      "status": "primary-check-met",
+      "note": "09/05-coverage: generated task appears once and missing-work action is disabled at zero; reverse direction is captured separately."
+    },
+    "D07": {
+      "status": "primary-check-met",
+      "note": "09/05d-repair-existing-link: intentionally unlinked work is linked to an existing scheduled task; navigation, zero unlinked count and single alias verified, then saved."
+    },
+    "D08": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "D09": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "N01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "N02": {
+      "status": "primary-check-met",
+      "note": "10/05a-worker-lifecycle: actual creation, activation, return and destruction reference rendered."
+    },
+    "N03": {
+      "status": "primary-check-met",
+      "note": "10/06a-fragment-families: six additional fragment families rendered in two small reference diagrams."
+    },
+    "N04": {
+      "status": "primary-check-met",
+      "note": "10/07a-reference-flow-controls: reference, numbering, delay, spacing, page break and Teoz duration examples supplied and rendered."
+    },
+    "N05": {
+      "status": "primary-check-met",
+      "note": "10/08a-reorder-interaction: actual participant and message draggable rows, source order assertions, two Undo operations, applied diagram title."
+    },
+    "U01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "U02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "U03": {
+      "status": "primary-check-met",
+      "note": "11/07a-apply-settings: title/caption/layout changes committed and source verified."
+    },
+    "C01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "C02": {
+      "status": "primary-check-met",
+      "note": "12/05a-structured-parameter: typed method parameter added through structured controls, committed on leaving the input group, and revealed in source."
+    },
+    "C03": {
+      "status": "primary-check-met",
+      "note": "12/06a-create-dependency and 05a-structured-parameter: create relationship and reveal source."
+    },
+    "K01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "K02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "A01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "A02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "A03": {
+      "status": "primary-check-met",
+      "note": "14/07a-create-flow-arrow: insert a labeled dashed flow after an existing action; verify source placement and current flow preview. Reordering every structured block is not certified."
+    },
+    "M01": {
+      "status": "primary-check-met",
+      "note": "15/03a-preserved-source: state diagram renders, Issues shows four preserved lines; source-first editing boundary explained."
+    },
+    "H01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "H02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "H03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "L01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "L02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "L03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "L04": {
+      "status": "primary-check-met",
+      "note": "17/08-revoke: revoked viewer saves, leaves and reopens its local copy."
+    },
+    "J01": {
+      "status": "excluded",
+      "note": "Excluded by user."
+    },
+    "J02": {
+      "status": "excluded",
+      "note": "Excluded by user."
+    },
+    "J03": {
+      "status": "excluded",
+      "note": "Excluded by user."
+    },
+    "F01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "F02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "F03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "F04": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "F05": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "F06": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "X01": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "X02": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "X03": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "X04": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "X05": {
+      "status": "primary-check-met",
+      "note": "20/08-local: saved artifact decoded and anchored personal note absent."
+    },
+    "X06": {
+      "status": "primary-check-met",
+      "note": "20/10-handover: portable copy reopened, and plain source rendered in a separate diagram tab."
+    },
+    "W09": {
+      "status": "primary-check-met",
+      "note": "Primary teaching check is represented by the recorded workflow and source examples. Grouped variants are not certified exhaustively."
+    },
+    "E12": {
+      "status": "primary-check-met",
+      "note": "02/07-diagnostic: Go to line invoked from Diagram view."
+    },
+    "G19": {
+      "status": "primary-check-met",
+      "note": "03/10a-delete-arrow-chain: compact chain renders; delete its middle task; preserve Build start and pin Gate date; chain rewrites to [a] -> [c]; one Undo restores original source."
+    },
+    "G20": {
+      "status": "primary-check-met",
+      "note": "04/04a-lag-weekend: source offset advances the candidate across the closed weekend; read-only tooltip verifies Monday 2026-11-09."
+    },
+    "L05": {
+      "status": "primary-check-met",
+      "note": "17/08-revoke plus owner-reload/lifetime chapters; actual local copy retained after room revocation. Expiry duration is stated, not represented as a real 24-hour wait."
+    },
+    "J04": {
+      "status": "excluded",
+      "note": "Excluded by user."
+    },
+    "X07": {
+      "status": "primary-check-met",
+      "note": "20/09-links: actual confirmation/cancel/open flow and exported SVG destination verified; three-browser coverage spans all seven diagram types."
+    }
+  }
+}

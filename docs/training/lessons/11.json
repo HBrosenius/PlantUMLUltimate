@@ -1,0 +1,459 @@
+{
+  "id": "11",
+  "title": "Use Case diagrams",
+  "kind": "Use Case",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Model capabilities and their users",
+      "text": "A Use Case diagram explains which actors interact with a system and which capabilities the system offers. It is a view of scope and responsibility, rather than a sequence of internal implementation steps. Our customer portal lets customers submit and track requests, while a support agent resolves them. We will create objects, inspect their identity and appearance, add relationships and notes, and compare include with extend. Keep each capability meaningful to an actor.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Who uses the system, and for what?",
+              "items": [
+                "Actors and capabilities",
+                "System boundaries and relationships",
+                "Include and extend with a clear meaning"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-create",
+      "title": "Create another capability",
+      "text": "Use Insert and Use case to add Read help. A good name describes an actor's goal rather than a screen widget or a database table. Review the kind, name and alias in the creation screen before adding the object. The alias is useful when you refer to this capability repeatedly in source. After creation, locate the declaration and the rendered object. We will connect capabilities separately so that adding an object is not confused with defining who can use it.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Use case\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Read help"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Read help"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-actor",
+      "title": "Create an actor deliberately",
+      "text": "An actor represents a role interacting with the system, not necessarily one named person. Add an Auditor role to this practice model. Inspect the actor and use-case kind choices rather than selecting a shape only for decoration. External services can also be actors when they play a relevant role at the system boundary. Keep the diagram focused on the capabilities you are explaining, and avoid listing every internal implementation component as another actor.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Actor\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Auditor"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Auditor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-inspect",
+      "title": "Identity, appearance and placement",
+      "text": "Select Submit request and inspect its properties. Name and alias identify the capability, while color, stereotype and the business-object option change how it is presented. The container setting places it within a system boundary or package. Keep identity changes deliberate because other statements refer to these objects. A boundary groups what belongs to the modeled system; it is not a substitute for explaining the capability itself. Review the source when moving an object between containers.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-usecase-object-id=\"submit\"]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Inspect name, alias, stereotype and container separately."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-relationships",
+      "title": "Connect actors and capabilities",
+      "text": "Relationship tools connect the actors and capabilities you have modeled. Open the relationship creation screen and inspect the endpoint and type choices. Associations explain participation, while generalization and other relationship types express different meanings. Select endpoints deliberately and reconnect a relationship when the original endpoint was wrong. Do not compensate for an incorrect association with a misleading label. Notes can explain an assumption, but the relationship should still be semantically correct.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Relationship\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Choose endpoints and relationship meaning before styling."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-include-extend",
+      "title": "Include and extend are different",
+      "text": "Paste the supplied reference example and compare its two additional relationships. Submit request includes validation as part of that capability. Attach a file extends the submission behavior under an appropriate optional condition. Include and extend are not interchangeable labels for any arrow between two ovals. Use them when you can explain the behavioral distinction in plain language, and check arrow direction and stereotype in the source. Keep the actor associations visible so the diagram still answers who needs each capability.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n  usecase \"Validate request\" as Validate\n  usecase \"Attach a file\" as Attach\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\nSubmit .> Validate : <<include>>\nAttach .> Submit : <<extend>>\n@enduml"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "<<include>>"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "<<extend>>"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Explain the behavioral meaning of include and extend; do not use them as decoration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-boundary-notes",
+      "title": "Add context and tune presentation",
+      "text": "Use packages or boundaries to organize the model, and notes to record useful assumptions. Diagram settings control overall presentation, including layout choices. Open these screens and compare their purpose with the object inspector. A good system boundary keeps internal capabilities together while actors remain outside the system they use. Layout and styling should reinforce that distinction. If the valid syntax you need is not represented by a dedicated form, preserve it in source and inspect the resulting preview.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Package or boundary\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Note\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Presentation supports the scope explanation; it does not replace it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-apply-settings",
+      "title": "Commit a presentation setting and verify source",
+      "text": "Open the Use Case diagram settings and change the layout direction to top to bottom. Give this review copy an explicit title and caption. These settings commit as you leave the fields; this inspector does not require the Apply button used by some other editors. Inspect the saved title and caption statements and the current preview. Use shared Undo to reconsider a committed setting rather than assuming that closing the inspector cancels it.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings"
+            },
+            {
+              "op": "select",
+              "label": "Layout direction",
+              "value": "top-to-bottom"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Diagram title",
+              "value": "Customer portal scope review"
+            },
+            {
+              "op": "fill",
+              "label": "Caption",
+              "exact": true,
+              "value": "Capabilities and responsibilities"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceChanged",
+              "key": "original"
+            },
+            {
+              "op": "assertSource",
+              "value": "title Customer portal scope review"
+            },
+            {
+              "op": "assertSource",
+              "value": "caption Capabilities and responsibilities"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "applied-usecase-settings"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-bulk",
+      "title": "Style a selected category",
+      "text": "Select Submit request and Track request together with a modifier, then inspect the bulk panel. Apply a supported shared style and check the source changes. A common style can make related capabilities easier to recognize, but retain clear names and meaningful boundaries. Copy or duplicate only a verified selection, and review resulting identifiers and associations before continuing. Shared history lets you reconsider a bulk operation without manually reversing each object.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "css": "[data-usecase-object-id=\"submit\"]"
+                },
+                {
+                  "css": "[data-usecase-object-id=\"track\"]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the selection and resulting source after a bulk operation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Explain the portal scope",
+      "text": "Pause and add an Auditor actor and a Read help capability to a practice copy. Decide whether they belong in an association and explain why. Add one useful note, then use the reference example to explain include and extend in your own words. Inspect a capability's container and apply a shared style to two selected objects. Your success check is that someone can identify the system boundary, the actors and their goals without needing to know the implementation.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n  usecase \"Validate request\" as Validate\n  usecase \"Attach a file\" as Attach\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\nSubmit .> Validate : <<include>>\nAttach .> Submit : <<extend>>\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: explain the system\u2019s capabilities",
+              "items": [
+                "An Auditor actor and Read help capability",
+                "A justified association and useful note",
+                "Explain include versus extend",
+                "Inspect placement and style a selection"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Keep the actor\u2019s goal in view",
+      "text": "A capability model should make system scope understandable. Keep actors, use cases, boundaries and relationship meanings distinct. Inspect identity and placement before presentation, and verify associations after moving, renaming or duplicating objects. The next lesson describes the types and members inside the system, using a Class diagram to answer a different question from this actor-centered view.",
+      "source": "@startuml\ntitle Customer portal capabilities\nleft to right direction\nactor Customer\nactor \"Support agent\" as Agent\nrectangle \"Customer portal\" {\n  usecase \"Submit request\" as Submit\n  usecase \"Track request\" as Track\n  usecase \"Resolve request\" as Resolve\n}\nCustomer --> Submit\nCustomer --> Track\nAgent --> Resolve\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Capabilities describe goals, not implementation steps",
+              "items": [
+                "Actors \u00b7 boundaries \u00b7 use cases",
+                "Relationships with an explainable meaning",
+                "Next: types and members"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

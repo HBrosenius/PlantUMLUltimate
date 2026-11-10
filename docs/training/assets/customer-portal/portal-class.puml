@@ -1,0 +1,23 @@
+@startuml
+title Customer portal domain
+class Customer {
+  -id: UUID
+  +name: String
+}
+class Request {
+  -id: UUID
+  +subject: String
+  +submit(): void
+}
+enum RequestStatus {
+  Open
+  InProgress
+  Resolved
+}
+interface RequestRepository {
+  +save(request: Request): void
+}
+Customer "1" --> "0..*" Request : submits
+Request --> RequestStatus : status
+RequestRepository ..> Request
+@enduml

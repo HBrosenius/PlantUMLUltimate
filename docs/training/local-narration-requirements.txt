@@ -1,0 +1,9 @@
+onnxruntime==1.31.1
+espeakng_loader==0.2.4
+phonemizer==3.4.0
+soundfile==0.14.0
+numpy==2.5.4
+huggingface_hub==2.4.0
+scipy==1.18.1
+kitten-text-processing==0.1.0
+brotli==1.2.1

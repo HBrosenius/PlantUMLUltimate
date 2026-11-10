@@ -1,0 +1,813 @@
+{
+  "id": "20",
+  "title": "Export and final handover",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Deliver a usable result",
+      "text": "A useful handover gives the recipient the right artifact and enough context to use it. A portable document supports continued editing; plain Plant UML source supports text based reuse; images and PDF support reading and presentation. We will preview and download the supported image formats, inspect encoded renderer links, and create local presentation views and review notes. Finish by checking the files you intend to deliver.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Choose the artifact for the recipient",
+              "items": [
+                "Portable document and plain source",
+                "SVG, PNG and PDF",
+                "Presentation views and local review notes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-svg",
+      "title": "Preview and download SVG",
+      "text": "Open File, Export and Preview export. Select SVG and inspect the full drawing, margin and background. SVG is useful when a recipient needs a scalable diagram. The export includes the rendered image rather than editor selections and interaction overlays. Check long labels, clipping and authored appearance in the preview before downloading. Keep the file alongside the document so the recipient can distinguish the readable picture from the editable project.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "exportPreview"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Format",
+              "value": "svg"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Download SVG"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-png",
+      "title": "Choose a practical raster scale",
+      "text": "Choose PNG for a raster image that can be inserted into many documents. Raster scale changes pixel dimensions and memory use. Increase it only as far as the intended output requires, then inspect readability and the estimated image size. Choose a suitable margin and background. If the app reports an image size limit, reduce scale or use SVG rather than repeatedly attempting an oversized export.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "exportPreview"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Format",
+              "value": "png"
+            },
+            {
+              "op": "select",
+              "label": "Raster scale",
+              "value": "2"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Download PNG"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-pdf",
+      "title": "Understand the PDF output",
+      "text": "Select PDF and review its page and image bounds. This PDF output uses a white page with a rasterized diagram, so it is different from a vector SVG. Check the result at the reading size the recipient will use. A very wide schedule may be better shared as a scalable image or the portable document as well. Download the PDF after checking the preview, and include a clear title and revision context in the handover.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "exportPreview"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Format",
+              "value": "pdf"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Download PDF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-source",
+      "title": "Keep source and copy formats clear",
+      "text": "File Export also provides plain source and clipboard formats. Plain source is useful for text workflows, but it does not replace a connected portable document with retained application information. Copy as Markdown and Copy for Confluence prepare content for their destination; review what was copied before pasting it into a shared page. Copying and preparing content do not publish it. Keep private or unfinished work in your practice environment until the intended handover is ready.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "File",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "copy-formats"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Preparing clipboard content does not publish it."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "key",
+              "value": "Escape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-source-download",
+      "title": "Download the authored source",
+      "text": "Export Source to obtain the plain Plant UML text for the active diagram. Download it and compare it with the authored statements. The source is useful for text workflows and other compatible renderers, but it does not carry the complete application document, connected members or retained history. Keep the portable project as well when the recipient needs to continue the full application workflow. Check which diagram member is active before exporting.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "File"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Source",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "@startgantt"
+            },
+            {
+              "op": "note",
+              "value": "Source export is the active diagram\u2019s plain PlantUML text."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05b-clipboard",
+      "title": "Verify Markdown and Confluence clipboard output",
+      "text": "Copy as Markdown prepares a fenced Plant UML code block. After copying, inspect the actual clipboard content in this training preview. Copy for Confluence prepares the corresponding wiki macro markup; inspect that content too before pasting it into the destination. These commands prepare text, and do not publish a page or send a message. Keep source disclosure and destination permissions in mind when moving a real project into another system.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "clipboardPermission"
+            },
+            {
+              "op": "click",
+              "name": "File"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            },
+            {
+              "op": "click",
+              "name": "Copy as Markdown",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "clipboardPreview",
+              "contains": "```plantuml"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "clipboardHide"
+            },
+            {
+              "op": "click",
+              "name": "File"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            },
+            {
+              "op": "click",
+              "name": "Copy for Confluence",
+              "role": "menuitem"
+            },
+            {
+              "op": "clipboardPreview",
+              "contains": "{plantuml}"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "clipboardHide"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05c-image-clipboard",
+      "title": "Verify a copied image",
+      "text": "Copy image prepares a rendered picture for a destination that accepts images. Choose the command from File and Export, then inspect the actual PNG read from the clipboard in this training preview. Check the dimensions and that all task labels and the milestone are visible. A copied image is a snapshot; it does not carry the editable document, history or connected diagram members. Keep the portable source alongside a shared picture when the recipient needs to continue editing.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "clipboardPermission"
+            },
+            {
+              "op": "click",
+              "name": "File"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            },
+            {
+              "op": "click",
+              "name": "Copy image",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "clipboardImagePreview"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "clipboardHide"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-renderer",
+      "title": "Encoded links disclose their source",
+      "text": "Link and embed creates an encoded source URL, not a collaboration invitation. Encoding is not encryption: someone with the URL can recover the source. Opening or embedding that URL sends the source to the chosen renderer, and external rendering can differ from this app's local preview. Review the renderer address and disclosure before generating a link. Generating the text locally does not mean the eventual image is an offline artifact.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "File",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Export",
+              "role": "menuitem"
+            },
+            {
+              "op": "click",
+              "name": "Link and embed\u2026",
+              "role": "menuitem"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "renderer-link"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "check",
+              "label": "I understand that opening the link sends source"
+            },
+            {
+              "op": "click",
+              "name": "Generate link locally"
+            },
+            {
+              "op": "assertFieldMatches",
+              "label": "Encoded image URL",
+              "pattern": "^https://.+/svg/"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Review the renderer and source disclosure before sharing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-presentation",
+      "title": "Present a focused view",
+      "text": "Open Presentation and local review from View. Presentation gives the diagram a read only stage with navigation and review tools. Use Fit and zoom for the audience rather than changing task dates to fit a screen. Open the local review panel to choose diagram objects and add highlight steps. A focused explanation should guide the audience through a few meaningful objects, not animate every item simply because it is available.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Presentation & local review\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "presentation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-connected-presentation",
+      "kind": "WBS",
+      "title": "Present connected diagram members",
+      "text": "Open presentation from a connected document rather than a separate diagram. Use its diagram selector to move between the work breakdown structure and the linked schedule. Fit the selected diagram for the audience and confirm which member is being presented. Presentation navigation changes the view, while the connected document retains the authored member sources and links. Return to the editor when you need to change the plan.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "rememberSource",
+              "key": "schedule"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Presentation & local review\u2026"
+            },
+            {
+              "op": "wait",
+              "ms": 500
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "selectMatching",
+              "label": "Connected diagrams",
+              "pattern": "WBS"
+            },
+            {
+              "op": "wait",
+              "ms": 500
+            },
+            {
+              "op": "dump",
+              "name": "presented-wbs"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Fit"
+            },
+            {
+              "op": "selectMatching",
+              "label": "Connected diagrams",
+              "pattern": "schedule"
+            },
+            {
+              "op": "wait",
+              "ms": 500
+            },
+            {
+              "op": "dump",
+              "name": "presented-schedule"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "schedule"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Exit presentation"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "schedule"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-local",
+      "title": "Keep local views and notes in context",
+      "text": "Use a view name to save a meaningful sequence of highlight steps. Choose an object, write a personal review note and anchor it to that object. These views and notes are stored locally in the browser. They are not included in the portable file, exports or live collaboration. Another person will not receive them automatically. Include the required explanation explicitly in your handover, and revisit an anchor if the underlying diagram changes.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "role": "tab",
+              "name": "View"
+            },
+            {
+              "op": "click",
+              "name": "Presentation & local review\u2026"
+            },
+            {
+              "op": "click",
+              "name": "Views & local review"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "selectIndex",
+              "label": "Diagram object",
+              "index": 1
+            },
+            {
+              "op": "click",
+              "name": "Add highlight step"
+            },
+            {
+              "op": "fill",
+              "label": "View name",
+              "value": "Design review"
+            },
+            {
+              "op": "click",
+              "name": "Save named view"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Review note",
+              "value": "Check the design assumptions before handover."
+            },
+            {
+              "op": "click",
+              "name": "Add anchored note"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "local-review"
+            },
+            {
+              "op": "note",
+              "value": "Browser-local notes are not delivered with the document."
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Exit presentation"
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-with-local-review.pumlu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-links",
+      "title": "Verify and open rendered links",
+      "text": "Rendered links are working controls, so review their destinations before opening them. Activate the Portal reference and check the browser confirmation. Cancel this first request and verify that the diagram and source remain unchanged. Accept the second request to open the reference in a separate tab without replacing the editor. The exported SVG also retains the link destination; check the actual artifact when preparing a handover. Web links and mail links use the confirmation guard, while cross diagram member connections and collaboration invitations remain separate features.",
+      "source": "@startuml\nclass Portal [[http://127.0.0.1:5230/requirements.html]]\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "linked-class"
+            },
+            {
+              "op": "focus",
+              "value": "class Portal"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "linkOpen",
+              "url": "http://127.0.0.1:5230/requirements.html",
+              "accept": false
+            },
+            {
+              "op": "linkConfirmation"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "card"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "linked-class"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "linkOpen",
+              "url": "http://127.0.0.1:5230/requirements.html",
+              "accept": true
+            },
+            {
+              "op": "inspectLinks"
+            },
+            {
+              "op": "linkPageView"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "linkPageClose"
+            },
+            {
+              "op": "exportPreview"
+            },
+            {
+              "op": "select",
+              "label": "Format",
+              "value": "svg"
+            },
+            {
+              "op": "download",
+              "name": "Download SVG",
+              "filename": "portal-linked-class.svg"
+            },
+            {
+              "op": "assertSvgFileLink",
+              "filename": "portal-linked-class.svg",
+              "url": "http://127.0.0.1:5230/requirements.html"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "linked-class"
+            },
+            {
+              "op": "dump",
+              "name": "working-rendered-link"
+            }
+          ]
+        }
+      ],
+      "kind": "Class",
+      "inspectRawRenderer": true,
+      "dialogPresentation": "Actual native confirmation text is repeated in a labeled overlay; destination content is an actual opened-tab screenshot."
+    },
+    {
+      "id": "10-handover",
+      "title": "Verify the final package",
+      "text": "Finish with a portable project, the required plain source and readable exported diagrams. Reopen the project and inspect connected members, labels, schedule assumptions and retained history. Open the images and PDF at their intended reading size. Include the project start date, status date and important assumptions so a reader can interpret the plan. Document limitations honestly; Jira is excluded from this edition. A good handover makes the next person's first action clear.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-handover-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "openFile",
+              "filename": "portal-handover-practice.pumlu"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "New diagram tab"
+            },
+            {
+              "op": "click",
+              "name": "Gantt diagram"
+            },
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Final handover checklist",
+              "items": [
+                "Reopen and verify the portable document",
+                "Include source and readable exports",
+                "State dates, assumptions and unresolved items",
+                "Explain the recipient\u2019s next action"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

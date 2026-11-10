@@ -1,0 +1,598 @@
+{
+  "id": "16",
+  "title": "History and change review",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Review before replacing",
+      "text": "Version history gives you named checkpoints and ways to compare them with the current working copy. A checkpoint is useful before a risky edit, a review or a handover. We will name a version, change a duration, compare the result as source and as a drawing, export a review report, and recover a known state. History is useful evidence, but it still needs a deliberate retention and saving routine.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Name, compare, review and recover",
+              "items": [
+                "Save meaningful checkpoints",
+                "Compare source and rendered changes",
+                "Export review evidence",
+                "Restore deliberately"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-checkpoint",
+      "title": "Create a named checkpoint",
+      "text": "Open File and Version history. Enter Before review as the new version name and create the version. Use names that describe a decision or a state, rather than several indistinguishable copies called final. Close history and continue editing the working copy. Creating a checkpoint gives you a comparison point; it does not prevent later changes. Save the portable document when you want to preserve its retained history in a file.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "history"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "New version name",
+              "value": "Before review"
+            },
+            {
+              "op": "click",
+              "name": "Create version",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close version history",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-source",
+      "title": "Compare the exact source",
+      "text": "Start from a named checkpoint and change Design from five days to seven. Reopen history and select Before review. Compare it with the current working copy, then choose Source. Read the changed statement and its surrounding context. A text difference tells you exactly what changed, including edits that may have little visual effect. Use it when a semantic summary is incomplete or when specialized Plant UML syntax needs careful inspection.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Source",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "source-review"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-rendered",
+      "title": "Compare the drawing",
+      "text": "Switch to Rendered to inspect the visual consequence of the same source change. Check task endpoints, dependencies and nearby work rather than judging only the changed bar. A rendered comparison helps a reviewer connect the edit to what people will see. Return to Source when a highlight is ambiguous. The two comparisons support each other: the picture explains the effect, while the source identifies the authored statement.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Rendered",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the scheduling consequence, not only the changed statement."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-semantic",
+      "title": "Review meaningful groups",
+      "text": "Choose Review for a semantic summary of recognized changes. Confirmed groups can be selected together and reviewed as a combined result. Related changes may need to stay together to remain valid. Unclassified changes require source review, and selecting a group is not the same as applying it. Check the proposed result and any replacement warning before accepting selected groups into the working copy. If the working copy changes during review, review again before applying.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "check",
+              "label": "Select Change Design duration from 5 to 7 days"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "semantic-review"
+            },
+            {
+              "op": "note",
+              "value": "Inspect related groups and validation before applying."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-export",
+      "title": "Export review evidence",
+      "text": "A review report records the comparison for someone who needs to inspect the changes. From Review, export the report and keep it alongside the document for this exercise. A selected patch is a more focused artifact containing selected changes; select and validate those groups before exporting it. Neither artifact replaces the portable project. Explain the baseline, the compared working copy and the intended scope so the recipient knows what the evidence describes.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Export review report"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Share the comparison context with the report."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-selective-application",
+      "title": "Export and apply a selected change",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Create a named review base, then change both the Design duration and the title in this disposable copy. In Review, select only the confirmed duration group and export its selected patch. Read the replacement warning carefully: applying this selection from the review base removes unselected differences from the working copy. Confirm that consequence only for this exercise, then apply the selected group. Verify that Design remains seven days while the unselected title change is removed. This is why selection, validation and replacement confirmation belong together.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Selective review base"
+            },
+            {
+              "op": "replace",
+              "from": "lasts 5 days",
+              "to": "lasts 7 days"
+            },
+            {
+              "op": "replace",
+              "from": "title Customer portal launch",
+              "to": "title Portal review proposal"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Selective review base"
+            },
+            {
+              "op": "click",
+              "name": "Review"
+            },
+            {
+              "op": "check",
+              "label": "Select Change Design duration from 5 to 7 days"
+            },
+            {
+              "op": "download",
+              "name": "Export selected patch"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "selective-review"
+            },
+            {
+              "op": "check",
+              "label": "Replace the working copy with this selection"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply selected (1)"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "assertSource",
+              "value": "title Customer portal launch"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "Portal review proposal"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06b-document-review",
+      "kind": "WBS",
+      "title": "Review a connected document against its saved baseline",
+      "text": "Save a connected document before creating the comparison baseline. Change the Requirements label in the work breakdown structure, then open the document navigator review. Inspect which member diagrams and connections differ from the last successful save. A document review gives the connected context, while a single diagram history comparison answers a narrower question. Export the review report and keep it alongside the portable practice document. Saving a new baseline is a deliberate next step after reviewing the change.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-document-review-baseline.pumlu"
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "Requirements",
+              "to": "Refined requirements"
+            },
+            {
+              "op": "click",
+              "name": "Review",
+              "exact": true
+            },
+            {
+              "op": "wait",
+              "ms": 500
+            },
+            {
+              "op": "assertText",
+              "value": "Rename task Requirements to Refined requirements"
+            },
+            {
+              "op": "reveal",
+              "name": "Export review report"
+            },
+            {
+              "op": "dump",
+              "name": "document-review"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "download",
+              "name": "Export review report"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-document-reviewed.pumlu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-retention",
+      "title": "Name, pin and retain deliberately",
+      "text": "Select a checkpoint and inspect its name, pin and baseline controls. Rename a checkpoint when a clearer description will help the next reviewer. Pin a state you need to retain, and choose a baseline deliberately for comparisons that use it. Retention still depends on document settings and the history budget. Browser recovery and a saved portable document are different safeguards, so keep a saved copy before major experiments or clearing browser data.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Selected version name",
+              "value": "Portal review baseline"
+            },
+            {
+              "op": "click",
+              "name": "Save name",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Set as baseline",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-restore",
+      "title": "Restore a known checkpoint",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Now restore a known checkpoint in this disposable practice document. Start with Before review, change Design to seven days, and select the earlier checkpoint in history. Choose Restore this version and read any confirmation. Return to the source and verify that Design is five days again, then inspect the current preview. A restore is an authored change to the working copy, so save the recovered result when it is the state you intend to keep.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Restore this version"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-practice",
+      "title": "Recover and explain a change",
+      "text": "Pause and save a named checkpoint. Change a task duration and one label, then compare the working copy using Source, Rendered and Review. Export a review report. Locate the checkpoint you would restore, read the confirmation carefully, and restore it in your disposable practice document. Verify the recovered source and drawing, then save the result. Success means you can explain both what changed and exactly which state you recovered.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: review and recover a known state",
+              "items": [
+                "Name a checkpoint, then make two changes",
+                "Compare source, drawing and semantic groups",
+                "Export a review report",
+                "Restore in your practice copy and verify"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-recap",
+      "title": "Preserve the reason for a change",
+      "text": "A useful review has a clear starting state, a clear proposed result and evidence that connects the two. Use named checkpoints, complementary comparison views and explicit acceptance. Preserve the portable document and review evidence when handing work over. The next lesson extends this discipline to concurrent collaboration, where permissions, room lifetime and the difference between shared work and local history also matter.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A clear baseline makes review possible",
+              "items": [
+                "Name the state",
+                "Inspect the effect",
+                "Apply or restore deliberately",
+                "Save the retained history"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

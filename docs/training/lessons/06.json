@@ -1,0 +1,761 @@
+{
+  "id": "06",
+  "title": "Forecasts and schedule scenarios",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Compare a plan with an informed forecast",
+      "text": "A plan describes the schedule you authored. A progress forecast asks what current progress and remaining-work assumptions imply about the future. A scenario explores an alternative before you commit it. This lesson keeps those three ideas separate. We will fix a status date, inspect the forecast, investigate a delay and create a named alternative. You should finish able to explain the assumptions behind a proposed change and review its effect before applying it to the plan.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Plan, forecast and alternative are different views",
+              "items": [
+                "Choose a status date",
+                "Inspect causes and remaining work",
+                "Review before applying a change"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-date",
+      "title": "Turn on forecasting with a fixed status date",
+      "text": "Expand Diagram options and turn Progress forecast on. Select the sixteenth of November as the status date so that the example is repeatable. Automatic Today uses the document's forecast time zone, while an explicit date gives a fixed point of reference. Read the status date alongside the task progress values. A forecast based on an inappropriate date can be misleading even if every calculation is internally consistent. Check that enabling this view does not rewrite the authored task statements.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "plan"
+            },
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "click",
+              "name": "Progress forecast: Off",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "label": "Forecast as of date",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "plan"
+            },
+            {
+              "op": "note",
+              "value": "Forecast view and metadata do not automatically rewrite the authored schedule."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-compare",
+      "title": "Read plan and forecast together",
+      "text": "Compare the planned and forecast bars. The forecast is not a record that the plan was already changed; it is a calculation based on the current status and assumptions. Follow Backend and the work that depends on it. A delayed predecessor can affect later tasks and the launch milestone. Keep the dependency chain visible instead of reading only one finish date. Before discussing an action, identify which result belongs to the authored plan and which belongs to the forecast.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "click",
+              "name": "Progress forecast: Off",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "label": "Forecast as of date",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "backend"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Trace the delayed work and its downstream dependencies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-causes",
+      "title": "Investigate why a finish moved",
+      "text": "Use the task and forecast explanations to investigate a changed finish. Low completion, remaining effort, allocation, closed days and dependencies can all matter. Backend has substantial remaining work and a half-time assignment in this example, so a simple calendar glance is not enough to explain delivery. Inspect the task's progress and resource assumptions before changing them. A useful forecast discussion names the cause and the assumption, rather than treating the projected date as an unexplained prediction.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "click",
+              "name": "Progress forecast: Off",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "label": "Forecast as of date",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "backend"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "{Sam:50%}"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Explain the remaining work, allocation and dependencies behind the date."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-alternative",
+      "title": "Open an isolated what-if scenario",
+      "text": "Choose What-if scenario from Plan. The base plan is a snapshot used for comparison; the draft is where you explore an alternative. Changing the draft does not immediately change the current plan. Inspect the task controls and the comparison modes before editing. Keep the alternative small enough to explain: for example, change Backend's effort or assignment assumption and observe the consequence. A scenario is useful when its assumptions are explicit, not just when it produces an earlier finish.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "base"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "The base stays unchanged while you edit the scenario."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-edit",
+      "title": "Change a scenario task and update the draft",
+      "text": "Select Backend in the scenario task picker. Set its effort to eight days and choose Update scenario to include the task-control edits in the draft. Compare that result with the base. An earlier result is not automatically a better plan: reducing effort requires a reason, such as reduced scope or a changed estimate. Resource changes likewise need a realistic availability assumption. Inspect warnings and the source patch before treating the alternative as a decision.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A changed estimate is an assumption to justify, not a free acceleration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-save",
+      "title": "Name and retain the alternative",
+      "text": "Give the alternative a meaningful name and record why it might work. We will call this one Reduced backend scope and state that the estimate assumes a smaller release boundary. Save it as a new scenario. Named alternatives let you compare proposals without confusing them with the live schedule. Use the saved-scenario controls to reopen or copy an alternative later, and keep its base and assumptions visible when the current plan has moved on.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Scenario name",
+              "value": "Reduced backend scope"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario assumptions",
+              "value": "Assumes a smaller initial backend release."
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Save scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A saved alternative retains its base and stated assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-reopen-stale-scenario",
+      "title": "Copy a saved scenario and review a changed base",
+      "text": "Save a named eight day back end alternative with its assumptions. Set the copied alternative to nine days, change its name and save it as a new scenario against the same base. Reopen the original saved alternative and confirm its eight day task estimate. Now close the draft and change the current plan to eleven days for that task. Reopen the saved alternative and review it against the changed plan, paying attention to the stale base guidance. Keep the current plan unchanged while deciding how to reconcile the alternative. Choose Reconcile with current plan and inspect the overlapping current and scenario task estimates. Explicitly keep the scenario version of the task, then choose Use reconciled scenario. Review the updated source patch; the rebased alternative remains a proposal, and the authored plan still contains eleven days until you apply a reviewed result.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026"
+            },
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario name",
+              "value": "Reduced backend scope"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario assumptions",
+              "value": "Smaller initial release boundary."
+            },
+            {
+              "op": "click",
+              "name": "Save scenario"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "9"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario name",
+              "value": "Reduced scope copy"
+            },
+            {
+              "op": "click",
+              "name": "Save as new scenario"
+            },
+            {
+              "op": "assertField",
+              "label": "Scenario duration",
+              "value": "9"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "selectMatching",
+              "pattern": "Reduced backend scope",
+              "role": "combobox",
+              "name": "Saved scenario",
+              "exact": true
+            },
+            {
+              "op": "click",
+              "name": "Open saved scenario"
+            },
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "assertField",
+              "label": "Scenario duration",
+              "value": "8"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close",
+              "exact": true
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-scenario-comparison.pumlu"
+            },
+            {
+              "op": "replace",
+              "from": "lasts 10 days",
+              "to": "lasts 11 days"
+            },
+            {
+              "op": "rememberSource",
+              "key": "changed-base"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026"
+            },
+            {
+              "op": "selectMatching",
+              "pattern": "Reduced backend scope",
+              "role": "combobox",
+              "name": "Saved scenario",
+              "exact": true
+            },
+            {
+              "op": "click",
+              "name": "Open saved scenario"
+            },
+            {
+              "op": "click",
+              "name": "Review and apply\u2026"
+            },
+            {
+              "op": "assertText",
+              "value": "The current plan or resource capacities changed since this scenario\u2019s base."
+            },
+            {
+              "op": "dump",
+              "name": "stale-scenario-review"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "changed-base"
+            }
+          ]
+        },
+        {
+          "at": 6,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Reconcile with current plan"
+            },
+            {
+              "op": "dump",
+              "name": "overlapping-scenario-edit"
+            }
+          ]
+        },
+        {
+          "at": 7,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Resolve scenario conflict 1",
+              "exact": true,
+              "value": "external"
+            },
+            {
+              "op": "click",
+              "name": "Use reconciled scenario"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "changed-base"
+            },
+            {
+              "op": "assertSource",
+              "value": "lasts 11 days"
+            },
+            {
+              "op": "assertTextAbsent",
+              "value": "The current plan or resource capacities changed since this scenario\u2019s base."
+            },
+            {
+              "op": "dump",
+              "name": "reconciled-scenario"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-review",
+      "title": "Review the patch before applying it",
+      "text": "Choose Review and apply to inspect the proposed source changes and schedule impact. Confirm that the draft changes only what you intended and that reported problems are resolved. Apply scenario commits the reviewed result to the current plan; closing an uncommitted draft is different. If the plan or capacities changed since the saved base, reconcile the alternative rather than applying a stale proposal blindly. Recheck the actual source after an accepted change.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "beforeApply"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Review and apply\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Review the patch, impact and any stale-base warning."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply scenario",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "lasts 8 days"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "beforeApply"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-forecast-apply",
+      "title": "Forecast application is also a reviewed change",
+      "text": "Enable the forecast and set its status date before opening Apply to plan. Review the proposed task dates and source changes. Opening the review leaves the authored plan unchanged. Accept Apply to plan in this disposable example, verify that the source changes and the preview is current, then save a portable copy of the result. Applying a forecast is a separate decision from enabling its overlay. Keep a recoverable checkpoint before committing a significant reschedule.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "before-forecast"
+            },
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "click",
+              "name": "Progress forecast: Off",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "label": "Forecast as of date",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply to plan\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "before-forecast"
+            },
+            {
+              "op": "click",
+              "name": "Apply to plan",
+              "exact": true
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "before-forecast"
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-applied-forecast.pumlu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-practice",
+      "title": "Compare two defensible alternatives",
+      "text": "Pause and set the fixed status date in the supplied plan. Identify one task that drives a delayed result and explain its remaining-work and allocation assumptions. Create two alternatives with different, realistic justifications. Name and save them, review each patch and choose only the one whose assumptions you can defend. You have succeeded when you can distinguish the original plan, the forecast and the selected draft, and identify exactly what applying it would change.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: compare assumptions before committing",
+              "items": [
+                "A fixed status date and explained delay",
+                "Two named alternatives with reasons",
+                "Review each patch and impact",
+                "Apply only the justified proposal"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-recap",
+      "title": "A forecast supports a decision",
+      "text": "Use forecasting to make assumptions and consequences visible. Use scenarios to explore alternatives, and review source changes before they become the current plan. Keep status dates, time zones, remaining work and resource capacity explicit. The reporting lesson uses these same facts to prepare useful summaries and check-ins, while retaining the distinction between a calculation, an observation and a decision.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Make the assumptions reviewable",
+              "items": [
+                "Read the date and the cause",
+                "Compare alternatives against their base",
+                "Next: reports and team check-ins"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

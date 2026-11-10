@@ -1,0 +1,16 @@
+@startuml
+title Optional looping and parallel requests
+participant Portal
+participant API
+opt cached result
+Portal -> API: Read cache
+end
+loop each correction
+Portal -> API: Validate draft
+end
+par record audit
+Portal -> API: Save audit record
+else notify support
+Portal -> API: Queue notification
+end
+@enduml
