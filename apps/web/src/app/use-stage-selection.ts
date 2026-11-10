@@ -242,10 +242,10 @@ export function useStageSelection({
   );
   useEffect(() => {
     if (!stageSelection) setStageInspectorOpen(false);
-  }, [stageSelection]);
+  }, [stageSelection, setStageInspectorOpen]);
   useEffect(() => {
     if (!stageActive) setStageLensExpanded(false);
-  }, [stageActive]);
+  }, [stageActive, setStageLensExpanded]);
   // The canvas outline and the dock/lens must agree: with no Stage selection, drop outlines that only come from
   // a restored or stale source cursor.
   useEffect(() => {

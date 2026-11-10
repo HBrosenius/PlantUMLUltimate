@@ -481,6 +481,9 @@ export function useAppCommands({
       { id: "export.copy-confluence", label: "Copy for Confluence", category: "Export", run: copyConfluence },
     ];
   }, [
+    setDocumentSettingsOpen,
+    setSettingsCategory,
+    setSettingsOpen,
     commandReadOnly,
     openFormatSource,
     canRenameCommand,

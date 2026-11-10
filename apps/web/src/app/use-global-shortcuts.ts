@@ -243,6 +243,10 @@ export function useGlobalShortcuts({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
+    setStageLensExpanded,
+    taskClipboard,
+    taskShortcuts,
+    viewModeRef,
     narrow,
     closeTab,
     dismissAllInspectors,
