@@ -41,7 +41,7 @@ Stage also adds continuous background work through two `requestAnimationFrame` l
   - Playwright JS/CSS coverage;
   - a minimal `__REACT_DEVTOOLS_GLOBAL_HOOK__` that counts components with the `PerformedWork` flag per commit;
   - source-map byte attribution of the built chunks.
-- **Repo benchmarks:** `npm run bench`, `node benchmarks/responsiveness.mjs` (1× and `BENCH_CPU_THROTTLE=4`). `node benchmarks/browser.mjs` **fails on main**: it waits for a `Close project inspector` button that no longer exists ([benchmarks/browser.mjs:48](../benchmarks/browser.mjs:48)).
+- **Repo benchmarks:** `npm run bench`, `node benchmarks/responsiveness.mjs` (1× and `BENCH_CPU_THROTTLE=4`). `node benchmarks/browser.mjs` **fails on main**: it waits for a `Close project inspector` button that no longer exists ([benchmarks/browser.mjs:48](../../benchmarks/browser.mjs:48)).
 - **Harness scripts** (scratch, not committed) are kept in the shared session-notes folder as `perf-harness/` so these runs can be repeated.
 - Runs: cold start 3× unthrottled and 1–2× per throttled profile; warm start 3× per CPU setting; keystroke runs are 25 sequential edits; the repo benchmarks ran 5×. All timings are observational, from one machine.
 
@@ -124,7 +124,7 @@ Memory (main frame, after forced GC; 2 tabs of 60 and 40 tasks):
 
 Retired renderer frames are removed and no listener growth was seen. The heap of the renderer iframe and worker cannot be seen from the page and was not measured.
 
-Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorded baselines](performance-baselines.md): parse 1,000 tasks 2.0 ms, local fallback render 1,000 tasks 1.07 ms, index 200-diagram project 2.7 ms, save/reopen 200 diagrams 12.1 / 9.0 ms, encrypt and save 50 diagrams 44 ms. **Parsing and project operations are not the bottleneck.**
+Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorded baselines](../performance-baselines.md): parse 1,000 tasks 2.0 ms, local fallback render 1,000 tasks 1.07 ms, index 200-diagram project 2.7 ms, save/reopen 200 diagrams 12.1 / 9.0 ms, encrypt and save 50 diagrams 44 ms. **Parsing and project operations are not the bottleneck.**
 
 ## Findings — user experience
 
@@ -134,9 +134,9 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- `useRenderer`'s boot effect depends on `[enabled, restart, layoutEngine, documentId]` ([use-renderer.ts:311](../apps/web/src/render/use-renderer.ts:311)). Any change disposes the iframe and worker and builds new ones. The new worker gets the 7 MB engine (plus 1.4 MB Graphviz for class, activity and use-case) as fresh `blob:` scripts ([canonical.worker.ts:114-115](../apps/web/src/render/canonical.worker.ts:114)).
+- `useRenderer`'s boot effect depends on `[enabled, restart, layoutEngine, documentId]` ([use-renderer.ts:311](../../apps/web/src/render/use-renderer.ts:311)). Any change disposes the iframe and worker and builds new ones. The new worker gets the 7 MB engine (plus 1.4 MB Graphviz for class, activity and use-case) as fresh `blob:` scripts ([canonical.worker.ts:114-115](../../apps/web/src/render/canonical.worker.ts:114)).
 - Blob scripts get no V8 code cache, so every boot is a full parse and compile.
-- `enabled` is false in Code view and while the new-document dialog is open ([App.tsx:654-659](../apps/web/src/App.tsx:654)).
+- `enabled` is false in Code view and while the new-document dialog is open ([App.tsx:654-659](../../apps/web/src/App.tsx:654)).
 - In the tab-switch run, 7 switches produced **8 `ready` messages** (8 renderer boots).
 - First visit to a tab: 279–379 ms at 1×, 423–594 ms at 4×. A warm render of the same diagram is 80–100 ms. Bench "10 tab switches": 284 ms at 1×, 614 ms at 4×.
 
@@ -157,7 +157,7 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- `++completedRenders >= 20` stops the worker ([renderer-frame.ts:37](../apps/web/src/render/renderer-frame.ts:37)). The replacement is booted eagerly, but its first render is JIT-cold.
+- `++completedRenders >= 20` stops the worker ([renderer-frame.ts:37](../../apps/web/src/render/renderer-frame.ts:37)). The replacement is booted eagerly, but its first render is JIT-cold.
 - In 25-edit runs, render #21 took **256 ms vs ≈174 ms** (4 tasks; engine time 102 vs 10–29 ms) and **380 ms vs ≈263 ms** (100 tasks; engine time 215 vs ≈90 ms).
 - The same pattern showed at 4× (276 and 403 ms).
 
@@ -173,8 +173,8 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- The render request is scheduled with `setTimeout(…, 150)` ([use-renderer.ts:353](../apps/web/src/render/use-renderer.ts:353)).
-- The cache lookup is inside that timer ([use-renderer.ts:338](../apps/web/src/render/use-renderer.ts:338)). Undo to a cached source and switching back to a rendered tab therefore wait 150 ms for an answer already in memory: tab-back took 182–195 ms at 1×.
+- The render request is scheduled with `setTimeout(…, 150)` ([use-renderer.ts:353](../../apps/web/src/render/use-renderer.ts:353)).
+- The cache lookup is inside that timer ([use-renderer.ts:338](../../apps/web/src/render/use-renderer.ts:338)). Undo to a cached source and switching back to a rendered tab therefore wait 150 ms for an answer already in memory: tab-back took 182–195 ms at 1×.
 - For a 4-task Gantt the engine needed 10–29 ms, but keystroke→result was 165–197 ms. **The debounce is about 85% of the latency.**
 
 **Impact:** the preview feels slow even for tiny diagrams. This matches the reviews' "Rendering preview…" observations.
@@ -194,14 +194,14 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- `fetch(url, { signal: AbortSignal.timeout(10_000) })` ([renderer-assets.ts:29](../apps/web/src/render/renderer-assets.ts:29)) applies to the 1.39–1.45 MB gzip engine.
+- `fetch(url, { signal: AbortSignal.timeout(10_000) })` ([renderer-assets.ts:29](../../apps/web/src/render/renderer-assets.ts:29)) applies to the 1.39–1.45 MB gzip engine.
 - **Slow 4G:** the download took 7.27 s, close to the limit.
 - **Regular 3G:**
   - The first fetch started at 7.0 s and was aborted at 17.0 s. The 100 ms retry then fetched it again.
   - The page got it only because the service worker had meanwhile precached it with unthrottled emulated traffic (`transferSize` 300 B).
   - The first SVG came **16.2 s after Create**.
 - On a real 3G link the SW precache competes for the same bandwidth (2.97 MB gz). The retry is likely to time out too, which ends in "The local PlantUML renderer could not start after an automatic retry".
-- The startup timeout is `TIMEOUT_MS = 15_000` for the whole boot ([use-renderer.ts:26](../apps/web/src/render/use-renderer.ts:26)).
+- The startup timeout is `TIMEOUT_MS = 15_000` for the whole boot ([use-renderer.ts:26](../../apps/web/src/render/use-renderer.ts:26)).
 
 **Impact:** first-time mobile users on weak connections may never get a preview. Each failed attempt also throws the partial download away.
 
@@ -219,10 +219,10 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- Assets are fetched as text, transformed on the main thread with several full-string passes over 7 MB (`classicEngineScript`, [engine-exceptions.ts:27-30](../apps/web/src/render/engine-exceptions.ts:27); [renderer-assets.ts:31-34](../apps/web/src/render/renderer-assets.ts:31)), and posted to the iframe as strings. A string is structure-cloned; a `Blob` would be passed by reference.
+- Assets are fetched as text, transformed on the main thread with several full-string passes over 7 MB (`classicEngineScript`, [engine-exceptions.ts:27-30](../../apps/web/src/render/engine-exceptions.ts:27); [renderer-assets.ts:31-34](../../apps/web/src/render/renderer-assets.ts:31)), and posted to the iframe as strings. A string is structure-cloned; a `Blob` would be passed by reference.
 - Cold start at 4× CPU: long tasks of **71, 84 and 112 ms** just as the engine arrives. Warm start at 4×: 92–115 ms.
-- The asset strings stay in a module-level `Map` for the whole session ([renderer-assets.ts:6](../apps/web/src/render/renderer-assets.ts:6)).
-- The renderer is disabled while the new-document chooser is open and in Code view ([App.tsx:656](../apps/web/src/App.tsx:656)). On a cold first visit, the engine fetch therefore cannot overlap with the time users spend choosing a diagram type. In the cold runs it started only around the time the chooser had rendered (110 ms at 1×, 1.0 s on Fast 4G at 4×, 3.5 s on Slow 4G).
+- The asset strings stay in a module-level `Map` for the whole session ([renderer-assets.ts:6](../../apps/web/src/render/renderer-assets.ts:6)).
+- The renderer is disabled while the new-document chooser is open and in Code view ([App.tsx:656](../../apps/web/src/App.tsx:656)). On a cold first visit, the engine fetch therefore cannot overlap with the time users spend choosing a diagram type. In the cold runs it started only around the time the chooser had rendered (110 ms at 1×, 1.0 s on Fast 4G at 4×, 3.5 s on Slow 4G).
 
 **Fix**
 
@@ -238,8 +238,8 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence**
 
-- [StageView.tsx:92-110](../apps/web/src/stage/StageView.tsx:92) runs a permanent rAF loop that reads `clientWidth`/`clientHeight` and calls `getBoundingClientRect()` on the SVG every frame while Stage is open.
-- [SelectionDock.tsx:27-29](../apps/web/src/stage/SelectionDock.tsx:27) runs a second loop while a selection exists. It does `querySelectorAll(selector)` plus `querySelectorAll(neighbourSelector)` and a `getBoundingClientRect()` per neighbour every frame (lines 32-60). That makes it O(diagram elements) per frame.
+- [StageView.tsx:92-110](../../apps/web/src/stage/StageView.tsx:92) runs a permanent rAF loop that reads `clientWidth`/`clientHeight` and calls `getBoundingClientRect()` on the SVG every frame while Stage is open.
+- [SelectionDock.tsx:27-29](../../apps/web/src/stage/SelectionDock.tsx:27) runs a second loop while a selection exists. It does `querySelectorAll(selector)` plus `querySelectorAll(neighbourSelector)` and a `getBoundingClientRect()` per neighbour every frame (lines 32-60). That makes it O(diagram elements) per frame.
 - Measured idle main-thread work: Split 3 ms/s; Stage 25–29 ms/s; Stage plus selection 46 ms/s (20 tasks) and **75 ms/s (150 tasks)**.
 - At 120 Hz the loop runs twice as often. On a phone CPU about 4× slower, this is a meaningful share of the main thread and keeps the device from idling.
 
@@ -257,11 +257,11 @@ Repo CPU benchmarks (`npm run bench`, this machine) are well inside the [recorde
 
 **Evidence:** each result is:
 
-1. sanitized with DOMPurify and serialized ([use-renderer.ts:271](../apps/web/src/render/use-renderer.ts:271));
-2. re-parsed and re-serialized by the Gantt overlay ([canonical-gantt-overlay.ts:220](../apps/web/src/render/canonical-gantt-overlay.ts:220), [:968](../apps/web/src/render/canonical-gantt-overlay.ts:968));
-3. sanitized again into a fragment ([DiagramPreview.tsx:2126](../apps/web/src/DiagramPreview.tsx:2126)).
+1. sanitized with DOMPurify and serialized ([use-renderer.ts:271](../../apps/web/src/render/use-renderer.ts:271));
+2. re-parsed and re-serialized by the Gantt overlay ([canonical-gantt-overlay.ts:220](../../apps/web/src/render/canonical-gantt-overlay.ts:220), [:968](../../apps/web/src/render/canonical-gantt-overlay.ts:968));
+3. sanitized again into a fragment ([DiagramPreview.tsx:2126](../../apps/web/src/DiagramPreview.tsx:2126)).
 
-The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../apps/web/src/DiagramPreview.tsx:519)). For a 100-task Gantt this is ≈16 ms at 1× and **≈64 ms at 4×** (`sanitize-decorated` alone 34.6 ms). It shows as the 78–108 ms long tasks in the 4× `render-100` bench stage.
+The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../../apps/web/src/DiagramPreview.tsx:519)). For a 100-task Gantt this is ≈16 ms at 1× and **≈64 ms at 4×** (`sanitize-decorated` alone 34.6 ms). It shows as the 78–108 ms long tasks in the 4× `render-100` bench stage.
 
 **Fix:** sanitize once into a `DocumentFragment` (`RETURN_DOM_FRAGMENT`), run the overlay on that DOM, and install it without the string round trip. If defence in depth is wanted after the overlay, DOMPurify can sanitize the fragment in place (`IN_PLACE`), which skips parsing.
 
@@ -275,7 +275,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 
 - One keystroke causes 4–6 commits and 76–130 component renders. One cursor move re-renders `App` and about 21 components.
 - `RibbonGroup` renders 42 times per keystroke in Split. The menus (`FileMenu`, `HistoryMenu`, `AddMenu`), `FileSaveStatus` and `StorageStatus` render on every commit.
-- The cursor is session state (`update("cursor", …)`, [App.tsx:4424](../apps/web/src/App.tsx:4424)), so it flows through `App` and into the persistence effect.
+- The cursor is session state (`update("cursor", …)`, [App.tsx:4424](../../apps/web/src/App.tsx:4424)), so it flows through `App` and into the persistence effect.
 - `App.tsx` holds 52 `useState`, 48 `useMemo`, 60 `useCallback` and 34 `useEffect`.
 - At 1× there were no long tasks while typing. At 4× the worst input delay was 56–88 ms (INP-relevant) across 20 typed characters.
 
@@ -293,7 +293,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 
 **Evidence**
 
-- `saveWorkspaceRecovery(session)` runs in the effect for every content change ([use-persisted-workspace.ts:47](../apps/web/src/use-persisted-workspace.ts:47)). It `JSON.stringify`s every open document into one `localStorage` key ([workspace-storage.ts:835](../apps/web/src/workspace-storage.ts:835)).
+- `saveWorkspaceRecovery(session)` runs in the effect for every content change ([use-persisted-workspace.ts:47](../../apps/web/src/use-persisted-workspace.ts:47)). It `JSON.stringify`s every open document into one `localStorage` key ([workspace-storage.ts:835](../../apps/web/src/workspace-storage.ts:835)).
 - With 12 tabs (490 KB): 45 synchronous writes per 20 typed characters. That is 7 ms of storage time at 1×; at 4×, 35 ms of storage plus 20 ms of serialization.
 - `localStorage` is capped at about 5 MB per origin. Large sessions silently fall back to IndexedDB only (that path is handled).
 
@@ -305,7 +305,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 
 ### U10. On a tab switch the old preview vanishes instead of staying visible during the re-render — UX polish
 
-**Evidence:** the hook returns `result` only when `result.documentId === documentId` ([use-renderer.ts:365](../apps/web/src/render/use-renderer.ts:365)). After a switch the preview is empty until the new render finishes, which is 280–590 ms today because of U1. Within one document the previous SVG is kept while re-rendering, which is good.
+**Evidence:** the hook returns `result` only when `result.documentId === documentId` ([use-renderer.ts:365](../../apps/web/src/render/use-renderer.ts:365)). After a switch the preview is empty until the new render finishes, which is 280–590 ms today because of U1. Within one document the previous SVG is kept while re-rendering, which is good.
 
 **Fix:** with U1 and U3 most switches become cache hits under 30 ms. For uncached tabs, show a dimmed placeholder sized to the last known SVG size of that document, or the document's last SVG if it is kept (the in-memory cache already holds it until eviction).
 
@@ -315,7 +315,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 
 ### U11. The service worker's navigation is network-first with no timeout — not measured
 
-**Evidence:** for `/` and `/index.html`, the SW does `fetch(request)` and falls back to the cache only on rejection ([vite.config.ts:160](../apps/web/vite.config.ts:160)). On a "lie-fi" connection (connected but stalled) an installed PWA waits for the network before showing anything. The warm-start numbers above were measured on a healthy network only.
+**Evidence:** for `/` and `/index.html`, the SW does `fetch(request)` and falls back to the cache only on rejection ([vite.config.ts:160](../../apps/web/vite.config.ts:160)). On a "lie-fi" connection (connected but stalled) an installed PWA waits for the network before showing anything. The warm-start numbers above were measured on a healthy network only.
 
 **Fix:** use a cache-first app shell with a background revalidate (stale-while-revalidate). The app already has an update prompt (`setWaitingWorker`). Alternatively race the network against a timeout of about 2 s, or enable navigation preload.
 
@@ -344,7 +344,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 
 **Evidence**
 
-- `diagram-engines` (131 KB, 15% used for a Gantt) is one manual chunk ([vite.config.ts:262](../apps/web/vite.config.ts:262)) and is modulepreloaded.
+- `diagram-engines` (131 KB, 15% used for a Gantt) is one manual chunk ([vite.config.ts:262](../../apps/web/vite.config.ts:262)) and is modulepreloaded.
 - The single 169 KB CSS file blocks rendering, and 7% of it is used at startup.
 
 **Fix:** split `manualChunks` per diagram family (`diagram-gantt`, `diagram-sequence`, …) and load them through the adapter registry when a family is first used. Split CSS along the same lines (dialogs, Stage, reports and help into their lazy chunks; Vite does this automatically once the components are lazy).
@@ -375,7 +375,7 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 **Evidence**
 
 - The precache list holds 97 entries, including all 45 `puml-theme-*` chunks and every lazy dialog: 11.7 MB raw / 2.97 MB gz, 13.7 MB of Cache Storage.
-- It is registered 150 ms after the first preview is ready ([pwa.ts:93-95](../apps/web/src/pwa.ts:93)), which is good.
+- It is registered 150 ms after the first preview is ready ([pwa.ts:93-95](../../apps/web/src/pwa.ts:93)), which is good.
 - But the page's own engine fetch went to the network before the SW controlled the page. `install` then fetches the same 1.4–2 MB again, unless the HTTP cache supplies it: possible at `max-age=14400`, not verified in production.
 
 **Fix**
@@ -391,15 +391,15 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../a
 **Evidence**
 
 - Main-frame heap rose 24.3 → 28.8 MB over 150 edits and 20 tab switches. Listeners stayed at 332, there was one renderer iframe, and the DOM node count fell back after switching.
-- Automatic versions are capped at 30 per document (`AUTOMATIC_VERSION_LIMIT`, [workspace-storage.ts:121](../apps/web/src/workspace-storage.ts:121)). IndexedDB stayed between 21 and 98 KB.
+- Automatic versions are capped at 30 per document (`AUTOMATIC_VERSION_LIMIT`, [workspace-storage.ts:121](../../apps/web/src/workspace-storage.ts:121)). IndexedDB stayed between 21 and 98 KB.
 - Old SW caches are deleted on activate.
-- The render cache is capped at 50 entries / 20 MB (UTF-16 estimate), [use-renderer.ts:29](../apps/web/src/render/use-renderer.ts:29). Its byte total is recomputed over the whole cache on every insert (line 280); harmless at 50 entries.
+- The render cache is capped at 50 entries / 20 MB (UTF-16 estimate), [use-renderer.ts:29](../../apps/web/src/render/use-renderer.ts:29). Its byte total is recomputed over the whole cache on every insert (line 280); harmless at 50 entries.
 
 **Suggested follow-up:** a multi-hour, many-tab soak that also tracks renderer-process memory (the worker is invisible to page heap APIs). Once U2's count-based recycle is removed, give the worker its own memory guard.
 
 ### F6. Tooling: `bench:browser` is broken on main
 
-**Evidence:** [benchmarks/browser.mjs:48](../benchmarks/browser.mjs:48) waits for `Close project inspector`, which no longer exists after the usability update, so `npm run bench:browser` times out.
+**Evidence:** [benchmarks/browser.mjs:48](../../benchmarks/browser.mjs:48) waits for `Close project inspector`, which no longer exists after the usability update, so `npm run bench:browser` times out.
 
 **Fix:** update the selector, and add the keystroke→result and tab-switch measurements from this investigation, so U1–U3 have regression baselines.
 

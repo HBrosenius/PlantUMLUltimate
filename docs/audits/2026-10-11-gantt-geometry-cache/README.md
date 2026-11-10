@@ -1,6 +1,6 @@
 # Gantt geometry reuse — 2026-10-11
 
-Implemented the first delivery from [large-document next steps](../../large-document-next-steps-2026-10-11.md). Original SVG rectangle, polygon and path bounds are cached on first use within each overlay invocation, including unavailable bounds. Task matching, aggregate hitboxes and partial-progress clipping reuse those bounds. Shape order, eligibility, date disambiguation and row-height predicates are preserved. No geometry is shared between renders.
+Implemented the first delivery from [large-document next steps](../../archive/large-document-next-steps-2026-10-11.md). Original SVG rectangle, polygon and path bounds are cached on first use within each overlay invocation, including unavailable bounds. Task matching, aggregate hitboxes and partial-progress clipping reuse those bounds. Shape order, eligibility, date disambiguation and row-height predicates are preserved. No geometry is shared between renders.
 
 ## Validation
 

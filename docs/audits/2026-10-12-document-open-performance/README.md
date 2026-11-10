@@ -1,6 +1,6 @@
 # Document opening performance - 2026-10-12
 
-Profiled and improved the 200-diagram production opening workflow. Follow-up to [large-document delivery](../../large-document-next-steps-2026-10-11.md).
+Profiled and improved the 200-diagram production opening workflow. Follow-up to [large-document delivery](../../archive/large-document-next-steps-2026-10-11.md).
 
 ## Finding and implementation
 

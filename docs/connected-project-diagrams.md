@@ -1,6 +1,6 @@
 # Connected project diagrams
 
-A PlantUML Ultimate document keeps related diagrams and their semantic links in one `.pumlu` file. See [single-file documents](single-file-projects.md) for the current create, open and save workflow, and [plan implementation status](plan-status-2026-10-11.md) for the delivered scope.
+A PlantUML Ultimate document keeps related diagrams and their semantic links in one `.pumlu` file. See [single-file documents](single-file-projects.md) for the current create, open and save workflow, and [plan implementation status](archive/plan-status-2026-10-11.md) for the delivered scope.
 
 ## Create and open
 

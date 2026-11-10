@@ -1,6 +1,6 @@
 # Apply forecast to plan — design draft
 
-Status review, 2026-10-11: implemented in `apps/web/src/gantt-apply-forecast.ts`, with browser regressions in `tests/e2e/gantt-apply-forecast.spec.ts`. The draft below remains the design/acceptance record; see [current plan status](plan-status-2026-10-11.md).
+Status review, 2026-10-11: implemented in `apps/web/src/gantt-apply-forecast.ts`, with browser regressions in `tests/e2e/gantt-apply-forecast.spec.ts`. The draft below remains the design/acceptance record; see [current plan status](archive/plan-status-2026-10-11.md).
 
 ## Goal
 
