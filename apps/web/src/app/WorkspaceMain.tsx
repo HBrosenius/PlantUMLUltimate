@@ -15,7 +15,7 @@ import type { ParseResult, GanttDocument } from "../../../../packages/diagram-ga
 import type { ClassDocument, ClassRelationship } from "../../../../packages/diagram-class/src/model";
 import type { ActiveCollaboration, RemoteEditFlash } from "../use-collaboration-lifecycle";
 import type { useDiagramMultiSelection } from "../use-diagram-multi-selection";
-import type { RefObject, JSX, Dispatch, SetStateAction, ComponentProps } from "react";
+import type { RefObject, JSX, Dispatch, SetStateAction } from "react";
 import type { DiagramParseResult } from "../../../../packages/language-core/src/index";
 import type {
   SequenceFragment,
@@ -39,56 +39,14 @@ import type { GanttScheduleMode } from "../features/gantt/use-gantt-controller";
 import type { SchedulePreview } from "../SchedulePreviewDialog";
 import type { AddItem, DockAction, StageSelection } from "../stage/stage-selection";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
-import { lazyFeature } from "../lazy-feature";
-
-function diagramFocusSelector(target: Element): string | undefined {
-  for (const attribute of [
-    "data-task-id",
-    "data-sequence-participant-id",
-    "data-usecase-object-id",
-    "data-class-object-id",
-    "data-activity-object-id",
-    "data-wbs-node-id",
-  ]) {
-    const owner = target.closest(`[${attribute}]`);
-    const value = owner?.getAttribute(attribute);
-    if (value)
-      return `[${attribute}="${CSS.escape(value)}"][tabindex], [${attribute}="${CSS.escape(value)}"] [tabindex]`;
-  }
-  return undefined;
-}
-
-// Each diagram kind loads its preview, forms and inspectors the first time a document of that kind is shown.
-const SequenceDiagramPreview = lazyFeature<
-  ComponentProps<typeof import("../SequenceDiagramPreview").SequenceDiagramPreview>
->(
-  () => import("../SequenceDiagramPreview").then((module) => ({ default: module.SequenceDiagramPreview })),
-  "the sequence preview",
-);
-
-const UseCaseDiagramPreview = lazyFeature<
-  ComponentProps<typeof import("../UseCaseDiagramPreview").UseCaseDiagramPreview>
->(
-  () => import("../UseCaseDiagramPreview").then((module) => ({ default: module.UseCaseDiagramPreview })),
-  "the use case preview",
-);
-
-const ClassDiagramPreview = lazyFeature<ComponentProps<typeof import("../ClassDiagramPreview").ClassDiagramPreview>>(
-  () => import("../ClassDiagramPreview").then((module) => ({ default: module.ClassDiagramPreview })),
-  "the class preview",
-);
-
-const ActivityDiagramPreview = lazyFeature<
-  ComponentProps<typeof import("../ActivityDiagramPreview").ActivityDiagramPreview>
->(
-  () => import("../ActivityDiagramPreview").then((module) => ({ default: module.ActivityDiagramPreview })),
-  "the activity preview",
-);
-
-const WbsDiagramPreview = lazyFeature<ComponentProps<typeof import("../WbsDiagramPreview").WbsDiagramPreview>>(
-  () => import("../WbsDiagramPreview").then((module) => ({ default: module.WbsDiagramPreview })),
-  "the WBS preview",
-);
+import { diagramFocusSelector } from "./diagram-focus";
+import {
+  SequenceDiagramPreview,
+  UseCaseDiagramPreview,
+  ClassDiagramPreview,
+  ActivityDiagramPreview,
+  WbsDiagramPreview,
+} from "./lazy-previews";
 
 export interface WorkspaceMainProps {
   activeDocument: DocumentSnapshot;

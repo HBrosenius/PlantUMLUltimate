@@ -1,6 +1,7 @@
 import { RibbonChrome } from "./app/RibbonChrome";
 import { NavigationChrome } from "./app/NavigationChrome";
-import { WorkspaceMain, diagramFocusSelector } from "./app/WorkspaceMain";
+import { WorkspaceMain } from "./app/WorkspaceMain";
+import { diagramFocusSelector } from "./app/diagram-focus";
 import { StatusBar } from "./app/StatusBar";
 import { DiagramDialogs } from "./app/DiagramDialogs";
 import { DocumentDialogs } from "./app/DocumentDialogs";
@@ -45,7 +46,7 @@ import type { RepairCategory } from "./remaining-repair-summary";
 import { MAX_DIAGRAM_ZOOM, MIN_DIAGRAM_ZOOM } from "./diagram-zoom";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor, type SourceRepairRequest } from "./CodeEditor";
-import { DiagramPreview, taskHoverDetails } from "./DiagramPreview";
+import { taskHoverDetails } from "./DiagramPreview";
 import {
   addMissingGanttTasksToWbs,
   convertWbsToGantt,
@@ -169,23 +170,6 @@ import {
   pasteTasksText,
   type BulkTaskResult,
 } from "./gantt-bulk-operations";
-
-function diagramFocusSelector(target: Element): string | undefined {
-  for (const attribute of [
-    "data-task-id",
-    "data-sequence-participant-id",
-    "data-usecase-object-id",
-    "data-class-object-id",
-    "data-activity-object-id",
-    "data-wbs-node-id",
-  ]) {
-    const owner = target.closest(`[${attribute}]`);
-    const value = owner?.getAttribute(attribute);
-    if (value)
-      return `[${attribute}="${CSS.escape(value)}"][tabindex], [${attribute}="${CSS.escape(value)}"] [tabindex]`;
-  }
-  return undefined;
-}
 
 const EMPTY_SEQUENCE_DOCUMENT = parseSequence("");
 const EMPTY_USECASE_DOCUMENT = parseUseCase("");
