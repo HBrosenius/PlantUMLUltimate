@@ -1,3 +1,4 @@
+import { useSymbolNavigation } from "./app/use-symbol-navigation";
 import { useProjectState } from "./app/use-project-state";
 import { useExportActions } from "./app/use-export-actions";
 import { useFocusRestoration } from "./app/use-focus-restoration";
@@ -11,7 +12,7 @@ import { buildStageDock } from "./app/build-stage-dock";
 import { RibbonChrome } from "./app/RibbonChrome";
 import { NavigationChrome } from "./app/NavigationChrome";
 import { WorkspaceMain } from "./app/WorkspaceMain";
-import { diagramFocusSelector } from "./app/diagram-focus";
+
 import { StatusBar } from "./app/StatusBar";
 import { DiagramDialogs } from "./app/DiagramDialogs";
 import { DocumentDialogs } from "./app/DocumentDialogs";
@@ -130,11 +131,7 @@ import { useJiraIntegration } from "./use-jira-integration";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import { useSourceCommands, type SourceProblemPreview } from "./features/documents/use-source-commands";
 import { useResourceCapacities } from "./use-resource-capacities";
-import {
-  createSemanticSymbolProvider,
-  type SemanticRenameRequest,
-  type SemanticSymbolOccurrence,
-} from "./semantic-symbol-provider";
+import { type SemanticRenameRequest, type SemanticSymbolOccurrence } from "./semantic-symbol-provider";
 
 import { useDiagramMultiSelection } from "./use-diagram-multi-selection";
 import {
@@ -830,176 +827,38 @@ export function App() {
     workspace.diagramKind,
     workspace.source,
   ]);
-  const symbolProvider = useMemo(
-    () =>
-      createSemanticSymbolProvider({
-        diagramKind: workspace.diagramKind,
-        source: workspace.source,
-        gantt: parseResult.document,
-        sequence: sequenceDocument,
-        useCase: useCaseDocument,
-        classDiagram: classDocument,
-        activity: activityDocument,
-        wbs: wbsDocument,
-      }),
-    [
-      activityDocument,
-      classDocument,
-      parseResult.document,
-      sequenceDocument,
-      useCaseDocument,
-      wbsDocument,
-      workspace.diagramKind,
-      workspace.source,
-    ],
-  );
-  const symbolOccurrences = symbolProvider.occurrences;
-  const symbolHighlights = useMemo(
-    () =>
-      sourceSymbol
-        ? symbolOccurrences
-            .filter((item) => item.kind === sourceSymbol.kind && item.key === sourceSymbol.key)
-            .map((item) => ({
-              ...item.range,
-              active:
-                sourceSymbolPosition !== undefined &&
-                sourceSymbolPosition >= item.range.from &&
-                sourceSymbolPosition <= item.range.to,
-            }))
-        : [],
-    [sourceSymbol, sourceSymbolPosition, symbolOccurrences],
-  );
-  const symbolAt = symbolProvider.occurrenceAt;
-  const requestSymbolRename = useCallback(
-    (position: number) => {
-      const occurrence = symbolAt(position);
-      if (!occurrence) return false;
-      const request = symbolProvider.renameRequest(occurrence);
-      if (!request) return false;
-      const active = document.activeElement;
-      if (active instanceof HTMLElement || active instanceof SVGElement) renameReturnFocus.current = active;
-      setRenameSymbol(request);
-      return true;
-    },
-    [symbolAt, symbolProvider],
-  );
-  const occurrencesFor = useCallback(
-    (symbol: Pick<SemanticSymbolOccurrence, "kind" | "key">) => symbolProvider.occurrencesFor(symbol),
-    [symbolProvider],
-  );
-  const navigateOccurrence = useCallback(
-    (occurrence: SemanticSymbolOccurrence, direction: -1 | 1) => {
-      const occurrences = occurrencesFor(occurrence);
-      const currentIndex = occurrences.findIndex(
-        (item) => item.range.from === occurrence.range.from && item.range.to === occurrence.range.to,
-      );
-      const next = occurrences[(Math.max(0, currentIndex) + direction + occurrences.length) % occurrences.length];
-      if (next) {
-        if (viewMode === "diagram") selectViewMode("split");
-        setSelectionRequest({ ...next.range });
-      }
-    },
-    [occurrencesFor, selectViewMode, viewMode],
-  );
-  // Preview notices ask for a source line (e.g. a syntax error) without knowing which view is open.
-  useEffect(() => {
-    const reveal = (event: Event) => {
-      const line = (event as CustomEvent<{ line?: number }>).detail?.line;
-      const lines = workspace.source.split("\n");
-      if (!line || line < 1 || line > lines.length) return;
-      const from = lines.slice(0, line - 1).reduce((offset, text) => offset + text.length + 1, 0);
-      if (viewMode === "diagram") selectViewMode("split");
-      setSelectionRequest({ from, to: from + lines[line - 1]!.length });
-    };
-    window.addEventListener("reveal-source-line", reveal);
-    return () => window.removeEventListener("reveal-source-line", reveal);
-  }, [selectViewMode, viewMode, workspace.source]);
-  const diagramOccurrenceForTarget = useCallback(
-    (target: Element): SemanticSymbolOccurrence | undefined => {
-      const closestValue = (attribute: string) => target.closest(`[${attribute}]`)?.getAttribute(attribute);
-      if (target instanceof SVGTextElement) {
-        const text = target.textContent?.trim().replace(/^\{|\}$/g, "");
-        const person = text
-          ? symbolOccurrences.find(
-              (item) => item.kind === "person" && item.value.toLocaleLowerCase() === text.toLocaleLowerCase(),
-            )
-          : undefined;
-        if (person) return person;
-      }
-      const candidates: Array<{ kind: SemanticSymbolOccurrence["kind"]; key: string | null | undefined }> = [
-        { kind: "task", key: closestValue("data-task-id") ?? closestValue("data-visual-task-id") },
-        { kind: "participant", key: closestValue("data-sequence-participant-id") },
-        {
-          kind:
-            closestValue("data-usecase-object-type") === "package" ||
-            closestValue("data-usecase-object-type") === "rectangle"
-              ? "usecase-package"
-              : closestValue("data-usecase-object-type") === "actor"
-                ? "actor"
-                : "usecase",
-          key: closestValue("data-usecase-object-id"),
-        },
-        {
-          kind: closestValue("data-class-object-type") === "package" ? "class-package" : "class-entity",
-          key: closestValue("data-class-object-id"),
-        },
-        {
-          kind: closestValue("data-activity-object-type") === "action" ? "activity-action" : "activity-partition",
-          key: closestValue("data-activity-object-id"),
-        },
-        { kind: "wbs-node", key: closestValue("data-wbs-node-id") },
-      ];
-      for (const candidate of candidates) {
-        if (!candidate.key) continue;
-        const occurrence = symbolOccurrences.find(
-          (item) => item.kind === candidate.kind && item.key === candidate.key && item.role === "declaration",
-        );
-        if (occurrence) return occurrence;
-      }
-      return undefined;
-    },
-    [symbolOccurrences],
-  );
-  const openDiagramSymbolMenu = useCallback(
-    (target: Element, x: number, y: number) => {
-      const occurrence = diagramOccurrenceForTarget(target);
-      if (!occurrence) return false;
-      const focusTarget = target.closest<HTMLElement | SVGElement>("[tabindex], button");
-      if (focusTarget) {
-        lastDiagramFocus.current = focusTarget;
-        lastDiagramFocusSelector.current = diagramFocusSelector(target);
-        renameReturnFocus.current = focusTarget;
-      }
-      const bounds = target.getBoundingClientRect();
-      setSymbolMenu({
-        occurrence,
-        x: x || bounds.left + Math.min(24, bounds.width / 2),
-        y: y || bounds.top + Math.min(24, bounds.height),
-      });
-      return true;
-    },
-    [diagramOccurrenceForTarget],
-  );
-  const openClassMemberMenu = useCallback((target: Element, x: number, y: number) => {
-    const element = target.closest("[data-class-member-id]");
-    const memberId = element?.getAttribute("data-class-member-id");
-    const entityId = element?.getAttribute("data-class-object-id");
-    if (!element || !memberId || !entityId) return false;
-    const bounds = element.getBoundingClientRect();
-    setClassMemberMenu({
-      entityId,
-      memberId,
-      x: x || bounds.left + Math.min(24, bounds.width / 2),
-      y: y || bounds.top + Math.min(24, bounds.height),
-    });
-    return true;
-  }, []);
-  const reportFileError = useCallback(
-    (error: unknown) => {
-      setInteractionMessage(error instanceof Error ? error.message : "File operation failed");
-    },
-    [setInteractionMessage],
-  );
+  const {
+    symbolProvider,
+    symbolOccurrences,
+    symbolHighlights,
+    symbolAt,
+    requestSymbolRename,
+    occurrencesFor,
+    navigateOccurrence,
+    openDiagramSymbolMenu,
+    openClassMemberMenu,
+    reportFileError,
+  } = useSymbolNavigation({
+    activityDocument,
+    classDocument,
+    lastDiagramFocus,
+    lastDiagramFocusSelector,
+    parseResult,
+    renameReturnFocus,
+    selectViewMode,
+    sequenceDocument,
+    setClassMemberMenu,
+    setInteractionMessage,
+    setRenameSymbol,
+    setSelectionRequest,
+    setSymbolMenu,
+    sourceSymbol,
+    sourceSymbolPosition,
+    useCaseDocument,
+    viewMode,
+    wbsDocument,
+    workspace,
+  });
   const recordDocumentVersionRef = useRef<RecordDocumentVersion | undefined>(undefined);
   const recordCollaborationVersion = useCallback<RecordDocumentVersion>((reason, label, override) => {
     if (!recordDocumentVersionRef.current) return Promise.reject(new Error("Version history is not ready"));
