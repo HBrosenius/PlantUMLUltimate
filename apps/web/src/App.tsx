@@ -1,10 +1,11 @@
+import { DiagramDialogs } from "./app/DiagramDialogs";
 import { DocumentDialogs } from "./app/DocumentDialogs";
 import { DiagramInspectors } from "./app/DiagramInspectors";
 import { GanttSideInspectors } from "./app/GanttSideInspectors";
 import { AppOverlays } from "./app/AppOverlays";
 import { InspectorWorkspace } from "./InspectorWorkspace";
 import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
-import { AddDependencyDialog } from "./AddDependencyDialog";
+
 import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
 
@@ -13,10 +14,10 @@ import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
 import type { LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
 import { MobileWorkList } from "./MobileWorkList";
-import { ProjectInspector } from "./ProjectInspector";
+
 import { GanttTaskTable } from "./GanttTaskTable";
 import { editTaskRow, editTaskRows, type TaskRowDraft } from "./gantt-task-table";
-import { OpenWorkDialog } from "./OpenWorkDialog";
+
 import { useEditorPreferences } from "./editor-preferences";
 import { requestSidePanelChange } from "./side-panel-events";
 import { useSidePanelState } from "./use-side-panel-state";
@@ -63,8 +64,7 @@ import type { ClassDialogKind } from "./features/class/ClassDialogs";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
-import { GanttDialogs, type GanttDialogKind } from "./features/gantt/GanttDialogs";
-import { GanttLinkedDeleteDialog } from "./features/gantt/GanttLinkedDeleteDialog";
+import { type GanttDialogKind } from "./features/gantt/GanttDialogs";
 
 import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
 import { useGanttController } from "./features/gantt/use-gantt-controller";
@@ -72,8 +72,7 @@ import { useGanttDependencyActions } from "./features/gantt/use-gantt-dependency
 import { findResourceConflicts } from "./features/gantt/gantt-resource-conflicts";
 import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
-import { CommandPalette } from "./CommandPalette";
-import { DiagramOutlineDialog, DiagramOutlinePanel } from "./DiagramOutlineDialog";
+
 import {
   buildDiagramOutlineEntries,
   outlineLine,
@@ -97,18 +96,15 @@ import { useFolderProject } from "./projects/use-folder-project";
 import { useSingleFileProject } from "./projects/use-single-file-project";
 import { projectElementForEdit } from "./projects/project-edit-mapping";
 
-import { setPlantUmlTheme } from "./plantuml-theme";
-
 import { AddMenu } from "./AddMenu";
-import { SaveStarterDialog } from "./PersonalStarters";
-import { NewDocumentDialog } from "./NewDocumentDialog";
+
 import type { SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { useSequenceActions } from "./features/sequence/use-sequence-actions";
 import { useSequenceController } from "./features/sequence/use-sequence-controller";
 import { parseSequenceSettings } from "./sequence-settings";
 import { parseUseCaseSettings } from "./usecase-settings";
 import { resolveTaskDates } from "./gantt-schedule";
-import { deleteGanttTaskKeepingDates } from "./gantt-delete";
+
 import { ganttAnalysisContext } from "./gantt-analysis-context";
 import { analyzeCriticalPath } from "./schedule-analysis";
 import { optionShortcut } from "./platform-shortcuts";
@@ -122,13 +118,7 @@ import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
 import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
-import {
-  applySourceEdits,
-  findTaskAt,
-  moveVerticalSeparatorByDays,
-  parseGantt,
-  renameTask,
-} from "@plantuml-studio/diagram-gantt";
+import { applySourceEdits, findTaskAt, moveVerticalSeparatorByDays, parseGantt } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 
 import { usePwa } from "./pwa";
@@ -164,7 +154,7 @@ import { useDocumentFiles } from "./use-document-files";
 import { collaborationLinkDetails } from "./collaboration";
 import { useCollaborationLifecycle, type CollaborationDocumentBridge } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
-import { useWorkspaceDocuments, diagramKindDisplayName, starterSource } from "./use-workspace-documents";
+import { useWorkspaceDocuments, diagramKindDisplayName } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import {
   SOURCE_EDIT_DESCRIPTION,
@@ -241,55 +231,6 @@ const WbsDiagramPreview = lazyFeature<ComponentProps<typeof import("./WbsDiagram
   () => import("./WbsDiagramPreview").then((module) => ({ default: module.WbsDiagramPreview })),
   "the WBS preview",
 );
-const AddWbsNodeDialog = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsDialogs").AddWbsNodeDialog>>(
-  () => import("./features/wbs/WbsDialogs").then((module) => ({ default: module.AddWbsNodeDialog })),
-  "the WBS node form",
-);
-const WbsNodeInspector = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsNodeInspector>>(
-  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsNodeInspector })),
-  "the WBS node inspector",
-);
-const WbsRelationshipInspector = lazyFeature<
-  ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsRelationshipInspector>
->(
-  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsRelationshipInspector })),
-  "the WBS relationship inspector",
-);
-const WbsSettingsInspector = lazyFeature<
-  ComponentProps<typeof import("./features/wbs/WbsInspectors").WbsSettingsInspector>
->(
-  () => import("./features/wbs/WbsInspectors").then((module) => ({ default: module.WbsSettingsInspector })),
-  "WBS settings",
-);
-const WbsLinkedDeleteDialog = lazyFeature<
-  ComponentProps<typeof import("./features/wbs/WbsLinkedDeleteDialog").WbsLinkedDeleteDialog>
->(
-  () => import("./features/wbs/WbsLinkedDeleteDialog").then((module) => ({ default: module.WbsLinkedDeleteDialog })),
-  "the linked delete review",
-);
-const WbsRelinkDialog = lazyFeature<ComponentProps<typeof import("./features/wbs/WbsRelinkDialog").WbsRelinkDialog>>(
-  () => import("./features/wbs/WbsRelinkDialog").then((module) => ({ default: module.WbsRelinkDialog })),
-  "the relink review",
-);
-const ActivityDialogs = lazyFeature<
-  ComponentProps<typeof import("./features/activity/ActivityDialogs").ActivityDialogs>
->(
-  () => import("./features/activity/ActivityDialogs").then((module) => ({ default: module.ActivityDialogs })),
-  "activity forms",
-  { silent: true },
-);
-const SequenceDialogs = lazyFeature<
-  ComponentProps<typeof import("./features/sequence/SequenceDialogs").SequenceDialogs>
->(
-  () => import("./features/sequence/SequenceDialogs").then((module) => ({ default: module.SequenceDialogs })),
-  "sequence forms",
-  { silent: true },
-);
-const UseCaseDialogs = lazyFeature<ComponentProps<typeof import("./features/usecase/UseCaseDialogs").UseCaseDialogs>>(
-  () => import("./features/usecase/UseCaseDialogs").then((module) => ({ default: module.UseCaseDialogs })),
-  "use case forms",
-  { silent: true },
-);
 const ExportDialog = lazyFeature<ComponentProps<typeof import("./ExportDialog").ExportDialog>>(
   () => import("./ExportDialog").then((module) => ({ default: module.ExportDialog })),
   "export options",
@@ -297,12 +238,6 @@ const ExportDialog = lazyFeature<ComponentProps<typeof import("./ExportDialog").
 const FormatSourceDialog = lazyFeature<ComponentProps<typeof import("./FormatSourceDialog").FormatSourceDialog>>(
   () => import("./FormatSourceDialog").then((module) => ({ default: module.FormatSourceDialog })),
   "the formatter",
-);
-const LinkedWorkPreviewDialog = lazyFeature<
-  ComponentProps<typeof import("./projects/LinkedWorkPreviewDialog").LinkedWorkPreviewDialog>
->(
-  () => import("./projects/LinkedWorkPreviewDialog").then((module) => ({ default: module.LinkedWorkPreviewDialog })),
-  "the linked work preview",
 );
 
 function useInspectorSettings<T>(open: boolean, source: string, parse: (source: string) => T): T {
@@ -5836,444 +5771,109 @@ export function App() {
           </button>
         )}
       </footer>
-      {dialog?.kind === "command-palette" && (
-        <CommandPalette
-          commands={[
-            ...commands,
-            ...(workspace.diagramKind === "gantt" || workspace.diagramKind === "wbs"
-              ? linkedDiagramActions.map((action, index) => ({
-                  id: `plan.${workspace.diagramKind}.linked-${index}`,
-                  label: action.label,
-                  category: "Plan",
-                  enabled: !action.disabled,
-                  run: action.run,
-                }))
-              : []),
-          ]}
-          onClose={() => closeDialog("command-palette")}
-        />
-      )}
-      {dialog?.kind === "diagram-outline" && (
-        <DiagramOutlineDialog
-          entries={diagramOutlineEntries}
-          onDock={
-            outlineWide
-              ? () => {
-                  closeDialog("diagram-outline");
-                  setOutlineMode("dock");
-                }
-              : undefined
-          }
-          onSelect={(entry) => {
-            closeDialog("diagram-outline");
-            revealOutlineEntry(entry);
-          }}
-          onClose={() => closeDialog("diagram-outline")}
-        />
-      )}
-      {outlineMode &&
-        ((outlineMode === "dock" ? !outlineWide : narrow) ? (
-          <DiagramOutlineDialog
-            title={outlineMode === "find" ? "Find in diagram" : "Diagram outline"}
-            entries={diagramOutlineEntries}
-            onMatches={setOutlineMatches}
-            onSelect={(entry) => {
-              setOutlineMode(undefined);
-              revealOutlineEntry(entry, false);
-            }}
-            onClose={() => {
-              setOutlineMode(undefined);
-              restorePreviousFocus();
-            }}
-          />
-        ) : (
-          <DiagramOutlinePanel
-            key={outlineMode}
-            mode={outlineMode}
-            title={outlineMode === "find" ? "Find in diagram" : "Diagram outline"}
-            entries={diagramOutlineEntries}
-            onMatches={setOutlineMatches}
-            onSelect={(entry) => revealOutlineEntry(entry, false)}
-            onClose={() => {
-              setOutlineMode(undefined);
-              restorePreviousFocus();
-            }}
-          />
-        ))}
-      {starterDraft && <SaveStarterDialog {...starterDraft} onClose={() => setStarterDraft(undefined)} />}
-      {openWorkOpen && (
-        <OpenWorkDialog
-          onClose={() => setOpenWorkOpen(false)}
-          onOpen={async (file, destination) =>
-            destination === "document" ? singleFileProject.openOpenedProject(file) : importDocumentFile(file)
-          }
-        />
-      )}
-      {newDocumentOpen && (
-        <NewDocumentDialog
-          onOpenRecent={() => {
-            closeNewDocumentDialog();
-            setOpenWorkOpen(true);
-          }}
-          onOpen={() => {
-            closeNewDocumentDialog();
-            void openDocument();
-          }}
-          documentName={project?.manifest.name}
-          onAddToDocument={
-            project &&
-            (activeInSingleFileProject ||
-              activeInLegacyProject ||
-              (usingSingleFileProject && portable?.diagrams.length === 0)) &&
-            !(collaborationAppliesToActiveDiagram && collaboration?.role === "viewer")
-              ? async (kind, name, initialSource, preserveStyles) => {
-                  let targetName = name;
-                  if (!usingSingleFileProject) {
-                    const base =
-                      name
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]+/g, "-")
-                        .replace(/^-|-$/g, "") || `${kind}-diagram`;
-                    targetName = `${base}.puml`;
-                    let suffix = 2;
-                    while (
-                      project.manifest.documents.some(
-                        (member) => member.path.toLowerCase() === targetName.toLowerCase(),
-                      )
-                    )
-                      targetName = `${base}-${suffix++}.puml`;
-                  }
-                  const source = initialSource ?? starterSource(kind);
-                  return addProjectDiagram(
-                    kind,
-                    targetName,
-                    workspace.defaultDiagramTheme && !preserveStyles
-                      ? setPlantUmlTheme(source, workspace.defaultDiagramTheme)
-                      : source,
-                  );
-                }
-              : undefined
-          }
-          onChoose={(kind, name, source) => createDocument(kind, undefined, name, source)}
-          onChooseExample={(example, name) => createDocument(example.kind, example, name)}
-          onClose={closeNewDocumentDialog}
-        />
-      )}
-      {dialog?.kind === "add-wbs-node" && (
-        <AddWbsNodeDialog
-          selected={selectedWbsNode}
-          hasRoot={wbsDocument.roots.length > 0}
-          onAdd={addWbsNode}
-          onClose={() => closeDialog("add-wbs-node")}
-        />
-      )}
-      {wbsSettingsOpen && (
-        <WbsSettingsInspector source={workspace.source} onApply={applyWbsSettings} onClose={closeWbsSettings} />
-      )}
-      {selectedWbsNode && !diagramMulti.multiple && (
-        <WbsNodeInspector
-          key={selectedWbsNode.id}
-          node={selectedWbsNode}
-          linkedTask={selectedWbsNodeLink?.link}
-          linkedTaskTargetKey={selectedWbsNodeLink?.targetKey}
-          linkedTaskLabel={selectedWbsNodeLink?.label}
-          ganttTargets={wbsGanttTargets}
-          onLinkGanttTask={(key) => {
-            const split = key.indexOf(":");
-            const document = tabs.documents.find((item) => item.id === key.slice(0, split));
-            const task =
-              document && parseGantt(document.source).document.tasks.find((item) => item.id === key.slice(split + 1));
-            if (!document || !task) return;
-            const oldLink = document.wbsGanttLinks?.find((link) => link.wbsAlias === selectedWbsNode.alias);
-            if (oldLink?.ganttAlias.toLowerCase() === task.id) return;
-            if (oldLink)
-              setPendingWbsRelink({ nodeId: selectedWbsNode.id, documentId: document.id, targetTaskId: task.id });
-            else applyWbsRelink(selectedWbsNode.id, document.id, task.id, "keep");
-          }}
-          onOpenLinkedTask={() => selectedWbsNode.alias && openLinkedGanttTask(selectedWbsNode.alias)}
-          onApply={(value) => {
-            const updated = applyWbsNode(value);
-            if (!updated) return;
-            mapWbsProjectEdit(selectedWbsNode, updated);
-            if (!linkedGantt || !selectedWbsNode.alias || value.label === selectedWbsNode.label) return;
-            const link = linkedGantt.wbsGanttLinks?.find((item) => item.wbsAlias === selectedWbsNode.alias);
-            const parsed = parseGantt(linkedGantt.source).document;
-            const task = link && parsed.symbols.tasks.get(link.ganttAlias.toLowerCase());
-            if (!task) return;
-            const label = value.label.replaceAll("]", ")").replaceAll("\n", " ").trim();
-            const result = renameTask(linkedGantt.source, parsed, task, label);
-            if (!result.unavailableReason && result.edits.length)
-              updateLinkedSource(
-                linkedGantt,
-                applySourceEdits(linkedGantt.source, result.edits),
-                "gantt",
-                "Rename task from linked WBS",
-              );
-          }}
-          onDelete={() => {
-            const affected = wbsDocument.nodes.filter(
-              (node) =>
-                node.sourceRange.from >= selectedWbsNode.sourceRange.from &&
-                node.sourceRange.to <= selectedWbsNode.subtreeRange.to,
-            );
-            if (linkedGantt?.wbsGanttLinks?.some((link) => affected.some((node) => node.alias === link.wbsAlias)))
-              setPendingWbsDeleteId(selectedWbsNode.id);
-            else removeWbsNode();
-          }}
-          onAddChild={() => openDialog({ kind: "add-wbs-node" })}
-          onClose={clearSelectedWbsNode}
-        />
-      )}
-      {pendingWbsRelink &&
-        (() => {
-          const node = wbsDocument.nodes.find((item) => item.id === pendingWbsRelink.nodeId);
-          const document = tabs.documents.find((item) => item.id === pendingWbsRelink.documentId);
-          const parsed = document ? parseGantt(document.source).document : undefined;
-          const oldLink = document?.wbsGanttLinks?.find((link) => link.wbsAlias === node?.alias);
-          const oldTask = oldLink && parsed?.symbols.tasks.get(oldLink.ganttAlias.toLowerCase());
-          const newTask = parsed?.symbols.tasks.get(pendingWbsRelink.targetTaskId);
-          if (!node || !document || !oldLink || !newTask) return null;
-          return (
-            <WbsRelinkDialog
-              nodeLabel={node.label}
-              oldTaskLabel={oldTask?.label ?? oldLink.ganttAlias}
-              newTaskLabel={newTask.label}
-              onClose={() => setPendingWbsRelink(undefined)}
-              onChoose={(policy) => {
-                applyWbsRelink(node.id, document.id, newTask.id, policy);
-                setPendingWbsRelink(undefined);
-              }}
-            />
-          );
-        })()}
-      {pendingWbsDeleteId &&
-        (() => {
-          const node = wbsDocument.nodes.find((item) => item.id === pendingWbsDeleteId);
-          if (!node || !linkedGantt) return null;
-          const subtree = wbsDocument.nodes.filter(
-            (item) => item.sourceRange.from >= node.sourceRange.from && item.sourceRange.to <= node.subtreeRange.to,
-          );
-          const affected =
-            linkedGantt.wbsGanttLinks?.filter((link) => subtree.some((item) => item.alias === link.wbsAlias)) ?? [];
-          return (
-            <WbsLinkedDeleteDialog
-              label={node.label}
-              nodeCount={subtree.length}
-              taskCount={affected.length}
-              onClose={() => setPendingWbsDeleteId(undefined)}
-              onChoose={(policy) => {
-                const deletion = applicationWbsAdapter.applyVisualOperation(
-                  { kind: "delete-node", nodeId: node.id },
-                  wbsDocument,
-                  workspace.source,
-                );
-                if (deletion.unavailableReason) {
-                  setInteractionMessage(deletion.unavailableReason);
-                  return;
-                }
-                const nextWbs = applySourceEdits(workspace.source, deletion.edits);
-                const converted = convertWbsToGantt(
-                  nextWbs,
-                  linkedGantt.source,
-                  linkedGantt.wbsGanttLinks,
-                  linkedGantt.wbsGanttDependencies,
-                  policy,
-                  false,
-                );
-                if (!commitSource(converted.wbsSource, `Delete WBS subtree ${node.label}`)) return;
-                updateLinkedSource(linkedGantt, converted.ganttSource, "gantt", `Delete linked work ${node.label}`);
-                tabs.updateDocumentFormat(linkedGantt.id, {
-                  wbsGanttLinks: converted.links,
-                  wbsGanttDependencies: converted.dependencies,
-                });
-                clearSelectedWbsNode();
-                clearSelectedWbsRelationship();
-                setPendingWbsDeleteId(undefined);
-                setInteractionMessage(
-                  policy === "keep"
-                    ? `Deleted WBS subtree; kept ${affected.length} unlinked Gantt tasks`
-                    : `Deleted WBS subtree and ${affected.length} linked Gantt tasks`,
-                );
-              }}
-            />
-          );
-        })()}
-      {pendingGanttDeleteTaskId &&
-        (() => {
-          const task = parseResult.document.symbols.tasks.get(pendingGanttDeleteTaskId);
-          const link = activeDocument.wbsGanttLinks?.find(
-            (item) => item.ganttAlias.toLowerCase() === pendingGanttDeleteTaskId,
-          );
-          const wbs = linkedWbs && parseWbs(linkedWbs.source);
-          const node = wbs?.nodes.find((item) => item.alias === link?.wbsAlias);
-          if (!task || !link || !linkedWbs || !wbs || !node) return null;
-          const subtree = wbs.nodes.filter(
-            (item) => item.sourceRange.from >= node.sourceRange.from && item.sourceRange.to <= node.subtreeRange.to,
-          );
-          const affected =
-            activeDocument.wbsGanttLinks?.filter((item) =>
-              subtree.some((descendant) => descendant.alias === item.wbsAlias),
-            ) ?? [];
-          return (
-            <GanttLinkedDeleteDialog
-              taskLabel={task.label}
-              nodeCount={subtree.length}
-              taskCount={affected.length}
-              onClose={() => setPendingGanttDeleteTaskId(undefined)}
-              onChoose={(policy) => {
-                if (policy === "keep") {
-                  const operation = deleteGanttTaskKeepingDates(workspace.source, parseResult.document, task);
-                  if (operation.unavailableReason) return setInteractionMessage(operation.unavailableReason);
-                  const nextLinks = (activeDocument.wbsGanttLinks ?? []).filter((item) => item !== link);
-                  const converted = convertWbsToGantt(
-                    linkedWbs.source,
-                    applySourceEdits(workspace.source, operation.edits),
-                    nextLinks,
-                    activeDocument.wbsGanttDependencies,
-                    "keep-scheduled",
-                    false,
-                  );
-                  if (!commitGeneratedSource(converted.ganttSource, `Delete ${task.label}`)) return;
-                  tabs.updateDocumentFormat(tabs.activeId, {
-                    wbsGanttLinks: converted.links,
-                    wbsGanttDependencies: converted.dependencies,
-                  });
-                  setInteractionMessage(`Deleted ${task.label}; kept its WBS node unlinked`);
-                } else {
-                  const deletion = applicationWbsAdapter.applyVisualOperation(
-                    { kind: "delete-node", nodeId: node.id },
-                    wbs,
-                    linkedWbs.source,
-                  );
-                  if (deletion.unavailableReason) return setInteractionMessage(deletion.unavailableReason);
-                  const converted = convertWbsToGantt(
-                    applySourceEdits(linkedWbs.source, deletion.edits),
-                    workspace.source,
-                    activeDocument.wbsGanttLinks,
-                    activeDocument.wbsGanttDependencies,
-                    "delete",
-                    false,
-                  );
-                  if (!commitGeneratedSource(converted.ganttSource, `Delete linked work ${task.label}`)) return;
-                  updateLinkedSource(linkedWbs, converted.wbsSource, "wbs", `Delete linked work ${task.label}`);
-                  tabs.updateDocumentFormat(tabs.activeId, {
-                    wbsGanttLinks: converted.links,
-                    wbsGanttDependencies: converted.dependencies,
-                  });
-                  setInteractionMessage(`Deleted WBS subtree and ${affected.length} linked Gantt tasks`);
-                }
-                setSelectedTaskId(undefined);
-                setSelectedDependencyIndex(undefined);
-                setPendingGanttDeleteTaskId(undefined);
-              }}
-            />
-          );
-        })()}
-      {selectedWbsRelationship && !diagramMulti.multiple && (
-        <WbsRelationshipInspector
-          key={`${selectedWbsRelationship.id}:${selectedWbsRelationship.sourceRange.to}`}
-          relationship={selectedWbsRelationship}
-          document={wbsDocument}
-          dependencyStatus={
-            linkedGantt
-              ? (wbsDependencyWarnings.get(selectedWbsRelationship.id) ?? "Linked to a Gantt dependency.")
-              : undefined
-          }
-          onApply={applyWbsRelationshipColor}
-          onDelete={removeWbsRelationship}
-          onClose={clearSelectedWbsRelationship}
-        />
-      )}
-      {workspace.diagramKind === "activity" && (
-        <ActivityDialogs
-          active={activityDialogKind}
-          document={activityDocument}
-          onAddAction={addActivityAction}
-          onAddPartition={addActivityPartition}
-          onAddNote={addActivityNote}
-          onAddStructure={addActivityStructure}
-          onAddTerminal={addActivityTerminal}
-          onAddArrow={addActivityArrow}
-          onClose={() => closeDialog(dialog?.kind)}
-        />
-      )}
-      {workspace.diagramKind === "sequence" && (
-        <SequenceDialogs
-          active={sequenceDialog}
-          participants={sequenceParticipantNames}
-          anchors={sequenceMessageAnchors}
-          onAddParticipant={addSequenceParticipant}
-          onAddMessage={addSequenceMessage}
-          onAddStructure={addSequenceStructure}
-          onClose={() => closeDialog(dialog?.kind)}
-        />
-      )}
-      {workspace.diagramKind === "usecase" && (
-        <UseCaseDialogs
-          active={
-            dialog?.kind === "add-usecase-element"
-              ? { kind: "element", elementKind: dialog.elementKind }
-              : dialog?.kind === "add-usecase-relationship"
-                ? { kind: "relationship" }
-                : dialog?.kind === "add-usecase-package"
-                  ? { kind: "package" }
-                  : dialog?.kind === "add-usecase-note"
-                    ? { kind: "note" }
-                    : undefined
-          }
-          elements={useCaseDocument.elements}
-          onAddElement={addUseCaseElement}
-          onAddRelationship={addUseCaseRelationship}
-          onAddPackage={addUseCasePackage}
-          onAddNote={addUseCaseNote}
-          onClose={closeDialog}
-        />
-      )}
-      {dialog?.kind === "add-dependency" && workspace.diagramKind === "gantt" && (
-        <AddDependencyDialog
-          key={tabs.activeId}
-          tasks={parseResult.document.tasks}
-          selectedTaskId={selectedTaskId}
-          readOnly={commandReadOnly}
-          onClose={() => closeDialog("add-dependency")}
-          onAdd={(predecessor, successor, from, to) => {
-            if (commandReadOnly) return false;
-            return connectTasks(predecessor, successor, from, to);
-          }}
-        />
-      )}
-      <GanttDialogs
-        active={ganttDialogKind}
-        tasks={parseResult.document.tasks}
-        defaultStartDate={
-          parseResult.document.projectStart?.resolved ? parseResult.document.projectStart.value : undefined
-        }
-        onAddTask={addTask}
-        onAddDivider={addDivider}
-        onAddMilestone={addMilestone}
-        onClose={() => ganttDialogKind && closeDialog(`add-${ganttDialogKind}`)}
+      <DiagramDialogs
+        activeDocument={activeDocument}
+        activeInLegacyProject={activeInLegacyProject}
+        activeInSingleFileProject={activeInSingleFileProject}
+        activityDialogKind={activityDialogKind}
+        activityDocument={activityDocument}
+        addActivityAction={addActivityAction}
+        addActivityArrow={addActivityArrow}
+        addActivityNote={addActivityNote}
+        addActivityPartition={addActivityPartition}
+        addActivityStructure={addActivityStructure}
+        addActivityTerminal={addActivityTerminal}
+        addDivider={addDivider}
+        addMilestone={addMilestone}
+        addProjectDiagram={addProjectDiagram}
+        addSequenceMessage={addSequenceMessage}
+        addSequenceParticipant={addSequenceParticipant}
+        addSequenceStructure={addSequenceStructure}
+        addTask={addTask}
+        addUseCaseElement={addUseCaseElement}
+        addUseCaseNote={addUseCaseNote}
+        addUseCasePackage={addUseCasePackage}
+        addUseCaseRelationship={addUseCaseRelationship}
+        addWbsNode={addWbsNode}
+        applyProjectSettings={applyProjectSettings}
+        applyWbsNode={applyWbsNode}
+        applyWbsRelationshipColor={applyWbsRelationshipColor}
+        applyWbsRelink={applyWbsRelink}
+        applyWbsSettings={applyWbsSettings}
+        clearSelectedWbsNode={clearSelectedWbsNode}
+        clearSelectedWbsRelationship={clearSelectedWbsRelationship}
+        closeDialog={closeDialog}
+        closeNewDocumentDialog={closeNewDocumentDialog}
+        closeWbsSettings={closeWbsSettings}
+        closedDayFocus={closedDayFocus}
+        collaboration={collaboration}
+        collaborationAppliesToActiveDiagram={collaborationAppliesToActiveDiagram}
+        commandReadOnly={commandReadOnly}
+        commands={commands}
+        commitGeneratedSource={commitGeneratedSource}
+        commitSource={commitSource}
+        connectTasks={connectTasks}
+        createDocument={createDocument}
+        diagramMulti={diagramMulti}
+        diagramOutlineEntries={diagramOutlineEntries}
+        dialog={dialog}
+        ganttDialogKind={ganttDialogKind}
+        importDocumentFile={importDocumentFile}
+        linkedDiagramActions={linkedDiagramActions}
+        linkedGantt={linkedGantt}
+        linkedWbs={linkedWbs}
+        linkedWorkPreview={linkedWorkPreview}
+        mapWbsProjectEdit={mapWbsProjectEdit}
+        narrow={narrow}
+        newDocumentOpen={newDocumentOpen}
+        openDialog={openDialog}
+        openDocument={openDocument}
+        openLinkedGanttTask={openLinkedGanttTask}
+        openWorkOpen={openWorkOpen}
+        outlineMode={outlineMode}
+        outlineWide={outlineWide}
+        parseResult={parseResult}
+        pendingGanttDeleteTaskId={pendingGanttDeleteTaskId}
+        pendingWbsDeleteId={pendingWbsDeleteId}
+        pendingWbsRelink={pendingWbsRelink}
+        portable={portable}
+        project={project}
+        projectInspectorOpen={projectInspectorOpen}
+        removeWbsNode={removeWbsNode}
+        removeWbsRelationship={removeWbsRelationship}
+        restorePreviousFocus={restorePreviousFocus}
+        revealOutlineEntry={revealOutlineEntry}
+        selectedTaskId={selectedTaskId}
+        selectedWbsNode={selectedWbsNode}
+        selectedWbsNodeLink={selectedWbsNodeLink}
+        selectedWbsRelationship={selectedWbsRelationship}
+        sequenceDialog={sequenceDialog}
+        sequenceMessageAnchors={sequenceMessageAnchors}
+        sequenceParticipantNames={sequenceParticipantNames}
+        setInteractionMessage={setInteractionMessage}
+        setLinkedWorkPreview={setLinkedWorkPreview}
+        setOpenWorkOpen={setOpenWorkOpen}
+        setOutlineMatches={setOutlineMatches}
+        setOutlineMode={setOutlineMode}
+        setPendingGanttDeleteTaskId={setPendingGanttDeleteTaskId}
+        setPendingWbsDeleteId={setPendingWbsDeleteId}
+        setPendingWbsRelink={setPendingWbsRelink}
+        setProjectInspectorOpen={setProjectInspectorOpen}
+        setSelectedDependencyIndex={setSelectedDependencyIndex}
+        setSelectedTaskId={setSelectedTaskId}
+        setStarterDraft={setStarterDraft}
+        singleFileProject={singleFileProject}
+        starterDraft={starterDraft}
+        tabs={tabs}
+        updateLinkedSource={updateLinkedSource}
+        useCaseDocument={useCaseDocument}
+        usingSingleFileProject={usingSingleFileProject}
+        wbsDependencyWarnings={wbsDependencyWarnings}
+        wbsDocument={wbsDocument}
+        wbsGanttTargets={wbsGanttTargets}
+        wbsSettingsOpen={wbsSettingsOpen}
+        workspace={workspace}
       />
-      {projectInspectorOpen && (
-        <ProjectInspector
-          focusClosedDay={closedDayFocus}
-          settings={parseProjectSettings(workspace.source)}
-          onApply={applyProjectSettings}
-          onClose={() => setProjectInspectorOpen(false)}
-        />
-      )}
-      {linkedWorkPreview && (
-        <LinkedWorkPreviewDialog
-          preview={linkedWorkPreview}
-          current={
-            linkedWorkPreview.diagrams.every(
-              (diagram) => tabs.documents.find((tab) => tab.id === diagram.id)?.source === diagram.before,
-            ) &&
-            Boolean(portable) &&
-            !(collaboration?.sharedDocumentId === portable?.projectId && collaboration?.role === "viewer")
-          }
-          onClose={() => setLinkedWorkPreview(undefined)}
-        />
-      )}
       <DocumentDialogs
         activeDocument={activeDocument}
         addMissingProjectItem={addMissingProjectItem}
