@@ -1,3 +1,4 @@
+import { useOutlineModeEffects } from "./app/use-outline-mode-effects";
 import { useLinkedDiagramSummary } from "./app/use-linked-diagram-summary";
 import { useDialogKinds } from "./app/use-dialog-kinds";
 import { useSymbolNavigation } from "./app/use-symbol-navigation";
@@ -77,7 +78,7 @@ import { findResourceConflicts } from "./features/gantt/gantt-resource-conflicts
 import { useGanttScheduleActions } from "./features/gantt/use-gantt-schedule-actions";
 import { useGanttTaskActions } from "./features/gantt/use-gantt-task-actions";
 
-import { outlineTargetSelector, type DiagramOutlineEntry } from "./diagram-outline";
+import { type DiagramOutlineEntry } from "./diagram-outline";
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 
 import { buildResourceOverAllocations } from "./ResourceWorkloadPanel";
@@ -2533,62 +2534,16 @@ export function App() {
     workspace,
   });
 
-  useEffect(() => {
-    setOutlineMode(undefined);
-    setOutlineReveal(undefined);
-  }, [tabs.activeId]);
-  useEffect(() => {
-    const root = workspaceElement.current;
-    if (!root || !outlineMode) return;
-    const selectors = new Set(outlineMatches.map(outlineTargetSelector).filter(Boolean));
-    const attributes = [
-      "data-task-id",
-      "data-dependency-index",
-      "data-divider-index",
-      "data-vertical-separator-index",
-      "data-sequence-participant-id",
-      "data-sequence-message-id",
-      "data-sequence-structure-id",
-      "data-usecase-object-id",
-      "data-class-object-id",
-      "data-activity-object-id",
-      "data-wbs-node-id",
-      "data-wbs-relationship-id",
-    ];
-    const mark = () => {
-      root.querySelectorAll("[data-outline-match]").forEach((element) => element.removeAttribute("data-outline-match"));
-      if (!selectors.size) return;
-      for (const element of root.querySelectorAll(".diagram [" + attributes.join("], .diagram [") + "]")) {
-        if (
-          attributes.some((attribute) => {
-            const value = element.getAttribute(attribute);
-            return value !== null && selectors.has(`[${attribute}="${CSS.escape(value)}"]`);
-          })
-        )
-          element.setAttribute("data-outline-match", "true");
-      }
-    };
-    mark();
-    const observer = new MutationObserver(mark);
-    observer.observe(root, { childList: true, subtree: true });
-    return () => {
-      observer.disconnect();
-      root.querySelectorAll("[data-outline-match]").forEach((element) => element.removeAttribute("data-outline-match"));
-    };
-  }, [outlineMode, outlineMatches, workspace.source]);
-  useEffect(() => {
-    if (!outlineReveal) return;
-    const selector = outlineTargetSelector(outlineReveal.entry);
-    if (!selector) return;
-    const root = workspaceElement.current;
-    const frame = requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        const target = root?.querySelector<SVGElement>(`.diagram ${selector}`);
-        target?.scrollIntoView({ block: "nearest", inline: "nearest" });
-      }),
-    );
-    return () => cancelAnimationFrame(frame);
-  }, [outlineReveal]);
+  useOutlineModeEffects({
+    outlineMatches,
+    outlineMode,
+    outlineReveal,
+    setOutlineMode,
+    setOutlineReveal,
+    tabs,
+    workspace,
+    workspaceElement,
+  });
 
   const applySemanticRename = (target: SemanticRenameRequest, nextValue: string): boolean => {
     if (commandReadOnly) return false;
