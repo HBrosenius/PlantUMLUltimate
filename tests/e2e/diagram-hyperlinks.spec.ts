@@ -77,21 +77,28 @@ async function openSource(page: Page, kind: string, source: string) {
 // WebKit can report an anchor's content quad for its child text. Use native
 // SVG geometry and check the actual hit target before a real mouse click.
 async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle" = "left") {
-  await link.scrollIntoViewIfNeeded();
-  const point = await link.evaluate((element) => {
-    const graphic = element as SVGGraphicsElement;
-    const box = graphic.getBBox(),
-      matrix = graphic.getScreenCTM();
-    if (!matrix) throw new Error("SVG link is not laid out");
-    const p = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(matrix);
-    return {
-      x: p.x,
-      y: p.y,
-      expected: graphic.closest("a")?.getAttribute("href"),
-      hit: document.elementFromPoint(p.x, p.y)?.closest("a")?.getAttribute("href"),
-    };
-  });
-  expect(point.hit).toBe(point.expected);
+  // The preview can re-render (replacing the SVG nodes) while it settles, so
+  // re-locate, scroll and hit-test as one retryable unit and click only a
+  // point that was verified against the current DOM.
+  let point = { x: 0, y: 0 };
+  await expect(async () => {
+    await link.scrollIntoViewIfNeeded({ timeout: 2000 });
+    const result = await link.evaluate((element) => {
+      const graphic = element as SVGGraphicsElement;
+      const box = graphic.getBBox(),
+        matrix = graphic.getScreenCTM();
+      if (!matrix) throw new Error("SVG link is not laid out");
+      const p = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(matrix);
+      return {
+        x: p.x,
+        y: p.y,
+        expected: graphic.closest("a")?.getAttribute("href"),
+        hit: document.elementFromPoint(p.x, p.y)?.closest("a")?.getAttribute("href"),
+      };
+    });
+    expect(result.hit).toBe(result.expected);
+    point = result;
+  }).toPass({ timeout: 10_000 });
   await page.mouse.click(point.x, point.y, { button });
 }
 
