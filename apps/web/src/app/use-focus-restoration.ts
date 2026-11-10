@@ -16,18 +16,21 @@ export function useFocusRestoration({
   renameReturnFocus,
   workspaceElement,
 }: useFocusRestorationInputs) {
-  const restorePreviousFocus = useCallback((preferred?: HTMLElement | SVGElement) => {
-    window.requestAnimationFrame(() =>
-      window.requestAnimationFrame(() => {
-        const remembered = lastDiagramFocusSelector.current
-          ? document.querySelector<HTMLElement | SVGElement>(lastDiagramFocusSelector.current)
-          : undefined;
-        const target = preferred?.isConnected ? preferred : (remembered ?? lastDiagramFocus.current);
-        if (target?.isConnected) target.focus({ preventScroll: true });
-        else workspaceElement.current?.focus({ preventScroll: true });
-      }),
-    );
-  }, []);
+  const restorePreviousFocus = useCallback(
+    (preferred?: HTMLElement | SVGElement) => {
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() => {
+          const remembered = lastDiagramFocusSelector.current
+            ? document.querySelector<HTMLElement | SVGElement>(lastDiagramFocusSelector.current)
+            : undefined;
+          const target = preferred?.isConnected ? preferred : (remembered ?? lastDiagramFocus.current);
+          if (target?.isConnected) target.focus({ preventScroll: true });
+          else workspaceElement.current?.focus({ preventScroll: true });
+        }),
+      );
+    },
+    [lastDiagramFocus, lastDiagramFocusSelector, workspaceElement],
+  );
   const restoreRenamedDiagramFocus = useCallback(
     (kind: SemanticSymbolOccurrence["kind"], key: string | undefined) => {
       if (!key || !renameReturnFocus.current?.closest(".diagram")) {
@@ -64,7 +67,7 @@ export function useFocusRestoration({
         }),
       );
     },
-    [restorePreviousFocus],
+    [lastDiagramFocus, lastDiagramFocusSelector, pendingDiagramFocusSelector, renameReturnFocus, restorePreviousFocus],
   );
 
   return { restorePreviousFocus, restoreRenamedDiagramFocus };
