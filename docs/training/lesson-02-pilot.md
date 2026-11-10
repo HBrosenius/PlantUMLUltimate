@@ -12,20 +12,20 @@ The edited runtime is **6:59**. The ten-minute storyboard below is a planning bu
 
 Actual chapter starts:
 
-| Start | Chapter |
-|---|---|
-| 0:00 | One plan, two ways to edit |
-| 0:24 | Open the starting checkpoint |
-| 1:00 | Read the source without memorizing syntax |
-| 1:34 | Make a visual change |
-| 2:16 | Check what changed and what stayed |
-| 2:53 | Edit the text directly |
-| 3:26 | Undo and redo a plan change |
-| 4:05 | Recover from an invalid value |
-| 4:42 | Add a source statement and cross-check it |
-| 5:22 | Try the workflow yourself |
-| 6:01 | Compare the answer |
-| 6:38 | Choose the quickest editing path |
+| Start | Chapter                                   |
+| ----- | ----------------------------------------- |
+| 0:00  | One plan, two ways to edit                |
+| 0:24  | Open the starting checkpoint              |
+| 1:00  | Read the source without memorizing syntax |
+| 1:34  | Make a visual change                      |
+| 2:16  | Check what changed and what stayed        |
+| 2:53  | Edit the text directly                    |
+| 3:26  | Undo and redo a plan change               |
+| 4:05  | Recover from an invalid value             |
+| 4:42  | Add a source statement and cross-check it |
+| 5:22  | Try the workflow yourself                 |
+| 6:01  | Compare the answer                        |
+| 6:38  | Choose the quickest editing path          |
 
 ## Learning outcomes
 
@@ -37,13 +37,13 @@ Use [02-start.pumlu](assets/lesson-02/02-start.pumlu), a portable document conta
 
 The fictional customer-portal launch starts on **2 November 2026**. Saturdays and Sundays are closed. There is no dynamic Today statement. Research lasts 4 working days; Design lasts 5; Build lasts 8; Launch is a milestone tied to Build's end. Later tasks use relative dependencies. Resource allocation, forecast, and linked WBS behavior are introduced in later lessons.
 
-| Checkpoint | Design | Build | Build progress | Purpose |
-|---|---:|---:|---|---|
-| `02-start` | 5 days | 8 days | Not set | Learner's starting point. |
-| `02-visual-edit` | 7 days | 8 days | Not set | Result of the first visual edit. |
-| `02-source-edit` | 7 days | 10 days | Not set | Result of the direct source edit; also the expected state after Redo. |
-| `02-demonstration-final` | 7 days | 10 days | 25% | End of the instructor demonstration. |
-| `02-exercise-answer` | 6 days | 10 days | 25% | Independent exercise answer; intentionally different from the demonstration. |
+| Checkpoint               | Design |   Build | Build progress | Purpose                                                                      |
+| ------------------------ | -----: | ------: | -------------- | ---------------------------------------------------------------------------- |
+| `02-start`               | 5 days |  8 days | Not set        | Learner's starting point.                                                    |
+| `02-visual-edit`         | 7 days |  8 days | Not set        | Result of the first visual edit.                                             |
+| `02-source-edit`         | 7 days | 10 days | Not set        | Result of the direct source edit; also the expected state after Redo.        |
+| `02-demonstration-final` | 7 days | 10 days | 25%            | End of the instructor demonstration.                                         |
+| `02-exercise-answer`     | 6 days | 10 days | 25%            | Independent exercise answer; intentionally different from the demonstration. |
 
 Every checkpoint has `.puml` and `.pumlu` versions. Keep the start file unchanged; use a practice copy if saving. The full seven-diagram reference is [customer-portal-reference.pumlu](assets/customer-portal/customer-portal-reference.pumlu). Its diagrams are intentionally unlinked: creating and reviewing links is taught in lesson 09.
 
@@ -57,20 +57,20 @@ Narration source: [lesson-02-narration.json](lesson-02-narration.json). Generate
 
 ## Timed storyboard
 
-| Scene | Target | On-screen action and framing | Evidence / expected result |
-|---|---|---|---|
-| 01 · Goal | 00:00–00:35 | Brief lesson title, then show the completed demonstration in Split view. Highlight source and diagram as the two editing surfaces. | Show the goal before explaining the procedure; do not imply the learner already has this state. |
-| 02 · Open | 00:35–01:25 | In a clean workspace use File → Open → Document; choose `02-start.pumlu`; select **02-start** in the Document navigator. Close navigator; select Split. | Design 5, Build 8, Research 4, Launch at Build's end. The file picker varies by browser/OS. |
-| 03 · Read | 01:25–02:15 | Close up on the source: delimiters, fixed start date, closed weekdays, readable labels, aliases and duration statements. Briefly point at matching objects. | Teach how to read this small example; leave dependency semantics and syntax variants for later lessons. |
-| 04 · Visual | 02:15–03:20 | Click Design. Frame Duration and its units; select 5, type 7, then Tab out. Hold the source and resulting chart long enough to compare them. Close inspector after render completes. | Source contains `[Design] as [design] lasts 7 days`. This inspector commits a valid duration on blur; do not generalize that behavior to every panel. |
-| 05 · Check | 03:20–04:20 | Highlight the changed duration, unchanged alias, and the two dependency statements. Compare the start checkpoint with the visual-edit result. | Research remains 4; Build remains 8; dependency text is preserved. Show actual dependent movement without inventing dates. |
-| 06 · Source | 04:20–05:15 | Select only the `8` in the Build declaration and type `10`. Keep the diagram visible and wait for the current preview. | Build duration becomes 10, Design stays 7. Use deliberate typing in recorded footage rather than replacing the entire document. |
-| 07 · Undo/Redo | 05:15–06:10 | Use the application Undo control, show Build return to 8, then Redo and show 10. Pause on each result. | Verify both source and current preview. Distinguish application history from an active ordinary text field's editing history. |
-| 08 · Invalid draft | 06:10–07:05 | Select Design; set Duration to 0; Tab out. Close up on validation feedback and the unchanged source value. Correct to 7; Tab out; show the warning clear; close inspector. | Zero remains a draft; source stays at 7. Correct the invalid value before attempting to close or switch panels. |
-| 09 · Progress | 07:05–08:00 | Add `[build] is 25% completed` beneath Build's dependency. Show progress in the chart, select Build, and inspect **Progress (%)**. | Inspector reads 25; diagram and source agree. Display the exact syntax in a readable callout. |
-| 10 · Practice | 08:00–08:45 | Display the three exercise requirements and the start/answer filenames. Invite the learner to pause. Do not include a long silent exercise interval in the exported video. | Reset to start: Design 6 through inspector, Build 10 through source, Build 25% through source. Preserve aliases/dependencies. |
-| 11 · Answer | 08:45–09:35 | Open the answer checkpoint in a clean practice session. Highlight each requested value, Research's unchanged duration, and the milestone dependency. | Match `02-exercise-answer`, not the instructor's seven-day Design example. Compare meaning; do not fail a learner over harmless whitespace. |
-| 12 · Recap | 09:35–10:00 | Return to a clear Split view and recap the editing/checking loop. End with the next lesson's goal. | Visual edit → source check; source edit → visual check; undo/redo; invalid draft recovery. |
+| Scene              | Target      | On-screen action and framing                                                                                                                                                         | Evidence / expected result                                                                                                                            |
+| ------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01 · Goal          | 00:00–00:35 | Brief lesson title, then show the completed demonstration in Split view. Highlight source and diagram as the two editing surfaces.                                                   | Show the goal before explaining the procedure; do not imply the learner already has this state.                                                       |
+| 02 · Open          | 00:35–01:25 | In a clean workspace use File → Open → Document; choose `02-start.pumlu`; select **02-start** in the Document navigator. Close navigator; select Split.                              | Design 5, Build 8, Research 4, Launch at Build's end. The file picker varies by browser/OS.                                                           |
+| 03 · Read          | 01:25–02:15 | Close up on the source: delimiters, fixed start date, closed weekdays, readable labels, aliases and duration statements. Briefly point at matching objects.                          | Teach how to read this small example; leave dependency semantics and syntax variants for later lessons.                                               |
+| 04 · Visual        | 02:15–03:20 | Click Design. Frame Duration and its units; select 5, type 7, then Tab out. Hold the source and resulting chart long enough to compare them. Close inspector after render completes. | Source contains `[Design] as [design] lasts 7 days`. This inspector commits a valid duration on blur; do not generalize that behavior to every panel. |
+| 05 · Check         | 03:20–04:20 | Highlight the changed duration, unchanged alias, and the two dependency statements. Compare the start checkpoint with the visual-edit result.                                        | Research remains 4; Build remains 8; dependency text is preserved. Show actual dependent movement without inventing dates.                            |
+| 06 · Source        | 04:20–05:15 | Select only the `8` in the Build declaration and type `10`. Keep the diagram visible and wait for the current preview.                                                               | Build duration becomes 10, Design stays 7. Use deliberate typing in recorded footage rather than replacing the entire document.                       |
+| 07 · Undo/Redo     | 05:15–06:10 | Use the application Undo control, show Build return to 8, then Redo and show 10. Pause on each result.                                                                               | Verify both source and current preview. Distinguish application history from an active ordinary text field's editing history.                         |
+| 08 · Invalid draft | 06:10–07:05 | Select Design; set Duration to 0; Tab out. Close up on validation feedback and the unchanged source value. Correct to 7; Tab out; show the warning clear; close inspector.           | Zero remains a draft; source stays at 7. Correct the invalid value before attempting to close or switch panels.                                       |
+| 09 · Progress      | 07:05–08:00 | Add `[build] is 25% completed` beneath Build's dependency. Show progress in the chart, select Build, and inspect **Progress (%)**.                                                   | Inspector reads 25; diagram and source agree. Display the exact syntax in a readable callout.                                                         |
+| 10 · Practice      | 08:00–08:45 | Display the three exercise requirements and the start/answer filenames. Invite the learner to pause. Do not include a long silent exercise interval in the exported video.           | Reset to start: Design 6 through inspector, Build 10 through source, Build 25% through source. Preserve aliases/dependencies.                         |
+| 11 · Answer        | 08:45–09:35 | Open the answer checkpoint in a clean practice session. Highlight each requested value, Research's unchanged duration, and the milestone dependency.                                 | Match `02-exercise-answer`, not the instructor's seven-day Design example. Compare meaning; do not fail a learner over harmless whitespace.           |
+| 12 · Recap         | 09:35–10:00 | Return to a clear Split view and recap the editing/checking loop. End with the next lesson's goal.                                                                                   | Visual edit → source check; source edit → visual check; undo/redo; invalid draft recovery.                                                            |
 
 The full spoken text for every scene is in the narration JSON. Keep scene IDs identical in the recording timeline and audio filenames so later revisions can replace one scene without rebuilding unrelated narration.
 

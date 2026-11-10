@@ -720,11 +720,7 @@
             {
               "op": "card",
               "title": "Make the behavior easy to trace",
-              "items": [
-                "Endpoints and order",
-                "Conditions and lifecycle",
-                "Presentation that supports the explanation"
-              ]
+              "items": ["Endpoints and order", "Conditions and lifecycle", "Presentation that supports the explanation"]
             }
           ]
         }

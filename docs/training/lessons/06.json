@@ -15,11 +15,7 @@
             {
               "op": "card",
               "title": "Plan, forecast and alternative are different views",
-              "items": [
-                "Choose a status date",
-                "Inspect causes and remaining work",
-                "Review before applying a change"
-              ]
+              "items": ["Choose a status date", "Inspect causes and remaining work", "Review before applying a change"]
             }
           ]
         }

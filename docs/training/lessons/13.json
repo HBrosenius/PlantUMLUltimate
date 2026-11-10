@@ -312,11 +312,7 @@
             {
               "op": "card",
               "title": "Structure is one view of the system",
-              "items": [
-                "Responsibilities and contracts",
-                "Connections with meaning",
-                "Next: activity workflows"
-              ]
+              "items": ["Responsibilities and contracts", "Connections with meaning", "Next: activity workflows"]
             }
           ]
         }

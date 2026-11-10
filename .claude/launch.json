@@ -4,46 +4,19 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev",
-        "--workspace",
-        "@plantuml-studio/web",
-        "--",
-        "--port",
-        "5175",
-        "--strictPort"
-      ],
+      "runtimeArgs": ["run", "dev", "--workspace", "@plantuml-studio/web", "--", "--port", "5175", "--strictPort"],
       "port": 5175
     },
     {
       "name": "web-alt",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--workspace",
-        "@plantuml-studio/web",
-        "run",
-        "dev",
-        "--",
-        "--port",
-        "5185",
-        "--strictPort"
-      ],
+      "runtimeArgs": ["--workspace", "@plantuml-studio/web", "run", "dev", "--", "--port", "5185", "--strictPort"],
       "port": 5185
     },
     {
       "name": "web-alt2",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--workspace",
-        "@plantuml-studio/web",
-        "run",
-        "dev",
-        "--",
-        "--port",
-        "5195",
-        "--strictPort"
-      ],
+      "runtimeArgs": ["--workspace", "@plantuml-studio/web", "run", "dev", "--", "--port", "5195", "--strictPort"],
       "port": 5195
     },
     {

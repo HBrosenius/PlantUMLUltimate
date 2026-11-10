@@ -321,14 +321,12 @@ try {
             writeFileSync(
               `${dir}/rendered-links.json`,
               JSON.stringify(
-                await page
-                  .locator("svg a")
-                  .evaluateAll((es) =>
-                    es.map((e) => ({
-                      text: e.textContent,
-                      href: e.getAttribute("href") ?? e.getAttribute("xlink:href"),
-                    })),
-                  ),
+                await page.locator("svg a").evaluateAll((es) =>
+                  es.map((e) => ({
+                    text: e.textContent,
+                    href: e.getAttribute("href") ?? e.getAttribute("xlink:href"),
+                  })),
+                ),
                 null,
                 2,
               ),
@@ -360,20 +358,18 @@ try {
             writeFileSync(
               `${dir}/roles.json`,
               JSON.stringify(
-                await page
-                  .locator("[role]")
-                  .evaluateAll((es) =>
-                    es
-                      .filter((e) => e.getClientRects().length)
-                      .map((e) => ({
-                        tag: e.tagName,
-                        role: e.getAttribute("role"),
-                        aria: e.getAttribute("aria-label"),
-                        text: e.textContent.slice(0, 65),
-                        class: e.className?.baseVal ?? e.className,
-                        keys: e.getAttribute("aria-keyshortcuts"),
-                      })),
-                  ),
+                await page.locator("[role]").evaluateAll((es) =>
+                  es
+                    .filter((e) => e.getClientRects().length)
+                    .map((e) => ({
+                      tag: e.tagName,
+                      role: e.getAttribute("role"),
+                      aria: e.getAttribute("aria-label"),
+                      text: e.textContent.slice(0, 65),
+                      class: e.className?.baseVal ?? e.className,
+                      keys: e.getAttribute("aria-keyshortcuts"),
+                    })),
+                ),
                 null,
                 2,
               ),
@@ -383,24 +379,22 @@ try {
             writeFileSync(
               `${dir}/controls.json`,
               JSON.stringify(
-                await page
-                  .locator("input,select,textarea,button")
-                  .evaluateAll((es) =>
-                    es
-                      .filter((e) => e.getClientRects().length)
-                      .map((e) => ({
-                        tag: e.tagName,
-                        type: e.getAttribute("type"),
-                        aria: e.getAttribute("aria-label"),
-                        label: e.labels ? [...e.labels].map((l) => l.textContent.trim()).join(" | ") : "",
-                        text: e.tagName === "BUTTON" ? e.textContent.trim() : "",
-                        value: e.value,
-                        options:
-                          e.tagName === "SELECT"
-                            ? [...e.options].map((o) => ({ value: o.value, text: o.label }))
-                            : undefined,
-                      })),
-                  ),
+                await page.locator("input,select,textarea,button").evaluateAll((es) =>
+                  es
+                    .filter((e) => e.getClientRects().length)
+                    .map((e) => ({
+                      tag: e.tagName,
+                      type: e.getAttribute("type"),
+                      aria: e.getAttribute("aria-label"),
+                      label: e.labels ? [...e.labels].map((l) => l.textContent.trim()).join(" | ") : "",
+                      text: e.tagName === "BUTTON" ? e.textContent.trim() : "",
+                      value: e.value,
+                      options:
+                        e.tagName === "SELECT"
+                          ? [...e.options].map((o) => ({ value: o.value, text: o.label }))
+                          : undefined,
+                    })),
+                ),
                 null,
                 2,
               ),
@@ -871,14 +865,12 @@ try {
             writeFileSync(
               `${dir}/rendered-links.json`,
               JSON.stringify(
-                await page
-                  .locator("svg a")
-                  .evaluateAll((es) =>
-                    es.map((e) => ({
-                      href: e.getAttribute("href") ?? e.getAttributeNS("http://www.w3.org/1999/xlink", "href"),
-                      text: e.textContent,
-                    })),
-                  ),
+                await page.locator("svg a").evaluateAll((es) =>
+                  es.map((e) => ({
+                    href: e.getAttribute("href") ?? e.getAttributeNS("http://www.w3.org/1999/xlink", "href"),
+                    text: e.textContent,
+                  })),
+                ),
                 null,
                 2,
               ),

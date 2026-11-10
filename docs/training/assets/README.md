@@ -6,13 +6,13 @@ These are fictional, versioned course assets. Project dates are fixed; no real c
 
 Open `lesson-02/02-start.pumlu` through **File → Open → Document**, then choose **02-start** in the Document navigator. Use a disposable practice copy. The `.puml` files contain the same diagram source without the portable document container.
 
-| File stem | When to use it |
-|---|---|
-| `02-start` | Begin or restart the lesson. |
-| `02-visual-edit` | Resume after setting Design to 7 working days. |
-| `02-source-edit` | Resume after setting Build to 10 days. |
+| File stem                | When to use it                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `02-start`               | Begin or restart the lesson.                                                    |
+| `02-visual-edit`         | Resume after setting Design to 7 working days.                                  |
+| `02-source-edit`         | Resume after setting Build to 10 days.                                          |
 | `02-demonstration-final` | Inspect the instructor's final example: Design 7, Build 10, Build progress 25%. |
-| `02-exercise-answer` | Check the learner exercise: Design 6, Build 10, Build progress 25%. |
+| `02-exercise-answer`     | Check the learner exercise: Design 6, Build 10, Build progress 25%.             |
 
 Each stem has both `.pumlu` and `.puml` versions. Reopening a different checkpoint starts from that file's state; the supplied files do not pretend to contain a history of edits made by the learner. Each has one initial checkpoint and independent document identity.
 

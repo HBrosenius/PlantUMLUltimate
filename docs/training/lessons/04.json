@@ -15,11 +15,7 @@
             {
               "op": "card",
               "title": "Dependencies and calendars explain the schedule",
-              "items": [
-                "Relations and lag",
-                "Working days and exceptions",
-                "Authored scale versus preview zoom"
-              ]
+              "items": ["Relations and lag", "Working days and exceptions", "Authored scale versus preview zoom"]
             }
           ]
         }

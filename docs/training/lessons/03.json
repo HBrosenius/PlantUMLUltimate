@@ -632,10 +632,7 @@
           "actions": [
             {
               "op": "multiSelect",
-              "ids": [
-                "research",
-                "design"
-              ]
+              "ids": ["research", "design"]
             }
           ]
         },
@@ -689,10 +686,7 @@
             },
             {
               "op": "multiSelect",
-              "ids": [
-                "research",
-                "design"
-              ]
+              "ids": ["research", "design"]
             },
             {
               "op": "rememberSource",
@@ -781,10 +775,7 @@
             },
             {
               "op": "multiSelect",
-              "ids": [
-                "research",
-                "design"
-              ]
+              "ids": ["research", "design"]
             },
             {
               "op": "click",
@@ -970,10 +961,7 @@
             },
             {
               "op": "multiSelect",
-              "ids": [
-                "research",
-                "design"
-              ]
+              "ids": ["research", "design"]
             },
             {
               "op": "rememberSource",

@@ -828,11 +828,7 @@
             {
               "op": "card",
               "title": "Read the message. Review the edit. Verify the result.",
-              "items": [
-                "Find the right location",
-                "Understand the proposed change",
-                "Check source and current preview"
-              ]
+              "items": ["Find the right location", "Understand the proposed change", "Check source and current preview"]
             }
           ]
         }
