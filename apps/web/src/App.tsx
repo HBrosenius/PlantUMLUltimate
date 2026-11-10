@@ -1,9 +1,10 @@
+import { AppOverlays } from "./app/AppOverlays";
 import { InspectorWorkspace } from "./InspectorWorkspace";
 import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
 import { AddDependencyDialog } from "./AddDependencyDialog";
 import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
-import { InlineLabelEditor } from "./InlineLabelEditor";
+
 import { RenderSizeNotice } from "./render/RenderSizeNotice";
 import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
@@ -80,7 +81,7 @@ import {
 import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors } from "./legend";
 
 import { buildResourceOverAllocations, ResourceWorkloadPanel } from "./ResourceWorkloadPanel";
-import { ProblemsPanel } from "./ProblemsPanel";
+
 import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
 import { HighlightDateDialog } from "./HighlightDateDialog";
 import { DateActionMenu } from "./DateActionMenu";
@@ -134,8 +135,7 @@ import {
   renameResource,
 } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
-import { RenameSymbolDialog } from "./RenameSymbolDialog";
-import { SymbolReferencesPanel } from "./SymbolReferencesPanel";
+
 import { usePwa } from "./pwa";
 import {
   confluencePlantUmlMarkup,
@@ -224,22 +224,6 @@ const EMPTY_ACTIVITY_DOCUMENT = parseActivity("");
 const EMPTY_WBS_DOCUMENT = applicationWbsAdapter.parse("").document;
 
 import { lazyFeature } from "./lazy-feature";
-const PresentationDialog = lazyFeature<ComponentProps<typeof import("./PresentationDialog").PresentationDialog>>(
-  () => import("./PresentationDialog").then((module) => ({ default: module.PresentationDialog })),
-  "the presentation",
-);
-const SchedulePreviewDialog = lazyFeature<
-  ComponentProps<typeof import("./SchedulePreviewDialog").SchedulePreviewDialog>
->(
-  () => import("./SchedulePreviewDialog").then((module) => ({ default: module.SchedulePreviewDialog })),
-  "the schedule preview",
-);
-const DeliveryScenarioDialog = lazyFeature<
-  ComponentProps<typeof import("./DeliveryScenarioDialog").DeliveryScenarioDialog>
->(
-  () => import("./DeliveryScenarioDialog").then((module) => ({ default: module.DeliveryScenarioDialog })),
-  "the scenario lab",
-);
 const VersionHistoryDialog = lazyFeature<ComponentProps<typeof import("./VersionHistoryDialog").VersionHistoryDialog>>(
   () => import("./VersionHistoryDialog").then((module) => ({ default: module.VersionHistoryDialog })),
   "version history",
@@ -370,10 +354,6 @@ const ExportDialog = lazyFeature<ComponentProps<typeof import("./ExportDialog").
 const CollaborationDialog = lazyFeature<ComponentProps<typeof import("./CollaborationDialog").CollaborationDialog>>(
   () => import("./CollaborationDialog").then((module) => ({ default: module.CollaborationDialog })),
   "collaboration",
-);
-const HelpDialog = lazyFeature<ComponentProps<typeof import("./HelpDialog").HelpDialog>>(
-  () => import("./HelpDialog").then((module) => ({ default: module.HelpDialog })),
-  "help",
 );
 const FormatSourceDialog = lazyFeature<ComponentProps<typeof import("./FormatSourceDialog").FormatSourceDialog>>(
   () => import("./FormatSourceDialog").then((module) => ({ default: module.FormatSourceDialog })),
@@ -7036,360 +7016,77 @@ export function App() {
           onClose={() => setResourcePanelOpen(false)}
         />
       )}
-      <ProblemsPanel
-        categoryFilter={
-          repairCategoryFilter?.source === workspace.source && repairCategoryFilter.documentId === tabs.activeId
-            ? repairCategoryFilter.category
-            : undefined
-        }
-        onClearCategoryFilter={() => setRepairCategoryFilter(undefined)}
-        open={problemsOpen || unsupportedOpen}
-        preserved={preservedSyntax}
-        onRevealPreserved={(item) => {
-          if (viewMode === "diagram") update("viewMode", "split");
-          setSelectionRequest({ ...item.range });
-        }}
-        onRepairHost={setRepairHost}
-        diagramKind={workspace.diagramKind}
-        source={problemPreview?.source ?? diagramAnalysis.source}
-        diagnostics={problemPreview?.diagnostics ?? activeDiagnostics}
-        quickFixes={problemPreview ? [] : activeQuickFixes}
-        readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
-        notice={problemPreview?.message}
-        onReveal={(diagnostic) => {
-          if (viewMode === "diagram") update("viewMode", "split");
-          if (problemPreview) {
-            setSelectionRequest({ from: diagnostic.from, to: diagnostic.to });
-            return;
-          }
-          setRepairRequest({
-            documentId: tabs.activeId,
-            kind: diagramAnalysis.kind,
-            source: diagramAnalysis.source,
-            diagnostic,
-          });
-        }}
-        onPreviewDiagnostic={(diagnostic) => {
-          if (viewMode === "diagram") update("viewMode", "split");
-          setRepairRequest({
-            documentId: tabs.activeId,
-            kind: diagramAnalysis.kind,
-            source: diagramAnalysis.source,
-            diagnostic,
-            previewFixes: true,
-          });
-        }}
-        onPreviewFix={(fix) => {
-          if (viewMode === "diagram") update("viewMode", "split");
-          setRepairRequest({
-            documentId: tabs.activeId,
-            kind: diagramAnalysis.kind,
-            source: diagramAnalysis.source,
-            fix,
-          });
-        }}
-        onClose={() => {
-          setProblemsOpen(false);
-          setUnsupportedOpen(false);
-          setRepairCategoryFilter(undefined);
-          setProblemPreview(undefined);
-        }}
+      <AppOverlays
+        activeDiagnostics={activeDiagnostics}
+        activeDocument={activeDocument}
+        activeQuickFixes={activeQuickFixes}
+        applySemanticRename={applySemanticRename}
+        canDuplicateMenuElement={canDuplicateMenuElement}
+        classDocument={classDocument}
+        classMemberMenu={classMemberMenu}
+        closeDialog={closeDialog}
+        collaboration={collaboration}
+        collaborationAppliesToActiveDiagram={collaborationAppliesToActiveDiagram}
+        commandReadOnly={commandReadOnly}
+        commitGeneratedSource={commitGeneratedSource}
+        commitSource={commitSource}
+        diagramAnalysis={diagramAnalysis}
+        diagramMulti={diagramMulti}
+        dialog={dialog}
+        duplicateTaskOccurrence={duplicateTaskOccurrence}
+        inlineRename={inlineRename}
+        linkedWbs={linkedWbs}
+        menuGanttTask={menuGanttTask}
+        menuLinkedGantt={menuLinkedGantt}
+        menuLinkedWbs={menuLinkedWbs}
+        menuOccurrence={menuOccurrence}
+        menuProjectWbsLinks={menuProjectWbsLinks}
+        menuWbsNode={menuWbsNode}
+        navigateOccurrence={navigateOccurrence}
+        occurrencesFor={occurrencesFor}
+        openLinkedGanttTask={openLinkedGanttTask}
+        openLinkedWbsNode={openLinkedWbsNode}
+        openProjectWbsNode={openProjectWbsNode}
+        presentationConnections={presentationConnections}
+        presentationDocuments={presentationDocuments}
+        presentationOpen={presentationOpen}
+        presentationReturnFocus={presentationReturnFocus}
+        preservedSyntax={preservedSyntax}
+        problemPreview={problemPreview}
+        problemsOpen={problemsOpen}
+        referenceSymbol={referenceSymbol}
+        renameReturnFocus={renameReturnFocus}
+        renameSymbol={renameSymbol}
+        repairCategoryFilter={repairCategoryFilter}
+        resourceCapacities={resourceCapacities}
+        resourceWarningsEnabled={resourceWarningsEnabled}
+        restorePreviousFocus={restorePreviousFocus}
+        schedulePreview={schedulePreview}
+        setClassMemberMenu={setClassMemberMenu}
+        setInlineRename={setInlineRename}
+        setInteractionMessage={setInteractionMessage}
+        setPresentationOpen={setPresentationOpen}
+        setProblemPreview={setProblemPreview}
+        setProblemsOpen={setProblemsOpen}
+        setReferenceSymbol={setReferenceSymbol}
+        setRenameSymbol={setRenameSymbol}
+        setRepairCategoryFilter={setRepairCategoryFilter}
+        setRepairHost={setRepairHost}
+        setRepairRequest={setRepairRequest}
+        setSchedulePreview={setSchedulePreview}
+        setSelectedClassObjectId={setSelectedClassObjectId}
+        setSelectionRequest={setSelectionRequest}
+        setSymbolMenu={setSymbolMenu}
+        setUnsupportedOpen={setUnsupportedOpen}
+        symbolAt={symbolAt}
+        symbolMenu={symbolMenu}
+        symbolProvider={symbolProvider}
+        tabs={tabs}
+        unsupportedOpen={unsupportedOpen}
+        update={update}
+        viewMode={viewMode}
+        workspace={workspace}
       />
-      {schedulePreview && (
-        <SchedulePreviewDialog
-          preview={schedulePreview}
-          onChoose={(cascade) => {
-            if (
-              commitGeneratedSource(
-                cascade ? schedulePreview.cascadeSource : schedulePreview.singleSource,
-                `${schedulePreview.action} ${schedulePreview.taskLabel}${cascade ? " with dependents" : ""}`,
-              )
-            )
-              setSchedulePreview(undefined);
-          }}
-          onClose={() => setSchedulePreview(undefined)}
-        />
-      )}
-      {dialog?.kind === "delivery-scenario" && (
-        <DeliveryScenarioDialog
-          key={activeDocument.historyId}
-          documentId={activeDocument.historyId}
-          scenarios={activeDocument.deliveryScenarios}
-          onScenariosChange={(deliveryScenarios) => {
-            const target = tabs.getDocument(activeDocument.id);
-            if (target)
-              tabs.updateDocumentFormat(target.id, {
-                deliveryScenarios,
-                dirty: true,
-                revision: (target.revision ?? 0) + 1,
-              });
-          }}
-          currentSource={workspace.source}
-          capacities={resourceCapacities}
-          showResourceOverAllocationWarnings={resourceWarningsEnabled}
-          onApply={(source, expectedBase) => {
-            if (workspace.source !== expectedBase) return false;
-            if (!commitSource(source, "Apply delivery scenario")) return false;
-            closeDialog("delivery-scenario");
-            setInteractionMessage("Applied delivery scenario");
-            return true;
-          }}
-          onClose={() => closeDialog("delivery-scenario")}
-        />
-      )}
-      {dialog?.kind === "help" && <HelpDialog kind={workspace.diagramKind} onClose={() => closeDialog("help")} />}
-      {classMemberMenu && (
-        <div
-          className="tab-menu"
-          role="menu"
-          aria-label="Class member actions"
-          style={{ left: classMemberMenu.x, top: classMemberMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") setClassMemberMenu(undefined);
-          }}
-        >
-          <button
-            autoFocus
-            role="menuitem"
-            onClick={() => {
-              setSelectedClassObjectId(classMemberMenu.entityId);
-              setClassMemberMenu(undefined);
-            }}
-          >
-            Edit member
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              const member = classDocument.entities
-                .find((item) => item.id === classMemberMenu.entityId)
-                ?.members.find((item) => item.id === classMemberMenu.memberId);
-              if (member) {
-                if (viewMode === "diagram") update("viewMode", "split");
-                setSelectionRequest({ ...member.sourceRange });
-              }
-              setClassMemberMenu(undefined);
-            }}
-          >
-            Reveal in code
-          </button>
-        </div>
-      )}
-      {symbolMenu && (
-        <div
-          className="tab-menu"
-          role="menu"
-          aria-label="Symbol actions"
-          style={{ left: symbolMenu.x, top: symbolMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") setSymbolMenu(undefined);
-          }}
-        >
-          {canDuplicateMenuElement && menuOccurrence && (
-            <button
-              autoFocus
-              role="menuitem"
-              disabled={diagramMulti.readOnly}
-              onClick={() => {
-                diagramMulti.duplicateAt(menuOccurrence.range);
-                setSymbolMenu(undefined);
-              }}
-            >
-              Duplicate
-            </button>
-          )}
-          {menuLinkedGantt && menuWbsNode?.alias && (
-            <button
-              role="menuitem"
-              onClick={() => {
-                openLinkedGanttTask(menuWbsNode.alias!);
-                setSymbolMenu(undefined);
-              }}
-            >
-              Open linked Gantt task
-            </button>
-          )}
-          {menuProjectWbsLinks.map((link) => (
-            <button
-              key={link.linkId}
-              role="menuitem"
-              onClick={() => {
-                void openProjectWbsNode(link);
-                setSymbolMenu(undefined);
-              }}
-            >
-              Open linked WBS node in {link.path}: {link.declaration.symbolKey}
-            </button>
-          ))}
-          {menuLinkedWbs && linkedWbs && menuGanttTask && (
-            <button
-              role="menuitem"
-              onClick={() => {
-                openLinkedWbsNode(menuGanttTask.id);
-                setSymbolMenu(undefined);
-              }}
-            >
-              Open linked WBS node
-            </button>
-          )}
-          {workspace.diagramKind === "gantt" &&
-            (symbolMenu.occurrence ?? (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined))
-              ?.kind === "task" && (
-              <button
-                autoFocus
-                role="menuitem"
-                onClick={() => {
-                  const occurrence =
-                    symbolMenu.occurrence ??
-                    (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-                  if (occurrence) duplicateTaskOccurrence(occurrence);
-                  setSymbolMenu(undefined);
-                }}
-              >
-                Duplicate task
-              </button>
-            )}
-          <button
-            autoFocus={
-              !canDuplicateMenuElement &&
-              (workspace.diagramKind !== "gantt" ||
-                (
-                  symbolMenu.occurrence ??
-                  (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined)
-                )?.kind !== "task")
-            }
-            role="menuitem"
-            onClick={() => {
-              const occurrence =
-                symbolMenu.occurrence ??
-                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-              const request = occurrence ? symbolProvider.renameRequest(occurrence) : undefined;
-              if (request) setRenameSymbol(request);
-              setSymbolMenu(undefined);
-            }}
-          >
-            Rename…
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              const occurrence =
-                symbolMenu.occurrence ??
-                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-              if (occurrence)
-                setReferenceSymbol({ kind: occurrence.kind, key: occurrence.key, label: occurrence.value });
-              setSymbolMenu(undefined);
-            }}
-          >
-            Find references
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              const occurrence =
-                symbolMenu.occurrence ??
-                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-              const declaration = occurrence
-                ? (occurrencesFor(occurrence).find((item) => item.role === "declaration") ?? occurrence)
-                : undefined;
-              if (declaration) {
-                if (viewMode === "diagram") update("viewMode", "split");
-                setSelectionRequest({ ...declaration.range });
-              }
-              setSymbolMenu(undefined);
-            }}
-          >
-            Reveal declaration
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              const occurrence =
-                symbolMenu.occurrence ??
-                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-              if (occurrence) navigateOccurrence(occurrence, -1);
-              setSymbolMenu(undefined);
-            }}
-          >
-            Previous reference
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              const occurrence =
-                symbolMenu.occurrence ??
-                (symbolMenu.position !== undefined ? symbolAt(symbolMenu.position) : undefined);
-              if (occurrence) navigateOccurrence(occurrence, 1);
-              setSymbolMenu(undefined);
-            }}
-          >
-            Next reference
-          </button>
-        </div>
-      )}
-      {referenceSymbol && (
-        <SymbolReferencesPanel
-          label={referenceSymbol.label}
-          source={workspace.source}
-          occurrences={occurrencesFor(referenceSymbol)}
-          onSelect={(occurrence) => {
-            if (viewMode === "diagram") update("viewMode", "split");
-            setSelectionRequest({ ...occurrence.range });
-          }}
-          onClose={() => setReferenceSymbol(undefined)}
-        />
-      )}
-      {inlineRename && inlineRename.documentId === tabs.activeId && viewMode !== "code" && (
-        <InlineLabelEditor
-          value={inlineRename.request.occurrence.value}
-          anchor={inlineRename.anchor}
-          current={!commandReadOnly && workspace.source === inlineRename.source && !diagramMulti.multiple}
-          validate={(value) => symbolProvider.validateRename(inlineRename.request, value)}
-          onApply={(value) => {
-            if (
-              commandReadOnly ||
-              workspace.source !== inlineRename.source ||
-              tabs.activeId !== inlineRename.documentId
-            )
-              return false;
-            return applySemanticRename(inlineRename.request, value);
-          }}
-          onClose={() => {
-            setInlineRename(undefined);
-            restorePreviousFocus(renameReturnFocus.current);
-          }}
-        />
-      )}
-      {presentationOpen && (
-        <PresentationDialog
-          documents={presentationDocuments}
-          connections={presentationConnections}
-          initialId={activeDocument.historyId}
-          onClose={() => {
-            setPresentationOpen(false);
-            requestAnimationFrame(() => presentationReturnFocus.current?.focus());
-          }}
-        />
-      )}
-      {renameSymbol && (
-        <RenameSymbolDialog
-          kind={renameSymbol.mode}
-          value={renameSymbol.occurrence.value}
-          validate={(value) => symbolProvider.validateRename(renameSymbol, value)}
-          occurrenceCount={symbolProvider.renameOccurrenceCount(renameSymbol)}
-          occurrences={symbolProvider.renameOccurrences(renameSymbol)}
-          source={workspace.source}
-          onRename={(nextValue) => {
-            if (applySemanticRename(renameSymbol, nextValue)) setRenameSymbol(undefined);
-          }}
-          onClose={() => {
-            setRenameSymbol(undefined);
-            restorePreviousFocus(renameReturnFocus.current);
-          }}
-        />
-      )}
     </InspectorWorkspace>
   );
 }
