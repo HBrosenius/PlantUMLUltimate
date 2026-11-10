@@ -113,7 +113,7 @@ export function useSymbolNavigation({
       setRenameSymbol(request);
       return true;
     },
-    [renameReturnFocus, setRenameSymbol, setRenameSymbol, symbolAt, symbolProvider],
+    [renameReturnFocus, setRenameSymbol, symbolAt, symbolProvider],
   );
   const occurrencesFor = useCallback(
     (symbol: Pick<SemanticSymbolOccurrence, "kind" | "key">) => symbolProvider.occurrencesFor(symbol),
@@ -131,7 +131,7 @@ export function useSymbolNavigation({
         setSelectionRequest({ ...next.range });
       }
     },
-    [setSelectionRequest, setSelectionRequest, occurrencesFor, selectViewMode, viewMode],
+    [setSelectionRequest, occurrencesFor, selectViewMode, viewMode],
   );
   // Preview notices ask for a source line (e.g. a syntax error) without knowing which view is open.
   useEffect(() => {
@@ -145,7 +145,7 @@ export function useSymbolNavigation({
     };
     window.addEventListener("reveal-source-line", reveal);
     return () => window.removeEventListener("reveal-source-line", reveal);
-  }, [setSelectionRequest, setSelectionRequest, selectViewMode, viewMode, workspace.source]);
+  }, [setSelectionRequest, selectViewMode, viewMode, workspace.source]);
   const diagramOccurrenceForTarget = useCallback(
     (target: Element): SemanticSymbolOccurrence | undefined => {
       const closestValue = (attribute: string) => target.closest(`[${attribute}]`)?.getAttribute(attribute);
@@ -234,7 +234,7 @@ export function useSymbolNavigation({
       });
       return true;
     },
-    [setClassMemberMenu, setClassMemberMenu],
+    [setClassMemberMenu],
   );
   const reportFileError = useCallback(
     (error: unknown) => {
