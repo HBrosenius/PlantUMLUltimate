@@ -13,6 +13,7 @@
     "test:collaboration": "npm --workspace @plantuml-studio/collaboration-worker run test",
     "test:integration": "npm --workspace @plantuml-studio/integration-worker run test",
     "test:e2e": "playwright test",
+    "test:e2e:agent": "PW_FAILURE_MAX_CHARS=1500 playwright test --reporter=dot,./tests/playwright-failure-reporter.ts --max-failures=3",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:webkit": "playwright test --project=webkit",
