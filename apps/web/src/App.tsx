@@ -1,3 +1,4 @@
+import { useStageDock } from "./app/use-stage-dock";
 import { RibbonChrome } from "./app/RibbonChrome";
 import { NavigationChrome } from "./app/NavigationChrome";
 import { WorkspaceMain } from "./app/WorkspaceMain";
@@ -31,13 +32,7 @@ import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 
 import { readStageTokens, useResolvedDark } from "./stage/stage-theme";
-import {
-  describeStageSelection,
-  dockActionsFor,
-  type AddItem,
-  type DockHandlers,
-  type StageSelectionInput,
-} from "./stage/stage-selection";
+import { describeStageSelection, type StageSelectionInput } from "./stage/stage-selection";
 import { recolorSvgForStage } from "./render/stage-recolor";
 import { storageGet } from "./safe-storage";
 import { applyShellTheme } from "./shell-theme";
@@ -4295,105 +4290,45 @@ export function App() {
     activitySettingsOpen ||
     wbsSettingsOpen;
   const stageHidesInspector = stageActive && !stageInspectorOpen && !stageUtilityPanelOpen && !diagramMulti.multiple;
-  const dockHandlers: DockHandlers = {
-    readOnly: commandReadOnly,
-    resizeTask: (id, days) => resizeGanttTask(id, days),
-    moveTask: (id, days) => moveGanttTask(id, days),
-    addDependency: () => openDialog({ kind: "add-dependency" }),
-    duplicateTask: (id) =>
-      duplicateTaskOccurrence({ kind: "task", key: id } as unknown as Parameters<typeof duplicateTaskOccurrence>[0]),
-    deleteTask: deleteSelectedTask,
+  const { stageDockActions, stageAddItems } = useStageDock({
+    addClassMember,
+    addWbsNode,
+    commandReadOnly,
     deleteDependency,
-    deleteDivider: deleteSelectedDivider,
-    moveSequenceMessage: (id, direction) => {
-      const messages = sequenceDocument.messages;
-      const index = messages.findIndex((item) => item.id === id);
-      const target = messages[index + direction];
-      if (!target) return;
-      reorderSequenceMessage(id, target.id, direction < 0 ? "before" : "after");
-      // The reorder clears the selection and ids follow position: reselect the moved message once parsed.
-      stagePendingMessage.current = { index: index + direction, document: sequenceDocument };
-    },
-    moveSequenceParticipant: (id, direction) => {
-      const participants = sequenceDocument.participants;
-      const index = participants.findIndex((item) => item.id === id);
-      const target = participants[index + direction];
-      if (target) reorderSequenceParticipant(id, target.id, direction < 0 ? "before" : "after");
-    },
-    deleteSequenceMessage: removeSequenceMessage,
-    deleteSequenceParticipant: removeSequenceParticipant,
-    deleteSequenceStructure: removeSequenceStructure,
-    renameInLens: () => window.dispatchEvent(new Event("stage-focus-lens")),
-    addLinked: () => {
-      if (workspace.diagramKind === "usecase") openDialog({ kind: "add-usecase-relationship" });
-      else if (workspace.diagramKind === "activity") openDialog({ kind: "add-activity-arrow" });
-      else openDialog({ kind: "add-class-relationship" });
-    },
-    addClassMember: () => addClassMember({ kind: "field", name: "newField", type: "String", visibility: "-" }),
-    addWbsNode: (position) => addWbsNode({ label: "New item" }, position),
-    remove: {
-      "gantt-separator": deleteSelectedVerticalSeparator,
-      "usecase-element": removeUseCaseElement,
-      "usecase-package": removeUseCasePackage,
-      "usecase-note": removeUseCaseNote,
-      "usecase-relationship": removeUseCaseRelationship,
-      "class-entity": removeClassEntity,
-      "class-package": removeClassPackage,
-      "class-note": removeClassNote,
-      "class-relationship": removeClassRelationship,
-      "activity-action": removeActivityAction,
-      "activity-partition": removeActivityPartition,
-      "activity-note": removeActivityNote,
-      "activity-control": removeActivityControl,
-      "activity-terminal": removeActivityTerminal,
-      "activity-arrow": removeActivityArrow,
-      "wbs-node": removeWbsNode,
-      "wbs-relationship": removeWbsRelationship,
-    },
-  };
-  const stageDockActions = stageSelection ? dockActionsFor(stageSelection, dockHandlers) : [];
-  const stageAddItems: AddItem[] = (() => {
-    const item = (id: string, label: string, run: () => void): AddItem => ({ id, label, run });
-    switch (workspace.diagramKind) {
-      case "gantt":
-        return [
-          item("task", "Task", () => openDialog({ kind: "add-task" })),
-          item("milestone", "Milestone", () => openDialog({ kind: "add-milestone" })),
-          item("divider", "Divider", () => openDialog({ kind: "add-divider" })),
-          ...(parseResult.document.tasks.length >= 2
-            ? [item("dependency", "Dependency", () => openDialog({ kind: "add-dependency" }))]
-            : []),
-        ];
-      case "sequence":
-        return [
-          item("participant", "Participant", () => openDialog({ kind: "add-sequence-participant" })),
-          item("message", "Message", () => openDialog({ kind: "add-sequence-message" })),
-          item("fragment", "Fragment", () => openDialog({ kind: "add-sequence-structure", structureKind: "fragment" })),
-          item("note", "Note", () => openDialog({ kind: "add-sequence-structure", structureKind: "note" })),
-        ];
-      case "usecase":
-        return [
-          item("actor", "Actor", () => openDialog({ kind: "add-usecase-element", elementKind: "actor" })),
-          item("usecase", "Use case", () => openDialog({ kind: "add-usecase-element", elementKind: "usecase" })),
-          item("relationship", "Relationship", () => openDialog({ kind: "add-usecase-relationship" })),
-        ];
-      case "class":
-      case "component":
-        return [
-          item("entity", "Element", () => openDialog({ kind: "add-class-entity" })),
-          item("relationship", "Relationship", () => openDialog({ kind: "add-class-relationship" })),
-        ];
-      case "activity":
-        return [
-          item("action", "Action", () => openDialog({ kind: "add-activity-action" })),
-          item("arrow", "Arrow", () => openDialog({ kind: "add-activity-arrow" })),
-        ];
-      case "wbs":
-        return [item("node", "Node", () => openDialog({ kind: "add-wbs-node" }))];
-      default:
-        return [];
-    }
-  })();
+    deleteSelectedDivider,
+    deleteSelectedTask,
+    deleteSelectedVerticalSeparator,
+    duplicateTaskOccurrence,
+    moveGanttTask,
+    openDialog,
+    parseResult,
+    removeActivityAction,
+    removeActivityArrow,
+    removeActivityControl,
+    removeActivityNote,
+    removeActivityPartition,
+    removeActivityTerminal,
+    removeClassEntity,
+    removeClassNote,
+    removeClassPackage,
+    removeClassRelationship,
+    removeSequenceMessage,
+    removeSequenceParticipant,
+    removeSequenceStructure,
+    removeUseCaseElement,
+    removeUseCaseNote,
+    removeUseCasePackage,
+    removeUseCaseRelationship,
+    removeWbsNode,
+    removeWbsRelationship,
+    reorderSequenceMessage,
+    reorderSequenceParticipant,
+    resizeGanttTask,
+    sequenceDocument,
+    stagePendingMessage,
+    stageSelection,
+    workspace,
+  });
 
   return (
     <InspectorWorkspace
