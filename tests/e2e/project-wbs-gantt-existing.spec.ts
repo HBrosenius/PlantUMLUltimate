@@ -1,3 +1,4 @@
+import { auditScreenshot } from "./audit-screenshot";
 import { openRibbonGroup, prepareEditor, setSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 
@@ -52,9 +53,9 @@ test("adds a Gantt chart to the WBS's existing project", async ({ page }) => {
   const preview = page.getByRole("dialog", { name: "Review linked work" });
   await expect(preview).toContainText("Extra work");
   await expect(preview).toContainText("Website WBS schedule");
-  await page.screenshot({ path: "docs/audits/2026-10-10-a29/desktop.png" });
+  await auditScreenshot(page, "docs/audits/2026-10-10-a29/desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "docs/audits/2026-10-10-a29/phone.png" });
+  await auditScreenshot(page, "docs/audits/2026-10-10-a29/phone.png");
   await page.setViewportSize({ width: 1280, height: 900 });
   await preview.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(missing).toBeVisible();
