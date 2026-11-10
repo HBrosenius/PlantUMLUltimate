@@ -210,13 +210,7 @@ export function useSymbolNavigation({
       });
       return true;
     },
-    [
-      lastDiagramFocus,
-      lastDiagramFocusSelector,
-      renameReturnFocus,
-      setSymbolMenu,
-      diagramOccurrenceForTarget,
-    ],
+    [lastDiagramFocus, lastDiagramFocusSelector, renameReturnFocus, setSymbolMenu, diagramOccurrenceForTarget],
   );
   const openClassMemberMenu = useCallback(
     (target: Element, x: number, y: number) => {

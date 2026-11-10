@@ -15,6 +15,18 @@ import { AddDependencyDialog } from "../AddDependencyDialog";
 import { GanttDialogs, type GanttDialogKind } from "../features/gantt/GanttDialogs";
 import { ProjectInspector } from "../ProjectInspector";
 import { parseProjectSettings, type ProjectSettings } from "../project-settings";
+import {
+  AddWbsNodeDialog,
+  WbsSettingsInspector,
+  WbsNodeInspector,
+  WbsRelinkDialog,
+  WbsLinkedDeleteDialog,
+  WbsRelationshipInspector,
+  ActivityDialogs,
+  SequenceDialogs,
+  UseCaseDialogs,
+  LinkedWorkPreviewDialog,
+} from "./lazy-diagram-dialogs";
 import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
 import type { ActivityDialogKind } from "../features/activity/ActivityDialogs";
 import type { ActivityDocument } from "../../../../packages/diagram-activity/src/model";
@@ -53,75 +65,9 @@ import type { GanttDocument } from "../../../../packages/diagram-gantt/src/model
 import type { PortableProject } from "../../../../packages/document-format/src/types";
 import type { VirtualProject } from "../projects/project-index";
 import type { SequenceDialog } from "../features/sequence/SequenceDialogs";
-import type { Dispatch, SetStateAction, ComponentProps } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { useSingleFileProject } from "../projects/use-single-file-project";
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
-import { lazyFeature } from "../lazy-feature";
-
-const AddWbsNodeDialog = lazyFeature<ComponentProps<typeof import("../features/wbs/WbsDialogs").AddWbsNodeDialog>>(
-  () => import("../features/wbs/WbsDialogs").then((module) => ({ default: module.AddWbsNodeDialog })),
-  "the WBS node form",
-);
-
-const WbsSettingsInspector = lazyFeature<
-  ComponentProps<typeof import("../features/wbs/WbsInspectors").WbsSettingsInspector>
->(
-  () => import("../features/wbs/WbsInspectors").then((module) => ({ default: module.WbsSettingsInspector })),
-  "WBS settings",
-);
-
-const WbsNodeInspector = lazyFeature<ComponentProps<typeof import("../features/wbs/WbsInspectors").WbsNodeInspector>>(
-  () => import("../features/wbs/WbsInspectors").then((module) => ({ default: module.WbsNodeInspector })),
-  "the WBS node inspector",
-);
-
-const WbsRelinkDialog = lazyFeature<ComponentProps<typeof import("../features/wbs/WbsRelinkDialog").WbsRelinkDialog>>(
-  () => import("../features/wbs/WbsRelinkDialog").then((module) => ({ default: module.WbsRelinkDialog })),
-  "the relink review",
-);
-
-const WbsLinkedDeleteDialog = lazyFeature<
-  ComponentProps<typeof import("../features/wbs/WbsLinkedDeleteDialog").WbsLinkedDeleteDialog>
->(
-  () => import("../features/wbs/WbsLinkedDeleteDialog").then((module) => ({ default: module.WbsLinkedDeleteDialog })),
-  "the linked delete review",
-);
-
-const WbsRelationshipInspector = lazyFeature<
-  ComponentProps<typeof import("../features/wbs/WbsInspectors").WbsRelationshipInspector>
->(
-  () => import("../features/wbs/WbsInspectors").then((module) => ({ default: module.WbsRelationshipInspector })),
-  "the WBS relationship inspector",
-);
-
-const ActivityDialogs = lazyFeature<
-  ComponentProps<typeof import("../features/activity/ActivityDialogs").ActivityDialogs>
->(
-  () => import("../features/activity/ActivityDialogs").then((module) => ({ default: module.ActivityDialogs })),
-  "activity forms",
-  { silent: true },
-);
-
-const SequenceDialogs = lazyFeature<
-  ComponentProps<typeof import("../features/sequence/SequenceDialogs").SequenceDialogs>
->(
-  () => import("../features/sequence/SequenceDialogs").then((module) => ({ default: module.SequenceDialogs })),
-  "sequence forms",
-  { silent: true },
-);
-
-const UseCaseDialogs = lazyFeature<ComponentProps<typeof import("../features/usecase/UseCaseDialogs").UseCaseDialogs>>(
-  () => import("../features/usecase/UseCaseDialogs").then((module) => ({ default: module.UseCaseDialogs })),
-  "use case forms",
-  { silent: true },
-);
-
-const LinkedWorkPreviewDialog = lazyFeature<
-  ComponentProps<typeof import("../projects/LinkedWorkPreviewDialog").LinkedWorkPreviewDialog>
->(
-  () => import("../projects/LinkedWorkPreviewDialog").then((module) => ({ default: module.LinkedWorkPreviewDialog })),
-  "the linked work preview",
-);
 
 export interface DiagramDialogsProps {
   activeDocument: DocumentSnapshot;
