@@ -1,3 +1,4 @@
+import { useStageSelection } from "./app/use-stage-selection";
 import { buildSourceEditor } from "./app/build-source-editor";
 import { buildStageDock } from "./app/build-stage-dock";
 import { RibbonChrome } from "./app/RibbonChrome";
@@ -33,7 +34,7 @@ import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 
 import { readStageTokens, useResolvedDark } from "./stage/stage-theme";
-import { describeStageSelection, type StageSelectionInput } from "./stage/stage-selection";
+
 import { recolorSvgForStage } from "./render/stage-recolor";
 import { storageGet } from "./safe-storage";
 import { applyShellTheme } from "./shell-theme";
@@ -108,7 +109,7 @@ import { usePersistedWorkspace } from "./use-persisted-workspace";
 import { useDiagramSelection } from "./use-diagram-selection";
 import { useAppDialog } from "./use-app-dialog";
 import { documentDisplayNames } from "./workspace-storage";
-import { findTaskAt, parseGantt } from "@plantuml-studio/diagram-gantt";
+import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 
 import { usePwa } from "./pwa";
@@ -129,12 +130,12 @@ import {
   type FileSnapshot,
   type OpenedFileBytes,
 } from "./file-service";
-import { findWbsNodeAt, parseWbs, updateWbsNode } from "@plantuml-studio/diagram-wbs";
-import { findSequenceObjectAt, parseSequence } from "@plantuml-studio/diagram-sequence";
-import { findUseCaseObjectAt, parseUseCase } from "@plantuml-studio/diagram-usecase";
-import { findClassObjectAt, parseClassDiagram } from "@plantuml-studio/diagram-class";
+import { parseWbs, updateWbsNode } from "@plantuml-studio/diagram-wbs";
+import { parseSequence } from "@plantuml-studio/diagram-sequence";
+import { parseUseCase } from "@plantuml-studio/diagram-usecase";
+import { parseClassDiagram } from "@plantuml-studio/diagram-class";
 import { hashSource } from "@plantuml-studio/document-format";
-import { findActivityObjectAt, parseActivity } from "@plantuml-studio/diagram-activity";
+import { parseActivity } from "@plantuml-studio/diagram-activity";
 import { useUseCaseActions } from "./features/usecase/use-usecase-actions";
 import { useUseCaseController } from "./features/usecase/use-usecase-controller";
 import { useDocumentHistory } from "./use-document-history";
@@ -3796,150 +3797,64 @@ export function App() {
     }
   }, [sequenceDocument, setSelectedSequenceMessageId]);
   const stageDark = useResolvedDark(workspace.theme);
-  const stageSelection = useMemo(
-    () =>
-      stageActive && !diagramMulti.multiple
-        ? describeStageSelection({
-            diagramKind: workspace.diagramKind,
-            selectionRange: selectionRequest,
-            task: selectedTask,
-            dependency: selectedDependency,
-            dependencyIndex: selectedDependencyIndex,
-            dividerIndex: selectedDividerIndex,
-            divider: selectedDivider,
-            participant: selectedSequenceParticipant,
-            message: selectedSequenceMessage,
-            structure: selectedSequenceStructure,
-            otherId: selectedUseCaseObjectId ?? selectedClassObjectId ?? selectedActivityObjectId ?? selectedWbsNodeId,
-            items: {
-              "gantt-separator": selectedVerticalSeparator,
-              "usecase-element": selectedUseCaseElement,
-              "usecase-package": selectedUseCasePackage,
-              "usecase-note": selectedUseCaseNote,
-              "usecase-relationship": selectedUseCaseRelationship,
-              "class-entity": selectedClassEntity,
-              "class-package": selectedClassPackage,
-              "class-note": selectedClassNote,
-              "class-relationship": selectedClassRelationship,
-              "activity-action": selectedActivityAction,
-              "activity-partition": selectedActivityPartition,
-              "activity-note": selectedActivityNote,
-              "activity-control": selectedActivityControl,
-              "activity-terminal": selectedActivityTerminal,
-              "activity-arrow": selectedActivityArrow,
-              "wbs-node": selectedWbsNode,
-              "wbs-relationship": selectedWbsRelationship,
-            } as StageSelectionInput["items"],
-          })
-        : undefined,
-    [
-      selectedVerticalSeparator,
-      selectedUseCaseElement,
-      selectedUseCasePackage,
-      selectedUseCaseNote,
-      selectedUseCaseRelationship,
-      selectedClassEntity,
-      selectedClassPackage,
-      selectedClassNote,
-      selectedClassRelationship,
-      selectedActivityAction,
-      selectedActivityPartition,
-      selectedActivityNote,
-      selectedActivityControl,
-      selectedActivityTerminal,
-      selectedActivityArrow,
-      selectedWbsNode,
-      selectedWbsRelationship,
-      stageActive,
-      diagramMulti.multiple,
-      workspace.diagramKind,
-      selectionRequest,
-      selectedTask,
-      selectedDependency,
-      selectedDependencyIndex,
-      selectedDividerIndex,
-      selectedDivider,
-      selectedSequenceParticipant,
-      selectedSequenceMessage,
-      selectedSequenceStructure,
-      selectedUseCaseObjectId,
-      selectedClassObjectId,
-      selectedActivityObjectId,
-      selectedWbsNodeId,
-    ],
-  );
-  useEffect(() => {
-    if (!stageSelection) setStageInspectorOpen(false);
-  }, [stageSelection]);
-  useEffect(() => {
-    if (!stageActive) setStageLensExpanded(false);
-  }, [stageActive]);
-  // The canvas outline and the dock/lens must agree: with no Stage selection, drop outlines that only come from
-  // a restored or stale source cursor.
-  useEffect(() => {
-    if (!stageActive || stageSelection) return;
-    setSourceHighlightedTaskId(undefined);
-    setSourceHighlightedSequenceParticipantId(undefined);
-    setSourceHighlightedUseCaseId(undefined);
-    setSourceHighlightedClassEntityId(undefined);
-    setSourceHighlightedActivityId(undefined);
-    setSourceHighlightedWbsNodeId(undefined);
-  }, [
-    stageActive,
-    stageSelection,
-    setSourceHighlightedTaskId,
-    setSourceHighlightedSequenceParticipantId,
-    setSourceHighlightedUseCaseId,
-    setSourceHighlightedClassEntityId,
+  const { stageSelection, stageLensFocusRef } = useStageSelection({
+    activityDocument,
+    classDocument,
+    diagramMulti,
+    parseResult,
+    selectActivityFromSource,
+    selectClassFromSource,
+    selectSequenceMessage,
+    selectSequenceParticipant,
+    selectSequenceStructure,
+    selectTask,
+    selectUseCaseFromSource,
+    selectWbsFromSource,
+    selectedActivityAction,
+    selectedActivityArrow,
+    selectedActivityControl,
+    selectedActivityNote,
+    selectedActivityObjectId,
+    selectedActivityPartition,
+    selectedActivityTerminal,
+    selectedClassEntity,
+    selectedClassNote,
+    selectedClassObjectId,
+    selectedClassPackage,
+    selectedClassRelationship,
+    selectedDependency,
+    selectedDependencyIndex,
+    selectedDivider,
+    selectedDividerIndex,
+    selectedSequenceMessage,
+    selectedSequenceParticipant,
+    selectedSequenceStructure,
+    selectedTask,
+    selectedUseCaseElement,
+    selectedUseCaseNote,
+    selectedUseCaseObjectId,
+    selectedUseCasePackage,
+    selectedUseCaseRelationship,
+    selectedVerticalSeparator,
+    selectedWbsNode,
+    selectedWbsNodeId,
+    selectedWbsRelationship,
+    selectionRequest,
+    sequenceDocument,
     setSourceHighlightedActivityId,
+    setSourceHighlightedClassEntityId,
+    setSourceHighlightedSequenceParticipantId,
+    setSourceHighlightedTaskId,
+    setSourceHighlightedUseCaseId,
     setSourceHighlightedWbsNodeId,
-  ]);
-  // Renaming the selected element in the lens changes its identity (ids follow names), which would drop the
-  // selection. Re-resolve it from where the element started, as the editor's own cursor selection does.
-  const stageLensFocusRef = useRef(false);
-  const stageLastRange = useRef<{ from: number } | undefined>(undefined);
-  useEffect(() => {
-    if (!stageActive) return;
-    if (stageSelection) {
-      stageLastRange.current = stageSelection.range;
-      return;
-    }
-    const range = stageLastRange.current;
-    stageLastRange.current = undefined;
-    if (!range || !stageLensFocusRef.current) return;
-    const position = Math.min(range.from + 1, workspace.source.length);
-    switch (workspace.diagramKind) {
-      case "gantt": {
-        const task = findTaskAt(parseResult.document, position);
-        if (task) selectTask(task.id);
-        break;
-      }
-      case "sequence": {
-        const object = findSequenceObjectAt(sequenceDocument, position);
-        if (!object) break;
-        if (sequenceDocument.participants.includes(object as (typeof sequenceDocument.participants)[number]))
-          selectSequenceParticipant(object.id, false);
-        else if ("from" in object) selectSequenceMessage(object.id, false);
-        else selectSequenceStructure(object.id, false);
-        break;
-      }
-      case "usecase":
-        selectUseCaseFromSource(symbolAt(position)?.key, findUseCaseObjectAt(useCaseDocument, position)?.id);
-        break;
-      case "class":
-      case "component":
-        selectClassFromSource(symbolAt(position)?.key, undefined, findClassObjectAt(classDocument, position)?.id);
-        break;
-      case "activity":
-        selectActivityFromSource(symbolAt(position)?.key, findActivityObjectAt(activityDocument, position)?.id);
-        break;
-      case "wbs":
-        selectWbsFromSource(symbolAt(position)?.key, findWbsNodeAt(wbsDocument, position)?.id);
-        break;
-    }
-    // Re-resolution is driven only by the selection being lost.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stageActive, stageSelection]);
+    setStageInspectorOpen,
+    setStageLensExpanded,
+    stageActive,
+    symbolAt,
+    useCaseDocument,
+    wbsDocument,
+    workspace,
+  });
   const stageRecolor = stageActive && stageDark && !stageTrueRender;
   const previewSvg = useMemo(
     () =>
