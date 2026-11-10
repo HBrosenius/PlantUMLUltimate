@@ -1,3 +1,4 @@
+import { useDialogKinds } from "./app/use-dialog-kinds";
 import { useSymbolNavigation } from "./app/use-symbol-navigation";
 import { useProjectState } from "./app/use-project-state";
 import { useExportActions } from "./app/use-export-actions";
@@ -67,7 +68,6 @@ import type { ClassDialogKind } from "./features/class/ClassDialogs";
 import { useClassActions } from "./features/class/use-class-actions";
 import { useClassController } from "./features/class/use-class-controller";
 import { parseClassSettings } from "./class-settings";
-import { type GanttDialogKind } from "./features/gantt/GanttDialogs";
 
 import { useGanttCalendarActions } from "./features/gantt/use-gantt-calendar-actions";
 import { useGanttController } from "./features/gantt/use-gantt-controller";
@@ -87,7 +87,6 @@ import { embeddedMemberHistoryId } from "./projects/embedded-project";
 
 import { projectElementForEdit } from "./projects/project-edit-mapping";
 
-import type { SequenceDialog } from "./features/sequence/SequenceDialogs";
 import { useSequenceActions } from "./features/sequence/use-sequence-actions";
 import { useSequenceController } from "./features/sequence/use-sequence-controller";
 import { parseSequenceSettings } from "./sequence-settings";
@@ -2259,52 +2258,14 @@ export function App() {
     workspaceElement,
   });
 
-  const activityDialogKind: ActivityDialogKind | undefined =
-    dialog?.kind === "add-activity-action"
-      ? "action"
-      : dialog?.kind === "add-activity-partition"
-        ? "partition"
-        : dialog?.kind === "add-activity-note"
-          ? "note"
-          : dialog?.kind === "add-activity-structure"
-            ? "structure"
-            : dialog?.kind === "add-activity-terminal"
-              ? "terminal"
-              : dialog?.kind === "add-activity-arrow"
-                ? "arrow"
-                : undefined;
-  const sequenceDialog: SequenceDialog | undefined =
-    dialog?.kind === "add-sequence-participant"
-      ? { kind: "participant" }
-      : dialog?.kind === "add-sequence-message"
-        ? { kind: "message" }
-        : dialog?.kind === "add-sequence-structure"
-          ? { kind: "structure", structureKind: dialog.structureKind }
-          : undefined;
-  const classDialogKind: ClassDialogKind | undefined =
-    dialog?.kind === "add-class-entity"
-      ? "entity"
-      : dialog?.kind === "add-class-relationship"
-        ? "relationship"
-        : dialog?.kind === "add-class-package"
-          ? "package"
-          : dialog?.kind === "add-class-note"
-            ? "note"
-            : undefined;
-  const ganttDialogKind: GanttDialogKind | undefined =
-    dialog?.kind === "add-task"
-      ? "task"
-      : dialog?.kind === "add-divider"
-        ? "divider"
-        : dialog?.kind === "add-milestone"
-          ? "milestone"
-          : undefined;
-  const selectedDivider =
-    selectedDividerIndex === undefined ? undefined : parseResult.document.dividers[selectedDividerIndex];
-  const selectedVerticalSeparator =
-    selectedVerticalSeparatorIndex === undefined
-      ? undefined
-      : parseResult.document.verticalSeparators[selectedVerticalSeparatorIndex];
+  const {
+    activityDialogKind,
+    sequenceDialog,
+    classDialogKind,
+    ganttDialogKind,
+    selectedDivider,
+    selectedVerticalSeparator,
+  } = useDialogKinds({ dialog, parseResult, selectedDividerIndex, selectedVerticalSeparatorIndex });
   const applyLegendInspector = (entries: readonly (typeof legendEntries)[number][]) => {
     const labels = new Map(entries.map((entry) => [entry.color.toLowerCase(), entry.label]));
     const source = synchronizeLegend(workspace.source, parseResult.document.tasks, labels);
