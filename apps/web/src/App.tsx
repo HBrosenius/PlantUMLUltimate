@@ -1,3 +1,4 @@
+import { useLinkedDiagramSummary } from "./app/use-linked-diagram-summary";
 import { useDialogKinds } from "./app/use-dialog-kinds";
 import { useSymbolNavigation } from "./app/use-symbol-navigation";
 import { useProjectState } from "./app/use-project-state";
@@ -2511,57 +2512,26 @@ export function App() {
   clearDiagramMultiSelection.current = diagramMulti.clear;
   const canDuplicateMenuElement = !!menuOccurrence && diagramMulti.canDuplicateAt(menuOccurrence.range);
 
-  const linkedDiagramActions = [
-    ...(workspace.diagramKind === "wbs"
-      ? [
-          {
-            label:
-              linkedGantt && isProjectMemberTab(tabs.activeId)
-                ? `Add missing WBS tasks to Gantt (${missingWbsTaskCount})`
-                : existingProjectGantt
-                  ? "Open linked Gantt chart"
-                  : "Create Gantt chart from WBS",
-            disabled:
-              diagramMulti.readOnly ||
-              Boolean(linkedGantt && isProjectMemberTab(tabs.activeId) && missingWbsTaskCount === 0),
-            run: () =>
-              linkedGantt && isProjectMemberTab(tabs.activeId)
-                ? convertCurrentWbs()
-                : existingProjectGantt
-                  ? void singleFileProject.openMember(existingProjectGantt.id)
-                  : openDialog({ kind: "wbs-gantt-project" }),
-          },
-        ]
-      : [
-          {
-            label: `Add missing Gantt tasks to WBS (${missingGanttTaskCount})`,
-            disabled: diagramMulti.readOnly || missingGanttTaskCount === 0,
-            run: importCurrentGanttToWbs,
-          },
-        ]),
-    ...(project
-      ? [
-          {
-            label: projectWbsGanttIssues.length
-              ? `Review sync issues (${projectWbsGanttIssues.length})`
-              : "Diagram connections",
-            run: showDocumentNavigator,
-          },
-        ]
-      : []),
-  ];
-
-  const linkedDiagramIssueCount =
-    (workspace.diagramKind === "wbs" ? missingWbsTaskCount : missingGanttTaskCount) + projectWbsGanttIssues.length;
-  const initialDiagramFit =
-    result?.documentId === tabs.activeId && result.source === workspace.source && result.svg
-      ? {
-          documentId: tabs.activeId,
-          fit: activeDocument.zoomInitialized === false,
-          scroll: activeDocument.diagramScroll,
-          onScrollChange: saveDiagramScroll,
-        }
-      : undefined;
+  const { linkedDiagramActions, linkedDiagramIssueCount, initialDiagramFit } = useLinkedDiagramSummary({
+    activeDocument,
+    convertCurrentWbs,
+    diagramMulti,
+    existingProjectGantt,
+    importCurrentGanttToWbs,
+    isProjectMemberTab,
+    linkedGantt,
+    missingGanttTaskCount,
+    missingWbsTaskCount,
+    openDialog,
+    project,
+    projectWbsGanttIssues,
+    result,
+    saveDiagramScroll,
+    showDocumentNavigator,
+    singleFileProject,
+    tabs,
+    workspace,
+  });
 
   useEffect(() => {
     setOutlineMode(undefined);
