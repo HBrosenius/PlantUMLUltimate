@@ -1,0 +1,322 @@
+{
+  "id": "13",
+  "title": "Component diagrams",
+  "kind": "Component",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Explain the architecture at the right level",
+      "text": "A Component diagram describes software structure and the services or infrastructure that connect it. It is useful when an audience needs to understand responsibilities and dependencies without reading a sequence of individual messages. Our portal has a web app, API, request database, notification queue and worker. We will create another component, inspect infrastructure kinds and interfaces, group the architecture, and apply a shared style. State what a connection means rather than treating every arrow as an interchangeable line.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Explain the system\u2019s major building blocks",
+              "items": [
+                "Components and infrastructure",
+                "Interfaces and dependencies",
+                "Boundaries, notes and shared styling"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-create",
+      "title": "Create a component or infrastructure object",
+      "text": "Choose Component or infrastructure from Insert and add an Audit service. Review the kind options: the editor also supports interfaces, databases, queues, clouds, nodes, artifacts, files, folders and rectangles. Choose the kind for what the object represents in this view. A database or deployment node is not the same concept as a software component. Inspect the resulting declaration and give the object a stable alias when other statements will refer to it.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Component or infrastructure\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Audit service"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Audit service"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-properties",
+      "title": "Inspect identity and placement",
+      "text": "Select API and open its inspector. Kind, name and alias identify the object, while stereotype and color describe presentation or classification. Container placement groups it within a package or node. These fields answer different questions, so avoid changing them all merely to make the drawing fit. Inspect the source after an identity change and verify the connections. The same common editor pattern applies here as in Class diagrams, but the modeled meaning is architectural rather than a member-level type design.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"api\"]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Identity, classification and deployment placement are different decisions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-interfaces",
+      "title": "Make the service boundary explicit",
+      "text": "The reference example adds a Request service interface beside API. An interface helps explain what another component relies on, while the API implementation remains a separate object. Read the declaration and connection together, and decide how much detail is useful for this audience. Do not imply an implemented protocol simply because two objects are next to each other. Use a label or note to state the relevant interaction or contract, and keep that explanation consistent with the Sequence model.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Customer portal architecture\nnode \"Browser environment\" {\ncomponent \"Web app\" as Web\n}\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\ninterface \"Request service\" as IRequest\nAPI - IRequest\nnote right of API: Authenticated request boundary\n@enduml"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "interface \"Request service\""
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A contract and its implementing component are separate concepts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-relationships",
+      "title": "Inspect dependency endpoints and meaning",
+      "text": "Open Relationship to inspect the supported kinds and endpoint controls. In our example, Web uses API over HTTPS, API reads and writes the database, and notifications move through the queue to the worker. Those labels explain different interactions. Reconnect an incorrectly chosen endpoint rather than leaving a misleading architectural dependency. Check the source after reordering or moving an object into a container so that the intended structure remains intact.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Relationship\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Give each connection an architectural meaning."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-boundaries",
+      "title": "Packages, nodes and notes",
+      "text": "A package or node groups related objects, but the kind of grouping matters. The extended example puts the web app in a browser environment and records an assumption at the API boundary. Compare these declarations with the preview, then inspect package creation and Diagram settings. A deployment node, ownership grouping and logical package can answer different questions. Keep a boundary explicit enough that a reader does not have to guess whether it means physical location, ownership or software structure.",
+      "source": "@startuml\ntitle Customer portal architecture\nnode \"Browser environment\" {\ncomponent \"Web app\" as Web\n}\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\ninterface \"Request service\" as IRequest\nAPI - IRequest\nnote right of API: Authenticated request boundary\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "node \"Browser environment\""
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Package or node\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Explain what a boundary means in this particular architecture view."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-bulk",
+      "title": "Style a component category",
+      "text": "Select Web and API together and inspect the bulk styling controls. Apply one shared style to distinguish a category of software objects. Styling should support names and boundaries, not become the only way to understand them. Review the source after the bulk change and check copied or duplicated objects for unintended identifiers or connections. The source history provides a way to reconsider the operation when the selected set was too broad.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"web\"]"
+                },
+                {
+                  "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"api\"]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Shared presentation should reinforce the architecture explanation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-practice",
+      "title": "Explain the notification path",
+      "text": "Pause and add an Audit service. Identify the request database, notification queue and worker as distinct responsibilities, then explain the path from request creation to notification processing. Add one interface and one boundary that have a clear meaning in your model. Inspect a connection, add an explanatory note and style a verified pair of components. A successful result can be explained without pretending that this structural diagram is a complete timeline of runtime behavior.",
+      "source": "@startuml\ntitle Customer portal architecture\nnode \"Browser environment\" {\ncomponent \"Web app\" as Web\n}\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\ninterface \"Request service\" as IRequest\nAPI - IRequest\nnote right of API: Authenticated request boundary\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: make the architecture explainable",
+              "items": [
+                "Add Audit service",
+                "Explain database, queue and worker responsibilities",
+                "Add an interface and meaningful boundary",
+                "Inspect a connection and style a selected category"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-recap",
+      "title": "Choose the view for the question",
+      "text": "Components, infrastructure, interfaces and boundaries help explain the system's major structure. Use messages or workflow models for the detailed behavior that this diagram does not show. Keep aliases, endpoint meaning and grouping deliberate, and use notes to state relevant assumptions. The next lesson models a request intake workflow with decisions, loops and parallel work, moving from structural responsibilities back to the order and conditions of behavior.",
+      "source": "@startuml\ntitle Customer portal architecture\ncomponent \"Web app\" as Web\ncomponent API\ncomponent \"Notification worker\" as Worker\nqueue \"Notification queue\" as Queue\ndatabase \"Request database\" as Database\nWeb --> API : HTTPS\nAPI --> Database : read / write\nAPI --> Queue : request created\nQueue --> Worker : process event\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Structure is one view of the system",
+              "items": ["Responsibilities and contracts", "Connections with meaning", "Next: activity workflows"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

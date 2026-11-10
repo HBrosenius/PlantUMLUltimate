@@ -1,0 +1,8 @@
+@startuml
+title Request page-break reference
+participant Portal
+participant API
+Portal -> API: Validate request
+newpage Commit
+Portal -> API: Confirm submission
+@enduml

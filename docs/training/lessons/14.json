@@ -1,0 +1,443 @@
+{
+  "id": "14",
+  "title": "Activity diagrams",
+  "kind": "Activity",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Explain a workflow and its conditions",
+      "text": "An Activity diagram explains how work flows through actions and control structures. It is useful when the important question is what happens next, under which condition, and which work can proceed in parallel. Our request-intake example validates input, stores valid work and notifies the people involved. We will add an action, inspect decisions and partitions, compare a loop with a branch, and review supported connection and ordering controls. Keep each path traceable from start to outcome.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Trace the work from start to outcome",
+              "items": [
+                "Actions and decisions",
+                "Loops, parallel work and partitions",
+                "Connections, ordering and readable presentation"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-create",
+      "title": "Add a meaningful action",
+      "text": "Use Insert and Action to add Record audit event. An action label should describe something the process does, rather than a vague status or a screen title. Inspect where the action is inserted and check the source order. Creating another box is not enough if the surrounding flow no longer makes sense. Use the supported ordering or connection workflow to place it appropriately, and review the path on both sides of the new action.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Action\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Record audit event"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Record audit event"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-inspect",
+      "title": "Inspect an action and its presentation",
+      "text": "Select Receive request. Review its editable label and presentation properties in the inspector. A color or stereotype can classify an action, while a note explains an assumption. Keep the label focused on the work being performed. Renaming an action should improve the explanation without silently changing which branch or partition owns it. After editing, inspect the source and the surrounding flow rather than checking only the selected box.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-activity-object-id=\"action-0\"][role=\"button\"]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the action\u2019s label, context and surrounding flow."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-decisions",
+      "title": "Read both branches of a decision",
+      "text": "The validation decision has a successful path and a correction path. Read the condition and branch labels, then trace each path to its outcome. A decision is not simply a decorative diamond between two actions. The condition must explain why the process chooses one path. Open Flow structure to inspect the supported constructs, and use the source to check how a structure begins, changes branch and ends. Keep conditions and labels concise enough to follow on the diagram.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "if (Request valid?)"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Flow structure\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "else (no)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-loops",
+      "title": "A loop repeats work under a condition",
+      "text": "The extended example repeats receipt and validation while corrections are needed. Compare the loop's condition with a one-time decision. Repetition should have an understandable continuation condition and an exit; otherwise the diagram leaves the reader guessing when work can proceed. Different loop constructs express different orderings of the test and the body. Use a small reference example to check the syntax before nesting several structures into one large process.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Request intake with corrections\nstart\nrepeat\n  :Receive request;\n  :Validate details;\nrepeat while (Corrections needed?) is (yes) not (no)\npartition \"Request processing\" {\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n}\n:Show request status;\nnote right: The customer can track the request.\nstop\n@enduml"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "repeat while"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Explain the repetition condition and the exit."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-parallel",
+      "title": "Parallel work and responsibility partitions",
+      "text": "After storing a request, confirmation and support notification can proceed in parallel in this model. Fork and join structure makes that distinction explicit; two boxes on the same horizontal level are not enough by themselves. The Request processing partition groups work by responsibility. A partition is different from a branch condition or a scheduling dependency. Explain those meanings separately and check where the flow enters and leaves the grouped work.",
+      "source": "@startuml\ntitle Request intake with corrections\nstart\nrepeat\n  :Receive request;\n  :Validate details;\nrepeat while (Corrections needed?) is (yes) not (no)\npartition \"Request processing\" {\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n}\n:Show request status;\nnote right: The customer can track the request.\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "partition \"Request processing\""
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "fork again"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Partition\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-connect",
+      "title": "Connections, terminals and ordering",
+      "text": "Use the diagram's supported connection and reordering tools to organize the workflow. Start and terminal constructs explain entry and outcome, while arrows make the flow explicit where supported. Select an object before choosing a connection handle, and inspect the resulting source rather than assuming the drop target was correct. For specialized valid Plant UML constructs without a dedicated visual operation, use source editing and inspect the rendered result. The goal is an unambiguous process, not a promise that every syntax variation has a separate button.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Flow arrow\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Choose and verify the connection endpoints."
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-create-flow-arrow",
+      "title": "Create a labeled flow arrow",
+      "text": "Open the flow arrow tool and choose Receive request as its insertion point. Label the flow Validated input and choose a dashed line so its authored style is explicit. Add the arrow, then inspect its statement and current preview. The insertion point determines where this flow annotation sits in the activity structure. Check that both decision branches still lead to the intended outcomes before reorganizing a larger workflow.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Flow arrow\u2026"
+            },
+            {
+              "op": "select",
+              "label": "Place after",
+              "value": "action-0"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Label",
+              "exact": true,
+              "value": "Validated input"
+            },
+            {
+              "op": "select",
+              "label": "Line style",
+              "value": "dashed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add arrow"
+            },
+            {
+              "op": "assertSource",
+              "value": "Validated input"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dumpControls"
+            },
+            {
+              "op": "dump",
+              "name": "created-flow-arrow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-bulk",
+      "title": "Style a set of actions",
+      "text": "Select Receive request and Store request together and inspect the bulk panel. Apply a supported shared style and verify that it changes presentation without changing the control flow. A selected group is not automatically a parallel block or a partition. Use the appropriate structural construct for those meanings. Copy and duplicate only a deliberate selection, then check how the resulting actions fit into the workflow and whether their labels remain distinct.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "css": "[data-activity-object-id=\"action-0\"][role=\"button\"]"
+                },
+                {
+                  "css": "[data-activity-object-id=\"action-1\"][role=\"button\"]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A styling group is not a control-flow structure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Trace every path",
+      "text": "Pause and add an audit action to the intake model. Explain both validation outcomes, then use the extended example to show how corrections repeat and how two notifications can proceed in parallel. Put related work in a meaningful partition, add a note and inspect a connection. Finally, style a selected pair of actions. You have succeeded when every path has an understandable next step and outcome, and a reader can distinguish responsibility, branching, repetition and parallelism.",
+      "source": "@startuml\ntitle Request intake with corrections\nstart\nrepeat\n  :Receive request;\n  :Validate details;\nrepeat while (Corrections needed?) is (yes) not (no)\npartition \"Request processing\" {\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n}\n:Show request status;\nnote right: The customer can track the request.\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: make every path traceable",
+              "items": [
+                "An audit action and clear validation outcomes",
+                "A correction loop with an exit",
+                "Parallel notifications in a meaningful partition",
+                "Inspect a connection and style a selected pair"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Use structure to explain behavior",
+      "text": "Activity diagrams combine actions with decisions, repetition, parallel work and responsibility grouping. Use each construct for its meaning, and check the surrounding flow after moving or adding work. Keep source available for precision and specialized syntax. The following lessons return to the common editor tools, review and document workflows, so you can maintain these models as they evolve instead of treating them as pictures that must be rebuilt from scratch.",
+      "source": "@startuml\ntitle Customer request intake\nstart\n:Receive request;\nif (Request valid?) then (yes)\n  :Store request;\n  fork\n    :Send confirmation;\n  fork again\n    :Notify support team;\n  end fork\n  :Show request status;\nelse (no)\n  :Explain required corrections;\nendif\nstop\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A workflow explains choices and outcomes",
+              "items": [
+                "Trace every path",
+                "Distinguish responsibility from control flow",
+                "Next: editor assistance and review"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

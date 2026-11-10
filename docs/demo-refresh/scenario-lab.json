@@ -1,0 +1,264 @@
+{
+  "id": "scenario-lab",
+  "title": "What-if scenarios \u2014 experiment, save and review",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-alternative",
+      "title": "Open an isolated what-if scenario",
+      "text": "What happens if a task estimate changes? Open Plan and choose What-if scenario. The app creates a draft based on a snapshot of the current plan. Editing that draft leaves the document unchanged until you review and apply it. Use this space to test a specific planning assumption.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "base"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "The base stays unchanged while you edit the scenario."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-edit",
+      "title": "Change a scenario task and update the draft",
+      "text": "Here we explore a smaller Backend estimate. Select Backend and set Scenario duration to eight days. Choose Update scenario to recalculate the draft and its impact. Compare the downstream schedule and release milestone. An earlier date depends on the assumption being achievable, so explain what changed in the work.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A changed estimate is an assumption to justify, not a free acceleration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-save",
+      "title": "Name and retain the alternative",
+      "text": "Give the alternative a useful name. First update the task estimate in the scenario. Add a name such as Reduced backend scope and write down the assumption. Save it as a new scenario. A saved alternative retains the basis for the comparison. It is a proposal to review, not an automatic improvement.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Scenario name",
+              "value": "Reduced backend scope"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario assumptions",
+              "value": "Assumes a smaller initial backend release."
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Save scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A saved alternative retains its base and stated assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-review",
+      "title": "Review the patch before applying it",
+      "text": "When the proposal is ready, choose Review and apply. Inspect the source patch and the reported scheduling impact. Check that the changed tasks match your intention. Resolve any warnings before committing the draft. Apply scenario writes the reviewed changes into the plan. The source now records the eight day estimate, so the accepted decision stays visible.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "beforeApply"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "What-if scenario\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Scenario task",
+              "value": "backend"
+            },
+            {
+              "op": "fill",
+              "label": "Scenario duration",
+              "value": "8"
+            },
+            {
+              "op": "click",
+              "name": "Update scenario",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Review and apply\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Review the patch, impact and any stale-base warning."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply scenario",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "lasts 8 days"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "beforeApply"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

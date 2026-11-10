@@ -1,0 +1,730 @@
+{
+  "id": "10",
+  "title": "Sequence diagrams",
+  "kind": "Sequence",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Explain an interaction over time",
+      "text": "A Sequence diagram explains who interacts with whom and in what order. It is useful when a component picture does not tell you how a request actually proceeds. We will model a customer submitting a request through a web app and API to a database. You will create participants and messages, inspect lifecycle and fragment controls, and review an error branch. The goal is a readable explanation of behavior, not a drawing that implies more concurrency or timing precision than the model contains.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Tell the story of one request",
+              "items": [
+                "Participants and messages",
+                "Lifecycles, branches and annotations",
+                "Inspect the source and resulting interaction"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-participant",
+      "title": "Create and identify participants",
+      "text": "Participants represent the actors and systems taking part in the interaction. Use Insert and Participant to add a support service. The kind can represent an actor, boundary, control, entity, database, collection or queue, depending on what you need to communicate. Use an alias when a readable display name would be cumbersome in repeated message statements. Inspect the created declaration and keep naming consistent with the other diagrams in the customer portal document.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Participant\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Support service"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Support service"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-inspect",
+      "title": "Inspect before changing identity",
+      "text": "Select the API participant to open its inspector. Participant settings include identity and presentation choices. Review aliases, stereotypes, colors and ordering without assuming that the visible display name is the only reference used elsewhere. This inspector applies related changes together with Apply, so it differs from a field that commits when focus leaves. Make an intentional change and check the messages afterward. Close or cancel an unneeded draft rather than leaving an unexplained pending edit.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-sequence-participant-id=\"api\"][data-sequence-drag-hit=\"true\"]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Participant changes use Apply; inspect the references as well as the label."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close participant inspector",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-message",
+      "title": "Read and create messages",
+      "text": "A message identifies sender, receiver and the interaction text. Use the message creation screen to review the participant pickers, message kinds and advanced modifiers. A request and a return are different parts of the story; arrow shape and direction should express your meaning consistently. Existing and newly introduced names need to be deliberate so that a typo does not create an unintended participant. Inspect a message's source statement before drawing conclusions from its position alone.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Message\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Choose endpoints and message meaning before styling the arrow."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-lifecycle",
+      "title": "Show activation and returns",
+      "text": "Activation represents a period of activity on a participant's lifeline. It is useful when you want to distinguish being present in an interaction from actively handling a call. Paste the supplied extended example and follow the activation of Web and API through the request. Deactivation ends those active regions. Creation, destruction, return shortcuts and message modifiers have more specialized meanings; use a small reference example to check the syntax before combining them into a complicated interaction.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "activate API"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Presence on a lifeline and activation are different concepts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-worker-lifecycle",
+      "title": "Create and end a participant lifecycle",
+      "source": "@startuml\ntitle Worker lifecycle teaching sample\nactor Portal\nparticipant API\nPortal -> API: Submit request\nactivate API\ncreate participant Worker\nAPI -> Worker: Start validation\nactivate Worker\nWorker --> API: Validation result\ndeactivate Worker\nreturn Receipt\nAPI -> Worker: Release worker\ndestroy Worker\n@enduml",
+      "text": "Follow the worker lifecycle in this small source example. Creation introduces Worker at its first received message, while activation marks its active work. The return statement completes the most recent active call and produces the receipt. Destruction ends the worker lifeline after release. Read these statements alongside the rendered interaction before combining them into a larger model.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "create participant Worker"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "activate Worker"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "return Receipt"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "destroy Worker"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "lifecycle-reference"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-fragments",
+      "title": "Model a successful path and an error path",
+      "text": "The combined fragment in this example separates valid and invalid requests. Read each branch condition and follow the messages within that branch. Other fragment families include optional behavior, loops, parallel work, breaks, critical regions and grouping. Choose the construct for its behavioral meaning, not just its border. The structure inspector and source show where the fragment begins, where branches change and where it ends. Keep nested fragments small enough that a reader can follow one path without guessing.",
+      "source": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Combined fragment\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "focus",
+              "value": "alt valid request"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "else invalid request"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-fragment-families",
+      "title": "Compare fragment families with small references",
+      "source": "@startuml\ntitle Optional looping and parallel requests\nparticipant Portal\nparticipant API\nopt cached result\nPortal -> API: Read cache\nend\nloop each correction\nPortal -> API: Validate draft\nend\npar record audit\nPortal -> API: Save audit record\nelse notify support\nPortal -> API: Queue notification\nend\n@enduml",
+      "text": "An optional block represents a conditional interaction. A loop represents repeated interaction under its stated condition. Parallel branches describe concurrent work, rather than an alternative choice. A break identifies an interaction that terminates its enclosing path. A critical region identifies work that must be considered indivisible in this interaction model. A named group organizes related messages; these blocks are separate teaching examples supplied with the practice files.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "opt cached result"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "loop each correction"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "par record audit"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Break critical and grouping references\nparticipant Portal\nparticipant API\nbreak cancelled request\nAPI --> Portal: Cancelled\nend\ncritical update request\nPortal -> API: Commit status\nend\ngroup receipt\nAPI --> Portal: Show receipt\nend\n@enduml"
+            },
+            {
+              "op": "focus",
+              "value": "break cancelled request"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "critical update request"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "group receipt"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-notes",
+      "title": "Notes, references and flow controls",
+      "text": "Notes explain assumptions or context that would make a message label too long. A reference can point to a separately described interaction. Separators, delays, spacing, duration arrows, page breaks and numbering controls each affect how the story is read. The example numbers its messages and places a note beside Web. Inspect these facilities in Insert, then choose only the ones that improve the explanation. Adding many presentation devices cannot repair an unclear interaction or a missing branch condition.",
+      "source": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "autonumber"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "note right of Web"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Flow controls and page breaks\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-reference-flow-controls",
+      "title": "Read reference, spacing and duration source constructs",
+      "source": "@startuml\ntitle Reference and timing cues\nautonumber\nparticipant Portal\nparticipant API\n== Validate ==\nref over Portal, API : Request validation contract\nPortal -> API: Submit request\nnote right of API: Preserve request identity\n... bounded wait ...\nAPI --> Portal: Ready\n||20||\nPortal -> API: Confirm submission\n@enduml",
+      "text": "A reference names a separately described interaction contract. Separators and automatic numbering organize the message sequence. A delay and explicit spacing affect how the interaction is read, while notes retain explanatory context. Page breaks remain explicit source statements; check the page handling of your intended export. Duration anchors use the Teoz layout to mark a measured span between two points in the interaction. Inspect the source and actual preview for these constructs, and use Issues when a supported source feature has a visual-editing limitation.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "ref over Portal, API"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "autonumber"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "bounded wait"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\ntitle Request page-break reference\nparticipant Portal\nparticipant API\nPortal -> API: Validate request\nnewpage Commit\nPortal -> API: Confirm submission\n@enduml"
+            },
+            {
+              "op": "focus",
+              "value": "newpage Commit"
+            },
+            {
+              "op": "dump",
+              "name": "page-break-reference"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startuml\n!pragma teoz true\ntitle Request duration reference\nparticipant Portal\nparticipant API\n{requestStart} Portal -> API: Submit request\nAPI -> API: Validate fields\n{requestEnd} API --> Portal: Receipt\n{requestStart} <-> {requestEnd}: round trip\n@enduml"
+            },
+            {
+              "op": "focus",
+              "value": "{requestStart} <-> {requestEnd}"
+            },
+            {
+              "op": "dump",
+              "name": "duration-reference"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Issues"
+            },
+            {
+              "op": "dump",
+              "name": "reference-issues"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-layout",
+      "title": "Reorder and tune presentation",
+      "text": "Participant order and message placement affect readability. Use the diagram's supported dragging or reordering controls and inspect the resulting source order. Open Diagram settings to compare alignment, wrapping, spacing, boxes and layout choices such as Teoz where supported. These settings should make the interaction easier to follow without changing its intended meaning. If a valid language construct has no dedicated visual editor, keep it in source and review the rendered result rather than promising that every syntax variant has its own form.",
+      "source": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Choose layout for readability, then verify that the interaction still says the same thing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08a-reorder-interaction",
+      "title": "Reorder participants and messages deliberately",
+      "source": "@startuml\ntitle Reorder request checks\nactor Customer\nparticipant Web\nparticipant API\nCustomer -> Web: Submit request\nWeb -> API: Check draft\nWeb -> API: Check attachments\n@enduml",
+      "text": "Open the reorder panel for this small interaction. Move API before Web in the participant list and inspect the declaration order and lifeline layout. Move Check attachments before Check draft in the message list. Message order changes the interaction being described, so check the authored statements and drawing together. Undo both reorder operations to recover the original sequence. Finally change the diagram title through its presentation settings and verify the committed title in source.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original"
+            },
+            {
+              "op": "click",
+              "name": "Reorder"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "moveObject",
+              "from": {
+                "css": ".sequence-order-item:has(>span:text-is(\"API\"))"
+              },
+              "to": {
+                "css": ".sequence-order-item:has(>span:text-is(\"Web\"))"
+              }
+            },
+            {
+              "op": "assertSourceOrder",
+              "first": "participant API",
+              "second": "participant Web"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "moveObject",
+              "from": {
+                "css": ".sequence-order-item:has(>span:text-is(\"Check attachments\"))"
+              },
+              "to": {
+                "css": ".sequence-order-item:has(>span:text-is(\"Check draft\"))"
+              }
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceOrder",
+              "first": "Web -> API: Check attachments",
+              "second": "Web -> API: Check draft"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "reordered-interaction"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings"
+            },
+            {
+              "op": "fill",
+              "label": "Diagram title",
+              "value": "Request checks presentation review"
+            },
+            {
+              "op": "click",
+              "name": "Apply",
+              "exact": true
+            },
+            {
+              "op": "assertSource",
+              "value": "title Request checks presentation review"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-bulk",
+      "title": "Style a participant selection",
+      "text": "Use modifier selection to choose Web and API together. Inspect the bulk panel and apply a shared style. This is useful when several participants belong to one category, but a box or a meaningful label can communicate that grouping more directly than color alone. Copy and duplicate only a deliberate selection, then inspect the messages and identifiers in the result. The common source history remains the place to reconsider a bulk operation.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "css": "[data-sequence-participant-id=\"web\"][data-sequence-drag-hit=\"true\"]"
+                },
+                {
+                  "css": "[data-sequence-participant-id=\"api\"][data-sequence-drag-hit=\"true\"]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Shared styling explains a category; message statements still define behavior."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-practice",
+      "title": "Explain both outcomes",
+      "text": "Pause and build the successful request interaction, then add a validation-error branch. Include one activation and one note that explains a real assumption. Inspect a participant and a message through their visual controls, and apply one shared style to a verified selection. Your success check is that someone can trace the successful and unsuccessful paths and identify who performs each step. Use the supplied source examples to check specialized arrow and lifecycle syntax separately.",
+      "source": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: trace the request and its error path",
+              "items": [
+                "Four participants and a complete request/return story",
+                "A valid/invalid fragment",
+                "One activation and one useful note",
+                "Inspect and style a deliberate selection"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-recap",
+      "title": "A readable interaction is a precise explanation",
+      "text": "Use participants for the actors and systems, messages for their interactions, and lifecycle or fragment constructs only when they express an important distinction. Review identity, endpoints and branch conditions before tuning appearance. Keep the source available for precise syntax and reference examples. We will reuse this same portal behavior when comparing capabilities, types, architecture and workflows in the following modeling lessons.",
+      "source": "@startuml\ntitle Request handling with an error branch\nautonumber\nactor Customer\nbox \"Portal services\" #LightBlue\nparticipant Web\nparticipant API\ndatabase Database\nend box\nCustomer -> Web: Submit request\nactivate Web\nWeb -> API: Validate and save\nactivate API\nalt valid request\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nelse invalid request\nAPI --> Web: Explain validation errors\nend\ndeactivate API\nnote right of Web: Show actionable feedback\nWeb --> Customer: Show result\ndeactivate Web\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Make the behavior easy to trace",
+              "items": ["Endpoints and order", "Conditions and lifecycle", "Presentation that supports the explanation"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

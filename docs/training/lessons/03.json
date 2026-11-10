@@ -1,0 +1,1179 @@
+{
+  "id": "03",
+  "title": "Gantt tasks and progress",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Build a plan you can maintain",
+      "text": "In this lesson we will build and maintain the work in a Gantt plan. You will create a task, edit its details, move and resize work, and represent progress. We will also add a milestone, organize rows, and change several tasks together. Finally, we will inspect what happens to dependent work when a predecessor is deleted. Work with a disposable practice copy so that the examples can be repeated and compared.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Create, organize and update the work",
+              "items": [
+                "Tasks \u00b7 milestones \u00b7 sections \u00b7 notes",
+                "Move, resize, reorder and edit several tasks",
+                "Check the effect of deletion"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-add",
+      "title": "Create a task with a real start",
+      "text": "Use Insert and choose Task to create another activity. Give the task a specific outcome: in our example, acceptance testing. Enter three working days and choose a fixed start date. Alternatively, select a predecessor when the work should follow another task. A dependency takes precedence over a fixed start in this creation dialog. After adding the task, check both its bar and its source statement. Naming the work clearly makes later dependency and resource discussions easier.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Task\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Acceptance testing"
+            },
+            {
+              "op": "fill",
+              "label": "Duration (days)",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Start date",
+              "value": "2026-11-23"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add task",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Acceptance testing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-details",
+      "title": "Edit a task and its effort",
+      "text": "Select Design to open its inspector. The name is what the reader sees, while the alias in the source remains a useful stable reference. Rename the displayed work to Interaction design and set its duration to six working days. Move focus out of a valid field to apply the change. Keep the source visible while you work. A label change should not require you to reconstruct every relationship manually, and a duration change should not be confused with a simple zoom operation.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Interaction design"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Duration",
+              "value": "6"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "Interaction design"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-move",
+      "title": "Move work deliberately",
+      "text": "For an independently dated task, dragging horizontally changes its start. Moving a task that drives other work can also affect downstream dates, so pay attention to the move policy and any review offered by the app. In this example the dates are explicit, making the movement easy to inspect. Select Design, move it a short distance, and read the resulting start in the inspector. Use Undo if the move does not represent the intended scheduling decision.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts 2026-11-09\n[Build] as [build] lasts 8 days\n[build] starts 2026-11-16\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "drag",
+              "id": "design",
+              "dx": 50
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Read the new date; a bar movement is a plan change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-resize",
+      "title": "Resize duration rather than the view",
+      "text": "Dragging a task's right edge changes its duration. That is different from dragging the body to move the start, and different again from preview zoom. Resize Design and then open its inspector to read the resulting duration. Working calendars can make the bar span more calendar days than the effort number suggests. When precision matters, enter the required number directly after the visual adjustment. Confirm the authored statement before moving on to the next operation.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts 2026-11-09\n[Build] as [build] lasts 8 days\n[build] starts 2026-11-16\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "drag",
+              "id": "design",
+              "resize": true,
+              "dx": 40
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Body drag moves a task. Edge drag resizes duration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-keyboard-week-snap",
+      "title": "Move, resize and reorder with the keyboard",
+      "source": "@startgantt\ntitle Keyboard scheduling practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] lasts 4 days\n[Design] as [design] starts 2026-11-06 and lasts 3 days\n[Build] as [build] starts 2026-11-16 and lasts 3 days\n@endgantt",
+      "text": "For this independent-task practice, set the move policy to Only task. Focus Design and use Alt plus Right Arrow to request a one day move, then inspect its resulting dates. Alt plus Shift plus Right Arrow increases its duration by one day. Control plus Down Arrow reorders the focused task in the authored task list. Undo those three diagram operations to return to the original source. Start a horizontal drag, then hold Shift to snap pointer movement to weeks. Read the new task dates in the inspector and check the current preview after the edit.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings"
+            },
+            {
+              "op": "select",
+              "label": "When moving tasks",
+              "value": "single"
+            },
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "rememberSource",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "press",
+              "css": "[data-task-id=\"design\"][role=\"button\"]",
+              "value": "Alt+ArrowRight"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "original"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "dump",
+              "name": "keyboard-move-date"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "press",
+              "css": "[data-task-id=\"design\"][role=\"button\"]",
+              "value": "Alt+Shift+ArrowRight"
+            },
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "assertField",
+              "label": "Duration",
+              "exact": true,
+              "value": "4"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "press",
+              "css": "[data-task-id=\"design\"][role=\"button\"]",
+              "value": "Control+ArrowDown"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceOrder",
+              "first": "[Build] as [build]",
+              "second": "[Design] as [design]"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "drag",
+              "id": "design",
+              "dx": 210,
+              "shift": true
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 6,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "week-snapped-date"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-progress",
+      "title": "Record progress explicitly",
+      "text": "Progress describes how much work is completed; it is not a replacement for dates or effort. Select Build and enter twenty five percent in Progress. Leave the field, then inspect the bar and the new source statement. Use an agreed reporting practice when updating percentages, especially when several people contribute to one task. A progress value by itself does not explain whether the remaining work is realistic. Forecasting and status-date interpretation are taught in a later lesson.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "build"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Progress (%)",
+              "value": "25"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "25% completed"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector",
+              "role": "button"
+            },
+            {
+              "op": "note",
+              "value": "Progress is an explicit status observation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-milestone",
+      "title": "Represent an event with a milestone",
+      "text": "A milestone represents an event rather than a block of effort. The launch marker already follows Build's end. Add another milestone called Readiness review, using a fixed date in this example. Inspect the difference between a fixed milestone and one tied to a task's calculated start or end. The choice expresses a real planning rule: does the review have an independently committed date, or should it follow the work? Use the source and preview to check which rule you created.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Milestone\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Readiness review"
+            },
+            {
+              "op": "fill",
+              "value": "2026-11-27",
+              "css": "[role=\"dialog\"] input[type=\"date\"]"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add milestone",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Readiness review"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-organize",
+      "title": "Dividers, notes and row order",
+      "text": "Horizontal dividers organize task rows into readable sections. They are useful for separating discovery, implementation and release work without pretending that a section is another task. Add a Release preparation divider at the end of the plan. Notes provide explanations that do not belong in a task name, while task links can point to relevant supporting material. Keep these annotations concise. Row ordering and same-row display improve presentation, but dependencies should still carry the actual scheduling rules.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Divider\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Release preparation"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add separator",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "append",
+              "value": "note bottom\nAcceptance criteria agreed with support.\nend note"
+            },
+            {
+              "op": "note",
+              "value": "A note explains context; a dependency expresses a scheduling rule."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08a-task-links",
+      "title": "Open a task reference without changing the plan",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n[design] links to [[http://127.0.0.1:5230/requirements.html Design reference]]\n@endgantt",
+      "text": "Task links open supporting material without changing the schedule. Activate the Design reference and review the destination in the browser confirmation. Cancel the first request, then verify that the authored source is unchanged. Open the link again and accept the destination. The reference opens in a separate tab while the original diagram stays available. Return to the diagram and confirm its current preview before continuing.",
+      "dialogPresentation": "Actual native confirmation text is repeated in a labeled overlay; destination content is an actual opened-tab screenshot.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "linked-plan"
+            },
+            {
+              "op": "focus",
+              "value": "[design] links to"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "linkOpen",
+              "url": "http://127.0.0.1:5230/requirements.html",
+              "accept": false
+            },
+            {
+              "op": "linkConfirmation"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "card"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "linked-plan"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "linkOpen",
+              "url": "http://127.0.0.1:5230/requirements.html",
+              "accept": true
+            },
+            {
+              "op": "inspectLinks"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "linkPageView"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "linkPageClose"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "linked-plan"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-bulk",
+      "title": "Edit several selected tasks",
+      "text": "When the same change applies to several tasks, select them together and inspect the bulk panel. Here we select Research and Design, then examine the available fields for shifting dates, completion and resources. Enter twenty five and choose Set completion for both tasks, then inspect the source to confirm both changes. Check which tasks are included before applying it, and use the shared Undo history to reconsider the operation. Copy and Duplicate are useful for reusing structure, but inspect the generated identifiers and relationships afterward.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiSelect",
+              "ids": ["research", "design"]
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Completion %",
+              "value": "25"
+            },
+            {
+              "op": "click",
+              "name": "Set completion"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "[research] is 25% completed"
+            },
+            {
+              "op": "assertSource",
+              "value": "[design] is 25% completed"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A bulk edit applies one intention to the selected work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09a-copy-duplicate",
+      "title": "Copy and duplicate a task selection",
+      "text": "Select Research and Design together and check that the panel names the intended tasks. Choose Copy and inspect the actual clipboard text in this training preview. Copy prepares reusable content without changing the authored plan. Close the clipboard preview, then choose Duplicate for the selected tasks. Inspect the new declarations and aliases in the source, and check the new tasks in the drawing. Use shared Undo to return to the original plan and verify that the original declarations remain. Reusing a selection still requires a check of identifiers, dates and relationships.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "clipboardPermission"
+            },
+            {
+              "op": "multiSelect",
+              "ids": ["research", "design"]
+            },
+            {
+              "op": "rememberSource",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Copy"
+            },
+            {
+              "op": "clipboardPreview",
+              "contains": "Research"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "clipboardHide"
+            },
+            {
+              "op": "click",
+              "name": "Duplicate"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "original"
+            },
+            {
+              "op": "dump",
+              "name": "duplicated-tasks"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09b-paste-selection",
+      "title": "Paste selected tasks into another practice diagram",
+      "text": "Copy Research and Design from the selected task panel. Open a second Gantt practice tab and keep a small setup task in that diagram. Place the source cursor before the closing delimiter and paste the copied task statements, then separate the closing delimiter onto its own line. Verify that Research, Design and their dependency render in the receiving diagram alongside the setup task. Switch between the tabs to verify their independent source, and check aliases before pasting into a populated plan. Copying task statements does not copy a connected project or its document links.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original-tab"
+            },
+            {
+              "op": "clipboardPermission"
+            },
+            {
+              "op": "multiSelect",
+              "ids": ["research", "design"]
+            },
+            {
+              "op": "click",
+              "name": "Copy"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "New diagram tab"
+            },
+            {
+              "op": "click",
+              "name": "Gantt diagram"
+            },
+            {
+              "op": "source",
+              "value": "@startgantt\nProject starts 2026-11-02\n[Training setup] lasts 1 day\n@endgantt"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "cursor",
+              "value": "@endgantt",
+              "offset": 0
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+v"
+            },
+            {
+              "op": "key",
+              "value": "Enter"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Research] as [research] lasts 4 days"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "assertSource",
+              "value": "[design] starts at [research]'s end"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Training setup] lasts 1 day"
+            },
+            {
+              "op": "dump",
+              "name": "pasted-selection"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "activateTab",
+              "index": 0
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original-tab"
+            },
+            {
+              "op": "activateTab",
+              "index": 1
+            },
+            {
+              "op": "assertSource",
+              "value": "[Training setup] lasts 1 day"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-delete",
+      "title": "Delete a predecessor and check dates",
+      "text": "Deleting a task is a structural change, so inspect its dependents before and after. First select Build and read its start date. Then delete Design in this disposable example. Open Build again and compare its start with the value you recorded. The app preserves the dependent task's date when removing the predecessor rather than silently pulling all following work to the beginning of the plan. Inspect the rewritten source, and use Undo if deletion was not the intended change.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "build"
+            },
+            {
+              "op": "rememberField",
+              "key": "buildStart",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "click",
+              "name": "Delete",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "build"
+            },
+            {
+              "op": "assertRememberedField",
+              "key": "buildStart",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSourceAbsent",
+              "value": "[Design] as [design]"
+            },
+            {
+              "op": "note",
+              "value": "The dependent task keeps its start date. Inspect the rewritten source."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09c-bulk-shift-resource",
+      "title": "Shift selected tasks and assign a person",
+      "source": "@startgantt\ntitle Bulk edit practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] starts 2026-11-02 and lasts 4 days\n[Design] as [design] starts 2026-11-06 and lasts 5 days\n@endgantt",
+      "text": "Choose the only-task movement policy before selecting Research and Design together. Shift the selected work by two days and verify that the source changes while the preview remains current. Enter Sam in the bulk Resource field and choose Assign. Confirm that both selected tasks now have Sam in their source declarations. Combined with the completion and copy examples, this demonstrates one reviewed intention applied to several selected tasks.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings"
+            },
+            {
+              "op": "select",
+              "label": "When moving tasks",
+              "value": "single"
+            },
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "multiSelect",
+              "ids": ["research", "design"]
+            },
+            {
+              "op": "rememberSource",
+              "key": "before-shift"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Shift dates by days",
+              "value": "2"
+            },
+            {
+              "op": "click",
+              "name": "Move",
+              "exact": true
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "before-shift"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Resource",
+              "value": "Sam"
+            },
+            {
+              "op": "click",
+              "name": "Assign",
+              "exact": true
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceOccurrences",
+              "value": "{Sam",
+              "count": 2
+            },
+            {
+              "op": "dump",
+              "name": "bulk-shift-and-resource"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10a-delete-arrow-chain",
+      "title": "Delete a predecessor inside a compact arrow chain",
+      "source": "@startgantt\ntitle Chain deletion practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Analysis] as [a] lasts 2 days\n[Design] as [b] lasts 2 days\n[b] starts at [a]'s end\n[Build] as [c] lasts 3 days\n[c] starts at [b]'s end\n[Gate] as [gate] happens at [b]'s end\n[a] -> [b] -> [c]\n@endgantt",
+      "text": "Inspect Build and retain its resolved start before deleting a predecessor. This diagram uses a compact arrow chain as well as explicit scheduling rules. Delete Design from the inspector and compare the resulting dates. Build keeps its previous date, the tied gate is pinned to its earlier date, and the chain becomes a direct arrow from Analysis to Build. Review the source and current preview together. Use one shared Undo to recover the original tasks, compact chain and scheduling rules.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original"
+            },
+            {
+              "op": "inspect",
+              "id": "c"
+            },
+            {
+              "op": "rememberField",
+              "key": "buildDate",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "b"
+            },
+            {
+              "op": "click",
+              "name": "Delete",
+              "exact": true
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "c"
+            },
+            {
+              "op": "assertRememberedField",
+              "key": "buildDate",
+              "css": "[aria-label=\"Task inspector\"] input[type=\"date\"]"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "[b]"
+            },
+            {
+              "op": "assertSource",
+              "value": "2026-11-05"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "pinned-deletion-dates"
+            },
+            {
+              "op": "assertSource",
+              "value": "[a] -> [c]"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-practice",
+      "title": "Create a small release plan",
+      "text": "Pause and create an acceptance-testing task lasting three working days. Add a readiness milestone, organize the release work with a divider, and record twenty five percent progress for Build. Try one move and one resize, inspecting the values after each operation. Then undo those experimental changes. Your final plan should retain its meaningful dependencies and contain the new work and status you intended. Compare source and diagram rather than relying on the general shape of the bars.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: make the work explicit",
+              "items": [
+                "Acceptance testing: 3 working days",
+                "Readiness milestone and release divider",
+                "Build: 25% complete",
+                "Try moving and resizing; inspect and undo"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12-recap",
+      "title": "A maintained plan is more than a picture",
+      "text": "You can now create work, edit its details, record progress, and organize a readable schedule. Moving, resizing and deleting tasks change the authored plan, so check their consequences. Use milestones for events, notes for explanation, and bulk operations for a clearly defined selection. The next lesson concentrates on the rules behind the dates: dependencies, lags and working calendars. Those rules explain why a task begins where it does.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Check the meaning behind each change",
+              "items": [
+                "Dates, effort and progress are different facts",
+                "Inspect the effect on following work",
+                "Next: dependencies and calendars"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

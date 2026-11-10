@@ -1,0 +1,14 @@
+@startuml
+title Customer portal capabilities
+left to right direction
+actor Customer
+actor "Support agent" as Agent
+rectangle "Customer portal" {
+  usecase "Submit request" as Submit
+  usecase "Track request" as Track
+  usecase "Resolve request" as Resolve
+}
+Customer --> Submit
+Customer --> Track
+Agent --> Resolve
+@enduml

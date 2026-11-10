@@ -1,0 +1,376 @@
+{
+  "id": "08",
+  "title": "WBS structure",
+  "kind": "WBS",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Describe what the project delivers",
+      "text": "A work breakdown structure organizes scope into a hierarchy of deliverables and work packages. It answers what is included before you decide all the dates. Our portal example has discovery, design, implementation, testing and release branches. In this lesson you will add and edit nodes, move a whole subtree, choose branch presentation, create a relationship, and style a selection. Keep the distinction between scope structure and schedule logic in mind; the connected Gantt workflow comes next.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Break scope into manageable work packages",
+              "items": [
+                "Nodes and hierarchy",
+                "Move branches without losing children",
+                "Relationships and readable presentation"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-read",
+      "title": "Read the hierarchy",
+      "text": "Each extra hierarchy marker places a node one level deeper. The source makes the parent-child structure visible as text, while the diagram makes it easier to discuss. Select Discovery and identify its interviews and requirements children. A parent label should describe a coherent part of the work. Avoid turning the hierarchy into a list of unrelated status notes, and remember that rearranging the scope does not by itself assign dates or prove dependencies between all its leaves.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select WBS node Discovery",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "** Discovery"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "The hierarchy describes scope; dates belong to the schedule."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-add",
+      "title": "Add a work package",
+      "text": "Use Insert and WBS node to add another package. Give it an outcome-oriented label, such as Support training, and review where it belongs in the structure. A new node should have a meaningful parent rather than appearing wherever there happened to be space on the canvas. Inspect the resulting source markers and the drawing. Later, when we link this WBS to a Gantt chart, those scope decisions will help us identify missing scheduled work.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "WBS node\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "Support training"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Support training"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-edit",
+      "title": "Edit a label and branch side",
+      "text": "Select Discovery and change its label to Discover customer needs. Leave the field to apply the edit. The node keeps its children, so a clearer label does not require rebuilding the branch. Branch side changes where work appears around the parent. Move this branch to the left and compare the source and preview. Use side and color choices to improve readability, but keep the hierarchy itself responsible for explaining which work belongs together.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select WBS node Discovery",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Label",
+              "value": "Discover customer needs"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Branch side",
+              "value": "left"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "Discover customer needs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-move",
+      "title": "Move the whole subtree",
+      "text": "Dragging a node onto the middle of another node nests the complete subtree under that target. Dropping above or below reorders, and dropping to the sides changes branch presentation. Move Discovery into Design in this disposable example and inspect the children afterward. Interviews and requirements should travel with their parent. Use Undo when the new grouping does not express the intended scope. A good hierarchy is one you can explain, not simply a symmetrical arrangement of boxes.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "structure"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "moveObject",
+              "from": {
+                "name": "Select WBS node Discovery"
+              },
+              "to": {
+                "name": "Select WBS node Design"
+              }
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSourceChanged",
+              "key": "structure"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Undo",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-keyboard",
+      "title": "Reorder with the keyboard",
+      "text": "The WBS also supports keyboard interaction. Focus a node and use the supported alternate-arrow movement to reorder siblings. Here we move Design upward among its siblings, then inspect the source order. Keyboard focus matters: a shortcut inside a text field edits that field rather than moving a diagram node. Use the diagram's focusable controls deliberately, and return to Help when you need the exact shortcut for your platform and current editor.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "press",
+              "name": "Select WBS node Design",
+              "value": "Alt+ArrowUp"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "** Design"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Focus the diagram node before using its movement shortcut."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-relationship",
+      "title": "Connect related work",
+      "text": "A WBS relationship expresses an additional connection beyond the tree hierarchy. Focus Discovery and start keyboard connection mode with C, then focus Implementation and press Enter. Inspect the new arrow and generated source. You can also use the selected node's connection handle. Keep this meaning separate from parenthood: adding an arrow does not move a node into another branch. When links later map to scheduling dependencies, review any mappings that cannot be represented safely.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "arrow"
+            },
+            {
+              "op": "press",
+              "name": "Select WBS node Discovery",
+              "value": "c"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "press",
+              "name": "Select WBS node Implementation",
+              "value": "Enter"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceChanged",
+              "key": "arrow"
+            },
+            {
+              "op": "note",
+              "value": "An additional relationship does not replace the tree hierarchy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-bulk",
+      "title": "Style several nodes together",
+      "text": "Select Discovery and Design with a modifier so both belong to the selection. The bulk panel lists operations supported by the selected objects. Apply one shared style and inspect the source changes. Bulk operations are useful for consistent presentation, but review which objects are included before copying or duplicating a selection. Use labels and structure to communicate meaning as well as color, and avoid treating a styling change as progress or schedule information.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "name": "Select WBS node Discovery"
+                },
+                {
+                  "name": "Select WBS node Design"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Verify the selected nodes before applying a shared style."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Create and reorganize a branch",
+      "text": "Pause and add a Support training work package to the appropriate branch. Rename one parent for clarity, move a subtree, and confirm that its children remain attached. Create one additional relationship and explain how it differs from the tree. Finally, apply a shared style to two nodes and inspect the changed source. Your success check is semantic: the work is organized under sensible parents and the additional connection has a clear purpose.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: make the scope explainable",
+              "items": [
+                "Add Support training",
+                "Rename and move a complete branch",
+                "Create an additional relationship",
+                "Style a verified selection"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Connect scope to delivery next",
+      "text": "You can now maintain the WBS as a structured model rather than a static picture. Read the hierarchy, edit nodes, move subtrees, use keyboard controls, and review extra relationships. The next lesson places diagrams inside one portable document and connects WBS work to a Gantt schedule. We will then check coverage so that a work package is not silently missing from the delivery plan.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Structure first, then connect the schedule",
+              "items": [
+                "Preserve children when moving work",
+                "Separate hierarchy from extra relationships",
+                "Next: documents and connected diagrams"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

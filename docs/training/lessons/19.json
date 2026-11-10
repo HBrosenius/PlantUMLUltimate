@@ -1,0 +1,679 @@
+{
+  "id": "19",
+  "title": "Saving, recovery, and offline use",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Choose the right safeguard",
+      "text": "Saving, browser recovery and version history protect different parts of your work. A portable pumlu document retains application information that plain Plant UML source does not contain. Browser recovery helps you return to a workspace, while a saved file gives you an explicit copy you can manage. We will save and reopen a practice document, inspect compression and history limits, and review password protection, recovery, offline use and mobile editing.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Keep a recoverable, portable copy",
+              "items": [
+                "Save and reopen the document",
+                "Understand recovery and history",
+                "Review encryption and offline behavior"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-save",
+      "title": "Save through the browser fallback",
+      "text": "Choose Save as from File and save a portable practice document. In this recording, the browser uses its download fallback. A browser with native file access may instead let you choose a writable file and save subsequent edits directly. Check the filename and the app's saved state rather than assuming that a download updated an older copy. Keep one clear working copy and avoid accidentally continuing in a stale duplicate.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-saving-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "This demonstration uses the real browser download fallback."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-reopen",
+      "title": "Reopen and verify",
+      "text": "Save the document, then open that saved file through File and Open. The fallback uses a file selection control. Verify the task labels, durations and current preview after loading it. For a connected project, also verify member diagrams and links. Reopening is a useful check before handing over or deleting a temporary copy. A file with the expected name is only useful when it contains the expected state.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-reopen-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "openFile",
+              "filename": "portal-reopen-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "note",
+              "value": "Verify the loaded state, not only the filename."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03a-native-picker",
+      "title": "Save and reopen with the macOS picker",
+      "text": "These screenshots show the actual macOS file picker workflow in Chrome. Choose Save as, select your working folder, enter a clear file name and press Save. Back in the app, check the file name and the Saved to file indicator. To verify the saved copy, choose Open and select the same portable document in the operating system picker. After reopening, we verified that Design still lasts five days and that the diagram preview is current. The file picker appearance and available permissions depend on your browser and operating system.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [],
+      "captureMode": "Narrated stills from actual native UI; not continuous screen recording",
+      "evidence": "output/course/19/native-picker-capture/attempt.json"
+    },
+    {
+      "id": "04-format",
+      "title": "Compression and history limits",
+      "text": "Open Document settings. Gzip compression reduces the portable file size; None keeps the uncompressed representation. Inspect Maximum versions and History budget before changing retention. A larger history budget is not a substitute for named checkpoints and saved copies. For this practice, keep the recommended compression and review the limits without reducing them. Apply a setting only when you understand its effect on the document you will save.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "documentSettings"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Compression",
+              "value": "none"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Compression",
+              "value": "gzip"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-password",
+      "title": "Understand password protection",
+      "text": "Enable Password protection in Document settings to reveal the password controls and guidance. There is no password recovery. Use a password you can retain securely, and enter the same value in confirmation before applying it to a practice copy. Encrypted unsaved changes remain only in the session, while collaboration and plaintext exports are not end to end encrypted. Cancel this inspection to keep the starting file unprotected; the next exercise creates a separate protected practice copy.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "documentSettings"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "check",
+              "label": "Password protection"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "password-settings"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-encrypted-roundtrip",
+      "title": "Save and unlock a protected practice copy",
+      "text": "Now apply password protection to a disposable practice file. We use an explicitly public training password only for this example; choose and retain your own password for real work. Enter and confirm it, apply the setting and save the portable document. Reopen the saved copy, enter the password when prompted and verify the expected source and current preview. A successful unlock confirms this copy can be recovered with that password. Keep the original unencrypted practice file separately.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "documentSettings"
+            },
+            {
+              "op": "check",
+              "label": "Password protection"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Password",
+              "exact": true,
+              "value": "Portal training only 2026!"
+            },
+            {
+              "op": "fill",
+              "label": "Confirm password",
+              "exact": true,
+              "value": "Portal training only 2026!"
+            },
+            {
+              "op": "click",
+              "name": "Apply"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-password-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "openFile",
+              "filename": "portal-password-practice.pumlu",
+              "unlock": true
+            },
+            {
+              "op": "dump",
+              "name": "unlock-dialog"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "assertText",
+              "value": "Recovery disabled"
+            },
+            {
+              "op": "note",
+              "value": "Protected file reopened using its public training password."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-recovery",
+      "title": "Recovery and workspace backups",
+      "text": "Browser recovery can restore recent workspace state, but it depends on the browser and its stored data. Clearing site data or changing browser profiles can remove that safeguard. Inspect the workspace backup and restore commands in File and keep an explicit backup before a major reorganization. A backup, portable document and plain source export serve different recovery needs. Practice restoration in a separate disposable workspace before relying on it during an incident.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "File",
+              "role": "button"
+            },
+            {
+              "op": "dump",
+              "name": "workspace-file-menu"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Keep explicit files as well as browser recovery."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "key",
+              "value": "Escape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-backup-restore",
+      "title": "Restore a workspace backup",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Create a workspace backup before experimenting with a disposable plan. Change Design from five to seven days so the working copy differs from that backup. Choose Workspace restore and select the saved backup, then read the browser replacement confirmation before accepting. Restore the practice workspace and verify that Design is five days again. The app downloads a backup of the previous tabs, but preserve anything useful before accepting replacement. This exercise proves the recovery path with a small known state rather than waiting for an incident.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "backup"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "lasts 5 days",
+              "to": "lasts 7 days"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "restoreBackup"
+            },
+            {
+              "op": "dump",
+              "name": "backup-restore-review"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-external",
+      "title": "Handle external changes deliberately",
+      "text": "When native file access is available, another application may change the same file. Read the external change warning and compare the file with your current work before choosing a reload or overwrite path. Preserve a separate copy if both versions contain useful edits. Download fallback copies do not behave like a continuously linked native file, so manage their names and locations deliberately. The earlier saving exercise uses download fallback; a later controlled file-handle exercise demonstrates the conflict review without showing the operating system picker.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "When another application changes the file",
+              "items": [
+                "Read the warning before reloading or overwriting",
+                "Preserve both useful versions",
+                "Native file handles and download copies behave differently"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-offline",
+      "title": "Prepare offline use before you need it",
+      "text": "Visit and load the application online before expecting an installed or cached copy to start offline. Check the browser's install option where supported, then test the complete workflow on your device without a connection. Local editing and rendering do not make remote collaboration, Jira or external renderer links available offline. Reconnect before using those services. The next demonstration uses a production build served locally to test cached startup, editing, rendering and saving with its network disabled.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Offline readiness is a device check",
+              "items": [
+                "Load and install online where supported",
+                "Test startup, editing, rendering and saving offline",
+                "Remote services still require a connection"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08a-offline-restart",
+      "title": "Restart the cached app offline",
+      "text": "This demonstration uses a production build served locally, with its actual service worker and cached assets. Wait until caching is ready, then disable this browser session\u2019s network and reload the application. Verify the restored plan and current preview. Change Design from five days to six while still offline, then save a portable copy. Finally restore the connection. This proves local startup, rendering, editing and saving for this browser session; remote collaboration, Jira and external renderer links still require their services.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "cacheReady"
+            },
+            {
+              "op": "note",
+              "value": "Production build \u00b7 service worker ready"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "offline"
+            },
+            {
+              "op": "reload"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "note",
+              "value": "Browser network disabled \u00b7 restored plan verified"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "lasts 5 days",
+              "to": "lasts 6 days"
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-offline-practice.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "offline",
+              "value": false
+            }
+          ]
+        }
+      ],
+      "url": "http://127.0.0.1:5227/"
+    },
+    {
+      "id": "08b-install-update",
+      "title": "Install the desktop app and apply an update",
+      "text": "These screenshots show Chrome installing the local training build as a desktop app. Check the site identity, choose Next and confirm Install in the browser prompt. The installed app opens in its own window with the saved practice document and current preview. For this controlled update exercise, we served a new service worker revision with the same application assets. When Update available appears, save your work and select that button to activate the waiting update and reload. After the reload, verify the saved file indicator, the five day Design task and the current diagram preview. This verifies the desktop workflow on this Mac; physical mobile installation remains untested because no device is available.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [],
+      "captureMode": "Narrated screenshots of real native installation and update actions",
+      "evidence": "output/course/19/native-picker-capture/attempt.json"
+    },
+    {
+      "id": "09-mobile",
+      "title": "Use the mobile task view",
+      "text": "On a narrow screen, use the task view for practical schedule updates and inspect the selected task carefully before changing it. A compact view helps with labels, progress and supported task fields, while a larger workspace remains useful for complex source and relationship review. Verify the result and save through the file workflow supported by the device. Test the exact mobile browser you plan to use rather than assuming its file access is identical to a desktop browser.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Tasks",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "task-view"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check selected work and saved state on the target device."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09a-mobile-checkin",
+      "title": "Update a task in a narrow-screen browser",
+      "text": "Open the same practice plan in a separate browser session at a mobile-sized viewport. The mobile task list lets you search and choose work before opening its properties. Select Design and inspect the progress and resource controls. Make a small progress update, apply it and verify the result in the task list. This is a real responsive browser session, not a scaled desktop screenshot. Test file saving and installation on the physical device you plan to use, because browser capabilities can differ.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "mobileStart"
+            },
+            {
+              "op": "guestDump",
+              "name": "mobile-list"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "guestClick",
+              "name": "Open task Design"
+            },
+            {
+              "op": "guestDump",
+              "name": "mobile-properties"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "guestFill",
+              "label": "Progress (%)",
+              "value": "25"
+            },
+            {
+              "op": "guestClick",
+              "name": "Apply check-in"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "guestAssertText",
+              "value": "25% complete"
+            },
+            {
+              "op": "guestView"
+            },
+            {
+              "op": "guestDump",
+              "name": "mobile-applied"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09b-file-handle-lab",
+      "title": "Review an externally changed file handle",
+      "fileHandleLab": true,
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "This controlled exercise uses a real browser File System file handle with a browser-managed training file. The operating system picker is not being demonstrated; the exercise supplies that handle so we can inspect saving and conflict behavior. Save the portable document through the file-handle path, then modify the stored file outside the diagram editor. Attempt Save and inspect the external-file conflict review before choosing a result. For this disposable example, reload the external version and verify its six day Design duration, then save the verified result through the handle. Test the actual operating system picker separately in your supported browser.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Controlled file-handle exercise \u00b7 operating-system picker not shown."
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fileHandleSave"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "externalFileWrite"
+            },
+            {
+              "op": "dump",
+              "name": "external-conflict"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Reload external version"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 6 days"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "fileHandleSave"
+            },
+            {
+              "op": "note",
+              "value": "External version reloaded and verified \u00b7 file-handle save completed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-practice",
+      "title": "Test your recovery routine",
+      "text": "Pause and save a practice document, reopen it and verify its contents. Create a named checkpoint and a workspace backup. Inspect the compression and retention settings. In a separate copy, test password protection and unlock with a securely retained password. Finally test offline startup and mobile saving on the devices you will actually use. Record which checks passed and keep a known good portable copy before continuing.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: prove the recovery path",
+              "items": [
+                "Save, reopen and verify",
+                "Checkpoint and workspace backup",
+                "Password and offline checks in disposable copies",
+                "Keep a known good portable document"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

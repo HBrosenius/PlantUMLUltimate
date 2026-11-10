@@ -1,0 +1,838 @@
+{
+  "id": "15",
+  "title": "Editor assistance and navigation",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "A deliberate editing routine",
+      "text": "The source editor offers navigation, completion and diagnostic tools that help maintain a diagram as it grows. Use them to find an element, understand an error and review a proposed repair. An offered completion or quick fix still needs your judgment. In this lesson we locate commands, search the source, inspect an intentional error, and connect editor assistance to the semantic review workflow.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Find, understand, repair and verify",
+              "items": [
+                "Commands and source search",
+                "Diagnostics and error navigation",
+                "Completion, references and rename",
+                "Review proposed changes before accepting"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-commands",
+      "title": "Find an available command",
+      "text": "Open Commands and type a few words describing the action you need. The palette filters available commands and shows their current context. Use the arrow keys to choose an entry and Enter to run it. Read disabled commands in context: the diagram type, selection or permission may explain why they are unavailable. Escape closes the palette when you are only looking up a command.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "command",
+              "value": "outline"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "outline-commands"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "key",
+              "value": "Escape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-outline",
+      "title": "Find work by meaning",
+      "text": "Use the diagram outline when you want to navigate by element rather than by line number. Search for a meaningful label and use the type filter to narrow a large model. Selecting a result connects navigation to the diagram and source. Keep aliases and labels clear so search results remain understandable. For exact text, use the source editor search instead; a text match and a semantic element are related but different ways of locating information.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "command",
+              "value": "outline",
+              "run": true
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "outline-search"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03a-preserved-source",
+      "kind": "Class",
+      "title": "Read the preserved-source explanation",
+      "source": "@startuml\ntitle Source-only state example\nstate \"Waiting for review\" as Waiting\nstate \"Ready to publish\" as Ready\n[*] --> Waiting\nWaiting --> Ready : approve\nReady --> [*]\n@enduml",
+      "text": "A source-first workflow also supports constructs outside the visual editors. This state diagram renders successfully, while Issues identifies four preserved source lines. Open Preserved source to inspect the explanation. Preserved means the source remains intact; it does not promise that the current visual editor understands every statement. Edit this example in the source, verify the current preview, and use a supported diagram type when you need its dedicated visual controls.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "state-example"
+            },
+            {
+              "op": "click",
+              "name": "Issues",
+              "exact": false
+            },
+            {
+              "op": "assertText",
+              "value": "4 preserved lines"
+            },
+            {
+              "op": "click",
+              "text": "Preserved source (4)"
+            },
+            {
+              "op": "dump",
+              "name": "preserved-source-explanation"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "state-example"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03a-docked-outline",
+      "title": "Dock the outline and navigate a match",
+      "text": "Open the diagram outline and search for Design. Dock the outline so the match list remains alongside the editor. Select the Design task result to move to its source statement and reveal the corresponding object. Check the task identity before editing when several results share a label. Docking and searching change your workspace navigation; they do not change the authored schedule. Use the close control when you need the full drawing area again.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Outline"
+            },
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Dock outline"
+            },
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            },
+            {
+              "op": "dump",
+              "name": "docked-outline"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Design Task \u00b7 Line 8",
+              "exact": false
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "outline-navigation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-search",
+      "title": "Search the authored statements",
+      "text": "Click in the editor and use the search shortcut to find Design. Source search is useful for exact labels, aliases and repeated syntax. Check every replacement before applying it broadly, especially when a word also appears in notes or display text. Semantic rename is the better route when the intent is to rename a recognized referenced element. After a change, inspect both the declarations and the references that should follow it.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+f"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "css": ".cm-search input[name=search]",
+              "value": "Design"
+            },
+            {
+              "op": "key",
+              "value": "Enter"
+            },
+            {
+              "op": "dump",
+              "name": "source-search"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "key",
+              "value": "Escape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04a-format-source",
+      "title": "Preview source formatting before applying it",
+      "text": "Open Format source and read the preview before applying a text change. This aliased task example is not supported by the formatter, so the dialog explicitly reports that nothing was changed. For a supported simple task example, inspect how the proposed formatting removes leading statement whitespace. Apply the reviewed result, then verify that the task statements remain and the diagram preview is current. Use shared Undo and confirm that the original indentation returns as one undoable change. Leave unsupported syntax unchanged and keep formatting separate from semantic edits.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Format source\u2026"
+            },
+            {
+              "op": "assertText",
+              "value": "Formatter does not yet support this syntax"
+            },
+            {
+              "op": "dump",
+              "name": "format-unsupported"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel"
+            },
+            {
+              "op": "source",
+              "value": "@startgantt\nProject starts 2026-11-02\n    [Research] lasts 4 days\n [Design] lasts 5 days\n [Design] starts at [Research]'s end\n@endgantt"
+            },
+            {
+              "op": "rememberSource",
+              "key": "unformatted"
+            },
+            {
+              "op": "click",
+              "name": "Format source\u2026"
+            },
+            {
+              "op": "assertText",
+              "value": "Apply creates one change"
+            },
+            {
+              "op": "dump",
+              "name": "format-preview"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply formatting"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceChanged",
+              "key": "unformatted"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] lasts 5 days"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "unformatted"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-error",
+      "title": "Understand an intentional error",
+      "text": "We will deliberately replace a task duration with an invalid word in this disposable example. Wait for the diagnostics, then use Next error and Explain error to inspect the reported location and guidance. Keep the last good preview in mind while a new render is invalid; a visible picture does not mean the current source has succeeded. Use Go to line to visit the reported statement, then repair the authored statement and wait for Preview current again.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "allowErrors": true,
+              "from": "lasts 5 days",
+              "to": "lasts banana days"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "wait",
+              "ms": 1800
+            },
+            {
+              "op": "click",
+              "name": "Next error",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Explain error",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Go to line 8"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "diagnostic"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-repair",
+      "title": "Verify the repaired result",
+      "text": "The repair is to restore a numeric duration. Return to the source and replace the invalid word with five, then wait for Preview current. Check that the diagnostic clears and that the expected task is visible. When a quick fix is offered, inspect its proposed source change and the resulting diagnostics before applying it. Safe batch fixes can help with independent changes, but do not combine ambiguous alternatives simply to make the warnings disappear.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "allowErrors": true,
+              "from": "lasts 5 days",
+              "to": "lasts banana days"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "lasts banana days",
+              "to": "lasts 5 days"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "A successful render and a correct model are both required."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-completion",
+      "title": "Use completion and semantic references",
+      "text": "Completion helps insert supported syntax and known identifiers at the cursor. Review the selected suggestion before accepting it, because the right text still depends on the surrounding statement. Semantic highlighting and references help you follow a recognized identity through the source. Use rename for a recognized symbol, review its proposed scope, and verify the rendered result. If a construct is not understood semantically, inspect and edit its text deliberately instead of assuming every mention will be updated.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[Design] as [design]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Review declarations and references together when renaming."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-rename",
+      "title": "Rename a referenced identity",
+      "text": "Place the cursor inside the design alias and invoke Rename. The preview distinguishes the declaration from references and leaves comments and notes unchanged. Enter interaction underscore design as a compact alias without spaces, then inspect the proposed edits. Apply the rename and verify the declaration and downstream dependency. A semantic rename changes the recognized identity consistently; it is different from replacing every matching word in the file.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "cursor",
+              "value": "[design]",
+              "offset": 3
+            },
+            {
+              "op": "key",
+              "value": "F2"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "rename-dialog"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "New name",
+              "value": "interaction_design"
+            },
+            {
+              "op": "openSection",
+              "value": "Preview 4 edits"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Rename"
+            },
+            {
+              "op": "assertSource",
+              "value": "as [interaction_design]"
+            },
+            {
+              "op": "assertSource",
+              "value": "[build] starts at [interaction_design]'s end"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "[design]"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07b-completion",
+      "title": "Accept a completion deliberately",
+      "text": "Completion proposes existing tasks and supported statements at the cursor. In this disposable example, begin a bracketed reference with Des and open the completion list. Inspect the Design suggestion before accepting it, then complete the statement to set progress to twenty five percent. Check that the accepted reference uses the task alias and that the current preview agrees. Use completion to reduce typing, then read the result rather than assuming a suggestion understands the whole model.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n[Des\n@endgantt",
+              "allowErrors": true
+            },
+            {
+              "op": "cursor",
+              "value": "[Des\n",
+              "offset": 4
+            },
+            {
+              "op": "key",
+              "value": "Control+Space"
+            },
+            {
+              "op": "wait",
+              "ms": 800
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "completion-list"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "role": "option",
+              "name": "Design",
+              "exact": false
+            },
+            {
+              "op": "type",
+              "value": "is 25% completed\n"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[design] is 25% completed"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07c-quick-fix",
+      "title": "Preview and accept a safe repair",
+      "text": "Remove the closing delimiter in a disposable copy and inspect the resulting diagnostic. Open the available source fixes and read the proposed replacement. Apply the closing delimiter repair, then wait for the current preview and verify that the task source remains intact. A safe repair addresses this recognized issue; it does not certify that the plan is correct. Use Undo if the result does not match your intention, and keep ambiguous alternatives separate.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "source",
+              "value": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n",
+              "allowErrors": true
+            },
+            {
+              "op": "wait",
+              "ms": 1200
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Show source fix suggestions"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "quick-fix-options"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "css": "button[data-fix-key]"
+            },
+            {
+              "op": "assertSource",
+              "value": "@endgantt"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertText",
+              "value": "No errors remain."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-sequence",
+      "title": "Review Sequence changes as groups",
+      "text": "Sequence diagrams also support semantic change review. A participant edit and its related messages may form changes that should be accepted together. Use Version history, select the baseline, and inspect Review alongside Source and Rendered. Select confirmed related groups, validate the combined result and review replacement warnings before applying. If a change remains unclassified, use Source review. The history lesson demonstrates the same workflow and how to export review evidence.",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Sequence baseline"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "\"Web app\"",
+              "to": "\"Customer portal\""
+            },
+            {
+              "op": "replace",
+              "from": "Show confirmation",
+              "to": "Show request receipt"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Sequence baseline"
+            },
+            {
+              "op": "click",
+              "name": "Review"
+            },
+            {
+              "op": "selectReviewGroups"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "sequence-semantic-review"
+            }
+          ]
+        }
+      ],
+      "kind": "Sequence"
+    },
+    {
+      "id": "08a-sequence-group-acceptance",
+      "title": "Accept a grouped Sequence proposal",
+      "kind": "Sequence",
+      "source": "@startuml\ntitle Submit a customer request\nactor Customer\nparticipant \"Web app\" as Web\nparticipant API\ndatabase Database\nCustomer -> Web: Submit request\nWeb -> API: POST /requests\nAPI -> Database: Store request\nDatabase --> API: Request ID\nAPI --> Web: Created\nWeb --> Customer: Show confirmation\n@enduml",
+      "text": "Keep the current Sequence diagram as the review base and import a proposed comparison source. The proposal renames the Web app display label and changes its final confirmation message. Inspect both recognized groups, select them together and review their combined validity. Apply the two selected groups, then verify that both the participant label and message changed in the working source. The original alias and message endpoints remain consistent. This is grouped acceptance of a proposed edit, not a blind replacement of the whole file.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Sequence proposal base"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Sequence proposal base"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "importComparison",
+              "path": "docs/training/assets/lesson-15/sequence-proposal.puml"
+            },
+            {
+              "op": "click",
+              "name": "Review"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "selectReviewGroups"
+            },
+            {
+              "op": "dump",
+              "name": "sequence-proposal-review"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply selected (2)"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "\"Customer portal\" as Web"
+            },
+            {
+              "op": "assertSource",
+              "value": "Show request receipt"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Repair and review a practice copy",
+      "text": "Pause and locate a task using the outline, then find its exact statement using source search. Introduce one invalid duration in the practice copy, navigate to the error, explain it and repair it. Try completion in a supported statement and inspect the suggestion before acceptance. Rename a referenced element with the semantic workflow and review the result. Success means you can explain why the source is valid and why the model still expresses your intent.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: find, diagnose and verify",
+              "items": [
+                "Outline and exact source search",
+                "Intentional error, explanation and repair",
+                "Completion and reference-aware rename",
+                "Semantic review with a clear baseline"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Assistance supports judgment",
+      "text": "Use editor assistance to reduce searching and make changes easier to inspect. Read diagnostics rather than guessing from the picture, review proposed repairs and verify the current render. Keep semantic tools and exact source review available together. Next we will preserve known states in history and use comparisons to make changes understandable to another reviewer.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Read the message. Review the edit. Verify the result.",
+              "items": ["Find the right location", "Understand the proposed change", "Check source and current preview"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

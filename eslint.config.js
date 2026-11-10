@@ -12,6 +12,8 @@ export default tseslint.config(
       "**/.wrangler/**",
       ".claude/**",
       "graft/**",
+      ".trail/**",
+      "output/**",
       "playwright-report/**",
       "test-results/**",
       "**/*.local/**",

@@ -1,0 +1,522 @@
+{
+  "id": "17",
+  "title": "Live collaboration",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Share the work with a clear role",
+      "text": "Live collaboration shares a document through a private room. Editors can change it; viewers can follow without editing. In this lesson we use two independent browser sessions against a disposable local collaboration service. We will inspect presence, synchronize an edit, reconnect a participant and revoke the old links. The service is local for training, while the roles and application controls are the real collaboration workflow.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Two browsers, one shared document",
+              "items": [
+                "Editor and viewer permissions",
+                "Presence and synchronized changes",
+                "Reconnection and link revocation"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-room",
+      "title": "Create a private room",
+      "text": "Open Collaborate and enter your display name. For this training we use Advanced to choose the disposable local service, then create a private room. Review the Connected state and the two links. An editor link is an editing credential, and a viewer link has a different permission boundary. Share each only with the intended recipients. The room contains the shared document; a local review note is not automatically part of it.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Collaborate",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Editor and viewer links grant different roles."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-viewer",
+      "title": "Join a second browser as a viewer",
+      "text": "Open the viewer link in an independent browser session and join with a recognizable name. The owner can see that participant in the collaboration panel. In the second session, the source is read only: viewing the document does not grant permission to change it. Use viewer access for people who need to follow progress without authoring. This is a real second browser session, shown here as a captured view so you can inspect its state.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "viewer"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "guestHide"
+            },
+            {
+              "op": "note",
+              "value": "The viewer source editor is verified read only."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-editor",
+      "title": "Synchronize an editor change",
+      "text": "Join through the editor link in the second browser. Both participants can inspect the shared source. In that session, change the diagram title to Customer portal shared launch and verify that the owner receives it. Shared editing should be checked at the source and current preview, especially when several people touch nearby work. Coordinate substantial structural changes and use clear participant names so others can understand who is active.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestEdit"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "The owner received the title authored in the other browser."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-navigation",
+      "title": "Separate shared work from local navigation",
+      "text": "Participants can navigate independently while editing the same document. Your selected diagram, cursor and working view help you work; a shared source edit changes the common content. Presence can show a participant's diagram and cursor without forcing everyone to look at the same place. Before making a change, check which member is active and communicate a large reorganization. Personal presentation notes and local retained history do not become a shared review log simply because a room is open.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "guestHide"
+            },
+            {
+              "op": "note",
+              "value": "Coordinate authored changes; keep local navigation in context."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-reconnect",
+      "title": "Inspect reconnection and preserve a copy",
+      "text": "A temporary connection loss is different from revocation or expiration. In the second session we interrupt its network connection, then restore it and wait for Connected. Keep a local copy of important edits when the service is unavailable. If the room reports revoked, expired or access denied, automatic reconnection stops; read that state rather than repeatedly editing under the assumption that others receive it. After reconnection, check that both sessions show the same authored result.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestReconnect"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04a-concurrent-edits",
+      "title": "Verify overlapping concurrent edits",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Both browser sessions place their cursor at the same end of the title. Each inserts a short note concurrently, so the edits overlap at one shared position. Wait for synchronization and verify that both notes remain and that both browsers have the same source. Convergence preserves the edits, but the combined wording may still need a human review. Coordinate meaningful structural changes and inspect the result rather than treating synchronization as a guarantee of the intended meaning.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "concurrentEdit"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "guestHide"
+            },
+            {
+              "op": "note",
+              "value": "Both browser sources converged and retained both inserted notes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-independent-members",
+      "title": "Navigate connected members independently",
+      "kind": "WBS",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "A connected document can be shared while participants navigate different members. Create the linked schedule from the WBS, then join the document from the second browser. Keep that participant on Gantt while the owner opens WBS. Verify each source delimiter and the visible member before editing. Independent navigation lets people inspect different views, while shared authored changes still belong to the same document. Tell collaborators which member and work item a large change concerns.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "independentMembers"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-attributed-checkpoint",
+      "title": "Checkpoint a reviewed shared state",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "After reviewing a shared edit, create a named checkpoint from the owner session. Open its history entry and inspect the version context and contributor information that is available. A useful checkpoint name describes the reviewed state, not simply who happened to click Save. Retained history remains local to the document workflow and is not a permanent audit service for the room. Save a portable copy when that reviewed state must survive the collaboration session.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            },
+            {
+              "op": "concurrentEdit"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Concurrent edits reviewed"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Concurrent edits reviewed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "attributed-checkpoint"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-lifetime",
+      "title": "Understand room and owner lifetime",
+      "text": "Rooms expire twenty four hours after creation. Leaving a room does not revoke its shared links. Owner rights survive a reload of the creating tab, but closing that tab clears owner recovery. Do not assume that opening the same link in another tab restores ownership. Before ending a sensitive session, save the work and revoke the old access when it should stop. Plan a new room when the existing room has expired.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Room lifetime and ownership",
+              "items": [
+                "Room expires 24 hours after creation",
+                "Leaving does not revoke links",
+                "Owner recovery survives only reload of the creating tab",
+                "Save and revoke before closing when access should end"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07a-owner-reload",
+      "title": "Reload the creating owner tab",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Owner recovery survives a reload of the tab that created the room. Start a disposable room, reload that same tab and rejoin when prompted. Verify that the owner can still revoke its links, then revoke and create a new room for this exercise. This does not imply that closing the creating tab preserves owner recovery. Save the document and end access deliberately before closing a tab when the old links should stop working.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "reload"
+            },
+            {
+              "op": "click",
+              "name": "Join as editor"
+            },
+            {
+              "op": "assertText",
+              "value": "Connected"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Revoke link and create new"
+            },
+            {
+              "op": "click",
+              "name": "Revoke and create new link"
+            },
+            {
+              "op": "assertText",
+              "value": "Connected"
+            },
+            {
+              "op": "dump",
+              "name": "owner-reload-verification"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-revoke",
+      "title": "Revoke the old links",
+      "text": "The owner can revoke the current links and create a new room for the current document. Read the confirmation: the old room disconnects and its links stop working. In this disposable exercise, revoke and create a new link, then inspect the second browser. It disconnects from the old room and no longer receives shared changes. Give the new link only to the people who should continue. Revocation is a permission change, not a substitute for saving the document. In the second browser, save a local copy, leave the stopped room and reopen the copy to verify the preserved source and preview.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "viewer"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close collaboration",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "collabRevoke"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "guestView"
+            }
+          ]
+        },
+        {
+          "at": 6,
+          "actions": [
+            {
+              "op": "guestHide"
+            },
+            {
+              "op": "guestSaveLocal",
+              "filename": "portal-after-revocation.pumlu"
+            },
+            {
+              "op": "guestClick",
+              "name": "Leave room"
+            },
+            {
+              "op": "guestOpenFile",
+              "filename": "portal-after-revocation.pumlu",
+              "contains": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "guestView"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Verify the permission boundary",
+      "text": "Pause and create a disposable room. Join from another browser as a viewer and verify that editing is unavailable. Join as an editor and make a small agreed change, then verify it in the first browser. Inspect presence and reconnection, save a local copy, and revoke the old links. Record the room expiry and who owns the creating tab. Success means you can explain what is shared, who can edit, and how access ends.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: verify the complete room lifecycle",
+              "items": [
+                "Viewer cannot author; editor can synchronize",
+                "Check presence and reconnection",
+                "Save a local copy",
+                "Revoke old links and verify the stopped session"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

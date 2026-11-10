@@ -1,0 +1,117 @@
+{
+  "id": "outline",
+  "title": "Diagram outline \u2014 search, dock and navigate",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "A deliberate editing routine",
+      "text": "As a diagram grows, finding a task means searching a larger chart and more source. Diagram outline puts the elements in one searchable list. This example uses a small delivery plan. You can navigate without changing the source. Start with the View tab.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": []
+    },
+    {
+      "id": "02-outline",
+      "title": "Find work by meaning",
+      "text": "Open Outline from View, or find it through Commands. The list shows the diagram elements with their types and source lines. Type Design in the search field to narrow the list. The matching entry stays easy to identify. Searching itself leaves the plan unchanged.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Outline"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "outline-search"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-docked-outline",
+      "title": "Dock the outline and navigate a match",
+      "text": "You can also keep the outline docked beside the diagram. Open it, search for Design, then choose Dock outline. Select the Design task from the filtered list to navigate to that element. The outline stays useful while you work through a larger document. One searchable view connects the diagram to its source.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Outline"
+            },
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Dock outline"
+            },
+            {
+              "op": "fill",
+              "label": "Search diagram elements",
+              "value": "Design"
+            },
+            {
+              "op": "dump",
+              "name": "docked-outline"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Design Task \u00b7 Line 8",
+              "exact": false
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "dump",
+              "name": "outline-navigation"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

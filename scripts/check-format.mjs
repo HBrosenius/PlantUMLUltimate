@@ -8,7 +8,7 @@ const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclud
   .filter(Boolean);
 let failed = false;
 for (const file of files) {
-  const info = await prettier.getFileInfo(file);
+  const info = await prettier.getFileInfo(file, { ignorePath: ".prettierignore" });
   if (info.ignored || !info.inferredParser) continue;
   const config = await prettier.resolveConfig(file);
   const text = (await readFile(file, "utf8")).replace(/\r\n/g, "\n");

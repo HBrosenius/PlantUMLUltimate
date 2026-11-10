@@ -1,0 +1,13 @@
+@startuml
+title Submit a customer request
+actor Customer
+participant "Customer portal" as Web
+participant API
+database Database
+Customer -> Web: Submit request
+Web -> API: POST /requests
+API -> Database: Store request
+Database --> API: Request ID
+API --> Web: Created
+Web --> Customer: Show request receipt
+@enduml
