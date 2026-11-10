@@ -67,7 +67,7 @@ The original session-local first slice now has named browser-local saves, scoped
 
 Reopening a saved alternative compares against its captured base. If current source or resource capacities differ, Apply is blocked until explicit three-way reconciliation. Nonoverlapping lines are preserved from both inputs; conflicting lines require a choice. The reconciled result is validated and returned to source review against the current plan before normal one-step promotion/undo.
 
-See the A28 delivery record in [the consolidated plan](ui-consolidated-implementation-plan-2026-10-09.md) and [validation evidence](audits/2026-10-10-a28/README.md). Portable persistence, branch ancestry and simultaneous multi-alternative comparisons remain deferred.
+See the A28 delivery record in [the consolidated plan](archive/ui-consolidated-implementation-plan-2026-10-09.md) and [validation evidence](audits/2026-10-10-a28/README.md). Portable persistence, branch ancestry and simultaneous multi-alternative comparisons remain deferred.
 
 ## Portable scenario follow-up — 2026-10-12
 

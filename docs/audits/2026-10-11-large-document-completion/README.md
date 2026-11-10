@@ -1,6 +1,6 @@
 # Large-document completion — 2026-10-11
 
-Implemented the remaining bounded UI work from [the current plan](../../large-document-next-steps-2026-10-11.md).
+Implemented the remaining bounded UI work from [the current plan](../../archive/large-document-next-steps-2026-10-11.md).
 
 ## Delivered
 

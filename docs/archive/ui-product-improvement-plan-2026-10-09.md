@@ -31,7 +31,7 @@ This was a usability review, not an exhaustive accessibility, performance, or br
 
 ### Preserve work already delivered
 
-The [October 8 cleanup results](ui-cleanup-results.md) document direct Save/Save as, separate toolbars, shared resizable properties panels, draft protection, unified Issues, preview status, linked-diagram menus, tab context menus, Fit controls, and first-use hints. Several were also observed here. Do not reopen these as missing features. This plan builds on the [cleanup implementation plan](ui-cleanup-implementation-plan.md).
+The [October 8 cleanup results](../ui-cleanup-results.md) document direct Save/Save as, separate toolbars, shared resizable properties panels, draft protection, unified Issues, preview status, linked-diagram menus, tab context menus, Fit controls, and first-use hints. Several were also observed here. Do not reopen these as missing features. This plan builds on the [cleanup implementation plan](../ui-cleanup-implementation-plan.md).
 
 Effort is relative: **XS** = a localized label/style change; **S** = a contained interaction using existing behavior; **M** = several components and behavioral validation; **L** = a substantial workflow; **XL** = a cross-cutting product feature. These are estimates, not delivery commitments. P1 is the first implementation queue, P2 follows it, and P3 requires product validation.
 
@@ -262,7 +262,7 @@ Properties intentionally mixes blur-to-apply, immediate selects, and staged Appl
 - Show a consistent small “Changes applied” or “Unapplied changes” indicator in the panel header/footer, with the commit rule near the first editable field.
 - Avoid automatic success announcements for every keystroke. Keep validation attached to the affected field.
 - **Done when:** users know whether closing preserves their edits, and staged, invalid, and applied states remain accurate across selection/tab changes.
-- **Reference:** [properties behavior retained](ui-cleanup-results.md).
+- **Reference:** [properties behavior retained](../ui-cleanup-results.md).
 
 ### M8. Add reusable personal starters
 
@@ -275,7 +275,7 @@ Extend built-in examples with “Save as starter” for recurring source, styles
 
 ## Larger opportunities worth retaining
 
-These are candidates for discovery, not claims that their foundations are absent. Reconcile them with [feature strategy](feature-strategy.md), [connected project diagrams](connected-project-diagrams-plan.md), and [delivery scenario lab](delivery-scenario-lab-plan.md) before implementation.
+These are candidates for discovery, not claims that their foundations are absent. Reconcile them with [feature strategy](../feature-strategy.md), [connected project diagrams](../connected-project-diagrams-plan.md), and [delivery scenario lab](../delivery-scenario-lab-plan.md) before implementation.
 
 ### L1. Spreadsheet-style Gantt task editing
 
