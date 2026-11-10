@@ -1,3 +1,4 @@
+import { auditScreenshot } from "./audit-screenshot";
 import { expect, test } from "@playwright/test";
 import { fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
 test.use({ hasTouch: true });
@@ -15,8 +16,7 @@ test("touch check-in stages progress/resources, fits a reduced viewport and supp
   const list = await phone(page);
   await expect(list).toBeVisible();
   await expect(page.locator(".cm-editor")).toHaveCount(0);
-  if (info.project.name === "chromium")
-    await page.screenshot({ path: "docs/audits/2026-10-10-a33/task-list-phone.png" });
+  if (info.project.name === "chromium") await auditScreenshot(page, "docs/audits/2026-10-10-a33/task-list-phone.png");
   await list.getByRole("button", { name: "Open task Build" }).tap();
   const sheet = page.getByRole("dialog", { name: "Task check-in: Build" });
   await sheet.getByLabel("Progress (%)").fill("150");
@@ -27,7 +27,7 @@ test("touch check-in stages progress/resources, fits a reduced viewport and supp
   await expect(sheet.getByRole("button", { name: "Apply check-in" })).toBeInViewport({ ratio: 1 });
   await expect(sheet.getByRole("button", { name: "Cancel" })).toBeInViewport({ ratio: 1 });
   if (info.project.name === "chromium")
-    await page.screenshot({ path: "docs/audits/2026-10-10-a33/check-in-reduced-viewport.png" });
+    await auditScreenshot(page, "docs/audits/2026-10-10-a33/check-in-reduced-viewport.png");
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByLabel("Progress (%)")).toHaveValue("60");
@@ -89,7 +89,7 @@ test("browses WBS hierarchy by touch and reveals a work package", async ({ page 
   await page.getByRole("dialog").getByRole("button", { name: "Test", exact: true }).tap();
   const sheet = page.getByRole("dialog", { name: "Work package: Test" });
   if (info.project.name === "chromium")
-    await page.screenshot({ path: "docs/audits/2026-10-10-a33/wbs-properties-phone.png" });
+    await auditScreenshot(page, "docs/audits/2026-10-10-a33/wbs-properties-phone.png");
   await sheet.getByRole("button", { name: "Parent: Build" }).tap();
   await page
     .getByRole("dialog", { name: "Work package: Build" })
@@ -121,7 +121,7 @@ test("supports dark appearance and keyboard navigation in the phone sheet", asyn
   await expect(sheet.getByRole("button", { name: "View on diagram" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sheet.getByRole("button", { name: "Cancel" })).toBeFocused();
-  if (info.project.name === "chromium") await page.screenshot({ path: "docs/audits/2026-10-10-a33/check-in-dark.png" });
+  if (info.project.name === "chromium") await auditScreenshot(page, "docs/audits/2026-10-10-a33/check-in-dark.png");
   await page.keyboard.press("Escape");
   await expect(list.getByRole("button", { name: "Open task Build" })).toBeFocused();
 });
