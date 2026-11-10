@@ -74,5 +74,9 @@ no API key, $0).
 - Wrap long commands (`npm run validate`, builds, full unit runs) in
   `scripts/quiet-run.sh <cmd...>`: full log goes to a file, you see the path,
   exit status, tail and failure lines.
-- Prefer `graft skeleton <file>` over reading `App.tsx` (~7k lines) or
-  `styles.css` (~9.3k lines).
+- Prefer `trail skeleton <file>` over reading large files such as `App.tsx`
+  (~3.5k lines) or `styles.css` (~9.3k lines).
+- Audit screenshots: e2e specs that write tracked PNGs under `docs/audits/` do
+  so only when `AUDIT_SCREENSHOTS=1` is set (via
+  `tests/e2e/audit-screenshot.ts`). The default is off, so e2e runs leave git
+  clean. Set the flag only to refresh the committed audit images.
