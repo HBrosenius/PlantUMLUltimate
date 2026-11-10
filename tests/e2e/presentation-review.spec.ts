@@ -1,3 +1,4 @@
+import { auditScreenshot } from "./audit-screenshot";
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
 import { expect, test } from "@playwright/test";
 const source =
@@ -34,7 +35,7 @@ test("presents named highlights, isolates editing and persists personal notes th
   await page.keyboard.press("ControlOrMeta+z");
   await page.keyboard.press("ControlOrMeta+n");
   await expect(dialog).toBeVisible();
-  if (info.project.name === "chromium") await page.screenshot({ path: "docs/audits/2026-10-10-a32/desktop.png" });
+  if (info.project.name === "chromium") await auditScreenshot(page, "docs/audits/2026-10-10-a32/desktop.png");
   await dialog.getByRole("button", { name: "Exit presentation" }).click();
   await expect(page.getByRole("button", { name: "Presentation & local review…", exact: true })).toBeFocused();
   expect(await readEditorSource(page)).toBe(source);
@@ -50,7 +51,7 @@ test("presents named highlights, isolates editing and persists personal notes th
   if (info.project.name === "chromium") {
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(dialog.locator("svg")).toBeInViewport({ ratio: 1 });
-    await page.screenshot({ path: "docs/audits/2026-10-10-a32/phone.png" });
+    await auditScreenshot(page, "docs/audits/2026-10-10-a32/phone.png");
     await page.setViewportSize({ width: 1280, height: 720 });
   }
   await dialog.getByRole("button", { name: "Exit presentation" }).click();
