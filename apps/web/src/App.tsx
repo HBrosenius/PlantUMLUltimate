@@ -1,3 +1,4 @@
+import { useExportActions } from "./app/use-export-actions";
 import { useFocusRestoration } from "./app/use-focus-restoration";
 import { useDiagramOutlineEntries } from "./app/use-diagram-outline-entries";
 import { createAddMissingProjectItem } from "./app/add-missing-project-item";
@@ -19,7 +20,6 @@ import { AppOverlays } from "./app/AppOverlays";
 import { InspectorWorkspace } from "./InspectorWorkspace";
 
 import type { ComponentProps } from "react";
-import { canExportPreview } from "./export-preview";
 
 import { inlineLabelRenameRequest } from "./inline-label-rename";
 import type { LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
@@ -113,23 +113,8 @@ import { parseGantt } from "@plantuml-studio/diagram-gantt";
 import { applicationGanttAdapter, applicationWbsAdapter } from "./diagram-adapters";
 
 import { usePwa } from "./pwa";
-import {
-  confluencePlantUmlMarkup,
-  copyDiagramImage,
-  copyText,
-  downloadDiagramPdf,
-  plantUmlMarkdown,
-} from "./diagram-export";
 
-import {
-  downloadSvgAsPng,
-  downloadText,
-  svgFileName,
-  plantUmlFileName,
-  type WritableFileHandle,
-  type FileSnapshot,
-  type OpenedFileBytes,
-} from "./file-service";
+import { type WritableFileHandle, type FileSnapshot, type OpenedFileBytes } from "./file-service";
 import { parseWbs, updateWbsNode } from "@plantuml-studio/diagram-wbs";
 import { parseSequence } from "@plantuml-studio/diagram-sequence";
 import { parseUseCase } from "@plantuml-studio/diagram-usecase";
@@ -145,7 +130,7 @@ import { useDocumentFiles } from "./use-document-files";
 import { collaborationLinkDetails } from "./collaboration";
 import { useCollaborationLifecycle, type CollaborationDocumentBridge } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
-import { useWorkspaceDocuments } from "./use-workspace-documents";
+
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import { useSourceCommands, type SourceProblemPreview } from "./features/documents/use-source-commands";
 import { useResourceCapacities } from "./use-resource-capacities";
@@ -2195,109 +2180,46 @@ export function App() {
     );
   };
 
-  const exportSource = useCallback(() => {
-    const warnings = [
-      ...(activeDocument.encrypted ? ["This export is plaintext and is not password protected."] : []),
-      ...(activeDocument.progressForecast
-        ? [
-            "Plain .puml source does not include the progress forecast setting, as-of date, time zone, or remaining-work estimates. Save a .pumlu document to keep them.",
-          ]
-        : []),
-    ];
-    if (warnings.length > 0 && !window.confirm(`${warnings.join("\n\n")}\n\nExport source anyway?`)) return;
-    downloadText(workspace.source, plantUmlFileName(workspace.fileName), "text/plain;charset=utf-8");
-    notifySuccess("Exported PlantUML source (plaintext)");
-  }, [activeDocument.encrypted, activeDocument.progressForecast, workspace.fileName, workspace.source, notifySuccess]);
-  const resetWorkspaceDocumentSelection = useCallback(() => {
-    setSelectedTaskId(undefined);
-    setSelectedDependencyIndex(undefined);
-  }, [setSelectedDependencyIndex, setSelectedTaskId]);
-  const { backupWorkspace, restoreWorkspace, createDocument, newDocument } = useWorkspaceDocuments({
-    tabs,
-    replaceActiveDocumentOnCreate,
-    defaultDiagramTheme: workspace.defaultDiagramTheme,
-    openNewDocumentDialog,
+  const {
+    exportSource,
+    backupWorkspace,
+    restoreWorkspace,
+    createDocument,
+    newDocument,
+    formatDraft,
+    setFormatDraft,
+    openFormatSource,
+    exportDialog,
+    setExportDialog,
+    exportReady,
+    exportSvg,
+    exportPng,
+    exportPdf,
+    copyImage,
+    copyMarkdown,
+    copyConfluence,
+  } = useExportActions({
+    activeDocument,
     closeNewDocumentDialog,
+    externalCheckSnoozedUntil,
     fileHandles,
     fileSnapshots,
-    externalCheckSnoozedUntil,
-    removeHistory,
-    retainHistories,
-    refreshHistoryControls,
-    resetSelection: resetWorkspaceDocumentSelection,
-    openProjectInspector,
-    reportError: reportFileError,
-    setInteractionMessage,
     notifySuccess,
+    openNewDocumentDialog,
+    openProjectInspector,
+    refreshHistoryControls,
+    removeHistory,
+    replaceActiveDocumentOnCreate,
+    reportFileError,
+    result,
+    retainHistories,
+    setInteractionMessage,
+    setSelectedDependencyIndex,
+    setSelectedTaskId,
+    status,
+    tabs,
+    workspace,
   });
-  const [formatDraft, setFormatDraft] = useState<{ source: string; kind: DiagramKind; documentId: string }>();
-  const openFormatSource = useCallback(
-    () => setFormatDraft({ source: workspace.source, kind: workspace.diagramKind, documentId: tabs.activeId }),
-    [workspace.source, workspace.diagramKind, tabs.activeId],
-  );
-  const [exportDialog, setExportDialog] = useState<"export" | "share">();
-  const exportReady = canExportPreview(result, workspace.source, tabs.activeId, status);
-  const exportSvg = useCallback(() => {
-    if (!result?.svg || !exportReady) {
-      setInteractionMessage("Render a valid diagram before exporting SVG");
-      return;
-    }
-    downloadText(result.svg, svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
-  }, [exportReady, result, workspace.fileName, setInteractionMessage]);
-  const exportPng = useCallback(async () => {
-    if (!result?.svg || !exportReady) {
-      setInteractionMessage("Render a valid diagram before exporting PNG");
-      return;
-    }
-    try {
-      await downloadSvgAsPng(result.svg, workspace.fileName);
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage]);
-  const exportPdf = useCallback(async () => {
-    if (!result?.svg || !exportReady) {
-      setInteractionMessage("Render a valid diagram before exporting PDF");
-      return;
-    }
-    try {
-      await downloadDiagramPdf(result.svg, workspace.fileName);
-      notifySuccess("Exported PDF");
-    } catch (error) {
-      reportFileError(error);
-    }
-  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage, notifySuccess]);
-  const copyImage = useCallback(async () => {
-    if (!result?.svg || !exportReady) {
-      setInteractionMessage("Render a valid diagram before copying it");
-      return;
-    }
-    try {
-      await copyDiagramImage(result.svg);
-      notifySuccess("Copied diagram image");
-    } catch (error) {
-      setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
-    }
-  }, [exportReady, result, setInteractionMessage, notifySuccess]);
-  const copySourceAs = useCallback(
-    async (text: string, label: string) => {
-      try {
-        await copyText(text);
-        notifySuccess(`Copied ${label}`);
-      } catch (error) {
-        setInteractionMessage(error instanceof Error ? error.message : `Could not copy ${label}`);
-      }
-    },
-    [setInteractionMessage, notifySuccess],
-  );
-  const copyMarkdown = useCallback(
-    () => copySourceAs(plantUmlMarkdown(workspace.source), "source as Markdown"),
-    [copySourceAs, workspace.source],
-  );
-  const copyConfluence = useCallback(
-    () => copySourceAs(confluencePlantUmlMarkup(workspace.source), "Confluence PlantUML markup"),
-    [copySourceAs, workspace.source],
-  );
 
   const confirmWbsDelete = useCallback((message: string) => window.confirm(message), []);
   const {
