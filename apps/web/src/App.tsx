@@ -1,5 +1,5 @@
-import { useSourceEditor } from "./app/use-source-editor";
-import { useStageDock } from "./app/use-stage-dock";
+import { buildSourceEditor } from "./app/build-source-editor";
+import { buildStageDock } from "./app/build-stage-dock";
 import { RibbonChrome } from "./app/RibbonChrome";
 import { NavigationChrome } from "./app/NavigationChrome";
 import { WorkspaceMain } from "./app/WorkspaceMain";
@@ -4144,7 +4144,7 @@ export function App() {
     );
 
   /** The one source editor; Stage mode mounts the same element inside its Source Lens. */
-  const { renderSourceEditor } = useSourceEditor({
+  const { renderSourceEditor } = buildSourceEditor({
     activeParticipants,
     activityDocument,
     analyzeSource,
@@ -4205,7 +4205,7 @@ export function App() {
     activitySettingsOpen ||
     wbsSettingsOpen;
   const stageHidesInspector = stageActive && !stageInspectorOpen && !stageUtilityPanelOpen && !diagramMulti.multiple;
-  const { stageDockActions, stageAddItems } = useStageDock({
+  const { stageDockActions, stageAddItems } = buildStageDock({
     addClassMember,
     addWbsNode,
     commandReadOnly,

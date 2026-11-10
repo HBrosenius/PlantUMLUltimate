@@ -22,7 +22,7 @@ import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../w
 import type { UseCaseDocument } from "../../../../packages/diagram-usecase/src/model";
 import type { WbsDocument } from "../../../../packages/diagram-wbs/src/model";
 
-export interface useSourceEditorInputs {
+export interface buildSourceEditorInputs {
   activeParticipants: CollaborationParticipant[];
   activityDocument: ActivityDocument;
   analyzeSource: (kind: DiagramKind, source: string, initialParse?: ReturnType<typeof parseGantt>) => DiagramAnalysis;
@@ -113,7 +113,7 @@ export interface useSourceEditorInputs {
   workspace: WorkspaceSnapshot;
 }
 
-export function useSourceEditor({
+export function buildSourceEditor({
   activeParticipants,
   activityDocument,
   analyzeSource,
@@ -160,7 +160,7 @@ export function useSourceEditor({
   useCaseDocument,
   wbsDocument,
   workspace,
-}: useSourceEditorInputs) {
+}: buildSourceEditorInputs) {
   const renderSourceEditor = (lens?: {
     visibleRange?: { from: number; to: number } | undefined;
     revealWithoutFocus?: boolean | undefined;

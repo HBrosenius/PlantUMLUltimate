@@ -10,7 +10,7 @@ import type { SequenceDocument } from "../../../../packages/diagram-sequence/src
 import type { RefObject } from "react";
 import type { WorkspaceSnapshot } from "../workspace-storage";
 
-export interface useStageDockInputs {
+export interface buildStageDockInputs {
   addClassMember: (value: ClassMemberInput) => void;
   addWbsNode: (value: WbsNodeInput, position: WbsInsertPosition) => void;
   commandReadOnly: boolean;
@@ -50,7 +50,7 @@ export interface useStageDockInputs {
   workspace: WorkspaceSnapshot;
 }
 
-export function useStageDock({
+export function buildStageDock({
   addClassMember,
   addWbsNode,
   commandReadOnly,
@@ -88,7 +88,7 @@ export function useStageDock({
   stagePendingMessage,
   stageSelection,
   workspace,
-}: useStageDockInputs) {
+}: buildStageDockInputs) {
   const dockHandlers: DockHandlers = {
     readOnly: commandReadOnly,
     resizeTask: (id, days) => resizeGanttTask(id, days),
