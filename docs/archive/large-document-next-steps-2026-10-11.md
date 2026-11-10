@@ -1,8 +1,8 @@
 # Large-document next steps — 2026-10-11
 
-Status: the bounded performance, oversized-preview guidance and document-navigation deliveries are implemented. See [completion evidence and scope](audits/2026-10-11-large-document-completion/README.md), [geometry-reuse results](audits/2026-10-11-gantt-geometry-cache/README.md) and [inactive-analysis results](audits/2026-10-11-gantt-inactive-analysis/README.md). The original implementation scope below is retained; optional further profiling, engine upgrades and broader zoom changes are future work.
+Status: the bounded performance, oversized-preview guidance and document-navigation deliveries are implemented. See [completion evidence and scope](../audits/2026-10-11-large-document-completion/README.md), [geometry-reuse results](../audits/2026-10-11-gantt-geometry-cache/README.md) and [inactive-analysis results](../audits/2026-10-11-gantt-inactive-analysis/README.md). The original implementation scope below is retained; optional further profiling, engine upgrades and broader zoom changes are future work.
 
-Further performance delivery (2026-10-12): member-specific history restoration and indexed link presentation reduce the measured 200-diagram opening delay. See [profiling, repeated measurements and preservation checks](audits/2026-10-12-document-open-performance/README.md). Encrypted history setup remains eager and memory-only.
+Further performance delivery (2026-10-12): member-specific history restoration and indexed link presentation reduce the measured 200-diagram opening delay. See [profiling, repeated measurements and preservation checks](../audits/2026-10-12-document-open-performance/README.md). Encrypted history setup remains eager and memory-only.
 
 Follow-up: the baseline-drag failure was traced to the test's rounded text-glyph spacing measurement. Corrected median spacing and a final source-date assertion pass in Chromium and Firefox; no scheduling-algorithm workaround was introduced.
 
