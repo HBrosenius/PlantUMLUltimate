@@ -17,3 +17,7 @@ test-results
 /output/
 /docs/training/experiments/
 __pycache__/
+
+# Personal agent tooling config (machine-specific).
+/opencode.json
+/.claude/settings.json

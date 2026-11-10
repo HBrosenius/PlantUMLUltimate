@@ -4,8 +4,98 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace", "@plantuml-studio/web", "--", "--port", "5175", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace",
+        "@plantuml-studio/web",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
       "port": 5175
+    },
+    {
+      "name": "web-alt",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--workspace",
+        "@plantuml-studio/web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5185",
+        "--strictPort"
+      ],
+      "port": 5185
+    },
+    {
+      "name": "web-alt2",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--workspace",
+        "@plantuml-studio/web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5195",
+        "--strictPort"
+      ],
+      "port": 5195
+    },
+    {
+      "name": "web-main",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/private/tmp/plantuml-demo-main",
+        "--workspace",
+        "@plantuml-studio/web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5205",
+        "--strictPort"
+      ],
+      "port": 5205
+    },
+    {
+      "name": "web-wbs-gantt",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/private/tmp/claude-502/-Users-henbro-Documents-Projects-PlantUMLUltimate/14c0b965-486c-4700-8f8c-685563e2807a/scratchpad/wbs-demo",
+        "--workspace",
+        "@plantuml-studio/web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5225",
+        "--strictPort"
+      ],
+      "port": 5225
+    },
+    {
+      "name": "web-stage",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/henbro/Documents/Projects/PlantUMLUltimate/.claude/worktrees/agent-a220cf7d676b60555",
+        "--workspace",
+        "@plantuml-studio/web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5195",
+        "--strictPort"
+      ],
+      "port": 5195
     }
   ]
 }
