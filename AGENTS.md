@@ -75,7 +75,7 @@ no API key, $0).
   `scripts/quiet-run.sh <cmd...>`: full log goes to a file, you see the path,
   exit status, tail and failure lines.
 - Prefer `trail skeleton <file>` over reading large files such as `App.tsx`
-  (~3.5k lines) or `styles.css` (~9.3k lines).
+  (~3.5k lines) or `styles.css`, which is now only an `@import` index (rules live in ordered chunks under `apps/web/src/styles/`; import order is cascade order, so never reorder or regroup them).
 - Audit screenshots: e2e specs that write tracked PNGs under `docs/audits/` do
   so only when `AUDIT_SCREENSHOTS=1` is set (via
   `tests/e2e/audit-screenshot.ts`). The default is off, so e2e runs leave git
