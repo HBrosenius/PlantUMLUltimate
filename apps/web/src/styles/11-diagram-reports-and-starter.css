@@ -1,0 +1,770 @@
+.reports-options .inspector-section:first-child {
+  border-top: 0;
+}
+.reports-options summary {
+  margin-bottom: 12px;
+}
+.reports-options label:not(.reports-check),
+.reports-preview > label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.reports-dialog input:not([type="checkbox"]),
+.reports-dialog select,
+.reports-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+.reports-dialog textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+.reports-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 5px 0;
+}
+.reports-check input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 2px 0;
+  accent-color: var(--accent);
+}
+.reports-options small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.reports-options button + button {
+  margin-left: 6px;
+}
+.reports-options textarea {
+  min-height: 100px;
+}
+.reports-preview {
+  min-width: 0;
+  overflow: auto;
+  padding: 20px 24px;
+  background: var(--bg);
+}
+.reports-summary {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-subject {
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.reports-preview iframe {
+  display: block;
+  width: 100%;
+  height: 540px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 4%);
+}
+.reports-preview > details {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-preview textarea {
+  width: 100%;
+  min-height: 250px;
+  margin-top: 10px;
+}
+.reports-dialog footer {
+  flex: none;
+  background: var(--panel);
+  padding: 14px 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.reports-dialog footer button.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.reports-dialog footer button.primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+  background: var(--accent);
+}
+.reports-dialog footer p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reports-dialog footer p:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  .reports-layout {
+    display: block;
+    overflow: auto;
+  }
+  .reports-options {
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .reports-preview {
+    overflow: visible;
+    padding: 16px;
+  }
+  .reports-preview iframe {
+    height: 420px;
+  }
+  .reports-dialog footer {
+    padding: 12px 16px;
+  }
+}
+
+/* Keep outline and creation shells inside the available viewport, including safe areas. */
+.modal-backdrop:has(> .diagram-outline-dialog),
+.modal-backdrop:has(> .task-dialog) {
+  --dialog-top: max(env(safe-area-inset-top, 0px), min(8dvh, 64px));
+  padding-top: var(--dialog-top);
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+.modal-backdrop > .diagram-outline-dialog,
+.modal-backdrop > .task-dialog {
+  max-height: calc(100dvh - var(--dialog-top) - max(16px, env(safe-area-inset-bottom, 0px)));
+  min-height: 0;
+}
+.diagram-outline-dialog {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.diagram-outline-results {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.task-dialog {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 64px;
+}
+.task-dialog > h2,
+.task-dialog > header {
+  position: sticky;
+  top: -20px;
+  z-index: 2;
+  background: var(--panel);
+  padding-block: 12px;
+}
+.task-dialog > .dialog-actions,
+.task-dialog > footer {
+  position: sticky;
+  bottom: -20px;
+  z-index: 2;
+  padding-block: 12px;
+  background: var(--panel);
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .task-dialog > label {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .diagram-outline-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop-command-trigger {
+    display: none;
+  }
+}
+
+.workspace-hint-content {
+  position: static;
+  flex: 1 0 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  white-space: normal;
+}
+
+.task-dialog.new-document-dialog > header {
+  top: 0;
+}
+.task-dialog.new-document-dialog > .dialog-actions {
+  bottom: 0;
+}
+@media (max-width: 600px) {
+  .task-dialog .dialog-hint {
+    margin-left: 0;
+  }
+}
+
+.sequence-preview .preview-tools {
+  overflow: visible;
+}
+.sequence-preview .sequence-selection-label {
+  order: 1;
+  flex-basis: 100%;
+  white-space: nowrap;
+  text-align: right;
+}
+.sequence-preview .action-menu > .application-menu-panel {
+  left: auto;
+  right: 0;
+  min-width: 160px;
+}
+
+.tab-type-badge {
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.diagram-creation-destination {
+  display: grid;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.diagram-creation-destination label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.diagram-creation-destination :is(input, select) {
+  min-width: 0;
+  width: 100%;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  background: var(--panel);
+}
+/* Linux WebKit's native select chrome can overflow a narrow grid label. */
+.diagram-creation-destination select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2364748b' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.diagram-creation-destination p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.file-tools .application-menu-panel[aria-label="Plan"] {
+  left: 0;
+  right: auto;
+  width: min(280px, calc(100vw - 140px));
+  min-width: 0;
+}
+.file-tools .application-menu-panel[aria-label="Plan"] button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.gantt-control-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.gantt-control-label {
+  color: var(--muted);
+  font-size: 11px;
+  padding-inline: 4px;
+}
+.gantt-preview-tools-main > .gantt-control-group + .gantt-control-group {
+  border-left: 1px solid var(--line);
+  padding-left: 6px;
+}
+.gantt-context-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.gantt-context-controls .resource-filter select {
+  max-width: 180px;
+}
+.gantt-context-controls strong {
+  font-size: 12px;
+}
+.gantt-controls-help {
+  margin: 0;
+  padding: 0 12px 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.gantt-controls-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gantt-controls-help button {
+  min-height: 0;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .gantt-context-controls .gantt-control-group {
+    width: 100%;
+  }
+  .gantt-context-controls button {
+    white-space: normal;
+  }
+}
+
+.gantt-context-controls :is(button, select) {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+.gantt-context-controls button:hover {
+  background: var(--bg);
+}
+
+.command-section-label {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.command-list > [role="presentation"] > button {
+  width: 100%;
+}
+
+.inspector-commit-status {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 11px;
+  border-bottom: 1px solid var(--line);
+}
+.inspector-commit-status > strong {
+  display: block;
+}
+.participant-combobox {
+  display: flex;
+  position: relative;
+  min-width: 0;
+}
+.participant-combobox > input {
+  min-width: 0;
+  flex: 1;
+}
+.participant-combobox > button {
+  flex: 0 0 32px;
+}
+.participant-combobox > [role="listbox"] {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  max-height: 180px;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 4px;
+}
+.participant-combobox [role="option"] {
+  text-align: left;
+}
+.sequence-message-advanced {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.sequence-message-advanced > summary {
+  cursor: pointer;
+}
+.sequence-message-advanced > label {
+  margin-top: 8px;
+}
+
+.sequence-message-advanced > label {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.participant-combobox > button {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+@media (max-width: 600px) {
+  .sequence-message-advanced > label {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.start-routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.start-routes a {
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+.start-preferences,
+.start-learning {
+  margin: 16px 24px;
+}
+.start-learning summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.starter-example-options .diagram-kind-preview {
+  width: 100%;
+  height: 80px;
+}
+.task-dialog.new-document-dialog > header {
+  position: static;
+  padding: 20px 24px 16px;
+}
+.new-document-dialog h3,
+.start-learning {
+  scroll-margin-top: 72px;
+}
+.new-document-dialog .start-routes {
+  z-index: 2;
+}
+.diagram-kind-preview .preview-light-labels text {
+  fill: white;
+}
+
+.help-dialog {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+.help-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.help-search label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  flex: 1 1 180px;
+}
+.help-search input,
+.help-search select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+}
+.help-search p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.help-content h4 {
+  margin: 12px 0 8px;
+  font-size: 12px;
+}
+.help-content summary {
+  cursor: pointer;
+  margin-block: 10px;
+}
+.help-content > section:first-child {
+  grid-column: 1 / -1;
+}
+
+/* Preview-only brightness adjustment; export uses the renderer's untouched SVG. */
+.app[data-adapt-preview="true"][data-theme="dark"] .preview-viewport .diagram {
+  background: #fff;
+  filter: brightness(0.82);
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-adapt-preview="true"][data-theme="system"] .preview-viewport .diagram {
+    background: #fff;
+    filter: brightness(0.82);
+  }
+}
+.theme-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.theme-gallery button {
+  min-width: 0;
+  padding: 6px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.theme-gallery button[aria-checked="true"] {
+  border-color: var(--accent);
+}
+.theme-gallery button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.theme-thumbnail {
+  display: grid;
+  place-items: center;
+  height: 82px;
+  margin-bottom: 6px;
+  background: #fff;
+  color: #444;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 11px;
+}
+.theme-thumbnail img {
+  width: 100%;
+  height: 82px;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .theme-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.open-work-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font:
+    13px ui-monospace,
+    monospace;
+}
+.file-drop-area {
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 12px;
+  color: var(--muted);
+}
+.recent-files-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.recent-files-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.recent-files-list li > button:first-child {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.recent-files-list li > span {
+  color: var(--muted);
+  font-size: 12px;
+  flex: 1;
+}
+
+/* Outline navigation uses the rendered layout without changing authored geometry. */
+.diagram-outline-dock,
+.diagram-outline-find {
+  position: absolute;
+  z-index: 25;
+  top: calc(var(--workspace-top) + 8px);
+  bottom: 38px;
+  max-height: none;
+  min-height: 0;
+}
+.diagram-outline-dock {
+  left: 8px;
+  width: 264px;
+  box-shadow: none;
+}
+.diagram-outline-find {
+  right: 12px;
+  bottom: auto;
+  width: 360px;
+  max-height: min(560px, calc(100dvh - var(--workspace-top) - 48px));
+}
+.diagram-outline-dock .diagram-outline-search,
+.diagram-outline-find .diagram-outline-search {
+  grid-template-columns: minmax(0, 1fr);
+}
+.diagram-outline-dialog header button {
+  font-size: 14px;
+}
+.diagram-outline-search:has(button) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.diagram-outline-dock .diagram-outline-search:has(button),
+.diagram-outline-find .diagram-outline-search:has(button) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.diagram-outline-dock .diagram-outline-search select,
+.diagram-outline-find .diagram-outline-search select {
+  grid-column: 1 / -1;
+}
+.app.has-outline-dock .workspace {
+  margin-left: 280px;
+  width: calc(100% - 280px);
+  max-width: calc(100% - 280px);
+}
+.app.has-outline-dock.has-side-inspector .workspace,
+.app.has-outline-dock.has-project-inspector .workspace,
+.app.has-outline-dock.has-project-navigator .workspace {
+  width: calc(100% - 280px - var(--properties-width) - 16px);
+  max-width: calc(100% - 280px - var(--properties-width) - 16px);
+}
+.diagram [data-outline-match="true"] {
+  filter: drop-shadow(0 0 3px var(--accent));
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (max-width: 680px) {
+  .diagram-outline-search:has(button) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .diagram-outline-search select {
+    grid-column: 1 / -1;
+  }
+}
+.diagram [data-outline-match="true"] .bar,
+.diagram [data-outline-match="true"] polygon,
+.diagram path[data-outline-match="true"] {
+  stroke: var(--accent) !important;
+  stroke-width: 2px !important;
+}
+.diagram text[data-outline-match="true"],
+.diagram [data-outline-match="true"] text {
+  fill: var(--accent) !important;
+}
+
+.personal-starter-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+.starter-review {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.starter-review h4,
+.starter-review p {
+  margin: 0;
+}
+.starter-review p,
+.personal-starter-library > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.starter-review dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+.starter-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.starter-review label {
+  display: grid;
+  gap: 5px;
+}
+.starter-review fieldset label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+}
+.starter-review textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  font: 12px/1.5 monospace;
+}
+.starter-review pre {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.starter-library-actions {
+  display: flex;
+  gap: 8px;
+  margin-block: 10px;
+  flex-wrap: wrap;
+}
+.personal-starter-library .starter-example-options article {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.personal-starter-library .starter-example-options article > span {
+  color: var(--muted);
+  font-size: 12px;
+}
