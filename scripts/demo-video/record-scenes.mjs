@@ -1,4 +1,4 @@
-/* global document, window, navigator, addEventListener, CSS */
+/* global document, window, addEventListener, SVGElement, DOMPoint, DOMParser, createImageBitmap */
 // Sentence-cued demo capture; shares the verified course action vocabulary.
 // Usage: node scripts/demo-video/record-scenes.mjs overview outline scenario-lab
 import { chromium, expect } from "@playwright/test";
@@ -1136,7 +1136,7 @@ try {
           content: `#lesson-footer{position:fixed;z-index:2147483645;bottom:0;left:0;right:0;height:72px;background:#0b1724;color:#eef8f5;border-top:3px solid #96dfc6;padding:20px 35px;font:600 22px Arial;pointer-events:none}#lesson-note{display:none;position:fixed;z-index:2147483646;bottom:100px;left:35%;max-width:1000px;background:#103a40;color:#e4fff6;border:1px solid #96dfc6;border-radius:10px;padding:20px;font:600 25px/1.4 Arial;pointer-events:none}#lesson-card{display:none;position:fixed;z-index:2147483646;inset:0 0 72px;background:#0b1724f5;color:#eef6ef;place-items:center;font-family:Arial;padding:110px;pointer-events:none}#lesson-card div{width:1500px}#lesson-card h1{font-size:70px;line-height:1.15;margin:0 0 45px}#lesson-card p{font-size:32px;line-height:1.5;color:#c5dbdc}.lesson-emphasis{background:#bbebd8!important;outline:2px solid #39866e}#lesson-pointer{position:fixed;z-index:2147483647;pointer-events:none;width:26px;height:32px;transform:translate(-100px,-100px);filter:drop-shadow(1px 2px 2px #0007)}`,
         });
         await page.evaluate(
-          ({ id, title }) => {
+          ({ title }) => {
             for (const name of ["footer", "note", "card", "pointer"]) {
               const e = document.createElement("div");
               e.id = "lesson-" + name;
