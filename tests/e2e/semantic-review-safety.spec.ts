@@ -1,3 +1,4 @@
+import { auditScreenshot } from "./audit-screenshot";
 import { expect, test } from "@playwright/test";
 import { fillSource, prepareEditor } from "./editor-helpers";
 
@@ -20,10 +21,10 @@ test("reviews aliased task fields and applies a proposed edit with one-step undo
   await expect(table).toContainText("3 days");
   await dialog.getByRole("checkbox", { name: "Select Rename task Build to Compile" }).check();
   if (testInfo.project.name === "chromium") {
-    await page.screenshot({ path: "docs/audits/2026-10-10-a31/desktop.png" });
+    await auditScreenshot(page, "docs/audits/2026-10-10-a31/desktop.png");
     await page.setViewportSize({ width: 390, height: 844 });
     await table.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: "docs/audits/2026-10-10-a31/phone.png" });
+    await auditScreenshot(page, "docs/audits/2026-10-10-a31/phone.png");
   }
   await dialog.getByRole("button", { name: "Apply selected (1)" }).click();
   await page.getByRole("button", { name: "Code", exact: true }).click();

@@ -1,3 +1,4 @@
+import { auditScreenshot } from "./audit-screenshot";
 import { expect, test, type Page } from "@playwright/test";
 import { prepareEditor, setSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
@@ -90,10 +91,10 @@ test("inline drafts stay reviewable on phones and block changed source", async (
   await page.keyboard.press("F2");
   const editor = page.getByRole("dialog", { name: "Edit diagram label" });
   await editor.getByRole("textbox", { name: "Label", exact: true }).fill("Purchase");
-  await page.screenshot({ path: "docs/audits/2026-10-10-a30/desktop.png" });
+  await auditScreenshot(page, "docs/audits/2026-10-10-a30/desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(editor.getByRole("button", { name: "Apply label" })).toBeInViewport();
-  await page.screenshot({ path: "docs/audits/2026-10-10-a30/phone.png" });
+  await auditScreenshot(page, "docs/audits/2026-10-10-a30/phone.png");
   await page.setViewportSize({ width: 1280, height: 900 });
   const changed = cases[0]!.source.replace("keep me", "external edit");
   await prepareDiagram(page, changed);
