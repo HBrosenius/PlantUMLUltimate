@@ -1,3 +1,4 @@
+import { StatusBar } from "./app/StatusBar";
 import { DiagramDialogs } from "./app/DiagramDialogs";
 import { DocumentDialogs } from "./app/DocumentDialogs";
 import { DiagramInspectors } from "./app/DiagramInspectors";
@@ -9,8 +10,6 @@ import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
 import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
 
-import { RenderSizeNotice } from "./render/RenderSizeNotice";
-import { renderSizeLimit } from "./render/size-limit";
 import { inlineLabelRenameRequest } from "./inline-label-rename";
 import type { LinkedWorkPreview } from "./projects/LinkedWorkPreviewDialog";
 import { MobileWorkList } from "./MobileWorkList";
@@ -21,7 +20,7 @@ import { editTaskRow, editTaskRows, type TaskRowDraft } from "./gantt-task-table
 import { useEditorPreferences } from "./editor-preferences";
 import { requestSidePanelChange } from "./side-panel-events";
 import { useSidePanelState } from "./use-side-panel-state";
-import { previewStatusLabel } from "./render/preview-status";
+
 import { useInteractionMessage } from "./use-interaction-message";
 import { startupChooserPolicy } from "./startup-chooser-policy";
 import { FileSaveStatus } from "./FileSaveStatus";
@@ -167,7 +166,7 @@ import {
   type SemanticRenameRequest,
   type SemanticSymbolOccurrence,
 } from "./semantic-symbol-provider";
-import { StorageStatus } from "./StorageStatus";
+
 import { HistoryMenu } from "./HistoryMenu";
 
 import { useDiagramMultiSelection } from "./use-diagram-multi-selection";
@@ -5682,95 +5681,26 @@ export function App() {
           />
         )}
       </main>
-      <footer className="statusbar">
-        <span role="status" aria-live="polite">
-          {result?.error ? `⚠ ${result.error}` : diagnosticCount ? "Source has problems" : (interactionMessage ?? "")}
-        </span>
-        <button
-          type="button"
-          className="problem-count"
-          data-inspector-trigger
-          onClick={() => {
-            setProblemsOpen(true);
-            setUnsupportedOpen(false);
-          }}
-        >
-          {diagnosticCount + unsupportedCount > 0 ? `${diagnosticCount + unsupportedCount} issues` : "No issues"}
-        </button>
-        <span>
-          {workspace.diagramKind === "sequence"
-            ? "Sequence"
-            : workspace.diagramKind === "usecase"
-              ? "Use Case"
-              : workspace.diagramKind === "class" || workspace.diagramKind === "component"
-                ? workspace.diagramKind === "component"
-                  ? "Component"
-                  : "Class"
-                : workspace.diagramKind === "activity"
-                  ? "Activity"
-                  : workspace.diagramKind === "wbs"
-                    ? "WBS"
-                    : "Gantt"}
-        </span>
-        <details className="render-details" open={renderSizeLimit(result?.error) ? true : undefined}>
-          <summary>
-            {mobileListActive
-              ? "List view"
-              : previewStatusLabel(viewMode === "code", status, result, workspace.source, tabs.activeId)}
-          </summary>
-          <div>
-            <p>Render {Math.round(result?.durationMs ?? 0)} ms</p>
-            <RenderSizeNotice
-              error={result?.error}
-              hasPreviousPreview={Boolean(result?.svg)}
-              gantt={workspace.diagramKind === "gantt"}
-            />
-            {result?.error && <p role="alert">{result.error}</p>}
-            <p>
-              Changes are rendered locally. An older preview can remain visible while the current source is rendering or
-              has an error.
-            </p>
-          </div>
-        </details>
-        {viewMode !== "diagram" && (
-          <span className="source-cursor" aria-label="Source cursor position">
-            Ln {workspace.cursor.line}, Col {workspace.cursor.column}
-          </span>
-        )}
-        {hydrated ? (
-          <StorageStatus
-            onExplain={setInteractionMessage}
-            recoveryStatus={activeInSingleFileProject ? singleFileProject.recoveryStatus : undefined}
-            encrypted={Boolean(activeDocument.encrypted)}
-          />
-        ) : (
-          <span>Restoring…</span>
-        )}
-        {!pwa.online && <span className="connection-offline">Offline · changes stay local</span>}
-        {collaboration && (
-          <span className={`collaboration-status ${collaboration.connection}`}>
-            {collaboration.connection === "connected"
-              ? collaboration.role === "viewer"
-                ? "Viewing only"
-                : "Live collaboration"
-              : collaboration.connection === "connecting"
-                ? "Collaboration connecting…"
-                : collaboration.connection === "offline"
-                  ? "Collaboration offline"
-                  : "Collaboration stopped"}
-          </span>
-        )}
-        {pwa.canInstall && (
-          <button type="button" className="status-action" onClick={() => void pwa.install()}>
-            Install app
-          </button>
-        )}
-        {pwa.updateAvailable && (
-          <button type="button" className="status-action" onClick={pwa.update}>
-            Update available
-          </button>
-        )}
-      </footer>
+      <StatusBar
+        activeDocument={activeDocument}
+        activeInSingleFileProject={activeInSingleFileProject}
+        collaboration={collaboration}
+        diagnosticCount={diagnosticCount}
+        hydrated={hydrated}
+        interactionMessage={interactionMessage}
+        mobileListActive={mobileListActive}
+        pwa={pwa}
+        result={result}
+        setInteractionMessage={setInteractionMessage}
+        setProblemsOpen={setProblemsOpen}
+        setUnsupportedOpen={setUnsupportedOpen}
+        singleFileProject={singleFileProject}
+        status={status}
+        tabs={tabs}
+        unsupportedCount={unsupportedCount}
+        viewMode={viewMode}
+        workspace={workspace}
+      />
       <DiagramDialogs
         activeDocument={activeDocument}
         activeInLegacyProject={activeInLegacyProject}
