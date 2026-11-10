@@ -1,3 +1,4 @@
+import { buildPresentationData } from "./app/build-presentation-data";
 import { buildApplySemanticRename } from "./app/build-apply-semantic-rename";
 import { useOutlineModeEffects } from "./app/use-outline-mode-effects";
 import { useLinkedDiagramSummary } from "./app/use-linked-diagram-summary";
@@ -41,7 +42,6 @@ import { startupChooserPolicy } from "./startup-chooser-policy";
 
 import { useWorkspaceLayout } from "./use-workspace-layout";
 
-import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 
 import { readStageTokens, useResolvedDark } from "./stage/stage-theme";
@@ -85,8 +85,6 @@ import { parseLegendEntries, removeLegend, synchronizeLegend, usedLegendColors }
 import { buildResourceOverAllocations } from "./ResourceWorkloadPanel";
 
 import { createDiagramAnalyzer, type GanttParse } from "./diagram-diagnostics";
-
-import { embeddedMemberHistoryId } from "./projects/embedded-project";
 
 import { projectElementForEdit } from "./projects/project-edit-mapping";
 
@@ -2566,40 +2564,12 @@ export function App() {
     wbsDocument,
   });
 
-  const presentationDocuments: PresentationDocument[] = presentationOpen
-    ? tabs.documents.map((item) => ({
-        id: item.historyId,
-        name: tabLabels.get(item.id) ?? item.displayName ?? item.fileName,
-        kind: item.diagramKind,
-        source: item.source,
-      }))
-    : [];
-  const presentationConnections: { from: string; to: string }[] = [];
-  if (presentationOpen) {
-    for (const item of tabs.documents) {
-      const linked = tabs.documents.find((other) => other.id === item.linkedWbsDocumentId);
-      if (linked) presentationConnections.push({ from: item.historyId, to: linked.historyId });
-    }
-    if (portable) {
-      const reviewId = (id: string) => embeddedMemberHistoryId(portable.projectId, id);
-      for (const diagram of portable.diagrams) {
-        if (!presentationDocuments.some((item) => item.id === reviewId(diagram.id)))
-          presentationDocuments.push({
-            id: reviewId(diagram.id),
-            name: diagram.name,
-            kind: diagram.document.current.diagramKind as DiagramKind,
-            source: diagram.document.current.source,
-          });
-        if (diagram.wbsGantt)
-          presentationConnections.push({ from: reviewId(diagram.id), to: reviewId(diagram.wbsGantt.wbsDiagramId) });
-      }
-      for (const link of portable.links) {
-        const from = portable.elements.find((item) => item.id === link.from)?.documentId;
-        const to = portable.elements.find((item) => item.id === link.to)?.documentId;
-        if (from && to && from !== to) presentationConnections.push({ from: reviewId(from), to: reviewId(to) });
-      }
-    }
-  }
+  const { presentationDocuments, presentationConnections } = buildPresentationData({
+    portable,
+    presentationOpen,
+    tabLabels,
+    tabs,
+  });
   if (!hydrated)
     return (
       <main role="status" className="workspace-restoring">
