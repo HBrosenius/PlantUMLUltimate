@@ -1,0 +1,74 @@
+[
+  {
+    "id": "01-goal",
+    "title": "One plan, two ways to edit",
+    "plannedSeconds": 35,
+    "text": "In this lesson, you will change a project plan in two ways: by editing the diagram, and by editing its Plant UML source. You will also undo a change, restore it, and recover from an invalid value. By the end, you should be able to choose whichever editing method is quicker, and check that the plan still says exactly what you intended."
+  },
+  {
+    "id": "02-open",
+    "title": "Open the starting checkpoint",
+    "plannedSeconds": 50,
+    "text": "Open the supplied lesson two start file through File, Open, Document. When the document navigator appears, choose the diagram named zero two start. Then close the navigator and use Split view. Your screen should show Research, Design, Build, and a Launch milestone. Design has five days of work, and Build has eight. If your plan looks different, reopen the starting checkpoint before continuing. This file is a practice copy, so you can repeat the lesson whenever you like."
+  },
+  {
+    "id": "03-read",
+    "title": "Read the source without memorizing syntax",
+    "plannedSeconds": 50,
+    "text": "Look at the left side first. The opening and closing statements tell Plant UML that this is a Gantt diagram. The project starts on a fixed date, and Saturdays and Sundays are closed. Research, Design, and Build each have a readable label and a shorter alias. Statements later in the file refer to those aliases. You do not need to memorize the syntax now. Focus on the connection between one statement and the object it describes on the right."
+  },
+  {
+    "id": "04-visual",
+    "title": "Make a visual change",
+    "plannedSeconds": 65,
+    "text": "Select Design in the diagram. Its task inspector opens. Find Duration, replace five with seven, and move focus out of the field. In this inspector, a valid duration is applied when you leave the field. Watch both sides: the diagram updates, and the Design declaration now says seven days. We changed the plan through a visual control, and the application wrote the matching source. Close the inspector so that you can compare the complete chart with the text. The calendar still matters: seven working days can span more than seven calendar days."
+  },
+  {
+    "id": "05-check",
+    "title": "Check what changed and what stayed",
+    "plannedSeconds": 60,
+    "text": "Before making another edit, read the changed statement. The alias is still design, and the duration is now seven. The dependency statements still connect Design to Research, and Build to Design. Because Build is scheduled relative to Design, the following work can move when Design takes longer. That is a scheduling rule in the source, rather than a separate picture you must update by hand. This is a useful habit: after an important visual edit, check the affected source and the resulting diagram together."
+  },
+  {
+    "id": "06-source",
+    "title": "Edit the text directly",
+    "plannedSeconds": 55,
+    "text": "Now change the plan from the other side. Find the Build declaration in the source editor. Replace the duration eight with ten, leaving the task name, alias, and the rest of the statement alone. The preview updates to show the new plan. You have changed the same kind of information as before, but this time you typed it directly. The editor and diagram are two ways of working with the same source. You can switch between them during a single task."
+  },
+  {
+    "id": "07-undo",
+    "title": "Undo and redo a plan change",
+    "plannedSeconds": 55,
+    "text": "Suppose you want to reconsider those extra days. Use the application's Undo control. The Build declaration returns to eight days, and the preview follows. Use Redo, and ten days returns. Watch the duration rather than assuming that the last edit has been reversed. When you are typing inside an ordinary text field, that field can have its own editing history. Here we are using the application controls to inspect a change to the plan itself. Leave Build at ten days before the next step."
+  },
+  {
+    "id": "08-invalid",
+    "title": "Recover from an invalid value",
+    "plannedSeconds": 55,
+    "text": "Select Design again and enter zero for its duration. Move focus out of the field. The inspector reports that some changes cannot be applied. Check the source: Design still has seven days. The invalid value is a draft in the panel, not a successful change to the authored plan. Correct the field to seven and move focus out again. The warning clears. Close the inspector. If an edit does not apply, look for validation feedback and fix the value before moving on."
+  },
+  {
+    "id": "09-progress",
+    "title": "Add a source statement and cross-check it",
+    "plannedSeconds": 55,
+    "text": "Let us make one more source edit. Under the statement that starts Build after Design, add a new line saying that build is twenty five percent completed. Use the alias in square brackets, followed by is, twenty five percent completed. The progress appears in the diagram. Select Build and inspect Progress. It should read twenty five. This gives us a second way to check the change: the source statement, the diagram, and the task inspector all describe the same progress. Close the inspector when you have checked it."
+  },
+  {
+    "id": "10-practice",
+    "title": "Try the workflow yourself",
+    "plannedSeconds": 45,
+    "text": "Pause the video and reopen the starting checkpoint. Change Design to six days using its visual inspector. Then change Build to ten days in the source, and add twenty five percent completion for Build. Keep the existing aliases and dependency statements. Check your changes on both sides. You can use Undo and Redo while you work. The aim is to reach a precise result using both editing methods, rather than to reproduce every pointer movement from the demonstration. Resume when you are ready to compare your answer."
+  },
+  {
+    "id": "11-answer",
+    "title": "Compare the answer",
+    "plannedSeconds": 50,
+    "text": "Your answer should have Design at six days, Build at ten days, and Build progress at twenty five percent. Research remains four days, and Launch remains tied to the end of Build. Open the supplied exercise answer if you want to compare the source directly. Notice that the demonstration used seven days for Design, but this exercise asks for six. A correct result comes from the requirements you are given. Check the actual values, the relationships, and the chart, rather than relying on its general appearance."
+  },
+  {
+    "id": "12-recap",
+    "title": "Choose the quickest editing path",
+    "plannedSeconds": 25,
+    "text": "You can now make a visual edit, make a source edit, undo and redo a change, and recover from an invalid draft. The source remains the plan you can read and carry with you. In the next lesson, we will build on this workflow to create and organize tasks, milestones, and progress."
+  }
+]

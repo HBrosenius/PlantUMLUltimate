@@ -1,0 +1,602 @@
+{
+  "id": "02",
+  "title": "PlantUML and visual editing",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "One authored model, two editing routes",
+      "text": "The source and the drawing describe one authored diagram. A visual edit changes Plant UML text, and a source edit changes the resulting picture. In this lesson we inspect labels and aliases, make changes from both sides and use shared undo and redo. We will also break one line deliberately, read the diagnostic and repair it while the last valid preview remains available. Work in a disposable practice copy so each experiment is easy to inspect.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Read the source. Check the picture.",
+              "items": [
+                "Labels, aliases and delimiters",
+                "Visual and source editing",
+                "Shared Undo and Redo",
+                "Diagnose a failed render and repair it"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-read",
+      "title": "Read a small source document",
+      "text": "The start and end delimiters identify the diagram. Each task declaration gives the reader a display label and can provide an alias for later references. In Design as design, the first label is what people read, while the alias gives the source a stable identity to reference. The dependency statements use those identities to connect work. Keep the labels clear, preserve references deliberately and check the current preview after editing.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "@startgantt"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[Design] as [design]"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[build] starts at [design]'s end"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-visual",
+      "title": "Inspect a visual change in source",
+      "text": "Select Design in the picture and change its duration from five days to seven. Leave the field to apply the supported inspector edit, then inspect the generated task declaration. The visual control updates the authored source; it does not create a separate hidden schedule. Check following work as well as the selected bar, because a dependency can carry the effect downstream. Keep unrelated labels and statements intact.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Duration",
+              "exact": true,
+              "value": "7"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "[Design] as [design] lasts 7 days"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03a-inspector-drafts",
+      "title": "Distinguish field drafts from committed diagram changes",
+      "text": "Select Design and keep the original source visible. Type a temporary label while the name field retains focus; the source still contains the committed name. Undo inside that text field and verify that Design returns without a diagram change. Enter a negative duration and leave the field; an invalid value must not replace the last valid schedule. Correct the duration to seven days and verify the committed task statement. Now focus the source editor and use shared Undo to restore five days. Redo returns the committed seven day edit. The focused text field, an invalid draft and the shared diagram history are different states to check deliberately.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "rememberSource",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "label": "Name",
+              "exact": true,
+              "scope": "[aria-label=\"Task inspector\"]"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+a"
+            },
+            {
+              "op": "type",
+              "value": "Temporary label"
+            },
+            {
+              "op": "assertField",
+              "label": "Name",
+              "exact": true,
+              "scope": "[aria-label=\"Task inspector\"]",
+              "value": "Temporary label"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertField",
+              "label": "Name",
+              "exact": true,
+              "scope": "[aria-label=\"Task inspector\"]",
+              "value": "Design"
+            },
+            {
+              "op": "key",
+              "value": "Tab"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Duration",
+              "exact": true,
+              "value": "-1"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            },
+            {
+              "op": "dump",
+              "name": "invalid-inspector-draft"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Duration",
+              "exact": true,
+              "value": "7"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            }
+          ]
+        },
+        {
+          "at": 6,
+          "actions": [
+            {
+              "op": "key",
+              "value": "ControlOrMeta+Shift+z"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-source",
+      "title": "Make the corresponding source edit",
+      "text": "Now make the change directly in source. Replace Design\u2019s five day duration with six days and wait for Preview current. Select the same task and inspect its duration field. It should agree with the authored statement and the current drawing. When those views disagree during a failed render, read the status before assuming the visible picture represents the newest source. Source ownership means that both editing routes must preserve the same intended model.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "lasts 5 days",
+              "to": "lasts 6 days"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertField",
+              "label": "Duration",
+              "value": "6"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-label",
+      "title": "Change a label without losing its alias",
+      "text": "Rename the visible Design task to Interaction design in its inspector. Inspect the task declaration and its dependencies after the edit. The display label changes while the design alias remains available to the connected statements. A label edit is different from a semantic alias rename, which updates recognized references and has a preview. Later editor assistance shows that workflow. For now, verify the label, the stable alias and the resulting schedule together.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "exact": true,
+              "scope": "[aria-label=\"Task inspector\"]",
+              "value": "Interaction design"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Interaction design] as [design]"
+            },
+            {
+              "op": "assertSource",
+              "value": "[build] starts at [design]'s end"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-symbol-references",
+      "kind": "Gantt",
+      "title": "Navigate symbol references",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Place the caret on a task identifier in a scheduling rule and open its symbol menu. Find references gathers the declaration and its uses without changing the source. Select the declaration to jump to its source line and inspect the scheduling rules that use the same alias. These actions help you inspect the consequences of an edit before renaming or deleting a symbol.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "original"
+            },
+            {
+              "op": "cursor",
+              "value": "[build] starts at [design]'s end",
+              "offset": 21
+            },
+            {
+              "op": "symbolContextMenu"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "role": "menuitem",
+              "name": "Find references"
+            },
+            {
+              "op": "dumpControls"
+            },
+            {
+              "op": "dump",
+              "name": "symbol-references"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "css": "button:has-text(\"declaration\")"
+            },
+            {
+              "op": "dump",
+              "name": "declaration-navigation"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "original"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-history",
+      "title": "Use shared Undo and Redo",
+      "text": "Change the duration visually, then return focus to the source editor and use Undo. Verify that the duration returns to five days. Redo the edit and verify seven days again. This demonstrates one authored edit history across the visual control and source editor. Be aware of focus: a field can have its own text-editing behavior while you are still entering a value. Inspect the source after undoing a meaningful change, rather than assuming the keyboard action affected the intended edit.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            },
+            {
+              "op": "fill",
+              "label": "Duration",
+              "exact": true,
+              "value": "7"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "key",
+              "value": "ControlOrMeta+Shift+z"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-diagnostic",
+      "title": "Read the failed line and last good preview",
+      "text": "Replace the duration with the invalid word banana in this disposable copy. Wait for the failed render and read Line eight cannot be drawn. The message identifies the statement, while the drawing retains the last version that worked. Switch to Diagram view, then use Go to line eight to visit the reported source. A visible picture is not proof that the newest text rendered successfully. Check the status, the reported line and the actual statement before choosing a repair.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "allowErrors": true,
+              "from": "lasts 5 days",
+              "to": "lasts banana days"
+            },
+            {
+              "op": "wait",
+              "ms": 1500
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "assertText",
+              "value": "Line 8 can't be drawn"
+            },
+            {
+              "op": "assertText",
+              "value": "Showing last valid preview"
+            },
+            {
+              "op": "click",
+              "name": "Diagram",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Go to line 8",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-repair",
+      "title": "Repair the statement and verify",
+      "text": "Restore the numeric duration to five days and wait for Preview current. Verify that the task statement is intact and that the error no longer controls the preview. A repair should preserve the model you intended, not merely make the error count smaller. The editor assistance lesson adds error navigation, explanation and proposed quick fixes. The habit is the same: understand the statement, make a deliberate edit and check the current result.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "allowErrors": true,
+              "from": "lasts 5 days",
+              "to": "lasts banana days"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "lasts banana days",
+              "to": "lasts 5 days"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Practice both routes and recovery",
+      "text": "Pause and change the same duration visually and in source, checking that the other view agrees. Rename a display label while preserving its alias and dependencies. Undo and redo a visual edit with focus in the source editor. Finally introduce one invalid duration, read the failed line, use Go to line and repair it. You have succeeded when the source, inspector and current preview agree, and you can explain why a retained picture may be older than the current text.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: keep the representations in agreement",
+              "items": [
+                "Change a duration from both sides",
+                "Rename a label while retaining its alias",
+                "Undo and Redo across editing routes",
+                "Read, locate and repair an invalid statement"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Check the authored result",
+      "text": "The source holds the authored model, while the picture and inspectors make it easier to understand and edit. Use both editing routes deliberately, preserve identity and references, and verify shared undo or redo in the source. Read render status whenever a change fails. The next lessons apply this routine to tasks, dependencies, people and forecasts so that the schedule remains understandable as it grows.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "One model. Deliberate edits. Verified results.",
+              "items": [
+                "Read labels and stable references",
+                "Inspect changes from both sides",
+                "Check render status and repair the reported line"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

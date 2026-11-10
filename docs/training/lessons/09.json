@@ -1,0 +1,803 @@
+{
+  "id": "09",
+  "title": "Documents and connected diagrams",
+  "kind": "WBS",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "One document, several views",
+      "text": "A portable document can contain several diagrams. Connected WBS and Gantt diagrams answer different questions about the same work: what belongs in the project, and when that work happens. In this lesson we create the schedule from a breakdown, navigate between members, inspect linked details, and save the document. Keep a distinction between a separate open tab and a diagram that belongs to the same portable document.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Structure and schedule together",
+              "items": [
+                "Create Gantt from WBS",
+                "Navigate document members",
+                "Inspect links and save the whole document"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-create",
+      "title": "Create a connected schedule",
+      "text": "Begin with the customer portal breakdown. Open Plan and choose Create Gantt chart from WBS. Review the document name and project start date before creating it. The application creates a schedule and retains the WBS as a member of the same document. This is a useful starting point, but a work breakdown does not supply every scheduling decision. Review task duration, ordering, resources and dependencies before treating the generated schedule as a commitment.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "connected"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "connected-ui"
+            },
+            {
+              "op": "note",
+              "value": "Generated work still needs scheduling decisions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-navigate",
+      "title": "Navigate document members",
+      "text": "The document navigator lists the diagrams that belong together. Select the WBS member to review structure, then the Gantt member to review the schedule. These are different sources, even though the linked work connects their meaning. Changing the selected diagram is navigation. It does not duplicate the work or create another schedule. Keep the navigator visible while learning the document so you can recognize which member you are editing.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "openMember",
+              "kind": "gantt"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the active member before editing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-linked",
+      "title": "Inspect the linked work",
+      "text": "Return to the WBS and select a work item. Its inspector provides the supported work details and linked Gantt task control. Follow a link when you want to inspect the corresponding schedule item, and check the destination before editing dates. A relationship between diagrams does not mean every line of their source is identical. Structure and schedule retain their own responsibilities. Review shared details deliberately, and avoid creating an unrelated duplicate task simply because you cannot see the other member.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Select WBS node Design"
+            },
+            {
+              "op": "dump",
+              "name": "linked-inspector"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Select a work item and inspect its linked Gantt task."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Open linked Gantt task"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-coverage",
+      "title": "Review coverage before adding or deleting",
+      "text": "As a project grows, compare the work represented on each side. A new WBS item may still need a scheduled task. The Plan command can add missing WBS tasks to the linked Gantt chart, while existing links help avoid duplicating covered work. Review the coverage and deletion choices rather than assuming that removing a shape should remove every related object. Return to the breakdown and verify that the missing-task count is zero; the existing work is not duplicated.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "append",
+              "value": "** Training handover"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Add missing WBS tasks to Gantt (1)"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "openMember",
+              "kind": "gantt"
+            },
+            {
+              "op": "assertSource",
+              "value": "Training handover"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSourceOccurrences",
+              "value": "[Training handover]",
+              "count": 1
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "assertDisabled",
+              "name": "Add missing WBS tasks to Gantt (0)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-keep-counterpart",
+      "title": "Delete a WBS item and keep its schedule",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "Delete Requirements from the WBS in a disposable connected copy. The linked-work dialog explains which Gantt task is affected and offers a deliberate choice. Choose Keep Gantt tasks, then inspect both members. Requirements is gone from the breakdown, while its scheduled task remains with its dates and assignments. Review the resulting coverage rather than assuming a deletion on one side must remove useful work everywhere.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "click",
+              "name": "Select WBS node Requirements"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delete subtree"
+            },
+            {
+              "op": "dump",
+              "name": "linked-delete-choice"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Keep Gantt tasks"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "Requirements"
+            },
+            {
+              "op": "openMember",
+              "kind": "gantt"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Requirements]"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05b-delete-both",
+      "title": "Delete both linked counterparts",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "Repeat the small deletion in a fresh connected practice copy, but this time choose Delete in both diagrams. Check that Requirements is removed from the WBS and from the schedule. This option has a wider effect than keeping the counterpart, so inspect the affected work before accepting it. Use separate disposable copies to learn the two outcomes, and preserve a saved project before a real cleanup.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "click",
+              "name": "Select WBS node Requirements"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delete subtree"
+            },
+            {
+              "op": "dump",
+              "name": "linked-delete-choice"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delete in both diagrams"
+            },
+            {
+              "op": "assertSourceAbsent",
+              "value": "Requirements"
+            },
+            {
+              "op": "openMember",
+              "kind": "gantt"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceAbsent",
+              "value": "[Requirements]"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05c-reverse-coverage",
+      "title": "Add missing scheduled work to WBS",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "New work can also begin in the schedule. Add Training review as a Gantt task, then inspect the command for missing Gantt work in the linked WBS. Add the counterpart and inspect the breakdown. Review its placement and meaning before treating the generated node as a finished scope decision. Coverage helps find missing counterparts; it does not decide how you should organize the project.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "append",
+              "value": "[Training review] as [training_review] lasts 2 days"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Add missing Gantt tasks to WBS (1)"
+            },
+            {
+              "op": "dump",
+              "name": "reverse-coverage"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "assertSource",
+              "value": "Training review"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "wait",
+              "ms": 2200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05d-repair-existing-link",
+      "title": "Link existing work and navigate its counterpart",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "Create an unlinked Acceptance slot in the schedule of this disposable connected project. Add Acceptance review independently to the work breakdown structure. Select that node and choose the existing Acceptance slot as its linked Gantt task. Open the linked task to verify that counterpart navigation reaches the intended scheduled item. Check that coverage reports no unlinked items after the repair. Save the portable document with its repaired mapping; linking existing work should not create a second scheduled task.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "append",
+              "value": "[Acceptance slot] as [acceptance_slot] lasts 2 days"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "append",
+              "value": "** Acceptance review"
+            },
+            {
+              "op": "click",
+              "name": "Select WBS node Acceptance review"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "selectMatching",
+              "label": "Linked Gantt task",
+              "pattern": "Acceptance slot"
+            },
+            {
+              "op": "wait",
+              "ms": 400
+            },
+            {
+              "op": "dump",
+              "name": "repaired-counterpart-link"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Open linked Gantt task"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "acceptance_slot"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "assertText",
+              "value": "Unlinked: 0 WBS nodes \u00b7 0 Gantt tasks"
+            },
+            {
+              "op": "assertSourceOccurrences",
+              "value": "as [acceptance_slot]",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "portal-repaired-counterpart.pumlu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-save",
+      "title": "Save the portable document",
+      "text": "Save the containing document as a portable pumlu file. The document holds its member diagrams and their links, so it is the appropriate handover when another person needs the connected project. Exporting one member as plain Plant UML source serves a different purpose and does not replace the whole document. Reopen the saved practice document and verify that both members remain available. Keep an untouched practice copy before experimenting with imports, member removal or link changes.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "customer-portal-connected.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "openFile",
+              "filename": "customer-portal-connected.pumlu"
+            },
+            {
+              "op": "assertMemberCount",
+              "count": 2
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "assertSource",
+              "value": "Customer portal launch"
+            },
+            {
+              "op": "openMember",
+              "kind": "gantt"
+            },
+            {
+              "op": "assertSource",
+              "value": "Customer portal launch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-member-import-rename",
+      "title": "Import and rename a member diagram",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "Import the plain Sequence source into the connected document. Check the new member and its source before renaming it Portal request flow. A member name helps people navigate the document, while aliases inside that diagram identify its modeled objects. Save the portable document after checking the imported member alongside the existing WBS and Gantt views. Importing a plain source diagram does not automatically create semantic object links to the existing members.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "importMember",
+              "path": "docs/training/assets/customer-portal/portal-sequence.puml"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "imported-member"
+            },
+            {
+              "op": "renameMember"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "exact": true,
+              "value": "Portal request flow"
+            },
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "assertText",
+              "value": "Portal request flow"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "customer-portal-with-request-flow.pumlu"
+            },
+            {
+              "op": "assertSource",
+              "value": "@startuml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06b-delete-member",
+      "title": "Remove a disposable member",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "A document member can also be removed from the containing project. Import the disposable Sequence example, inspect the three members, then choose Delete for that imported diagram and read the confirmation. Verify that the WBS and Gantt members remain available. This is a document member operation, distinct from deleting a linked WBS work item or its scheduled counterpart. Keep a saved copy before reorganizing a real project, and check the intended member name before accepting removal.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "importMember",
+              "path": "docs/training/assets/customer-portal/portal-sequence.puml"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "deleteMember"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertMemberCount",
+              "count": 2
+            },
+            {
+              "op": "openMember",
+              "kind": "wbs"
+            },
+            {
+              "op": "assertSource",
+              "value": "Customer portal launch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06c-cross-diagram-object-link",
+      "title": "Connect scheduled work to a model object",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "text": "A document can also record object connections across different diagram types. Import the request Sequence diagram and connect the scheduled Backend work to its API participant using the compatible link controls. The link labeled implements records this connection in the document; the diagram sources retain their existing arrows. Inspect the connection and its resolved endpoints, then save the portable document. Keep these object connections distinct from the WBS to Gantt scheduling counterparts and from an external web link.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "connected"
+            },
+            {
+              "op": "importMember",
+              "path": "docs/training/assets/customer-portal/portal-sequence.puml"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "member-source"
+            },
+            {
+              "op": "selectMatching",
+              "label": "1. Link from",
+              "pattern": "schedule: wbs_backend$"
+            },
+            {
+              "op": "selectMatching",
+              "label": "2. Link to",
+              "pattern": "portal-sequence: API$"
+            },
+            {
+              "op": "click",
+              "name": "Create implements link"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "member-source"
+            },
+            {
+              "op": "assertText",
+              "value": "Confirmed"
+            },
+            {
+              "op": "dump",
+              "name": "created-object-link"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "customer-portal-object-connection.pumlu"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-practice",
+      "title": "Reconcile a small project",
+      "text": "Pause and create a connected document from the practice breakdown. Navigate to both members and identify the corresponding work. Add a missing work item, inspect coverage, and schedule it deliberately. Rename a member so its purpose is clear. Save a portable copy, reopen it, and check that the members and links remain available. Success means you can distinguish separate files from members of a connected document and explain both the structure and the schedule.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: reconcile structure and schedule",
+              "items": [
+                "Create and navigate both members",
+                "Add work and inspect coverage",
+                "Review links and deletion choices",
+                "Save, reopen and verify the document"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-recap",
+      "title": "Keep connections intentional",
+      "text": "A connected document combines distinct diagrams with explicit links. Use WBS to organize work and Gantt to schedule it. Inspect coverage when either side changes, review deletion consequences, and save the portable document when handing over the full project. In the next group of lessons, the same habit of checking identity and relationships will help you maintain the software models as well.",
+      "source": "@startwbs\ntitle Customer portal scope\n* Customer portal launch\n** Discovery\n*** Customer interviews\n*** Requirements\n** Design\n*** User journeys\n*** Prototype\n** Implementation\n*** Frontend\n*** Backend\n** Testing\n*** Quality assurance\n** Release\n*** Launch\n@endwbs",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Distinct views, explicit connections",
+              "items": [
+                "Check the active member",
+                "Review coverage and link targets",
+                "Save the whole portable document"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

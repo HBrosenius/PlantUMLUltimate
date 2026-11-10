@@ -1,0 +1,106 @@
+id,lesson,feature,teaching_mode,evidence,demonstration_success_check,recording_status
+W01,01,"Diagram chooser; all seven types; blank, simple starter, named examples",T,UI; S01,Create each type and explain when to choose it.,Recording validation pending
+W02,01,Open/recent/import entry points and personal starters,T,"UI; S01, S03","Open a supplied file, save a personal starter, and reuse it.",Recording validation pending
+W03,01,"Tabs, names, independent views, switching and closing",T,"UI; S02, S22",Switch between two diagrams without losing work; identify unsaved state.,Recording validation pending
+W04,01,"Edit/Insert/Plan/View ribbon, collapse/expand, unavailable actions",T,UI; S02,Locate commands; show that planning controls depend on diagram type.,Recording validation pending
+W05,01,Code/Split/Diagram and focus-on-diagram view,T,UI; S02,Change layout while preserving source.,Recording validation pending
+W06,01,"Fit, zoom, pan, task navigation, today, timeline controls",G,"UI; S07, S23",Distinguish preview navigation from authored timeline scale.,Recording validation pending
+W07,01,"App appearance, preview adaptation, diagram themes",G,"SRC; S04, S05",Change app appearance; explain preview-only adaptation versus saved diagram theme.,Recording validation pending
+W08,01,"Startup behavior, default view/zoom, editing mode, Help and tour",G,"SRC; S04, S23","Change defaults and find searchable, diagram-specific help.",Recording validation pending
+E01,02,Visual → source and source → visual changes,T,"UI; S02, S23",Make both changes and identify the generated source.,Recording validation pending
+E02,02,"Shared undo/redo, history menu, text-field undo distinction",T,"UI; S02, S23",Undo a diagram operation and contrast with an active text field.,Recording validation pending
+E03,02,"Inspector Apply/Cancel, immediate fields, invalid draft handling, width",T,SRC; S06,Determine how a specific inspector commits; correct an invalid draft without losing intended work.,Recording validation pending
+E04,03,"Multi-selection, copy/paste, duplicate, bulk task fields",T,"UI; S02, S08",Select several tasks; shift dates and edit completion/resource; copy or duplicate.,Recording validation pending
+E05,11–14,Bulk element styling/stereotypes and clipboard operations,G,"UI; S02, S09",Demonstrate supported selection and bulk changes in each applicable editor.,Recording validation pending
+E06,15,"Highlighting, context completion, symbol/reference navigation, rename",T,"DOC; S23, S22",Rename a referenced alias safely and navigate its references.,Recording validation pending
+E07,15,"Diagnostics, Issues, quick fixes, explain error, previous/next error",T,"UI; S02, S23",Diagnose one syntax problem and one unsupported visual construct.,Recording validation pending
+E08,15,"Format source, go to line, copy source, search, command palette",T,"UI; S02, S23","Find a distant statement, format it, and run a command.",Recording validation pending
+E09,15,"Outline/find, docking, hierarchy and canvas matches",T,SRC; S24,Locate an object from a large diagram and return to its source.,Recording validation pending
+E10,15,"Editor font/tab size, wrapping, line numbers, keyboard workflows",G,"SRC; S04, S23",Show readable recording settings and practical shortcuts.,Recording validation pending
+E11,15,"Sequence semantic review, grouped acceptance, local patch/report",T,DOC; S22,Review an example proposal and accept only the intended group.,Recording validation pending
+G01,03,"Add/edit/remove tasks; names/aliases, dates, duration and units",T,"UI; S02, S07",Create a task and explain day/week/month duration choices.,Recording validation pending
+G02,03,"Move, resize, reorder; keyboard movement and week snapping",T,DOC; S23,Perform pointer and keyboard edits and inspect the resulting dates.,Recording validation pending
+G03,03,Progress and completion; milestones,T,"SRC; S07, S22",Mark partial work and connect a release milestone.,Recording validation pending
+G04,03,"Dividers, notes, colors, same-row display, external task links",G,"SRC; S07, S22",Organize the launch plan and open an intentionally harmless example link.,Recording validation pending
+G05,04,"Four dependency relations; add, inspect, reconnect and delete",T,"UI; S02, S07",Demonstrate each relation with a small pair of tasks.,Recording validation pending
+G06,04,Fixed/relative schedule conversion; only-task versus cascade movement,T,"SRC; S07, S04","Show dependent movement, conversion, and a single undo operation.",Recording validation pending
+G07,04,"Project start, closed weekdays, opened/closed date ranges",T,SRC; S10,Add a holiday and explain working-day effects.,Recording validation pending
+G08,04,Task pauses by date/weekday,T,SRC; S07,Pause a task and verify its resulting schedule.,Recording validation pending
+G09,04,Daily/weekly/monthly/quarterly/yearly timeline and scale factor,G,SRC; S10,Compare useful scales without confusing them with preview zoom.,Recording validation pending
+G10,04,"Highlight ranges/today; titles, headers, footers, caption, footboxes",G,SRC; S10,Show which options persist in source and export.,Recording validation pending
+G11,04,"Diagram filters, move policy, legend visibility and labels",G,"UI; S02, S10, S11",Filter the canvas; rename a legend label and explain report-scope independence.,Recording validation pending
+G12,05,"Multiple assignments, allocation, effort versus elapsed time",T,"SRC; S07, S22",Add a second person; measure the resulting working-day duration.,Recording validation pending
+G13,05,"Workload/capacity, daily/weekly summaries, overloaded dates",T,"UI; S02, S22",Create and resolve overload and navigate to the relevant task.,Recording validation pending
+G14,05,Resource warning preference versus workload calculation,G,"SRC; S04, S23",Hide the warning banner and confirm workload information remains.,Recording validation pending
+G15,06,Forecast enable/status date/time zone and remaining-work estimates,T,"SRC; S05, S25",Freeze dates; explain the baseline versus projected result.,Recording validation pending
+G16,06,"Finish causes, what-if estimate, review/apply forecast",T,DOC; S25,Trace a delay to its cause; show source stays unchanged until apply.,Recording validation pending
+G17,06,"Scenario draft edits, capacities, comparison and synchronized navigation",T,SRC; S12,Compare two alternatives against the same base.,Recording validation pending
+G18,06,"Save/open/copy scenarios, assumptions, review/apply and stale base",T,SRC; S12,Reopen an alternative; deliberately change the base and inspect the guard.,Recording validation pending
+R01,07,Task check-in,T,UI; S13,Produce person-specific requests with accurate tasks and reply date; no automatic sending.,Recording validation pending
+R02,07,Resource workload and assignment coverage,T,UI; S13,Interpret allocation and unassigned work.,Recording validation pending
+R03,07,Progress forecast,T,UI; S13,Explain projected delivery versus the authored plan.,Recording validation pending
+R04,07,Critical path and schedule sensitivity,T,UI; S13,Identify critical/near-critical work and explain the threshold.,Recording validation pending
+R05,07,Milestone and delivery outlook,T,UI; S13,Identify a release risk with a supporting task.,Recording validation pending
+R06,07,Progress and due-date outlook,T,UI; S13,Explain what the completion and due-date figures mean.,Recording validation pending
+R07,07,Historical burndown and burnup,T,UI; S13,Compare two explicit observations using stable aliases; contrast fixed and dynamic scope.,Recording validation pending
+R08,07,Changes since baseline,T,UI; S13,Select a baseline and identify actual plan changes.,Recording validation pending
+R09,07,Coordinator summary and delivery-outlook presets,G,UI; S13,Compare the scope of the two presets.,Recording validation pending
+R10,07,"Scope: status filter, people, exclusions, unresolved/unassigned work, milestones",G,SRC; S13,Demonstrate that canvas filters do not silently define report scope.,Recording validation pending
+R11,07,"Locale, time zone, as-of/reply-by dates, notes, links, charts and compact/combined output",G,SRC; S13,Customize output while keeping the same reporting facts.,Recording validation pending
+R12,07,"Record progress snapshot, pinned observations and portable retention",T,UI; S13,Record and save two dated observations; explain that preview does not record history.,Recording validation pending
+R13,07,"Stale report warning/refresh, preview, clipboard and available downloads",T,SRC; S13,"Change the plan after opening a report, refresh, and verify copied output.",Recording validation pending
+D01,08,"Nodes/children, hierarchy and branch side; labels/colors/stereotypes",T,"UI; S14, S22",Create the portal WBS and edit a node without breaking structure.,Recording validation pending
+D02,08,"Subtree movement, pointer/keyboard reorder, WBS relationships",T,"DOC; S14, S22",Move a branch with its children and inspect a relationship.,Recording validation pending
+D03,09,New/open document; add/import/rename/delete diagrams; independent tabs,T,"UI; S03, S15",Build and reopen one portable multi-diagram document.,Recording validation pending
+D04,09,"Navigator indexing, elements and cross-diagram links",T,SRC; S15,Follow a link into another diagram and manage it.,Recording validation pending
+D05,09,Create Gantt from WBS; shared work details and schedule-specific dates,T,DOC; S22,Generate a schedule and show a supported edit reflected on both sides.,Recording validation pending
+D06,09,Add missing work in either direction; ancestor creation; no duplicates,T,DOC; S22,Repeat reconciliation and confirm existing items are reused.,Recording validation pending
+D07,09,"Coverage, sync issues, link/relink existing work, counterpart navigation",T,"SRC; S14, S15",Repair an intentionally unlinked item and navigate its counterpart.,Recording validation pending
+D08,09,Linked-item deletion choices and unmappable/cyclic dependency review,T,DOC; S22,Demonstrate keep-counterpart versus delete-both on a disposable checkpoint.,Recording validation pending
+D09,16,"Document change review, save baseline, review report export",T,SRC; S15,Identify cross-diagram changes and export the review.,Recording validation pending
+N01,10,"Sequence participant kinds, aliases, stereotypes, colors, order and boxes",T,"UI; S02, S22",Model browser/API/database and add a grouped participant.,Recording validation pending
+N02,10,"Message types/styles, anchors, lifecycle, activations and returns",T,DOC; S22,Show representative request/response and creation/destruction examples.,Recording validation pending
+N03,10,"Fragments: alt/opt/loop/par/break/critical/group, branches and colors",G,DOC; S22,Explain branching/parallel behavior using separate small examples.,Recording validation pending
+N04,10,"Notes, references, separators, delays, spacing, duration, page breaks/autonumber",G,DOC; S22,Demonstrate each family; supply a reference source containing variants.,Recording validation pending
+N05,10,Inspect/reorder/reconnect and Sequence presentation settings,T,"UI; S02, S22",Reorder participants/messages; compare layout and message settings.,Recording validation pending
+U01,11,"Actors/use cases, aliases, colors/stereotypes and packages/boundaries",T,"UI; S02, S22",Build a system boundary with actors and capabilities.,Recording validation pending
+U02,11,"Relationships, include/extend, reconnect, ordering and notes",T,DOC; S22,Explain the semantic meaning of each example relationship.,Recording validation pending
+U03,11,Inspectors and diagram presentation settings,G,"UI; S02, S22",Apply settings and confirm resulting source and preview.,Recording validation pending
+C01,12,"Entity kinds, aliases, packages, stereotypes and notes",T,"UI; S02, S22",Organize request-domain types.,Recording validation pending
+C02,12,"Structured fields/methods, parameters, visibility and type completion",T,DOC; S22,Add an operation with a typed parameter using the structured UI.,Recording validation pending
+C03,12,"Relationships/reconnection, member inspection and settings",T,DOC; S22,Inspect a member and express a meaningful association/dependency.,Recording validation pending
+K01,13,Components/interfaces plus infrastructure/entity families,T,"UI; S02, S22",Build the portal architecture; group less common entity kinds in reference material.,Recording validation pending
+K02,13,"Packages, notes, relationships, reconnect and settings",T,DOC; S22,Explain a service boundary and its interface/dependency.,Recording validation pending
+A01,14,"Actions, partitions, notes and terminals",T,"UI; S02, S22",Build a workflow with clear ownership and outcomes.,Recording validation pending
+A02,14,"Decisions, loops and parallel structures",T,DOC; S22,"Explain a decision, a retry loop, and a parallel branch.",Recording validation pending
+A03,14,"Arrows, connection/reorder workflows, inspectors and settings",T,DOC; S22,Reorganize a supported structure and verify its flow.,Recording validation pending
+M01,10–15,Valid PlantUML constructs without dedicated visual controls,R,"DOC; S22, S23",Show the source-editing path and an Issues explanation rather than promising universal visual editing.,Recording validation pending
+H01,16,"Automatic/named checkpoints, version selection and restoration",T,"UI; S03, S22",Restore a checkpoint without confusing it with undo.,Recording validation pending
+H02,16,"Grouped review, source diff and rendered comparisons",T,DOC; S22,Explain a specific change in both source and rendered views.,Recording validation pending
+H03,16,Retained history limits and browser/file/session distinctions,G,"SRC; S05, S22",Explain retention settings and what a portable save includes.,Recording validation pending
+L01,17,Create/join private rooms; independent editor/viewer links,T,"UI; S02, S22",Use two sessions and establish each permission.,Recording validation pending
+L02,17,"Concurrent edits, colored selections/cursors, presence and reconnect",T,DOC; S22,Merge independent edits and reconnect after a controlled disconnection.,Recording validation pending
+L03,17,"Multi-diagram sharing, independent navigation and attributed local checkpoints",T,DOC; S22,Navigate separately and inspect attribution; explain unshared retained history.,Recording validation pending
+L04,17,"Revoke/rotate, leave, and save a local copy",T,DOC; S22,Verify old links stop working while the local work remains available.,Recording validation pending
+J01,18,Connect/disconnect Jira and choose authorized site/project/query,T,SRC; S16,Use a dedicated sandbox and conceal credentials.,Recording validation pending
+J02,18,"Import, mappings, pull review, local divergence/conflict choices",T,SRC; S16,Inspect the proposed changes and resolve an intentional conflict.,Recording validation pending
+J03,18,"Optional publishing, reviewed changes and read-only constraints",T,SRC; S16,Publish one controlled sandbox change and verify the resulting issue.,Recording validation pending
+F01,19,Portable document versus plaintext source; Save/Save As/open/recent,T,"UI; S03, S22",Explain exactly what each saved artifact contains.,Recording validation pending
+F02,19,Saved-to-file versus download-requested versus browser-recovery status,T,DOC; S23,Show actual status messages and avoid claiming a download replaced the original file.,Recording validation pending
+F03,19,Native file access/fallbacks and external edits/conflict merge,T,DOC; S22,Demonstrate a clean reload and a controlled conflict on supported desktop file access.,Recording validation pending
+F04,19,"Workspace backup/restore, recovery and installation/offline startup",T,"UI; S03, S22",Reopen a backup and edit offline after the first online visit.,Recording validation pending
+F05,19,"Compression, password protection, unlock and password limitations",T,SRC; S05,Save/reopen an encrypted sample; explain no password recovery and changed session/collaboration behavior.,Recording validation pending
+F06,19,App updates and browser/mobile behavior,G,DOC; S22,"Explain update notification, relevant file support, and the mobile task view.",Recording validation pending
+X01,20,"SVG/PNG/PDF/source; preview, scale, margin, background/transparency",T,"UI; S03, S17",Open each result; explain PDF rasterization/white page and image limits.,Recording validation pending
+X02,20,"Copy image, Markdown source, Confluence markup",G,UI; S03,Paste into a local scratch document and distinguish source from image markup.,Recording validation pending
+X03,20,Encoded renderer URL and Markdown image; custom renderer acknowledgement,T,SRC; S17,Generate locally; explain source disclosure on opening and distinguish from a collaboration link.,Recording validation pending
+X04,20,"Presentation, fit/zoom, connected-diagram navigation",T,"UI; S02, S18",Present the connected project without editing source.,Recording validation pending
+X05,20,"Named views, highlight steps, anchored personal review notes",T,SRC; S18,Create a view and note; show these remain browser-local and are absent from exported files and collaboration.,Recording validation pending
+X06,20,"Final package, rendering troubleshooting and source portability",T,"DOC; S22, S23",Reopen the portable document and render the plaintext independently.,Recording validation pending
+W09,01,"Preview layout: Diagram options group, Focus on diagram / Restore split view, Plan menu on every diagram type",G,UI; S02,"Collapse the preview options, focus the diagram beside the inspector, and show that Plan is present but explains its scope on non-planning diagrams.",Recording validation pending
+E12,"02, 15","Syntax error notice: ""Line N can't be drawn"", offending text, Go to line N, Dismiss",T,SRC; S26,"Break one line, read the notice, jump to the line from Diagram view, and fix it; the last good preview stays visible meanwhile.",Recording validation pending
+G19,03,Deleting a task: dependants and tied milestones keep their dates; arrow chains are rewritten,T,SRC; S27,Delete a predecessor; show dependants stay in place and the source pins their dates; delete a task inside [A] -> [B] -> [C].,Recording validation pending
+G20,04,"Dependency lag rule: ""N days after [A]'s end"" starts on A's last day + 1 + N; a start on a closed day moves to the next working day",T,SRC; S28,"Compare ""at end"", ""1 day after"" and a weekend landing; check the preview, forecast and slack agree.",Recording validation pending
+L05,17,Room lifetime and recovery: rooms expire 24 hours after creation; owner rights survive a reload of the creating tab only; permanent errors stop reconnecting; links need their access credential,T,SRC; S29,"State the expiry before sharing, reload the owner tab and revoke, and show the saved local copy after a room is gone.",Recording validation pending
+J04,18,"Partial publishing outcomes: confirmed, rejected, uncertain and unattempted issues; fresh review before retry; closing the dialog does not undo remote writes",T,SRC; S30,"Use a controlled sandbox failure to read each outcome and explain why ""uncertain"" needs checking in Jira.",Recording validation pending
+X07,20,"Diagram [[url]] links: confirmation, then a new tab; only http(s) and mailto open",G,SRC; S31,"Click a diagram link, read the confirmation, and show the editor stays open.",Recording validation pending

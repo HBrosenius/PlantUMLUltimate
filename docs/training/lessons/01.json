@@ -1,0 +1,733 @@
+{
+  "id": "01",
+  "title": "First launch and workspace",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Find your way around",
+      "text": "This lesson introduces the workspace you will use throughout the course. We will create a diagram, choose an editing view, navigate the canvas, and find the settings that make the editor comfortable to use. The example is a customer portal launch. You do not need Plant UML experience yet. Your first goal is to recognize where a command belongs and distinguish a change to your view from a change to the document.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A workspace for your plan and your models",
+              "items": [
+                "Create a diagram \u00b7 choose a view \u00b7 navigate",
+                "Find settings, commands and help",
+                "Practice with a fictional customer portal launch"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-chooser",
+      "title": "Choose the right diagram",
+      "text": "The diagram chooser offers seven diagram types. Gantt is for schedules, WBS for the breakdown of work, and Activity for workflows and decisions. Sequence explains interactions over time. Use Case connects actors to capabilities, Class describes types and members, and Component describes software structure. Choose a type for the question you want to answer, rather than trying to put every kind of information into one picture. The visual tools and inspectors adapt to your choice.",
+      "source": null,
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Seven types, seven different questions."
+            }
+          ]
+        }
+      ],
+      "chooser": true
+    },
+    {
+      "id": "03-create",
+      "title": "Blank, starter or example",
+      "text": "Start with controls how much source is provided. Blank gives you a minimal document; a simple starter gives you a small editable example. The example route offers more realistic starting material. Give the diagram a useful name before choosing its type. We will create a Gantt starter called Portal practice. The name helps you find the diagram later, while saving still chooses the destination file. A starter is a beginning you can change, not a locked template.",
+      "source": null,
+      "steps": [
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Start with",
+              "value": "starter"
+            },
+            {
+              "op": "fill",
+              "label": "Diagram name",
+              "value": "Portal practice"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Gantt diagram",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "current"
+            },
+            {
+              "op": "note",
+              "value": "New diagram: Portal practice"
+            }
+          ]
+        }
+      ],
+      "chooser": true
+    },
+    {
+      "id": "04-ribbon",
+      "title": "Use the command categories",
+      "text": "The ribbon groups commands by purpose. Edit contains history, selection and source operations. Insert creates objects for the current diagram type. Plan contains scheduling tools for Gantt, and connected-work actions for WBS. View contains navigation, panels and diagram settings. You can collapse the ribbon when you want more room. If a command is unavailable, inspect its context before assuming something is wrong: the diagram type, selection and editing permission can all matter.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Edit",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Collapse ribbon",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Expand ribbon",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04a-planning-scope",
+      "kind": "Class",
+      "title": "Read command scope on a non-planning diagram",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "text": "The Plan category is still present when a Class diagram is active. Its message explains that planning tools are for Gantt and work breakdown diagrams. Insert instead exposes the Class editing commands appropriate to this model. A command category can explain its scope without changing the authored diagram.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "model"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "assertText",
+              "value": "Planning tools are for Gantt and WBS diagrams."
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "assertText",
+              "value": "Class, interface, or enum\u2026"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSourceSame",
+              "key": "model"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-views",
+      "title": "Code, Split and Diagram",
+      "text": "Code view gives the source editor the workspace. Diagram view gives the picture more room. Split view keeps the two together, which is useful while learning how a visual edit changes the text. Switching views does not rewrite your plan. Compare the same tasks in all three layouts, and return to Split when you want to check both representations. Later lessons will sometimes focus on the diagram for interaction, and sometimes on the source for precision.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Code",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Diagram",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Split",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            },
+            {
+              "op": "note",
+              "value": "Changing the view leaves the source unchanged."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-navigation",
+      "title": "Navigate without changing the plan",
+      "text": "Fit adjusts the preview to the available canvas. Zoom changes magnification, and panning changes which part of the drawing you see. These are viewing operations. In a Gantt chart, timeline scale is different: it is an authored setting that changes the time axis in the source. Use the preview controls when a diagram is difficult to see, rather than altering dates or durations to make it fit the screen. You can always return to a fitted view.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Fit diagram",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Zoom in",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Zoom in",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Zoom out",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Fit diagram",
+              "role": "button"
+            },
+            {
+              "op": "note",
+              "value": "Preview zoom is different from authored timeline scale."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-panels",
+      "title": "Panels and diagram options",
+      "text": "Select a task to open its inspector. An inspector explains the object you selected and provides its supported editing controls. When the panel takes too much space, focus on the diagram or restore Split view using the view buttons. The Diagram options group contains filters and move policy for the Gantt preview. A filter can hide work from the canvas without deleting it from the plan. Close panels when you have finished a task so the workspace stays readable.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Focus on diagram",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Split",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "note",
+              "value": "Filters hide work from this view; they do not delete its source."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-settings",
+      "title": "Make the editor comfortable",
+      "text": "Open Settings to adjust the app appearance and editing preferences. Light, dark and system themes affect the application. Preview adaptation changes how a drawing is presented in the app, while a diagram theme is part of the diagram's own appearance. Editor font size, tab size, wrapping and line numbers help you read and edit source. Default view and zoom apply to new tabs. Set these for comfort; you do not need to change the project itself to make the interface easier to use.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "name": "Theme",
+              "role": "combobox",
+              "value": "dark"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "name": "Theme",
+              "role": "combobox",
+              "value": "light"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Font size (px)",
+              "value": "18"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08a-defaults-help",
+      "title": "Save editor defaults and search the relevant help",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "text": "Choose defaults for future work in Settings. Set Split as the default view, one hundred percent as the default zoom, two space tabs and the chooser on startup. Apply, reopen Settings and verify those retained values. Search Help for dependency and keep the Gantt-specific reference in view. Application defaults and Help navigation leave this authored plan unchanged.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "plan"
+            },
+            {
+              "op": "click",
+              "name": "Settings"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Default view",
+              "value": "split"
+            },
+            {
+              "op": "select",
+              "label": "Default zoom",
+              "value": "1"
+            },
+            {
+              "op": "select",
+              "label": "Tab size",
+              "value": "2"
+            },
+            {
+              "op": "select",
+              "label": "On startup",
+              "value": "chooser"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply"
+            },
+            {
+              "op": "click",
+              "name": "Settings"
+            },
+            {
+              "op": "assertField",
+              "label": "Default view",
+              "value": "split"
+            },
+            {
+              "op": "assertField",
+              "label": "Default zoom",
+              "value": "1"
+            },
+            {
+              "op": "assertField",
+              "label": "Tab size",
+              "value": "2"
+            },
+            {
+              "op": "assertField",
+              "label": "On startup",
+              "value": "chooser"
+            },
+            {
+              "op": "dump",
+              "name": "retained-defaults"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel"
+            },
+            {
+              "op": "click",
+              "name": "Help"
+            },
+            {
+              "op": "fill",
+              "label": "Search Help",
+              "value": "dependency"
+            },
+            {
+              "op": "selectMatching",
+              "label": "Show help for",
+              "pattern": "Gantt"
+            },
+            {
+              "op": "dump",
+              "name": "searched-help"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Done"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "plan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-find",
+      "title": "Commands and Help",
+      "text": "Commands helps when you know what you want to do but cannot remember where its control lives. Search for a familiar action and inspect the available result. Help provides a quick tour, diagram-specific guidance and keyboard shortcuts. Search there when you need an explanation rather than an operation. Learning a few shortcuts is useful, but understanding the command's context matters more than memorizing a long list. The next lesson will use these editing surfaces to make precise changes.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Commands",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "key",
+              "value": "Escape"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Help",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Commands runs actions. Help explains workflows."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-starters",
+      "title": "Save a personal starting point",
+      "text": "If you repeatedly create the same kind of diagram, save a personal starter rather than copying an unrelated project each time. File contains Save as starter for preserving a useful starting source. Give it a name that explains its purpose, then find personal starters in the chooser. Review its source, choose Create from starter, and verify the new independent diagram. A starter helps create new work; the portable file is where you keep the specific project's diagrams, settings and retained history.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "File"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "role": "menuitem",
+              "name": "Save as starter\u2026"
+            },
+            {
+              "op": "fill",
+              "label": "Starter name",
+              "value": "Portal launch starter"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Save starter"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "New diagram tab"
+            },
+            {
+              "op": "click",
+              "css": "summary:has-text(\"Personal starters\")"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Review Portal launch starter"
+            },
+            {
+              "op": "click",
+              "name": "Create from starter"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "[Design] as [design] lasts 5 days"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-practice",
+      "title": "Your first workspace exercise",
+      "text": "Pause and create a separate practice diagram with a useful name. Switch through Code, Split and Diagram views, then return to Split. Zoom in, pan to inspect another part of the drawing, and use Fit to recover the overview. Find the editor settings and choose a readable font size. Finally, locate a command and its explanation in Help. You have succeeded when you can do those things without changing the diagram source simply to adjust the view.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: create a comfortable workspace",
+              "items": [
+                "Create and name a diagram",
+                "Switch views \u00b7 zoom and Fit",
+                "Find Settings, Commands and Help",
+                "Check that viewing operations preserve the source"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12-recap",
+      "title": "A repeatable working routine",
+      "text": "Begin with the right diagram type, choose a view for the task, and use navigation controls to see the work clearly. Use inspectors for supported object edits and the ribbon for commands. Keep view preferences separate from authored content, and use Help when the meaning of a control is unclear. In the next lesson you will edit a plan visually and in source, checking that both describe the same result.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Choose a type. Choose a view. Check your work.",
+              "items": [
+                "The source holds the authored diagram",
+                "Views and panels help you work with it",
+                "Next: visual and source editing"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

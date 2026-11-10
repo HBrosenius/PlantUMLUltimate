@@ -1,0 +1,15 @@
+@startuml
+title Worker lifecycle teaching sample
+actor Portal
+participant API
+Portal -> API: Submit request
+activate API
+create participant Worker
+API -> Worker: Start validation
+activate Worker
+Worker --> API: Validation result
+deactivate Worker
+return Receipt
+API -> Worker: Release worker
+destroy Worker
+@enduml

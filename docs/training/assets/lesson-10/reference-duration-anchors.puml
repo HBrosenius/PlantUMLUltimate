@@ -1,0 +1,10 @@
+@startuml
+!pragma teoz true
+title Request duration reference
+participant Portal
+participant API
+{requestStart} Portal -> API: Submit request
+API -> API: Validate fields
+{requestEnd} API --> Portal: Receipt
+{requestStart} <-> {requestEnd}: round trip
+@enduml

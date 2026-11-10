@@ -1,0 +1,611 @@
+{
+  "id": "12",
+  "title": "Class diagrams",
+  "kind": "Class",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Model types, members and relationships",
+      "text": "A Class diagram describes types and the relationships between them. It helps you explain a domain model or an interface design, rather than the order of one request. Our example has Customer, Request, RequestStatus and a repository interface. You will add an entity, inspect structured members, review relationship choices, organize types and apply a shared style. Keep the level of detail appropriate for the audience: not every implementation field needs to appear in an explanatory model.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Describe the structure of the domain",
+              "items": [
+                "Entity kinds and identity",
+                "Fields, methods and parameters",
+                "Relationships, packages and shared presentation"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-create",
+      "title": "Add an entity with the right kind",
+      "text": "Use Insert and Class, interface, or enum to create AuditRecord. Inspect the kind options before adding it. A class, abstract class, interface, enumeration and annotation carry different meanings. Give the type a clear name and use an alias where it makes source references easier. After creation, inspect the generated declaration and the rendered object. Adding a type is only the beginning; its members and relationships should explain the responsibility you intend it to have.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Class, interface, or enum\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fillDialogName",
+              "value": "AuditRecord"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "submitDialog"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "AuditRecord"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-inspect",
+      "title": "Inspect the entity and its members",
+      "text": "Select Customer to open the entity inspector. Identity includes the type kind, name, alias and generic type information. The Members section presents fields and operations rather than forcing you to treat the entire declaration as one opaque label. Review visibility, static and abstract modifiers alongside the actual member meaning. Presentation and package placement are separate choices. Make a small, intentional change and check the source rather than editing several unrelated properties before reviewing the result.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"customer\"]"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Identity, members, appearance and placement have different purposes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-members",
+      "title": "Fields and operations are structured information",
+      "text": "A field describes stored or exposed state; a method describes an operation. In the inspector, use the structured member controls to distinguish these kinds and review their visibility and type. We will add a description field and an assignment operation to Request using the structured controls. Inspect the source and then the entity. Keep the declaration readable: a useful model tells the reader what the type is responsible for, not just how many members were copied from an implementation.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"request\"]"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "New member kind",
+              "value": "field"
+            },
+            {
+              "op": "fill",
+              "label": "New member name",
+              "value": "description"
+            },
+            {
+              "op": "fill",
+              "label": "New member type",
+              "value": "String"
+            },
+            {
+              "op": "click",
+              "name": "Add member"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "description: String"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "New member kind",
+              "value": "method"
+            },
+            {
+              "op": "fill",
+              "label": "New member name",
+              "value": "assignTo"
+            },
+            {
+              "op": "fill",
+              "label": "New member type",
+              "value": "void"
+            },
+            {
+              "op": "click",
+              "name": "Add member"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "assignTo"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "assignTo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-parameters",
+      "title": "Use parameter and type information precisely",
+      "text": "The assignment operation takes an agent identifier and returns no value. A parameter name and its type communicate different facts, just as a method name differs from its return type. Use type completion and structured controls where available, then inspect the resulting declaration. For generic types or specialized syntax, source remains the precise editing path. A completion suggestion is a convenience, not evidence that the chosen type is semantically right for the model.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +description: String\n  +assignTo(agentId: UUID): void\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\nnote right of Request\nA request retains a stable identity.\nend note\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "assignTo(agentId: UUID)"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"request\"]"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Parameter name, parameter type and return type are separate facts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05a-structured-parameter",
+      "title": "Create a method parameter in the structured editor",
+      "text": "Select Request and add a method named assignTo with return type void. Use the new method row to add a parameter. Enter agentId as its name and UUID as its type, then click outside the parameter group to commit and inspect the resulting declaration in source. The parameter type and return type describe different parts of the operation. Reveal the member in source and verify that its enclosing class remains intact. Choose types that express your domain; a completion list is an editing aid, not a design decision.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"request\"]"
+            },
+            {
+              "op": "select",
+              "label": "New member kind",
+              "value": "method"
+            },
+            {
+              "op": "fill",
+              "label": "New member name",
+              "value": "assignTo"
+            },
+            {
+              "op": "fill",
+              "label": "New member type",
+              "value": "void"
+            },
+            {
+              "op": "click",
+              "name": "Add member"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".class-member-fields:has(input[aria-label=\"Member name\"][value=\"assignTo\"]) button:has-text(\"Add parameter\")"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Parameter 1 name",
+              "exact": true,
+              "value": "agentId"
+            },
+            {
+              "op": "fillDraft",
+              "label": "Parameter 1 type",
+              "exact": true,
+              "value": "UUID"
+            },
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "assertSource",
+              "value": "assignTo(agentId: UUID): void"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"request\"]"
+            },
+            {
+              "op": "click",
+              "css": ".class-member-row:has(input[aria-label=\"Member name\"][value=\"assignTo\"]) button:has-text(\"Reveal\")"
+            },
+            {
+              "op": "dumpControls"
+            },
+            {
+              "op": "dump",
+              "name": "typed-method-result"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-relations",
+      "title": "Choose and inspect relationships",
+      "text": "The associations and dependency in this model express different connections. Customer submits requests, Request uses a status, and the repository depends on Request as a parameter type. Open the relationship tool to inspect available endpoint, kind, label and multiplicity choices. Choose a relation because it describes the responsibility or ownership you mean, not because its arrow happens to look familiar. Reconnect mistaken endpoints and verify the source after an identity change.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Relationship\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check kind, endpoints, labels and multiplicities."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06a-create-dependency",
+      "title": "Create and undo a typed relationship",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "text": "Use a small proposal to check a relationship before keeping it. Choose the repository as the source, the status type as the target and dependency as the relationship. Label it filters by, add it and inspect the authored arrow and current preview. The label explains the proposed contract; decide whether that contract fits the types in your model. Shared Undo removes this relationship as one authored change, leaving the original domain model intact.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "base"
+            },
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Relationship\u2026"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "From",
+              "exact": true,
+              "value": "requestrepository"
+            },
+            {
+              "op": "select",
+              "label": "To",
+              "exact": true,
+              "value": "requeststatus"
+            },
+            {
+              "op": "select",
+              "label": "Relationship",
+              "exact": true,
+              "value": "dependency"
+            },
+            {
+              "op": "fill",
+              "label": "Label",
+              "exact": true,
+              "value": "filters by"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add relationship"
+            },
+            {
+              "op": "assertSource",
+              "value": "filters by"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "focus",
+              "value": "filters by"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "css": ".cm-content"
+            },
+            {
+              "op": "key",
+              "value": "ControlOrMeta+z"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "base"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-packages",
+      "title": "Packages, notes and layout",
+      "text": "A package or namespace groups related types. Notes explain an important assumption without turning a class name into a paragraph. The reference example places a note beside Request to explain stable identity. Open package and note creation, then inspect Diagram settings. Keep grouping consistent with the abstraction you are teaching: a domain package, a code namespace and a deployment boundary are not automatically the same thing. Layout should support the relationship story without inventing new semantics.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +description: String\n  +assignTo(agentId: UUID): void\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\nnote right of Request\nA request retains a stable identity.\nend note\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Package or namespace\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "Note\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Cancel",
+              "role": "button"
+            },
+            {
+              "op": "click",
+              "name": "View",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Diagram settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Group types intentionally; notes capture assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-bulk",
+      "title": "Apply a deliberate bulk style",
+      "text": "Use modifier selection to choose Customer and Request together. Inspect the bulk panel and apply a supported shared style. The style can distinguish domain types from infrastructure interfaces, but labels and relationship meaning must remain understandable without color alone. When copying or duplicating model elements, inspect the identifiers, members and connections in the result. Use the source diff or Undo when the operation includes more than you intended.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "multiObjects",
+              "targets": [
+                {
+                  "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"customer\"]"
+                },
+                {
+                  "css": "[data-class-object-type=\"entity\"][data-class-object-id=\"request\"]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "bulkStyle"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Style a verified group, then inspect the source changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-practice",
+      "title": "Describe a small domain",
+      "text": "Pause and add the audit record class, then give Request a description field and an assignment operation with a typed parameter. Explain the status enumeration and repository interface in your own words. Review one relationship endpoints and multiplicity, add a useful note, and apply a shared style to a selected pair of entities. A successful result makes the type responsibilities and relationships clear without requiring the reader to reconstruct the implementation from a cluttered drawing.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +description: String\n  +assignTo(agentId: UUID): void\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\nnote right of Request\nA request retains a stable identity.\nend note\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: explain the portal\u2019s domain types",
+              "items": [
+                "AuditRecord and a Request description field",
+                "An operation with a typed parameter",
+                "A justified relationship and useful note",
+                "Inspect and style a deliberate entity selection"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-recap",
+      "title": "Keep structure and behavior distinct",
+      "text": "Use Class diagrams for types, members and structural relationships. Use Sequence or Activity diagrams when the important question is behavioral flow. The common editing pattern remains the same: create or select an object, inspect supported properties, and check the source and rendered result. The next lesson moves outward from types to components and infrastructure, while retaining that habit of separating identity, meaning and presentation.",
+      "source": "@startuml\ntitle Customer portal domain\nclass Customer {\n  -id: UUID\n  +name: String\n}\nclass Request {\n  -id: UUID\n  +subject: String\n  +submit(): void\n}\nenum RequestStatus {\n  Open\n  InProgress\n  Resolved\n}\ninterface RequestRepository {\n  +save(request: Request): void\n}\nCustomer \"1\" --> \"0..*\" Request : submits\nRequest --> RequestStatus : status\nRequestRepository ..> Request\n@enduml",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A useful type model explains responsibility",
+              "items": [
+                "Kinds \u00b7 members \u00b7 parameters",
+                "Relationships with a reason",
+                "Next: components and infrastructure"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -12,3 +12,12 @@ test-results
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Local agent noise: generated output, experiments, Python caches.
+/output/
+/docs/training/experiments/
+__pycache__/
+
+# Personal agent tooling config (machine-specific).
+/opencode.json
+/.claude/settings.json

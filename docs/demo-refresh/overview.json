@@ -1,0 +1,534 @@
+{
+  "id": "overview",
+  "title": "Gantt planning, people and history \u2014 current menus",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Build a plan you can maintain",
+      "text": "PlantUML Ultimate turns a plain text plan into a chart you can edit visually. The source remains readable and suitable for Git review. This short tour uses a few prepared examples to show task editing, people, workload and version history. Each example focuses on one planning decision. Keep the text and the chart together as you work.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Create, organize and update the work",
+              "items": [
+                "Tasks \u00b7 milestones \u00b7 sections \u00b7 notes",
+                "Move, resize, reorder and edit several tasks",
+                "Check the effect of deletion"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-add",
+      "title": "Create a task with a real start",
+      "text": "Add a task from the Insert tab. Give it a meaningful name and a duration in working days. Choose a start date rather than relying on an accidental default. Review the fields before adding it. The new task appears in the chart and in the source.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Insert",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Task\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Acceptance testing"
+            },
+            {
+              "op": "fill",
+              "label": "Duration (days)",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Start date",
+              "value": "2026-11-23"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Add task",
+              "role": "button"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "assertSource",
+              "value": "Acceptance testing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-details",
+      "title": "Edit a task and its effort",
+      "text": "Click a task to open its inspector. Edit the duration, then leave the field to commit the change. The source records the new effort estimate. Check the chart after the edit, including tasks that depend on it. Close the inspector when you are ready to continue.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Name",
+              "value": "Interaction design"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Duration",
+              "value": "6"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "Interaction design"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector",
+              "role": "button"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-progress",
+      "title": "Record progress explicitly",
+      "text": "Progress is another explicit task property. Open the task inspector. Enter twenty five percent in Progress. The matching completion statement is written into the source. Keep this observation current when reporting the project. Close the inspector to review the plan.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "build"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Progress (%)",
+              "value": "25"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "25% completed"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close task inspector",
+              "role": "button"
+            },
+            {
+              "op": "note",
+              "value": "Progress is an explicit status observation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-assign",
+      "title": "Inspect an assignment",
+      "text": "People are assigned in the task inspector. Open Resources to see a person and their allocation. An allocation is a scheduling assumption. Review it alongside the effort estimate. A larger percentage needs a practical explanation, not just a desire for an earlier finish.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "css": "summary:has-text(\"Resources\")"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "{Alice:100%}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-second-person",
+      "title": "Add a second person and inspect the working duration",
+      "source": "@startgantt\ntitle Resource allocation practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Backend] as [backend] on {Sam:50%} lasts 8 days\n@endgantt",
+      "text": "Here Backend has eight days of effort and one part time assignment. Open Resources to inspect that starting point. Add Alex at fifty percent as a second person. Both assignments are retained while the effort estimate stays at eight days. The working duration is calculated from the combined allocation; check the task tooltip to see the result.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "backend"
+            },
+            {
+              "op": "dump",
+              "name": "before-second-person"
+            },
+            {
+              "op": "openSection",
+              "value": "Resources"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "+ Add person"
+            },
+            {
+              "op": "fill",
+              "label": "Allocation for person",
+              "exact": true,
+              "value": "50"
+            },
+            {
+              "op": "fill",
+              "css": "input[aria-label=\"Person name\"] >> nth=1",
+              "value": "Alex"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "Alex"
+            },
+            {
+              "op": "assertSource",
+              "value": "Sam"
+            },
+            {
+              "op": "dumpControls"
+            },
+            {
+              "op": "dump",
+              "name": "after-second-person"
+            },
+            {
+              "op": "assertField",
+              "label": "Duration",
+              "exact": true,
+              "value": "8"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "hover",
+              "css": "[data-task-id=\"backend\"][role=\"button\"]"
+            },
+            {
+              "op": "dump",
+              "name": "working-duration-after-assignment"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-workload",
+      "title": "Open the workload panel",
+      "text": "Open Plan, then Workload. This example deliberately assigns Alice to overlapping tasks. The peak reaches two hundred percent against her one hundred percent capacity. Read the warning as a conflict to resolve. Click Frontend to return to the responsible task and inspect its assignment. Workload links the warning to the plan you can change.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Alice: overlapping assignments require 200% against 100% capacity."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertText",
+              "value": "Peak 200%"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Frontend",
+              "exact": true
+            },
+            {
+              "op": "assertText",
+              "value": "Task inspector"
+            },
+            {
+              "op": "dump",
+              "name": "workload-task-navigation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-capacity",
+      "title": "Capacity is an assumption",
+      "text": "Capacity changes the assumption used to evaluate workload. Open Plan and Workload. Enter a different capacity only when it represents real availability. Commit the field and compare the warning. A capacity of two hundred percent may describe a team resource; it does not create more hours for one person. Keep that distinction visible when you explain a plan.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Capacity for Alice",
+              "value": "200"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Capacity for Alice",
+              "value": "100"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Change capacity only when the available resource has genuinely changed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-source",
+      "title": "Compare the exact source",
+      "text": "Version history makes changes reviewable. In this example we create a checkpoint, then change the Design estimate. Open File and Version history, and select the checkpoint for comparison. Choose Source to inspect the exact changed lines. This gives a concrete record to discuss before accepting a new schedule.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Source",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "dump",
+              "name": "source-review"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-rendered",
+      "title": "Compare the drawing",
+      "text": "The same comparison has a Rendered view. Select it to see the earlier chart beside the working copy. Review the scheduling consequence as well as the text diff. Tasks, people, workload and history all remain tied to a readable PlantUML document. Commit the text to Git and reopen it here whenever visual editing is useful.",
+      "source": "@startgantt\ntitle Customer portal launch\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n\n[Research] as [research] lasts 4 days\n[Design] as [design] lasts 5 days\n[design] starts at [research]'s end\n[Build] as [build] lasts 8 days\n[build] starts at [design]'s end\n[Launch] happens at [build]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "checkpoint",
+              "name": "Before review"
+            },
+            {
+              "op": "replace",
+              "from": "[Design] as [design] lasts 5 days",
+              "to": "[Design] as [design] lasts 7 days"
+            },
+            {
+              "op": "history"
+            },
+            {
+              "op": "click",
+              "name": "Select version Before review",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Rendered",
+              "role": "button"
+            },
+            {
+              "op": "waitHistoryRendered"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the scheduling consequence, not only the changed statement."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

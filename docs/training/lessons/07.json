@@ -1,0 +1,959 @@
+{
+  "id": "07",
+  "title": "Reports and task check-in",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Choose a report for the question",
+      "text": "Reports turn the plan into a focused explanation for a person or a decision. This lesson covers eight report types, shared scope controls, coordinator presets, explicit progress observations and useful output. We will distinguish current status, forecast, workload, critical path, milestones, baseline changes and historical progress. The same dataset can answer different questions, so choose the question before formatting the result. Nothing in this lesson automatically sends a message to your team.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A report should answer a particular question",
+              "items": [
+                "People, assignments, delivery, progress and changes",
+                "Scope and dates are explicit",
+                "Prepare and review; no automatic sending"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-checkin",
+      "title": "Prepare a person-specific task check-in",
+      "text": "Task check-in prepares a focused follow-up for each selected person. Choose the reporting date and reply-by date, then inspect the assigned tasks and questions. Ongoing includes unfinished work that has started, is past planned finish or has positive progress, with unresolved dates controlled separately. Check who will receive which tasks, especially for shared or unassigned work. The app prepares text for you to copy; it does not send email or a message automatically.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "check-in"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "css": "[role=\"dialog\"] input[type=\"date\"]",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-workload",
+      "title": "Review workload and assignment coverage",
+      "text": "Resource workload and assignment coverage answers who is carrying the work and what is not assigned clearly. Inspect allocation, capacity and any unresolved scheduling information before using a summary as evidence that the team is feasible. An unassigned task can disappear from a person-only view while remaining important to delivery. Compare the report with the resource panel when investigating a conflict. A useful coordinator summary includes that missing ownership rather than making the plan look tidier by omission.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "workload"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-forecast",
+      "title": "Report the progress forecast",
+      "text": "The Progress forecast report uses the same calculations and saved remaining-work assumptions as the forecast view. Its as-of date begins with the saved forecast date or today, and changing it produces a report scenario. Explain which date and assumptions the report uses. A projected finish is not an observation that the source has already been rescheduled. Compare planned and forecast work, then trace a relevant cause before sharing a conclusion.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "forecast"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "css": "[role=\"dialog\"] input[type=\"date\"]",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-critical",
+      "title": "Critical path and schedule sensitivity",
+      "text": "Critical path and schedule sensitivity helps identify work with little or no scheduling flexibility in the modeled network. Inspect the dependency chain and close to critical threshold. Near-critical work deserves attention even when it is not the single most restrictive path at this moment. This report depends on the modeled schedule and its assumptions; missing dependencies can produce a misleadingly comfortable result. Explain the relevant chain and the threshold you chose rather than treating a highlighted task as an unexplained risk label.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "critical-path"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Near-critical threshold (days)",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-milestones",
+      "title": "Milestone and delivery outlook",
+      "text": "Milestone and delivery outlook focuses the conversation on delivery events. Trace a milestone back to the work that drives it and identify the status or forecast facts behind any concern. A milestone marker is not a block of effort, and a highlighted deadline is not proof that the date is achievable. Use the report to make a specific conversation possible: which delivery event is affected, which work matters, and what decision or clarification is needed next.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "milestones"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-progress",
+      "title": "Progress and due-date outlook",
+      "text": "Progress and due-date outlook summarizes completion and due-date status. Read the as-of date, task scope and treatment of unresolved schedules before interpreting totals or charts. A percentage may summarize reported work without explaining whether the remaining effort is realistic. Compare the detailed tasks when an aggregate looks surprising. Use notes or a follow-up to clarify uncertainty rather than hiding it behind a compact report that appears more precise than the plan actually is.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "progress"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check the report scope, dates and underlying assumptions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-history",
+      "title": "Record explicit historical observations",
+      "text": "Historical burndown and burnup requires at least two explicit observations and stable aliases for every task and milestone. Previewing a report does not create history. Record a snapshot for the ninth of November, update the reported progress, then record another for the sixteenth. Select the historical report and compare fixed baseline scope with current scope over time. Explain whether scope changes belong in the comparison. Save the document to retain these pinned observations in the portable file; they are separate from undo history.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] as [launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "css": "[role=\"dialog\"] input[type=\"date\"]",
+              "value": "2026-11-09"
+            },
+            {
+              "op": "click",
+              "name": "Record progress snapshot",
+              "role": "button"
+            },
+            {
+              "op": "assertText",
+              "value": "Progress snapshot recorded and pinned in document metadata."
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close reports",
+              "role": "button"
+            },
+            {
+              "op": "replace",
+              "from": "[backend] is 10% completed",
+              "to": "[backend] is 40% completed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            },
+            {
+              "op": "fill",
+              "css": "[role=\"dialog\"] input[type=\"date\"]",
+              "value": "2026-11-16"
+            },
+            {
+              "op": "click",
+              "name": "Record progress snapshot",
+              "role": "button"
+            },
+            {
+              "op": "assertText",
+              "value": "Progress snapshot recorded and pinned in document metadata."
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "history"
+            },
+            {
+              "op": "select",
+              "label": "History scope",
+              "value": "fixed"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "select",
+              "label": "History scope",
+              "value": "dynamic"
+            },
+            {
+              "op": "dump",
+              "name": "dynamic-history-scope"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close reports"
+            },
+            {
+              "op": "saveFile",
+              "filename": "portal-progress-observations.pumlu"
+            },
+            {
+              "op": "openFile",
+              "filename": "portal-progress-observations.pumlu"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026"
+            },
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "history"
+            },
+            {
+              "op": "dump",
+              "name": "reopened-progress-observations"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-baseline",
+      "title": "Explain changes since a saved baseline",
+      "text": "Changes since baseline compares the current plan with a retained reference. Save a baseline before making the change you want to discuss. We will then update Backend's completion and inspect the baseline report. A useful review identifies what changed and why, rather than presenting every task as newly added because the reference was not the intended plan. Keep this report separate from a historical progress chart: a baseline comparison and a sequence of dated observations answer different questions.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "saveFile",
+              "filename": "report-baseline.pumlu"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "[backend] is 10% completed",
+              "to": "[backend] is 40% completed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            },
+            {
+              "op": "select",
+              "label": "Report type",
+              "value": "baseline"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Choose the intended saved reference before interpreting changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-presets",
+      "title": "Coordinator and delivery presets",
+      "text": "Coordinator summary and Delivery outlook presets begin with broader scope than a person-specific check-in. Compare the two presets and inspect which tasks, milestones and unassigned work they include. A preset is a starting configuration, not a reason to skip review. Canvas filters do not silently define the report scope. Check dates and recipients again after switching report type, especially when the result will be used to coordinate work across several people.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Coordinator summary \u00b7 all tasks",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Delivery outlook \u00b7 all tasks",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Report scope is independent of canvas filters."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-customize",
+      "title": "Customize content without changing facts",
+      "text": "Content and layout controls decide how much supporting material to include. Notes, task links, unresolved schedules, milestones, compact output and charts serve different audiences. Introduction and sign-off fields help the prepared message fit your context. Keep the underlying facts and uncertainty visible while choosing the presentation. A compact result should not imply that unassigned or unresolved work has ceased to exist. Inspect the complete preview before copying a message or downloading a report.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "openSection",
+              "value": "Content & layout"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "check",
+              "label": "Compact layout",
+              "value": true
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Presentation options should not conceal important uncertainty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11a-independent-report-scope",
+      "title": "Keep report scope independent of canvas filters",
+      "text": "Filter the canvas to Alice and note that this is a view choice, not a deletion. Open Reports and explicitly choose all tasks for the report as of November sixteenth. Select Sam as the preview recipient and set a reply date of November eighteenth. Backend remains in Sam\u2019s report even though the canvas is filtered to Alice. Change the compact layout and check the same task and recipient facts again. The report controls determine its scope; they do not silently inherit the canvas filter or change the authored plan.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "rememberSource",
+              "key": "plan"
+            },
+            {
+              "op": "click",
+              "name": "Diagram options",
+              "exact": false
+            },
+            {
+              "op": "selectMatching",
+              "label": "Filter by resource",
+              "pattern": "Alice"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026"
+            },
+            {
+              "op": "select",
+              "label": "Tasks",
+              "exact": false,
+              "value": "All tasks"
+            },
+            {
+              "op": "fill",
+              "label": "As-of date",
+              "value": "2026-11-16"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Preview recipient",
+              "value": "sam"
+            },
+            {
+              "op": "fill",
+              "label": "Reply by (optional)",
+              "value": "2026-11-18"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertFieldMatches",
+              "label": "Report text",
+              "pattern": "Backend"
+            },
+            {
+              "op": "assertFieldMatches",
+              "label": "Report text",
+              "pattern": "Sam"
+            },
+            {
+              "op": "assertFieldMatches",
+              "label": "Report text",
+              "pattern": "(11/18/2026|18/11/2026|2026-11-18)"
+            },
+            {
+              "op": "dump",
+              "name": "independent-report-scope"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "openSection",
+              "value": "Content & layout"
+            },
+            {
+              "op": "check",
+              "label": "Compact layout",
+              "value": true
+            },
+            {
+              "op": "assertFieldMatches",
+              "label": "Report text",
+              "pattern": "Backend"
+            },
+            {
+              "op": "assertSourceSame",
+              "key": "plan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12-stale",
+      "title": "Refresh after the plan changes",
+      "text": "Reports capture a view of the plan. If the source changes while a report is open, the app warns that the plan changed and offers Refresh report. Do not share a stale preview as though it were a current calculation. Close the report, change a progress value, reopen and inspect the result; when working concurrently, look for the stale warning and refresh explicitly. The useful habit is to check the report's date, scope and freshness immediately before using its output.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Close reports",
+              "role": "button"
+            },
+            {
+              "op": "replace",
+              "from": "[frontend] is 25% completed",
+              "to": "[frontend] is 50% completed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Before sharing: check the reporting date, scope and freshness."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12a-live-stale-report",
+      "title": "Refresh a report changed by another editor",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "text": "Keep a report open while another editor changes the shared plan. The second browser updates Backend progress from ten to forty percent. The open report now warns that the plan changed, and its output controls are disabled until you refresh. Read that warning and choose Refresh report, then inspect the updated report before copying or downloading it. This prevents an older captured report from being mistaken for the current plan. The change is real collaboration traffic between the two training browsers.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "collabStart"
+            },
+            {
+              "op": "collabJoin",
+              "role": "editor"
+            },
+            {
+              "op": "click",
+              "name": "Close collaboration"
+            },
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "guestReplace",
+              "from": "[backend] is 10% completed",
+              "to": "[backend] is 40% completed"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "assertText",
+              "value": "Plan changed \u2014 refresh report."
+            },
+            {
+              "op": "dump",
+              "name": "stale-warning"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Refresh report"
+            },
+            {
+              "op": "dump",
+              "name": "refreshed-report"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "13-output",
+      "title": "Copy or export after reviewing",
+      "text": "Use the supported output controls to copy or download the prepared result after reviewing it. Check a pasted or exported example rather than assuming that rich text, charts and plain text will look identical in every destination. Keep links and recipient-specific content appropriate for the audience. The app does not send these check-ins, so the final choice of recipient and delivery channel remains with you. Save relevant progress observations separately when they should remain part of the document.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Reports\u2026"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "clipboardPermission"
+            },
+            {
+              "op": "click",
+              "name": "Copy plain text"
+            },
+            {
+              "op": "clipboardPreview",
+              "contains": "Customer portal"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "clipboardHide"
+            },
+            {
+              "op": "download",
+              "name": "Download HTML"
+            },
+            {
+              "op": "note",
+              "value": "Report text copied and HTML downloaded \u00b7 no message was sent."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "14-practice",
+      "title": "Choose evidence for a delivery conversation",
+      "text": "Pause and prepare a check-in for each assigned person, then a coordinator view that includes unassigned work. Explain a critical or near-critical chain, inspect a milestone and compare progress with forecast. Record two explicit observations and explain the scope of the historical chart. Finally, save a baseline, make one clear change and identify it in the baseline report. You have succeeded when each result answers a distinct question and its date, scope and assumptions are understandable.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: prepare a defensible delivery review",
+              "items": [
+                "Person-specific and coordinator views",
+                "Critical work, milestones and forecast",
+                "Two explicit historical observations",
+                "A reviewed change against a saved baseline"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "15-recap",
+      "title": "A useful report makes its limits clear",
+      "text": "Choose the report for the question, then check dates, scope, assumptions and freshness. Keep current status, forecast, baseline changes and historical observations distinct. Review the output before copying or exporting, and remember that preparing a message does not send it. The following lessons return to scope structure and connected diagrams, so the work behind these reports remains organized and traceable as the project evolves.",
+      "source": "@startgantt\ntitle Customer portal delivery review\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Research] as [research] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[research] is 100% completed\n[Design] as [design] on {Alice:100%} starts at [research]'s end and lasts 4 days\n[design] is 100% completed\n[Backend] as [backend] on {Sam:50%} starts 2026-11-09 and lasts 10 days\n[backend] is 10% completed\n[Frontend] as [frontend] on {Alex:100%} starts 2026-11-09 and lasts 8 days\n[frontend] is 25% completed\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n[Launch] happens at [testing]'s end\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Question \u2192 scope \u2192 evidence \u2192 review",
+              "items": [
+                "Eight report types with different purposes",
+                "Explicit observations and references",
+                "Prepared output stays under your control"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

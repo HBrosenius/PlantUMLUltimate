@@ -1,0 +1,546 @@
+{
+  "id": "05",
+  "title": "People and workload",
+  "kind": "Gantt",
+  "scenes": [
+    {
+      "id": "01-goal",
+      "title": "Who can do the work?",
+      "text": "A schedule can fit its dates and still ask one person to be in two places at once. This lesson adds the people side of the plan. We will assign work, read allocation, inspect capacity and overload, and examine the relationship between effort and elapsed working time. The example deliberately gives Alice two overlapping assignments. The goal is to recognize the problem and resolve the plan rather than merely hide its warning.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Plan the work and the people together",
+              "items": [
+                "Assignments and allocation",
+                "Capacity, workload and overload",
+                "Effort versus elapsed working time"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02-assign",
+      "title": "Inspect an assignment",
+      "text": "Select Design and examine its resource assignment section. Alice is assigned at one hundred percent. An allocation describes how much of that person is assigned to this task while it runs. It does not automatically prove that the person is available, and it does not change their overall capacity. Compare the assignment in the inspector with the authored resource statement. Consistent names matter: different spellings can make one real person appear as two resources in workload reporting.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "design"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "css": "summary:has-text(\"Resources\")"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "focus",
+              "value": "{Alice:100%}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03-effort",
+      "title": "Effort and elapsed time",
+      "text": "The duration entered for assigned work represents effort in the scheduling calculation. When additional allocation is available, the same effort can occupy fewer working days. This is a planning model, not a guarantee that every task can be accelerated by adding people. Review the effective start and end as well as the authored effort. We will add another full allocation to Backend and compare the calculated result. Keep a note of the original duration so the effect is clear.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "backend"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "{Sam:100%}",
+              "to": "{Sam:100%} {Alex:100%}"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Same authored effort; different total allocation and elapsed working time."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03a-second-person",
+      "title": "Add a second person and inspect the working duration",
+      "source": "@startgantt\ntitle Resource allocation practice\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Backend] as [backend] on {Sam:50%} lasts 8 days\n@endgantt",
+      "text": "Inspect Backend before changing its assignments. Sam is allocated at fifty percent, with eight authored days of work. Add Alex at fifty percent and confirm both people in the source. After the preview refreshes, read the working duration and resulting dates. Verify the actual schedule rather than assuming that every additional person halves a task. Here the authored work remains eight days.",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "inspect",
+              "id": "backend"
+            },
+            {
+              "op": "dump",
+              "name": "before-second-person"
+            },
+            {
+              "op": "openSection",
+              "value": "Resources"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "+ Add person"
+            },
+            {
+              "op": "fill",
+              "label": "Allocation for person",
+              "exact": true,
+              "value": "50"
+            },
+            {
+              "op": "fill",
+              "css": "input[aria-label=\"Person name\"] >> nth=1",
+              "value": "Alex"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "assertSource",
+              "value": "Alex"
+            },
+            {
+              "op": "assertSource",
+              "value": "Sam"
+            },
+            {
+              "op": "dumpControls"
+            },
+            {
+              "op": "dump",
+              "name": "after-second-person"
+            },
+            {
+              "op": "assertField",
+              "label": "Duration",
+              "exact": true,
+              "value": "8"
+            },
+            {
+              "op": "current"
+            },
+            {
+              "op": "click",
+              "name": "Close task inspector"
+            },
+            {
+              "op": "hover",
+              "css": "[data-task-id=\"backend\"][role=\"button\"]"
+            },
+            {
+              "op": "dump",
+              "name": "working-duration-after-assignment"
+            },
+            {
+              "op": "current"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04-workload",
+      "title": "Open the workload panel",
+      "text": "Choose Plan and then Workload. The panel groups assignments by person and compares their planned allocation with capacity. Alice appears on both Design and Frontend during the same period, so the plan asks for two hundred percent while her capacity is one hundred percent. Read the peak figure and inspect the affected dates. A red warning is a prompt to investigate the underlying assignments, not proof that increasing the capacity number is the right solution. Select Frontend in the workload panel to open its task inspector and investigate the assignment directly.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Alice: overlapping assignments require 200% against 100% capacity."
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "assertText",
+              "value": "Peak 200%"
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Frontend",
+              "exact": true
+            },
+            {
+              "op": "assertText",
+              "value": "Task inspector"
+            },
+            {
+              "op": "dump",
+              "name": "workload-task-navigation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05-granularity",
+      "title": "Daily and weekly views",
+      "text": "The Summary control switches between daily and weekly workload views. Daily detail helps you locate a specific collision, while weekly grouping helps you understand a longer pattern. Inspect the tasks and overloaded dates instead of reading only one peak value. You can use task navigation and resource filtering to focus the canvas, then return to the complete plan. Remember that hiding another person's tasks from the view does not remove those assignments from the underlying schedule.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Summary",
+              "value": "weekly"
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "select",
+              "label": "Summary",
+              "value": "daily"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Use summaries for context and individual dates to locate collisions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "06-capacity",
+      "title": "Capacity is an assumption",
+      "text": "Capacity describes how much availability the plan allows for a resource. Change Alice's capacity to two hundred percent and observe the comparison. The calculation now treats those overlapping assignments as within the declared capacity. This is appropriate only if Alice represents a team or another resource that actually has that availability. For an individual person, a larger capacity number can conceal an unrealistic plan. Record the assumption clearly, and restore a realistic capacity before choosing how to resolve the work.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Capacity for Alice",
+              "value": "200"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "fill",
+              "label": "Capacity for Alice",
+              "value": "100"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Change capacity only when the available resource has genuinely changed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07-resolve",
+      "title": "Resolve the overlap in the plan",
+      "text": "There are several honest ways to resolve a conflict: move work, reduce the allocation and accept a longer elapsed duration, or assign an appropriate available person. Here we reassign Frontend to Alex so Alice is no longer scheduled on both tasks. Inspect the updated workload and check the other people too. Solving Alice's problem by overloading Alex would simply move the conflict. Keep the schedule consequences visible while choosing the resolution.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "replace",
+              "from": "[Frontend] as [frontend] on {Alice:100%}",
+              "to": "[Frontend] as [frontend] on {Alex:100%}"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Check every affected person after changing an assignment."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-warnings",
+      "title": "Warnings and calculations are separate",
+      "text": "The Gantt preferences allow you to disable the over-allocation warning banner. That can be useful when an assignee name represents an entire team, but it does not change workload calculations or repair a scheduling conflict. Open Settings and find the warning preference. Compare this presentation choice with the resource capacities stored with the document. Be explicit about which kind of setting you changed, especially when sharing a plan with other people.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Settings",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "check",
+              "label": "Show resource over-allocation warnings",
+              "value": false
+            }
+          ]
+        },
+        {
+          "at": 2,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Apply",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 4,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Hiding the banner does not remove workload or change assignments."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09-followup",
+      "title": "Turn assignments into a useful check-in",
+      "text": "The workload panel can lead directly to a task check-in. This keeps the follow-up connected to the actual assignments rather than requiring you to reconstruct who owns each task. Inspect the report scope and dates before copying any message. The app prepares the content; it does not send a message to your team automatically. The reporting lesson will explain the options and other report types in detail.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Plan",
+              "role": "tab"
+            },
+            {
+              "op": "click",
+              "name": "Workload",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 1,
+          "actions": [
+            {
+              "op": "click",
+              "name": "Create task check-in\u2026",
+              "role": "button"
+            }
+          ]
+        },
+        {
+          "at": 3,
+          "actions": [
+            {
+              "op": "note",
+              "value": "Review the report before copying. No automatic sending."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-practice",
+      "title": "Fix a real resource conflict",
+      "text": "Pause and open the workload example. Identify the tasks that overlap for Alice and state her peak allocation and capacity. Choose one realistic resolution and explain its scheduling consequence. Then compare daily and weekly summaries and check that your change has not overloaded someone else. Finally, distinguish changing an assignment, changing capacity and hiding a warning. You have succeeded when the plan is feasible under assumptions you can explain, not simply when the screen has no red banner.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "Practice: resolve Alice\u2019s overlap",
+              "items": [
+                "Identify the overlapping work",
+                "Choose a realistic resolution",
+                "Check all affected people and dates",
+                "Explain the capacity assumption"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-recap",
+      "title": "Keep assumptions visible",
+      "text": "Assignments, capacity and working calendars together determine what the resource model says. Use the inspector for task details and the workload panel for the wider picture. Treat effort and elapsed working time as different quantities, and use warning preferences only for their intended presentation purpose. In the next lesson we will compare forecast and scenario alternatives, using the same habit of checking the assumptions before applying a proposed change.",
+      "source": "@startgantt\ntitle Customer portal team workload\nProject starts 2026-11-02\nsaturday are closed\nsunday are closed\n[Design] as [design] on {Alice:100%} starts 2026-11-02 and lasts 5 days\n[Frontend] as [frontend] on {Alice:100%} starts 2026-11-02 and lasts 8 days\n[Backend] as [backend] on {Sam:100%} starts 2026-11-02 and lasts 8 days\n[Testing] as [testing] on {Morgan:100%} starts at [backend]'s end and lasts 4 days\n@endgantt",
+      "steps": [
+        {
+          "at": 0,
+          "actions": [
+            {
+              "op": "card",
+              "title": "A useful plan explains its assumptions",
+              "items": [
+                "Read allocation and capacity together",
+                "Resolve conflicts in the work",
+                "Next: forecasts and scenarios"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

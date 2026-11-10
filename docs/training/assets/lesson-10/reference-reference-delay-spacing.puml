@@ -1,0 +1,14 @@
+@startuml
+title Reference and timing cues
+autonumber
+participant Portal
+participant API
+== Validate ==
+ref over Portal, API : Request validation contract
+Portal -> API: Submit request
+note right of API: Preserve request identity
+... bounded wait ...
+API --> Portal: Ready
+||20||
+Portal -> API: Confirm submission
+@enduml
