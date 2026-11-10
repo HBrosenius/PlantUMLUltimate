@@ -1,3 +1,4 @@
+import { NavigationChrome } from "./app/NavigationChrome";
 import { WorkspaceMain, diagramFocusSelector } from "./app/WorkspaceMain";
 import { StatusBar } from "./app/StatusBar";
 import { DiagramDialogs } from "./app/DiagramDialogs";
@@ -6,7 +7,7 @@ import { DiagramInspectors } from "./app/DiagramInspectors";
 import { GanttSideInspectors } from "./app/GanttSideInspectors";
 import { AppOverlays } from "./app/AppOverlays";
 import { InspectorWorkspace } from "./InspectorWorkspace";
-import { Ribbon, RibbonGroup, WorkspaceNavigation } from "./Ribbon";
+import { Ribbon, RibbonGroup } from "./Ribbon";
 
 import type { ComponentProps } from "react";
 import { canExportPreview } from "./export-preview";
@@ -28,7 +29,6 @@ import { useWorkspaceLayout } from "./use-workspace-layout";
 import type { PresentationDocument } from "./presentation-review";
 import { useResponsiveViewMode } from "./use-responsive-view-mode";
 
-import { StageTopBar } from "./stage/StageTopBar";
 import { readStageTokens, useResolvedDark } from "./stage/stage-theme";
 import {
   describeStageSelection,
@@ -151,7 +151,7 @@ import { useDocumentFiles } from "./use-document-files";
 import { collaborationLinkDetails } from "./collaboration";
 import { useCollaborationLifecycle, type CollaborationDocumentBridge } from "./use-collaboration-lifecycle";
 import { useJiraIntegration } from "./use-jira-integration";
-import { useWorkspaceDocuments, diagramKindDisplayName } from "./use-workspace-documents";
+import { useWorkspaceDocuments } from "./use-workspace-documents";
 import { useWorkspaceFocus } from "./app/use-workspace-focus";
 import {
   SOURCE_EDIT_DESCRIPTION,
@@ -4874,234 +4874,52 @@ export function App() {
           ),
         }}
       />
-      <WorkspaceNavigation
-        documents={
-          <>
-            <nav className="document-tabs" aria-label="Open documents" ref={documentTabs}>
-              {tabs.documents.map((document) => (
-                <div className="document-tab" key={document.id}>
-                  <button
-                    draggable
-                    className={`${document.id === tabs.activeId ? "active" : ""}${document.id === draggedTabId ? " dragging" : ""}`}
-                    onClick={() => activateTab(document.id)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      setTabMenu({ id: document.id, x: event.clientX, y: event.clientY });
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
-                      event.preventDefault();
-                      const bounds = event.currentTarget.getBoundingClientRect();
-                      setTabMenu({
-                        id: document.id,
-                        x: Math.min(bounds.left, window.innerWidth - 210),
-                        y: bounds.bottom,
-                      });
-                    }}
-                    onDragStart={(event) => {
-                      setDraggedTabId(document.id);
-                      event.dataTransfer.effectAllowed = "move";
-                      event.dataTransfer.setData("text/plain", document.id);
-                    }}
-                    onDragEnd={() => setDraggedTabId(undefined)}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      const id = event.dataTransfer.getData("text/plain") || draggedTabId;
-                      if (id) tabs.reorderDocument(id, document.id);
-                      setDraggedTabId(undefined);
-                    }}
-                    title={`${tabLabels.get(document.id)} — ${isProjectMemberTab(document.id) ? `Document: ${project?.manifest.name}; diagram: ${document.fileName}` : document.fileCopy === "new" ? "New separate file; not saved to a file" : `File: ${document.fileName}`}${document.dirty ? " — unsaved changes" : ""}`}
-                  >
-                    <span className="tab-label">
-                      <span className={`dirty-dot${document.dirty ? " visible" : ""}`} aria-hidden="true">
-                        ●
-                      </span>
-                      <small className="tab-type-badge">{diagramKindDisplayName(document.diagramKind)}</small>
-                      <span className="tab-name">{tabLabels.get(document.id)}</span>
-                      {isProjectMemberTab(document.id) && <small className="tab-project-badge">Document</small>}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="tab-close"
-                    aria-label={`Close ${tabLabels.get(document.id)}${isProjectMemberTab(document.id) ? ` in ${project?.manifest.name}` : ""}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      closeTab(document.id);
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <button className="new-tab" onClick={newDocument} aria-label="New diagram tab">
-                +
-              </button>
-            </nav>
-          </>
-        }
-        views={
-          <>
-            <nav aria-label="View mode">
-              {viewModes.map((mode) => (
-                <button
-                  className={!mobileListActive && !taskViewActive && viewMode === mode ? "active" : ""}
-                  onClick={() => update("viewMode", mode)}
-                  aria-pressed={!mobileListActive && !taskViewActive && viewMode === mode}
-                  title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view (Ctrl/Cmd+${mode === "code" ? 1 : mode === "split" ? 2 : mode === "diagram" ? 3 : 4})`}
-                  key={mode}
-                >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </button>
-              ))}
-              {workspace.diagramKind === "gantt" && !mobileSupported && (
-                <button
-                  className={taskViewActive ? "active" : ""}
-                  aria-pressed={taskViewActive}
-                  onClick={openTasksView}
-                >
-                  Tasks
-                </button>
-              )}
-              {mobileSupported && (
-                <button
-                  className={mobileListActive ? "active" : ""}
-                  aria-pressed={mobileListActive}
-                  onClick={() => {
-                    if (!requestSidePanelChange()) return;
-                    dismissAllInspectors();
-                    setTaskViewDocument(undefined);
-                    setMobileDiagramDocument(undefined);
-                    setMobileReveal(undefined);
-                    selectNormalViewMode("diagram");
-                  }}
-                >
-                  {workspace.diagramKind === "gantt" ? "Task list" : "WBS list"}
-                </button>
-              )}
-            </nav>
-            {taskViewActive && tasksNarrow && (
-              <nav aria-label="Tasks pane">
-                <button aria-pressed={taskTablePane === "table"} onClick={() => setTaskTablePane("table")}>
-                  Table
-                </button>
-                <button aria-pressed={taskTablePane === "chart"} onClick={() => setTaskTablePane("chart")}>
-                  Chart
-                </button>
-              </nav>
-            )}
-          </>
-        }
-        hint={null}
+      <NavigationChrome
+        activateTab={activateTab}
+        activeDocument={activeDocument}
+        closeOtherTabs={closeOtherTabs}
+        closeTab={closeTab}
+        collaboration={collaboration}
+        diagnosticCount={diagnosticCount}
+        dismissAllInspectors={dismissAllInspectors}
+        documentTabs={documentTabs}
+        draggedTabId={draggedTabId}
+        duplicateTab={duplicateTab}
+        fileSaving={fileSaving}
+        isProjectMemberTab={isProjectMemberTab}
+        mobileListActive={mobileListActive}
+        mobileSupported={mobileSupported}
+        newDocument={newDocument}
+        openTasksView={openTasksView}
+        portable={portable}
+        project={project}
+        saveCurrentDocument={saveCurrentDocument}
+        selectNormalViewMode={selectNormalViewMode}
+        setDraggedTabId={setDraggedTabId}
+        setMobileDiagramDocument={setMobileDiagramDocument}
+        setMobileReveal={setMobileReveal}
+        setProblemsOpen={setProblemsOpen}
+        setStageTrueRender={setStageTrueRender}
+        setTabMenu={setTabMenu}
+        setTaskTablePane={setTaskTablePane}
+        setTaskViewDocument={setTaskViewDocument}
+        singleFileProject={singleFileProject}
+        stageActive={stageActive}
+        stageDark={stageDark}
+        stageTrueRender={stageTrueRender}
+        tabLabels={tabLabels}
+        tabMenu={tabMenu}
+        tabs={tabs}
+        taskTablePane={taskTablePane}
+        taskViewActive={taskViewActive}
+        tasksNarrow={tasksNarrow}
+        toggleCommandPalette={toggleCommandPalette}
+        unsupportedCount={unsupportedCount}
+        update={update}
+        viewMode={viewMode}
+        viewModes={viewModes}
+        workspace={workspace}
       />
-      {tabMenu && (
-        <div
-          className="tab-menu"
-          role="menu"
-          aria-label="Tab actions"
-          style={{ left: tabMenu.x, top: tabMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              setTabMenu(undefined);
-              document.querySelector<HTMLButtonElement>(".document-tabs button.active")?.focus();
-              return;
-            }
-            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-            event.preventDefault();
-            const items = [
-              ...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'),
-            ];
-            const index = items.indexOf(document.activeElement as HTMLButtonElement);
-            items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
-          }}
-        >
-          <button
-            role="menuitem"
-            disabled={collaboration?.role === "viewer" && isProjectMemberTab(tabMenu.id)}
-            onClick={() => {
-              const target = tabs.documents.find((item) => item.id === tabMenu.id);
-              if (!target) return;
-              const name = window.prompt("Diagram name", tabLabels.get(target.id));
-              if (!name?.trim()) return;
-              const member = portable?.diagrams.find(
-                (item) => target.historyId === embeddedMemberHistoryId(portable.projectId, item.id),
-              );
-              if (member) singleFileProject.renameDiagram(member.id, name);
-              else tabs.updateDocumentFormat(target.id, { displayName: name.trim() });
-              setTabMenu(undefined);
-            }}
-          >
-            Rename diagram…
-          </button>
-          <button
-            role="menuitem"
-            disabled={tabs.documents.findIndex((document) => document.id === tabMenu.id) <= 0}
-            onClick={() => {
-              const index = tabs.documents.findIndex((document) => document.id === tabMenu.id);
-              const previous = tabs.documents[index - 1];
-              if (previous) tabs.reorderDocument(tabMenu.id, previous.id);
-              setTabMenu(undefined);
-            }}
-          >
-            Move tab left
-          </button>
-          <button
-            role="menuitem"
-            disabled={tabs.documents.findIndex((document) => document.id === tabMenu.id) >= tabs.documents.length - 1}
-            onClick={() => {
-              const index = tabs.documents.findIndex((document) => document.id === tabMenu.id);
-              const next = tabs.documents[index + 1];
-              if (next) tabs.reorderDocument(next.id, tabMenu.id);
-              setTabMenu(undefined);
-            }}
-          >
-            Move tab right
-          </button>
-          <button role="menuitem" onClick={() => duplicateTab(tabMenu.id)}>
-            Duplicate
-          </button>
-          <button role="menuitem" disabled={tabs.documents.length < 2} onClick={() => closeOtherTabs(tabMenu.id)}>
-            Close other tabs
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              closeTab(tabMenu.id);
-              setTabMenu(undefined);
-            }}
-          >
-            Close
-          </button>
-        </div>
-      )}
-      {stageActive && (
-        <StageTopBar
-          documents={tabs.documents.map((document) => ({
-            id: document.id,
-            label: tabLabels.get(document.id) ?? document.displayName ?? document.fileName,
-            dirty: document.dirty,
-          }))}
-          activeId={tabs.activeId}
-          diagramKindLabel={diagramKindDisplayName(workspace.diagramKind)}
-          onActivate={activateTab}
-          onOpenPalette={toggleCommandPalette}
-          onSave={() => void saveCurrentDocument()}
-          saving={fileSaving}
-          dirty={activeDocument.dirty}
-          issueCount={diagnosticCount + unsupportedCount}
-          onOpenIssues={() => setProblemsOpen(true)}
-          trueRender={stageTrueRender}
-          onTrueRenderChange={setStageTrueRender}
-          recolorAvailable={stageDark}
-          onExit={() => update("viewMode", "split")}
-        />
-      )}
       <WorkspaceMain
         activeDocument={activeDocument}
         activityDocument={activityDocument}
