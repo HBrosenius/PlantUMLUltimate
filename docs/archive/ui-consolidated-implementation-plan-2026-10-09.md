@@ -52,7 +52,7 @@ Focus restoration now belongs to the shared inspector shell instead of a competi
 
 **Evidence and coverage:** the original outside-panel Escape test failed before implementation because accepted dismissal never called the panel close handler. Ownership tests cover exclusive utility states, inactive closes, rejected requests, same-panel requests, property selection, and diagram-type changes. Browser coverage exercises Workload → Calendar → Workload with canceled/accepted Calendar drafts, canceled/accepted Workload rename dismissal, Workload → Issues → task properties → Issues, and opener restoration. It asserts one visible side panel and a preview wider than 200 pixels in desktop Split view. Existing cleanup coverage checks stored width, invalid task drafts, narrow layouts, keyboard menus, and doubled UI scale. Cross-family testing caught and corrected interference with Use Case drag cancellation.
 
-Inspected screenshots: [Calendar alone](audits/screenshots/2026-10-09-a2/calendar-exclusive.png) and [Workload alone](audits/screenshots/2026-10-09-a2/workload-exclusive.png). These record the resulting panel layout; they are not evidence of completed real-device mobile testing.
+Inspected screenshots: [Calendar alone](../audits/screenshots/2026-10-09-a2/calendar-exclusive.png) and [Workload alone](../audits/screenshots/2026-10-09-a2/workload-exclusive.png). These record the resulting panel layout; they are not evidence of completed real-device mobile testing.
 
 **Validation:** 188 unit-test files / 2,098 tests pass; the final focused ownership/guard tests pass (19 tests), and all 33 final ownership/layout/Use Case gesture browser checks pass across Chromium, Firefox, and WebKit. Type checking, web build, changed-file ESLint/Prettier, and `git diff --check` pass; `graft build` refreshed the graph. The broader cross-family browser run passed 50 tests and failed Firefox Class reconnection at `tests/e2e/editor-class.spec.ts:294`. An isolated clean HEAD snapshot (`6174901`) reproduced the identical assertion failure in 2 of 3 repetitions (1 passed), establishing a pre-existing flaky gesture test; it is recorded separately and has not been counted as passing. Repository-wide `npm run validate` still stops at the existing unrelated unused `emailBody` in `scripts/demo-video/record-task-check-in.mjs:240`. The previously recorded `.claude/launch.json` formatting issue remains outside this slice.
 
@@ -86,7 +86,7 @@ Commands and collaboration move into the labeled More menu on narrow screens. Do
 
 **Changed files:** `apps/web/src/styles.css`; `App.tsx`; `WorkspaceHint.tsx`; `SequenceDiagramPreview.tsx`; new `use-responsive-view-mode.ts` and tests; `use-diagram-multi-selection.ts` and tests; new `tests/e2e/constrained-layout.spec.ts`; and `tests/e2e/ui-cleanup.spec.ts`.
 
-**Evidence:** inspected resulting [desktop Outline](audits/screenshots/2026-10-09-a4/outline-1280.png), [390-pixel Outline](audits/screenshots/2026-10-09-a4/outline-390.png), [dark 320-pixel Outline](audits/screenshots/2026-10-09-a4/outline-320.png), and [320 × 420 creation form](audits/screenshots/2026-10-09-a4/creation-320.png). A 375-pixel capture is also retained. Baseline overflow is recorded by the failing geometry assertion, not a retained before screenshot.
+**Evidence:** inspected resulting [desktop Outline](../audits/screenshots/2026-10-09-a4/outline-1280.png), [390-pixel Outline](../audits/screenshots/2026-10-09-a4/outline-390.png), [dark 320-pixel Outline](../audits/screenshots/2026-10-09-a4/outline-320.png), and [320 × 420 creation form](../audits/screenshots/2026-10-09-a4/creation-320.png). A 375-pixel capture is also retained. Baseline overflow is recorded by the failing geometry assertion, not a retained before screenshot.
 
 **Validation:** 190 unit files / 2,114 tests and all 51 final browser checks pass across Chromium, Firefox, and WebKit. Type checking, web build, changed-file ESLint/Prettier, and `git diff --check` pass; `graft build` refreshed the graph. Browser coverage includes desktop/320/375/390 layouts, 844-pixel Outline height, a 420-pixel short viewport, light/dark appearance, keyboard menus/Escape, final-result scrolling, source/draft preservation, and desktop preference restoration. Existing UI checks include doubled scale and inspector focus/draft protection. Repository-wide lint/format blockers recorded under A2 remain outside scope.
 
@@ -759,7 +759,7 @@ Start with safe whitespace/indentation formatting for supported syntax, preservi
 
 ## Phase 4 — Build larger capabilities after validating demand
 
-The following is the recommended default order for the app's current planning-heavy workflows. Reassess it with users after Phase 3; investigate one major feature at a time. These extend existing foundations and must be reconciled with [feature strategy](feature-strategy.md), [connected-diagram planning](connected-project-diagrams-plan.md), and [scenario planning](delivery-scenario-lab-plan.md).
+The following is the recommended default order for the app's current planning-heavy workflows. Reassess it with users after Phase 3; investigate one major feature at a time. These extend existing foundations and must be reconciled with [feature strategy](../feature-strategy.md), [connected-diagram planning](../connected-project-diagrams-plan.md), and [scenario planning](../delivery-scenario-lab-plan.md).
 
 ### 27. Add spreadsheet-style Gantt editing
 
@@ -825,7 +825,7 @@ Go beyond responsive resizing with a list/outline-first experience, a full-scree
 
 ### Refactor alongside the affected feature
 
-Claude 5.7 proposes splitting `App.tsx` and `DiagramPreview.tsx`. Retain this as an implementation rule, not a separate prerequisite project: extract `MenuBar`, `WorkspaceToolbar`, `SidePanelHost`, and `StatusBar` when the associated work needs them. Keep behavior-preserving extractions reviewable and separate from interaction changes where practical. The existing shared inspector and October 8 cleanup remain the foundation; see [cleanup results](ui-cleanup-results.md).
+Claude 5.7 proposes splitting `App.tsx` and `DiagramPreview.tsx`. Retain this as an implementation rule, not a separate prerequisite project: extract `MenuBar`, `WorkspaceToolbar`, `SidePanelHost`, and `StatusBar` when the associated work needs them. Keep behavior-preserving extractions reviewable and separate from interaction changes where practical. The existing shared inspector and October 8 cleanup remain the foundation; see [cleanup results](../ui-cleanup-results.md).
 
 Use Graft before source work and trace callers before changing shared symbols. Refresh the graph after substantial changes. File line counts alone do not establish a need to rewrite a subsystem.
 

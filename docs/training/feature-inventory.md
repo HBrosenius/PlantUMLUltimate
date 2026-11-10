@@ -194,7 +194,7 @@ Paths and line ranges identify the source reviewed; use the supplemental manifes
 | S25 | `docs/demo-video-forecast.md`; `DocumentSettingsDialog.tsx:89–117`; forecast workflow rehearsal required                                                      |
 | S26 | `apps/web/src/render/PreviewRenderNotice.tsx`; `apps/web/src/render/syntax-error.ts`                                                                          |
 | S27 | `packages/diagram-gantt/src/operations.ts` (`deleteTask`); `apps/web/src/gantt-delete.ts`                                                                     |
-| S28 | `apps/web/src/gantt-schedule.ts` (`dependencyDate`); `docs/audit-2026-10-26.md` (B3, verified against PlantUML renders)                                       |
+| S28 | `apps/web/src/gantt-schedule.ts` (`dependencyDate`); `docs/archive/audit-2026-10-26.md` (B3, verified against PlantUML renders)                               |
 | S29 | `apps/web/src/use-collaboration-lifecycle.ts`; `apps/web/src/collaboration-session.ts`; `docs/audits/2026-10-26-app-review/REMEDIATION.md` (findings 1, 3, 5) |
 | S30 | `apps/web/src/JiraDialog.tsx`; `docs/audits/2026-10-26-app-review/REMEDIATION.md` (finding 4)                                                                 |
 | S31 | `apps/web/src/render/diagram-link-guard.ts`                                                                                                                   |

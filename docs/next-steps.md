@@ -1,8 +1,8 @@
 # PlantUML Ultimate: next steps
 
-Current follow-up, 2026-10-11: see [large-document next steps](large-document-next-steps-2026-10-11.md) for the measured Gantt performance, oversized-preview and document-navigation work. The September plan below remains historical context.
+Current follow-up, 2026-10-11: see [large-document next steps](archive/large-document-next-steps-2026-10-11.md) for the measured Gantt performance, oversized-preview and document-navigation work. The September plan below remains historical context.
 
-Status review, 2026-10-11: this September reliability plan is substantially addressed and is not the current feature backlog. Renderer isolation, lifecycle extraction and release documentation now exist; application-level service limits and several external validation gates remain. See [current implementation inventory](plan-status-2026-10-11.md) before acting on the historical recommendations below.
+Status review, 2026-10-11: this September reliability plan is substantially addressed and is not the current feature backlog. Renderer isolation, lifecycle extraction and release documentation now exist; application-level service limits and several external validation gates remain. See [current implementation inventory](archive/plan-status-2026-10-11.md) before acting on the historical recommendations below.
 
 Prepared: 2026-09-07. Repository baseline: `795e39c`, version `0.2.0`.
 
@@ -29,7 +29,7 @@ This plan is based on the repository, recent commits, implementation files, test
 | Remaining complexity    | `apps/web/src/App.tsx` is 5,467 lines. Architecture documentation describes a narrower adapter implementation than the product now exposes. Incremental separation is warranted.                                                                                                              |
 | Remaining investigation | Renderer isolation, service abuse limits, recovery edge cases, and Jira failure handling deserve focused verification. Old audit claims must be checked against current code before becoming tickets.                                                                                         |
 
-The two existing audit files are historical inputs: [root audit](../audit-2026-09-02.md) and [docs audit](audit-2026-09-02.md). Keep them intact and track current status separately.
+The [2026-09-02 audit](archive/audit-2026-09-02.md) is a historical input. Keep it intact and track current status separately.
 
 ## Phase 1 — Establish a trustworthy release baseline
 

@@ -7,3 +7,6 @@ output/
 docs/training/experiments/
 scripts/demo-video/__pycache__/
 __pycache__/
+
+# Dated plans, audits and reviews: kept for history, skipped by search.
+docs/archive/

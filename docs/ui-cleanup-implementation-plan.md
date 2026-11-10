@@ -1,6 +1,6 @@
 # UI cleanup implementation plan
 
-Status: implemented; see [delivery results](ui-cleanup-results.md) and [current plan status](plan-status-2026-10-11.md). The sequence below is retained as the implementation specification.
+Status: implemented; see [delivery results](ui-cleanup-results.md) and [current plan status](archive/plan-status-2026-10-11.md). The sequence below is retained as the implementation specification.
 
 Date: 2026-10-08
 

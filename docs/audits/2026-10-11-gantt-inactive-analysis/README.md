@@ -32,4 +32,4 @@ Production Chromium, unchanged 200-task fixture, five title edits:
 
 The failed browser check is not waived or called passing. The targeted browser suite is not fully green and this is not release certification. The diagnostic edits were restored; the final source includes both performance deliveries. The local production preview was stopped.
 
-Next: investigate the baseline-drag failure independently, then continue oversized-preview guidance from the [current plan](../../large-document-next-steps-2026-10-11.md). Further Gantt work should measure sanitization/parsing and DOM insertion before expanding shape indexing.
+Next: investigate the baseline-drag failure independently, then continue oversized-preview guidance from the [current plan](../../archive/large-document-next-steps-2026-10-11.md). Further Gantt work should measure sanitization/parsing and DOM insertion before expanding shape indexing.
