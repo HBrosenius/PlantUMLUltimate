@@ -452,7 +452,7 @@ test("shows live status for tasks linked to Jira issues", async ({ page }) => {
   await openGantt(page);
   await setSource(
     page,
-    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n@endgantt",
+    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n[Next] as [next] starts at [build]'s end and lasts 1 day\n@endgantt",
   );
   await waitForDiagramRender(page);
 
@@ -473,6 +473,10 @@ test("shows live status for tasks linked to Jira issues", async ({ page }) => {
   await expect(card).toContainText(/diagram \d days? earlier/);
   await expect(card).toContainText("40%");
   await expect(card).toContainText("Updated");
+  // PlantUML relationships (From/To) stay together above the Jira section, so the two are not confused.
+  const text = await card.innerText();
+  expect(text.indexOf("Next")).toBeGreaterThan(-1);
+  expect(text.indexOf("Next")).toBeLessThan(text.indexOf("Jira · APP-123"));
 
   // Keyboard users get the same card on focus, as for any task.
   await page.mouse.move(0, 0);

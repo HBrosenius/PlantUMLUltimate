@@ -2118,6 +2118,41 @@ export function DiagramPreview({
               <dd>{hoverDetails.resources}</dd>
             </div>
           </dl>
+          {hoverDetails.predecessors.length > 0 && (
+            <div className="hover-links">
+              <span>From</span>
+              {hoverDetails.predecessors.map((item) => (
+                <button key={item.id} onClick={() => onTaskSelect(item.id)}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {hoverDetails.successors.length > 0 && (
+            <div className="hover-links">
+              <span>To</span>
+              {hoverDetails.successors.map((item) => (
+                <button key={item.id} onClick={() => onTaskSelect(item.id)}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {(projectDiagramLinks.get(hoveredTask.id)?.length ?? 0) > 0 && (
+            <div className="hover-project-links">
+              <span>Document</span>
+              <div>
+                {projectDiagramLinks.get(hoveredTask.id)?.map((link) => (
+                  <button
+                    key={`${link.documentId}:${link.label}`}
+                    onClick={() => onOpenProjectDiagram?.(link.documentId)}
+                  >
+                    <strong>{link.relationship}</strong> {link.path}: {link.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {hoveredJira && (
             <div className="hover-jira">
               <span>Jira · {hoveredJira.issueKey}</span>
@@ -2186,41 +2221,6 @@ export function DiagramPreview({
                   <button onClick={jiraLinked.openConnect}>Connect Jira…</button>
                 </div>
               )}
-            </div>
-          )}
-          {hoverDetails.predecessors.length > 0 && (
-            <div className="hover-links">
-              <span>From</span>
-              {hoverDetails.predecessors.map((item) => (
-                <button key={item.id} onClick={() => onTaskSelect(item.id)}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {hoverDetails.successors.length > 0 && (
-            <div className="hover-links">
-              <span>To</span>
-              {hoverDetails.successors.map((item) => (
-                <button key={item.id} onClick={() => onTaskSelect(item.id)}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {(projectDiagramLinks.get(hoveredTask.id)?.length ?? 0) > 0 && (
-            <div className="hover-project-links">
-              <span>Document</span>
-              <div>
-                {projectDiagramLinks.get(hoveredTask.id)?.map((link) => (
-                  <button
-                    key={`${link.documentId}:${link.label}`}
-                    onClick={() => onOpenProjectDiagram?.(link.documentId)}
-                  >
-                    <strong>{link.relationship}</strong> {link.path}: {link.label}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
         </aside>
