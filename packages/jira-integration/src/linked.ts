@@ -1,3 +1,6 @@
+import { applySourceEdits, parseGantt, setTaskLinks } from "@plantuml-studio/diagram-gantt";
+import { jiraBrowseUrl } from "./binding";
+
 // "Linked" tasks: a Gantt task whose `links to [[https://site/browse/KEY-1 KEY-1]]` points at a
 // Jira issue. Jira owns the status; the diagram only stores the key. This is read-only and does
 // not need the document binding or a `jira_<id>` alias used by the full pull/publish sync.
@@ -122,4 +125,38 @@ export function jiraDateDrift(jiraDate: string | undefined, diagramDate: string 
   const a = Date.parse(`${jiraDate}T00:00:00Z`);
   const b = Date.parse(`${diagramDate.slice(0, 10)}T00:00:00Z`);
   return Number.isNaN(a) || Number.isNaN(b) ? undefined : Math.round((a - b) / 86_400_000);
+}
+
+/** Accepts an issue key (`APP-123`) or a browse link; a link must belong to `siteOrigin` when given. */
+export function parseJiraIssueInput(input: string, siteOrigin?: string): { issueKey: string } | { error: string } {
+  const text = input.trim();
+  if (/^[A-Z][A-Z0-9_]*-\d+$/i.test(text)) return { issueKey: text.toUpperCase() };
+  const link = parseJiraBrowseLink(text);
+  if (!link) return { error: "Enter an issue key such as APP-123, or an issue link." };
+  if (siteOrigin && link.siteOrigin !== siteOrigin)
+    return { error: `That link is for ${link.siteOrigin}, not the selected Jira site.` };
+  return { issueKey: link.issueKey };
+}
+
+/**
+ * Links a Gantt task to a Jira issue by adding or replacing its Jira link. Other links on the task
+ * are kept. Tasks created by the full Jira import are refused: their link is managed by the sync.
+ */
+export function linkTaskToJiraIssue(
+  source: string,
+  taskId: string,
+  siteUrl: string,
+  issueKey: string,
+): { source: string } | { error: string } {
+  const task = parseGantt(source).document.symbols.tasks.get(taskId);
+  if (!task) return { error: "That task no longer exists in the chart." };
+  if (/^jira_[1-9]\d*$/i.test(task.alias?.value ?? ""))
+    return { error: "This task comes from a Jira import, so its issue is managed by Review refresh." };
+  const others = (task.links ?? []).filter((link) => !parseJiraBrowseLink(link.url));
+  const result = setTaskLinks(source, task, [
+    { url: jiraBrowseUrl(siteUrl, issueKey), label: issueKey },
+    ...others.map(({ url, label }) => ({ url, ...(label ? { label } : {}) })),
+  ]);
+  if (result.unavailableReason) return { error: result.unavailableReason };
+  return { source: result.edits.length ? applySourceEdits(source, result.edits) : source };
 }

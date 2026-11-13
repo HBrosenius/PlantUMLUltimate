@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   jiraDateDrift,
+  linkTaskToJiraIssue,
+  parseJiraIssueInput,
   jiraKeysJql,
   jiraLinkedExtras,
   jiraLiveStatus,
@@ -78,5 +80,38 @@ describe("hover-card extras", () => {
     expect(jiraDateDrift("2026-12-12", "2026-12-10")).toBe(2);
     expect(jiraDateDrift("2026-12-08", "2026-12-10")).toBe(-2);
     expect(jiraDateDrift(undefined, "2026-12-10")).toBeUndefined();
+  });
+});
+
+describe("linking a task to a Jira issue", () => {
+  const site = "https://acme.atlassian.net";
+  const gantt = "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n@endgantt";
+
+  it("accepts keys and links for the selected site only", () => {
+    expect(parseJiraIssueInput(" app-12 ")).toEqual({ issueKey: "APP-12" });
+    expect(parseJiraIssueInput(`${site}/browse/APP-12`, site)).toEqual({ issueKey: "APP-12" });
+    expect(parseJiraIssueInput("https://other.atlassian.net/browse/APP-12", site)).toHaveProperty("error");
+    expect(parseJiraIssueInput("nonsense")).toHaveProperty("error");
+  });
+
+  it("adds a Jira link to the task", () => {
+    const result = linkTaskToJiraIssue(gantt, "build", site, "APP-12");
+    expect(result).toEqual({
+      source: expect.stringContaining(`[build] links to [[${site}/browse/APP-12 APP-12]]`),
+    });
+  });
+
+  it("replaces an existing Jira link and keeps other links", () => {
+    const linked = `${gantt.replace("@endgantt", "")}[build] links to [[${site}/browse/OLD-1 OLD-1]]\n[build] links to [[https://example.com Spec]]\n@endgantt`;
+    const result = linkTaskToJiraIssue(linked, "build", site, "APP-12") as { source: string };
+    expect(result.source).toContain("APP-12");
+    expect(result.source).not.toContain("OLD-1");
+    expect(result.source).toContain("[[https://example.com Spec]]");
+  });
+
+  it("refuses unknown and import-managed tasks", () => {
+    expect(linkTaskToJiraIssue(gantt, "missing", site, "APP-12")).toHaveProperty("error");
+    const synced = "@startgantt\n[Build] as [jira_5] lasts 3 days\n@endgantt";
+    expect(linkTaskToJiraIssue(synced, "jira_5", site, "APP-12")).toHaveProperty("error");
   });
 });

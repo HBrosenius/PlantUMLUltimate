@@ -475,6 +475,7 @@ export function App() {
     document: parseResult.document,
     setInteractionMessage,
   });
+  const [jiraLinkTaskId, setJiraLinkTaskId] = useState<string | undefined>();
   const jiraLinkedValue = useMemo(
     () => ({
       details: jiraLinkedDetails,
@@ -482,6 +483,10 @@ export function App() {
       refreshing: jiraLinkedRefreshing,
       refresh: refreshLinkedJira,
       openConnect: () => setJiraDialogOpen(true),
+      openLinkDialog: (taskId: string) => {
+        setJiraLinkTaskId(taskId);
+        setJiraDialogOpen(true);
+      },
     }),
     [jiraLinkedDetails, jiraLinkedSyncedAt, jiraLinkedRefreshing, refreshLinkedJira, setJiraDialogOpen],
   );
@@ -3204,6 +3209,8 @@ export function App() {
           fileSaving={fileSaving}
           highlightDate={highlightDate}
           jiraBinding={jiraBinding}
+          jiraLinkTaskId={jiraLinkTaskId ?? selectedTaskId}
+          onJiraDialogClose={() => setJiraLinkTaskId(undefined)}
           jiraDialogOpen={jiraDialogOpen}
           keepLocalExternalConflict={keepLocalExternalConflict}
           leaveCollaboration={leaveCollaboration}

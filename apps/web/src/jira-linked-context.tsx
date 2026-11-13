@@ -27,6 +27,8 @@ export interface JiraLinkedValue {
   refreshing: boolean;
   refresh: () => void;
   openConnect: () => void;
+  /** Opens the Jira dialog on its Link tab with this task preselected. */
+  openLinkDialog: (taskId: string) => void;
 }
 
 const empty: JiraLinkedValue = {
@@ -35,6 +37,7 @@ const empty: JiraLinkedValue = {
   refreshing: false,
   refresh: () => {},
   openConnect: () => {},
+  openLinkDialog: () => {},
 };
 
 export const JiraLinkedContext = createContext<JiraLinkedValue>(empty);
