@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { GanttDependency, GanttTask } from "@plantuml-studio/diagram-gantt";
 import { workingDayDuration, workingEndDate, type GanttCalendar } from "./gantt-calendar";
 import { ColorField } from "./ColorField";
+import { useJiraLinked } from "./jira-linked-context";
 
 export interface TaskInspectorValue {
   label: string;
@@ -107,6 +108,7 @@ export function TaskInspector({
     note: task.notes?.[0]?.text ?? "",
     notePosition: "bottom",
   });
+  const jiraLinked = useJiraLinked();
   const [value, setValue] = useState(initial);
   const parsedStartDate = task.start?.value ?? effectiveStart;
   const parsedEndDate = task.end?.value ?? (dependencyRelation.startsWith("end-") ? effectiveEnd : "");
@@ -174,6 +176,11 @@ export function TaskInspector({
             {jiraStatus.fields.length ? `Local changes: ${jiraStatus.fields.join(", ")}` : "Synchronized with Jira"}
           </span>
         </p>
+      )}
+      {!jiraStatus && (
+        <button type="button" className="jira-link-action" onClick={() => jiraLinked.openLinkDialog(task.id)}>
+          {jiraLinked.details.has(task.id) ? "Change Jira issue…" : "Link Jira issue…"}
+        </button>
       )}
       {!validTaskDraft(value) && (
         <p className="field-error" role="status">

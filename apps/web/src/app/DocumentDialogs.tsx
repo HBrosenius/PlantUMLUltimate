@@ -107,6 +107,8 @@ export interface DocumentDialogsProps {
   fileSaving: boolean;
   highlightDate: string | undefined;
   jiraBinding: JiraDocumentBinding | undefined;
+  jiraLinkTaskId: string | undefined;
+  onJiraDialogClose: () => void;
   jiraDialogOpen: boolean;
   keepLocalExternalConflict: () => void;
   leaveCollaboration: () => void;
@@ -224,6 +226,8 @@ export function DocumentDialogs({
   fileSaving,
   highlightDate,
   jiraBinding,
+  jiraLinkTaskId,
+  onJiraDialogClose,
   jiraDialogOpen,
   keepLocalExternalConflict,
   leaveCollaboration,
@@ -556,11 +560,15 @@ export function DocumentDialogs({
           endpoint={defaultJiraEndpoint}
           source={workspace.source}
           binding={jiraBinding}
+          linkTaskId={jiraLinkTaskId}
           readOnly={collaborationAppliesToActiveDiagram && collaboration?.role === "viewer"}
           onApply={(source, message) => {
             if (commitGeneratedSource(source, "Synchronize Jira")) setInteractionMessage(message);
           }}
-          onClose={() => setJiraDialogOpen(false)}
+          onClose={() => {
+            setJiraDialogOpen(false);
+            onJiraDialogClose();
+          }}
         />
       )}
       {highlightDate && (

@@ -36,6 +36,7 @@ import {
   type JiraIssueUpdateResult,
   type JiraSite,
 } from "./jira-client";
+import { JiraLinkIssue } from "./JiraLinkIssue";
 import { useDialogFocus } from "./use-dialog-focus";
 
 const activePublishes = new Set<string>();
@@ -72,6 +73,7 @@ export function JiraDialog({
   source,
   binding,
   readOnly,
+  linkTaskId,
   onApply,
   onClose,
 }: {
@@ -79,6 +81,8 @@ export function JiraDialog({
   source: string;
   binding: JiraDocumentBinding | undefined;
   readOnly: boolean;
+  /** Task to preselect on the Link tab; opening for a task also opens that tab. */
+  linkTaskId?: string | undefined;
   onApply(source: string, message: string): void;
   onClose(): void;
 }) {
@@ -87,6 +91,8 @@ export function JiraDialog({
   const currentSource = useRef(source);
   currentSource.current = source;
 
+  // Documents that were imported before keep opening on Import; everything else starts on Link.
+  const [tab, setTab] = useState<"link" | "import">(linkTaskId || !binding ? "link" : "import");
   const [tokenSite, setTokenSite] = useState("");
   const [tokenEmail, setTokenEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
@@ -476,7 +482,9 @@ export function JiraDialog({
             <p>
               {review
                 ? "Review Jira changes before updating the chart."
-                : "Import a Jira Cloud query into this Gantt chart."}
+                : sites.length
+                  ? `Connected to ${selectedSite?.name ?? sites[0]?.name}. Link tasks to issues to show their status, or import a query to create tasks.`
+                  : "Connect Jira to link tasks to issues or import a query into this Gantt chart."}
             </p>
           </div>
           <button type="button" aria-label="Close Jira integration" onClick={close}>
@@ -768,7 +776,6 @@ export function JiraDialog({
           </>
         ) : (
           <>
-            <p className="jira-connection-status">Connected to {selectedSite?.name ?? sites[0]?.name}</p>
             <label>
               Jira site
               <select value={cloudId} onChange={(event) => setCloudId(event.target.value)}>
@@ -779,87 +786,132 @@ export function JiraDialog({
                 ))}
               </select>
             </label>
-            <label>
-              JQL
-              <textarea
-                required
-                rows={3}
-                placeholder="project = APP ORDER BY Rank"
-                value={jql}
-                onChange={(event) => setJql(event.target.value)}
-              />
-            </label>
-            <fieldset className="jira-field-mapping">
-              <legend>Field mapping</legend>
-              <p>Choose which Jira fields supply the dates used by PlantUML tasks.</p>
-              <label>
-                PlantUML start date
-                <select value={startFieldId} onChange={(event) => setStartFieldId(event.target.value)}>
-                  <option value="">Do not synchronize</option>
-                  {dateFields.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {field.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                PlantUML due date
-                <select value="duedate" disabled aria-describedby="jira-due-date-note">
-                  <option value="duedate">Due date (Jira system field)</option>
-                </select>
-              </label>
-              <p id="jira-due-date-note" className="jira-field-note" role="status">
-                {startFieldId
-                  ? `Start date is mapped to ${dateFields.find((field) => field.id === startFieldId)?.name ?? startFieldId}.`
-                  : "Select a Jira date field to synchronize task start dates. Due dates will still be synchronized."}
-              </p>
-            </fieldset>
-            <label className="jira-check">
-              <input
-                type="checkbox"
-                checked={includeAssignee}
-                onChange={(event) => setIncludeAssignee(event.target.checked)}
-              />
-              Import assignee as a 100% resource
-            </label>
-            <label className="jira-check">
-              <input
-                type="checkbox"
-                checked={publishChanges}
-                onChange={(event) => setPublishChanges(event.target.checked)}
-              />
-              Allow reviewed summary and date changes to be published to Jira
-            </label>
-            <label className="jira-check">
-              <input
-                type="checkbox"
-                checked={includeDependencies}
-                onChange={(event) => setIncludeDependencies(event.target.checked)}
-              />
-              Import Jira “blocks” links as task dependencies
-            </label>
-            <p className="jira-disclosure">
-              Imported summaries, dates, statuses, and assignees become part of the PlantUML file and may be visible to
-              anyone it is shared with.
-            </p>
-            <div className="dialog-actions">
-              <button type="button" onClick={() => void disconnect()}>
-                Disconnect
-              </button>
-              <span />
-              <button type="button" onClick={close}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="primary"
-                disabled={readOnly || busy || !jql.trim()}
-                onClick={() => void prepareReview()}
-              >
-                {busy ? "Checking Jira…" : binding ? "Review refresh" : "Review import"}
-              </button>
+            <div className="jira-tabs" role="tablist" aria-label="Jira actions">
+              {(["link", "import"] as const).map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  role="tab"
+                  id={`jira-tab-${name}`}
+                  aria-selected={tab === name}
+                  aria-controls={`jira-panel-${name}`}
+                  tabIndex={tab === name ? 0 : -1}
+                  className={tab === name ? "selected" : undefined}
+                  onClick={() => setTab(name)}
+                >
+                  {name === "link" ? "Link issue" : "Import from query"}
+                </button>
+              ))}
             </div>
+            {tab === "link" && selectedSite && (
+              <div role="tabpanel" id="jira-panel-link" aria-labelledby="jira-tab-link">
+                <JiraLinkIssue
+                  endpoint={endpoint}
+                  site={selectedSite}
+                  source={source}
+                  initialTaskId={linkTaskId}
+                  readOnly={readOnly}
+                  onLink={(next, message) => {
+                    onApply(next, message);
+                    close();
+                  }}
+                />
+                <div className="dialog-actions">
+                  <button type="button" onClick={() => void disconnect()}>
+                    Disconnect
+                  </button>
+                  <span />
+                  <button type="button" onClick={close}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+            {tab === "import" && (
+              <div role="tabpanel" id="jira-panel-import" aria-labelledby="jira-tab-import">
+                <label>
+                  JQL
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="project = APP ORDER BY Rank"
+                    value={jql}
+                    onChange={(event) => setJql(event.target.value)}
+                  />
+                </label>
+                <fieldset className="jira-field-mapping">
+                  <legend>Field mapping</legend>
+                  <p>Choose which Jira fields supply the dates used by PlantUML tasks.</p>
+                  <label>
+                    PlantUML start date
+                    <select value={startFieldId} onChange={(event) => setStartFieldId(event.target.value)}>
+                      <option value="">Do not synchronize</option>
+                      {dateFields.map((field) => (
+                        <option key={field.id} value={field.id}>
+                          {field.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    PlantUML due date
+                    <select value="duedate" disabled aria-describedby="jira-due-date-note">
+                      <option value="duedate">Due date (Jira system field)</option>
+                    </select>
+                  </label>
+                  <p id="jira-due-date-note" className="jira-field-note" role="status">
+                    {startFieldId
+                      ? `Start date is mapped to ${dateFields.find((field) => field.id === startFieldId)?.name ?? startFieldId}.`
+                      : "Select a Jira date field to synchronize task start dates. Due dates will still be synchronized."}
+                  </p>
+                </fieldset>
+                <label className="jira-check">
+                  <input
+                    type="checkbox"
+                    checked={includeAssignee}
+                    onChange={(event) => setIncludeAssignee(event.target.checked)}
+                  />
+                  Import assignee as a 100% resource
+                </label>
+                <label className="jira-check">
+                  <input
+                    type="checkbox"
+                    checked={publishChanges}
+                    onChange={(event) => setPublishChanges(event.target.checked)}
+                  />
+                  Allow reviewed summary and date changes to be published to Jira
+                </label>
+                <label className="jira-check">
+                  <input
+                    type="checkbox"
+                    checked={includeDependencies}
+                    onChange={(event) => setIncludeDependencies(event.target.checked)}
+                  />
+                  Import Jira “blocks” links as task dependencies
+                </label>
+                <p className="jira-disclosure">
+                  Imported summaries, dates, statuses, and assignees become part of the PlantUML file and may be visible
+                  to anyone it is shared with.
+                </p>
+                <div className="dialog-actions">
+                  <button type="button" onClick={() => void disconnect()}>
+                    Disconnect
+                  </button>
+                  <span />
+                  <button type="button" onClick={close}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={readOnly || busy || !jql.trim()}
+                    onClick={() => void prepareReview()}
+                  >
+                    {busy ? "Checking Jira…" : binding ? "Review refresh" : "Review import"}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
         {busy && <p role="status">{progress || "Working…"}</p>}

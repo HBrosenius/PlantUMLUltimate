@@ -6,7 +6,12 @@ of truth for status, summary, assignee and dates; the diagram owns the schedule.
 
 ## Link a task
 
-Add a `links to` line with the issue's browse URL:
+**From the Jira dialog (Plan → Jira…):** once connected, open the **Link issue** tab, pick a task, paste an
+issue key (`APP-123`) or link, choose **Look up issue** to check it, then **Link task**. The task inspector also
+has a **Link Jira issue…** button that opens the same tab with that task preselected. Nothing is imported and
+there is no review step. The **Import from query** tab is the separate flow for creating tasks from a JQL query.
+
+**By hand:** add a `links to` line with the issue's browse URL:
 
 ```plantuml
 @startgantt

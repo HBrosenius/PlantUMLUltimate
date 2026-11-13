@@ -1,4 +1,4 @@
-import { openRibbonGroup, setSource, waitForDiagramRender } from "./editor-helpers";
+import { openRibbonGroup, readEditorSource, setSource, waitForDiagramRender } from "./editor-helpers";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
@@ -22,9 +22,16 @@ async function openGantt(page: Page, url = "/") {
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 
-async function openJira(page: Page) {
+async function openJira(page: Page, tab: "import" | "link" = "import") {
   await openRibbonGroup(page, "Plan", "Planning tools");
   await page.getByRole("button", { name: "Jira…" }).click();
+  // Once connected the dialog has Link and Import tabs; before that it shows the connect form.
+  const importTab = page.getByRole("tab", { name: "Import from query" });
+  await importTab
+    .or(page.getByRole("button", { name: "Connect with Atlassian OAuth" }))
+    .first()
+    .waitFor();
+  if (tab === "import" && (await importTab.isVisible())) await importTab.click();
 }
 
 function jiraIssue(summary = "Ship Jira integration", updated = "2026-08-31T10:00:00.000Z") {
@@ -532,4 +539,53 @@ test("explains why a linked task has no status and offers to connect", async ({ 
   ).toBeVisible();
   await page.getByLabel("Task details for Build").getByRole("button", { name: "Connect Jira…" }).click();
   await expect(page.getByRole("dialog", { name: "Jira integration" })).toBeVisible();
+});
+
+test("links a task to an existing Jira issue from the dialog without importing", async ({ page }) => {
+  const requests = await mockJira(page);
+  await openGantt(page);
+  await setSource(page, "@startgantt\nProject starts 2026-09-01\n[Build] as [build] lasts 3 days\n@endgantt");
+  await waitForDiagramRender(page);
+
+  await openJira(page, "link");
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog).toContainText("Link tasks to issues to show their status");
+  await expect(dialog.getByRole("tab", { name: "Link issue" })).toHaveAttribute("aria-selected", "true");
+  // No import controls and no review step on the Link tab.
+  await expect(dialog.getByLabel("JQL")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Review import" })).toHaveCount(0);
+
+  await dialog.getByLabel("Issue key or link").fill("not an issue");
+  await dialog.getByRole("button", { name: "Look up issue" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Enter an issue key");
+
+  await dialog.getByLabel("Issue key or link").fill("app-123");
+  await dialog.getByRole("button", { name: "Look up issue" }).click();
+  await expect(dialog.getByRole("status")).toContainText("APP-123");
+  expect(requests.find((request) => request.url === "/api/issues/search")?.body).toMatchObject({
+    jql: "key in (APP-123)",
+  });
+  await dialog.getByRole("button", { name: "Link task" }).click();
+
+  await expect(dialog).toHaveCount(0);
+  expect(await readEditorSource(page)).toContain(
+    "[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]",
+  );
+  await expect(page.locator('.diagram svg [data-jira-status="live-progress"]')).toHaveCount(1);
+});
+
+test("opens the Link tab for the selected task from the task inspector", async ({ page }) => {
+  await mockJira(page);
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[First] as [first] lasts 3 days\n[Second] as [second] lasts 3 days\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+  await page.locator('.diagram svg [data-task-id="second"]').first().click({ force: true });
+  await page.getByRole("button", { name: "Link Jira issue…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Jira integration" });
+  await expect(dialog.getByRole("tab", { name: "Link issue" })).toHaveAttribute("aria-selected", "true");
+  await expect(dialog.getByLabel("Task")).toHaveValue("second");
 });
