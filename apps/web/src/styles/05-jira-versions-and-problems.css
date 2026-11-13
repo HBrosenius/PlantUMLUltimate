@@ -748,3 +748,29 @@
   border-radius: 7px;
   background: color-mix(in srgb, var(--bg) 65%, transparent);
 }
+
+.jira-linked-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.jira-linked-bar button {
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.jira-linked-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.jira-connection-status {
+  margin: 0;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+}

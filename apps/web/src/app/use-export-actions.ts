@@ -20,6 +20,7 @@ import {
 import type { DocumentSnapshot, WorkspaceSession, WorkspaceSnapshot } from "../workspace-storage";
 
 export interface useExportActionsInputs {
+  decorateExportSvg: (svg: string) => string;
   activeDocument: DocumentSnapshot;
   closeNewDocumentDialog: () => void;
   externalCheckSnoozedUntil: RefObject<Map<string, number>>;
@@ -65,6 +66,7 @@ export interface useExportActionsInputs {
 }
 
 export function useExportActions({
+  decorateExportSvg,
   activeDocument,
   closeNewDocumentDialog,
   externalCheckSnoozedUntil,
@@ -133,43 +135,51 @@ export function useExportActions({
       setInteractionMessage("Render a valid diagram before exporting SVG");
       return;
     }
-    downloadText(result.svg, svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
-  }, [exportReady, result, workspace.fileName, setInteractionMessage]);
+    downloadText(decorateExportSvg(result.svg), svgFileName(workspace.fileName), "image/svg+xml;charset=utf-8");
+  }, [decorateExportSvg, exportReady, result, workspace.fileName, setInteractionMessage]);
   const exportPng = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting PNG");
       return;
     }
     try {
-      await downloadSvgAsPng(result.svg, workspace.fileName);
+      await downloadSvgAsPng(decorateExportSvg(result.svg), workspace.fileName);
     } catch (error) {
       reportFileError(error);
     }
-  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage]);
+  }, [decorateExportSvg, exportReady, reportFileError, result, workspace.fileName, setInteractionMessage]);
   const exportPdf = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before exporting PDF");
       return;
     }
     try {
-      await downloadDiagramPdf(result.svg, workspace.fileName);
+      await downloadDiagramPdf(decorateExportSvg(result.svg), workspace.fileName);
       notifySuccess("Exported PDF");
     } catch (error) {
       reportFileError(error);
     }
-  }, [exportReady, reportFileError, result, workspace.fileName, setInteractionMessage, notifySuccess]);
+  }, [
+    decorateExportSvg,
+    exportReady,
+    reportFileError,
+    result,
+    workspace.fileName,
+    setInteractionMessage,
+    notifySuccess,
+  ]);
   const copyImage = useCallback(async () => {
     if (!result?.svg || !exportReady) {
       setInteractionMessage("Render a valid diagram before copying it");
       return;
     }
     try {
-      await copyDiagramImage(result.svg);
+      await copyDiagramImage(decorateExportSvg(result.svg));
       notifySuccess("Copied diagram image");
     } catch (error) {
       setInteractionMessage(error instanceof Error ? error.message : "Could not copy the diagram image");
     }
-  }, [exportReady, result, setInteractionMessage, notifySuccess]);
+  }, [decorateExportSvg, exportReady, result, setInteractionMessage, notifySuccess]);
   const copySourceAs = useCallback(
     async (text: string, label: string) => {
       try {
