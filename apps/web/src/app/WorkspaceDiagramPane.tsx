@@ -1,3 +1,4 @@
+import type { JiraDiagramStatus } from "@plantuml-studio/jira-integration";
 import { DiagramPreview } from "../DiagramPreview";
 import { moveTasksByDays, type BulkTaskResult } from "../gantt-bulk-operations";
 import { moveVerticalSeparatorByDays, applySourceEdits } from "@plantuml-studio/diagram-gantt";
@@ -98,7 +99,7 @@ export interface WorkspaceDiagramPaneProps {
         onScrollChange: (scroll: { left: number; top: number }, flushRecovery?: boolean) => void;
       }
     | undefined;
-  jiraDiagramStatuses: Map<string, "synchronized" | "local-changes">;
+  jiraDiagramStatuses: Map<string, JiraDiagramStatus>;
   linkedGanttTaskIds: Set<string>;
   linkedWbs: DocumentSnapshot | undefined;
   linkedWbsNodeIds: Set<string>;

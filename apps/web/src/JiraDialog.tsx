@@ -768,6 +768,7 @@ export function JiraDialog({
           </>
         ) : (
           <>
+            <p className="jira-connection-status">Connected to {selectedSite?.name ?? sites[0]?.name}</p>
             <label>
               Jira site
               <select value={cloudId} onChange={(event) => setCloudId(event.target.value)}>

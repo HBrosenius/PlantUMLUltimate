@@ -1,4 +1,15 @@
+import type { JiraDiagramStatus } from "@plantuml-studio/jira-integration";
 import { PreviewRenderNotice } from "./render/PreviewRenderNotice";
+import { jiraDateDrift } from "@plantuml-studio/jira-integration";
+import { decorateJiraLinkMarkers, jiraMarkersFrom } from "./render/jira-link-marker";
+import { storageGet, storageSet } from "./safe-storage";
+import {
+  JIRA_SHOW_KEYS_KEY,
+  JIRA_UNAVAILABLE_MESSAGE,
+  formatAgo,
+  formatSyncedAgo,
+  useJiraLinked,
+} from "./jira-linked-context";
 import { preserveDiagramLinkHitAreas } from "./render/link-hit-areas";
 import { BaselineDependencyReport } from "./BaselineDependencyReport";
 import {
@@ -107,7 +118,7 @@ interface Props {
   baselineProjectStart?: string | undefined;
   onChangeBaseline(): void;
   onClearBaseline(): void;
-  jiraTaskStatuses?: ReadonlyMap<string, "synchronized" | "local-changes"> | undefined;
+  jiraTaskStatuses?: ReadonlyMap<string, JiraDiagramStatus> | undefined;
   projectLinkedTaskIds?: ReadonlySet<string> | undefined;
   projectDiagramLinks?: ReadonlyMap<string, readonly ProjectDiagramLink[]> | undefined;
   onOpenProjectDiagram?(documentId: string): void;
@@ -258,6 +269,19 @@ export function DiagramPreview({
     },
     [],
   );
+  // A linked task has a Jira link overlay (an anchor) over its bar; hovering it should open the same
+  // task card as hovering the bar, so resolve the anchor back to its task group.
+  const taskGroupFor = (target: Element): SVGGElement | null => {
+    const group = target.closest<SVGGElement>("[data-task-id]");
+    if (group) return group;
+    const href = target.closest("a")?.getAttribute("href");
+    const taskId = href ? [...jiraLinked.details].find(([, item]) => item.url === href)?.[0] : undefined;
+    return taskId
+      ? ([...(previewRef.current?.querySelectorAll<SVGGElement>("[data-task-id]") ?? [])].find(
+          (item) => item.getAttribute("data-task-id") === taskId,
+        ) ?? null)
+      : null;
+  };
   const showTaskDetails = (group: SVGGElement | null) => {
     const id = group?.getAttribute("data-task-id");
     const preview = previewRef.current?.getBoundingClientRect();
@@ -343,6 +367,8 @@ export function DiagramPreview({
     overlaySource,
   ]);
   const interactiveSvg = overlayResult.value;
+  const jiraLinked = useJiraLinked();
+  const [showJiraKeys, setShowJiraKeys] = useState(() => storageGet(JIRA_SHOW_KEYS_KEY) === "1");
   const forecastTimeZone = progressForecast?.timeZone ?? "UTC";
   // With a forecast enabled, `today` in the source resolves in the forecast time zone like its status date.
   const planTimeZone = progressForecast?.enabled ? forecastTimeZone : undefined;
@@ -493,6 +519,11 @@ export function DiagramPreview({
       const marker = `data-task-id="${escapedId}"`;
       marked = marked.replace(marker, `${marker} data-jira-status="${status}"`);
     }
+    marked = decorateJiraLinkMarkers(
+      marked,
+      jiraMarkersFrom(jiraTaskStatuses, jiraLinked.details, JIRA_UNAVAILABLE_MESSAGE),
+      showJiraKeys,
+    );
     for (const taskId of projectLinkedTaskIds) {
       const marker = `data-task-id="${taskId.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`;
       marked = marked.replace(marker, `${marker} data-project-linked="true"`);
@@ -559,6 +590,8 @@ export function DiagramPreview({
     renderedBaselineGeometry,
     baselineLabels,
     jiraTaskStatuses,
+    jiraLinked.details,
+    showJiraKeys,
     projectLinkedTaskIds,
     progressForecastResult,
     forecastAsOf,
@@ -588,6 +621,17 @@ export function DiagramPreview({
       cancelled = true;
     };
   }, [decoratedSvg, zoom]);
+  const hoveredJira = hoveredTask ? jiraLinked.details.get(hoveredTask.id) : undefined;
+  const hoverDates = hoveredTask ? resolvedDates.get(hoveredTask.id) : undefined;
+  const hoverCardRef = useRef<HTMLElement>(null);
+  // The card grows when a task has Jira details; keep its bottom edge inside the preview.
+  useLayoutEffect(() => {
+    const card = hoverCardRef.current;
+    const preview = previewRef.current?.getBoundingClientRect();
+    if (!card || !preview || !hoveredTask) return;
+    const overflow = card.getBoundingClientRect().bottom - (preview.bottom - 8);
+    if (overflow > 0) card.style.top = `${Math.max(8, hoveredTask.y - overflow)}px`;
+  }, [hoveredTask, hoveredJira]);
   const hoverDetails = hoveredTask
     ? taskHoverDetails(
         tasks.find((item) => item.id === hoveredTask.id),
@@ -1451,6 +1495,34 @@ export function DiagramPreview({
           </button>
         </p>
       )}
+      {jiraLinked.details.size > 0 && (
+        <div className="jira-linked-bar" role="group" aria-label="Linked Jira issues">
+          <span>
+            Jira · {jiraLinked.details.size} linked · {formatSyncedAgo(jiraLinked.syncedAt)}
+          </span>
+          <button type="button" onClick={jiraLinked.refresh} disabled={jiraLinked.refreshing}>
+            {jiraLinked.refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          {[...jiraLinked.details.values()].some(
+            (detail) => detail.unavailable === "not-connected" || detail.unavailable === "site-not-connected",
+          ) && (
+            <button type="button" onClick={jiraLinked.openConnect}>
+              Connect Jira…
+            </button>
+          )}
+          <label>
+            <input
+              type="checkbox"
+              checked={showJiraKeys}
+              onChange={(event) => {
+                setShowJiraKeys(event.target.checked);
+                storageSet(JIRA_SHOW_KEYS_KEY, event.target.checked ? "1" : "0");
+              }}
+            />
+            Show issue keys
+          </label>
+        </div>
+      )}
       <div
         className={`preview-viewport${renderStatus !== "idle" && decoratedSvg ? " stale-preview" : ""}`}
         ref={viewportRef}
@@ -1509,11 +1581,11 @@ export function DiagramPreview({
                 });
                 return;
               }
-              showTaskDetails((event.target as Element).closest<SVGGElement>("[data-task-id]"));
+              showTaskDetails(taskGroupFor(event.target as Element));
             }}
             onFocus={(event) => {
               if (draggingRef.current) return;
-              showTaskDetails((event.target as Element).closest<SVGGElement>("[data-task-id]"));
+              showTaskDetails(taskGroupFor(event.target as Element));
             }}
             onBlur={(event) => {
               const from = (event.target as Element).closest("[data-task-id]");
@@ -1525,8 +1597,9 @@ export function DiagramPreview({
               const baselineFrom = (event.target as Element).closest(".baseline-bar");
               const baselineTo = (event.relatedTarget as Element | null)?.closest?.(".baseline-bar");
               if (baselineFrom && baselineFrom !== baselineTo) setHoveredBaseline(undefined);
-              const from = (event.target as Element).closest("[data-task-id]");
-              const to = (event.relatedTarget as Element | null)?.closest?.("[data-task-id]");
+              const from = taskGroupFor(event.target as Element);
+              const related = event.relatedTarget as Element | null;
+              const to = related ? taskGroupFor(related) : null;
               if (from && from !== to) scheduleTaskHoverClose();
             }}
             onKeyDown={(event) => {
@@ -2003,6 +2076,7 @@ export function DiagramPreview({
       )}
       {hoveredTask && hoverDetails && (
         <aside
+          ref={hoverCardRef}
           className="task-hover-card"
           style={{ left: hoveredTask.x, top: hoveredTask.y }}
           onPointerEnter={cancelTaskHoverClose}
@@ -2044,6 +2118,76 @@ export function DiagramPreview({
               <dd>{hoverDetails.resources}</dd>
             </div>
           </dl>
+          {hoveredJira && (
+            <div className="hover-jira">
+              <span>Jira · {hoveredJira.issueKey}</span>
+              <dl>
+                {hoveredJira.summary && (
+                  <div>
+                    <dt>Issue</dt>
+                    <dd>{hoveredJira.summary}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Status</dt>
+                  <dd>
+                    {hoveredJira.statusName ??
+                      (hoveredJira.unavailable ? JIRA_UNAVAILABLE_MESSAGE[hoveredJira.unavailable] : "Unavailable")}
+                    {hoveredJira.assignee ? ` · ${hoveredJira.assignee}` : ""}
+                    {hoveredJira.blocked ? " · Blocked" : ""}
+                  </dd>
+                </div>
+                {(hoveredJira.issueType || hoveredJira.priority) && (
+                  <div>
+                    <dt>Type</dt>
+                    <dd>{[hoveredJira.issueType, hoveredJira.priority].filter(Boolean).join(" · ")}</dd>
+                  </div>
+                )}
+                {[
+                  { label: "Start", jira: hoveredJira.startDate, diagram: hoverDates?.start },
+                  { label: "Due", jira: hoveredJira.dueDate, diagram: hoverDates?.end },
+                ].map(({ label, jira, diagram }) => {
+                  if (!jira) return null;
+                  const drift = jiraDateDrift(jira, diagram);
+                  return (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>
+                        {jira}
+                        {drift ? (
+                          <em className="jira-drift">
+                            {" "}
+                            ⚠ diagram {Math.abs(drift)} day{Math.abs(drift) === 1 ? "" : "s"}{" "}
+                            {drift > 0 ? "earlier" : "later"}
+                          </em>
+                        ) : null}
+                      </dd>
+                    </div>
+                  );
+                })}
+                {hoveredJira.progressPercent !== undefined && (
+                  <div>
+                    <dt>Progress</dt>
+                    <dd>
+                      <progress max={100} value={hoveredJira.progressPercent} aria-label="Jira progress" />{" "}
+                      {hoveredJira.progressPercent}%
+                    </dd>
+                  </div>
+                )}
+                {hoveredJira.updated && (
+                  <div>
+                    <dt>Updated</dt>
+                    <dd>{formatAgo(hoveredJira.updated)}</dd>
+                  </div>
+                )}
+              </dl>
+              {(hoveredJira.unavailable === "not-connected" || hoveredJira.unavailable === "site-not-connected") && (
+                <div className="hover-links">
+                  <button onClick={jiraLinked.openConnect}>Connect Jira…</button>
+                </div>
+              )}
+            </div>
+          )}
           {hoverDetails.predecessors.length > 0 && (
             <div className="hover-links">
               <span>From</span>

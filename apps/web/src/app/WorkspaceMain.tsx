@@ -1,3 +1,4 @@
+import type { JiraDiagramStatus } from "@plantuml-studio/jira-integration";
 import { WorkspaceDiagramPane } from "./WorkspaceDiagramPane";
 import { MobileWorkList } from "../MobileWorkList";
 import { editTaskRow, editTaskRows, type TaskRowDraft } from "../gantt-task-table";
@@ -86,7 +87,7 @@ export interface WorkspaceMainProps {
         onScrollChange: (scroll: { left: number; top: number }, flushRecovery?: boolean) => void;
       }
     | undefined;
-  jiraDiagramStatuses: Map<string, "synchronized" | "local-changes">;
+  jiraDiagramStatuses: Map<string, JiraDiagramStatus>;
   lastDiagramFocus: RefObject<HTMLElement | SVGElement | undefined>;
   lastDiagramFocusSelector: RefObject<string | undefined>;
   linkedGanttTaskIds: Set<string>;

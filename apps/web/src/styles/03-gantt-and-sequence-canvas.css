@@ -363,6 +363,23 @@
   stroke-width: 2.5;
   stroke-dasharray: 5 3;
 }
+.diagram svg [data-jira-status="live-todo"] .bar {
+  stroke: #64748b;
+  stroke-width: 2;
+}
+.diagram svg [data-jira-status="live-progress"] .bar {
+  stroke: #2563eb;
+  stroke-width: 2.5;
+}
+.diagram svg [data-jira-status="live-done"] .bar {
+  stroke: #16a34a;
+  stroke-width: 2.5;
+}
+.diagram svg [data-jira-status="live-unknown"] .bar {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
 .diagram svg .schedule-ghost {
   fill: var(--accent);
   stroke: #fff;
@@ -744,4 +761,25 @@
   position: relative;
   min-height: 52px;
   background: repeating-linear-gradient(to right, transparent 0, transparent calc(14.28% - 1px), var(--line) 14.28%);
+}
+
+.hover-jira {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.hover-jira > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.hover-jira .jira-drift {
+  color: #b45309;
+  font-style: normal;
+}
+.hover-jira progress {
+  width: 80px;
+  height: 8px;
+  vertical-align: middle;
 }
