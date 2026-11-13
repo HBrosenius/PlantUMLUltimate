@@ -168,6 +168,10 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
   await dialog.getByRole("button", { name: "Apply changes" }).click();
 
   const editor = page.locator(".cm-content");
+  // Wait for the import to reach the editor before rewriting it. Reading too early (slow runners)
+  // returns the old text, the edit below then wipes the import, and no local changes exist to review.
+  await expect(dialog).toHaveCount(0);
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-05");
   const imported = await editor.innerText();
   await editor.fill(
     imported
@@ -177,6 +181,7 @@ test("publishes changed start and due dates to Jira", async ({ page }) => {
       )
       .replace("[jira_10001] ends 2026-09-05", "[jira_10001] ends 2026-09-06"),
   );
+  await expect(editor).toContainText("[jira_10001] ends 2026-09-06");
 
   await openJira(page);
   dialog = page.getByRole("dialog", { name: "Jira integration" });
