@@ -79,7 +79,7 @@ A threshold breach is a prompt to reproduce and profile, not an automatic correc
 
 ## Browser-level checks
 
-`npm run bench:browser` builds the production app and records five Chromium runs for startup to the first Gantt preview, loading the representative fixture, and opening its first task inspector. Record the median values here; do not add raw timing assertions to Playwright correctness tests.
+`npm run bench:browser` builds the production app and records five Chromium runs for startup to the first Gantt preview, loading the representative fixture, and opening its first task inspector. It also seeds a four-document Split session to record keystroke to preview latency (nine edits per run), first-visit and cached tab-switch time, and how many renderer boots seven tab switches cause. Set `BENCH_ORIGIN` to measure an already running server, such as a baseline build, instead of the built-in preview. Record the median values here; do not add raw timing assertions to Playwright correctness tests.
 
 | Browser workload               | Initial median | Review threshold |
 | ------------------------------ | -------------: | ---------------: |

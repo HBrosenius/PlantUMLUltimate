@@ -122,18 +122,21 @@ test("keeps dense charts selectable through the semantic overlay", async ({ page
   await expect(page.getByRole("complementary", { name: "Milestone inspector" })).toBeVisible();
 });
 
-test("unloads the heavy renderer in code-only view and reloads it for preview", async ({ page }) => {
+test("keeps the warm renderer in code-only view and reuses it for preview", async ({ page }) => {
   const renderer = page.locator('iframe[title="Local PlantUML renderer"]');
   await expect(renderer).toHaveCount(1);
   await expect(
     page.frameLocator('iframe[title="Local PlantUML renderer"]').locator('script[src*="viz-global"]'),
   ).toHaveCount(0);
+  const frame = await renderer.elementHandle();
   await page.getByRole("button", { name: "Code", exact: true }).click();
-  await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(0);
+  // Hiding the preview only pauses requests; the engine stays loaded for the next toggle.
   await expect(page.locator(".statusbar")).toContainText("Preview paused");
+  await expect(renderer).toHaveCount(1);
   await page.getByRole("button", { name: "Split", exact: true }).click();
-  await expect(page.locator('iframe[title="Local PlantUML renderer"]')).toHaveCount(1);
   await expect(page.locator(".diagram svg")).toBeVisible({ timeout: 20_000 });
+  await expect(renderer).toHaveCount(1);
+  expect(await frame!.evaluate((element) => element.isConnected)).toBe(true);
 });
 
 test("grows during resize and undo restores the duration", async ({ page }) => {

@@ -430,6 +430,7 @@ export function App() {
     hydrated && dialog?.kind !== "new-document" && viewMode !== "code",
     rendererLayoutEngineForDiagramKind(workspace.diagramKind),
     tabs.activeId,
+    { prewarm: hydrated },
   );
   const pwa = usePwa(
     hydrated &&

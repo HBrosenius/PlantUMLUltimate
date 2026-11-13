@@ -74,6 +74,30 @@ async function openSource(page: Page, kind: string, source: string) {
   await expect(page.getByText("Preview current", { exact: true })).toBeVisible();
 }
 
+/**
+ * The preview decorates a rendered SVG once the source analysis has caught up, which reinstalls the SVG a
+ * moment after the first install. Wait for that to finish before computing click points on it.
+ */
+async function waitForPreviewToSettle(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const root = document.querySelector(".diagram");
+        if (!root) return resolve();
+        let timer = window.setTimeout(done, 400);
+        const observer = new MutationObserver(() => {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(done, 400);
+        });
+        function done() {
+          observer.disconnect();
+          resolve();
+        }
+        observer.observe(root, { childList: true, subtree: true, attributes: true });
+      }),
+  );
+}
+
 // WebKit can report an anchor's content quad for its child text. Use native
 // SVG geometry and check the actual hit target before a real mouse click.
 async function clickSvgLink(page: Page, link: Locator, button: "left" | "middle" = "left") {
@@ -208,6 +232,7 @@ test("member links keep their own target and do not leak to an unlinked class", 
   const source = `@startuml\nclass Portal [[${outer}]] {\n  [[${inner} Member reference]]\n}\nclass API\nPortal --> API\n@enduml`;
   await openSource(page, "Class", source);
   await expect(page.locator(`svg a[href="${inner}"] text`).last()).toBeVisible();
+  await waitForPreviewToSettle(page);
   expect(await page.locator("svg a a").count()).toBe(0);
   expect(
     await page

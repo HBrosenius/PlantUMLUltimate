@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { optionShortcut } from "./platform-shortcuts";
 import type { DiagramKind } from "./model";
 
-export function AddMenu({
+function AddMenuView({
   diagramKind,
   disabled = false,
   inline = false,
@@ -412,3 +412,6 @@ export function AddMenu({
     </div>
   );
 }
+
+/** Skips re-rendering while its props are unchanged; callers pass stable handlers. */
+export const AddMenu = memo(AddMenuView);

@@ -442,3 +442,91 @@ The schedule-filter path sanitizes a further time ([DiagramPreview.tsx:519](../.
 - **Very large diagrams.** A generated 300-task Gantt produced no SVG within 60 s in the Stage harness, most likely the 4,096 px engine cap described in [large-document-next-steps-2026-10-11.md](large-document-next-steps-2026-10-11.md). It was not investigated. The 200-member project figures come from the existing benchmarks only.
 - **Collaboration** (Yjs, 90 KB lazy chunk), Jira sync, export (PNG/PDF), and Presentation mode.
 - **React Profiler timings.** Render counts came from a DevTools-hook shim, not per-component durations.
+
+## Implementation results (perf/roadmap)
+
+Roadmap items 1–13 were implemented on branch `perf/roadmap` (from `origin/main` at `2cf3e8e1`), one commit per item. "Before" numbers were measured on a production build of `origin/main` and "after" numbers on a production build of the branch, on the same machine and with the same harness as the investigation (`vite preview`, Playwright Chromium, fresh context, 1× CPU unless stated). Where the report already gave a baseline, the re-measured value matched it.
+
+### Status by item
+
+| #   | Item                   | Status  | Notes                                                                                                                                                                                                  |
+| --- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | U3 adaptive debounce   | Done    | The wait is 75–150 ms, never 0 (see "Behaviour changes"). Cache hits are served before any timer.                                                                                                      |
+| 2   | U2 worker recycling    | Done    | Recycle only after 500 renders **and** 20 s idle. Engine failures and cancellation still restart the worker.                                                                                           |
+| 3   | U4 stall timeout       | Done    | Fails after 15 s without bytes. Progress is shown in the preview notice. The startup timer now starts after the assets arrive.                                                                         |
+| 4   | U6 Stage polling       | Done    | `watchLayout`: ResizeObserver, MutationObserver, scroll, wheel, resize and fit events, plus one trailing call. No fallback polling.                                                                    |
+| 5   | F3 Brotli and caching  | Skipped | The site is GitHub Pages behind Cloudflare. No file in this repo can set response headers there (`_headers` is read only by Cloudflare Pages and Netlify). Exact dashboard settings are below.         |
+| 6   | F6 `bench:browser`     | Done    | Fixed, plus keystroke, first-visit and cached tab-switch timings and a renderer-boot counter. `BENCH_ORIGIN` measures a running server.                                                                |
+| 7   | U11 cache-first shell  | Done    | See the behaviour change below.                                                                                                                                                                        |
+| 8   | U1 long-lived renderer | Done    | One iframe and worker per hook for its whole life. Graphviz is added to the running worker on demand.                                                                                                  |
+| 9   | U5 earlier, cheaper    | Partial | Idle pre-warm done. Build-time engine transform and `Blob` hand-off not done (see below). Warm start is therefore unchanged, about 310 ms.                                                             |
+| 10  | U9 coalesced writes    | Done    | One write per animation frame (timer backup at 100 ms), flushed on `pagehide`, when hidden and on unmount.                                                                                             |
+| 11  | U10 last SVG kept      | Done    | A document's newest cached SVG stays visible (with the existing stale styling) while its changed source renders. No sized placeholder for never-rendered tabs.                                         |
+| 12  | F4 precache            | Partial | Hashed assets are precached with `cache: "force-cache"`, the shell with `cache: "reload"`. The precache was not trimmed (see below).                                                                   |
+| 13  | U8 part 1              | Partial | File, history and insert menus and the save and storage status are memoised behind stable handlers. The ribbon groups still render, and the cursor was **not** moved out of session state (see below). |
+
+### Before and after
+
+| Metric                                                                        | Before                        | After                                     | Item     |
+| ----------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------- | -------- |
+| Keystroke → preview, 4-task Gantt (median of 25)                              | 174 ms                        | 99 ms                                     | U3       |
+| Keystroke → preview, 100-task Gantt (median of 25)                            | 259 ms                        | 178 ms                                    | U3       |
+| Keystroke → preview, `bench:browser` (median of 45)                           | 178 ms                        | 103 ms                                    | U3, F6   |
+| Same, with a 0–30 ms floor (not shipped)                                      | 174 ms                        | 43 ms                                     | U3       |
+| Tab switch back to a rendered tab (cache hit)                                 | 173–191 ms                    | 40–51 ms                                  | U3, U1   |
+| Render #21 after load (4 / 100 tasks)                                         | 258 / 379 ms                  | 97 / 180 ms (no spike; same as render #2) | U2       |
+| Tab switch to a never-rendered tab, 3 distinct tabs (harness)                 | 290–351 ms                    | 139–193 ms                                | U1       |
+| First visit, `bench:browser` median (15 samples)                              | 316 ms                        | 175 ms                                    | U1       |
+| Renderer boots in 7 tab switches                                              | 8 `ready` messages (bench: 7) | 1 (bench: 0 after the initial boot)       | U1       |
+| Code → Split toggle                                                           | 65 ms                         | 29 ms                                     | U1       |
+| Frames with no diagram after switching back to a tab whose source changed     | 33–35 of 72                   | 0 of 72                                   | U10      |
+| Regular 3G, cold: engine fetch                                                | aborted at 10 s, retried      | one fetch, 7.1 s → 22.9 s, no retry       | U4       |
+| Create → first SVG after 2.5 s in the chooser, 1× CPU                         | 305 ms                        | 225 ms                                    | U5       |
+| Same, 4× CPU, Fast 4G, 4 s in the chooser                                     | 450 ms                        | 252 ms                                    | U5       |
+| Warm start to first SVG                                                       | 318 ms                        | 310 ms                                    | U5 (n/a) |
+| Stage idle main-thread time, 20 / 150 tasks                                   | 19 / 20 ms/s                  | 1 / 1 ms/s                                | U6       |
+| Stage idle with a selection, 20 / 150 tasks                                   | 39 / 65 ms/s                  | 2 / 2 ms/s                                | U6       |
+| Installed app reload while the document request hangs (12 s limit)            | never showed the editor       | editor in 114 ms                          | U11      |
+| `localStorage` writes while typing 20 characters (300-task document, 12 tabs) | 45                            | 31                                        | U9       |
+| Storage and serialization time for those writes                               | 7.4 + 6.0 ms                  | 5.1 + 4.6 ms                              | U9       |
+| Component renders per keystroke (dev build, 100-task Gantt, Split)            | 130                           | 104                                       | U8       |
+| Component renders for 10 keystrokes / 10 cursor moves / one drag              | 904 / 240 / 237               | 698 / 190 / 201                           | U8       |
+| `RibbonGroup` renders per keystroke                                           | 42                            | 42                                        | U8 (n/a) |
+| Cold-visit requests until the service worker has installed (engine requests)  | 109 (2)                       | 107 (1)                                   | F4       |
+| Entry chunk, raw / gzip                                                       | 1,015.9 / 307.6 KB            | 1,020.1 / 309.1 KB                        | (code)   |
+
+Notes on the numbers:
+
+- U4 on Regular 3G: the first SVG still appears at about 23.4 s in both builds because the harness's service-worker traffic is not throttled. The baseline only worked because the service worker had cached the engine meanwhile; the new build completes its own download, which is what a real 3G link needs.
+- U9 counts `setItem` calls, and each recovery save writes two keys. The remaining writes are navigation saves and unrelated writes.
+- U8: the `RibbonGroup` count is unchanged because the groups receive freshly built children from `App` on every render. They are cheap; the saving comes from the menus and status components.
+- F4: the second engine request in the baseline was a conditional revalidation with no body in the preview server. The precache bytes are the same (3.0 MB gzip), so the real-world saving depends on the production cache headers (see F3).
+
+### Behaviour changes to know about
+
+- **Debounce floor.** The first version of U3 sent the first edit after a pause immediately (0 ms) and gave 43 ms keystroke latency. With a floor below 45 ms, the Gantt inspector test "edits pauses and links with structured inspector rows" failed in 6 of 10 runs: a preview update landed at about the same moment as the first `input` event of the next field, and React never ran that field's `onChange`, so the typed link label was lost. Adding instrumentation made the failure disappear, so it was **not root-caused**. The old 150 ms wait kept the update outside the test's window, so the same race can exist in the old code at a different offset. Floors of 45, 60, 75 and 100 ms passed 10 of 10 runs. The shipped floor is 75 ms (while typing: half the last render time, 75–150 ms). If this can be reproduced by a person, look at the inspector's field state and the preview's reinstall of the SVG.
+- **Second SVG install.** A faster first render exposes that the preview installs the SVG a second time about 140 ms later, when the deferred source analysis catches up. The browser test for member links raced with it, so it now waits for the preview to settle. No app code changed.
+- **Browser tests that encoded the old lifecycle were updated, not removed:** `editor-helpers.ts` no longer asserts that no renderer frame exists while the chooser is open (the renderer is now pre-warmed), the code-only view test now asserts the frame is kept and reused, and the render-cancellation and notice tests assert that switching tabs cancels the held render inside the same frame.
+- **U11.** An installed app now opens the cached shell immediately and checks for a new service worker in the background. A new version installs with its full precache and is offered through the existing update prompt; before, a reload on a healthy network silently picked up the newest HTML. The shell is fetched past the HTTP cache at install (`cache: "reload"`) so a stale copy cannot become the cached shell.
+- **U1.** The renderer (about 7 MB of engine, plus Graphviz after the first Graphviz diagram) now stays loaded for the whole session instead of being freed in Code view. Dialogs that call `useRenderer` still own their own renderer for their own lifetime. A cancelled or failed render still restarts only the worker, and `retry()` still rebuilds the frame. Memory growth of the long-lived worker was not measured; the 500-render idle recycle is the only guard.
+
+### Not done, and why
+
+- **F3.** Apply these in the Cloudflare dashboard for `plantuml.brosenius.se` (nothing in this repo can):
+  1. Rules → Transform Rules → Modify Response Header: when the URI path starts with `/assets/`, set `Cache-Control` to `public, max-age=31536000, immutable`. Hashed asset names never change content. Do not apply it to `/`, `/index.html`, `/service-worker.js`, `/manifest.webmanifest`, `/openiconic.js`, `/theme-init.js` or the icons, which are not fingerprinted.
+  2. Speed → Optimization → Content Optimization → Brotli: on. If `curl -sI -H 'Accept-Encoding: br' https://plantuml.brosenius.se/assets/<engine>.js` still answers `content-encoding: gzip`, add Rules → Compression Rules for hostname `plantuml.brosenius.se` and file extensions `js`, `css`, `html`, `svg`, `json`, with Brotli first and Gzip second. GitHub Pages sends gzip itself and Cloudflare may pass that through unchanged; this could not be tested from here.
+  3. Verify afterwards with `curl -sI` on an asset (expect `cache-control` and `content-encoding: br`) and by reloading the installed app.
+- **U5 part 2 (build-time transform, `Blob` hand-off).** It needs a Vite plugin that emits the pre-transformed engine under its own content hash (so a changed transform cannot be served from an old hash), a matching dev-server path, and a changed `renderer-assets` contract. That is the riskiest part of the item. The idle pre-warm covers most of what users feel: the engine is ready before the chooser closes.
+- **F4 trimming.** The 45 theme chunks are only about 26 KB gzip in total. Dropping them from the precache saves almost no bytes and would end offline use of themes that were never opened. A two-phase precache that keeps offline use needs a race-free offline test and was left out.
+- **U8 cursor.** `onCursorChange` writes to session state, which also drives per-document restore on tab switch and the navigation save on page close. Moving it to a store means writing the outgoing document's cursor before every tab switch and flushing it on `pagehide`; a throttled write could otherwise attribute the cursor to the wrong document. Not safe to rush. The status bar and `App` still re-render on cursor moves.
+- **U10 placeholder.** A tab that was never rendered still shows an empty pane until its first render (about 175 ms). A sized placeholder needs the document's last SVG size, which is not stored.
+
+### Tests and checks
+
+- Added unit tests: `render-debounce`, `renderer-frame` (the real frame bootstrap run against a fake worker: lifetime, recycle, cancel, engine failure, Graphviz hand-off), `stall-fetch`, `layout-watch`, `coalesced-writer`, `use-stable-handlers`, `service-worker` (the generated worker run against in-memory Cache Storage), and new cases in `use-renderer.test.tsx` and `use-persisted-workspace.navigation.test.tsx`.
+- `npx vitest run apps/web/src packages`: 261 files, 2,604 tests passed.
+- `npm run typecheck`, `npm run format:check` and `npm run build`: pass. `npm run lint`: 0 errors and 1 existing warning (an unused directive in `apps/collaboration-worker`).
+- Playwright Chromium, whole suite: 562 passed, 3 skipped, 0 failed (16.6 min).
+- Playwright Firefox, 16 specs covering rendering, recovery, tabs, Stage and hyperlinks: 89 passed, 3 skipped, 0 failed.
+- `npm run test:e2e:pwa` (Chromium and WebKit): 6 passed.
+- Playwright WebKit, the same 16 specs as Firefox: 86 passed, 3 skipped, 3 failed (`audit-remediation:148`, `navigation-recovery:32` Sequence, `save-status:87`). All three pass when run alone on the branch. Running three of the spec files in full gave 2 different failures on the branch (`audit-remediation:117`, `navigation-recovery:32` Class) and 2 on `origin/main` (`audit-remediation:117`, `navigation-recovery:32` Use Case), each run taking about 18 minutes. Local WebKit is unreliable for long runs on this machine, and these failures are not attributed to the change.

@@ -106,16 +106,42 @@ Object.assign(globalThis, {
 
 let renderToString:
   ((lines: string[], done: (svg: string) => void, fail: (error: unknown) => void) => void) | undefined;
+let graphvizLoaded = false;
+// The renderer frame hands every script over as a blob: URL it created from the bundled asset text.
+// Refuse anything else so a message can never make the worker load a remote script.
+function trustedScriptUrl(url: unknown): string {
+  if (typeof url !== "string" || !url.startsWith("blob:")) throw new Error("Renderer scripts must be blob: URLs");
+  return url;
+}
+// The engine looks Graphviz up when it lays out a graph, so it can be added after the engine loaded.
+function loadGraphviz(url: unknown) {
+  if (graphvizLoaded || !url) return;
+  const script = trustedScriptUrl(url);
+  Object.defineProperty(document, "currentScript", { value: { tagName: "SCRIPT", src: script }, configurable: true });
+  importScripts(script);
+  graphvizLoaded = true;
+}
 self.onmessage = async (event: MessageEvent) => {
   const request = event.data;
   if (request.type === "initialize") {
     try {
-      Object.defineProperty(document, "currentScript", { value: { tagName: "SCRIPT", src: request.graphviz } });
-      if (request.layoutEngine === "graphviz") importScripts(request.graphviz);
-      importScripts(request.engine, request.icons);
+      Object.defineProperty(document, "currentScript", {
+        value: { tagName: "SCRIPT", src: request.graphviz },
+        configurable: true,
+      });
+      loadGraphviz(request.graphviz);
+      importScripts(trustedScriptUrl(request.engine), trustedScriptUrl(request.icons));
       renderToString = (globalThis as typeof globalThis & { __plantumlRenderToString: typeof renderToString })
         .__plantumlRenderToString;
       self.postMessage({ type: "ready", nativeTextMetrics: nativeMetrics });
+    } catch (error) {
+      self.postMessage({ type: "bootstrap-error", error: String(error) });
+    }
+    return;
+  }
+  if (request.type === "load-graphviz") {
+    try {
+      loadGraphviz(request.graphviz);
     } catch (error) {
       self.postMessage({ type: "bootstrap-error", error: String(error) });
     }

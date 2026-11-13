@@ -16,7 +16,24 @@ export const rendererFrameBootstrap = `
     let initialized = false;
     let completedRenders = 0;
     let configuration;
-    const stop = () => { worker?.terminate(); worker = undefined; ready = false; nextRequest = undefined; };
+    // The engine stays warm for the whole session. A long-lived worker is only replaced, while idle,
+    // after many renders (to bound engine memory growth); never in the middle of typing.
+    const RECYCLE_AFTER_RENDERS = 500;
+    const RECYCLE_IDLE_MS = 20000;
+    let recycleTimer;
+    const cancelRecycle = () => { clearTimeout(recycleTimer); recycleTimer = undefined; };
+    const scheduleRecycle = () => {
+      cancelRecycle();
+      if (completedRenders < RECYCLE_AFTER_RENDERS || !worker) return;
+      recycleTimer = setTimeout(() => {
+        recycleTimer = undefined;
+        if (nextRequest || !worker || !configuration) return;
+        stop();
+        completedRenders = 0;
+        try { start(); } catch { /* The next render can retry worker creation. */ }
+      }, RECYCLE_IDLE_MS);
+    };
+    const stop = () => { cancelRecycle(); worker?.terminate(); worker = undefined; ready = false; nextRequest = undefined; };
     const start = () => {
       worker = new Worker(configuration.worker);
       const activeWorker = worker;
@@ -31,12 +48,15 @@ export const rendererFrameBootstrap = `
         } else {
           send(message);
           nextRequest = undefined;
-          // Keep the engine warm within one document; cap its lifetime and discard engine
-          // failures. A diagram the engine rendered as a syntax error is an ordinary result
-          // for the worker, so the common mid-edit invalid line keeps the warm engine.
-          if (message.type !== "result" || (message.error && !message.recoverable) || ++completedRenders >= 20) {
+          // Keep the engine warm and discard it after engine failures. A diagram the engine
+          // rendered as a syntax error is an ordinary result for the worker, so the common
+          // mid-edit invalid line keeps the warm engine.
+          if (message.type !== "result" || (message.error && !message.recoverable)) {
             stop();
             completedRenders = 0;
+          } else {
+            completedRenders += 1;
+            scheduleRecycle();
           }
           if (!worker && message.type === "result") {
             try { start(); } catch { /* The next render can retry worker creation. */ }
@@ -56,6 +76,15 @@ export const rendererFrameBootstrap = `
           } catch (error) { send({ type: "bootstrap-error", error: String(error) }); }
           return;
         }
+        if (request.type === "add-graphviz") {
+          // Graphviz joins the running engine the first time a diagram needs it; no worker restart.
+          if (!configuration || configuration.graphviz) return;
+          try {
+            configuration.graphviz = scriptUrl(request.graphviz);
+            worker?.postMessage({ type: "load-graphviz", graphviz: configuration.graphviz });
+          } catch (error) { send({ type: "bootstrap-error", error: String(error) }); }
+          return;
+        }
         if (request.type === "dispose") { stop(); send({ type: "disposed" }); return; }
         if (request.type === "cancel") {
           if (nextRequest?.requestId === request.requestId) {
@@ -68,6 +97,7 @@ export const rendererFrameBootstrap = `
         }
         if (request.type !== "render" || !configuration) return;
         nextRequest = request;
+        cancelRecycle();
         if (!worker) start();
         else if (ready) worker.postMessage(request, request.fonts ? [request.fonts.metrics.buffer] : []);
     });

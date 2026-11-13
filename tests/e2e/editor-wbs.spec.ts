@@ -77,6 +77,9 @@ test("creates and visually edits a WBS diagram", async ({ page, browserName }) =
   await inspector.getByLabel("Text color", { exact: true }).fill("DarkBlue");
   await inspector.getByLabel("Text color", { exact: true }).blur();
   await expect(page.locator(".cm-content")).toContainText("**[#LightBlue] <color:#DarkBlue>Experience design</color>");
+  // Measure the nodes only once the preview for that edit has been installed; a box taken from the
+  // previous SVG goes stale (or null) when the new one replaces it mid-drag.
+  await waitForDiagramRender(page);
   const movedDesign = page.locator("text[data-wbs-node-id]", { hasText: "Experience design" }).first();
   const discovery = page.locator("text[data-wbs-node-id]", { hasText: "Discovery" }).first();
   const from = await movedDesign.boundingBox();
