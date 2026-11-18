@@ -40,4 +40,17 @@ describe("decorateJiraLinkMarkers", () => {
     expect(out.querySelector(".jira-link-marker circle")).not.toBeNull();
     expect(out.querySelector(".jira-link-marker text")).toBeNull();
   });
+
+  it("keeps markers clear of the resize and dependency handles", () => {
+    const out = new DOMParser().parseFromString(decorateJiraLinkMarkers(svg, [marker], true), "image/svg+xml");
+    const [badge, pill] = [...out.querySelectorAll(".jira-link-marker > rect")];
+    // Bar spans x 50..90; the end handle and dependency circle reach about 13 units past each end.
+    expect(Number(badge?.getAttribute("x")) + Number(badge?.getAttribute("width"))).toBeLessThanOrEqual(50 - 13);
+    expect(Number(pill?.getAttribute("x"))).toBeGreaterThanOrEqual(90 + 13);
+  });
+
+  it("is drawn first in the task group so handles stay on top", () => {
+    const out = new DOMParser().parseFromString(decorateJiraLinkMarkers(svg, [marker], false), "image/svg+xml");
+    expect(out.querySelector('[data-task-id="a"]')?.firstElementChild?.getAttribute("class")).toBe("jira-link-marker");
+  });
 });

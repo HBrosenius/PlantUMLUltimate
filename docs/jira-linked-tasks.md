@@ -40,6 +40,16 @@ link must match a connected site exactly. When it does not, the task shows why i
 | Hover or keyboard focus | The normal task card (dates, duration, slack, links) gets a **Jira** section: issue summary, status and assignee, a Blocked note, type and priority, the Jira start and due dates (with a warning when the diagram disagrees), progress, and last update. Rows Jira does not provide are left out. It opens in the same place and closes the same way as for any task. |
 | Exports                 | SVG, PNG, PDF and copied images include the badges (and key pills when the toggle is on). The task card is interactive only.                                                                                                                                                                                                                                           |
 
+## Working with a linked task
+
+- **Click the bar or the task name** to select the task, exactly as for any other task. Its resize and
+  dependency handles appear, and the task card and inspector work as usual.
+- **Alt-click the task** (or press Enter on the focused link) to open the link menu (Open settings,
+  Open URL). The task card's Jira section also has an **Open in Jira** button. URLs always open in a
+  separate tab.
+- The badge and the optional issue-key pill sit a little away from the bar ends, underneath the handles,
+  so they never hide or block them.
+
 ## When the status is unavailable
 
 The badge is a dashed grey `?` and the Jira section of the task card gives the reason:

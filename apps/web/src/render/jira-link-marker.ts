@@ -11,6 +11,10 @@ export interface JiraLinkMarker {
   statusName?: string | undefined;
 }
 
+// A selected task shows a resize handle (8 wide) and a dependency circle (centre 8 out, radius 5)
+// at each end. Keep markers clear of that zone so they never hide or crowd the handles.
+const HANDLE_CLEARANCE = 15;
+
 const STYLE: Record<string, { color: string; label: string }> = {
   "live-todo": { color: "#64748b", label: "To Do" },
   "live-progress": { color: "#2563eb", label: "In Progress" },
@@ -110,8 +114,8 @@ export function decorateJiraLinkMarkers(
     const { parent, x, y, width, height } = placement;
     const size = Math.max(12, Math.min(16, height));
     const top = y + (height - size) / 2;
-    const roomOnLeft = x - size - 2 >= 0;
-    const badgeX = roomOnLeft ? x - size - 2 : x + width + 2;
+    const roomOnLeft = x - size - HANDLE_CLEARANCE >= 0;
+    const badgeX = roomOnLeft ? x - size - HANDLE_CLEARANCE : x + width + HANDLE_CLEARANCE;
     const badge = element(document, "g", { class: "jira-link-marker", "pointer-events": "none" });
     badge.append(
       element(document, "rect", {
@@ -131,7 +135,7 @@ export function decorateJiraLinkMarkers(
     title.textContent = `${marker.issueKey} · ${marker.statusName ?? style.label}`;
     badge.append(title);
     if (showKeys) {
-      const pillX = roomOnLeft ? x + width + 4 : badgeX + size + 3;
+      const pillX = roomOnLeft ? x + width + HANDLE_CLEARANCE : badgeX + size + 3;
       const pillWidth = Math.max(24, marker.issueKey.length * 6 + 10);
       badge.append(
         element(document, "rect", {
@@ -155,7 +159,9 @@ export function decorateJiraLinkMarkers(
       key.textContent = marker.issueKey;
       badge.append(key);
     }
-    parent.append(badge);
+    // In a task group, go first so the (selected-only) handles draw on top of the marker.
+    if (parent.hasAttribute("data-task-id")) parent.prepend(badge);
+    else parent.append(badge);
     changed = true;
   }
   return changed ? new XMLSerializer().serializeToString(root) : svg;
