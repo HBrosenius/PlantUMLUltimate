@@ -594,3 +594,78 @@ test("opens the Link tab for the selected task from the task inspector", async (
   await expect(dialog.getByRole("tab", { name: "Link issue" })).toHaveAttribute("aria-selected", "true");
   await expect(dialog.getByLabel("Task")).toHaveValue("second");
 });
+
+test("a Jira-linked task selects on any click, resizes, and still offers its link", async ({ page }) => {
+  await mockJira(page);
+  await openGantt(page);
+  await setSource(
+    page,
+    "@startgantt\nProject starts 2026-09-01\n[Build] as [build] starts 2026-09-02 and lasts 4 days\n[build] links to [[https://acme.atlassian.net/browse/APP-123 APP-123]]\n@endgantt",
+  );
+  await waitForDiagramRender(page);
+  await expect(page.locator(".diagram svg .jira-link-marker")).toHaveCount(1);
+  // Keys on puts a pill right behind the bar's end, where the resize handle appears.
+  await page.getByLabel("Show issue keys").check();
+  await page.evaluate(() => {
+    (window as typeof window & { opened?: unknown[] }).opened = [];
+    window.open = (...args) => {
+      (window as typeof window & { opened?: unknown[] }).opened!.push(args);
+      return null;
+    };
+  });
+
+  const selected = page.locator(".diagram");
+  // WebKit reports a different box for SVG text, so click the centre of the native SVG geometry.
+  const clickAt = async (locator: ReturnType<Page["locator"]>) => {
+    let point = { x: 0, y: 0 };
+    await expect(async () => {
+      await locator.scrollIntoViewIfNeeded({ timeout: 2000 });
+      point = await locator.evaluate((element) => {
+        const graphic = element as SVGGraphicsElement;
+        const box = graphic.getBBox();
+        const matrix = graphic.getScreenCTM();
+        if (!matrix) throw new Error("SVG element is not laid out");
+        const p = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(matrix);
+        return { x: p.x, y: p.y };
+      });
+    }).toPass({ timeout: 10_000 });
+    await page.mouse.click(point.x, point.y);
+  };
+  // A plain click selects the task whether it lands on the bar or on the label (it is all one link),
+  // and never opens the link menu in the way.
+  await clickAt(page.locator('.diagram svg rect[data-visual-task-id="build"]').first());
+  await expect(page.locator(".diagram-link-menu")).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-selected-task", "build");
+  await page.keyboard.press("Escape");
+  await expect(selected).not.toHaveAttribute("data-selected-task", "build");
+  await clickAt(page.locator('.diagram svg text[data-visual-task-id="build"]').first());
+  await expect(page.locator(".diagram-link-menu")).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-selected-task", "build");
+
+  // The end handle is reachable and resizing works.
+  const handle = page.locator('.diagram svg [data-task-id="build"] .resize-handle');
+  const handleBox = (await handle.boundingBox())!;
+  const x = handleBox.x + handleBox.width / 2;
+  const y = handleBox.y + handleBox.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => readEditorSource(page)).not.toContain("lasts 4 days");
+  await waitForDiagramRender(page); // the resize re-renders the chart; clicking mid-render misses the target
+
+  // Alt-click opens the link menu.
+  await page.keyboard.press("Escape");
+  await page.keyboard.down("Alt");
+  await clickAt(page.locator('.diagram svg a[href*="APP-123"] text').last());
+  await page.keyboard.up("Alt");
+  await expect(page.locator(".diagram-link-menu")).toContainText("APP-123");
+  await page.keyboard.press("Escape");
+
+  // The task card also opens the issue, in a separate tab.
+  await page.locator('.diagram svg [data-task-id="build"]').first().focus();
+  await page.getByLabel("Task details for Build").getByRole("button", { name: "Open in Jira" }).click();
+  expect(await page.evaluate(() => (window as typeof window & { opened?: unknown[] }).opened)).toEqual([
+    ["https://acme.atlassian.net/browse/APP-123", "_blank", "noopener,noreferrer"],
+  ]);
+});

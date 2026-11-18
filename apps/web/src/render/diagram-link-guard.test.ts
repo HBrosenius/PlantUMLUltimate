@@ -31,7 +31,8 @@ describe("diagram link guard", () => {
     text.closest("svg")!.append(task);
     const select = vi.fn((event: Event) => expect(event.defaultPrevented).toBe(true));
     task.addEventListener("click", select);
-    text.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    // On a Gantt task the link needs Alt-click; a plain click selects the task.
+    text.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, altKey: true }));
     const menu = document.querySelector('[role="menu"]')!;
     expect(menu.textContent).toContain("https://example.com/spec");
     expect(open).not.toHaveBeenCalled();
@@ -174,5 +175,48 @@ describe("diagram link guard", () => {
     link.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
     expect(open).not.toHaveBeenCalled();
+  });
+});
+
+describe("linked Gantt tasks", () => {
+  function linkedTask() {
+    const svg = document.createElementNS(SVG, "svg");
+    const anchor = document.createElementNS(SVG, "a");
+    anchor.setAttribute("href", "https://example.com/issue");
+    const bar = document.createElementNS(SVG, "rect");
+    bar.setAttribute("data-visual-task-id", "build");
+    const label = document.createElementNS(SVG, "text");
+    label.setAttribute("data-visual-task-id", "build");
+    anchor.append(bar, label);
+    const task = document.createElementNS(SVG, "g");
+    task.setAttribute("data-task-id", "build");
+    svg.append(anchor, task);
+    document.body.append(svg);
+    return { bar, label, task };
+  }
+
+  it("selects the task on a plain click on the bar or the label, without opening the link menu", () => {
+    uninstall = installDiagramLinkGuard(document, undefined, vi.fn());
+    const { bar, label, task } = linkedTask();
+    const select = vi.fn();
+    task.addEventListener("click", select);
+    bar.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true }));
+    label.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(select).toHaveBeenCalledTimes(2);
+    expect((select.mock.calls[0]![0] as MouseEvent).shiftKey).toBe(true);
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("offers the link on Alt-click and on Enter", () => {
+    uninstall = installDiagramLinkGuard(document, undefined, vi.fn());
+    const { label, task } = linkedTask();
+    const select = vi.fn();
+    task.addEventListener("click", select);
+    label.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, altKey: true }));
+    expect(document.querySelector('[role="menu"]')?.textContent).toContain("https://example.com/issue");
+    expect(select).not.toHaveBeenCalled();
+    document.querySelector('[role="menu"]')!.remove();
+    label.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    expect(document.querySelector('[role="menu"]')).not.toBeNull();
   });
 });

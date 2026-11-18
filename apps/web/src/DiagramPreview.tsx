@@ -2216,11 +2216,16 @@ export function DiagramPreview({
                   </div>
                 )}
               </dl>
-              {(hoveredJira.unavailable === "not-connected" || hoveredJira.unavailable === "site-not-connected") && (
-                <div className="hover-links">
-                  <button onClick={jiraLinked.openConnect}>Connect Jira…</button>
-                </div>
-              )}
+              <div className="hover-links">
+                <button type="button" onClick={() => window.open(hoveredJira.url, "_blank", "noopener,noreferrer")}>
+                  Open in Jira
+                </button>
+                {(hoveredJira.unavailable === "not-connected" || hoveredJira.unavailable === "site-not-connected") && (
+                  <button type="button" onClick={jiraLinked.openConnect}>
+                    Connect Jira…
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </aside>
