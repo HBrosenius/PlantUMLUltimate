@@ -214,7 +214,7 @@ const coveragePlugins: Plugin[] = process.env.E2E_COVERAGE
       istanbul({
         cwd: fileURLToPath(new URL("../..", import.meta.url)),
         include: ["apps/web/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
-        exclude: ["**/*.test.*", "**/*.d.ts", "**/node_modules/**"],
+        exclude: ["**/*.test.*", "**/*.d.ts", "**/node_modules/**", "**/*.worker.ts"],
         extension: [".ts", ".tsx"],
         requireEnv: false,
       }) as Plugin,

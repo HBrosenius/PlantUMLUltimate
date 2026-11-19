@@ -19,7 +19,9 @@ export default defineConfig({
       reportsDirectory: "coverage/unit",
       reporter: ["text-summary", "json"],
       include: ["apps/web/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
-      exclude: ["**/*.test.*", "**/*.d.ts", "**/*.bench.*"],
+      // Web Worker entry points run in a worker thread, where neither the unit runner nor the
+      // browser run's page-side collection can read coverage, so they would only show as 0%.
+      exclude: ["**/*.test.*", "**/*.d.ts", "**/*.bench.*", "**/*.worker.ts"],
     },
   },
 });

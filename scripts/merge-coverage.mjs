@@ -38,7 +38,12 @@ const rooted = (file) => {
 const normalize = (map) => {
   const data = JSON.parse(JSON.stringify(map.toJSON()));
   return libCoverage.createCoverageMap(
-    Object.fromEntries(Object.values(data).map((file) => [rooted(file.path), { ...file, path: rooted(file.path) }])),
+    Object.fromEntries(
+      Object.values(data)
+        // Worker entry points run in a worker thread whose coverage is never collected.
+        .filter((file) => !/\.worker\.ts$/.test(file.path))
+        .map((file) => [rooted(file.path), { ...file, path: rooted(file.path) }]),
+    ),
   );
 };
 const remap = async (map) => normalize(await libSourceMaps.createSourceMapStore().transformCoverage(map));
