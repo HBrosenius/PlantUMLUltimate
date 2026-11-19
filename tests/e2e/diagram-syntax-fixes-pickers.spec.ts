@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor } from "./editor-helpers";
 
 test("compares alternative task repairs and applies only the chosen reference", async ({ page }) => {

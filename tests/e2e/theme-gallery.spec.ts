@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readFileSync } from "node:fs";
 import { prepareEditor, readEditorSource } from "./editor-helpers";
 

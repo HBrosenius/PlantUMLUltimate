@@ -97,6 +97,19 @@ describe("Gantt task completion", () => {
     expect(output.querySelector("a a")).toBeNull();
   });
 
+  it("keeps the done check on the task's own bar when a distant shape shares its row", () => {
+    const tasks = parseGantt("@startgantt\n[Ready] lasts 4 days\n[Ready] is 100% completed\n@endgantt").document.tasks;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text x="10" y="30">Ready</text>
+      <rect x="120" y="20" width="60" height="13" fill="#aaa" />
+      <rect x="200" y="20" width="40" height="13" fill="#aaa" />
+      <rect x="900" y="20" width="200" height="13" fill="none" />
+    </svg>`;
+    const result = new DOMParser().parseFromString(addCanonicalGanttOverlay(svg, tasks), "image/svg+xml");
+    const circle = result.querySelector(`[data-completion-marker="${tasks[0]!.id}"] circle`);
+    expect(Number(circle?.getAttribute("cx"))).toBeLessThan(240);
+  });
+
   it("marks 100% tasks and fills only the completed portion of partial tasks", () => {
     const tasks = parseGantt(`@startgantt
 [Architecture] lasts 4 days

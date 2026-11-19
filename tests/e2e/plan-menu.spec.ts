@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { openRibbonGroup, prepareEditor, readEditorSource } from "./editor-helpers";
 
 test("Plan opens existing Gantt tools and restores command focus", async ({ page }) => {

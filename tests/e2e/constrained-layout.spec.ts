@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, setSource, source } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("keeps long WBS outline results and footer inside the viewport", async ({ page }, testInfo) => {
   await prepareEditor(page);

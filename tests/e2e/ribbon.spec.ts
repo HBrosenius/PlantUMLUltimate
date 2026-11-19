@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { prepareEditor, fillSource, readEditorSource, source } from "./editor-helpers";
 
 async function category(page: Page, name: string) {

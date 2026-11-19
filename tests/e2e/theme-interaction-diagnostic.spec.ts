@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { PLANTUML_THEMES } from "../../apps/web/src/plantuml-theme";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 

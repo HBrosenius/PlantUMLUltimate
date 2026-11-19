@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 import { fillSource, readEditorSource } from "./editor-helpers";
 
 test.describe.configure({ timeout: 90_000 });

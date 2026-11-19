@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 test("opens a PlantUML file delivered by the installed app launch queue", async ({ page }) => {
   test.skip(!process.env.PWA_E2E, "Requires the production preview server");

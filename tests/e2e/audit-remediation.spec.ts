@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./coverage";
 
 const key = "plantuml-studio.workspace.recovery.v6";
 const source = (label: string) => `@startgantt\nProject starts 2026-09-01\n[${label}] lasts 2 days\n@endgantt`;

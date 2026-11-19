@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { openRibbonGroup, prepareEditor } from "./editor-helpers";
 
 for (const width of [614, 1280, 1440]) {

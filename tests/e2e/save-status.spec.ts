@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor, source } from "./editor-helpers";
 
 test("new, saving, written, changed and recovered documents show the correct Save state", async ({

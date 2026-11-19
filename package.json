@@ -11,6 +11,8 @@
     "test": "npm run test:unit && npm run test:collaboration && npm run test:integration",
     "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'apps/collaboration-worker/**' --exclude 'apps/integration-worker/**' --exclude '.claude/**' --exclude 'graft/**'",
     "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage",
+    "test:coverage:e2e": "E2E_COVERAGE=1 playwright test --project=chromium",
+    "coverage:report": "node scripts/merge-coverage.mjs",
     "test:collaboration": "npm --workspace @plantuml-studio/collaboration-worker run test",
     "test:integration": "npm --workspace @plantuml-studio/integration-worker run test",
     "test:e2e": "playwright test",
@@ -41,16 +43,26 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
+    "@types/istanbul-lib-coverage": "^2.0.6",
+    "@types/istanbul-lib-report": "^3.0.3",
+    "@types/istanbul-lib-source-maps": "^4.0.4",
+    "@types/istanbul-reports": "^3.0.4",
+    "@vitest/coverage-istanbul": "^4.1.12",
     "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.11.0",
+    "istanbul-lib-coverage": "^3.2.2",
+    "istanbul-lib-report": "^3.0.1",
+    "istanbul-lib-source-maps": "^5.0.6",
+    "istanbul-reports": "^3.2.0",
     "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.67.0",
+    "vite-plugin-istanbul": "^9.0.1",
     "vitest": "^4.1.12"
   },
   "allowScripts": {
@@ -62,6 +74,10 @@
     "zod": "4.6.7",
     "miniflare": {
       "undici": "7.30.1"
+    },
+    "test-exclude": {
+      "glob": "^14.0.6",
+      "minimatch": "^11.0.1"
     },
     "@cloudflare/vitest-plugin": {
       "zod": "4.6.7"

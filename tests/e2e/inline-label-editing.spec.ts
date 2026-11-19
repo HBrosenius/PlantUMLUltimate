@@ -1,5 +1,5 @@
 import { auditScreenshot } from "./audit-screenshot";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./coverage";
 import { prepareEditor, setSource, readEditorSource, waitForDiagramRender } from "./editor-helpers";
 
 const cases = [

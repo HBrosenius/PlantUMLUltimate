@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import istanbul from "vite-plugin-istanbul";
 import { rendererFrameBootstrap } from "./src/render/renderer-frame";
 
 const appVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version as string;
@@ -205,6 +206,21 @@ export function jiraDevelopmentCookieToWorker(header: string): string {
   return header.replace(/(^|;\s*)(jira_session|jira_oauth_session)=/g, "$1__Host-$2=");
 }
 
+// Browser-test coverage (`npm run test:coverage:e2e`): instrument the app's own sources so the
+// Playwright run can read `window.__coverage__`. Off unless E2E_COVERAGE is set, so normal dev
+// servers and builds are untouched.
+const coveragePlugins: Plugin[] = process.env.E2E_COVERAGE
+  ? [
+      istanbul({
+        cwd: fileURLToPath(new URL("../..", import.meta.url)),
+        include: ["apps/web/src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
+        exclude: ["**/*.test.*", "**/*.d.ts", "**/node_modules/**", "**/*.worker.ts"],
+        extension: [".ts", ".tsx"],
+        requireEnv: false,
+      }) as Plugin,
+    ]
+  : [];
+
 export default defineConfig({
   base: "/",
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
@@ -230,6 +246,7 @@ export default defineConfig({
     openIconicAsset(),
     isolatedRendererAssets(),
     pwaServiceWorker(),
+    ...coveragePlugins,
   ],
   server: {
     proxy: {

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor, setSource, source } from "./editor-helpers";
 
 test("selects several tasks to move, copy, paste and delete them together", async ({ page }) => {

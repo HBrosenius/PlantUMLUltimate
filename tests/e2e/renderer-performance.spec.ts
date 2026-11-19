@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor } from "./editor-helpers";
 
 test("renders with the font atlas when worker canvas is unavailable", async ({ page }) => {

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { prepareEditor } from "./editor-helpers";
 
 test("refuses to overwrite a project file changed elsewhere", async ({ page }) => {

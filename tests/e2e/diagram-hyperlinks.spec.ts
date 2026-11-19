@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test, type Page, type Locator } from "@playwright/test";
+import { expect, test, type Page, type Locator } from "./coverage";
 import { prepareEditor, fillSource, readEditorSource } from "./editor-helpers";
 
 const cases = [

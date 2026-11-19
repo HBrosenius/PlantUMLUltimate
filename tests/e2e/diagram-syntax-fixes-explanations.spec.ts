@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor } from "./editor-helpers";
 
 test("explains an ambiguous quote error and reveals it for manual editing", async ({ page }) => {

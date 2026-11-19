@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { fillSource, prepareEditor } from "./editor-helpers";
 
 test("Problems routes errors and suggestions through explanations and previews", async ({ page }) => {

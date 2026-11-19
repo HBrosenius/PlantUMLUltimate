@@ -1,6 +1,6 @@
 import { auditScreenshot } from "./audit-screenshot";
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 const source =
   "@startgantt\nProject starts 2026-10-02\n[Build] as [b] lasts 2 days\n[Test] as [t] lasts 1 day\n@endgantt";
 async function openPresentation(page: import("@playwright/test").Page) {

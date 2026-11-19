@@ -1,5 +1,5 @@
 import { openRibbonGroup, fillSource, prepareEditor, readEditorSource, source } from "./editor-helpers";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 
 const key = "plantuml-studio.workspace.recovery.v6";
 const first = source("[Unsaved delivery] lasts 3 days");

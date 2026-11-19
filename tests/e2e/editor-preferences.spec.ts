@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./coverage";
 import { readEditorSource } from "./editor-helpers";
 
 test("editor preferences apply, cancel and persist without changing source or existing view", async ({ page }) => {
