@@ -869,6 +869,29 @@ export function parseGantt(source: string): ParseResult {
       });
   }
 
+  // Several start constraints from different predecessors on one task are ambiguous: the author
+  // usually meant to keep exactly one. (Same-predecessor disagreements are reported above.)
+  const startGroups = new Map<string, GanttDependency[]>();
+  for (const dependency of dependencies) {
+    if (!dependency.relation.startsWith("start-")) continue;
+    const group = startGroups.get(dependency.successorTaskId);
+    if (group) group.push(dependency);
+    else startGroups.set(dependency.successorTaskId, [dependency]);
+  }
+  for (const group of startGroups.values()) {
+    if (new Set(group.map((item) => item.predecessorTaskId)).size < 2) continue;
+    for (const dependency of group)
+      diagnostics.push({
+        severity: "warning",
+        message:
+          `'${dependency.successor.value}' has ${group.length} start constraints from different tasks ` +
+          `(${[...new Set(group.map((item) => item.predecessor.value))].map((name) => `'${name}'`).join(", ")}). ` +
+          `Keep only the one that should drive its start.`,
+        range: dependency.sourceRange,
+        code: "duplicate-start",
+      });
+  }
+
   for (const task of taskMap.values()) {
     if (task.sameRowTaskId) {
       task.sameRowTaskId = taskReferences.get(task.sameRowTaskId) ?? task.sameRowTaskId;
